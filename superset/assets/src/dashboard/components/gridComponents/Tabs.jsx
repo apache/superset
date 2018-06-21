@@ -24,6 +24,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
   editMode: PropTypes.bool.isRequired,
+  renderHoverMenu: PropTypes.bool,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -43,6 +44,7 @@ const propTypes = {
 const defaultProps = {
   children: null,
   renderTabContent: true,
+  renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
   onChangeTab() {},
@@ -132,6 +134,7 @@ class Tabs extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       renderTabContent,
+      renderHoverMenu,
       editMode,
     } = this.props;
 
@@ -153,19 +156,20 @@ class Tabs extends React.PureComponent {
           dragSourceRef: tabsDragSourceRef,
         }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            {editMode && (
-              <HoverMenu innerRef={tabsDragSourceRef} position="left">
-                <DragHandle position="left" />
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-            )}
+            {editMode &&
+              renderHoverMenu && (
+                <HoverMenu innerRef={tabsDragSourceRef} position="left">
+                  <DragHandle position="left" />
+                  <DeleteComponentButton
+                    onDelete={this.handleDeleteComponent}
+                  />
+                </HoverMenu>
+              )}
 
             <BootstrapTabs
               id={tabsComponent.id}
               activeKey={selectedTabIndex}
               onSelect={this.handleClickTab}
-              // these are important for performant loading of tabs. also, there is a
-              // react-bootstrap bug where mountOnEnter has no effect unless animation=true
               animation
               mountOnEnter
               unmountOnExit={false}

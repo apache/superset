@@ -7,6 +7,8 @@ import {
   CHART_TYPE,
   COLUMN_TYPE,
   ROW_TYPE,
+  HEADER_TYPE,
+  TAB_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 describe('dropOverflowsParent', () => {
@@ -42,7 +44,7 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
   });
 
-  it('returns false if a parent DOES not have adequate width for child', () => {
+  it('returns false if a parent DOES have adequate width for child', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -74,9 +76,41 @@ describe('dropOverflowsParent', () => {
     expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
   });
 
-  it('it should base result off of column width (instead of its children) if dropped on column', () => {
+  it('returns false if a child CAN shrink to available parent space', () => {
     const dropResult = {
-      source: { id: 'z' },
+      source: { id: '_' },
+      destination: { id: 'a' },
+      dragging: { id: 'z' },
+    };
+
+    const layout = {
+      a: {
+        id: 'a',
+        type: ROW_TYPE,
+        children: ['b', 'b'], // 2x b = 10
+      },
+      b: {
+        id: 'b',
+        type: CHART_TYPE,
+        meta: {
+          width: 5,
+        },
+      },
+      z: {
+        id: 'z',
+        type: CHART_TYPE,
+        meta: {
+          width: 10,
+        },
+      },
+    };
+
+    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+  });
+
+  it('returns true if a child CANNOT shrink to available parent space', () => {
+    const dropResult = {
+      source: { id: '_' },
       destination: { id: 'a' },
       dragging: { id: 'b' },
     };
@@ -85,24 +119,71 @@ describe('dropOverflowsParent', () => {
       a: {
         id: 'a',
         type: COLUMN_TYPE,
-        meta: { width: 10 },
+        meta: {
+          width: 6,
+        },
+      },
+      // rows with children cannot shrink
+      b: {
+        id: 'b',
+        type: ROW_TYPE,
+        children: ['bChild', 'bChild', 'bChild'],
+      },
+      bChild: {
+        id: 'bChild',
+        type: CHART_TYPE,
+        meta: {
+          width: 3,
+        },
+      },
+    };
+
+    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+  });
+
+  it('returns true if a column has children that CANNOT shrink to available parent space', () => {
+    const dropResult = {
+      source: { id: '_' },
+      destination: { id: 'destination' },
+      dragging: { id: 'dragging' },
+    };
+
+    const layout = {
+      destination: {
+        id: 'destination',
+        type: ROW_TYPE,
+        children: ['b', 'b'], // 2x b = 10, 2 available
       },
       b: {
         id: 'b',
         type: CHART_TYPE,
         meta: {
-          width: 2,
+          width: 5,
         },
+      },
+      dragging: {
+        id: 'dragging',
+        type: COLUMN_TYPE,
+        meta: {
+          width: 10,
+        },
+        children: ['rowWithChildren'], // 2x b = width 10
+      },
+      rowWithChildren: {
+        id: 'rowWithChildren',
+        type: ROW_TYPE,
+        children: ['b', 'b'],
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    // remove children
     expect(
       dropOverflowsParent(dropResult, {
         ...layout,
-        a: { ...layout.a, meta: { width: 1 } },
+        dragging: { ...layout.dragging, children: [] },
       }),
-    ).to.equal(true);
+    ).to.equal(false);
   });
 
   it('should work with new components that are not in the layout', () => {
@@ -117,6 +198,27 @@ describe('dropOverflowsParent', () => {
         id: 'a',
         type: ROW_TYPE,
         children: [],
+      },
+    };
+
+    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+  });
+
+  it('source/destination without widths should not overflow parent', () => {
+    const dropResult = {
+      source: { id: '_' },
+      destination: { id: 'tab' },
+      dragging: { id: 'header' },
+    };
+
+    const layout = {
+      tab: {
+        id: 'tab',
+        type: TAB_TYPE,
+      },
+      header: {
+        id: 'header',
+        type: HEADER_TYPE,
       },
     };
 

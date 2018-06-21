@@ -16,6 +16,7 @@ describe('newEntitiesFromDrop', () => {
       dropResult: {
         destination: { id: 'a', index: 0 },
         dragging: { type: CHART_TYPE },
+        source: { id: 'b', index: 0 },
       },
       layout: {
         a: {
@@ -37,6 +38,7 @@ describe('newEntitiesFromDrop', () => {
       dropResult: {
         destination: { id: 'a', index: 0 },
         dragging: { type: TABS_TYPE },
+        source: { id: 'b', index: 0 },
       },
       layout: {
         a: {
@@ -61,6 +63,7 @@ describe('newEntitiesFromDrop', () => {
       dropResult: {
         destination: { id: 'a', index: 0 },
         dragging: { type: CHART_TYPE },
+        source: { id: 'b', index: 0 },
       },
       layout: {
         a: {

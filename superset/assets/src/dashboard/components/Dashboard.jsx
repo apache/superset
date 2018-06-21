@@ -77,10 +77,10 @@ class Dashboard extends React.PureComponent {
       eventNames: DASHBOARD_EVENT_NAMES,
     });
     Logger.start(this.actionLog);
+    this.initTs = new Date().getTime();
   }
 
   componentDidMount() {
-    this.ts_mount = new Date().getTime();
     Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
@@ -91,19 +91,22 @@ class Dashboard extends React.PureComponent {
         : 'v2';
       // log pane loads
       const loadedPaneIds = [];
-      const allPanesDidLoad = Object.entries(nextProps.loadStats).every(
+      let minQueryStartTime = Infinity;
+      const allVisiblePanesDidLoad = Object.entries(nextProps.loadStats).every(
         ([paneId, stats]) => {
-          const { didLoad, minQueryStartTime, ...restStats } = stats;
-
+          const {
+            didLoad,
+            minQueryStartTime: paneMinQueryStart,
+            ...restStats
+          } = stats;
           if (
             didLoad &&
             this.props.loadStats[paneId] &&
             !this.props.loadStats[paneId].didLoad
           ) {
-            const duration = new Date().getTime() - minQueryStartTime;
             Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
               ...restStats,
-              duration,
+              duration: new Date().getTime() - paneMinQueryStart,
               version,
             });
 
@@ -113,15 +116,18 @@ class Dashboard extends React.PureComponent {
           }
           if (this.isFirstLoad && didLoad && stats.slice_ids.length > 0) {
             loadedPaneIds.push(paneId);
+            minQueryStartTime = Math.min(minQueryStartTime, paneMinQueryStart);
           }
+
+          // return true if it is loaded, or it's index is not 0
           return didLoad || stats.index !== 0;
         },
       );
 
-      if (allPanesDidLoad && this.isFirstLoad) {
+      if (allVisiblePanesDidLoad && this.isFirstLoad) {
         Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
           pane_ids: loadedPaneIds,
-          duration: new Date().getTime() - this.ts_mount,
+          duration: new Date().getTime() - minQueryStartTime,
           version,
         });
         Logger.send(this.actionLog);

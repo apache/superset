@@ -6,13 +6,26 @@
   color: @almost-black;
 }
 
+.dashboard--editing .dashboard-grid .dashboard-component-header:after {
+  border: 1px dashed transparent;
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dashboard--editing .dashboard-grid .dashboard-component-header:hover:after {
+  border: 1px dashed @indicator-color;
+  z-index: 2;
+}
+
 .dashboard-header .dashboard-component-header {
   font-weight: 300;
   width: auto;
-}
-
-.dashboard-header .btn-group button {
-  margin-right: 8px;
 }
 
 .dashboard-header .undo-action,
@@ -23,6 +36,11 @@
 
 .dashboard--editing .dragdroppable-row .dashboard-component-header {
   cursor: move;
+}
+
+.header-style-option {
+  font-weight: 700;
+  color: @almost-black;
 }
 
 /* note: sizes should be a multiple of the 8px grid unit so that rows in the grid align */

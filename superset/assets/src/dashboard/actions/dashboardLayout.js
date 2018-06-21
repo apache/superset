@@ -2,16 +2,10 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import { addInfoToast } from './messageToasts';
 import { setUnsavedChanges } from './dashboardState';
-import {
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  TABS_TYPE,
-  ROW_TYPE,
-} from '../util/componentTypes';
+import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
-  GRID_MIN_COLUMN_COUNT,
   DASHBOARD_HEADER_ID,
 } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
@@ -117,22 +111,6 @@ export function resizeComponent({ id, width, height }) {
         },
       };
 
-      // set any resizable children to have a minimum width so that
-      // the chances that they are validly movable to future containers is maximized
-      component.children.forEach(childId => {
-        const child = dashboard[childId];
-        if ([CHART_TYPE, MARKDOWN_TYPE].includes(child.type)) {
-          updatedComponents[childId] = {
-            ...child,
-            meta: {
-              ...child.meta,
-              width: GRID_MIN_COLUMN_COUNT,
-              height: height || child.meta.height,
-            },
-          };
-        }
-      });
-
       dispatch(updateComponents(updatedComponents));
     }
   };
@@ -140,14 +118,12 @@ export function resizeComponent({ id, width, height }) {
 
 // Drag and drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
-function moveComponent(dropResult) {
-  return {
-    type: MOVE_COMPONENT,
-    payload: {
-      dropResult,
-    },
-  };
-}
+const moveComponent = setUnsavedChangesAfterAction(dropResult => ({
+  type: MOVE_COMPONENT,
+  payload: {
+    dropResult,
+  },
+}));
 
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {
@@ -160,7 +136,7 @@ export function handleComponentDrop(dropResult) {
     if (overflowsParent) {
       return dispatch(
         addInfoToast(
-          `Parent does not have enough space for this component. Try decreasing its width or add it to a new row.`,
+          `There is not enough space for this component. Try decreasing its width, or increasing the destination width.`,
         ),
       );
     }
@@ -191,6 +167,7 @@ export function handleComponentDrop(dropResult) {
       if (
         (sourceComponent.type === TABS_TYPE ||
           sourceComponent.type === ROW_TYPE) &&
+        sourceComponent.children &&
         sourceComponent.children.length === 0
       ) {
         const parentId = findParentId({
