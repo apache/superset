@@ -7,7 +7,6 @@ import ComponentLookup from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
-import { GRID_MIN_COLUMN_COUNT } from '../util/constants';
 
 import {
   createComponent,
