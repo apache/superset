@@ -83,13 +83,23 @@ export default class AdhocFilter {
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      return !!(
+      if (typeof (this.comparator) === 'number' && this.comparator === 0) {
+        return !!(
         this.operator &&
         this.subject &&
-        this.comparator &&
-        this.comparator.length > 0 &&
         this.clause
       );
+      }
+
+      let comparator_length = typeof (this.comparator) === 'number' ? this.comparator.toString().length : this.comparator.length;
+      return !!(
+      this.operator &&
+      this.subject &&
+      this.comparator &&
+      comparator_length &&
+      this.clause
+      );
+
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!(this.sqlExpression && this.clause);
     }
