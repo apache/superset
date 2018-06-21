@@ -3,6 +3,7 @@ import $ from 'jquery';
 import PropTypes from 'prop-types';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 
+import Loading from '../../../../components/Loading';
 import ModalTrigger from '../../../../components/ModalTrigger';
 import { t } from '../../../../locales';
 
@@ -130,11 +131,7 @@ class SliceAdder extends React.Component {
     }
     const modalContent = (
       <div>
-        <img
-          src="/static/assets/images/loading.gif"
-          className={'loading ' + (hideLoad ? 'hidden' : '')}
-          alt={hideLoad ? '' : 'loading'}
-        />
+        {!hideLoad && <Loading />}
         <div className={this.errored ? '' : 'hidden'}>
           {this.state.errorMsg}
         </div>

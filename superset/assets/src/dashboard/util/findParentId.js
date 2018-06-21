@@ -1,4 +1,4 @@
-export default function findParentId({ childId, layout = {} }) {
+function findParentId({ childId, layout = {} }) {
   let parentId = null;
 
   const ids = Object.keys(layout);
@@ -16,4 +16,16 @@ export default function findParentId({ childId, layout = {} }) {
   }
 
   return parentId;
+}
+
+const cache = {};
+export default function findParentIdWithCache({ childId, layout = {} }) {
+  if (cache[childId]) {
+    const lastParent = layout[cache[childId]] || {};
+    if (lastParent.children && lastParent.children.includes(childId)) {
+      return lastParent.id;
+    }
+  }
+  cache[childId] = findParentId({ childId, layout });
+  return cache[childId];
 }

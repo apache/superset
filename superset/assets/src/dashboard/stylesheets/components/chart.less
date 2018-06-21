@@ -31,13 +31,14 @@
   .resizable-container:hover
   > .dashboard-component-chart-holder:after,
 .dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1px solid @gray-light;
+  border: 1px dashed @indicator-color;
+  z-index: 2;
 }
 
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .dashboard-component-chart-holder:after {
-  border: 1px solid @indicator-color;
+  border: 1px dashed @indicator-color;
 }
 
 .dashboard--editing
@@ -61,4 +62,39 @@
   .slice_container {
   /* disable chart interactions in edit mode */
   pointer-events: none;
+}
+
+.slice-header-controls-trigger {
+  padding: 0 16px;
+  position: absolute;
+  top: 0;
+  right: -16px; //increase the click-able area for the button
+
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.dot {
+  height: 4px;
+  width: 4px;
+  background-color: @gray;
+  border-radius: 50%;
+  margin: 2px 0;
+  display: inline-block;
+
+  .is-cached & {
+    background-color: @pink;
+    box-shadow: 0 0 5px 1.5px rgba(255, 0, 0, 0.3);
+  }
+
+  .vertical-dots-container & {
+    display: block;
+  }
+
+  a[role='menuitem'] & {
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+  }
 }

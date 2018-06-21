@@ -1,5 +1,7 @@
+import componentIsResizable from './componentIsResizable';
 import shouldWrapChildInRow from './shouldWrapChildInRow';
 import newComponentFactory from './newComponentFactory';
+import getComponentWidthFromDrop from './getComponentWidthFromDrop';
 
 import { ROW_TYPE, TABS_TYPE, TAB_TYPE } from './componentTypes';
 
@@ -10,6 +12,12 @@ export default function newEntitiesFromDrop({ dropResult, layout }) {
   const dropEntity = layout[destination.id];
   const dropType = dropEntity.type;
   let newDropChild = newComponentFactory(dragType, dragging.meta);
+
+  if (componentIsResizable(dragging)) {
+    newDropChild.meta.width = // don't set a 0 width
+      getComponentWidthFromDrop({ dropResult, layout }) || undefined;
+  }
+
   const wrapChildInRow = shouldWrapChildInRow({
     parentType: dropType,
     childType: dragType,

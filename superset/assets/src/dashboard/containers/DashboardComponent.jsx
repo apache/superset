@@ -4,10 +4,9 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import ComponentLookup from '../components/gridComponents';
-import getTotalChildWidth from '../util/getChildWidth';
+import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
 import { componentShape } from '../util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
-import { GRID_MIN_COLUMN_COUNT } from '../util/constants';
 
 import {
   createComponent,
@@ -40,23 +39,15 @@ function mapStateToProps(
 
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
-  if (props.component.type === ROW_TYPE) {
-    props.occupiedColumnCount = getTotalChildWidth({
+  const componentType = component.type;
+  if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
+    const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
       id,
       components: dashboardLayout,
     });
-  } else if (props.component.type === COLUMN_TYPE) {
-    props.minColumnWidth = GRID_MIN_COLUMN_COUNT;
 
-    component.children.forEach(childId => {
-      // rows don't have widths, so find the width of its children
-      if (dashboardLayout[childId].type === ROW_TYPE) {
-        props.minColumnWidth = Math.max(
-          props.minColumnWidth,
-          getTotalChildWidth({ id: childId, components: dashboardLayout }),
-        );
-      }
-    });
+    if (componentType === ROW_TYPE) props.occupiedColumnCount = occupiedWidth;
+    if (componentType === COLUMN_TYPE) props.minColumnWidth = minimumWidth;
   }
 
   return props;
