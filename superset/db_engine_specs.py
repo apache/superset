@@ -1001,7 +1001,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
+        sql = """CREATE TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')""".format(**locals())
