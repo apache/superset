@@ -1331,10 +1331,10 @@ class DruidDatasource(Model, BaseDatasource):
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
 
-        df = self.homogenize_types(df, query_obj.get('groupby', []))
-
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [
             DTTM_ALIAS if c in ('timestamp', '__time') else c
             for c in df.columns
