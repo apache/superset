@@ -74,7 +74,8 @@ class SupersetDataFrame(object):
             db_engine_spec.get_normalized_column_names(cursor_description))
 
         data = data or []
-        df = pd.DataFrame(list(data), columns=column_names).infer_objects()
+        self.df = (
+            pd.DataFrame(list(data), columns=column_names).infer_objects())
 
         self._type_dict = {}
         try:
@@ -95,8 +96,8 @@ class SupersetDataFrame(object):
     def data(self):
         # work around for https://github.com/pandas-dev/pandas/issues/18372
         data = [dict((k, _maybe_box_datetimelike(v))
-                for k, v in zip(self.__df.columns, np.atleast_1d(row)))
-                for row in self.__df.values]
+                for k, v in zip(self.df.columns, np.atleast_1d(row)))
+                for row in self.df.values]
         for d in data:
             for k, v in list(d.items()):
                 # if an int is too big for Java Script to handle
