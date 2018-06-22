@@ -76,8 +76,8 @@ const store = createStore(rootReducer, initState,
 ReactDOM.render(
   <Provider store={store}>
     <div>
-      <ExploreViewContainer />
       <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
+      <ExploreViewContainer />
     </div>
   </Provider>,
   exploreViewContainer,
