@@ -61,26 +61,10 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {
-            'DASHBOARD_VERSION_KEY': 'v2',
-        }
-        for i, slc in enumerate(dash.slices):
-            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
-            d = {
-                'type': 'DASHBOARD_CHART_TYPE',
-                'id': id,
-                'children': [],
-                'meta': {
-                    'width': 4,
-                    'height': 50,
-                    'chartId': slc.id,
-                },
-            }
-            positions[id] = d
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': positions,
+            'positions': dash.position_array,
             'dashboard_title': dash.dashboard_title,
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -91,29 +75,13 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
-        positions = {
-            'DASHBOARD_VERSION_KEY': 'v2',
-        }
-        for i, slc in enumerate(dash.slices):
-            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
-            d = {
-                'type': 'DASHBOARD_CHART_TYPE',
-                'id': id,
-                'children': [],
-                'meta': {
-                    'width': 4,
-                    'height': 50,
-                    'chartId': slc.id,
-                },
-            }
-            positions[id] = d
 
         filters = {str(dash.slices[0].id): {'region': ['North America']}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': positions,
+            'positions': dash.position_array,
             'dashboard_title': dash.dashboard_title,
             'default_filters': default_filters,
         }
@@ -138,26 +106,10 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         origin_title = dash.dashboard_title
-        positions = {
-            'DASHBOARD_VERSION_KEY': 'v2',
-        }
-        for i, slc in enumerate(dash.slices):
-            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
-            d = {
-                'type': 'DASHBOARD_CHART_TYPE',
-                'id': id,
-                'children': [],
-                'meta': {
-                    'width': 4,
-                    'height': 50,
-                    'chartId': slc.id,
-                },
-            }
-            positions[id] = d
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': positions,
+            'positions': dash.position_array,
             'dashboard_title': 'new title',
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -168,7 +120,7 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         self.assertEqual(updatedDash.dashboard_title, 'new title')
-        # # bring back dashboard original title
+        # bring back dashboard original title
         data['dashboard_title'] = origin_title
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
@@ -176,27 +128,11 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {
-            'DASHBOARD_VERSION_KEY': 'v2',
-        }
-        for i, slc in enumerate(dash.slices):
-            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
-            d = {
-                'type': 'DASHBOARD_CHART_TYPE',
-                'id': id,
-                'children': [],
-                'meta': {
-                    'width': 4,
-                    'height': 50,
-                    'chartId': slc.id,
-                },
-            }
-            positions[id] = d
         data = {
             'css': '',
             'duplicate_slices': False,
             'expanded_slices': {},
-            'positions': positions,
+            'positions': dash.position_array,
             'dashboard_title': 'Copy Of Births',
         }
 
@@ -250,25 +186,8 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {
-            'DASHBOARD_VERSION_KEY': 'v2',
-        }
+        positions = dash.position_array[:-1]
         origin_slices_length = len(dash.slices)
-        for i, slc in enumerate(dash.slices):
-            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
-            d = {
-                'type': 'DASHBOARD_CHART_TYPE',
-                'id': id,
-                'children': [],
-                'meta': {
-                    'width': 4,
-                    'height': 50,
-                    'chartId': slc.id,
-                },
-            }
-            # remove last slice
-            if i < len(dash.slices) - 1:
-                positions[id] = d
 
         data = {
             'css': '',
