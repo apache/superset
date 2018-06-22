@@ -38,7 +38,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
-        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
