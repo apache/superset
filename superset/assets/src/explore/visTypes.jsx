@@ -1890,6 +1890,43 @@ export const visTypes = {
       sections.NVD3TimeSeries[1],
     ],
   },
+
+  spider_radar: {
+    label: t('Spider/Radar Diagram'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['metrics'],
+          ['groupby'],
+          ['spider_max_value'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'], ['show_legend'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      groupby: {
+        label: t('Group By'),
+        multi: true,
+        validators: [v.nonEmpty],
+        description: t('Choose a source for your spider'),
+      },
+      metrics: {
+        label: t('Metric'),
+        multi: true,
+        validators: [v.nonEmpty],
+        description: t('Choose a target metric for your spider'),
+      },
+    },
+  },
+
 };
 
 export default visTypes;

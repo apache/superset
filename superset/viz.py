@@ -2548,6 +2548,38 @@ class RoseViz(NVD3TimeSeriesViz):
         return result
 
 
+class SpiderRadarViz(BaseViz):
+    """
+    A spider / radar chart.
+    """
+
+    viz_type = 'spider_radar'
+    verbose_name = _('Spider Radar Diagram')
+    credits = (
+        '<a href=https://www.visualcinnamon.com/>Nadieh Bremer, Data Viz Expert</a>')
+    is_timeseries = False
+
+    def get_data(self, df):
+        fd = self.form_data
+        metrics = fd.get('metrics')
+        groupby = fd.get('groupby')
+
+        axis_map = groupby[0]
+        # if not isinstance(metrics[0], str):
+        #     value_map = metrics[0].get('label')
+        # else:
+        value_map = metrics[0]
+
+        d = [[{
+            'axis': row[axis_map],
+            'value': row[value_map]} for index, row in df.iterrows()]]
+
+        result = {
+            'scenarios': d,
+        }
+        return result
+
+
 class PartitionViz(NVD3TimeSeriesViz):
 
     """

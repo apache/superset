@@ -1732,6 +1732,16 @@ export const controls = {
     }),
   },
 
+  spider_max_value: {
+    type: 'FixedOrMetricControl',
+    label: t('Max/Outer Circle Value'),
+    default: { type: 'fix', value: 5 },
+    description: t('Pick a value against which points will be compared'),
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+  },
+
   point_radius: {
     type: 'SelectControl',
     label: t('Point Radius'),
