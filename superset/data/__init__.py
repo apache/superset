@@ -184,6 +184,27 @@ def load_energy():
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
 
+    slc = Slice(
+        slice_name="Spider/Radar",
+        viz_type='spider_radar',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=textwrap.dedent("""\
+        {
+            "groupby": [
+                "source"
+            ],
+            "having": "",
+            "metrics": ["avg__value"],
+            "slice_name": "Spider/Radar",
+            "viz_type": "spider_radar",
+            "where": "value > 4"
+        }
+        """),
+    )
+    misc_dash_slices.append(slc.slice_name)
+    merge_slice(slc)
+
 
 def load_world_bank_health_n_pop():
     """Loads the world bank health dataset, slices and a dashboard"""

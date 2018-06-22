@@ -744,6 +744,45 @@ class RoseVisTestCase(SupersetTestCase):
         self.assertEqual(expected, res)
 
 
+class SpiderVizTestCase(unittest.TestCase):
+
+    def test_spider_viz_get_data(self):
+        raw = dict({})
+        raw['source'] = ['Energy',
+                         'Deforestation', 'Land Use Change',
+                         'Road', 'Transportation',
+                         'Residential Buildings',
+                         'Other Industry', 'Commercial Buildings',
+                         'Agriculture', 'Agriculture Soils',
+                         'Electricity and heat']
+        raw['avg__value'] = [15.625, 10.9, 10.9, 10.5,
+                             10.5, 10.2, 6.6, 6.3, 5.3, 5.2, 5.1]
+        df = pd.DataFrame(raw)
+        form_data = {
+            'metrics': ['avg__value'],
+            'groupby': ['source'],
+        }
+        test_viz = viz.SpiderRadarViz(Mock(), form_data)
+        res = test_viz.get_data(df)
+        expected = {
+            'scenarios': [
+                [
+                    {'axis': 'Energy', 'value': 15.625},
+                    {'axis': 'Deforestation', 'value': 10.9},
+                    {'axis': 'Land Use Change', 'value': 10.9},
+                    {'axis': 'Road', 'value': 10.5},
+                    {'axis': 'Transportation', 'value': 10.5},
+                    {'axis': 'Residential Buildings', 'value': 10.2},
+                    {'axis': 'Other Industry', 'value': 6.6},
+                    {'axis': 'Commercial Buildings', 'value': 6.3},
+                    {'axis': 'Agriculture', 'value': 5.3},
+                    {'axis': 'Agriculture Soils', 'value': 5.2},
+                    {'axis': 'Electricity and heat', 'value': 5.1},
+                ],
+            ]}
+        self.assertEqual(res, expected)
+
+
 class TimeSeriesTableVizTestCase(SupersetTestCase):
 
     def test_get_data_metrics(self):
