@@ -698,11 +698,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         return uri
 
     @classmethod
-    def get_datatype(cls, type_code):
-        if isinstance(type_code, basestring) and len(type_code):
-            return type_code.upper()
-
-    @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
