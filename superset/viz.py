@@ -1317,6 +1317,7 @@ class NVD3DualLineViz(NVD3Viz):
             self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
+            m = utils.get_metric_name(m)
             ys = series[m]
             if df[m].dtype.kind not in 'biufc':
                 continue
