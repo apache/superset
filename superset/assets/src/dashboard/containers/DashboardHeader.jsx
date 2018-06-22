@@ -79,4 +79,7 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardHeader);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(DashboardHeader);

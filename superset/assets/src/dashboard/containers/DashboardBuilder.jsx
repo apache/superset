@@ -27,4 +27,7 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardBuilder);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(DashboardBuilder);

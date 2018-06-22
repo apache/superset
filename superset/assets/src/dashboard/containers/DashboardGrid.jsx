@@ -23,4 +23,7 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(DashboardGrid);

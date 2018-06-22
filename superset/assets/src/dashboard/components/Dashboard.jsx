@@ -53,6 +53,7 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
+  // eslint-disable-next-line react/sort-comp
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);

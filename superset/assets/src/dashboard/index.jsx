@@ -21,7 +21,10 @@ const initState = getInitialState(bootstrapData);
 const store = createStore(
   rootReducer,
   initState,
-  compose(applyMiddleware(thunk), initEnhancer(false)),
+  compose(
+    applyMiddleware(thunk),
+    initEnhancer(false),
+  ),
 );
 
 ReactDOM.render(

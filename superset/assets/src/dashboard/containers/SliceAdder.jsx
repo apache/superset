@@ -25,4 +25,7 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SliceAdder);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(SliceAdder);

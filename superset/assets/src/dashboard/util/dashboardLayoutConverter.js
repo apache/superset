@@ -85,7 +85,7 @@ function getChartHolder(item) {
   );
   const height = Math.max(
     GRID_MIN_ROW_UNITS,
-    Math.round(size_y / GRID_RATIO * 100 / ROW_HEIGHT),
+    Math.round(((size_y / GRID_RATIO) * 100) / ROW_HEIGHT),
   );
   if (code !== undefined) {
     let markdownContent = ' '; // white-space markdown
