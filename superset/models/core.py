@@ -418,7 +418,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         def alter_positions(dashboard, old_to_new_slc_id_dict):
             """ Updates slice_ids in the position json.
 
-            Sample position json:
+            Sample position json v1:
             [{
                 "col": 5,
                 "row": 10,
@@ -426,16 +426,59 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 "size_y": 2,
                 "slice_id": "3610"
             }]
+
+            Sample position json v2:
+            {
+                "DASHBOARD_VERSION_KEY": "v2",
+                "DASHBOARD_ROOT_ID": {
+                    "type": "DASHBOARD_ROOT_TYPE",
+                    "id": "DASHBOARD_ROOT_ID",
+                    "children": ["DASHBOARD_GRID_ID"]
+                },
+                "DASHBOARD_GRID_ID": {
+                    "type": "DASHBOARD_GRID_TYPE",
+                    "id": "DASHBOARD_GRID_ID",
+                    "children": ["DASHBOARD_CHART_TYPE-2"]
+                },
+                "DASHBOARD_CHART_TYPE-2": {
+                    "type": "DASHBOARD_CHART_TYPE",
+                    "id": "DASHBOARD_CHART_TYPE-2",
+                    "children": [],
+                    "meta": {
+                        "width": 4,
+                        "height": 50,
+                        "chartId": 118
+                    }
+                },
+            }
             """
-            position_array = dashboard.position_array
-            for position in position_array:
-                if 'slice_id' not in position:
-                    continue
-                old_slice_id = int(position['slice_id'])
-                if old_slice_id in old_to_new_slc_id_dict:
-                    position['slice_id'] = '{}'.format(
-                        old_to_new_slc_id_dict[old_slice_id])
-            dashboard.position_json = json.dumps(position_array)
+            position_data = json.loads(dashboard.position_json)
+            is_v2_dash = (
+                isinstance(position_data, dict) and
+                position_data.get('DASHBOARD_VERSION_KEY') == 'v2'
+            )
+            if is_v2_dash:
+                position_json = position_data.values()
+                for value in position_json:
+                    if (isinstance(value, dict) and value.get('meta') and
+                            value.get('meta').get('chartId')):
+                        old_slice_id = value.get('meta').get('chartId')
+
+                        if old_slice_id in old_to_new_slc_id_dict:
+                            value['meta']['chartId'] = (
+                                old_to_new_slc_id_dict[old_slice_id]
+                            )
+                dashboard.position_json = json.dumps(position_data)
+            else:
+                position_array = dashboard.position_array
+                for position in position_array:
+                    if 'slice_id' not in position:
+                        continue
+                    old_slice_id = int(position['slice_id'])
+                    if old_slice_id in old_to_new_slc_id_dict:
+                        position['slice_id'] = '{}'.format(
+                            old_to_new_slc_id_dict[old_slice_id])
+                dashboard.position_json = json.dumps(position_array)
 
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
