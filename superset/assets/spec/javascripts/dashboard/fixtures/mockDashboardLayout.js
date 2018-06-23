@@ -7,6 +7,7 @@ import {
   CHART_TYPE,
   ROW_TYPE,
   COLUMN_TYPE,
+  MARKDOWN_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 import {
@@ -66,6 +67,11 @@ export const dashboardLayout = {
         height: 10,
         chartName: 'Mock chart name',
       },
+    },
+
+    MARKDOWN_ID: {
+      ...newComponentFactory(MARKDOWN_TYPE),
+      id: 'MARKDOWN_ID',
     },
   },
   future: [],

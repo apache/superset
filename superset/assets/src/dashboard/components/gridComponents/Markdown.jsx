@@ -163,7 +163,7 @@ class Markdown extends React.PureComponent {
   }
 
   render() {
-    const { isFocused } = this.state;
+    const { isFocused, editorMode } = this.state;
 
     const {
       component,
@@ -185,7 +185,7 @@ class Markdown extends React.PureComponent {
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
-    const isEditing = this.state.editorMode === 'edit';
+    const isEditing = editorMode === 'edit';
 
     return (
       <DragDroppable
