@@ -71,7 +71,7 @@ export const dashboardLayout = {
 
     MARKDOWN_ID: {
       ...newComponentFactory(MARKDOWN_TYPE),
-      id: 'CHART_ID',
+      id: 'MARKDOWN_ID',
     },
   },
   future: [],
