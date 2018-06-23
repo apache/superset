@@ -19,9 +19,11 @@ const defaultProps = {
 
 describe('DateFilterControl', () => {
   let wrapper;
+  let popover;
 
   beforeEach(() => {
     wrapper = shallow(<DateFilterControl {...defaultProps} />);
+    popover = shallow(wrapper.instance().renderPopover());
   });
 
   it('renders a ControlHeader', () => {
@@ -29,43 +31,12 @@ describe('DateFilterControl', () => {
     expect(controlHeader).to.have.lengthOf(1);
   });
   it('renders 3 Buttons', () => {
-    const label = wrapper.find('.label').first();
-    label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.find(Button)).to.have.length(3);
-    }, 10);
+    expect(popover.find(Button)).to.have.length(3);
   });
   it('loads the right state', () => {
-    const label = wrapper.find('.label').first();
-    label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.state().num).to.equal('90');
-    }, 10);
-  });
-  it('sets now and closes', () => {
-    const label = wrapper.find('.now').first();
-    label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.state().free).to.equal('now');
-      expect(wrapper.find('.popover')).to.have.length(0);
-    }, 10);
+    expect(wrapper.state().num).to.equal('90');
   });
   it('renders 2 dimmed sections', () => {
-    const label = wrapper.find('.label').first();
-    label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.find(Button)).to.have.length(3);
-    }, 10);
-  });
-  it('opens and closes', () => {
-    const label = wrapper.find('.label').first();
-    label.simulate('click');
-    setTimeout(() => {
-      expect(wrapper.find('.popover')).to.have.length(1);
-      expect(wrapper.find('.ok')).first().simulate('click');
-      setTimeout(() => {
-        expect(wrapper.find('.popover')).to.have.length(0);
-      }, 10);
-    }, 10);
+    expect(popover.find(Button)).to.have.length(3);
   });
 });

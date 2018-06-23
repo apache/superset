@@ -2,7 +2,6 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { mount } from 'enzyme';
-import { Modal } from 'react-bootstrap';
 import ModalTrigger from './../../../../src/components/ModalTrigger';
 
 import DisplayQueryButton from '../../../../src/explore/components/DisplayQueryButton';
