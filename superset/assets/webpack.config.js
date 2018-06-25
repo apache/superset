@@ -20,6 +20,7 @@ const config = {
     addSlice: ['babel-polyfill', APP_DIR + '/src/addSlice/index.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/src/explore/index.jsx'],
     dashboard: ['babel-polyfill', APP_DIR + '/src/dashboard/index.jsx'],
+    dashboard_deprecated: ['babel-polyfill', APP_DIR + '/src/dashboard/deprecated/v1/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/src/SqlLab/index.jsx'],
     welcome: ['babel-polyfill', APP_DIR + '/src/welcome/index.jsx'],
     profile: ['babel-polyfill', APP_DIR + '/src/profile/index.jsx'],

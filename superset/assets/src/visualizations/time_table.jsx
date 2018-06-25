@@ -71,7 +71,9 @@ function viz(slice, payload) {
         <MetricOption metric={metricData} url={url} showFormula={false} openInNewWindow />
       );
     } else {
-      leftCell = url ? <a href={url} target="_blank">{metricLabel}</a> : metric;
+      leftCell = url
+        ? <a href={url} rel="noopener noreferrer" target="_blank">{metricLabel}</a>
+        : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((column) => {
