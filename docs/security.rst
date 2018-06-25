@@ -10,7 +10,7 @@ Provided Roles
 --------------
 Superset ships with a set of roles that are handled by Superset itself.
 You can assume that these roles will stay up-to-date as Superset evolves.
-Even though it's possible for ``Admin`` usrs to do so, it is not recommended
+Even though it's possible for ``Admin`` users to do so, it is not recommended
 that you alter these roles in any way by removing
 or adding permissions to them as these roles will be re-synchronized to
 their original values as you run your next ``superset init`` command.
@@ -70,7 +70,7 @@ sure the users with limited access have [only] the Gamma role assigned to
 them. Second, create a new role (``Menu -> Security -> List Roles``) and
 click the ``+`` sign.
 
-.. image:: _static/img/create_role.png
+.. image:: images/create_role.png
    :scale: 50 %
 
 This new window allows you to give this new role a name, attribute it to users

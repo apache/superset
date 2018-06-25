@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """dim_spec
 
 Revision ID: c611f2b591b8

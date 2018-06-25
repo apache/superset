@@ -32,10 +32,6 @@ input.form-control {
     background-color: white;
 }
 
-input.form-control.input-sm {
-  height: 36px;
-}
-
 .chart-header a.danger {
     color: red;
 }
@@ -189,8 +185,28 @@ div.widget .chart-header a {
   display: none;
 }
 
-div.widget .slice_container {
-  overflow: hidden;
+.slice_container.faded {
+  opacity: .2;
+}
+
+div.widget {
+  .slice_container {
+    overflow: hidden;
+  }
+
+  .stack-trace-container.has-trace {
+    .alert-warning:hover {
+      cursor: pointer;
+    }
+  }
+
+  .is-loading {
+    .stack-trace-container,
+    .slice_container {
+      opacity: 0.5;
+      position: relative;
+    }
+  }
 }
 
 .navbar .alert {
@@ -207,13 +223,17 @@ div.widget .slice_container {
     float: left;
 }
 
+table.table-no-hover tr:hover {
+    background-color: initial;
+}
+
 .editable-title input {
     padding: 2px 6px 3px 6px;
 }
 
 .editable-title input[type="button"] {
     border-color: transparent;
-    background: inherit;
+    background: transparent;
     white-space: normal;
     text-align: left;
 }
@@ -234,8 +254,17 @@ div.widget .slice_container {
 .m-t-5 {
     margin-top: 5px;
 }
+.m-t-10 {
+    margin-top: 10px;
+}
+.m-b-10 {
+    margin-bottom: 10px;
+}
 .m-l-5 {
     margin-left: 5px;
+}
+.m-l-10 {
+    margin-left: 10px;
 }
 .m-l-25 {
     margin-left: 25px;
@@ -345,22 +374,6 @@ iframe {
     color: transparent;
 }
 
-// overwrite react-select css
-.Select--multi {
-  .Select-multi-value-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-  }
-
-  .Select-value {
-    height: 23px;
-  }
-
-  .Select-input > input {
-    width: 100px;
-  }
-}
-
 .dimmed {
   opacity: 0.5;
 }
@@ -371,7 +384,7 @@ iframe {
   padding-bottom: 10px;
 }
 .popover {
-  max-width: 500px !important;
+  max-width: 500px;
 }
 .float-left {
   float: left;
@@ -393,4 +406,52 @@ g.annotation-container {
 }
 .stroke-primary {
   stroke: @brand-primary;
+}
+.reactable-header-sortable{
+    position:relative;
+    padding-right: 40px;
+}
+
+.reactable-header-sortable::before{
+    font: normal normal normal 14px/1 FontAwesome;
+    content: "\f0dc";
+    position: absolute;
+    top: 17px;
+    right: 15px;
+    color: @brand-primary;
+}
+.reactable-header-sort-asc::before{
+    content: "\f0de";
+    color: @brand-primary;
+}
+.reactable-header-sort-desc::before{
+    content: "\f0dd";
+    color: @brand-primary;
+}
+
+.explore-chart-overlay {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.refresh-overlay-btn {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.dismiss-overlay-btn {
+  font-weight: bold;
+  background: white;
+  color: @brand-primary;
+  border-color: @brand-primary;
+}
+
+.metric-edit-popover-label-input {
+  border-radius: 4px;
+  height: 30px;
+  padding-left: 10px;
 }

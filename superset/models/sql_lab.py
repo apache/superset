@@ -1,27 +1,26 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import re
 from datetime import datetime
-
-from future.standard_library import install_aliases
+import re
 
 from flask import Markup
-
 from flask_appbuilder import Model
-
+from future.standard_library import install_aliases
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Numeric, )
+    Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text,
+)
 from sqlalchemy.orm import backref, relationship
 
-from superset import sm
-from superset.utils import QueryStatus
+from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
+from superset.utils import QueryStatus, user_label
 
 install_aliases()
 
@@ -78,10 +77,10 @@ class Query(Model):
         'Database',
         foreign_keys=[database_id],
         backref=backref('queries', cascade='all, delete-orphan'))
-    user = relationship(sm.user_model, foreign_keys=[user_id])
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
     __table_args__ = (
-        sqla.Index('ti_user_id_changed_on', user_id, changed_on), 
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
     )
 
     @property
@@ -111,7 +110,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
-            'user': self.user.username,
+            'user': user_label(self.user),
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,
@@ -125,7 +124,7 @@ class Query(Model):
         tab = (self.tab_name.replace(' ', '_').lower()
                if self.tab_name else 'notab')
         tab = re.sub(r'\W+', '', tab)
-        return "sqllab_{tab}_{ts}".format(**locals())
+        return 'sqllab_{tab}_{ts}'.format(**locals())
 
 
 class SavedQuery(Model, AuditMixinNullable):
@@ -140,7 +139,7 @@ class SavedQuery(Model, AuditMixinNullable):
     description = Column(Text)
     sql = Column(Text)
     user = relationship(
-        sm.user_model,
+        security_manager.user_model,
         backref=backref('saved_queries', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
     database = relationship(

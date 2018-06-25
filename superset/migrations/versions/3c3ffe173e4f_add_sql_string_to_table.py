@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add_sql_string_to_table
 
 Revision ID: 3c3ffe173e4f

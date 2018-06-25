@@ -1,10 +1,18 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import json
 
+from past.builtins import basestring
 from sqlalchemy import (
-    and_, Column, Integer, String, Text, Boolean,
+    and_, Boolean, Column, Integer, String, Text,
 )
-from sqlalchemy.orm import foreign, relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import foreign, relationship
 
 from superset import utils
 from superset.models.core import Slice
@@ -47,8 +55,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return relationship(
             'Slice',
             primaryjoin=lambda: and_(
-              foreign(Slice.datasource_id) == self.id,
-              foreign(Slice.datasource_type) == self.type))
+                foreign(Slice.datasource_id) == self.id,
+                foreign(Slice.datasource_type) == self.type,
+            ),
+        )
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
@@ -58,7 +68,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @property
     def uid(self):
         """Unique id across datasource types"""
-        return "{self.id}__{self.type}".format(**locals())
+        return '{self.id}__{self.type}'.format(**locals())
 
     @property
     def column_names(self):
@@ -70,7 +80,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def main_dttm_col(self):
-        return "timestamp"
+        return 'timestamp'
 
     @property
     def connection(self):
@@ -103,7 +113,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+            return '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
 
     @property
     def column_formats(self):
@@ -112,6 +122,13 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             for m in self.metrics
             if m.d3format
         }
+
+    def add_missing_metrics(self, metrics):
+        exisiting_metrics = {m.metric_name for m in self.metrics}
+        for metric in metrics:
+            if metric.metric_name not in exisiting_metrics:
+                metric.table_id = self.id
+                self.metrics += [metric]
 
     @property
     def metrics_combo(self):
@@ -143,10 +160,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
-        verbose_map = {
+        verbose_map = {'__timestamp': 'Time'}
+        verbose_map.update({
             o.metric_name: o.verbose_name or o.metric_name
             for o in self.metrics
-        }
+        })
         verbose_map.update({
             o.column_name: o.verbose_name or o.column_name
             for o in self.columns
@@ -154,6 +172,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return {
             'all_cols': utils.choicify(self.column_names),
             'column_formats': self.column_formats,
+            'database': self.database.data,  # pylint: disable=no-member
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
             'filterable_cols': utils.choicify(self.filterable_column_names),
@@ -167,6 +186,35 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'columns': [o.data for o in self.columns],
             'verbose_map': verbose_map,
         }
+
+    @staticmethod
+    def filter_values_handler(
+            values, target_column_is_numeric=False, is_list_target=False):
+        def handle_single_value(v):
+            # backward compatibility with previous <select> components
+            if isinstance(v, basestring):
+                v = v.strip('\t\n \'"')
+                if target_column_is_numeric:
+                    # For backwards compatibility and edge cases
+                    # where a column data type might have changed
+                    v = utils.string_to_num(v)
+                if v == '<NULL>':
+                    return None
+                elif v == '<empty string>':
+                    return ''
+            return v
+        if isinstance(values, (list, tuple)):
+            values = [handle_single_value(v) for v in values]
+        else:
+            values = handle_single_value(values)
+        if is_list_target and not isinstance(values, (tuple, list)):
+            values = [values]
+        elif not is_list_target and isinstance(values, (tuple, list)):
+            if len(values) > 0:
+                values = values[0]
+            else:
+                values = None
+        return values
 
     def get_query_str(self, query_obj):
         """Returns a query as a string
@@ -189,6 +237,15 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         This is used to populate the dropdown showing a list of
         values in filters in the explore view"""
         raise NotImplementedError()
+
+    @staticmethod
+    def default_query(qry):
+        return qry
+
+    def get_column(self, column_name):
+        for col in self.columns:
+            if col.column_name == column_name:
+                return col
 
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
@@ -219,7 +276,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     num_types = (
         'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
-        'LONG', 'REAL', 'NUMERIC', 'DECIMAL'
+        'LONG', 'REAL', 'NUMERIC', 'DECIMAL', 'MONEY',
     )
     date_types = ('DATE', 'TIME', 'DATETIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
@@ -253,7 +310,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby', 'is_dttm')
+            'filterable', 'groupby', 'is_dttm', 'type')
         return {s: getattr(self, s) for s in attrs}
 
 

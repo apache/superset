@@ -6,8 +6,8 @@ import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../../../../javascripts/explore/components/controls/DateFilterControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+import DateFilterControl from '../../../../src/explore/components/controls/DateFilterControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   animation: false,
@@ -40,6 +40,14 @@ describe('DateFilterControl', () => {
     label.simulate('click');
     setTimeout(() => {
       expect(wrapper.state().num).to.equal('90');
+    }, 10);
+  });
+  it('sets now and closes', () => {
+    const label = wrapper.find('.now').first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.state().free).to.equal('now');
+      expect(wrapper.find('.popover')).to.have.length(0);
     }, 10);
   });
   it('renders 2 dimmed sections', () => {

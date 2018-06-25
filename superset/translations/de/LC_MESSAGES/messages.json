@@ -1,0 +1,2424 @@
+{
+   "domain": "superset",
+   "locale_data": {
+      "superset": {
+         "": {
+            "domain": "superset",
+            "plural_forms": "nplurals=2; plural=(n != 1)",
+            "lang": "de"
+         },
+         "Time Column": [
+            "Zeitspalte"
+         ],
+         "second": [
+            "Sekunde"
+         ],
+         "minute": [
+            "Minute"
+         ],
+         "hour": [
+            "Stunde"
+         ],
+         "day": [
+            "Tag"
+         ],
+         "week": [
+            "Woche"
+         ],
+         "month": [
+            "Monat"
+         ],
+         "quarter": [
+            "Vierteljahr"
+         ],
+         "year": [
+            "Jahr"
+         ],
+         "week_start_monday": [
+            ""
+         ],
+         "week_ending_saturday": [
+            ""
+         ],
+         "week_start_sunday": [
+            ""
+         ],
+         "5 minute": [
+            "5 Minuten"
+         ],
+         "half hour": [
+            "halbe Stunde"
+         ],
+         "10 minute": [
+            "10 Minuten"
+         ],
+         "[Superset] Access to the datasource %(name)s was granted": [
+            "[Superset] Zugriff auf Datenquelle %(name)s war genehmigt "
+         ],
+         "Viz fehlt eine Datenquelle": [
+            ""
+         ],
+         "From date cannot be larger than to date": [
+            "'Von Datum' kann nicht größer als 'bis Datum' sein"
+         ],
+         "Table View": [
+            "Tabellenansicht"
+         ],
+         "Pick a granularity in the Time section or uncheck 'Include Time'": [
+            ""
+         ],
+         "Choose either fields to [Group By] and [Metrics] or [Columns], not both": [
+            ""
+         ],
+         "Pivot Table": [
+            ""
+         ],
+         "Please choose at least one \"Group by\" field ": [
+            ""
+         ],
+         "Please choose at least one metric": [
+            ""
+         ],
+         "'Group By' and 'Columns' can't overlap": [
+            ""
+         ],
+         "Markup": [
+            ""
+         ],
+         "Separator": [
+            ""
+         ],
+         "Word Cloud": [
+            ""
+         ],
+         "Treemap": [
+            ""
+         ],
+         "Calendar Heatmap": [
+            ""
+         ],
+         "Box Plot": [
+            ""
+         ],
+         "Bubble Chart": [
+            ""
+         ],
+         "Pick a metric for x, y and size": [
+            ""
+         ],
+         "Bullet Chart": [
+            ""
+         ],
+         "Pick a metric to display": [
+            ""
+         ],
+         "Big Number with Trendline": [
+            ""
+         ],
+         "Pick a metric!": [
+            ""
+         ],
+         "Big Number": [
+            ""
+         ],
+         "Time Series - Line Chart": [
+            ""
+         ],
+         "Pick a time granularity for your time series": [
+            ""
+         ],
+         "Time Series - Dual Axis Line Chart": [
+            ""
+         ],
+         "Pick a metric for left axis!": [
+            ""
+         ],
+         "Pick a metric for right axis!": [
+            ""
+         ],
+         "Please choose different metrics on left and right axis": [
+            ""
+         ],
+         "Time Series - Bar Chart": [
+            ""
+         ],
+         "Time Series - Percent Change": [
+            ""
+         ],
+         "Time Series - Stacked": [
+            ""
+         ],
+         "Distribution - NVD3 - Pie Chart": [
+            ""
+         ],
+         "Histogram": [
+            "Histogramm"
+         ],
+         "Must have one numeric column specified": [
+            ""
+         ],
+         "Distribution - Bar Chart": [
+            ""
+         ],
+         "Can't have overlap between Series and Breakdowns": [
+            ""
+         ],
+         "Pick at least one metric": [
+            ""
+         ],
+         "Pick at least one field for [Series]": [
+            ""
+         ],
+         "Sunburst": [
+            ""
+         ],
+         "Sankey": [
+            ""
+         ],
+         "Pick exactly 2 columns as [Source / Target]": [
+            ""
+         ],
+         "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
+            ""
+         ],
+         "Directed Force Layout": [
+            ""
+         ],
+         "Pick exactly 2 columns to 'Group By'": [
+            ""
+         ],
+         "Country Map": [
+            ""
+         ],
+         "World Map": [
+            ""
+         ],
+         "Filters": [
+            ""
+         ],
+         "Pick at least one filter field": [
+            ""
+         ],
+         "iFrame": [
+            ""
+         ],
+         "Parallel Coordinates": [
+            ""
+         ],
+         "Heatmap": [
+            ""
+         ],
+         "Horizon Charts": [
+            ""
+         ],
+         "Mapbox": [
+            ""
+         ],
+         "Must have a [Group By] column to have 'count' as the [Label]": [
+            ""
+         ],
+         "Choice of [Label] must be present in [Group By]": [
+            ""
+         ],
+         "Choice of [Point Radius] must be present in [Group By]": [
+            ""
+         ],
+         "[Longitude] and [Latitude] columns must be present in [Group By]": [
+            ""
+         ],
+         "Event flow": [
+            ""
+         ],
+         "Time Series - Paired t-test": [
+            ""
+         ],
+         "Your query was saved": [
+            "Ihre Abfrage wurde gespeichert"
+         ],
+         "Your query could not be saved": [
+            "Ihre Abfrage konnte nicht gespeichert werden"
+         ],
+         "Failed at retrieving results from the results backend": [
+            ""
+         ],
+         "Could not connect to server": [
+            ""
+         ],
+         "Your session timed out, please refresh your page and try again.": [
+            ""
+         ],
+         "Query was stopped.": [
+            ""
+         ],
+         "Failed at stopping query.": [
+            ""
+         ],
+         "Error occurred while fetching table metadata": [
+            ""
+         ],
+         "shared query": [
+            ""
+         ],
+         "The query couldn't be loaded": [
+            ""
+         ],
+         "An error occurred while creating the data source": [
+            ""
+         ],
+         "Pick a chart type!": [
+            ""
+         ],
+         "To use this chart type you need at least one column flagged as a date": [
+            ""
+         ],
+         "To use this chart type you need at least one dimension": [
+            ""
+         ],
+         "To use this chart type you need at least one aggregation function": [
+            ""
+         ],
+         "Untitled Query": [
+            ""
+         ],
+         "Copy of %s": [
+            ""
+         ],
+         "share query": [
+            ""
+         ],
+         "copy URL to clipboard": [
+            ""
+         ],
+         "Raw SQL": [
+            ""
+         ],
+         "Source SQL": [
+            ""
+         ],
+         "SQL": [
+            ""
+         ],
+         "No query history yet...": [
+            ""
+         ],
+         "It seems you don't have access to any database": [
+            ""
+         ],
+         "Search Results": [
+            ""
+         ],
+         "[From]-": [
+            ""
+         ],
+         "[To]-": [
+            ""
+         ],
+         "[Query Status]": [
+            ""
+         ],
+         "Search": [
+            "Suche"
+         ],
+         "Open in SQL Editor": [
+            "Bearbeiten in SQL Editor"
+         ],
+         "view results": [
+            ""
+         ],
+         "Data preview": [
+            ""
+         ],
+         "Visualize the data out of this query": [
+            ""
+         ],
+         "Overwrite text in editor with a query on this table": [
+            ""
+         ],
+         "Run query in a new tab": [
+            ""
+         ],
+         "Remove query from log": [
+            ""
+         ],
+         ".CSV": [
+            ""
+         ],
+         "Visualize": [
+            "Visualalisieren"
+         ],
+         "Table": [
+            "Tabellen"
+         ],
+         "was created": [
+            ""
+         ],
+         "Query in a new tab": [
+            ""
+         ],
+         "Fetch data preview": [
+            ""
+         ],
+         "Track Job": [
+            ""
+         ],
+         "Loading...": [
+            ""
+         ],
+         "Run Selected Query": [
+            ""
+         ],
+         "Run Query": [
+            ""
+         ],
+         "Run query asynchronously": [
+            ""
+         ],
+         "Stop": [
+            "Stopp"
+         ],
+         "Undefined": [
+            ""
+         ],
+         "Label": [
+            ""
+         ],
+         "Label for your query": [
+            ""
+         ],
+         "Description": [
+            ""
+         ],
+         "Write a description for your query": [
+            ""
+         ],
+         "Save": [
+            ""
+         ],
+         "Cancel": [
+            ""
+         ],
+         "Save Query": [
+            ""
+         ],
+         "Run a query to display results here": [
+            ""
+         ],
+         "Preview for %s": [
+            ""
+         ],
+         "Results": [
+            ""
+         ],
+         "Query History": [
+            ""
+         ],
+         "Create table as with query results": [
+            ""
+         ],
+         "new table name": [
+            ""
+         ],
+         "Error while fetching table list": [
+            ""
+         ],
+         "Error while fetching schema list": [
+            ""
+         ],
+         "Error while fetching database list": [
+            ""
+         ],
+         "Database:": [
+            ""
+         ],
+         "Select a database": [
+            ""
+         ],
+         "Select a schema (%s)": [
+            ""
+         ],
+         "Schema:": [
+            ""
+         ],
+         "Add a table (%s)": [
+            ""
+         ],
+         "Type to search ...": [
+            ""
+         ],
+         "Reset State": [
+            ""
+         ],
+         "Enter a new title for the tab": [
+            ""
+         ],
+         "Untitled Query %s": [
+            ""
+         ],
+         "close tab": [
+            ""
+         ],
+         "rename tab": [
+            ""
+         ],
+         "expand tool bar": [
+            ""
+         ],
+         "hide tool bar": [
+            ""
+         ],
+         "Copy partition query to clipboard": [
+            ""
+         ],
+         "latest partition:": [
+            ""
+         ],
+         "Keys for table": [
+            ""
+         ],
+         "View keys & indexes (%s)": [
+            ""
+         ],
+         "Sort columns alphabetically": [
+            ""
+         ],
+         "Original table column order": [
+            ""
+         ],
+         "Copy SELECT statement to clipboard": [
+            ""
+         ],
+         "Remove table preview": [
+            ""
+         ],
+         "%s is not right as a column name, please alias it (as in SELECT count(*) ": [
+            ""
+         ],
+         "AS my_alias": [
+            ""
+         ],
+         "using only alphanumeric characters and underscores": [
+            ""
+         ],
+         "Creating a data source and popping a new tab": [
+            ""
+         ],
+         "No results available for this query": [
+            ""
+         ],
+         "Chart Type": [
+            ""
+         ],
+         "[Chart Type]": [
+            ""
+         ],
+         "Datasource Name": [
+            ""
+         ],
+         "datasource name": [
+            ""
+         ],
+         "Select ...": [
+            ""
+         ],
+         "Loaded data cached": [
+            ""
+         ],
+         "Loaded from cache": [
+            ""
+         ],
+         "Click to force-refresh": [
+            ""
+         ],
+         "Copy to clipboard": [
+            ""
+         ],
+         "Not successful": [
+            ""
+         ],
+         "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [
+            ""
+         ],
+         "Copied!": [
+            ""
+         ],
+         "Title": [
+            "Titel"
+         ],
+         "click to edit title": [
+            ""
+         ],
+         "You don't have the rights to alter this title.": [
+            ""
+         ],
+         "Click to favorite/unfavorite": [
+            ""
+         ],
+         "You have unsaved changes.": [
+            ""
+         ],
+         "Click the": [
+            ""
+         ],
+         "button on the top right to save your changes.": [
+            ""
+         ],
+         "Served from data cached %s . Click to force refresh.": [
+            "Von Daten dienten um %s im Cache gespeichert. Aktualisierung erzwingen durch Klicken"
+         ],
+         "Click to force refresh": [
+            "Aktualisierung erzwingen"
+         ],
+         "Error": [
+            "Fehler"
+         ],
+         "Sorry, there was an error adding slices to this dashboard: %s": [
+            ""
+         ],
+         "Active Dashboard Filters": [
+            ""
+         ],
+         "Checkout this dashboard: %s": [
+            ""
+         ],
+         "Force refresh the whole dashboard": [
+            "Ganze Dashboard Aktualisierung erzwingen"
+         ],
+         "Edit this dashboard's properties": [
+            "Dashboardeigenschaften bearbeiten"
+         ],
+         "Load a template": [
+            "Vorlage laden"
+         ],
+         "Load a CSS template": [
+            "CSS Vorlage laden"
+         ],
+         "CSS": [
+            "CSS"
+         ],
+         "Live CSS Editor": [
+            ""
+         ],
+         "Don't refresh": [
+            "Nicht aktualisieren"
+         ],
+         "10 seconds": [
+            "10 Sekunden"
+         ],
+         "30 seconds": [
+            "30 Sekunden"
+         ],
+         "1 minute": [
+            "1 Minute"
+         ],
+         "5 minutes": [
+            "5 Minuten"
+         ],
+         "Refresh Interval": [
+            "Aktualisierung Zwischenzeit"
+         ],
+         "Choose the refresh frequency for this dashboard": [
+            "Aktualisierungsfrequenz auswählen für dieses Dashboard"
+         ],
+         "This dashboard was saved successfully.": [
+            "Dashboard wurde erfolgreich gespeichert"
+         ],
+         "Sorry, there was an error saving this dashboard: ": [
+            ""
+         ],
+         "You must pick a name for the new dashboard": [
+            ""
+         ],
+         "Save Dashboard": [
+            "Dashboard speichern"
+         ],
+         "Overwrite Dashboard [%s]": [
+            ""
+         ],
+         "Save as:": [
+            "Speichern als:"
+         ],
+         "[dashboard name]": [
+            ""
+         ],
+         "Name": [
+            "Name"
+         ],
+         "Viz": [
+            ""
+         ],
+         "Modified": [
+            "Geändert"
+         ],
+         "Add Slices": [
+            ""
+         ],
+         "Add a new slice to the dashboard": [
+            ""
+         ],
+         "Add Slices to Dashboard": [
+            ""
+         ],
+         "Move chart": [
+            "Diagramm bewegen"
+         ],
+         "Force refresh data": [
+            "Aktualisierung erzwingen"
+         ],
+         "Toggle chart description": [
+            "Diagramm Beschreibung umschalten"
+         ],
+         "Edit chart": [
+            "Diagramm bearbeiten"
+         ],
+         "Export CSV": [
+            "Exportieren als CSV"
+         ],
+         "Explore chart": [
+            "Diagramm untersuchen"
+         ],
+         "Remove chart from dashboard": [
+            "Diagramm von Dashboard entfernen"
+         ],
+         "%s - untitled": [
+            "%s - unbenannt"
+         ],
+         "Edit slice properties": [
+            ""
+         ],
+         "description": [
+            "Beschreibung"
+         ],
+         "bolt": [
+            ""
+         ],
+         "Error...": [
+            "Fehler..."
+         ],
+         "Query": [
+            "Abfrage"
+         ],
+         "Height": [
+            "Höhe"
+         ],
+         "Width": [
+            "Breite"
+         ],
+         "Export to .json": [
+            "Exportieren als JSON"
+         ],
+         "Export to .csv format": [
+            "Exportieren als CSV"
+         ],
+         "Please enter a slice name": [
+            "Bitten Scheibename eingeben"
+         ],
+         "Please select a dashboard": [
+            "Bitte Dashboard auswählen"
+         ],
+         "Please enter a dashboard name": [
+            "Bitte Dashboardname eingeben"
+         ],
+         "Save A Slice": [
+            "Scheibe speichern"
+         ],
+         "Overwrite slice %s": [
+            "Überschreiben Scheibe %s"
+         ],
+         "Save as": [
+            "Speichern als"
+         ],
+         "[slice name]": [
+            ""
+         ],
+         "Do not add to a dashboard": [
+            "Nicht zum Dashboard hinzufügen"
+         ],
+         "Add slice to existing dashboard": [
+            "Schiebe zum vorhandenen Dashboard hinzufügen"
+         ],
+         "Add to new dashboard": [
+            "Schiebe zum neuen Dashboard hinzufügen"
+         ],
+         "Save & go to dashboard": [
+            "Speichern & zum Dashboard gehen"
+         ],
+         "Check out this slice: %s": [
+            ""
+         ],
+         "`Min` value should be numeric or empty": [
+            ""
+         ],
+         "`Max` value should be numeric or empty": [
+            ""
+         ],
+         "Min": [
+            ""
+         ],
+         "Max": [
+            ""
+         ],
+         "Something went wrong while fetching the datasource list": [
+            ""
+         ],
+         "Click to point to another datasource": [
+            ""
+         ],
+         "Edit the datasource's configuration": [
+            ""
+         ],
+         "Select a datasource": [
+            ""
+         ],
+         "Search / Filter": [
+            ""
+         ],
+         "Filter value": [
+            ""
+         ],
+         "Select metric": [
+            ""
+         ],
+         "Select column": [
+            ""
+         ],
+         "Select operator": [
+            ""
+         ],
+         "Add Filter": [
+            ""
+         ],
+         "Error while fetching data": [
+            ""
+         ],
+         "Select %s": [
+            ""
+         ],
+         "textarea": [
+            ""
+         ],
+         "Edit": [
+            ""
+         ],
+         "in modal": [
+            ""
+         ],
+         "Select a visualization type": [
+            "Visualisierungstyp wählen"
+         ],
+         "Updating chart was stopped": [
+            ""
+         ],
+         "An error occurred while rendering the visualization: %s": [
+            ""
+         ],
+         "Perhaps your data has grown, your database is under unusual load, or you are simply querying a data source that is to large to be processed within the timeout range. If that is the case, we recommend that you summarize your data further.": [
+            ""
+         ],
+         "Network error.": [
+            ""
+         ],
+         "A reference to the [Time] configuration, taking granularity into account": [
+            ""
+         ],
+         "Group by": [
+            ""
+         ],
+         "One or many controls to group by": [
+            ""
+         ],
+         "Datasource": [
+            "Datenquelle"
+         ],
+         "Visualization Type": [
+            "Visualisierungstyp"
+         ],
+         "The type of visualization to display": [
+            "Der Visualisierungstyp anzuzeigen"
+         ],
+         "Metrics": [
+            "Metriken"
+         ],
+         "One or many metrics to display": [
+            ""
+         ],
+         "Y Axis Bounds": [
+            ""
+         ],
+         "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
+            ""
+         ],
+         "Ordering": [
+            ""
+         ],
+         "Annotation Layers": [
+            "Anmerkungstufe"
+         ],
+         "Annotation layers to overlay on the visualization": [
+            "Anmerkungstufe auf die Visualisierung zu legen"
+         ],
+         "Select a annotation layer": [
+            "Anmerkungstufe auswählen"
+         ],
+         "Error while fetching annotation layers": [
+            "Fehler bei Anmerkungstufeabruf"
+         ],
+         "Metric": [
+            "Metrik"
+         ],
+         "Choose the metric": [
+            "Metrik auswählen"
+         ],
+         "Right Axis Metric": [
+            ""
+         ],
+         "Choose a metric for right axis": [
+            ""
+         ],
+         "Stacked Style": [
+            ""
+         ],
+         "Linear Color Scheme": [
+            ""
+         ],
+         "Normalize Across": [
+            ""
+         ],
+         "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
+            ""
+         ],
+         "Horizon Color Scale": [
+            ""
+         ],
+         "Defines how the color are attributed.": [
+            ""
+         ],
+         "Rendering": [
+            ""
+         ],
+         "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
+            ""
+         ],
+         "XScale Interval": [
+            ""
+         ],
+         "Number of steps to take between ticks when displaying the X scale": [
+            ""
+         ],
+         "YScale Interval": [
+            ""
+         ],
+         "Number of steps to take between ticks when displaying the Y scale": [
+            ""
+         ],
+         "Include Time": [
+            ""
+         ],
+         "Whether to include the time granularity as defined in the time section": [
+            ""
+         ],
+         "Stacked Bars": [
+            ""
+         ],
+         "Show totals": [
+            ""
+         ],
+         "Display total row/column": [
+            ""
+         ],
+         "Show Markers": [
+            ""
+         ],
+         "Show data points as circle markers on the lines": [
+            ""
+         ],
+         "Bar Values": [
+            ""
+         ],
+         "Show the value on top of the bar": [
+            ""
+         ],
+         "Sort Bars": [
+            ""
+         ],
+         "Sort bars by x labels.": [
+            ""
+         ],
+         "Combine Metrics": [
+            ""
+         ],
+         "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
+            ""
+         ],
+         "Extra Controls": [
+            ""
+         ],
+         "Whether to show extra controls or not. Extra controls include things like making mulitBar charts stacked or side by side.": [
+            ""
+         ],
+         "Reduce X ticks": [
+            ""
+         ],
+         "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll.": [
+            ""
+         ],
+         "Include Series": [
+            ""
+         ],
+         "Include series name as an axis": [
+            ""
+         ],
+         "Color Metric": [
+            ""
+         ],
+         "A metric to use for color": [
+            ""
+         ],
+         "Country Name": [
+            ""
+         ],
+         "The name of country that Superset should display": [
+            ""
+         ],
+         "Country Field Type": [
+            ""
+         ],
+         "The country code standard that Superset should expect to find in the [country] column": [
+            ""
+         ],
+         "Columns": [
+            ""
+         ],
+         "One or many controls to pivot as columns": [
+            ""
+         ],
+         "Columns to display": [
+            ""
+         ],
+         "Origin": [
+            ""
+         ],
+         "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`": [
+            ""
+         ],
+         "Bottom Margin": [
+            ""
+         ],
+         "Bottom margin, in pixels, allowing for more room for axis labels": [
+            ""
+         ],
+         "Left Margin": [
+            ""
+         ],
+         "Left margin, in pixels, allowing for more room for axis labels": [
+            ""
+         ],
+         "Time Granularity": [
+            ""
+         ],
+         "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`": [
+            ""
+         ],
+         "Domain": [
+            ""
+         ],
+         "The time unit used for the grouping of blocks": [
+            ""
+         ],
+         "Subdomain": [
+            ""
+         ],
+         "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain": [
+            ""
+         ],
+         "Link Length": [
+            ""
+         ],
+         "Link length in the force layout": [
+            ""
+         ],
+         "Charge": [
+            ""
+         ],
+         "Charge in the force layout": [
+            ""
+         ],
+         "The time column for the visualization. Note that you can define arbitrary expression that return a DATETIME column in the table or. Also note that the filter below is applied against this column or expression": [
+            ""
+         ],
+         "Time Grain": [
+            ""
+         ],
+         "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
+            ""
+         ],
+         "Resample Rule": [
+            ""
+         ],
+         "Pandas resample rule": [
+            ""
+         ],
+         "Resample How": [
+            ""
+         ],
+         "Pandas resample how": [
+            ""
+         ],
+         "Resample Fill Method": [
+            ""
+         ],
+         "Pandas resample fill method": [
+            ""
+         ],
+         "Since": [
+            ""
+         ],
+         "7 days ago": [
+            ""
+         ],
+         "Until": [
+            ""
+         ],
+         "Max Bubble Size": [
+            ""
+         ],
+         "Whisker/outlier options": [
+            ""
+         ],
+         "Determines how whiskers and outliers are calculated.": [
+            ""
+         ],
+         "Ratio": [
+            ""
+         ],
+         "Target aspect ratio for treemap tiles.": [
+            ""
+         ],
+         "Number format": [
+            ""
+         ],
+         "Row limit": [
+            ""
+         ],
+         "Series limit": [
+            ""
+         ],
+         "Limits the number of time series that get displayed": [
+            ""
+         ],
+         "Sort By": [
+            ""
+         ],
+         "Metric used to define the top series": [
+            ""
+         ],
+         "Rolling": [
+            ""
+         ],
+         "Defines a rolling window function to apply, works along with the [Periods] text box": [
+            ""
+         ],
+         "Periods": [
+            ""
+         ],
+         "Defines the size of the rolling window function, relative to the time granularity selected": [
+            ""
+         ],
+         "Min Periods": [
+            ""
+         ],
+         "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods": [
+            ""
+         ],
+         "Series": [
+            ""
+         ],
+         "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
+            ""
+         ],
+         "Entity": [
+            ""
+         ],
+         "This defines the element to be plotted on the chart": [
+            ""
+         ],
+         "X Axis": [
+            ""
+         ],
+         "Metric assigned to the [X] axis": [
+            ""
+         ],
+         "Y Axis": [
+            ""
+         ],
+         "Metric assigned to the [Y] axis": [
+            ""
+         ],
+         "Bubble Size": [
+            ""
+         ],
+         "URL": [
+            ""
+         ],
+         "The URL, this control is templated, so you can integrate {{ width }} and/or {{ height }} in your URL string.": [
+            ""
+         ],
+         "X Axis Label": [
+            ""
+         ],
+         "Y Axis Label": [
+            ""
+         ],
+         "Custom WHERE clause": [
+            ""
+         ],
+         "The text in this box gets included in your query's WHERE clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
+            ""
+         ],
+         "Custom HAVING clause": [
+            ""
+         ],
+         "The text in this box gets included in your query's HAVING clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards.": [
+            ""
+         ],
+         "Comparison Period Lag": [
+            ""
+         ],
+         "Based on granularity, number of time periods to compare against": [
+            ""
+         ],
+         "Comparison suffix": [
+            ""
+         ],
+         "Suffix to apply after the percentage display": [
+            ""
+         ],
+         "Table Timestamp Format": [
+            ""
+         ],
+         "Timestamp Format": [
+            ""
+         ],
+         "Series Height": [
+            ""
+         ],
+         "Pixel height of each series": [
+            ""
+         ],
+         "Page Length": [
+            ""
+         ],
+         "Rows per page, 0 means no pagination": [
+            ""
+         ],
+         "X Axis Format": [
+            ""
+         ],
+         "Y Axis Format": [
+            ""
+         ],
+         "Right Axis Format": [
+            ""
+         ],
+         "Markup Type": [
+            ""
+         ],
+         "Pick your favorite markup language": [
+            ""
+         ],
+         "Rotation": [
+            ""
+         ],
+         "Rotation to apply to words in the cloud": [
+            ""
+         ],
+         "Line Style": [
+            ""
+         ],
+         "Line interpolation as defined by d3.js": [
+            ""
+         ],
+         "Label Type": [
+            ""
+         ],
+         "What should be shown on the label?": [
+            ""
+         ],
+         "Code": [
+            ""
+         ],
+         "Put your code here": [
+            ""
+         ],
+         "Aggregation function": [
+            ""
+         ],
+         "Aggregate function to apply when pivoting and computing the total rows and columns": [
+            ""
+         ],
+         "Font Size From": [
+            ""
+         ],
+         "Font size for the smallest value in the list": [
+            ""
+         ],
+         "Font Size To": [
+            ""
+         ],
+         "Font size for the biggest value in the list": [
+            ""
+         ],
+         "Instant Filtering": [
+            ""
+         ],
+         "Range Filter": [
+            ""
+         ],
+         "Whether to display the time range interactive selector": [
+            ""
+         ],
+         "Date Filter": [
+            ""
+         ],
+         "Whether to include a time filter": [
+            ""
+         ],
+         "Data Table": [
+            ""
+         ],
+         "Whether to display the interactive data table": [
+            ""
+         ],
+         "Search Box": [
+            ""
+         ],
+         "Whether to include a client side search box": [
+            ""
+         ],
+         "Table Filter": [
+            ""
+         ],
+         "Whether to apply filter when table cell is clicked": [
+            ""
+         ],
+         "Show Bubbles": [
+            ""
+         ],
+         "Whether to display bubbles on top of countries": [
+            ""
+         ],
+         "Legend": [
+            ""
+         ],
+         "Whether to display the legend (toggles)": [
+            ""
+         ],
+         "X bounds": [
+            ""
+         ],
+         "Whether to display the min and max values of the X axis": [
+            ""
+         ],
+         "Y bounds": [
+            ""
+         ],
+         "Whether to display the min and max values of the Y axis": [
+            ""
+         ],
+         "Rich Tooltip": [
+            ""
+         ],
+         "The rich tooltip shows a list of all series for that point in time": [
+            ""
+         ],
+         "Y Log Scale": [
+            ""
+         ],
+         "Use a log scale for the Y axis": [
+            ""
+         ],
+         "X Log Scale": [
+            ""
+         ],
+         "Use a log scale for the X axis": [
+            ""
+         ],
+         "Donut": [
+            ""
+         ],
+         "Do you want a donut or a pie?": [
+            ""
+         ],
+         "Put labels outside": [
+            ""
+         ],
+         "Put the labels outside the pie?": [
+            ""
+         ],
+         "Contribution": [
+            ""
+         ],
+         "Compute the contribution to the total": [
+            ""
+         ],
+         "Period Ratio": [
+            ""
+         ],
+         "[integer] Number of period to compare against, this is relative to the granularity selected": [
+            ""
+         ],
+         "Period Ratio Type": [
+            ""
+         ],
+         "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is (new-previous)": [
+            ""
+         ],
+         "Time Shift": [
+            ""
+         ],
+         "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)": [
+            ""
+         ],
+         "Subheader": [
+            ""
+         ],
+         "Description text that shows up below your Big Number": [
+            ""
+         ],
+         "label": [
+            ""
+         ],
+         "`count` is COUNT(*) if a group by is used. Numerical columns will be aggregated with the aggregator. Non-numerical columns will be used to label points. Leave empty to get a count of points in each cluster.": [
+            ""
+         ],
+         "Map Style": [
+            ""
+         ],
+         "Base layer map style": [
+            ""
+         ],
+         "Clustering Radius": [
+            ""
+         ],
+         "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag.": [
+            ""
+         ],
+         "Point Radius": [
+            ""
+         ],
+         "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
+            ""
+         ],
+         "Point Radius Unit": [
+            ""
+         ],
+         "The unit of measure for the specified point radius": [
+            ""
+         ],
+         "Opacity": [
+            ""
+         ],
+         "Opacity of all clusters, points, and labels. Between 0 and 1.": [
+            ""
+         ],
+         "Zoom": [
+            ""
+         ],
+         "Zoom level of the map": [
+            ""
+         ],
+         "Default latitude": [
+            ""
+         ],
+         "Latitude of default viewport": [
+            ""
+         ],
+         "Default longitude": [
+            ""
+         ],
+         "Longitude of default viewport": [
+            ""
+         ],
+         "Live render": [
+            ""
+         ],
+         "Points and clusters will update as viewport is being changed": [
+            ""
+         ],
+         "RGB Color": [
+            ""
+         ],
+         "The color for points and clusters in RGB": [
+            ""
+         ],
+         "Ranges": [
+            ""
+         ],
+         "Ranges to highlight with shading": [
+            ""
+         ],
+         "Range labels": [
+            ""
+         ],
+         "Labels for the ranges": [
+            ""
+         ],
+         "Markers": [
+            ""
+         ],
+         "List of values to mark with triangles": [
+            ""
+         ],
+         "Marker labels": [
+            ""
+         ],
+         "Labels for the markers": [
+            ""
+         ],
+         "Marker lines": [
+            ""
+         ],
+         "List of values to mark with lines": [
+            ""
+         ],
+         "Marker line labels": [
+            ""
+         ],
+         "Labels for the marker lines": [
+            ""
+         ],
+         "Slice ID": [
+            ""
+         ],
+         "The id of the active slice": [
+            ""
+         ],
+         "Cache Timeout (seconds)": [
+            ""
+         ],
+         "The number of seconds before expiring the cache": [
+            ""
+         ],
+         "Order by entity id": [
+            ""
+         ],
+         "Important! Select this if the table is not already sorted by entity id, else there is no guarantee that all events for each entity are returned.": [
+            ""
+         ],
+         "Minimum leaf node event count": [
+            ""
+         ],
+         "Leaf nodes that represent fewer than this number of events will be initially hidden in the visualization": [
+            ""
+         ],
+         "Color Scheme": [
+            "Farbschema"
+         ],
+         "The color scheme for rendering chart": [
+            ""
+         ],
+         "Time": [
+            ""
+         ],
+         "Time related form attributes": [
+            ""
+         ],
+         "Datasource & Chart Type": [
+            ""
+         ],
+         "This section exposes ways to include snippets of SQL in your query": [
+            ""
+         ],
+         "Annotations": [
+            "Anmerkungen"
+         ],
+         "Advanced Analytics": [
+            ""
+         ],
+         "This section contains options that allow for advanced analytical post processing of query results": [
+            ""
+         ],
+         "Result Filters": [
+            ""
+         ],
+         "The filters to apply after post-aggregation.Leave the value control empty to filter empty strings or nulls": [
+            ""
+         ],
+         "Chart Options": [
+            ""
+         ],
+         "Breakdowns": [
+            ""
+         ],
+         "Defines how each series is broken down": [
+            ""
+         ],
+         "Pie Chart": [
+            ""
+         ],
+         "Dual Axis Line Chart": [
+            ""
+         ],
+         "Y Axis 1": [
+            ""
+         ],
+         "Y Axis 2": [
+            ""
+         ],
+         "Left Axis Metric": [
+            ""
+         ],
+         "Choose a metric for left axis": [
+            ""
+         ],
+         "Left Axis Format": [
+            ""
+         ],
+         "Axes": [
+            ""
+         ],
+         "GROUP BY": [
+            ""
+         ],
+         "Use this section if you want a query that aggregates": [
+            ""
+         ],
+         "NOT GROUPED BY": [
+            ""
+         ],
+         "Use this section if you want to query atomic rows": [
+            ""
+         ],
+         "Options": [
+            ""
+         ],
+         "Bubbles": [
+            ""
+         ],
+         "Numeric Column": [
+            ""
+         ],
+         "Select the numeric column to draw the histogram": [
+            ""
+         ],
+         "No of Bins": [
+            ""
+         ],
+         "Select number of bins for the histogram": [
+            ""
+         ],
+         "Primary Metric": [
+            ""
+         ],
+         "The primary metric is used to define the arc segment sizes": [
+            ""
+         ],
+         "Secondary Metric": [
+            ""
+         ],
+         "This secondary metric is used to define the color as a ratio against the primary metric. If the two metrics match, color is mapped level groups": [
+            ""
+         ],
+         "Hierarchy": [
+            "Hierarchie"
+         ],
+         "This defines the level of the hierarchy": [
+            ""
+         ],
+         "Source / Target": [
+            ""
+         ],
+         "Choose a source and a target": [
+            ""
+         ],
+         "Chord Diagram": [
+            ""
+         ],
+         "Choose a number format": [
+            ""
+         ],
+         "Source": [
+            ""
+         ],
+         "Choose a source": [
+            ""
+         ],
+         "Target": [
+            ""
+         ],
+         "Choose a target": [
+            ""
+         ],
+         "ISO 3166-1 codes of region/province/department": [
+            ""
+         ],
+         "It's ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)": [
+            ""
+         ],
+         "Country Control": [
+            ""
+         ],
+         "3 letter code of the country": [
+            ""
+         ],
+         "Metric for color": [
+            ""
+         ],
+         "Metric that defines the color of the country": [
+            ""
+         ],
+         "Bubble size": [
+            ""
+         ],
+         "Metric that defines the size of the bubble": [
+            ""
+         ],
+         "Filter Box": [
+            ""
+         ],
+         "Filter controls": [
+            ""
+         ],
+         "The controls you want to filter on. Note that only columns checked as \"filterable\" will show up on this list.": [
+            ""
+         ],
+         "Heatmap Options": [
+            ""
+         ],
+         "Horizon": [
+            ""
+         ],
+         "Points": [
+            ""
+         ],
+         "Labelling": [
+            ""
+         ],
+         "Visual Tweaks": [
+            ""
+         ],
+         "Viewport": [
+            ""
+         ],
+         "Longitude": [
+            ""
+         ],
+         "Column containing longitude data": [
+            ""
+         ],
+         "Latitude": [
+            ""
+         ],
+         "Column containing latitude data": [
+            ""
+         ],
+         "Cluster label aggregator": [
+            ""
+         ],
+         "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
+            ""
+         ],
+         "Tooltip": [
+            ""
+         ],
+         "Show a tooltip when hovering over points and clusters describing the label": [
+            ""
+         ],
+         "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
+            ""
+         ],
+         "Event definition": [
+            ""
+         ],
+         "Additional meta data": [
+            ""
+         ],
+         "Column containing entity ids": [
+            ""
+         ],
+         "e.g., a \"user id\" column": [
+            ""
+         ],
+         "Column containing event names": [
+            ""
+         ],
+         "Event count limit": [
+            ""
+         ],
+         "The maximum number of events to return, equivalent to number of rows": [
+            ""
+         ],
+         "Meta data": [
+            ""
+         ],
+         "Select any columns for meta data inspection": [
+            ""
+         ],
+         "The server could not be reached. You may want to verify your connection and try again.": [
+            ""
+         ],
+         "An unknown error occurred. (Status: %s )": [
+            ""
+         ],
+         "Favorites": [
+            "Favoriten"
+         ],
+         "Created Content": [
+            "Erstellte Inhalt"
+         ],
+         "Recent Activity": [
+            "Kürzliche Aktivitäten"
+         ],
+         "Security & Access": [
+            "Sicherheit & Zugriff"
+         ],
+         "No slices": [
+            "Keine Schieben"
+         ],
+         "No dashboards": [
+            "Keine Dashboards"
+         ],
+         "Dashboards": [
+            "Dashboards"
+         ],
+         "Slices": [
+            "Schieben"
+         ],
+         "No favorite slices yet, go click on stars!": [
+            "Noch keine Lieblingsscheiben, klicken Sie auf ein paar Sterne!"
+         ],
+         "No favorite dashboards yet, go click on stars!": [
+            "Noch keine Lieblingsdashboards, klicken Sie auf ein paar Sterne!"
+         ],
+         "Roles": [
+            "Rollen"
+         ],
+         "Databases": [
+            "Datenbanken"
+         ],
+         "Datasources": [
+            "Datenquellen"
+         ],
+         "Profile picture provided by Gravatar": [
+            "Profilbild von Gravatar"
+         ],
+         "joined": [
+            ""
+         ],
+         "id:": [
+            ""
+         ],
+         "Sorry, there appears to be no data": [
+            ""
+         ],
+         "Select [%s]": [
+            ""
+         ],
+         "No data was returned.": [
+            "Keine Daten zurückgesendet"
+         ],
+         "List Druid Column": [
+            "Druid Spalten auflisten"
+         ],
+         "Show Druid Column": [
+            "Druid Spalte anzeigen"
+         ],
+         "Add Druid Column": [
+            "Druid Spalte einfügen"
+         ],
+         "Edit Druid Column": [
+            "Druid Spalte bearbeiten"
+         ],
+         "Column": [
+            "Spalte"
+         ],
+         "Type": [
+            "Typ"
+         ],
+         "Groupable": [
+            ""
+         ],
+         "Filterable": [
+            ""
+         ],
+         "Count Distinct": [
+            ""
+         ],
+         "Sum": [
+            ""
+         ],
+         "Whether this column is exposed in the `Filters` section of the explore view.": [
+            ""
+         ],
+         "List Druid Metric": [
+            "Druid Metriken auflisten"
+         ],
+         "Show Druid Metric": [
+            "Druid Metrik anzeigen"
+         ],
+         "Add Druid Metric": [
+            "Druid Metrik einfügen"
+         ],
+         "Edit Druid Metric": [
+            "Druid Metric bearbeiten"
+         ],
+         "Whether the access to this metric is restricted to certain roles. Only roles with the permission 'metric access on XXX (the name of this metric)' are allowed to access this metric": [
+            ""
+         ],
+         "Verbose Name": [
+            ""
+         ],
+         "JSON": [
+            "JSON"
+         ],
+         "Druid Datasource": [
+            "Druid Datenquelle"
+         ],
+         "Warning Message": [
+            "Warnmeldung"
+         ],
+         "List Druid Cluster": [
+            "Druid Cluster auflisten"
+         ],
+         "Show Druid Cluster": [
+            "Druid Cluster anzeigen"
+         ],
+         "Add Druid Cluster": [
+            "Druid Cluster einfügen"
+         ],
+         "Edit Druid Cluster": [
+            "Druid Cluster bearbeiten"
+         ],
+         "Cluster": [
+            ""
+         ],
+         "Coordinator Host": [
+            ""
+         ],
+         "Coordinator Port": [
+            ""
+         ],
+         "Coordinator Endpoint": [
+            ""
+         ],
+         "Broker Host": [
+            ""
+         ],
+         "Broker Port": [
+            ""
+         ],
+         "Broker Endpoint": [
+            ""
+         ],
+         "Druid Clusters": [
+            ""
+         ],
+         "Sources": [
+            "Quellen"
+         ],
+         "List Druid Datasource": [
+            "Druid Datenquellen auflisten"
+         ],
+         "Show Druid Datasource": [
+            "Druid Datenquelle anzeigen"
+         ],
+         "Add Druid Datasource": [
+            "Druid Datenquelle einfügen"
+         ],
+         "Edit Druid Datasource": [
+            "Druid Datenquelle bearbeiten"
+         ],
+         "The list of slices associated with this table. By altering this datasource, you may change how these associated slices behave. Also note that slices need to point to a datasource, so this form will fail at saving if removing slices from a datasource. If you want to change the datasource for a slice, overwrite the slice from the 'explore view'": [
+            ""
+         ],
+         "Timezone offset (in hours) for this datasource": [
+            ""
+         ],
+         "Time expression to use as a predicate when retrieving distinct values to populate the filter component. Only applies when `Enable Filter Select` is on. If you enter `7 days ago`, the distinct list of values in the filter will be populated based on the distinct value over the past week": [
+            ""
+         ],
+         "Whether to populate the filter's dropdown in the explore view's filter section with a list of distinct values fetched from the backend on the fly": [
+            ""
+         ],
+         "Redirects to this endpoint when clicking on the datasource from the datasource list": [
+            ""
+         ],
+         "Associated Slices": [
+            ""
+         ],
+         "Data Source": [
+            "Datenquelle"
+         ],
+         "Owner": [
+            ""
+         ],
+         "Is Hidden": [
+            ""
+         ],
+         "Enable Filter Select": [
+            ""
+         ],
+         "Default Endpoint": [
+            ""
+         ],
+         "Time Offset": [
+            ""
+         ],
+         "Cache Timeout": [
+            ""
+         ],
+         "Druid Datasources": [
+            "Druid Datenquellen"
+         ],
+         "Scan New Datasources": [
+            "Neue Datenquellen suchen"
+         ],
+         "Refresh Druid Metadata": [
+            "Druid Metadata aktualisieren"
+         ],
+         "Datetime column not provided as part table configuration and is required by this type of chart": [
+            ""
+         ],
+         "Empty query?": [
+            "Leere Abfrage?"
+         ],
+         "Metric '{}' is not valid": [
+            "Metrik '{}' ist nicht valide"
+         ],
+         "Table [{}] doesn't seem to exist in the specified database, couldn't fetch column information": [
+            ""
+         ],
+         "List Columns": [
+            "Spalten auflisten"
+         ],
+         "Show Column": [
+            "Spalte anzeigen"
+         ],
+         "Add Column": [
+            "Spalte einfügen"
+         ],
+         "Edit Column": [
+            "Spalte bearbeiten"
+         ],
+         "Whether to make this column available as a [Time Granularity] option, column has to be DATETIME or DATETIME-like": [
+            ""
+         ],
+         "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
+            ""
+         ],
+         "Expression": [
+            ""
+         ],
+         "Is temporal": [
+            ""
+         ],
+         "Datetime Format": [
+            ""
+         ],
+         "Database Expression": [
+            ""
+         ],
+         "List Metrics": [
+            "Metriken auflisten"
+         ],
+         "Show Metric": [
+            "Metrik anzeigen"
+         ],
+         "Add Metric": [
+            "Metrik einfügen"
+         ],
+         "Edit Metric": [
+            "Metrik bearbeiten"
+         ],
+         "SQL Expression": [
+            ""
+         ],
+         "D3 Format": [
+            ""
+         ],
+         "Is Restricted": [
+            "Ist begrenzt"
+         ],
+         "List Tables": [
+            "Tabellen auflisten"
+         ],
+         "Show Table": [
+            "Tabelle anzeigen"
+         ],
+         "Add Table": [
+            "Tabelle einfügen"
+         ],
+         "Edit Table": [
+            "Tabelle bearbeiten"
+         ],
+         "Name of the table that exists in the source database": [
+            ""
+         ],
+         "Schema, as used only in some databases like Postgres, Redshift and DB2": [
+            ""
+         ],
+         "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
+            ""
+         ],
+         "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
+            ""
+         ],
+         "Redirects to this endpoint when clicking on the table from the table list": [
+            ""
+         ],
+         "Changed By": [
+            "Bearbeitet von"
+         ],
+         "Database": [
+            "Datenbank"
+         ],
+         "Last Changed": [
+            "Bearbeitet am"
+         ],
+         "Schema": [
+            ""
+         ],
+         "Offset": [
+            ""
+         ],
+         "Table Name": [
+            "Tabellenname"
+         ],
+         "Fetch Values Predicate": [
+            ""
+         ],
+         "Main Datetime Column": [
+            ""
+         ],
+         "Table [{}] could not be found, please double check your database connection, schema, and table name": [
+            ""
+         ],
+         "The table was created. As part of this two phase configuration process, you should now click the edit button by the new table to configure it.": [
+            ""
+         ],
+         "Tables": [
+            "Tabellen"
+         ],
+         "Profile": [
+            "Profil"
+         ],
+         "Logout": [
+            "Abmelden"
+         ],
+         "Login": [
+            "Anmelden"
+         ],
+         "Record Count": [
+            "Datensätzeanzahl"
+         ],
+         "No records found": [
+            "Keine Datensätze gefunden"
+         ],
+         "Import": [
+            "Importieren"
+         ],
+         "No Access!": [
+            "Keine Zugriff!"
+         ],
+         "You do not have permissions to access the datasource(s): %(name)s.": [
+            ""
+         ],
+         "Request Permissions": [
+            "Berechtigung anfordern"
+         ],
+         "Welcome!": [
+            "Willkommen!"
+         ],
+         "Test Connection": [
+            "Verbindungstest"
+         ],
+         "Manage": [
+            "Einstellungen"
+         ],
+         "Datasource %(name)s already exists": [
+            ""
+         ],
+         "json isn't valid": [
+            ""
+         ],
+         "Delete": [
+            "Löschen"
+         ],
+         "Delete all Really?": [
+            "Wirklich alle löschen?"
+         ],
+         "This endpoint requires the `all_datasource_access` permission": [
+            ""
+         ],
+         "The datasource seems to have been deleted": [
+            ""
+         ],
+         "The access requests seem to have been deleted": [
+            ""
+         ],
+         "The user seems to have been deleted": [
+            ""
+         ],
+         "You don't have access to this datasource": [
+            "Sie haben keine Zugriff auf diese Datenquelle"
+         ],
+         "This view requires the database %(name)s or `all_datasource_access` permission": [
+            ""
+         ],
+         "This endpoint requires the datasource %(name)s, database or `all_datasource_access` permission": [
+            ""
+         ],
+         "List Databases": [
+            "Dakenbanken auflisten"
+         ],
+         "Show Database": [
+            "Datenbank anzeigen"
+         ],
+         "Add Database": [
+            "Datenbank einfügen"
+         ],
+         "Edit Database": [
+            "Datenbank bearbeiten"
+         ],
+         "Expose this DB in SQL Lab": [
+            ""
+         ],
+         "Allow users to run synchronous queries, this is the default and should work well for queries that can be executed within a web request scope (<~1 minute)": [
+            ""
+         ],
+         "Allow users to run queries, against an async backend. This assumes that you have a Celery worker setup as well as a results backend.": [
+            ""
+         ],
+         "Allow CREATE TABLE AS option in SQL Lab": [
+            ""
+         ],
+         "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
+            ""
+         ],
+         "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
+            ""
+         ],
+         "All the queries in Sql Lab are going to be executed on behalf of currently authorized user.": [
+            ""
+         ],
+         "Expose in SQL Lab": [
+            ""
+         ],
+         "Allow CREATE TABLE AS": [
+            ""
+         ],
+         "Allow DML": [
+            ""
+         ],
+         "CTAS Schema": [
+            ""
+         ],
+         "Creator": [
+            "Schöpfer"
+         ],
+         "SQLAlchemy URI": [
+            ""
+         ],
+         "Extra": [
+            ""
+         ],
+         "Allow Run Sync": [
+            ""
+         ],
+         "Allow Run Async": [
+            ""
+         ],
+         "Impersonate queries to the database": [
+            ""
+         ],
+         "Import Dashboards": [
+            "Dashboards importieren"
+         ],
+         "User": [
+            "Benutzer"
+         ],
+         "User Roles": [
+            "Benutzer Rollen"
+         ],
+         "Database URL": [
+            "Datenbank URL"
+         ],
+         "Roles to grant": [
+            ""
+         ],
+         "Created On": [
+            ""
+         ],
+         "Access requests": [
+            "Zugriffsanforderungen"
+         ],
+         "Security": [
+            "Sicherheit"
+         ],
+         "List Slices": [
+            "Schieben auflisten"
+         ],
+         "Show Slice": [
+            "Schiebe anzeigen"
+         ],
+         "Add Slice": [
+            "Schiebe einfügen"
+         ],
+         "Edit Slice": [
+            "Schiebe bearbeiten"
+         ],
+         "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
+            ""
+         ],
+         "Duration (in seconds) of the caching timeout for this slice.": [
+            ""
+         ],
+         "Last Modified": [
+            "Geändert"
+         ],
+         "Owners": [
+            ""
+         ],
+         "Parameters": [
+            "Parameter"
+         ],
+         "Slice": [
+            "Schiebe"
+         ],
+         "List Dashboards": [
+            "Dashboards auflisten"
+         ],
+         "Show Dashboard": [
+            "Dashboard anzeigen"
+         ],
+         "Add Dashboard": [
+            "Dashboard einfügen"
+         ],
+         "Edit Dashboard": [
+            "Dashboard bearbeiten"
+         ],
+         "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
+            ""
+         ],
+         "The css for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
+            ""
+         ],
+         "To get a readable URL for your dashboard": [
+            ""
+         ],
+         "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.": [
+            ""
+         ],
+         "Owners is a list of users who can alter the dashboard.": [
+            ""
+         ],
+         "Dashboard": [
+            ""
+         ],
+         "Slug": [
+            ""
+         ],
+         "Position JSON": [
+            ""
+         ],
+         "JSON Metadata": [
+            ""
+         ],
+         "Underlying Tables": [
+            ""
+         ],
+         "Export": [
+            ""
+         ],
+         "Export dashboards?": [
+            ""
+         ],
+         "Action": [
+            "Aktion"
+         ],
+         "dttm": [
+            ""
+         ],
+         "Action Log": [
+            "Aktionsprotokoll"
+         ],
+         "Access was requested": [
+            "Zugang wurde beantragt"
+         ],
+         "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
+            ""
+         ],
+         "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
+            ""
+         ],
+         "You have no permission to approve this request": [
+            ""
+         ],
+         "Malformed request. slice_id or table_name and db_name arguments are expected": [
+            ""
+         ],
+         "Slice %(id)s not found": [
+            ""
+         ],
+         "Table %(t)s wasn't found in the database %(d)s": [
+            ""
+         ],
+         "Can't find User '%(name)s', please ask your admin to create one.": [
+            ""
+         ],
+         "Can't find DruidCluster with cluster_name = '%(name)s'": [
+            ""
+         ],
+         "Query record was not created as expected.": [
+            ""
+         ],
+         "Template Name": [
+            "Vorlagename"
+         ],
+         "CSS Templates": [
+            "CSS Vorlagen"
+         ],
+         "SQL Editor": [
+            ""
+         ],
+         "SQL Lab": [
+            ""
+         ],
+         "Query Search": [
+            "Abfragen suchen"
+         ],
+         "Status": [
+            ""
+         ],
+         "Start Time": [
+            "Von Zeit"
+         ],
+         "End Time": [
+            "Bis Zeit"
+         ],
+         "Queries": [
+            "Abfragen"
+         ],
+         "List Saved Query": [
+            "Gespeicherte Abfragen auflisten"
+         ],
+         "Show Saved Query": [
+            "Gespeicherte Abfrage anzeigen"
+         ],
+         "Add Saved Query": [
+            "Gespeicherte Abfrage einfügen"
+         ],
+         "Edit Saved Query": [
+            "Gespeicherte Abfrage bearbeiten"
+         ],
+         "Pop Tab Link": [
+            ""
+         ],
+         "Changed on": [
+            "Bearbeitet am"
+         ],
+         "Saved Queries": [
+            "Gespeicherte Abfragen"
+         ]
+      }
+   }
+}

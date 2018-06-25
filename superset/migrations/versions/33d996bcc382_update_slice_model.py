@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from alembic import op
 import sqlalchemy as sa
 from superset import db

@@ -3,7 +3,7 @@
 {% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
-  <div class="container{{ '-fluid' if not navbar_container else '' }}">
+  <div class="container-fluid">
     <div class="navbar-header">
       <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
         <span class="icon-bar"></span>
@@ -34,12 +34,12 @@
           </a>
         </li>
         <li>
-          <a href="https://github.com/apache/incubator-superset" title="Superset's Github">
+          <a href="https://github.com/apache/incubator-superset" title="Superset's Github" target="_blank">
             <i class="fa fa-github"></i> &nbsp;
           </a>
         </li>
         <li>
-          <a href="https://superset.incubator.apache.org" title="Documentation">
+          <a href="https://superset.incubator.apache.org" title="Documentation" target="_blank">
             <i class="fa fa-book"></i> &nbsp;
           </a>
         </li>

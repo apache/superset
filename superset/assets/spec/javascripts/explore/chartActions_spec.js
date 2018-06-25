@@ -2,8 +2,8 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
-import * as actions from '../../../javascripts/explore/actions/chartActions';
+import * as exploreUtils from '../../../src/explore/exploreUtils';
+import * as actions from '../../../src/chart/chartAction';
 
 describe('chart actions', () => {
   let dispatch;
@@ -13,7 +13,8 @@ describe('chart actions', () => {
 
   beforeEach(() => {
     dispatch = sinon.spy();
-    urlStub = sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => ('mockURL'));
+    urlStub = sinon.stub(exploreUtils, 'getExploreUrlAndPayload')
+      .callsFake(() => ({ url: 'mockURL', payload: {} }));
     ajaxStub = sinon.stub($, 'ajax');
   });
 
@@ -23,14 +24,16 @@ describe('chart actions', () => {
   });
 
   it('should handle query timeout', () => {
-    ajaxStub.yieldsTo('error', { statusText: 'timeout' });
+    ajaxStub.rejects({ statusText: 'timeout' });
     request = actions.runQuery({});
-    request(dispatch, sinon.stub().returns({
+    const promise = request(dispatch, sinon.stub().returns({
       explore: {
         controls: [],
       },
     }));
-    expect(dispatch.callCount).to.equal(3);
-    expect(dispatch.args[0][0].type).to.equal(actions.CHART_UPDATE_TIMEOUT);
+    promise.then(() => {
+      expect(dispatch.callCount).to.equal(3);
+      expect(dispatch.args[0][0].type).to.equal(actions.CHART_UPDATE_TIMEOUT);
+    });
   });
 });

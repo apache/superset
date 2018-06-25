@@ -3,17 +3,12 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import ExploreActionButtons from
-  '../../../../javascripts/explore/components/ExploreActionButtons';
+  '../../../../src/explore/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {
     canDownload: 'True',
-    slice: {
-      data: {
-        csv_endpoint: '',
-        json_endpoint: '',
-      },
-    },
+    latestQueryFormData: {},
     queryEndpoint: 'localhost',
   };
 

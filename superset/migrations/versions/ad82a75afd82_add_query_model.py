@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Update models to support storing the queries.
 
 Revision ID: ad82a75afd82
@@ -39,8 +40,8 @@ def upgrade():
         sa.Column('start_time', sa.Numeric(precision=20, scale=6), nullable=True),
         sa.Column('changed_on', sa.DateTime(), nullable=True),
         sa.Column('end_time', sa.Numeric(precision=20, scale=6), nullable=True),
-        sa.ForeignKeyConstraint(['database_id'], [u'dbs.id'], ),
-        sa.ForeignKeyConstraint(['user_id'], [u'ab_user.id'], ),
+        sa.ForeignKeyConstraint(['database_id'], ['dbs.id'], ),
+        sa.ForeignKeyConstraint(['user_id'], ['ab_user.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
     op.add_column('dbs', sa.Column('select_as_create_table_as', sa.Boolean(),

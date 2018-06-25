@@ -1,25 +1,24 @@
+# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import logging
 import json
+import logging
 import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, appbuilder, security, sm
-from superset.models import core as models
-from superset.security import sync_role_definitions
-from superset.connectors.sqla.models import SqlaTable
+from superset import app, cli, db, security_manager, utils
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset.connectors.sqla.models import SqlaTable
+from superset.models import core as models
 
-os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config.get('BASE_DIR')
 
 
 class SupersetTestCase(unittest.TestCase):
@@ -28,91 +27,89 @@ class SupersetTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         if (
-                        self.requires_examples and
-                        not os.environ.get('SOLO_TEST') and
-                        not os.environ.get('examples_loaded')
+            self.requires_examples and
+            not os.environ.get('examples_loaded')
         ):
-            logging.info("Loading examples")
+            logging.info('Loading examples')
             cli.load_examples(load_test_data=True)
-            logging.info("Done loading examples")
-            sync_role_definitions()
+            logging.info('Done loading examples')
+            security_manager.sync_role_definitions()
             os.environ['examples_loaded'] = '1'
         else:
-            sync_role_definitions()
+            security_manager.sync_role_definitions()
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
 
-        gamma_sqllab_role = sm.add_role("gamma_sqllab")
-        for perm in sm.find_role('Gamma').permissions:
-            sm.add_permission_role(gamma_sqllab_role, perm)
-        db_perm = self.get_main_database(sm.get_session).perm
-        security.merge_perm(sm, 'database_access', db_perm)
-        db_pvm = sm.find_permission_view_menu(
+        gamma_sqllab_role = security_manager.add_role('gamma_sqllab')
+        for perm in security_manager.find_role('Gamma').permissions:
+            security_manager.add_permission_role(gamma_sqllab_role, perm)
+        utils.get_or_create_main_db()
+        db_perm = self.get_main_database(security_manager.get_session).perm
+        security_manager.merge_perm('database_access', db_perm)
+        db_pvm = security_manager.find_permission_view_menu(
             view_menu_name=db_perm, permission_name='database_access')
         gamma_sqllab_role.permissions.append(db_pvm)
-        for perm in sm.find_role('sql_lab').permissions:
-            sm.add_permission_role(gamma_sqllab_role, perm)
+        for perm in security_manager.find_role('sql_lab').permissions:
+            security_manager.add_permission_role(gamma_sqllab_role, perm)
 
-        admin = appbuilder.sm.find_user('admin')
+        admin = security_manager.find_user('admin')
         if not admin:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'admin', 'admin', ' user', 'admin@fab.org',
-                appbuilder.sm.find_role('Admin'),
+                security_manager.find_role('Admin'),
                 password='general')
 
-        gamma = appbuilder.sm.find_user('gamma')
+        gamma = security_manager.find_user('gamma')
         if not gamma:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'gamma', 'gamma', 'user', 'gamma@fab.org',
-                appbuilder.sm.find_role('Gamma'),
+                security_manager.find_role('Gamma'),
                 password='general')
 
-        gamma2 = appbuilder.sm.find_user('gamma2')
+        gamma2 = security_manager.find_user('gamma2')
         if not gamma2:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
-                appbuilder.sm.find_role('Gamma'),
+                security_manager.find_role('Gamma'),
                 password='general')
 
-        gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
+        gamma_sqllab_user = security_manager.find_user('gamma_sqllab')
         if not gamma_sqllab_user:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
                 gamma_sqllab_role, password='general')
 
-        alpha = appbuilder.sm.find_user('alpha')
+        alpha = security_manager.find_user('alpha')
         if not alpha:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'alpha', 'alpha', 'user', 'alpha@fab.org',
-                appbuilder.sm.find_role('Alpha'),
+                security_manager.find_role('Alpha'),
                 password='general')
-        sm.get_session.commit()
+        security_manager.get_session.commit()
         # create druid cluster and druid datasources
         session = db.session
         cluster = (
             session.query(DruidCluster)
-            .filter_by(cluster_name="druid_test")
+            .filter_by(cluster_name='druid_test')
             .first()
         )
         if not cluster:
-            cluster = DruidCluster(cluster_name="druid_test")
+            cluster = DruidCluster(cluster_name='druid_test')
             session.add(cluster)
             session.commit()
 
             druid_datasource1 = DruidDatasource(
                 datasource_name='druid_ds_1',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource1)
             druid_datasource2 = DruidDatasource(
                 datasource_name='druid_ds_2',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource2)
             session.commit()
-
-
 
     def get_table(self, table_id):
         return db.session.query(SqlaTable).filter_by(
@@ -128,13 +125,13 @@ class SupersetTestCase(unittest.TestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username=username, password=password))
-        self.assertIn('Welcome', resp)
+        self.assertNotIn('User confirmation needed', resp)
 
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
-                .filter_by(slice_name=slice_name)
-                .one()
+            .filter_by(slice_name=slice_name)
+            .one()
         )
         session.expunge_all()
         return slc
@@ -157,7 +154,7 @@ class SupersetTestCase(unittest.TestCase):
             resp = self.client.get(url, follow_redirects=follow_redirects)
         if raise_on_error and resp.status_code > 400:
             raise Exception(
-                "http request failed with code {}".format(resp.status_code))
+                'http request failed with code {}'.format(resp.status_code))
         return resp.data.decode('utf-8')
 
     def get_json_resp(
@@ -169,40 +166,40 @@ class SupersetTestCase(unittest.TestCase):
     def get_main_database(self, session):
         return (
             db.session.query(models.Database)
-                .filter_by(database_name='main')
-                .first()
+            .filter_by(database_name='main')
+            .first()
         )
 
     def get_access_requests(self, username, ds_type, ds_id):
         DAR = models.DatasourceAccessRequest
         return (
             db.session.query(DAR)
-                .filter(
-                DAR.created_by == sm.find_user(username=username),
+            .filter(
+                DAR.created_by == security_manager.find_user(username=username),
                 DAR.datasource_type == ds_type,
                 DAR.datasource_id == ds_id,
-                )
-                .first()
+            )
+            .first()
         )
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
 
     def grant_public_access_to_table(self, table):
-        public_role = appbuilder.sm.find_role('Public')
+        public_role = security_manager.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table.perm in perm.view_menu.name):
-                appbuilder.sm.add_permission_role(public_role, perm)
+                security_manager.add_permission_role(public_role, perm)
 
     def revoke_public_access_to_table(self, table):
-        public_role = appbuilder.sm.find_role('Public')
+        public_role = security_manager.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table.perm in perm.view_menu.name):
-                appbuilder.sm.del_permission_role(public_role, perm)
+                security_manager.del_permission_role(public_role, perm)
 
     def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
         if user_name:
@@ -216,7 +213,7 @@ class SupersetTestCase(unittest.TestCase):
                       client_id=client_id),
         )
         if raise_on_error and 'error' in resp:
-            raise Exception("run_sql failed")
+            raise Exception('run_sql failed')
         return resp
 
     def test_gamma_permissions(self):
@@ -242,7 +239,7 @@ class SupersetTestCase(unittest.TestCase):
             assert_can_write(view_menu)
 
         gamma_perm_set = set()
-        for perm in sm.find_role('Gamma').permissions:
+        for perm in security_manager.find_role('Gamma').permissions:
             gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
 
         # check read only perms
@@ -255,7 +252,6 @@ class SupersetTestCase(unittest.TestCase):
 
         self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_activity_per_day', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_csv', 'Superset'), gamma_perm_set)

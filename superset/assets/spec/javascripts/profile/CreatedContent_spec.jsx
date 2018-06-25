@@ -3,8 +3,8 @@ import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { user } from './fixtures';
-import CreatedContent from '../../../javascripts/profile/components/CreatedContent';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
+import CreatedContent from '../../../src/profile/components/CreatedContent';
+import TableLoader from '../../../src/profile/components/TableLoader';
 
 
 describe('CreatedContent', () => {

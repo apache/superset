@@ -37,4 +37,6 @@ global.assert = chai.assert;
 global.sinon.useFakeXMLHttpRequest();
 
 global.window.XMLHttpRequest = global.XMLHttpRequest;
+global.window.location = { href: 'about:blank' };
+global.window.performance = { now: () => (new Date().getTime()) };
 global.$ = require('jquery')(global.window);

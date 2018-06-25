@@ -3,9 +3,10 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as actions from '../../../javascripts/explore/actions/exploreActions';
-import { defaultState } from '../../../javascripts/explore/stores/store';
-import exploreReducer from '../../../javascripts/explore/reducers/exploreReducer';
+import * as chartActions from '../../../src/chart/chartAction';
+import * as actions from '../../../src/explore/actions/exploreActions';
+import { defaultState } from '../../../src/explore/store';
+import exploreReducer from '../../../src/explore/reducers/exploreReducer';
 
 describe('reducers', () => {
   it('sets correct control value given a key and value', () => {
@@ -77,7 +78,7 @@ describe('fetching actions', () => {
       ajaxStub.yieldsTo('success', { data: '' });
       makeRequest(true);
       expect(dispatch.callCount).to.equal(5);
-      expect(dispatch.getCall(4).args[0].type).to.equal(actions.TRIGGER_QUERY);
+      expect(dispatch.getCall(4).args[0].type).to.equal(chartActions.TRIGGER_QUERY);
     });
   });
 });

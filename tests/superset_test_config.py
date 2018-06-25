@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# flake8: noqa
 from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = 'alpha'
@@ -21,6 +23,7 @@ PUBLIC_ROLE_LIKE_GAMMA = True
 AUTH_ROLE_PUBLIC = 'Public'
 EMAIL_NOTIFICATIONS = False
 
+CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
 
 class CeleryConfig(object):
     BROKER_URL = 'redis://localhost'
@@ -28,4 +31,6 @@ class CeleryConfig(object):
     CELERY_RESULT_BACKEND = 'db+sqlite:///' + SQL_CELERY_RESULTS_DB_FILE_PATH
     CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
     CONCURRENCY = 1
+
+
 CELERY_CONFIG = CeleryConfig

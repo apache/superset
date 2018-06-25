@@ -1,15 +1,16 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """a collection of Annotation-related models"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from flask_appbuilder import Model
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text,
-    DateTime, Index,
+    Column, DateTime, ForeignKey, Index, Integer, String, Text,
 )
 from sqlalchemy.orm import relationship
-from flask_appbuilder import Model
 
 from superset.models.helpers import AuditMixinNullable
 
@@ -49,6 +50,7 @@ class Annotation(Model, AuditMixinNullable):
     @property
     def data(self):
         return {
+            'layer_id': self.layer_id,
             'start_dttm': self.start_dttm,
             'end_dttm': self.end_dttm,
             'short_descr': self.short_descr,

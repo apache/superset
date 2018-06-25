@@ -11,6 +11,7 @@ _images
 _modules
 superset/bin/supersetc
 env_py3
+envpy3
 .eggs
 build
 *.db
@@ -26,14 +27,24 @@ app.db
 *.sqllite
 .vscode
 .python-version
+.tox
+dump.rdb
 
 # Node.js, webpack artifacts
 *.entry.js
 *.js.map
 node_modules
-npm-debug.log
-yarn.lock
+npm-debug.log*
 superset/assets/version_info.json
 
 # IntelliJ
 *.iml
+venv
+@eaDir/
+
+# docker
+/Dockerfile
+/docker-build.sh
+/docker-compose.yml
+/docker-entrypoint.sh
+/docker-init.sh

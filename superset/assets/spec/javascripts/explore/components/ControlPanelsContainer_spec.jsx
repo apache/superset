@@ -3,11 +3,11 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { getFormDataFromControls, defaultControls }
-  from '../../../../javascripts/explore/stores/store';
+  from '../../../../src/explore/store';
 import {
   ControlPanelsContainer,
-} from '../../../../javascripts/explore/components/ControlPanelsContainer';
-import ControlPanelSection from '../../../../javascripts/explore/components/ControlPanelSection';
+} from '../../../../src/explore/components/ControlPanelsContainer';
+import ControlPanelSection from '../../../../src/explore/components/ControlPanelSection';
 
 const defaultProps = {
   datasource_type: 'table',
@@ -26,6 +26,6 @@ describe('ControlPanelsContainer', () => {
   });
 
   it('renders ControlPanelSections', () => {
-    expect(wrapper.find(ControlPanelSection)).to.have.lengthOf(7);
+    expect(wrapper.find(ControlPanelSection)).to.have.lengthOf(6);
   });
 });

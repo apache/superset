@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """log dt
 
 Revision ID: 1d2ddd543133

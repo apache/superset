@@ -1,5 +1,6 @@
 @import "~react-select/less/select.less";
 @select-primary-color:              black;
+@select-input-height:               30px;
 
 // imports
 @import "~react-select/less/control.less";
@@ -7,6 +8,21 @@
 @import "~react-select/less/mixins.less";
 @import "~react-select/less/multi.less";
 @import "~react-select/less/spinner.less";
+
+.Select--multi {
+  .Select-multi-value-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .Select-value {
+    margin: 2px;
+  }
+
+  .Select-input > input {
+    width: 100px;
+  }
+}
 
 .VirtualSelectGrid {
   z-index: 1;
