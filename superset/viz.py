@@ -2586,6 +2586,157 @@ class PartitionViz(NVD3TimeSeriesViz):
             levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
         return self.nest_values(levels)
 
+class PagingTableViz(BaseViz):
+
+    """A basic html table that is sortable and searchable"""
+
+    viz_type = 'paging_table'
+    verbose_name = _('Table View')
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    is_timeseries = False
+
+    def should_be_timeseries(self):
+        fd = self.form_data
+        # TODO handle datasource-type-specific code in datasource
+        conditions_met = (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(_(
+                'Pick a granularity in the Time section or '
+                "uncheck 'Include Time'"))
+        return fd.get('include_time')
+
+    def query_obj(self):
+        d = super(PagingTableViz, self).query_obj()
+        fd = self.form_data
+
+        # Remove check [Group By] and [Metrics] both choose
+        """
+        if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
+            raise Exception(_(
+                'Choose either fields to [Group By] and [Metrics] or '
+                '[Columns], not both'))
+        """
+        sort_by = fd.get('timeseries_limit_metric')
+
+        if fd.get('offset'):
+            d['offset'] = fd.get('offset')
+
+        if fd.get('limit'):
+            d['limit'] = fd.get('limit')
+
+        if fd.get('all_columns'):
+            d['columns'] = fd.get('all_columns')
+            d['groupby'] = []
+            order_by_cols = fd.get('order_by_cols') or []
+            d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            if sort_by not in d['metrics']:
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
+
+        # Add all percent metrics that are not already in the list
+        if 'percent_metrics' in fd:
+            d['metrics'] = d['metrics'] + list(filter(
+                lambda m: m not in d['metrics'],
+                fd['percent_metrics'],
+            ))
+
+        d['is_timeseries'] = self.should_be_timeseries()
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        if (
+                not self.should_be_timeseries() and
+                df is not None and
+                DTTM_ALIAS in df
+        ):
+            del df[DTTM_ALIAS]
+
+        # Sum up and compute percentages for all percent metrics
+        percent_metrics = fd.get('percent_metrics', [])
+        if len(percent_metrics):
+            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
+            metric_sums = {
+                m: reduce(lambda a, b: a + b, df[m])
+                for m in percent_metrics
+            }
+            metric_percents = {
+                m: list(map(lambda a: a / metric_sums[m], df[m]))
+                for m in percent_metrics
+            }
+            for m in percent_metrics:
+                m_name = '%' + m
+                df[m_name] = pd.Series(metric_percents[m], name=m_name)
+            # Remove metrics that are not in the main metrics list
+            for m in filter(
+                lambda m: m not in fd['metrics'] and m in df.columns,
+                percent_metrics,
+            ):
+                del df[m]
+
+        return dict(
+            records=df.to_dict(orient='records'),
+            columns=list(df.columns),
+        )
+
+    def json_dumps(self, obj, sort_keys=False):
+        if self.form_data.get('all_columns'):
+            return json.dumps(
+                obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys)
+        else:
+            return super(PagingTableViz, self).json_dumps(obj)
+
+    def get_payload(self, query_obj=None):
+        """Returns a payload of metadata and data"""
+        query_obj = self.query_obj()
+
+        offset = None
+        limit = None
+        # column 삭제 후 count 만 돌림
+        #query_obj['columns'].remove()
+        columns_list = [i for i in query_obj['columns']]
+        del query_obj['columns'][:]
+        if 'offset' in query_obj:
+            offset = query_obj['offset']
+            del query_obj['offset']
+
+        if 'limit' in query_obj:
+            limit = query_obj['limit']
+            del query_obj['limit']
+
+        payload_count = self.get_df_payload(query_obj)
+
+        countDF = payload_count.get('df')
+        cntData = dict(
+            records=countDF.to_dict(orient='records'),
+            columns=list(countDF.columns),
+        )
+
+        # metrics 삭제 후 data 돌림
+        query_obj['columns'] = [i for i in columns_list]
+
+        if offset is not None:
+            query_obj['offset'] = offset
+
+        if limit is not None:
+            query_obj['limit'] = limit
+        del query_obj['metrics'][:]
+        payload = self.get_df_payload(query_obj)
+
+        df = payload.get('df')
+        if self.status != utils.QueryStatus.FAILED:
+            if df is not None and df.empty:
+                payload['error'] = 'No data'
+            else:
+                payload['data'] = self.get_data(df)
+                payload['total_count'] = cntData
+        if 'df' in payload:
+            del payload['df']
+        return payload
 
 viz_types = {
     o.viz_type: o for o in globals().values()

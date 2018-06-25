@@ -1795,6 +1795,46 @@ export const visTypes = {
       sections.NVD3TimeSeries[1],
     ],
   },
+
+  paging_table: {
+    label: t('Paging Table View'),
+    controlPanelSections: [
+      {
+        label: t('GROUP BY'),
+        description: t('Use this section if you want a query that aggregates'),
+        controlSetRows: [
+          ['metrics'],
+        ],
+      },
+      {
+        label: t('NOT GROUPED BY'),
+        description: t('Use this section if you want to query atomic rows'),
+        controlSetRows: [
+          ['all_columns'],
+          ['order_by_cols'],
+        ],
+      },
+      {
+        label: t('Options'),
+        controlSetRows: [
+          ['table_timestamp_format'],
+          ['row_limit', 'page_length'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      metrics: {
+        validators: [v.nonEmpty],
+      },
+      all_columns: {
+        validators: [v.nonEmpty],
+      },
+      time_grain_sqla: {
+        default: null,
+      },
+    },
+  },
+
 };
 
 export default visTypes;

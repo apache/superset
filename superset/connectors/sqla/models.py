@@ -496,6 +496,8 @@ class SqlaTable(Model, BaseDatasource):
             order_desc=True,
             prequeries=None,
             is_prequery=False,
+            limit=None,
+            offset=None,
         ):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -655,6 +657,12 @@ class SqlaTable(Model, BaseDatasource):
 
         if row_limit:
             qry = qry.limit(row_limit)
+
+        if offset:
+            qry = qry.offset(offset)
+
+        if limit:
+            qry = qry.limit(limit)
 
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:

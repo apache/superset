@@ -52,6 +52,7 @@ export const VIZ_TYPES = {
   deck_arc: 'deck_arc',
   deck_polygon: 'deck_polygon',
   rose: 'rose',
+  paging_table: 'paging_table',
 };
 
 const vizMap = {
@@ -103,5 +104,6 @@ const vizMap = {
   [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx').default,
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
   [VIZ_TYPES.rose]: require('./rose.js'),
+  [VIZ_TYPES.paging_table]: require('./paging_table.js'),
 };
 export default vizMap;
