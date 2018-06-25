@@ -90,6 +90,7 @@ setup(
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
+        'tableschema',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unicodecsv',

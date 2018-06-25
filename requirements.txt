@@ -34,6 +34,7 @@ six==1.11.0
 sqlalchemy==1.2.2
 sqlalchemy-utils==0.32.21
 sqlparse==0.2.4
+tableschema==1.1.0
 thrift==0.11.0
 thrift-sasl==0.3.0
 unicodecsv==0.14.1
