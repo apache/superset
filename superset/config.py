@@ -314,6 +314,10 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 # contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
 
+# The namespace within hive where the tables created from
+# uploading CSVs will be stored.
+UPLOADED_CSV_HIVE_NAMESPACE = None
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
