@@ -978,6 +978,14 @@ class HiveEngineSpec(PrestoEngineSpec):
                 return next(unicodecsv.reader(f, encoding='utf-8-sig'))
 
         table_name = form.name.data
+        if config.get('UPLOADED_CSV_HIVE_NAMESPACE'):
+            if '.' in table_name:
+                raise Exception(
+                    "You can't specify a namespace. "
+                    'All tables will be uploaded to the `{}` namespace'.format(
+                        config.get('HIVE_NAMESPACE')))
+            table_name = '{}.{}'.format(
+                config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
         filename = form.csv_file.data.filename
 
         bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
