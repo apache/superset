@@ -15,7 +15,7 @@ import AnnotationTypes, {
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy } from '../utils/common';
+import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -103,11 +103,8 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
     label = verboseLabels.join(', ');
-    if (input.length > verboseLabels.length) {
-      label += ' ---';
-    }
   } else {
     label = verboseLkp(input);
   }
@@ -121,9 +118,13 @@ export default function nvd3Vis(slice, payload) {
 
   let data;
   if (payload.data) {
-    data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
-    }));
+    if (Array.isArray(payload.data)) {
+        data = payload.data.map(x => ({
+            ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+        }));
+    } else {
+      data = payload.data;
+    }
   } else {
     data = [];
   }
@@ -489,6 +490,8 @@ export default function nvd3Vis(slice, payload) {
         chart.showLegend(fd.show_legend);
       }
     }
+    // This is needed for correct chart dimensions if a chart is rendered in a hidden container
+    chart.width(width);
     chart.height(height);
     slice.container.css('height', height + 'px');
 
@@ -832,6 +835,12 @@ export default function nvd3Vis(slice, payload) {
             });
           });
         }
+
+        // rerender chart appended with annotation layer
+        svg.datum(data)
+          .attr('height', height)
+          .attr('width', width)
+          .call(chart);
       }
     }
     return chart;

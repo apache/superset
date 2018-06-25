@@ -1,4 +1,5 @@
 import d3 from 'd3';
+import { TIME_SHIFT_PATTERN } from '../utils/common';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
@@ -181,7 +182,7 @@ export const getColorFromScheme = (function () {
     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
     let stringifyS = String(s).toLowerCase();
     // next line is for superset series that should have the same color
-    stringifyS = stringifyS.replace(' ---', '');
+    stringifyS = stringifyS.split(', ').filter(k => !TIME_SHIFT_PATTERN.test(k)).join(', ');
 
     if (forcedColor && !forcedColors[stringifyS]) {
       forcedColors[stringifyS] = forcedColor;

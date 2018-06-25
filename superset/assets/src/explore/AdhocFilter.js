@@ -20,6 +20,7 @@ const OPERATORS_TO_SQL = {
   in: 'in',
   'not in': 'not in',
   LIKE: 'like',
+  regex: 'regex',
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
@@ -83,7 +84,13 @@ export default class AdhocFilter {
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      return !!(this.operator && this.subject && this.comparator && this.clause);
+      return !!(
+        this.operator &&
+        this.subject &&
+        this.comparator &&
+        this.comparator.length > 0 &&
+        this.clause
+      );
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!(this.sqlExpression && this.clause);
     }

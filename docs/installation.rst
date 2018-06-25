@@ -35,6 +35,27 @@ The Superset web server and the Superset Celery workers (optional)
 are stateless, so you can scale out by running on as many servers
 as needed.
 
+Start with Docker
+-----------------
+
+If you know docker, then you're lucky, we have shortcut road for you to 
+initialize development environment: ::
+
+    git clone https://github.com/apache/incubator-superset/
+    cd incubator-superset
+    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
+    cp contrib/docker/superset_config.py superset/
+    bash -x docker-build.sh
+    docker-compose up -d
+    docker-compose exec superset bash
+    bash docker-init.sh
+
+After several minutes for sueprset initialization to finish, you can open a 
+a browser and view `http://localhost:8088` to start your journey.
+
+Or if you're curious and want to install superset from bottom up, then go 
+ahead.
+
 OS dependencies
 ---------------
 
@@ -314,6 +335,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Athena       | ``pip install "PyAthena>1.2.0"``    | ``awsathena+rest://``                           |
++---------------+-------------------------------------+-------------------------------------------------+
 |  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
 |               | sqlalchemy-vertica-python``         |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
@@ -341,6 +364,11 @@ Where you need to escape/encode at least the s3_staging_dir, i.e., ::
 
     s3://... -> s3%3A//...
 
+You can also use `PyAthena` library
+
+    awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+_(See more details at https://github.com/laughingman7743/PyAthena#sqlalchemy.)_
 
 Caching
 -------
@@ -362,7 +390,7 @@ For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
-	
+
 .. code-block:: python
 
     CACHE_CONFIG = {
@@ -657,13 +685,82 @@ Note that it's also possible to implement you own logger by deriving
 Install Superset with helm in Kubernetes
 --------------
 
-You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is 
+You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
 located in ``install/helm``.
 
 To install Superset into your Kubernetes:
 
 .. code-block:: bash
 
-    helm upgrade --install superset ./install/helm/superset 
+    helm upgrade --install superset ./install/helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
+
+Custom OAuth2 configuration
+---------------------------
+
+Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that supports "code" authorization. 
+
+The first step: Configure authorization in Superset ``superset_config.py``.
+
+.. code-block:: python
+
+    AUTH_TYPE = AUTH_OAUTH
+    
+    OAUTH_PROVIDERS = [
+        {   'name':'egaSSO',
+            'token_key':'access_token', # Name of the token in the response of access_token_url
+            'icon':'fa-address-card',   # Icon for the provider
+            'remote_app': {
+                'consumer_key':'myClientId',  # Client Id (Identify Superset application)
+                'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+                'request_token_params':{
+                    'scope': 'read'               # Scope for the Authorization
+                },
+                'access_token_method':'POST',	# HTTP Method to call access_token_url
+                'access_token_params':{		# Additional parameters for calls to access_token_url
+                    'client_id':'myClientId'	 
+                },
+                'access_token_headers':{	# Additional headers for calls to access_token_url 
+                    'Authorization': 'Basic Base64EncodedClientIdAndSecret' 
+                },
+                'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+                'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
+                'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
+            }
+        }
+    ]
+    
+    # Will allow user self registration, allowing to create Flask users from Authorized User
+    AUTH_USER_REGISTRATION = True
+    
+    # The default user self registration role
+    AUTH_USER_REGISTRATION_ROLE = "Public"
+    
+Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides `oauth_user_info`:
+
+.. code-block:: python
+    
+    from superset.security import SupersetSecurityManager
+    
+    class CustomSsoSecurityManager(SupersetSecurityManager):
+
+        def oauth_user_info(self, provider, response=None):
+            logging.debug("Oauth2 provider: {0}.".format(provider))
+            if provider == 'egaSSO':
+                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication, 
+		# and expects that authorization server checks the token, and response with user details
+                me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
+                logging.debug("user_data: {0}".format(me))
+                return { 'name' : me['name'], 'email' : me['email'], 'id' : me['user_name'], 'username' : me['user_name'], 'first_name':'', 'last_name':''}
+	    ...
+
+This file must be located at the same directory than ``superset_config.py`` with the name ``custom_sso_security_manager.py``.
+
+Then we can add this two lines to ``superset_config.py``:
+
+.. code-block:: python
+  
+  from custom_sso_security_manager import CustomSsoSecurityManager
+  CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+

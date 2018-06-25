@@ -31,6 +31,7 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
+from past.builtins import basestring
 import polyline
 import simplejson as json
 from six import string_types, text_type
@@ -59,6 +60,7 @@ class BaseViz(object):
     is_timeseries = False
     default_fillna = 0
     cache_type = 'df'
+    enforce_numerical_metrics = True
 
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
@@ -86,7 +88,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-        self._extra_chart_data = None
+        self._extra_chart_data = []
 
         self.process_metrics()
 
@@ -209,7 +211,8 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
 
-            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+            if self.enforce_numerical_metrics:
+                self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
             self.handle_nulls(df)
@@ -220,7 +223,7 @@ class BaseViz(object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
-                df[col] = pd.to_numeric(df[col])
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
     def query_obj(self):
         """Building a query object"""
@@ -483,6 +486,7 @@ class TableViz(BaseViz):
     verbose_name = _('Table View')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def should_be_timeseries(self):
         fd = self.form_data
@@ -513,7 +517,8 @@ class TableViz(BaseViz):
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         elif sort_by:
-            if sort_by not in d['metrics']:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
 
@@ -555,7 +560,7 @@ class TableViz(BaseViz):
                 m_name = '%' + m
                 df[m_name] = pd.Series(metric_percents[m], name=m_name)
             # Remove metrics that are not in the main metrics list
-            metrics = fd.get('metrics', [])
+            metrics = fd.get('metrics') or []
             metrics = [self.get_metric_label(m) for m in metrics]
             for m in filter(
                 lambda m: m not in metrics and m in df.columns,
@@ -717,14 +722,13 @@ class WordCloudViz(BaseViz):
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
-
-        d['metrics'] = [self.form_data.get('metric')]
         d['groupby'] = [self.form_data.get('series')]
         return d
 
     def get_data(self, df):
+        fd = self.form_data
         # Ordering the columns
-        df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
+        df = df[[fd.get('series'), self.metric_labels[0]]]
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient='records')
@@ -943,9 +947,9 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df):
-        df['x'] = df[[self.x_metric]]
-        df['y'] = df[[self.y_metric]]
-        df['size'] = df[[self.z_metric]]
+        df['x'] = df[[utils.get_metric_name(self.x_metric)]]
+        df['y'] = df[[utils.get_metric_name(self.y_metric)]]
+        df['size'] = df[[utils.get_metric_name(self.z_metric)]]
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
 
@@ -1202,10 +1206,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def run_extra_queries(self):
         fd = self.form_data
-        time_compare = fd.get('time_compare')
-        if time_compare:
+
+        time_compare = fd.get('time_compare') or []
+        # backwards compatibility
+        if not isinstance(time_compare, list):
+            time_compare = [time_compare]
+
+        classes = ['time-shift-{}'.format(i) for i in range(10)]
+        i = 0
+        for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(time_compare)
+            delta = utils.parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
@@ -1218,10 +1229,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None:
+                classed = classes[i % len(classes)]
+                i += 1
+                label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data = self.to_series(
-                    df2, classed='superset', title_suffix='---')
+                self._extra_chart_data.extend(self.to_series(
+                    df2, classed=classed, title_suffix=label))
 
     def get_data(self, df):
         df = self.process_data(df)
@@ -1303,6 +1317,7 @@ class NVD3DualLineViz(NVD3Viz):
             self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
+            m = utils.get_metric_name(m)
             ys = series[m]
             if df[m].dtype.kind not in 'biufc':
                 continue
@@ -1583,6 +1598,8 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
+        df['source'] = df['source'].astype(basestring)
+        df['target'] = df['target'].astype(basestring)
         recs = df.to_dict(orient='records')
 
         hierarchy = defaultdict(set)

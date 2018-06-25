@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 import unittest
 
@@ -226,6 +227,14 @@ class CoreTests(SupersetTestCase):
         assert len(resp) > 0
         assert 'Carbon Dioxide' in resp
 
+    def test_slice_data(self):
+        # slice data should have some required attributes
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        slc_data_attributes = slc.data.keys()
+        assert('changed_on' in slc_data_attributes)
+        assert('modified' in slc_data_attributes)
+
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username='admin')
@@ -377,7 +386,7 @@ class CoreTests(SupersetTestCase):
             'previous_viz_type=sankey'
         )
         resp = self.client.post('/r/shortner/', data=dict(data=data))
-        assert '?r=' in resp.data.decode('utf-8')
+        assert re.search(r'\/r\/[0-9]+', resp.data.decode('utf-8'))
 
     def test_kv(self):
         self.logout()

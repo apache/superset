@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 
+import Loading from '../../components/Loading';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -155,7 +156,11 @@ export default class ResultSet extends React.PureComponent {
     if (query.state === 'stopped') {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
-      return <Alert bsStyle="danger">{query.errorMessage}</Alert>;
+      return (
+        <Alert bsStyle="danger">
+          {query.errorMessage}
+          {query.link && <a href={query.link}> {t('(Common errors and their resolutions)')} </a>}
+        </Alert>);
     } else if (query.state === 'success' && query.ctas) {
       return (
         <div>
@@ -234,7 +239,7 @@ export default class ResultSet extends React.PureComponent {
     }
     return (
       <div>
-        <img className="loading" alt={t('Loading...')} src="/static/assets/images/loading.gif" />
+        <Loading />
         <QueryStateLabel query={query} />
         {progressBar}
         <div>
