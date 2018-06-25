@@ -1,0 +1,249 @@
+import {
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+  NEW_COMPONENTS_SOURCE_ID,
+} from '../util/constants';
+import componentIsResizable from '../util/componentIsResizable';
+import findParentId from '../util/findParentId';
+import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
+import newComponentFactory from '../util/newComponentFactory';
+import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
+import reorderItem from '../util/dnd-reorder';
+import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
+import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
+
+import {
+  UPDATE_COMPONENTS,
+  DELETE_COMPONENT,
+  CREATE_COMPONENT,
+  MOVE_COMPONENT,
+  CREATE_TOP_LEVEL_TABS,
+  DELETE_TOP_LEVEL_TABS,
+} from '../actions/dashboardLayout';
+
+const actionHandlers = {
+  [UPDATE_COMPONENTS](state, action) {
+    const {
+      payload: { nextComponents },
+    } = action;
+    return {
+      ...state,
+      ...nextComponents,
+    };
+  },
+
+  [DELETE_COMPONENT](state, action) {
+    const {
+      payload: { id, parentId },
+    } = action;
+
+    if (!parentId || !id || !state[id] || !state[parentId]) return state;
+
+    const nextComponents = { ...state };
+
+    function recursivelyDeleteChildren(componentId, componentParentId) {
+      // delete child and it's children
+      const component = nextComponents[componentId];
+      delete nextComponents[componentId];
+
+      const { children = [] } = component;
+      children.forEach(childId => {
+        recursivelyDeleteChildren(childId, componentId);
+      });
+
+      const parent = nextComponents[componentParentId];
+      if (parent) {
+        // may have been deleted in another recursion
+        const componentIndex = (parent.children || []).indexOf(componentId);
+        if (componentIndex > -1) {
+          const nextChildren = [...parent.children];
+          nextChildren.splice(componentIndex, 1);
+          nextComponents[componentParentId] = {
+            ...parent,
+            children: nextChildren,
+          };
+        }
+      }
+    }
+
+    recursivelyDeleteChildren(id, parentId);
+    const nextParent = nextComponents[parentId];
+    if (nextParent.type === ROW_TYPE && nextParent.children.length === 0) {
+      const grandparentId = findParentId({
+        childId: parentId,
+        layout: nextComponents,
+      });
+      recursivelyDeleteChildren(parentId, grandparentId);
+    }
+
+    return nextComponents;
+  },
+
+  [CREATE_COMPONENT](state, action) {
+    const {
+      payload: { dropResult },
+    } = action;
+
+    const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
+
+    return {
+      ...state,
+      ...newEntities,
+    };
+  },
+
+  [MOVE_COMPONENT](state, action) {
+    const {
+      payload: { dropResult },
+    } = action;
+    const { source, destination, dragging } = dropResult;
+
+    if (!source || !destination || !dragging) return state;
+
+    const nextEntities = reorderItem({
+      entitiesMap: state,
+      source,
+      destination,
+    });
+
+    if (componentIsResizable(nextEntities[dragging.id])) {
+      // update component width if it changed
+      const nextWidth =
+        getComponentWidthFromDrop({
+          dropResult,
+          layout: state,
+        }) || undefined; // don't set a 0 width
+      if ((nextEntities[dragging.id].meta || {}).width !== nextWidth) {
+        nextEntities[dragging.id] = {
+          ...nextEntities[dragging.id],
+          meta: {
+            ...nextEntities[dragging.id].meta,
+            width: nextWidth,
+          },
+        };
+      }
+    }
+
+    // wrap the dragged component in a row depending on destination type
+    const wrapInRow = shouldWrapChildInRow({
+      parentType: destination.type,
+      childType: dragging.type,
+    });
+
+    if (wrapInRow) {
+      const destinationEntity = nextEntities[destination.id];
+      const destinationChildren = destinationEntity.children;
+      const newRow = newComponentFactory(ROW_TYPE);
+      newRow.children = [destinationChildren[destination.index]];
+      destinationChildren[destination.index] = newRow.id;
+      nextEntities[newRow.id] = newRow;
+    }
+
+    return {
+      ...state,
+      ...nextEntities,
+    };
+  },
+
+  [CREATE_TOP_LEVEL_TABS](state, action) {
+    const {
+      payload: { dropResult },
+    } = action;
+    const { source, dragging } = dropResult;
+
+    // move children of current root to be children of the dragging tab
+    const rootComponent = state[DASHBOARD_ROOT_ID];
+    const topLevelId = rootComponent.children[0];
+    const topLevelComponent = state[topLevelId];
+
+    if (source.id !== NEW_COMPONENTS_SOURCE_ID) {
+      // component already exists
+      const draggingTabs = state[dragging.id];
+      const draggingTabId = draggingTabs.children[0];
+      const draggingTab = state[draggingTabId];
+
+      // move all children except the one that is dragging
+      const childrenToMove = [...topLevelComponent.children].filter(
+        id => id !== dragging.id,
+      );
+
+      return {
+        ...state,
+        [DASHBOARD_ROOT_ID]: {
+          ...rootComponent,
+          children: [dragging.id],
+        },
+        [topLevelId]: {
+          ...topLevelComponent,
+          children: [],
+        },
+        [draggingTabId]: {
+          ...draggingTab,
+          children: [...draggingTab.children, ...childrenToMove],
+        },
+      };
+    }
+
+    // create new component
+    const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
+    const newEntitiesArray = Object.values(newEntities);
+    const tabComponent = newEntitiesArray.find(
+      component => component.type === TAB_TYPE,
+    );
+    const tabsComponent = newEntitiesArray.find(
+      component => component.type === TABS_TYPE,
+    );
+
+    tabComponent.children = [...topLevelComponent.children];
+    newEntities[topLevelId] = { ...topLevelComponent, children: [] };
+    newEntities[DASHBOARD_ROOT_ID] = {
+      ...rootComponent,
+      children: [tabsComponent.id],
+    };
+
+    return {
+      ...state,
+      ...newEntities,
+    };
+  },
+
+  [DELETE_TOP_LEVEL_TABS](state) {
+    const rootComponent = state[DASHBOARD_ROOT_ID];
+    const topLevelId = rootComponent.children[0];
+    const topLevelTabs = state[topLevelId];
+
+    if (topLevelTabs.type !== TABS_TYPE) return state;
+
+    let childrenToMove = [];
+    const nextEntities = { ...state };
+
+    topLevelTabs.children.forEach(tabId => {
+      const tabComponent = state[tabId];
+      childrenToMove = [...childrenToMove, ...tabComponent.children];
+      delete nextEntities[tabId];
+    });
+
+    delete nextEntities[topLevelId];
+
+    nextEntities[DASHBOARD_ROOT_ID] = {
+      ...rootComponent,
+      children: [DASHBOARD_GRID_ID],
+    };
+
+    nextEntities[DASHBOARD_GRID_ID] = {
+      ...state[DASHBOARD_GRID_ID],
+      children: childrenToMove,
+    };
+
+    return nextEntities;
+  },
+};
+
+export default function layoutReducer(state = {}, action) {
+  if (action.type in actionHandlers) {
+    const handler = actionHandlers[action.type];
+    return handler(state, action);
+  }
+
+  return state;
+}

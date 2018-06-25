@@ -1,0 +1,163 @@
+.dashboard-builder-sidepane {
+  flex: 0 0 @builder-pane-width;
+  z-index: 10;
+  position: relative;
+
+  .dashboard-builder-sidepane-header {
+    font-size: 15px;
+    font-weight: 700;
+    border-top: 1px solid @gray-light;
+    border-bottom: 1px solid @gray-light;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+  }
+
+  .trigger {
+    font-size: 16px;
+    color: @almost-black;
+    opacity: 1;
+    margin-left: auto;
+    cursor: pointer;
+  }
+
+  .slices-layer .trigger {
+    margin-left: 0;
+    margin-right: 20px;
+  }
+
+  .viewport {
+    position: absolute;
+    transform: none !important;
+    background: white;
+    overflow: hidden;
+    width: @builder-pane-width;
+    height: 100%;
+    box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .slider-container {
+    position: absolute;
+    background: white;
+    width: @builder-pane-width * 2;
+    height: 100vh;
+    display: flex;
+    transition: all 0.5s ease;
+
+    &.slide-in {
+      left: -@builder-pane-width;
+    }
+
+    &.slide-out {
+      left: 0;
+    }
+
+    .slide-content {
+      width: @builder-pane-width;
+    }
+  }
+
+  .component-layer .new-component.static,
+  .slices-layer .dashboard-builder-sidepane-header {
+    cursor: pointer;
+  }
+
+  .component-layer {
+    .new-component.static {
+      cursor: pointer;
+    }
+  }
+
+  .new-component-label {
+    flex-grow: 1;
+  }
+
+  .chart-card-container {
+    .chart-card {
+      border: 1px solid @gray-light;
+      font-weight: 200;
+      padding: 16px;
+      margin: 16px;
+      position: relative;
+      cursor: move;
+
+      &:hover {
+        background: @gray-bg;
+      }
+    }
+
+    .card-title {
+      margin-right: 60px;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+
+      .item {
+        span {
+          word-break: break-all;
+
+          &:first-child {
+            font-weight: 400;
+          }
+        }
+      }
+    }
+
+    .chart-card.is-selected {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .is-added-label {
+      background: @almost-black;
+      color: white;
+      font-size: 12px;
+      line-height: 1em;
+      text-transform: uppercase;
+      position: absolute;
+      padding: 4px 8px;
+      top: 32px;
+      right: 32px;
+      pointer-events: none;
+    }
+  }
+
+  .slice-adder-container {
+    .controls {
+      display: flex;
+      padding: 16px;
+
+      /* the input is wrapped in a div */
+      .search-input {
+        flex-grow: 1;
+        margin-right: 16px;
+      }
+
+      .dropdown.btn-group button,
+      input {
+        font-size: 14px;
+        line-height: 16px;
+        padding: 7px 12px;
+        height: 32px;
+        border: 1px solid @gray-light;
+      }
+
+      input {
+        width: 100%;
+
+        &:focus {
+          outline: none;
+          border-color: @gray;
+        }
+      }
+    }
+
+    .ReactVirtualized__Grid.ReactVirtualized__List:focus {
+      outline: none;
+    }
+  }
+}

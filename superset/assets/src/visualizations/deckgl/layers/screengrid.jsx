@@ -59,8 +59,8 @@ const propTypes = {
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
-  /* eslint-disable no-unused-vars */
-  static getDerivedStateFromProps(nextProps, prevState) {
+  /* eslint-disable-next-line react/sort-comp */
+  static getDerivedStateFromProps(nextProps) {
     const fd = nextProps.slice.formData;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
