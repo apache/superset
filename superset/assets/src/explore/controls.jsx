@@ -44,7 +44,7 @@ import {
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
-import * as v from './validators';
+import * as v from '../controls/validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';

@@ -7,9 +7,9 @@ import VirtualizedSelect from 'react-virtualized-select';
 import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../explore/components/controls/DateFilterControl';
+import DateFilterControl from '../controls/controls/DateFilterControl';
 import ControlRow from '../explore/components/ControlRow';
-import Control from '../explore/components/Control';
+import Control from '../controls/Control';
 import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';

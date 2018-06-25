@@ -4,11 +4,11 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import MetricDefinitionValue from '../../../../src/explore/components/MetricDefinitionValue';
+import MetricDefinitionValue from '../../../../src/controls/controls/MetricDefinitionValue';
 import MetricOption from '../../../../src/components/MetricOption';
-import AdhocMetricOption from '../../../../src/explore/components/AdhocMetricOption';
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocMetricOption from '../../../../src/controls/controls/AdhocMetricOption';
+import AdhocMetric from '../../../../src/controls/AdhocMetric';
+import { AGGREGATES } from '../../../../src/controls/constants';
 
 const sumValueAdhocMetric = new AdhocMetric({
   column: { type: 'DOUBLE', column_name: 'value' },

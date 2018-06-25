@@ -6,12 +6,12 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import AdhocFilterEditPopover from '../../../../src/explore/components/AdhocFilterEditPopover';
-import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
-import AdhocFilterEditPopoverSqlTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSqlTabContent';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/controls/AdhocFilter';
+import AdhocMetric from '../../../../src/controls/AdhocMetric';
+import AdhocFilterEditPopover from '../../../../src/controls/controls/AdhocFilterEditPopover';
+import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/controls/controls/AdhocFilterEditPopoverSimpleTabContent';
+import AdhocFilterEditPopoverSqlTabContent from '../../../../src/controls/controls/AdhocFilterEditPopoverSqlTabContent';
+import { AGGREGATES } from '../../../../src/controls/constants';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

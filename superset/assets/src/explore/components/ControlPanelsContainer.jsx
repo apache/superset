@@ -7,7 +7,7 @@ import { Alert, Tab, Tabs } from 'react-bootstrap';
 import visTypes, { sectionsToRender } from '../visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
-import Control from './Control';
+import Control from '../../controls/Control';
 import controls from '../controls';
 import * as actions from '../actions/exploreActions';
 
