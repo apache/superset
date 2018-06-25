@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import AggregateOption from '../../../../src/explore/components/AggregateOption';
+import AggregateOption from '../../../../src/controls/controls/AggregateOption';
 
 describe('AggregateOption', () => {
   it('renders the aggregate', () => {

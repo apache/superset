@@ -4,11 +4,11 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import FilterDefinitionOption from '../../../../src/explore/components/FilterDefinitionOption';
+import FilterDefinitionOption from '../../../../src/controls/FilterDefinitionOption';
 import ColumnOption from '../../../../src/components/ColumnOption';
-import AdhocMetricStaticOption from '../../../../src/explore/components/AdhocMetricStaticOption';
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocMetricStaticOption from '../../../../src/controls/AdhocMetricStaticOption';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/controls/AdhocMetric';
+import { AGGREGATES } from '../../../../src/controls/constants';
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,

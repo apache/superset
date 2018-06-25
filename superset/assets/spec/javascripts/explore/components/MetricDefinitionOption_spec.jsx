@@ -4,10 +4,10 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import MetricDefinitionOption from '../../../../src/explore/components/MetricDefinitionOption';
 import MetricOption from '../../../../src/components/MetricOption';
 import ColumnOption from '../../../../src/components/ColumnOption';
-import AggregateOption from '../../../../src/explore/components/AggregateOption';
+import MetricDefinitionOption from '../../../../src/controls/controls/MetricDefinitionOption';
+import AggregateOption from '../../../../src/controls/controls/AggregateOption';
 
 describe('MetricDefinitionOption', () => {
   it('renders a MetricOption given a saved metric', () => {

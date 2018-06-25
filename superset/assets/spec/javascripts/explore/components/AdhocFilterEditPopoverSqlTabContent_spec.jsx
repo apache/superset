@@ -6,8 +6,8 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
-import AdhocFilterEditPopoverSqlTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSqlTabContent';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/controls/AdhocFilter';
+import AdhocFilterEditPopoverSqlTabContent from '../../../../src/controls/controls/AdhocFilterEditPopoverSqlTabContent';
 
 const sqlAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SQL,

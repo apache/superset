@@ -6,8 +6,8 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
-import AdhocFilterOption from '../../../../src/explore/components/AdhocFilterOption';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/controls/AdhocFilter';
+import AdhocFilterOption from '../../../../src/controls/controls/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

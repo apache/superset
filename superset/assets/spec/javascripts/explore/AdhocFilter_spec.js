@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../src/explore/AdhocFilter';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../src/controls/AdhocFilter';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {

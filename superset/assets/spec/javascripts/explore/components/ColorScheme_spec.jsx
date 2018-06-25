@@ -6,7 +6,7 @@ import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
 
 import ColorSchemeControl from
-  '../../../../src/explore/components/controls/ColorSchemeControl';
+  '../../../../src/controls/controls/ColorSchemeControl';
 import { ALL_COLOR_SCHEMES } from '../../../../src/modules/colors';
 
 const defaultProps = {

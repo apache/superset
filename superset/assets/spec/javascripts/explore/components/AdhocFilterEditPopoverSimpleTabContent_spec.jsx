@@ -6,10 +6,10 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
-import AdhocMetric from '../../../../src/explore/AdhocMetric';
-import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
-import { AGGREGATES } from '../../../../src/explore/constants';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/controls/AdhocFilter';
+import AdhocMetric from '../../../../src/controls/AdhocMetric';
+import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/controls/controls/AdhocFilterEditPopoverSimpleTabContent';
+import { AGGREGATES } from '../../../../src/controls/constants';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
