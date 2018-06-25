@@ -518,9 +518,10 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
-        'id', 'slice_name', 'slice_link', 'viz_type',
-        'datasource_link', 'owners', 'modified', 'changed_on']
-    show_columns = list(set(SliceModelView.edit_columns + list_columns))
+        'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
+        'description', 'description_markeddown', 'datasource_id', 'datasource_type',
+        'datasource_name_text', 'datasource_link',
+        'owners', 'modified', 'changed_on']
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -1549,6 +1550,8 @@ class Superset(BaseSupersetView):
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data['dashboard_title']
+
+        is_v2_dash = Superset._is_v2_dash(data['positions'])
         if data['duplicate_slices']:
             # Duplicating slices as well, mapping old ids to new ones
             old_to_new_sliceids = {}
@@ -1558,10 +1561,24 @@ class Superset(BaseSupersetView):
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids['{}'.format(slc.id)] =\
+                old_to_new_sliceids['{}'.format(slc.id)] = \
                     '{}'.format(new_slice.id)
-            for d in data['positions']:
-                d['slice_id'] = old_to_new_sliceids[d['slice_id']]
+
+            # update chartId of layout entities
+            # in v2_dash positions json data, chartId should be integer,
+            # while in older version slice_id is string type
+            if is_v2_dash:
+                for value in data['positions'].values():
+                    if (
+                        isinstance(value, dict) and value.get('meta') and
+                        value.get('meta').get('chartId')
+                    ):
+                        old_id = '{}'.format(value.get('meta').get('chartId'))
+                        new_id = int(old_to_new_sliceids[old_id])
+                        value['meta']['chartId'] = new_id
+            else:
+                for d in data['positions']:
+                    d['slice_id'] = old_to_new_sliceids[d['slice_id']]
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
@@ -1591,14 +1608,69 @@ class Superset(BaseSupersetView):
         return 'SUCCESS'
 
     @staticmethod
+    def _is_v2_dash(positions):
+        return (
+            isinstance(positions, dict) and
+            positions.get('DASHBOARD_VERSION_KEY') == 'v2'
+        )
+
+    @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-        slice_ids = [int(d['slice_id']) for d in positions]
-        dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
-        positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
+        is_v2_dash = Superset._is_v2_dash(positions)
+
+        # @TODO remove upon v1 deprecation
+        if not is_v2_dash:
+            positions = data['positions']
+            slice_ids = [int(d['slice_id']) for d in positions]
+            dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
+            positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
+            dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+            md = dashboard.params_dict
+            dashboard.css = data['css']
+            dashboard.dashboard_title = data['dashboard_title']
+
+            if 'filter_immune_slices' not in md:
+                md['filter_immune_slices'] = []
+            if 'timed_refresh_immune_slices' not in md:
+                md['timed_refresh_immune_slices'] = []
+            if 'filter_immune_slice_fields' not in md:
+                md['filter_immune_slice_fields'] = {}
+            md['expanded_slices'] = data['expanded_slices']
+            md['default_filters'] = data.get('default_filters', '')
+            dashboard.json_metadata = json.dumps(md, indent=4)
+            return
+
+        # find slices in the position data
+        slice_ids = []
+        slice_id_to_name = {}
+        for value in positions.values():
+            if (
+                isinstance(value, dict) and value.get('meta') and
+                value.get('meta').get('chartId')
+            ):
+                slice_id = value.get('meta').get('chartId')
+                slice_ids.append(slice_id)
+                slice_id_to_name[slice_id] = value.get('meta').get('sliceName')
+
+        session = db.session()
+        Slice = models.Slice  # noqa
+        current_slices = session.query(Slice).filter(
+            Slice.id.in_(slice_ids)).all()
+
+        dashboard.slices = current_slices
+
+        # update slice names. this assumes user has permissions to update the slice
+        for slc in dashboard.slices:
+            new_name = slice_id_to_name[slc.id]
+            if slc.slice_name != new_name:
+                slc.slice_name = new_name
+                session.merge(slc)
+                session.flush()
+
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
-        dashboard.css = data['css']
+        dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
@@ -1608,7 +1680,11 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
-        md['default_filters'] = data.get('default_filters', '')
+        default_filters_data = json.loads(data.get('default_filters', '{}'))
+        for key in default_filters_data.keys():
+            if int(key) not in slice_ids:
+                del default_filters_data[key]
+        md['default_filters'] = json.dumps(default_filters_data)
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
@@ -2041,12 +2117,6 @@ class Superset(BaseSupersetView):
                         'superset/request_access/?'
                         'dashboard_id={dash.id}&'.format(**locals()))
 
-        # Hack to log the dashboard_id properly, even when getting a slug
-        @log_this
-        def dashboard(**kwargs):  # noqa
-            pass
-        dashboard(dashboard_id=dash.id)
-
         dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
             security_manager.can_access('can_save_dash', 'Superset')
         dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
@@ -2054,6 +2124,58 @@ class Superset(BaseSupersetView):
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
         standalone_mode = request.args.get('standalone') == 'true'
+        edit_mode = request.args.get('edit') == 'true'
+
+        # TODO remove switch upon v1 deprecation 🎉
+        # during v2 rollout, multiple factors determine whether we show v1 or v2
+        # if layout == v1
+        #   view = v1 for non-editors
+        #   view = v1 or v2 for editors depending on config + request (force)
+        #   edit = v1 or v2 for editors depending on config + request (force)
+        #
+        # if layout == v2 (not backwards compatible)
+        #   view = v2
+        #   edit = v2
+        dashboard_layout = dash.data.get('position_json', {})
+        is_v2_dash = (
+            isinstance(dashboard_layout, dict) and
+            dashboard_layout.get('DASHBOARD_VERSION_KEY') == 'v2'
+        )
+
+        force_v1 = request.args.get('version') == 'v1' and not is_v2_dash
+        force_v2 = request.args.get('version') == 'v2'
+        force_v2_edit = (
+            is_v2_dash or
+            not app.config.get('CAN_FALLBACK_TO_DASH_V1_EDIT_MODE')
+        )
+        v2_is_default_view = app.config.get('DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS')
+        prompt_v2_conversion = False
+        if is_v2_dash:
+            dashboard_view = 'v2'
+        elif not dash_edit_perm:
+            dashboard_view = 'v1'
+        else:
+            if force_v2 or (v2_is_default_view and not force_v1):
+                dashboard_view = 'v2'
+            else:
+                dashboard_view = 'v1'
+                prompt_v2_conversion = not force_v1
+
+        # Hack to log the dashboard_id properly, even when getting a slug
+        @log_this
+        def dashboard(**kwargs):  # noqa
+            pass
+
+        # TODO remove extra logging upon v1 deprecation 🎉
+        dashboard(
+            dashboard_id=dash.id,
+            dashboard_version='v2' if is_v2_dash else 'v1',
+            dashboard_view=dashboard_view,
+            dash_edit_perm=dash_edit_perm,
+            force_v1=force_v1,
+            force_v2=force_v2,
+            force_v2_edit=force_v2_edit,
+            edit_mode=edit_mode)
 
         dashboard_data = dash.data
         dashboard_data.update({
@@ -2069,15 +2191,27 @@ class Superset(BaseSupersetView):
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
             'common': self.common_bootsrap_payload(),
-            'editMode': request.args.get('edit') == 'true',
+            'editMode': edit_mode,
+            # TODO remove the following upon v1 deprecation 🎉
+            'force_v2_edit': force_v2_edit,
+            'prompt_v2_conversion': prompt_v2_conversion,
+            'v2_auto_convert_date': app.config.get('PLANNED_V2_AUTO_CONVERT_DATE'),
+            'v2_feedback_url': app.config.get('V2_FEEDBACK_URL'),
         }
 
         if request.args.get('json') == 'true':
             return json_success(json.dumps(bootstrap_data))
 
+        if dashboard_view == 'v2':
+            entry = 'dashboard'
+            template = 'superset/dashboard.html'
+        else:
+            entry = 'dashboard_deprecated'
+            template = 'superset/dashboard_v1_deprecated.html'
+
         return self.render_template(
-            'superset/dashboard.html',
-            entry='dashboard',
+            template,
+            entry=entry,
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),

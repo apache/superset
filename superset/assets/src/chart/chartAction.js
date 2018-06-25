@@ -1,10 +1,10 @@
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
-import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
 import { COMMON_ERR_MESSAGES } from '../common';
 import { t } from '../locales';
 
-const $ = window.$ = require('jquery');
+const $ = (window.$ = require('jquery'));
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryRequest, latestQueryFormData, key) {
@@ -74,11 +74,13 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
 
-    const sliceFormData = Object.keys(annotation.overrides)
-      .reduce((d, k) => ({
+    const sliceFormData = Object.keys(annotation.overrides).reduce(
+      (d, k) => ({
         ...d,
         [k]: annotation.overrides[k] || fd[k],
-      }), {});
+      }),
+      {},
+    );
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
     const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
     const queryRequest = $.ajax({
@@ -117,6 +119,11 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+export const ADD_CHART = 'ADD_CHART';
+export function addChart(chart, key) {
+  return { type: ADD_CHART, chart, key };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
@@ -138,19 +145,22 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, payload, key)))
       .then(() => queryRequest)
       .then((queryResponse) => {
-        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          slice_id: 'slice_' + key,
           is_cached: queryResponse.is_cached,
+          force_refresh: force,
           row_count: queryResponse.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
+          has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
+          viz_type: formData.viz_type,
         });
         return dispatch(chartUpdateSucceeded(queryResponse, key));
       })
       .catch((err) => {
-        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          slice_id: 'slice_' + key,
           has_err: true,
           datasource: formData.datasource,
           start_offset: logStart,
@@ -189,4 +199,8 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
   };
+}
+
+export function refreshChart(chart, force, timeout) {
+  return dispatch => dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id));
 }

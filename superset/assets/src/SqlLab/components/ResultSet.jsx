@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 
+import Loading from '../../components/Loading';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -238,7 +239,7 @@ export default class ResultSet extends React.PureComponent {
     }
     return (
       <div>
-        <img className="loading" alt={t('Loading...')} src="/static/assets/images/loading.gif" />
+        <Loading />
         <QueryStateLabel query={query} />
         {progressBar}
         <div>
