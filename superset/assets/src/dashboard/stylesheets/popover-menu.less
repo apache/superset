@@ -1,0 +1,136 @@
+.with-popover-menu {
+  position: relative;
+  outline: none;
+}
+
+.grid-row.grid-row--empty .with-popover-menu {
+  /* drop indicator doesn't show up without this */
+  width: 100%;
+  height: 100%;
+}
+
+.with-popover-menu--focused:after {
+  content: '';
+  position: absolute;
+  top: 1;
+  left: -1;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 0 2px @indicator-color;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.popover-menu {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  left: 1px;
+  top: -42px;
+  height: 40px;
+  padding: 0 16px;
+  background: white;
+  box-shadow: 0 1px 2px 1px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  cursor: default;
+  z-index: 1000;
+}
+
+/* the focus menu doesn't account for parent padding */
+.dashboard-component-tabs li .with-popover-menu--focused:after {
+  top: -12px;
+  left: -8px;
+  width: ~'calc(100% + 16px)'; /* escape for .less */
+  height: ~'calc(100% + 28px)';
+}
+
+.dashboard-component-tabs li .popover-menu {
+  top: -56px;
+  left: -7px;
+}
+
+.popover-menu .menu-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* vertical spacer after each menu item */
+.popover-menu .menu-item:not(:only-child):not(:last-child):after {
+  content: '';
+  width: 1;
+  height: 100%;
+  background: @gray-light;
+  margin: 0 16px;
+}
+
+.popover-menu .popover-dropdown.btn {
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: @almost-black;
+}
+
+.popover-menu .popover-dropdown.btn:hover,
+.popover-menu .popover-dropdown.btn:active,
+.popover-menu .popover-dropdown.btn:focus,
+.hover-dropdown .btn:hover,
+.hover-dropdown .btn:active,
+.hover-dropdown .btn:focus {
+  background: initial;
+  box-shadow: none;
+}
+
+.hover-dropdown li.dropdown-item:hover a,
+.popover-menu li.dropdown-item:hover a {
+  background: @menu-hover;
+}
+
+.popover-dropdown .caret {
+  /* without this the caret doesn't take up full width / is clipped */
+  width: auto;
+  border-top-color: transparent;
+}
+
+.hover-dropdown li.dropdown-item.active a,
+.popover-menu li.dropdown-item.active a {
+  background: @gray-light;
+  font-weight: bold;
+  color: @almost-black;
+}
+
+/* background style menu */
+.background-style-option {
+  display: inline-block;
+}
+
+.background-style-option:before {
+  content: '';
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.background-style-option.background--white {
+  padding-left: 0;
+  background: transparent;
+}
+
+.background-style-option.background--white:before {
+  background: white;
+  border: 1px solid @gray-light;
+}
+
+/* Create the transparent rect icon */
+.background-style-option.background--transparent:before {
+  background-image: linear-gradient(45deg, @gray 25%, transparent 25%),
+    linear-gradient(-45deg, @gray 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, @gray 75%),
+    linear-gradient(-45deg, transparent 75%, @gray 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+}

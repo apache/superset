@@ -1,0 +1,25 @@
+.dashboard-markdown {
+  overflow: hidden;
+
+  .dashboard-component-chart-holder {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .dashboard--editing & {
+    cursor: move;
+  }
+
+  #brace-editor {
+    border: none;
+  }
+}
+
+/* maximize editing space */
+.dashboard-markdown--editing {
+  .dashboard-component-chart-holder {
+    .with-popover-menu--focused & {
+      padding: 1px;
+    }
+  }
+}
