@@ -2,14 +2,19 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
+import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
-import { now, epochTimeXHoursAgo,
-  epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
+import {
+  now,
+  epochTimeXHoursAgo,
+  epochTimeXDaysAgo,
+  epochTimeXYearsAgo,
+} from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
 import { t } from '../../locales';
 
-const $ = window.$ = require('jquery');
+const $ = (window.$ = require('jquery'));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -47,13 +52,17 @@ class QuerySearch extends React.PureComponent {
     this.refreshQueries();
   }
   onUserClicked(userId) {
-    this.setState({ userId }, () => { this.refreshQueries(); });
+    this.setState({ userId }, () => {
+      this.refreshQueries();
+    });
   }
   onDbClicked(dbId) {
-    this.setState({ databaseId: dbId }, () => { this.refreshQueries(); });
+    this.setState({ databaseId: dbId }, () => {
+      this.refreshQueries();
+    });
   }
   onChange(db) {
-    const val = (db) ? db.value : null;
+    const val = db ? db.value : null;
     this.setState({ databaseId: val });
   }
   getTimeFromSelection(selection) {
@@ -77,25 +86,25 @@ class QuerySearch extends React.PureComponent {
     }
   }
   changeFrom(user) {
-    const val = (user) ? user.value : null;
+    const val = user ? user.value : null;
     this.setState({ from: val });
   }
   changeTo(status) {
-    const val = (status) ? status.value : null;
+    const val = status ? status.value : null;
     this.setState({ to: val });
   }
   changeUser(user) {
-    const val = (user) ? user.value : null;
+    const val = user ? user.value : null;
     this.setState({ userId: val });
   }
   insertParams(baseUrl, params) {
-    const validParams = params.filter(
-      function (p) { return p !== ''; },
-    );
+    const validParams = params.filter(function (p) {
+      return p !== '';
+    });
     return baseUrl + '?' + validParams.join('&');
   }
   changeStatus(status) {
-    const val = (status) ? status.value : null;
+    const val = status ? status.value : null;
     this.setState({ status: val });
   }
   changeSearch(event) {
@@ -120,7 +129,7 @@ class QuerySearch extends React.PureComponent {
     if (data.result.length === 0) {
       this.props.actions.addAlert({
         bsStyle: 'danger',
-        msg: t('It seems you don\'t have access to any database'),
+        msg: t("It seems you don't have access to any database"),
       });
     }
     return options;
@@ -175,8 +184,10 @@ class QuerySearch extends React.PureComponent {
             <Select
               name="select-from"
               placeholder={t('[From]-')}
-              options={TIME_OPTIONS
-                .slice(1, TIME_OPTIONS.length).map(xt => ({ value: xt, label: xt }))}
+              options={TIME_OPTIONS.slice(1, TIME_OPTIONS.length).map(xt => ({
+                value: xt,
+                label: xt,
+              }))}
               value={this.state.from}
               autosize={false}
               onChange={this.changeFrom}
@@ -206,29 +217,21 @@ class QuerySearch extends React.PureComponent {
             </Button>
           </div>
         </div>
-        {this.state.queriesLoading ?
-          (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
-          :
-          (
-            <div className="scrollbar-container">
-              <div
-                className="scrollbar-content"
-                style={{ height: this.props.height }}
-              >
-                <QueryTable
-                  columns={[
-                    'state', 'db', 'user', 'time',
-                    'progress', 'rows', 'sql', 'querylink',
-                  ]}
-                  onUserClicked={this.onUserClicked}
-                  onDbClicked={this.onDbClicked}
-                  queries={this.state.queriesArray}
-                  actions={this.props.actions}
-                />
-              </div>
+        {this.state.queriesLoading ? (
+          <Loading />
+        ) : (
+          <div className="scrollbar-container">
+            <div className="scrollbar-content" style={{ height: this.props.height }}>
+              <QueryTable
+                columns={['state', 'db', 'user', 'time', 'progress', 'rows', 'sql', 'querylink']}
+                onUserClicked={this.onUserClicked}
+                onDbClicked={this.onDbClicked}
+                queries={this.state.queriesArray}
+                actions={this.props.actions}
+              />
             </div>
-          )
-        }
+          </div>
+        )}
       </div>
     );
   }
