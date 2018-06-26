@@ -87,11 +87,9 @@ class BuilderComponentPane extends React.PureComponent {
 
                           <i className="fa fa-arrow-right trigger" />
                         </div>
-
                         <NewTabs />
                         <NewRow />
                         <NewColumn />
-
                         <NewHeader />
                         <NewMarkdown />
                         <NewDivider />
