@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import cx from 'classnames';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import {
@@ -17,6 +16,7 @@ const propTypes = {
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
   cachedDttm: PropTypes.string,
+  updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
@@ -31,6 +31,7 @@ const defaultProps = {
   exploreChart: () => ({}),
   exportCSV: () => ({}),
   cachedDttm: null,
+  updatedDttm: null,
   isCached: false,
   isExpanded: false,
   supersetCanExplore: false,
@@ -101,19 +102,20 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   render() {
-    const slice = this.props.slice;
-    const isCached = this.props.isCached;
-    const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
-    const refreshTooltip = isCached ? t('Cached %s', cachedWhen) : '';
+    const { slice, isCached, cachedDttm, updatedDttm } = this.props;
+    const cachedWhen = moment.utc(cachedDttm).fromNow();
+    const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
+    const refreshTooltip = isCached
+      ? t('Cached %s', cachedWhen)
+      : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
 
-    // @TODO account for
-    //  dashboard.dashboard.superset_can_explore
-    //  dashboard.dashboard.slice_can_edit
     return (
       <Dropdown
         id={`slice_${slice.slice_id}-controls`}
-        className={cx(isCached && 'is-cached')}
         pullRight
+        // react-bootstrap handles visibility, but call toggle to force a re-render
+        // and update the fetched/cached timestamps
+        onToggle={this.toggleControls}
       >
         <Dropdown.Toggle className="slice-header-controls-trigger" noCaret>
           <VerticalDotsTrigger />
@@ -121,11 +123,8 @@ class SliceHeaderControls extends React.PureComponent {
 
         <Dropdown.Menu>
           <MenuItem onClick={this.refreshChart}>
-            {isCached && <span className="dot" />}
             {t('Force refresh')}
-            {isCached && (
-              <div className="refresh-tooltip">{refreshTooltip}</div>
-            )}
+            <div className="refresh-tooltip">{refreshTooltip}</div>
           </MenuItem>
 
           <MenuItem divider />
