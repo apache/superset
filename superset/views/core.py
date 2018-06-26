@@ -26,7 +26,7 @@ import pandas as pd
 import simplejson as json
 from six import text_type
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, or_, update
+from sqlalchemy import and_, create_engine, or_, update, func
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -1481,6 +1481,41 @@ class Superset(BaseSupersetView):
                 col.datasource.add_missing_metrics(metrics)
             db.session.commit()
         return json_success('OK')
+
+    @api
+    @has_access_api
+    @expose('/databases/', methods=['GET'])
+    def databases(self):
+        dbs = (
+            db.session
+            .query(models.Database)
+            .order_by(
+                func.coalesce(
+                    models.Database.verbose_name,
+                    models.Database.database_name
+                )
+            )
+        )
+        if request.args.get('expose_in_sqllab'):
+            dbs = dbs.filter(models.Database.expose_in_sqllab)
+
+        payload = []
+        for d in dbs.all():
+            payload.append({
+                'id': d.id,
+                'database_name': d.database_name,
+                'verbose_name': d.verbose_name,
+                'expose_in_sqllab': d.expose_in_sqllab,
+                'allow_ctas': d.allow_ctas,
+                'force_ctas_schema': d.force_ctas_schema,
+                'allow_run_async': d.allow_run_async,
+                'allow_run_sync': d.allow_run_sync,
+                'allow_dml': d.allow_dml,
+                'allow_multi_schema_metadata_fetch': \
+                    d.allow_multi_schema_metadata_fetch,
+            })
+        return json_success(
+            json.dumps({"result": payload}, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
