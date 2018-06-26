@@ -449,11 +449,16 @@ export const controls = {
   },
 
   order_bars: {
-    type: 'CheckboxControl',
+    type: 'SelectControl',
     label: t('Sort Bars'),
-    default: false,
-    renderTrigger: true,
+    default: 'unsort',
     description: t('Sort bars by x labels.'),
+    renderTrigger: true,
+    choices: formatSelectOptions([
+        'unsort',
+        'asc',
+        'desc',
+    ]),
   },
 
   combine_metric: {

@@ -74,6 +74,7 @@ export const slice = {
   form_data: {
     annotation_layers: [],
     bottom_margin: 'auto',
+    order_bars: 'unsort',
     color_scheme: 'bnbColors',
     contribution: false,
     datasource: '2__table',

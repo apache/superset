@@ -249,11 +249,17 @@ export default function nvd3Vis(slice, payload) {
 
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
-        if (fd.order_bars) {
-          data.forEach((d) => {
-            d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
-          });
+        if (fd.order_bars === "asc") {
+            data.forEach((d) => {
+                d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
+            });
         }
+        if (fd.order_bars === "desc") {
+            data.forEach((d) => {
+                d.values.sort((a, b) => tryNumify(a.x) > tryNumify(b.x) ? -1 : 1);
+            });
+        }
+
         if (fd.show_bar_value) {
           setTimeout(function () {
             addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);

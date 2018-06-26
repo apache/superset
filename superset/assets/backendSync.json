@@ -730,10 +730,25 @@
       "description": "Show the value on top of the bar"
     },
     "order_bars": {
-      "type": "CheckboxControl",
+      "type": "SelectControl",
       "label": "Sort Bars",
-      "default": false,
-      "description": "Sort bars by x labels."
+      "default": "unsort",
+      "description": "Sort bars by x labels.",
+      "renderTrigger": true,
+      "choices": [
+        [
+          "unsort",
+          "unsort"
+        ],
+        [
+          "asc",
+          "asc"
+        ],
+        [
+          "desc",
+          "desc"
+        ]
+      ]
     },
     "combine_metric": {
       "type": "CheckboxControl",
