@@ -728,11 +728,11 @@ class R(BaseSupersetView):
     """used for short urls"""
 
     @log_this
-    @expose('/<url_id>')
-    def index(self, url_id):
+    @expose('/<url_id>/<r_slice_name>/')
+    def index(self, url_id, r_slice_name):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
-            return redirect('/' + url.url)
+            return redirect('/' + url.url+"&r_slice_name="+r_slice_name)
         else:
             flash('URL to nowhere...', 'danger')
             return redirect('/')
@@ -973,6 +973,7 @@ class Superset(BaseSupersetView):
             form_data.update(json.loads(request_args_data))
 
         url_id = request.args.get('r')
+        r_slice_name = request.args.get('r_slice_name')
         if url_id:
             saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
             if saved_url:
@@ -1004,7 +1005,8 @@ class Superset(BaseSupersetView):
             # allow form_data in request override slice from_data
             slice_form_data.update(form_data)
             form_data = slice_form_data
-
+            if r_slice_name:
+                slc.r_slice_name = r_slice_name
         return form_data, slc
 
     def get_viz(
@@ -1325,7 +1327,7 @@ class Superset(BaseSupersetView):
             if datasource_type == 'table' \
             else datasource.datasource_name
         if slc:
-            title = slc.slice_name
+            title = slc.slice_name if slc.r_slice_name == "" else slc.r_slice_name
         else:
             title = 'Explore - ' + table_name
         return self.render_template(

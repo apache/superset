@@ -109,6 +109,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
 
+    r_slice_name = ""
+
     def __repr__(self):
         return self.slice_name
 
@@ -183,6 +185,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'form_data': self.form_data,
             'slice_id': self.id,
             'slice_name': self.slice_name,
+            'r_slice_name': self.r_slice_name,
             'slice_url': self.slice_url,
         }
 

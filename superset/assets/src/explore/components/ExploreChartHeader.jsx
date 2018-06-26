@@ -59,7 +59,7 @@ class ExploreChartHeader extends React.PureComponent {
   renderChartTitle() {
     let title;
     if (this.props.slice) {
-      title = this.props.slice.slice_name;
+      title = this.props.slice.r_slice_name? this.props.slice.r_slice_name : this.props.slice.slice_name;
     } else {
       title = t('%s - untitled', this.props.table_name);
     }
