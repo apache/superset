@@ -12,6 +12,8 @@ import re
 import time
 import traceback
 from urllib import parse
+from superset.translations.utils import get_language_pack
+from flask_babel import get_locale
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -486,10 +488,15 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
             for d in datasources
         ]
+        locale = str(get_locale())
         return self.render_template(
             'superset/add_slice.html',
             bootstrap_data=json.dumps({
                 'datasources': sorted(datasources, key=lambda d: d['label']),
+                'common': {
+                    'locale': locale,
+                    'language_pack': get_language_pack(locale),
+                }
             }),
         )
 
