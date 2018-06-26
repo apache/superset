@@ -12,8 +12,18 @@ import moment from 'moment';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
+import { changeTimeGranularity } from '../../actions/exploreActions';
+import { connect } from 'react-redux';
+
 const RELATIVE_TIME_OPTIONS = ['ago', 'from now'];
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
+
+const TIME_GRAIN_TO_GRANULARITY = {
+            'days':"PT5M",
+            'weeks':"PT1H",
+            'months':"P1D",
+            'years':"P1W"
+        };
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -23,6 +33,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   height: PropTypes.number,
+  changeRelativeTime: PropTypes.func,
 };
 
 const defaultProps = {
@@ -31,7 +42,7 @@ const defaultProps = {
   value: '',
 };
 
-export default class DateFilterControl extends React.Component {
+class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
     const value = props.value || '';
@@ -79,6 +90,9 @@ export default class DateFilterControl extends React.Component {
     let val;
     if (this.state.type === 'rel') {
       val = `${this.state.num} ${this.state.grain} ${this.state.rel}`;
+      if (this.state.grain in TIME_GRAIN_TO_GRANULARITY){
+        this.props.changeRelativeTime(TIME_GRAIN_TO_GRANULARITY[this.state.grain]);
+      }
     } else if (this.state.type === 'fix') {
       val = this.state.dttm;
     } else if (this.state.type === 'free') {
@@ -215,5 +229,12 @@ export default class DateFilterControl extends React.Component {
   }
 }
 
+function mapDispatchToProps(dispatch) {
+  return {
+    changeRelativeTime: granularity => dispatch(changeTimeGranularity(granularity)),
+  };
+}
 DateFilterControl.propTypes = propTypes;
 DateFilterControl.defaultProps = defaultProps;
+
+export default connect(null, mapDispatchToProps)(DateFilterControl);

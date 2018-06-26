@@ -151,3 +151,8 @@ export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
 export function createNewSlice(can_add, can_download, can_overwrite, slice, form_data) {
   return { type: CREATE_NEW_SLICE, can_add, can_download, can_overwrite, slice, form_data };
 }
+
+export const CHANGE_TIME_GRANULARITY = 'CHANGE_TIME_GRANULARITY';
+export function changeTimeGranularity(granularity) {
+  return { type: CHANGE_TIME_GRANULARITY, granularity };
+}

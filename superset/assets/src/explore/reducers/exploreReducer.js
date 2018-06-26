@@ -116,6 +116,16 @@ export default function exploreReducer(state = {}, action) {
         can_overwrite: action.can_overwrite,
       };
     },
+    [actions.CHANGE_TIME_GRANULARITY]() {
+        const controls = Object.assign({}, state.controls);
+        const granularity = Object.assign({}, controls.granularity);
+        granularity.value = action.granularity;
+        controls.granularity = granularity;
+      return {
+        ...state,
+        controls,
+      };
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
