@@ -29,7 +29,6 @@
   .viewport {
     position: absolute;
     transform: none !important;
-    background: white;
     overflow: hidden;
     width: @builder-pane-width;
     height: 100%;
@@ -77,9 +76,10 @@
       border: 1px solid @gray-light;
       font-weight: 200;
       padding: 16px;
-      margin: 16px;
+      margin: 0 16px 16px 16px;
       position: relative;
       cursor: move;
+      background: rgba(255, 255, 255, 0.4);
 
       &:hover {
         background: @gray-bg;
