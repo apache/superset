@@ -55,7 +55,7 @@ setup(
     install_requires=[
         'bleach',
         'boto3>=1.4.6',
-        'botocore>=1.7.0, <1.8.0',
+        'botocore>=1.8.15, <1.9.0',
         'celery>=4.2.0',
         'colorama',
         'contextlib2',
