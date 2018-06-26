@@ -160,7 +160,7 @@ class Chart extends React.Component {
     if (!chart || !slice) return null;
 
     const { width } = this.state;
-    const { queryResponse } = chart;
+    const { queryResponse, chartUpdateEndTime } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
@@ -173,6 +173,7 @@ class Chart extends React.Component {
           isExpanded={!!isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
+          updatedDttm={chartUpdateEndTime}
           toggleExpandSlice={toggleExpandSlice}
           forceRefresh={this.forceRefresh}
           editMode={editMode}
