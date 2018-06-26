@@ -26,7 +26,7 @@ import pandas as pd
 import simplejson as json
 from six import text_type
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, or_, update, func
+from sqlalchemy import and_, create_engine, func, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -1492,8 +1492,8 @@ class Superset(BaseSupersetView):
             .order_by(
                 func.coalesce(
                     models.Database.verbose_name,
-                    models.Database.database_name
-                )
+                    models.Database.database_name,
+                ),
             )
         )
         if request.args.get('expose_in_sqllab'):
@@ -1511,11 +1511,11 @@ class Superset(BaseSupersetView):
                 'allow_run_async': d.allow_run_async,
                 'allow_run_sync': d.allow_run_sync,
                 'allow_dml': d.allow_dml,
-                'allow_multi_schema_metadata_fetch': \
+                'allow_multi_schema_metadata_fetch':
                     d.allow_multi_schema_metadata_fetch,
             })
         return json_success(
-            json.dumps({"result": payload}, default=utils.json_int_dttm_ser))
+            json.dumps({'result': payload}, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
