@@ -31,6 +31,8 @@ const defaultProps = {
 
 const SEARCH_HEIGHT = 46;
 
+const LOADING_STYLES = { position: 'relative', height: 50 };
+
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -238,9 +240,9 @@ export default class ResultSet extends React.PureComponent {
       );
     }
     return (
-      <div>
-        <Loading />
+      <div style={LOADING_STYLES}>
         <QueryStateLabel query={query} />
+        {!progressBar && <Loading />}
         {progressBar}
         <div>
           {trackingUrl}
