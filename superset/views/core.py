@@ -42,12 +42,12 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.forms import CsvToDatabaseForm
-from superset.translations.utils import get_language_pack
 from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
+from superset.translations.utils import get_language_pack
 from superset.utils import (
     merge_extra_filters, merge_request_params, QueryStatus,
 )
