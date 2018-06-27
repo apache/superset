@@ -2110,7 +2110,7 @@ class BaseDeckGLViz(BaseViz):
             del df[spatial.get('geohashCol')]
 
         if df[key] is None:
-            raise NullValueException('Some rows in this query contain NULL values!')
+            raise NullValueException(_('Encountered invalid NULL spatial entry, please consider filtering those out'))
 
         return df
 
