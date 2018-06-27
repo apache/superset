@@ -5,6 +5,22 @@
   background-color: white;
   position: relative;
   padding: 16px;
+
+  .missing-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+
+    .missing-chart-body {
+      font-size: 12px;
+    }
+
+    .loading-container {
+      position: relative;
+      height: 40%;
+    }
+  }
 }
 
 .dashboard-chart {
