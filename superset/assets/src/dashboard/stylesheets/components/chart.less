@@ -5,6 +5,22 @@
   background-color: white;
   position: relative;
   padding: 16px;
+
+  .missing-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+
+    .missing-chart-body {
+      font-size: 12px;
+    }
+
+    .loading-container {
+      position: relative;
+      height: 40%;
+    }
+  }
 }
 
 .dashboard-chart {
@@ -82,11 +98,6 @@
   border-radius: 50%;
   margin: 2px 0;
   display: inline-block;
-
-  .is-cached & {
-    background-color: @pink;
-    box-shadow: 0 0 5px 1.5px rgba(255, 0, 0, 0.3);
-  }
 
   .vertical-dots-container & {
     display: block;

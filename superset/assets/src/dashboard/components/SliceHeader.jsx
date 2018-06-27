@@ -12,6 +12,7 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
+  updatedDttm: PropTypes.number,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
@@ -37,6 +38,7 @@ const defaultProps = {
   annotationQuery: {},
   annotationError: {},
   cachedDttm: null,
+  updatedDttm: null,
   isCached: false,
   isExpanded: false,
   sliceName: '',
@@ -51,6 +53,7 @@ class SliceHeader extends React.PureComponent {
       isExpanded,
       isCached,
       cachedDttm,
+      updatedDttm,
       toggleExpandSlice,
       forceRefresh,
       exploreChart,
@@ -102,6 +105,7 @@ class SliceHeader extends React.PureComponent {
               isCached={isCached}
               isExpanded={isExpanded}
               cachedDttm={cachedDttm}
+              updatedDttm={updatedDttm}
               toggleExpandSlice={toggleExpandSlice}
               forceRefresh={forceRefresh}
               exploreChart={exploreChart}
