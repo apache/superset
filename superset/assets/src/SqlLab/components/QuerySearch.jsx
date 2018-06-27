@@ -217,10 +217,10 @@ class QuerySearch extends React.PureComponent {
             </Button>
           </div>
         </div>
-        {this.state.queriesLoading ? (
-          <Loading />
-        ) : (
-          <div className="scrollbar-container">
+        <div className="scrollbar-container">
+          {this.state.queriesLoading ? (
+            <Loading />
+          ) : (
             <div className="scrollbar-content" style={{ height: this.props.height }}>
               <QueryTable
                 columns={['state', 'db', 'user', 'time', 'progress', 'rows', 'sql', 'querylink']}
@@ -230,8 +230,8 @@ class QuerySearch extends React.PureComponent {
                 actions={this.props.actions}
               />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
