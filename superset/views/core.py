@@ -1637,7 +1637,11 @@ class Superset(BaseSupersetView):
             if 'filter_immune_slice_fields' not in md:
                 md['filter_immune_slice_fields'] = {}
             md['expanded_slices'] = data['expanded_slices']
-            md['default_filters'] = data.get('default_filters', '')
+            default_filters_data = json.loads(data.get('default_filters', '{}'))
+            applicable_filters =\
+                {key: v for key, v in default_filters_data.items()
+                 if int(key) in slice_ids}
+            md['default_filters'] = json.dumps(applicable_filters)
             dashboard.json_metadata = json.dumps(md, indent=4)
             return
 
@@ -1681,10 +1685,10 @@ class Superset(BaseSupersetView):
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
         default_filters_data = json.loads(data.get('default_filters', '{}'))
-        for key in default_filters_data.keys():
-            if int(key) not in slice_ids:
-                del default_filters_data[key]
-        md['default_filters'] = json.dumps(default_filters_data)
+        applicable_filters = \
+            {key: v for key, v in default_filters_data.items()
+             if int(key) in slice_ids}
+        md['default_filters'] = json.dumps(applicable_filters)
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
