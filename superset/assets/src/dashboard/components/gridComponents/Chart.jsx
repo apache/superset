@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
+import MissingChart from '../MissingChart';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
 import { VIZ_TYPES } from '../../../visualizations';
@@ -155,11 +156,14 @@ class Chart extends React.Component {
       sliceCanEdit,
     } = this.props;
 
-    // this should never happen but prevents throwing in the case that a gridComponent
-    // references a chart that is not associated with the dashboard
-    if (!chart || !slice) return null;
-
     const { width } = this.state;
+
+    // this prevents throwing in the case that a gridComponent
+    // references a chart that is not associated with the dashboard
+    if (!chart || !slice) {
+      return <MissingChart height={this.getChartHeight()} />;
+    }
+
     const { queryResponse, chartUpdateEndTime } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
