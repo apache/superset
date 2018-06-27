@@ -79,7 +79,8 @@ class SupersetDataFrameTestCase(SupersetTestCase):
                     'is_date': False,
                     'type': 'INT',
                     'name': 'b',
-                    'is_dim': True,
+                    'is_dim': False,
+                    'agg': 'sum',
                 },
             ],
         )
@@ -101,12 +102,14 @@ class SupersetDataFrameTestCase(SupersetTestCase):
                     'is_date': False,
                     'type': 'FLOAT',
                     'name': 'a',
-                    'is_dim': True,
+                    'is_dim': False,
+                    'agg': 'sum',
                 }, {
                     'is_date': False,
                     'type': 'INT',
                     'name': 'b',
-                    'is_dim': True,
+                    'is_dim': False,
+                    'agg': 'sum',
                 },
             ],
         )
