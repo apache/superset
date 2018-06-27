@@ -40,6 +40,7 @@ from six.moves import cPickle as pkl, reduce
 from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
+from superset.exceptions import NullValueException
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -2107,6 +2108,10 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
+
+        if df[key] is None:
+            raise NullValueException('Some rows in this query contain NULL values!')
+
         return df
 
     def query_obj(self):
