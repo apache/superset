@@ -12,8 +12,6 @@ import re
 import time
 import traceback
 from urllib import parse
-from superset.translations.utils import get_language_pack
-from flask_babel import get_locale
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -24,6 +22,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+from flask_babel import get_locale
 import pandas as pd
 import simplejson as json
 from six import text_type
@@ -42,6 +41,7 @@ from superset import (
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.translations.utils import get_language_pack
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data
