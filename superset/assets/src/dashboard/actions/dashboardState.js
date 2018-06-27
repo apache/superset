@@ -209,6 +209,13 @@ export function addSliceToDashboard(id) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
+    if (!selectedSlice) {
+      return dispatch(
+        addWarningToast(
+          'Sorry, there is no chart definition associated with the chart trying to be added.',
+        ),
+      );
+    }
     const form_data = selectedSlice.form_data;
     const newChart = {
       ...initChart,
