@@ -118,9 +118,13 @@ export default function nvd3Vis(slice, payload) {
 
   let data;
   if (payload.data) {
-    data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
-    }));
+    if (Array.isArray(payload.data)) {
+        data = payload.data.map(x => ({
+            ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+        }));
+    } else {
+      data = payload.data;
+    }
   } else {
     data = [];
   }
@@ -486,6 +490,8 @@ export default function nvd3Vis(slice, payload) {
         chart.showLegend(fd.show_legend);
       }
     }
+    // This is needed for correct chart dimensions if a chart is rendered in a hidden container
+    chart.width(width);
     chart.height(height);
     slice.container.css('height', height + 'px');
 
@@ -829,6 +835,12 @@ export default function nvd3Vis(slice, payload) {
             });
           });
         }
+
+        // rerender chart appended with annotation layer
+        svg.datum(data)
+          .attr('height', height)
+          .attr('width', width)
+          .call(chart);
       }
     }
     return chart;

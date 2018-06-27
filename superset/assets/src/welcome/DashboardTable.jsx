@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
 
+import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
 const $ = window.$ = require('jquery');
@@ -60,12 +61,7 @@ export default class DashboardTable extends React.PureComponent {
         </Table>
       );
     }
-    return (
-      <img
-        className="loading"
-        alt="Loading..."
-        src="/static/assets/images/loading.gif"
-      />);
+    return <Loading />;
   }
 }
 DashboardTable.propTypes = propTypes;

@@ -29,15 +29,20 @@ class CssEditor extends React.PureComponent {
       css: props.initialCss,
       cssTemplateOptions: [],
     };
+    this.changeCss = this.changeCss.bind(this);
+    this.changeCssTemplate = this.changeCssTemplate.bind(this);
   }
+
   changeCss(css) {
     this.setState({ css }, () => {
       this.props.onChange(css);
     });
   }
+
   changeCssTemplate(opt) {
     this.changeCss(opt.css);
   }
+
   renderTemplateSelector() {
     if (this.props.templates) {
       return (
@@ -46,13 +51,14 @@ class CssEditor extends React.PureComponent {
           <Select
             options={this.props.templates}
             placeholder={t('Load a CSS template')}
-            onChange={this.changeCssTemplate.bind(this)}
+            onChange={this.changeCssTemplate}
           />
         </div>
       );
     }
     return null;
   }
+
   render() {
     return (
       <ModalTrigger
@@ -70,7 +76,7 @@ class CssEditor extends React.PureComponent {
                   theme="github"
                   minLines={8}
                   maxLines={30}
-                  onChange={this.changeCss.bind(this)}
+                  onChange={this.changeCss}
                   height="200px"
                   width="100%"
                   editorProps={{ $blockScrolling: true }}
@@ -85,6 +91,7 @@ class CssEditor extends React.PureComponent {
     );
   }
 }
+
 CssEditor.propTypes = propTypes;
 CssEditor.defaultProps = defaultProps;
 

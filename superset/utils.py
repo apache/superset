@@ -310,7 +310,6 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
-
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -323,6 +322,11 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, bytes):
+        try:
+            return '{}'.format(obj)
+        except Exception:
+            return '[bytes]'
 
 
 def json_iso_dttm_ser(obj, pessimistic=False):
@@ -733,7 +737,7 @@ def merge_extra_filters(form_data):
             return f['col'] + '__' + f['op']
         existing_filters = {}
         for existing in form_data['filters']:
-            if existing['col'] is not None:
+            if existing['col'] is not None and existing['val'] is not None:
                 existing_filters[get_filter_key(existing)] = existing['val']
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
@@ -881,4 +885,3 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
-        del fd['adhoc_filters']

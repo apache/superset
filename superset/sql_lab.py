@@ -152,9 +152,6 @@ def execute_sql(
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
         troubleshooting_link = config['TROUBLESHOOTING_LINK']
-        msg = 'Error: {}. You can find common superset errors and their \
-            resolutions at: {}'.format(msg, troubleshooting_link) \
-            if troubleshooting_link else msg
         query.error_message = msg
         query.status = QueryStatus.FAILED
         query.tmp_table_name = None
@@ -163,6 +160,8 @@ def execute_sql(
             'status': query.status,
             'error': msg,
         })
+        if troubleshooting_link:
+            payload['link'] = troubleshooting_link
         return payload
 
     if store_results and not results_backend:
