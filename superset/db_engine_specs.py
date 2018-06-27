@@ -114,8 +114,7 @@ class BaseEngineSpec(object):
                 (?ix)          # case insensitive, verbose
                 \s+            # whitespace
                 LIMIT\s+(\d+)  # LIMIT $ROWS
-                ;?             # optional semi-colon
-                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                (\s|;|.)*$     # remove the reset of the chars
                 """)
         matches = limit_pattern.findall(sql)
         if matches:
@@ -127,8 +126,7 @@ class BaseEngineSpec(object):
                 (?ix)        # case insensitive, verbose
                 \s+          # whitespace
                 LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                (\s|;|.)*$   # remove the reset of the chars
                 """, '', sql)
 
     @staticmethod
