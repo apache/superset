@@ -38,17 +38,13 @@ class BaseVizTestCase(unittest.TestCase):
     def test_get_df_returns_empty_df(self):
         datasource = Mock()
         datasource.type = 'table'
-        mock_dttm_col = Mock()
-        mock_dttm_col.python_date_format = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
         form_data = {'dummy': 123}
         query_obj = {'granularity': 'day'}
         results = Mock()
         results.query = Mock()
         results.status = Mock()
         results.error_message = None
-        results.df = Mock()
-        results.df.empty = True
+        results.df = pd.DataFrame()
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
         result = test_viz.get_df(query_obj)
@@ -56,55 +52,52 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertTrue(result.empty)
 
     def test_get_df_handles_dttm_col(self):
-        datasource = Mock()
-        datasource.type = 'table'
-        datasource.offset = 1
-        mock_dttm_col = Mock()
-        mock_dttm_col.python_date_format = 'epoch_ms'
-        datasource.get_col = Mock(return_value=mock_dttm_col)
         form_data = {'dummy': 123}
         query_obj = {'granularity': 'day'}
         results = Mock()
         results.query = Mock()
         results.status = Mock()
         results.error_message = Mock()
-        df = Mock()
-        df.columns = [DTTM_ALIAS]
-        f_datetime = datetime(1960, 1, 1, 5, 0)
-        df.__getitem__ = Mock(return_value=pd.Series([f_datetime]))
-        df.__setitem__ = Mock()
-        df.replace = Mock()
-        df.fillna = Mock()
-        results.df = df
-        results.df.empty = False
+        datasource = Mock()
+        datasource.type = 'table'
         datasource.query = Mock(return_value=results)
+        mock_dttm_col = Mock()
+        datasource.get_col = Mock(return_value=mock_dttm_col)
         test_viz = viz.BaseViz(datasource, form_data)
-
         test_viz.df_metrics_to_num = Mock()
         test_viz.get_fillna_for_columns = Mock(return_value=0)
-        test_viz.get_df(query_obj)
-        mock_call = df.__setitem__.mock_calls[0]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertFalse(mock_call[1][1].empty)
-        self.assertEqual(mock_call[1][1][0], f_datetime)
-        mock_call = df.__setitem__.mock_calls[1]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 6)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
-        mock_dttm_col.python_date_format = 'utc'
-        test_viz.get_df(query_obj)
-        mock_call = df.__setitem__.mock_calls[2]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertFalse(mock_call[1][1].empty)
-        self.assertEqual(mock_call[1][1][0].hour, 7)
-        mock_call = df.__setitem__.mock_calls[3]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 6)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
-        mock_call = df.__setitem__.mock_calls[4]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 7)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
+
+        results.df = pd.DataFrame(data={DTTM_ALIAS: ['1960-01-01 05:00:00']})
+        datasource.offset = 0
+        mock_dttm_col.python_date_format = 'epoch_ms'
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS),
+        )
+
+        mock_dttm_col.python_date_format = None
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS),
+        )
+
+        datasource.offset = 1
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 6, 0)], name=DTTM_ALIAS),
+        )
+
+        datasource.offset = 0
+        results.df = pd.DataFrame(data={DTTM_ALIAS: ['1960-01-01']})
+        mock_dttm_col.python_date_format = '%Y-%m-%d'
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 0, 0)], name=DTTM_ALIAS),
+        )
 
     def test_cache_timeout(self):
         datasource = Mock()
