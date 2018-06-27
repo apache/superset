@@ -496,7 +496,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
                 'common': {
                     'locale': locale,
                     'language_pack': get_language_pack(locale),
-                }
+                },
             }),
         )
 
