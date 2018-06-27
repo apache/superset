@@ -201,3 +201,39 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
         self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
         self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
+
+    def test_limit_with_implicit_offset(self):
+        self.sql_limit_regex(
+            textwrap.dedent("""\
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT
+                99990, 999999"""),
+            textwrap.dedent("""\
+            SELECT
+                'LIMIT 777' AS a
+                , b
+            FROM
+            table LIMIT 1000, 999999"""),
+        )
+
+    def test_limit_with_explicit_offset(self):
+        self.sql_limit_regex(
+            textwrap.dedent("""\
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT
+                99990 OFFSET 999999"""),
+            textwrap.dedent("""\
+            SELECT
+                'LIMIT 777' AS a
+                , b
+            FROM
+            table LIMIT 1000 OFFSET 999999"""),
+        )

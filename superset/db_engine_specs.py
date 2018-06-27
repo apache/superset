@@ -110,8 +110,8 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            sql_without_limit = cls.get_query_without_limit(sql)
-            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+            sql_before_limit, sql_after_limit = cls.get_query_without_limit(sql)
+            return '{sql_before_limit} LIMIT {limit}{sql_after_limit}'.format(**locals())
         return sql
 
     @classmethod
@@ -120,22 +120,30 @@ class BaseEngineSpec(object):
                 (?ix)          # case insensitive, verbose
                 \s+            # whitespace
                 LIMIT\s+(\d+)  # LIMIT $ROWS
-                ;?             # optional semi-colon
-                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                .*$            # everything else
                 """)
         matches = limit_pattern.findall(sql)
         if matches:
-            return int(matches[0][0])
+            return matches[0]
 
     @classmethod
     def get_query_without_limit(cls, sql):
-        return re.sub(r"""
+        before_limit = re.sub(r"""
                 (?ix)        # case insensitive, verbose
                 \s+          # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                LIMIT\s+(\d+)  # LIMIT $ROWS
+                (.*$)
                 """, '', sql)
+
+        after_limit_pattern = re.compile(r"""
+                (?ix)          # case insensitive, verbose
+                 \s+            # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                (.*$)
+                """)
+        after_limit = after_limit_pattern.findall(sql)
+        after_limit = after_limit[0] if after_limit else ''
+        return before_limit, after_limit
 
     @staticmethod
     def csv_to_df(**kwargs):
