@@ -5,6 +5,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import gevent.monkey
+gevent.monkey.patch_all()
+
 import warnings
 from flask.exthook import ExtDeprecationWarning
 warnings.simplefilter('ignore', ExtDeprecationWarning)
