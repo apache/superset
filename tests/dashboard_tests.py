@@ -98,6 +98,31 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(new_url)
         self.assertIn('North America', resp)
 
+    def test_save_dash_with_invalid_filters(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+
+        # add an invalid filter slice
+        filters = {str(99999): {'region': ['North America']}}
+        default_filters = json.dumps(filters)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': dash.position_array,
+            'dashboard_title': dash.dashboard_title,
+            'default_filters': default_filters,
+        }
+
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn('SUCCESS', resp)
+
+        updatedDash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+        new_url = updatedDash.url
+        self.assertNotIn('region', new_url)
+
     def test_save_dash_with_dashboard_title(self, username='admin'):
         self.login(username=username)
         dash = (
