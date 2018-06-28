@@ -2591,7 +2591,7 @@ class PagingTableViz(BaseViz):
     """A basic html table that is sortable and searchable"""
 
     viz_type = 'paging_table'
-    verbose_name = _('Table View')
+    verbose_name = _('Paging Table View')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
