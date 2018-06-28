@@ -2109,7 +2109,7 @@ class BaseDeckGLViz(BaseViz):
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
 
-        if df[key] is None:
+        if df.get(key) is None:
             raise NullValueException(_('Encountered invalid NULL spatial entry, \
                                        please consider filtering those out'))
 
