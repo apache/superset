@@ -7,7 +7,9 @@ from __future__ import unicode_literals
 import textwrap
 
 from superset.db_engine_specs import (
-    HiveEngineSpec, MssqlEngineSpec, MySQLEngineSpec)
+    BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
+    MySQLEngineSpec, PrestoEngineSpec,
+)
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -193,3 +195,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table LIMIT 1000"""),
         )
+
+    def test_get_datatype(self):
+        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+        self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
+        self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
+        self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
