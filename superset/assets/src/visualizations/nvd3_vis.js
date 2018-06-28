@@ -87,37 +87,37 @@ const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
 
 const changeTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
 
-  const format = d3.format(axisFormat || '.3s');
+    const format = d3.format(axisFormat || '.3s');
 
-  const totalStackedValues = stacked && data.length !== 0 ?
-    data[0].values.map(function (bar, iBar) {
-      const bars = data.map(function (series) {
-        return series.values[iBar];
-      });
-      return d3.sum(bars, function (d, idx) {
-        if(chart.state.disabled[idx] === false) return d.y;
-      });
-    }) : [];
+    const totalStackedValues = stacked && data.length !== 0 ?
+        data[0].values.map(function (bar, iBar) {
+            const bars = data.map(function (series) {
+                return series.values[iBar];
+            });
+            return d3.sum(bars, function (d, idx) {
+                if (chart.state.disabled[idx] === false) return d.y;
+            });
+        }) : [];
 
-  if(!svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').empty()) {
-    svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').remove();
-  }
+    if (!svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').empty()) {
+        svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').remove();
+    }
 
-  let smallYRect = [];
-  svg.select('g.nv-groups').selectAll('g.nv-group').each( function (d, i) {
-	d3.select(this).selectAll('rect').each(function(d1, i1) {
-		d3.select(this).select(function () {
-			if(i === 0) {
-				smallYRect[i1] = this;
-            } else {
-				if(smallYRect[i1].y.baseVal.value > this.y.baseVal.value) {
-					smallYRect[i1] = this;
+    let smallYRect = [];
+    svg.select('g.nv-groups').selectAll('g.nv-group').each(function (d, i) {
+        d3.select(this).selectAll('rect').each(function (d1, i1) {
+            d3.select(this).select(function () {
+                if (i === 0) {
+                    smallYRect[i1] = this;
+                } else {
+                    if (smallYRect[i1].y.baseVal.value > this.y.baseVal.value) {
+                        smallYRect[i1] = this;
+                    }
                 }
-            }
+            });
         });
     });
-  });
-
+}
 
 function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
