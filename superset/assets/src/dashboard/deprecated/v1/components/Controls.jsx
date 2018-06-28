@@ -8,7 +8,7 @@ import SaveModal from './SaveModal';
 import SliceAdder from './SliceAdder';
 import { t } from '../../../../locales';
 import InfoTooltipWithTrigger from '../../../../components/InfoTooltipWithTrigger';
-import URLShortLinkModal from './URLShortLinkModal';
+import URLShortLinkModal from '../../../components/URLShortLinkModal';
 
 const $ = window.$ = require('jquery');
 
