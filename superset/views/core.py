@@ -966,12 +966,17 @@ class Superset(BaseSupersetView):
         form_data = {}
         post_data = request.form.get('form_data')
         request_args_data = request.args.get('form_data')
+        request_param_data = request.data
+
         # Supporting POST
         if post_data:
             form_data.update(json.loads(post_data))
         # request params can overwrite post body
         if request_args_data:
             form_data.update(json.loads(request_args_data))
+
+        if request_param_data:
+            form_data.update(json.loads(request_param_data))
 
         url_id = request.args.get('r')
         if url_id:
