@@ -364,7 +364,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         if short_url_id:
             return '/superset/dashboard/{}/?r={}'.format(self.slug or self.id, short_url_id)
         else:
-            return self.url()
+            return self.url
 
 
     @property

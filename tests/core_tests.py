@@ -16,6 +16,7 @@ import random
 import re
 import string
 import unittest
+import urlparse
 
 import pandas as pd
 import psycopg2
@@ -697,14 +698,30 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
 
-    def test_metadata_no_short_url(self):
+    def test_dashboard_metadata_no_short_url(self):
         self.login(username='admin')
         dash = self.get_dashboard('world_health', db.session)
 
-        url = slc.get_dashboard_url()
-        data = self.get_json_resp(url)
-        self.assertEqual(data['metadata']['default_filters'], '{}')
-        self.assertEqual(data['error'], 'No data')
+        url = dash.get_dashboard_url()
+        data = self.get_json_resp('{}?json=true'.format(url))
+        self.assertEqual(data['dashboard_data']['metadata']['default_filters'], '{}')
+
+    def test_dashboard_metadata_short_url(self):
+        self.login(username='admin')
+        dash = self.get_dashboard('world_health', db.session)
+
+        filters = '{"414":{"filter1":["a","b","c"]}}'
+        query = 'preselect_filters={}'.format(filters)
+
+        url = '/{}?{}'.format(dash.get_dashboard_url(), query)
+        short_url = self.client.post('/r/shortner/', data=dict(data=url))
+        short_path = urlparse.urlparse(short_url.data.decode('utf-8')).path
+
+        redirect = self.client.get(short_path, follow_redirects=False)
+        dash_url = urlparse.urlparse(redirect.headers['location'])
+
+        self.assertEqual(dash.get_dashboard_url(), dash_url.path)
+        self.assertEqual(query, dash_url.query)
 
 if __name__ == '__main__':
     unittest.main()
