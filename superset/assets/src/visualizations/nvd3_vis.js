@@ -85,6 +85,40 @@ const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
     });
 };
 
+const changeTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
+
+    const format = d3.format(axisFormat || '.3s');
+
+    const totalStackedValues = stacked && data.length !== 0 ?
+        data[0].values.map(function (bar, iBar) {
+            const bars = data.map(function (series) {
+                return series.values[iBar];
+            });
+            return d3.sum(bars, function (d, idx) {
+                if (chart.state.disabled[idx] === false) return d.y;
+            });
+        }) : [];
+
+    if (!svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').empty()) {
+        svg.select('g.nv-barsWrap').selectAll('text.bar-chart-label').remove();
+    }
+
+    let smallYRect = [];
+    svg.select('g.nv-groups').selectAll('g.nv-group').each(function (d, i) {
+        d3.select(this).selectAll('rect').each(function (d1, i1) {
+            d3.select(this).select(function () {
+                if (i === 0) {
+                    smallYRect[i1] = this;
+                } else {
+                    if (smallYRect[i1].y.baseVal.value > this.y.baseVal.value) {
+                        smallYRect[i1] = this;
+                    }
+                }
+            });
+        });
+    });
+}
+
 function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
@@ -237,6 +271,15 @@ export default function nvd3Vis(slice, payload) {
             addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
           }, animationTime);
         }
+
+        chart.legend.dispatch.on('legendClick', function() {
+          if (fd.show_bar_value && fd.bar_stacked) {
+            setTimeout(function () {
+                changeTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
+            }, animationTime);
+          }
+        });
+
         break;
 
       case 'dist_bar':
@@ -263,6 +306,15 @@ export default function nvd3Vis(slice, payload) {
           width = barchartWidth();
         }
         chart.width(width);
+
+        chart.legend.dispatch.on('legendClick', function() {
+          if (fd.show_bar_value && fd.bar_stacked) {
+            setTimeout(function () {
+                changeTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
+            }, animationTime);
+          }
+        });
+
         break;
 
       case 'pie':
