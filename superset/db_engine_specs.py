@@ -30,6 +30,7 @@ import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
+from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
@@ -84,6 +85,11 @@ class BaseEngineSpec(object):
     @classmethod
     def epoch_ms_to_dttm(cls):
         return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if isinstance(type_code, basestring) and len(type_code):
+            return type_code.upper()
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
@@ -592,6 +598,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
               'P1W'),
     )
+    type_code_map = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -605,6 +612,23 @@ class MySQLEngineSpec(BaseEngineSpec):
         if selected_schema:
             uri.database = selected_schema
         return uri
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if not cls.type_code_map:
+            # only import and store if needed at least once
+            import MySQLdb
+            ft = MySQLdb.constants.FIELD_TYPE
+            cls.type_code_map = {
+                getattr(ft, k): k
+                for k in dir(ft)
+                if not k.startswith('_')
+            }
+        datatype = type_code
+        if isinstance(type_code, int):
+            datatype = cls.type_code_map.get(type_code)
+        if datatype and isinstance(datatype, basestring) and len(datatype):
+            return datatype
 
     @classmethod
     def epoch_to_dttm(cls):
