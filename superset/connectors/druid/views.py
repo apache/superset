@@ -38,7 +38,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
-        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
@@ -211,7 +211,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'slices', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owner',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -219,7 +219,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'datasource_name', 'cluster', 'description', 'owner',
     )
     add_columns = edit_columns
-    show_columns = add_columns + ['perm']
+    show_columns = add_columns + ['perm', 'slices']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {

@@ -181,7 +181,12 @@ export const sqlLabReducer = function (state, action) {
       if (action.query.state === 'stopped') {
         return state;
       }
-      const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
+      const alts = {
+        state: 'failed',
+        errorMessage: action.msg,
+        endDttm: now(),
+        link: action.link,
+      };
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {

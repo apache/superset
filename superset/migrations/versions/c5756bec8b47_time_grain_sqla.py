@@ -13,7 +13,7 @@ down_revision = 'e502db2af7be'
 from alembic import op
 import json
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, Text
 
 from superset import db
 
@@ -24,8 +24,6 @@ class Slice(Base):
     __tablename__ = 'slices'
 
     id = Column(Integer, primary_key=True)
-    datasource_type = Column(String(200))
-    slice_name = Column(String(250))
     params = Column(Text)
 
 

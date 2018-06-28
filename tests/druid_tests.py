@@ -94,6 +94,7 @@ class DruidTests(SupersetTestCase):
             coordinator_port=7979,
             broker_host='localhost',
             broker_port=7980,
+            broker_endpoint='druid/v2',
             metadata_last_refreshed=datetime.now())
 
     def get_cluster(self, PyDruid):
@@ -456,8 +457,8 @@ class DruidTests(SupersetTestCase):
             'https://localhost:9999')
 
         self.assertEquals(
-            cluster.get_base_coordinator_url(),
-            'http://localhost:7979/druid/coordinator/v1/metadata')
+            cluster.get_base_broker_url(),
+            'http://localhost:7980/druid/v2')
 
 
 if __name__ == '__main__':
