@@ -16,8 +16,8 @@ PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
 
-with open('README.md') as readme:
-    long_description = readme.read()
+with open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
 
 
 def get_git_sha():
