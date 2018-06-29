@@ -41,7 +41,7 @@ import sqlparse
 from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, utils
+from superset import app, cache_util, conf, db, sql_parse, utils
 from superset.exceptions import SupersetTemplateException
 from superset.utils import QueryStatus
 
@@ -110,40 +110,19 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            sql_before_limit, sql_after_limit = cls.get_query_without_limit(sql)
-            return '{sql_before_limit} LIMIT {limit}{sql_after_limit}'.format(**locals())
+            parsed_query = sql_parse.SupersetQuery(sql)
+            sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        limit_pattern = re.compile(r"""
-                (?ix)          # case insensitive, verbose
-                \s+            # whitespace
-                LIMIT\s+(\d+)  # LIMIT $ROWS
-                .*$            # everything else
-                """)
-        matches = limit_pattern.findall(sql)
-        if matches:
-            return matches[0]
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.limit
 
     @classmethod
-    def get_query_without_limit(cls, sql):
-        before_limit = re.sub(r"""
-                (?ix)        # case insensitive, verbose
-                \s+          # whitespace
-                LIMIT\s+(\d+)  # LIMIT $ROWS
-                (.*$)
-                """, '', sql)
-
-        after_limit_pattern = re.compile(r"""
-                (?ix)          # case insensitive, verbose
-                 \s+            # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                (.*$)
-                """)
-        after_limit = after_limit_pattern.findall(sql)
-        after_limit = after_limit[0] if after_limit else ''
-        return before_limit, after_limit
+    def get_query_with_new_limit(cls, sql, limit):
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
     def csv_to_df(**kwargs):
