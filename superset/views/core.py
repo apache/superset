@@ -266,6 +266,9 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Allow SQL Lab to fetch a list of all tables and all views across '
             'all database schemas. For large data warehouse with thousands of '
             'tables, this can be expensive and put strain on the system.'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this database. '
+            'Note this defaults to the global timeout if undefined.'),
     }
     label_columns = {
         'expose_in_sqllab': _('Expose in SQL Lab'),
@@ -450,7 +453,8 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             'want to alter specific parameters.',
         ),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this chart.'),
+            'Duration (in seconds) of the caching timeout for this chart. '
+            'Note this defaults to the datasource/table timeout if undefined.'),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
