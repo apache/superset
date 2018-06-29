@@ -54,7 +54,7 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'bleach',
-        'boto3>=1.4.6',
+        'boto3==1.4.7',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0',
         'colorama',
@@ -90,6 +90,7 @@ setup(
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
+        'tableschema',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unicodecsv',

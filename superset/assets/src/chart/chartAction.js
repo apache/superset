@@ -202,5 +202,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 }
 
 export function refreshChart(chart, force, timeout) {
-  return dispatch => dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id));
+  return (dispatch) => {
+    if (!chart.latestQueryFormData || Object.keys(chart.latestQueryFormData).length === 0) {
+      return;
+    }
+    dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id));
+  };
 }
