@@ -21,13 +21,12 @@ class UndoRedoKeylisteners extends React.PureComponent {
   }
 
   handleKeydown(event) {
-    const controlOrCommand = event.keyCode === 90 || event.metaKey;
+    const controlOrCommand = event.ctrlKey || event.metaKey;
     if (controlOrCommand) {
       const isZChar = event.key === 'z' || event.keyCode === 90;
       const isYChar = event.key === 'y' || event.keyCode === 89;
-      const isEditingMarkdown = document.querySelector(
-        '.dashboard-markdown--editing',
-      );
+      const isEditingMarkdown =
+        document && document.querySelector('.dashboard-markdown--editing');
 
       if (!isEditingMarkdown && (isZChar || isYChar)) {
         event.preventDefault();

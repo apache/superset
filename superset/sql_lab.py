@@ -10,8 +10,6 @@ import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
-import numpy as np
-import pandas as pd
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -29,27 +27,6 @@ SQLLAB_TIMEOUT = config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC', 600)
 
 class SqlLabException(Exception):
     pass
-
-
-def dedup(l, suffix='__'):
-    """De-duplicates a list of string by suffixing a counter
-
-    Always returns the same number of entries as provided, and always returns
-    unique values.
-
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
-    foo,bar,bar__1,bar__2
-    """
-    new_l = []
-    seen = {}
-    for s in l:
-        if s in seen:
-            seen[s] += 1
-            s += suffix + str(seen[s])
-        else:
-            seen[s] = 0
-        new_l.append(s)
-    return new_l
 
 
 def get_query(query_id, session, retry_count=5):
@@ -94,24 +71,6 @@ def session_scope(nullpool):
         raise
     finally:
         session.close()
-
-
-def convert_results_to_df(column_names, data):
-    """Convert raw query results to a DataFrame."""
-    column_names = dedup(column_names)
-
-    # check whether the result set has any nested dict columns
-    if data:
-        first_row = data[0]
-        has_dict_col = any([isinstance(c, dict) for c in first_row])
-        df_data = list(data) if has_dict_col else np.array(data, dtype=object)
-    else:
-        df_data = []
-
-    cdf = dataframe.SupersetDataFrame(
-        pd.DataFrame(df_data, columns=column_names))
-
-    return cdf
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
@@ -233,7 +192,6 @@ def execute_sql(
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info('Fetching cursor description')
-    column_names = db_engine_spec.get_normalized_column_names(cursor.description)
 
     if conn is not None:
         conn.commit()
@@ -242,7 +200,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = convert_results_to_df(column_names, data)
+    cdf = dataframe.SupersetDataFrame(data, cursor.description, db_engine_spec)
 
     query.rows = cdf.size
     query.progress = 100
