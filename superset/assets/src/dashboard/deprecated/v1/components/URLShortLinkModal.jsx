@@ -46,7 +46,7 @@ class URLShortLinkModal extends React.PureComponent {
       <ModalTrigger
         triggerNode={triggerNode}
         isMenuItem
-        modalTitle={t('Shorten URL')}
+        modalTitle={t('Short URL')}
         beforeOpen={this.getCopyUrl}
         modalBody={
           <div>

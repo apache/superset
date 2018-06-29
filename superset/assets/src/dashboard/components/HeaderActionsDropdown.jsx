@@ -142,7 +142,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           dashboard={dashboardInfo}
           filters={filters}
           emailPrefix={emailPrefix}
-          triggerNode={<span>{t('Save URL Shortcut')}</span>}
+          triggerNode={<span>{t('Save Short URL')}</span>}
         />
 
         {editMode && (

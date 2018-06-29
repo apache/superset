@@ -150,7 +150,7 @@ class Controls extends React.PureComponent {
             emailPrefix={t('Check out this dashboard:')}
             triggerNode={
               <MenuItemContent
-                text={t('Save URL Shortcut')}
+                text={t('Save Short URL')}
                 tooltip={t('Save a shortened URL to the dashboard with filters applied')}
                 faIcon="link"
               />
