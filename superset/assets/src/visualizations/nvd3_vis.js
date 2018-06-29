@@ -117,7 +117,27 @@ const changeTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
             });
         });
     });
-}
+
+    const groupLabels = svg.select('g.nv-barsWrap').append('g');
+
+    smallYRect.forEach(function(d, index) {
+      let attrs = d.attributes;
+
+      const transformAttr = attrs.transform.value;
+      const yPos = parseFloat(attrs.y.value);
+      const xPos = parseFloat(attrs.x.value);
+      const rectWidth = parseFloat(attrs.width.value);
+
+      const t = groupLabels.append('text')
+          .attr('x', xPos) // rough position first, fine tune later
+          .attr('y', yPos - 5)
+          .text(format(stacked ? totalStackedValues[index] : d.y))
+          .attr('transform', transformAttr)
+          .attr('class', 'bar-chart-label');
+        const labelWidth = t.node().getBBox().width;
+        t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+    });
+};
 
 function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
