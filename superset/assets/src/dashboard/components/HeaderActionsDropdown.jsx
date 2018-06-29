@@ -7,6 +7,7 @@ import { DropdownButton, MenuItem } from 'react-bootstrap';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
+import URLShortLinkModal from './URLShortLinkModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import { t } from '../../locales';
@@ -14,7 +15,7 @@ import { t } from '../../locales';
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  dashboardId: PropTypes.number.isRequired,
+  dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   css: PropTypes.string.isRequired,
@@ -72,7 +73,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   render() {
     const {
       dashboardTitle,
-      dashboardId,
+      dashboardInfo,
       startPeriodicRender,
       forceRefreshAllCharts,
       editMode,
@@ -88,6 +89,8 @@ class HeaderActionsDropdown extends React.PureComponent {
 
     const emailBody = t('Check out this dashboard: %s', window.location.href);
     const emailLink = `mailto:?Subject=Superset%20Dashboard%20${dashboardTitle}&Body=${emailBody}`;
+
+    const dashboardId = dashboardInfo.id
 
     return (
       <DropdownButton
@@ -133,6 +136,16 @@ class HeaderActionsDropdown extends React.PureComponent {
           }
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
+        
+        <MenuItem>
+          {t('Save URL Shortcut')}
+        </MenuItem>
+        <URLShortLinkModal
+          dashboard={dashboardInfo}
+          filters={filters}
+          triggerNode={<span>{t('Save URL Shortcut')}</span>}
+        />
+
         {editMode && (
           <MenuItem
             target="_blank"
