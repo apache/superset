@@ -2194,7 +2194,7 @@ class Superset(BaseSupersetView):
                     saved_url.url.split('?')[1][18:], encoding='utf-8', errors=None)
                 filters = json.loads(url_str)
                 metadata = {
-                    'default_filters': json.dumps(filters)
+                    'default_filters': json.dumps(filters),
                 }
                 if 'metadata' in dashboard_data:
                     dashboard_data['metadata'].update(metadata)

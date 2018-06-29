@@ -723,5 +723,6 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(dash.get_dashboard_url(), dash_url.path)
         self.assertEqual(query, dash_url.query)
 
+
 if __name__ == '__main__':
     unittest.main()

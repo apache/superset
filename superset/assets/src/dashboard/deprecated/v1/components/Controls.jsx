@@ -8,7 +8,7 @@ import SaveModal from './SaveModal';
 import SliceAdder from './SliceAdder';
 import { t } from '../../../../locales';
 import InfoTooltipWithTrigger from '../../../../components/InfoTooltipWithTrigger';
-import URLShortLinkModal from '../../../components/URLShortLinkModal';
+import URLShortLinkModal from '../components/URLShortLinkModal';
 
 const $ = window.$ = require('jquery');
 
@@ -147,6 +147,7 @@ class Controls extends React.PureComponent {
           <URLShortLinkModal
             dashboard={dashboard}
             filters={filters}
+            emailPrefix={t('Check out this dashboard:')}
             triggerNode={
               <MenuItemContent
                 text={t('Save URL Shortcut')}

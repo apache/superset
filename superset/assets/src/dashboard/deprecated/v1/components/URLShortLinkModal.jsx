@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
-import CopyToClipboard from './../../components/CopyToClipboard';
-import { getShortUrl } from '../../utils/common';
-import { getDashboardLongUrl } from '../util/getDashboardLongUrl';
+import ModalTrigger from '../../../../components/ModalTrigger';
+import { t } from '../../../../locales';
+import CopyToClipboard from '../../../../components/CopyToClipboard';
+import { getShortUrl } from '../../../../utils/common';
+import getDashboardLongUrl from '../../../util/getDashboardLongUrl';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,

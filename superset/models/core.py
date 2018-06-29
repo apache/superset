@@ -362,10 +362,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     def get_dashboard_url(self, short_url_id=None):
         if short_url_id:
-            return '/superset/dashboard/{}/?r={}'.format(self.slug or self.id, short_url_id)
+            return '/superset/dashboard/{}/?r={}'.format(
+                self.slug or self.id, short_url_id)
         else:
             return self.url
-
 
     @property
     def datasources(self):

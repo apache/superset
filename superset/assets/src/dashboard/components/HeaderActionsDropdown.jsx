@@ -87,10 +87,11 @@ class HeaderActionsDropdown extends React.PureComponent {
       isV2Preview,
     } = this.props;
 
-    const emailBody = t('Check out this dashboard: %s', window.location.href);
+    const emailPrefix = t('Check out this dashboard:');
+    const emailBody = `${emailPrefix}: ${window.location.href}`;
     const emailLink = `mailto:?Subject=Superset%20Dashboard%20${dashboardTitle}&Body=${emailBody}`;
 
-    const dashboardId = dashboardInfo.id
+    const dashboardId = dashboardInfo.id;
 
     return (
       <DropdownButton
@@ -136,13 +137,11 @@ class HeaderActionsDropdown extends React.PureComponent {
           }
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
-        
-        <MenuItem>
-          {t('Save URL Shortcut')}
-        </MenuItem>
+
         <URLShortLinkModal
           dashboard={dashboardInfo}
           filters={filters}
+          emailPrefix={emailPrefix}
           triggerNode={<span>{t('Save URL Shortcut')}</span>}
         />
 
