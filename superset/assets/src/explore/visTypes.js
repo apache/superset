@@ -106,6 +106,21 @@ const timeGrainSqlaAnimationOverrides = {
 };
 
 export const visTypes = {
+  doughnut: {
+    label: t('Doughnut Visualization'),
+    showOnExplore: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['metrics',
+            'groupby'
+          ],
+        ],
+      },
+    ]
+  },
   dist_bar: {
     label: t('Distribution - Bar Chart'),
     showOnExplore: true,

@@ -1681,6 +1681,24 @@ class ChordViz(BaseViz):
         }
 
 
+class DoughnutViz(BaseViz):
+
+    """A Doughnut diagram"""
+
+    viz_type = 'doughnut'
+    verbose_name = _('Doughnut Chart')
+    is_timeseries = False
+
+    def get_data(self, df):
+        metric = self.metric_labels[0]
+        df = df.pivot_table(
+            index=self.groupby,
+            values=[metric])
+        df.sort_values(by=metric, ascending=False, inplace=True)
+        df = df.reset_index()
+        df.columns = ['x', 'y']
+        return df.to_dict(orient='records')
+
 class CountryMapViz(BaseViz):
 
     """A country centric"""
