@@ -38,6 +38,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
+from superset.exceptions import NullValueException
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
@@ -2107,6 +2108,11 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
+
+        if df.get(key) is None:
+            raise NullValueException(_('Encountered invalid NULL spatial entry, \
+                                       please consider filtering those out'))
+
         return df
 
     def query_obj(self):
