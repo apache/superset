@@ -38,6 +38,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file
+from superset.exceptions import NullValueException
 from superset.utils import (
     DTTM_ALIAS,
     error_msg_from_exception,
