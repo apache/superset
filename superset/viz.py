@@ -37,8 +37,21 @@ import simplejson as json
 from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
-from superset import app, cache, get_manifest_file, utils
-from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
+from superset import app, cache, get_manifest_file
+from superset.utils import (
+    DTTM_ALIAS,
+    error_msg_from_exception,
+    get_metric_name,
+    get_metric_names,
+    JS_MAX_INTEGER,
+    json_int_dttm_ser,
+    json_iso_dttm_ser,
+    merge_extra_filters,
+    parse_human_datetime,
+    parse_human_timedelta,
+    QueryStatus,
+    split_adhoc_filters_into_base_filters
+)
 
 
 config = app.config
@@ -242,7 +255,7 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
 
-        utils.split_adhoc_filters_into_base_filters(form_data)
+        split_adhoc_filters_into_base_filters(form_data)
 
         merge_extra_filters(form_data)
 
@@ -268,10 +281,10 @@ class BaseViz(object):
             if (len(since_words) == 2 and since_words[1] in grains):
                 since += ' ago'
 
-        self.time_shift = utils.parse_human_timedelta(time_shift)
+        self.time_shift = parse_human_timedelta(time_shift)
 
-        since = utils.parse_human_datetime(since)
-        until = utils.parse_human_datetime(until)
+        since = parse_human_datetime(since)
+        until = parse_human_datetime(until)
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
@@ -323,7 +336,7 @@ class BaseViz(object):
     def get_json(self):
         return json.dumps(
             self.get_payload(),
-            default=utils.json_int_dttm_ser, ignore_nan=True)
+            default=json_int_dttm_ser, ignore_nan=True)
 
     def cache_key(self, query_obj):
         """
@@ -351,7 +364,7 @@ class BaseViz(object):
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
-        if self.status != utils.QueryStatus.FAILED:
+        if self.status != QueryStatus.FAILED:
             if df is not None and df.empty:
                 payload['error'] = 'No data'
             else:
@@ -380,32 +393,32 @@ class BaseViz(object):
                     self.query = cache_value['query']
                     self._any_cached_dttm = cache_value['dttm']
                     self._any_cache_key = cache_key
-                    self.status = utils.QueryStatus.SUCCESS
+                    self.status = QueryStatus.SUCCESS
                     is_loaded = True
                 except Exception as e:
                     logging.exception(e)
                     logging.error('Error reading cache: ' +
-                                  utils.error_msg_from_exception(e))
+                                  error_msg_from_exception(e))
                 logging.info('Serving from cache')
 
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                if self.status != utils.QueryStatus.FAILED:
+                if self.status != QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
                     self.error_message = '{}'.format(e)
-                self.status = utils.QueryStatus.FAILED
+                self.status = QueryStatus.FAILED
                 stacktrace = traceback.format_exc()
 
             if (
                     is_loaded and
                     cache_key and
                     cache and
-                    self.status != utils.QueryStatus.FAILED):
+                    self.status != QueryStatus.FAILED):
                 try:
                     cache_value = dict(
                         dttm=cached_dttm,
@@ -447,7 +460,7 @@ class BaseViz(object):
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
             obj,
-            default=utils.json_int_dttm_ser,
+            default=json_int_dttm_ser,
             ignore_nan=True,
             sort_keys=sort_keys,
         )
@@ -515,8 +528,8 @@ class TableViz(BaseViz):
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         elif sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d['metrics']):
+            sort_by_label = get_metric_name(sort_by)
+            if sort_by_label not in get_metric_names(d['metrics']):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
 
@@ -577,7 +590,7 @@ class TableViz(BaseViz):
     def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
             return json.dumps(
-                obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys)
+                obj, default=json_iso_dttm_ser, sort_keys=sort_keys)
         else:
             return super(TableViz, self).json_dumps(obj)
 
@@ -779,8 +792,8 @@ class CalHeatmapViz(BaseViz):
                 for obj in records
             }
 
-        start = utils.parse_human_datetime(form_data.get('since'))
-        end = utils.parse_human_datetime(form_data.get('until'))
+        start = parse_human_datetime(form_data.get('since'))
+        end = parse_human_datetime(form_data.get('until'))
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')
@@ -945,9 +958,9 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df):
-        df['x'] = df[[utils.get_metric_name(self.x_metric)]]
-        df['y'] = df[[utils.get_metric_name(self.y_metric)]]
-        df['size'] = df[[utils.get_metric_name(self.z_metric)]]
+        df['x'] = df[[get_metric_name(self.x_metric)]]
+        df['y'] = df[[get_metric_name(self.y_metric)]]
+        df['size'] = df[[get_metric_name(self.z_metric)]]
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
 
@@ -1140,12 +1153,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=utils.get_metric_names(fd.get('metrics')))
+                values=get_metric_names(fd.get('metrics')))
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=utils.get_metric_names(fd.get('metrics')),
+                values=get_metric_names(fd.get('metrics')),
                 fill_value=0,
                 aggfunc=sum)
 
@@ -1214,7 +1227,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         i = 0
         for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(option)
+            delta = parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
@@ -1315,7 +1328,7 @@ class NVD3DualLineViz(NVD3Viz):
             self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
-            m = utils.get_metric_name(m)
+            m = get_metric_name(m)
             ys = series[m]
             if df[m].dtype.kind not in 'biufc':
                 continue
