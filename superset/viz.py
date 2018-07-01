@@ -51,7 +51,7 @@ from superset.utils import (
     parse_human_datetime,
     parse_human_timedelta,
     QueryStatus,
-    split_adhoc_filters_into_base_filters
+    split_adhoc_filters_into_base_filters,
 )
 
 
