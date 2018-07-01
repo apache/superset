@@ -2499,7 +2499,7 @@ class Superset(BaseSupersetView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        async = request.form.get('runAsync') == 'true'
+        async_ = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
@@ -2535,7 +2535,7 @@ class Superset(BaseSupersetView):
             select_as_cta=request.form.get('select_as_cta') == 'true',
             start_time=utils.now_as_float(),
             tab_name=request.form.get('tab'),
-            status=QueryStatus.PENDING if async else QueryStatus.RUNNING,
+            status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=tmp_table_name,
             user_id=int(g.user.get_id()),
@@ -2560,7 +2560,7 @@ class Superset(BaseSupersetView):
                 'Template rendering failed: {}'.format(utils.error_msg_from_exception(e)))
 
         # Async request.
-        if async:
+        if async_:
             logging.info('Running query on a Celery worker')
             # Ignore the celery future object and the request may time out.
             try:
