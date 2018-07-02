@@ -176,6 +176,11 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),
     }
+    description_columns = {
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this cluster. '
+            'Note this defaults to the global timeout if undefined.'),
+    }
 
     def pre_add(self, cluster):
         security_manager.merge_perm('database_access', cluster.perm)
@@ -249,6 +254,9 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'default_endpoint': _(
             'Redirects to this endpoint when clicking on the datasource '
             'from the datasource list'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this datasource. '
+            'Note this defaults to the cluster timeout if undefined.'),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
