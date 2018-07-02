@@ -219,6 +219,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'template_params': _(
             'A set of parameters that become available in the query using '
             'Jinja templating syntax'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this table. '
+            'Note this defaults to the database timeout if undefined.'),
     }
     label_columns = {
         'slices': _('Associated Charts'),

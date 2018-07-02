@@ -311,13 +311,13 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
-        if self.form_data.get('cache_timeout'):
+        if self.form_data.get('cache_timeout') is not None:
             return int(self.form_data.get('cache_timeout'))
-        if self.datasource.cache_timeout:
+        if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
         if (
                 hasattr(self.datasource, 'database') and
-                self.datasource.database.cache_timeout):
+                self.datasource.database.cache_timeout) is not None:
             return self.datasource.database.cache_timeout
         return config.get('CACHE_DEFAULT_TIMEOUT')
 
