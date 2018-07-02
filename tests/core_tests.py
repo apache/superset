@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+
 import csv
 import datetime
 import doctest
@@ -16,7 +17,6 @@ import random
 import re
 import string
 import unittest
-import urlparse
 
 import pandas as pd
 import psycopg2
@@ -31,6 +31,10 @@ from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
+from future.standard_library import install_aliases
+install_aliases()
+
+from urllib.parse import urlparse
 
 class CoreTests(SupersetTestCase):
 
@@ -715,10 +719,10 @@ class CoreTests(SupersetTestCase):
 
         url = '/{}?{}'.format(dash.get_dashboard_url(), query)
         short_url = self.client.post('/r/shortner/', data=dict(data=url))
-        short_path = urlparse.urlparse(short_url.data.decode('utf-8')).path
+        short_path = urlparse(short_url.data.decode('utf-8')).path
 
         redirect = self.client.get(short_path, follow_redirects=False)
-        dash_url = urlparse.urlparse(redirect.headers['location'])
+        dash_url = urlparse(redirect.headers['location'])
 
         self.assertEqual(dash.get_dashboard_url(), dash_url.path)
         self.assertEqual(query, dash_url.query)
