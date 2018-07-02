@@ -1408,7 +1408,8 @@ class BQEngineSpec(BaseEngineSpec):
 class ImpalaEngineSpec(HiveEngineSpec):
     """
     Engine spec for Cloudera's Impala
-    Impala overlaps heavily with HiveServer2, importing HiveEngineSpec improves maintainibility
+    Impala overlaps heavily with HiveServer2,
+    importing HiveEngineSpec improves maintainibility
     """
 
     engine = 'impala'
