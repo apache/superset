@@ -424,6 +424,10 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
