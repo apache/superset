@@ -139,6 +139,12 @@ export default class MetricsControl extends React.PureComponent {
   }
 
   onChange(opts) {
+    // if clear out options
+    if (opts === null) {
+      this.props.onChange(null);
+      return;
+    }
+
     let transformedOpts = opts;
     if (!this.props.multi) {
       transformedOpts = [opts].filter(option => option);
