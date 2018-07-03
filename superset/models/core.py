@@ -360,6 +360,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     pass
         return '/superset/dashboard/{}/'.format(self.slug or self.id)
 
+    def get_dashboard_url(self, short_url_id=None):
+        if short_url_id:
+            return '/superset/dashboard/{}/?r={}'.format(
+                self.slug or self.id, short_url_id)
+        else:
+            return self.url
+
     @property
     def datasources(self):
         return {slc.datasource for slc in self.slices}

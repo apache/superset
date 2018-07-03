@@ -452,7 +452,14 @@ def load_world_bank_health_n_pop():
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = slug
-
+    dash.json_metadata = """
+    {
+        "filter_immune_slices": [],
+        "timed_refresh_immune_slices": [],
+        "expanded_slices": {},
+        "filter_immune_slice_fields": {},
+        "default_filters": "{}"
+    }"""
     dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()

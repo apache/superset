@@ -7,6 +7,7 @@ import { DropdownButton, MenuItem } from 'react-bootstrap';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
+import URLShortLinkModal from './URLShortLinkModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import { t } from '../../locales';
@@ -14,7 +15,7 @@ import { t } from '../../locales';
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  dashboardId: PropTypes.number.isRequired,
+  dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   css: PropTypes.string.isRequired,
@@ -72,7 +73,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   render() {
     const {
       dashboardTitle,
-      dashboardId,
+      dashboardInfo,
       startPeriodicRender,
       forceRefreshAllCharts,
       editMode,
@@ -86,8 +87,11 @@ class HeaderActionsDropdown extends React.PureComponent {
       isV2Preview,
     } = this.props;
 
-    const emailBody = t('Check out this dashboard: %s', window.location.href);
+    const emailPrefix = t('Check out this dashboard:');
+    const emailBody = `${emailPrefix}: ${window.location.href}`;
     const emailLink = `mailto:?Subject=Superset%20Dashboard%20${dashboardTitle}&Body=${emailBody}`;
+
+    const dashboardId = dashboardInfo.id;
 
     return (
       <DropdownButton
@@ -133,6 +137,14 @@ class HeaderActionsDropdown extends React.PureComponent {
           }
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
+
+        <URLShortLinkModal
+          dashboard={dashboardInfo}
+          filters={filters}
+          emailPrefix={emailPrefix}
+          triggerNode={<span>{t('Save Short URL')}</span>}
+        />
+
         {editMode && (
           <MenuItem
             target="_blank"

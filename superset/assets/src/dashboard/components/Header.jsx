@@ -298,7 +298,7 @@ class Header extends React.PureComponent {
             <HeaderActionsDropdown
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
-              dashboardId={dashboardInfo.id}
+              dashboardInfo={dashboardInfo}
               dashboardTitle={dashboardTitle}
               layout={layout}
               filters={filters}
