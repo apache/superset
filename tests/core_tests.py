@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-
 import csv
 import datetime
 import doctest
@@ -17,7 +16,9 @@ import random
 import re
 import string
 import unittest
+from urllib.parse import urlparse
 
+from future.standard_library import install_aliases
 import pandas as pd
 import psycopg2
 from six import text_type
@@ -31,10 +32,8 @@ from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
-from future.standard_library import install_aliases
 install_aliases()
 
-from urllib.parse import urlparse
 
 class CoreTests(SupersetTestCase):
 
