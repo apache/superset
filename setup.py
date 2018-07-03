@@ -23,8 +23,8 @@ with io.open('README.md', encoding='utf-8') as f:
 
 def get_git_sha():
     try:
-        s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
-        return s.strip()
+        s = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+        return s.decode().strip()
     except Exception:
         return ''
 
