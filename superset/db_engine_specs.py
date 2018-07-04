@@ -1426,6 +1426,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
+    def epoch_to_dttm(cls):
+        return 'from_unixtime({col})'
+
+    @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
