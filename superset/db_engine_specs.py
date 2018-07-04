@@ -1409,8 +1409,12 @@ class BQEngineSpec(BaseEngineSpec):
         return data
 
 
-class ImpalaEngineSpec(BaseEngineSpec):
-    """Engine spec for Cloudera's Impala"""
+class ImpalaEngineSpec(HiveEngineSpec):
+    """
+    Engine spec for Cloudera's Impala
+    Impala overlaps heavily with HiveServer2,
+    importing HiveEngineSpec improves maintainibility
+    """
 
     engine = 'impala'
 
