@@ -50,7 +50,7 @@ initialize development environment: ::
     docker-compose exec superset bash
     bash docker-init.sh
 
-After several minutes for sueprset initialization to finish, you can open a 
+After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
 Or if you're curious and want to install superset from bottom up, then go 
