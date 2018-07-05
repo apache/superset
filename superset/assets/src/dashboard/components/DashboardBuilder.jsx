@@ -14,7 +14,7 @@ import DashboardGrid from '../containers/DashboardGrid';
 import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
-import ToastPresenter from '../containers/ToastPresenter';
+import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';

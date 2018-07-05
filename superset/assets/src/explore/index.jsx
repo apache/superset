@@ -9,7 +9,7 @@ import shortid from 'shortid';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
 import { getChartKey } from './exploreUtils';
-import AlertsWrapper from '../components/AlertsWrapper';
+import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import { getControlsState, getFormDataFromControls } from './store';
 import { initJQueryAjax } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
@@ -31,20 +31,18 @@ delete bootstrapData.common.locale;
 delete bootstrapData.common.language_pack;
 
 // Initial state
-const bootstrappedState = Object.assign(
-  bootstrapData, {
-    rawFormData,
-    controls,
-    filterColumnOpts: [],
-    isDatasourceMetaLoading: false,
-    isStarred: false,
-  },
-);
+const bootstrappedState = {
+  ...bootstrapData,
+  rawFormData,
+  controls,
+  filterColumnOpts: [],
+  isDatasourceMetaLoading: false,
+  isStarred: false,
+};
 const slice = bootstrappedState.slice;
-const sliceFormData = slice ?
-  getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
-  :
-  null;
+const sliceFormData = slice
+  ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
+  : null;
 const chartKey = getChartKey(bootstrappedState);
 const initState = {
   charts: {
@@ -68,16 +66,22 @@ const initState = {
   },
   explore: bootstrappedState,
   impressionId: shortid.generate(),
+  messageToasts: [],
 };
-const store = createStore(rootReducer, initState,
-  compose(applyMiddleware(thunk), initEnhancer(false)),
+const store = createStore(
+  rootReducer,
+  initState,
+  compose(
+    applyMiddleware(thunk),
+    initEnhancer(false),
+  ),
 );
 
 ReactDOM.render(
   <Provider store={store}>
     <div>
       <ExploreViewContainer />
-      <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
+      <ToastPresenter />
     </div>
   </Provider>,
   exploreViewContainer,

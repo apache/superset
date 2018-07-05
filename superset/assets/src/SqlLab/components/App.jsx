@@ -2,14 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import $ from 'jquery';
 
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
-import AlertsWrapper from '../../components/AlertsWrapper';
+import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import * as Actions from '../actions';
-
-const $ = window.$ = require('jquery');
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -71,10 +70,10 @@ class App extends React.PureComponent {
     }
     return (
       <div className="App SqlLab">
-        <AlertsWrapper initMessages={this.props.initMessages} />
         <div className="container-fluid">
           {content}
         </div>
+        <ToastPresenter />
       </div>
     );
   }
@@ -83,13 +82,13 @@ class App extends React.PureComponent {
 App.propTypes = {
   alerts: PropTypes.array,
   actions: PropTypes.object,
-  initMessages: PropTypes.array,
+  // initMessages: PropTypes.array,
 };
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    alerts: state.alerts,
-    initMessages: state.flash_messages,
+    alerts: sqlLab.alerts,
+    // initMessages: state.flash_messages,
   };
 }
 function mapDispatchToProps(dispatch) {

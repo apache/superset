@@ -5,7 +5,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import mockMessageToasts from '../fixtures/mockMessageToasts';
-import Toast from '../../../../src/dashboard/components/Toast';
+import Toast from '../../../../src/messageToasts/components/Toast';
 
 describe('Toast', () => {
   const props = {

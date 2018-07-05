@@ -1,8 +1,7 @@
-/* global notify */
 /* eslint global-require: 0 */
 import $ from 'jquery';
 
-const d3 = window.d3 || require('d3');
+const d3 = require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
 export const LUMINANCE_RED_WEIGHT = 0.2126;
@@ -72,7 +71,7 @@ export function getParamsFromUrl() {
   return newParams;
 }
 
-export function getShortUrl(longUrl, callback) {
+export function getShortUrl(longUrl, callback, onError) {
   $.ajax({
     type: 'POST',
     url: '/r/shortner/',
@@ -80,11 +79,11 @@ export function getShortUrl(longUrl, callback) {
     data: {
       data: '/' + longUrl,
     },
-    success: (data) => {
-      callback(data);
-    },
+    success: callback,
     error: () => {
-      notify.error('Error getting the short URL');
+      if (onError) {
+        onError('Error getting the short URL');
+      }
       callback(longUrl);
     },
   });

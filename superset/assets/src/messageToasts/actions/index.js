@@ -5,7 +5,7 @@ import {
   SUCCESS_TOAST,
   WARNING_TOAST,
   DANGER_TOAST,
-} from '../util/constants';
+} from '../constants';
 
 function getToastUuid(type) {
   return `${type}-${shortid.generate()}`;
@@ -50,10 +50,10 @@ export function addSuccessToast(text) {
 export const ADD_WARNING_TOAST = 'ADD_WARNING_TOAST';
 export function addWarningToast(text) {
   return dispatch =>
-    dispatch(addToast({ text, toastType: WARNING_TOAST, duration: 4000 }));
+    dispatch(addToast({ text, toastType: WARNING_TOAST, duration: 6000 }));
 }
 
 export const ADD_DANGER_TOAST = 'ADD_DANGER_TOAST';
 export function addDangerToast(text) {
-  return dispatch => dispatch(addToast({ text, toastType: DANGER_TOAST }));
+  return dispatch => dispatch(addToast({ text, toastType: DANGER_TOAST, duration: 8000 }));
 }
