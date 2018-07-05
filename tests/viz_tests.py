@@ -10,6 +10,7 @@ import unittest
 from mock import Mock, patch
 import pandas as pd
 
+from superset import app
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 from .utils import load_fixture
@@ -101,13 +102,21 @@ class BaseVizTestCase(unittest.TestCase):
 
     def test_cache_timeout(self):
         datasource = Mock()
+        datasource.cache_timeout = 0
+        test_viz = viz.BaseViz(datasource, form_data={})
+        self.assertEqual(0, test_viz.cache_timeout)
         datasource.cache_timeout = 156
         test_viz = viz.BaseViz(datasource, form_data={})
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()
+        datasource.database.cache_timeout = 0
+        self.assertEqual(0, test_viz.cache_timeout)
         datasource.database.cache_timeout = 1666
         self.assertEqual(1666, test_viz.cache_timeout)
+        datasource.database.cache_timeout = None
+        test_viz = viz.BaseViz(datasource, form_data={})
+        self.assertEqual(app.config['CACHE_DEFAULT_TIMEOUT'], test_viz.cache_timeout)
 
 
 class TableVizTestCase(unittest.TestCase):
