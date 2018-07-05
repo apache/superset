@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import io
 import json
 import os
 import subprocess
@@ -16,14 +17,14 @@ PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
 
-with open('README.md') as readme:
-    long_description = readme.read()
+with io.open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
 
 
 def get_git_sha():
     try:
-        s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
-        return s.strip()
+        s = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+        return s.decode().strip()
     except Exception:
         return ''
 
@@ -54,7 +55,8 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'bleach',
-        'boto3>=1.4.6',
+        'boto3==1.4.7',
+        'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0',
         'colorama',
         'contextlib2',
@@ -74,7 +76,7 @@ setup(
         'humanize',
         'idna',
         'markdown',
-        'pandas',
+        'pandas>=0.18.0',
         'parsedatetime',
         'pathlib2',
         'polyline',
@@ -84,11 +86,12 @@ setup(
         'python-geohash',
         'pyyaml>=3.11',
         'requests',
-        'simplejson',
+        'simplejson>=3.15.0',
         'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
+        'tableschema',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unicodecsv',

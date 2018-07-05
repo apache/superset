@@ -1,0 +1,31 @@
+.new-component {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  cursor: move;
+}
+
+.new-component:not(.static):hover {
+  background: @gray-bg;
+}
+
+.new-component-placeholder {
+  position: relative;
+  background: @gray-bg;
+  width: 40px;
+  height: 40px;
+  margin-right: 16px;
+  border: 1px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: @gray;
+  font-size: 1.5em;
+}
+
+.new-component-placeholder.fa-window-restore {
+  font-size: 1em;
+}

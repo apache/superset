@@ -31,12 +31,14 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
+from past.builtins import basestring
 import polyline
 import simplejson as json
 from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
+from superset.exceptions import NullValueException
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
@@ -196,13 +198,11 @@ class BaseViz(object):
         # be considered as the default ISO date format
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
-        if df is None or df.empty:
-            return pd.DataFrame()
-        else:
+        if not df.empty:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
-                    df[DTTM_ALIAS] = pd.to_datetime(
-                        df[DTTM_ALIAS], utc=False, unit=timestamp_format[6:])
+                    # Column has already been formatted as a timestamp.
+                    df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(pd.Timestamp)
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
@@ -222,7 +222,7 @@ class BaseViz(object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
-                df[col] = pd.to_numeric(df[col])
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
     def query_obj(self):
         """Building a query object"""
@@ -311,13 +311,13 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
-        if self.form_data.get('cache_timeout'):
+        if self.form_data.get('cache_timeout') is not None:
             return int(self.form_data.get('cache_timeout'))
-        if self.datasource.cache_timeout:
+        if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
         if (
                 hasattr(self.datasource, 'database') and
-                self.datasource.database.cache_timeout):
+                self.datasource.database.cache_timeout) is not None:
             return self.datasource.database.cache_timeout
         return config.get('CACHE_DEFAULT_TIMEOUT')
 
@@ -721,14 +721,13 @@ class WordCloudViz(BaseViz):
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
-
-        d['metrics'] = [self.form_data.get('metric')]
         d['groupby'] = [self.form_data.get('series')]
         return d
 
     def get_data(self, df):
+        fd = self.form_data
         # Ordering the columns
-        df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
+        df = df[[fd.get('series'), self.metric_labels[0]]]
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient='records')
@@ -947,9 +946,9 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df):
-        df['x'] = df[[self.x_metric]]
-        df['y'] = df[[self.y_metric]]
-        df['size'] = df[[self.z_metric]]
+        df['x'] = df[[utils.get_metric_name(self.x_metric)]]
+        df['y'] = df[[utils.get_metric_name(self.y_metric)]]
+        df['size'] = df[[utils.get_metric_name(self.z_metric)]]
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
 
@@ -1176,15 +1175,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
             kwargs = dict(
-                arg=df,
                 window=rolling_periods,
                 min_periods=min_periods)
             if rolling_type == 'mean':
-                df = pd.rolling_mean(**kwargs)
+                df = df.rolling(**kwargs).mean()
             elif rolling_type == 'std':
-                df = pd.rolling_std(**kwargs)
+                df = df.rolling(**kwargs).std()
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(**kwargs)
+                df = df.rolling(**kwargs).sum()
         elif rolling_type == 'cumsum':
             df = df.cumsum()
         if min_periods:
@@ -1341,6 +1339,7 @@ class NVD3DualLineViz(NVD3Viz):
             self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
+            m = utils.get_metric_name(m)
             ys = series[m]
             if df[m].dtype.kind not in 'biufc':
                 continue
@@ -1621,6 +1620,8 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
+        df['source'] = df['source'].astype(basestring)
+        df['target'] = df['target'].astype(basestring)
         recs = df.to_dict(orient='records')
 
         hierarchy = defaultdict(set)
@@ -2130,6 +2131,11 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
+
+        if df.get(key) is None:
+            raise NullValueException(_('Encountered invalid NULL spatial entry, \
+                                       please consider filtering those out'))
+
         return df
 
     def query_obj(self):
