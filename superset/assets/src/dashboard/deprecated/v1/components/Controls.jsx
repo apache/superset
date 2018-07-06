@@ -144,6 +144,7 @@ class Controls extends React.PureComponent {
             }
           />
           {dashboard.dash_save_perm &&
+            dashboard.force_v2_edit &&
             <SaveModal
               dashboard={dashboard}
               filters={filters}
