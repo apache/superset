@@ -4,7 +4,7 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import mockMessageToasts from '../fixtures/mockMessageToasts';
+import mockMessageToasts from '../mockMessageToasts';
 import Toast from '../../../../src/messageToasts/components/Toast';
 
 describe('Toast', () => {

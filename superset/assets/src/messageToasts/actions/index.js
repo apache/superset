@@ -55,5 +55,6 @@ export function addWarningToast(text) {
 
 export const ADD_DANGER_TOAST = 'ADD_DANGER_TOAST';
 export function addDangerToast(text) {
-  return dispatch => dispatch(addToast({ text, toastType: DANGER_TOAST, duration: 8000 }));
+  return dispatch =>
+    dispatch(addToast({ text, toastType: DANGER_TOAST, duration: 8000 }));
 }
