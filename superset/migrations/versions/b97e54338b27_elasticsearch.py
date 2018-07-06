@@ -96,6 +96,7 @@ def upgrade():
         sa.Column('d3format', sa.String(length=128), nullable=True),
         sa.Column('datasource_name', sa.String(length=255), nullable=True),
         sa.Column('json', sa.Text(), nullable=True),
+        sa.Column('warning_text', sa.String(length=255), nullable=True),
         sa.Column('changed_by_fk', sa.Integer(), nullable=True),
         sa.Column('created_by_fk', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),

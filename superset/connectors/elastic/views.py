@@ -10,9 +10,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
 
-from superset import db, utils, appbuilder, sm, security
+from superset import db, utils, appbuilder, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.utils import has_access
+from flask_appbuilder.security.decorators import has_access
 from superset.views.base import BaseSupersetView
 from superset.views.base import (
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
@@ -102,11 +102,11 @@ class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(ElasticMetricInlineView)
 
@@ -131,7 +131,7 @@ class ElasticClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, cluster):
-        security.merge_perm(sm, 'database_access', cluster.perm)
+        security_manager.merge_perm('database_access', cluster.perm)
 
     def pre_update(self, cluster):
         self.pre_add(cluster)
@@ -226,9 +226,9 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
+        security_manager.merge_perm('datasource_access', datasource.get_perm())
         if datasource.schema:
-            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
+            security_manager.merge_perm('schema_access', datasource.schema_perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
