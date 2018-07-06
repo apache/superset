@@ -6,6 +6,7 @@ from six import string_types
 
 import requests
 import sqlalchemy as sa
+import pandas as pd
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
     DateTime,
@@ -19,12 +20,13 @@ from flask_appbuilder import Model
 
 from flask_babel import lazy_gettext as _
 
-from elasticsearch import Elasticsearch
+from elasticsearch5 import Elasticsearch
 
-from superset import conf, db, import_util, utils, sm, get_session
+from superset import conf, db, import_util, utils, security_manager
 from superset.utils import flasher
-from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
+from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
+
 
 
 class ElasticCluster(Model, AuditMixinNullable):
@@ -42,6 +44,13 @@ class ElasticCluster(Model, AuditMixinNullable):
 
     def __repr__(self):
         return self.cluster_name
+    
+    @property
+    def data(self):
+        return {
+            'name': self.cluster_name,
+            'backend': 'elastic',
+        }
 
     @property
     def hosts(self):
@@ -168,7 +177,7 @@ class ElasticColumn(Model, BaseColumn):
                 metric_type='count_distinct',
                 json=json.dumps({'cardinality': {'field': self.column_name}})
             ))
-        session = get_session()
+        session = db.session
         new_metrics = []
         for metric in metrics:
             m = (
@@ -267,7 +276,7 @@ class ElasticDatasource(Model, BaseDatasource):
         'ElasticCluster', backref='datasources', foreign_keys=[cluster_name])
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        sm.user_model,
+        security_manager.user_model,
         backref=backref('elastic_datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
 
@@ -305,7 +314,7 @@ class ElasticDatasource(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, cluster one otherwise."""
-        return utils.get_schema_perm(self.cluster, self.schema)
+        return security_manager.get_schema_perm(self.cluster, self.schema)
 
     def get_perm(self):
         return (
@@ -411,7 +420,7 @@ class ElasticDatasource(Model, BaseDatasource):
     def sync_to_db(cls, name, metadata, cluster):
         """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Elastic datasource [{}]".format(name))
-        session = get_session()
+        session = db.session
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
             datasource = cls(datasource_name=name)
@@ -556,11 +565,12 @@ class ElasticDatasource(Model, BaseDatasource):
         data = client.search(index=self.index, body=equery)
         from pprint import pprint
         print('-='*20)
+        print("query is : {}".format(equery))
         pprint(data)
         print('-='*20)
         query_str = self.query_str()
         qry_start_dttm = datetime.now()
-        df = None
+        df = pd.DataFrame(data)
         return QueryResult(
             df=df,
             query=query_str,
