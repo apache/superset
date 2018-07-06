@@ -60,7 +60,7 @@ class SaveModal extends React.PureComponent {
       data: {
         data: JSON.stringify(data),
       },
-      success(resp) {
+      success: (resp) => {
         saveModal.close();
         onSaveDashboard();
         if (saveType === 'newDashboard') {
@@ -71,7 +71,7 @@ class SaveModal extends React.PureComponent {
           );
         }
       },
-      error(error) {
+      error: (error) => {
         saveModal.close();
         const errorMsg = getAjaxErrorMsg(error);
         this.props.addDangerToast(
