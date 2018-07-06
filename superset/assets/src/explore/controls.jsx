@@ -1462,6 +1462,14 @@ export const controls = {
     description: t('Whether to display the metric name as a title'),
   },
 
+  show_trend_line: {
+    type: 'CheckboxControl',
+    label: t('Show Trend Line'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the trend line'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
