@@ -268,6 +268,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'tables, this can be expensive and put strain on the system.'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this database. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
     }
     label_columns = {
