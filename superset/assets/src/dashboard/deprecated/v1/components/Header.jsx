@@ -9,7 +9,6 @@ import InfoTooltipWithTrigger from '../../../../components/InfoTooltipWithTrigge
 import PromptV2ConversionModal from '../../PromptV2ConversionModal';
 import {
   Logger,
-  LOG_ACTIONS_PREVIEW_V2,
   LOG_ACTIONS_DISMISS_V2_PROMPT,
   LOG_ACTIONS_SHOW_V2_INFO_PROMPT,
 } from '../../../../logger';
@@ -31,6 +30,7 @@ const propTypes = {
   updateDashboardTitle: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
+  handleConvertToV2: PropTypes.func.isRequired,
   unsavedChanges: PropTypes.bool.isRequired,
 };
 
@@ -43,24 +43,9 @@ class Header extends React.PureComponent {
       showV2PromptModal: props.dashboard.promptV2Conversion,
     };
     this.toggleShowV2PromptModal = this.toggleShowV2PromptModal.bind(this);
-    this.handleConvertToV2 = this.handleConvertToV2.bind(this);
   }
   handleSaveTitle(title) {
     this.props.updateDashboardTitle(title);
-  }
-  handleConvertToV2(editMode) {
-    Logger.append(
-      LOG_ACTIONS_PREVIEW_V2,
-      {
-        force_v2_edit: this.props.dashboard.forceV2Edit,
-        edit_mode: editMode === true,
-      },
-      true,
-    );
-    const url = new URL(window.location); // eslint-disable-line
-    url.searchParams.set('version', 'v2');
-    if (editMode === true) url.searchParams.set('edit', true);
-    window.location = url; // eslint-disable-line
   }
   toggleEditMode() {
     this.props.setEditMode(!this.props.editMode);
@@ -169,7 +154,7 @@ class Header extends React.PureComponent {
           !this.props.editMode && (
             <PromptV2ConversionModal
               onClose={this.toggleShowV2PromptModal}
-              handleConvertToV2={this.handleConvertToV2}
+              handleConvertToV2={this.props.handleConvertToV2}
               forceV2Edit={dashboard.forceV2Edit}
               v2AutoConvertDate={dashboard.v2AutoConvertDate}
               v2FeedbackUrl={dashboard.v2FeedbackUrl}
