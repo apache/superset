@@ -2169,6 +2169,8 @@ class Superset(BaseSupersetView):
             else:
                 dashboard_view = 'v1'
                 prompt_v2_conversion = not force_v1
+                if force_v2_edit:
+                    dash_edit_perm = False
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
