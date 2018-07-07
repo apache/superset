@@ -86,7 +86,6 @@ App.propTypes = {
 };
 
 function mapStateToProps({ sqlLab }) {
-  debugger;
   return {
     alerts: sqlLab.alerts,
     // initMessages: state.flash_messages,

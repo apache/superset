@@ -28,7 +28,6 @@ describe('VisualizeModal', () => {
       },
     },
   };
-
   const store = mockStore(initialState);
   const mockedProps = {
     show: true,
