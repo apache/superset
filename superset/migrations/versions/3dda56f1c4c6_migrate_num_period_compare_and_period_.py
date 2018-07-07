@@ -60,11 +60,11 @@ def isodate_duration_to_string(obj):
             return format_seconds(obj.tdelta.total_seconds())
         raise Exception('Unable to convert: {0}'.format(obj))
 
-    if obj.months:
+    if obj.months % 12 != 0:
         months = obj.months + 12 * obj.years
         return '{0} months'.format(months)
 
-    return '{0} years'.format(obj.years)
+    return '{0} years'.format(obj.years + obj.months // 12)
 
 
 def timedelta_to_string(obj):
@@ -133,7 +133,7 @@ def upgrade():
         time_compare = compute_time_compare(granularity, num_period_compare)
         comparison_type = comparison_type_map[period_ratio_type.lower()]
 
-        params['time_compare'] = time_compare
+        params['time_compare'] = [time_compare]
         params['comparison_type'] = comparison_type
         chart.params = json.dumps(params, sort_keys=True)
 

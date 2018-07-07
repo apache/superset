@@ -1539,7 +1539,6 @@ export const controls = {
     multi: true,
     freeForm: true,
     label: t('Time Shift'),
-    default: [],
     choices: formatSelectOptions([
       '1 day',
       '1 week',
