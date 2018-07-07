@@ -1,5 +1,6 @@
 /* global window */
 /* eslint no-undef: 2 */
+import $ from 'jquery';
 import shortid from 'shortid';
 import { now } from '../modules/dates';
 import { t } from '../locales';
@@ -9,8 +10,6 @@ import {
   addInfoToast as addInfoToastAction,
 } from '../messageToasts/actions';
 import { COMMON_ERR_MESSAGES } from '../common';
-
-const $ = require('jquery');
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';

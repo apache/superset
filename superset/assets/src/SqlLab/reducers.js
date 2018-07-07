@@ -14,7 +14,7 @@ import {
 } from '../reduxUtils';
 import { t } from '../locales';
 
-const sqlLabReducer = function (state = {}, action) {
+export const sqlLabReducer = function (state = {}, action) {
   const actionHandlers = {
     [actions.ADD_QUERY_EDITOR]() {
       const tabHistory = state.tabHistory.slice();
