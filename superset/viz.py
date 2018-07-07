@@ -1188,18 +1188,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if min_periods:
             df = df[min_periods:]
 
-        num_period_compare = fd.get('num_period_compare')
-        if num_period_compare:
-            num_period_compare = int(num_period_compare)
-            prt = fd.get('period_ratio_type')
-            if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
-            elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
-            else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
         return df
 
     def run_extra_queries(self):
@@ -1253,7 +1241,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 if comparison_type == 'absolute':
                     diff = df - df2
                 elif comparison_type == 'percentage':
-                    diff = 100 * (df - df2) / df2
+                    diff = (df - df2) / df2
                 elif comparison_type == 'ratio':
                     diff = df / df2
                 else:
