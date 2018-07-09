@@ -179,6 +179,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     description_columns = {
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this cluster. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
     }
 
@@ -256,6 +257,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
             'from the datasource list'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this datasource. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the cluster timeout if undefined.'),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]

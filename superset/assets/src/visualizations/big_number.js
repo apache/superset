@@ -93,23 +93,24 @@ function bigNumberVis(slice, payload) {
 
   if (fd.viz_type === 'big_number') {
     // Drawing trend line
+    if (fd.show_trend_line) {
+      g.append('path')
+        .attr('d', function () {
+          return line(data);
+        })
+        .attr('stroke-width', 5)
+        .attr('opacity', 0.5)
+        .attr('fill', 'none')
+        .attr('stroke-linecap', 'round')
+        .attr('stroke', 'grey');
 
-    g.append('path')
-    .attr('d', function () {
-      return line(data);
-    })
-    .attr('stroke-width', 5)
-    .attr('opacity', 0.5)
-    .attr('fill', 'none')
-    .attr('stroke-linecap', 'round')
-    .attr('stroke', 'grey');
+      g = svg.append('g')
+        .attr('class', 'digits')
+        .attr('opacity', 1);
 
-    g = svg.append('g')
-    .attr('class', 'digits')
-    .attr('opacity', 1);
-
-    if (vCompare !== null) {
-      y = (height / 8) * 3;
+      if (vCompare !== null) {
+        y = (height / 8) * 3;
+      }
     }
 
     const c = scaleColor(vCompare);

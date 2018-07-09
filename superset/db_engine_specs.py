@@ -1012,16 +1012,25 @@ class HiveEngineSpec(PrestoEngineSpec):
             return tableschema_to_hive_types.get(col_type, 'STRING')
 
         table_name = form.name.data
+        schema_name = form.schema.data
+
         if config.get('UPLOADED_CSV_HIVE_NAMESPACE'):
-            if '.' in table_name:
+            if '.' in table_name or schema_name:
                 raise Exception(
                     "You can't specify a namespace. "
                     'All tables will be uploaded to the `{}` namespace'.format(
                         config.get('HIVE_NAMESPACE')))
             table_name = '{}.{}'.format(
                 config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
-        filename = form.csv_file.data.filename
+        else:
+            if '.' in table_name and schema_name:
+                raise Exception(
+                    "You can't specify a namespace both in the name of the table "
+                    'and in the schema field. Please remove one')
+            if schema_name:
+                table_name = '{}.{}'.format(schema_name, table_name)
 
+        filename = form.csv_file.data.filename
         bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:

@@ -268,6 +268,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'tables, this can be expensive and put strain on the system.'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this database. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
     }
     label_columns = {
@@ -2168,6 +2169,8 @@ class Superset(BaseSupersetView):
             else:
                 dashboard_view = 'v1'
                 prompt_v2_conversion = not force_v1
+                if force_v2_edit:
+                    dash_edit_perm = False
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this

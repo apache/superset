@@ -221,6 +221,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Jinja templating syntax'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this table. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the database timeout if undefined.'),
     }
     label_columns = {
