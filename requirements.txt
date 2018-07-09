@@ -39,4 +39,5 @@ thrift-sasl==0.3.0
 unicodecsv==0.14.1
 unidecode==1.0.22
 contextlib2==0.5.5
+elasticsearch==5.5.3
 
