@@ -14,8 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
-from superset import db, utils
-from superset.models.core import Database, Slice
+from superset import utils
+from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 

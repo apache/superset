@@ -1573,10 +1573,6 @@ class DruidDatasource(Model, BaseDatasource):
             .all()
         )
 
-    @property
-    def select_star(self):
-        pass
-
 
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)
 sa.event.listen(DruidDatasource, 'after_update', set_perm)

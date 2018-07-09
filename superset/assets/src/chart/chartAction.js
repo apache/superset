@@ -203,19 +203,19 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 
 export function redirectSQLLab(formData) {
   return function () {
-    const { url, payload } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
+    const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
     $.ajax({
       type: 'GET',
-      url: url,
+      url,
       success: (response) => {
-        const url = new URL(window.location);
-        url.pathname = '/superset/sqllab';
-        for (const k of url.searchParams.keys()) {
-          url.searchParams.delete(k);
+        const redirectUrl = new URL(window.location);
+        redirectUrl.pathname = '/superset/sqllab';
+        for (const k of redirectUrl.searchParams.keys()) {
+          redirectUrl.searchParams.delete(k);
         }
-        url.searchParams.set('datasourceKey', formData.datasource);
-        url.searchParams.set('sql', response.query);
-        window.open(url.href, '_blank');
+        redirectUrl.searchParams.set('datasourceKey', formData.datasource);
+        redirectUrl.searchParams.set('sql', response.query);
+        window.open(redirectUrl.href, '_blank');
       },
       error: () => notify.error(t("The SQL couldn't be loaded")),
     });
