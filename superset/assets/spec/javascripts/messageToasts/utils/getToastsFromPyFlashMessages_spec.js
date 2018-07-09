@@ -5,7 +5,7 @@ import {
   DANGER_TOAST,
   INFO_TOAST,
   SUCCESS_TOAST,
-} from '../../../../src/messageToasts/actions';
+} from '../../../../src/messageToasts/constants';
 
 import getToastsFromPyFlashMessages from '../../../../src/messageToasts/utils/getToastsFromPyFlashMessages';
 
