@@ -7,7 +7,9 @@ from __future__ import unicode_literals
 import textwrap
 
 from superset.db_engine_specs import (
-    HiveEngineSpec, MssqlEngineSpec, MySQLEngineSpec)
+    BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
+    MySQLEngineSpec, PrestoEngineSpec,
+)
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -95,6 +97,19 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
         self.assertEquals(expected_sql, limited)
 
+    def test_extract_limit_from_query(self, engine_spec_class=MySQLEngineSpec):
+        q0 = 'select * from table'
+        q1 = 'select * from mytable limit 10'
+        q2 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20'
+        q3 = 'select * from (select * from my_subquery limit 10);'
+        q4 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20;'
+
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
+
     def test_wrapped_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
@@ -180,3 +195,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table LIMIT 1000"""),
         )
+
+    def test_get_datatype(self):
+        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+        self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
+        self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
+        self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))

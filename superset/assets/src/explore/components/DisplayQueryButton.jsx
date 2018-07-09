@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
 import html from 'react-syntax-highlighter/dist/languages/htmlbars';
 import markdown from 'react-syntax-highlighter/dist/languages/markdown';
 import sql from 'react-syntax-highlighter/dist/languages/sql';
@@ -11,6 +11,7 @@ import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
+import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import { t } from '../../locales';
@@ -22,7 +23,7 @@ registerLanguage('html', html);
 registerLanguage('sql', sql);
 registerLanguage('json', json);
 
-const $ = window.$ = require('jquery');
+const $ = (window.$ = require('jquery'));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -82,11 +83,7 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   renderQueryModalBody() {
     if (this.state.isLoading) {
-      return (<img
-        className="loading"
-        alt="Loading..."
-        src="/static/assets/images/loading.gif"
-      />);
+      return <Loading />;
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.query) {

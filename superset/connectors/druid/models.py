@@ -122,10 +122,10 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         url = '{0}:{1}'.format(host, port) if port else host
         return url
 
-    def get_base_coordinator_url(self):
+    def get_base_broker_url(self):
         base_url = self.get_base_url(
-            self.coordinator_host, self.coordinator_port)
-        return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
+            self.broker_host, self.broker_port)
+        return '{base_url}/{self.broker_endpoint}'.format(**locals())
 
     def get_pydruid_client(self):
         cli = PyDruid(
@@ -134,7 +134,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return cli
 
     def get_datasources(self):
-        endpoint = self.get_base_coordinator_url() + '/datasources'
+        endpoint = self.get_base_broker_url() + '/datasources'
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
@@ -578,38 +578,6 @@ class DruidDatasource(Model, BaseDatasource):
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 
-    @staticmethod
-    def version_higher(v1, v2):
-        """is v1 higher than v2
-
-        >>> DruidDatasource.version_higher('0.8.2', '0.9.1')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.6.1')
-        True
-        >>> DruidDatasource.version_higher('0.8.2', '0.8.2')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.9.BETA')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.9')
-        False
-        """
-        def int_or_0(v):
-            try:
-                v = int(v)
-            except (TypeError, ValueError):
-                v = 0
-            return v
-        v1nums = [int_or_0(n) for n in v1.split('.')]
-        v2nums = [int_or_0(n) for n in v2.split('.')]
-        v1nums = (v1nums + [0, 0, 0])[:3]
-        v2nums = (v2nums + [0, 0, 0])[:3]
-        return (
-            v1nums[0] > v2nums[0] or
-            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
-            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
-                v1nums[2] > v2nums[2])
-        )
-
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
         logging.info('Syncing datasource [{}]'.format(self.datasource_name))
@@ -628,7 +596,7 @@ class DruidDatasource(Model, BaseDatasource):
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         lbound = (max_time - timedelta(days=7)).isoformat()
-        if not self.version_higher(self.cluster.druid_version, '0.8.2'):
+        if LooseVersion(self.cluster.druid_version) < LooseVersion('0.8.2'):
             rbound = (max_time - timedelta(1)).isoformat()
         else:
             rbound = max_time.isoformat()
@@ -645,7 +613,7 @@ class DruidDatasource(Model, BaseDatasource):
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
             lbound = datetime(1901, 1, 1).isoformat()[:10]
-            if not self.version_higher(self.cluster.druid_version, '0.8.2'):
+            if LooseVersion(self.cluster.druid_version) < LooseVersion('0.8.2'):
                 rbound = datetime.now().isoformat()
             else:
                 rbound = datetime(2050, 1, 1).isoformat()[:10]
@@ -1101,6 +1069,18 @@ class DruidDatasource(Model, BaseDatasource):
 
         return values
 
+    @staticmethod
+    def sanitize_metric_object(metric):
+        """
+        Update a metric with the correct type if necessary.
+        :param dict metric: The metric to sanitize
+        """
+        if (
+            utils.is_adhoc_metric(metric) and
+            metric['column']['type'].upper() == 'FLOAT'
+        ):
+            metric['column']['type'] = 'DOUBLE'
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1144,11 +1124,8 @@ class DruidDatasource(Model, BaseDatasource):
             LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
         ):
             for metric in metrics:
-                if (
-                    utils.is_adhoc_metric(metric) and
-                    metric['column']['type'].upper() == 'FLOAT'
-                ):
-                    metric['column']['type'] = 'DOUBLE'
+                self.sanitize_metric_object(metric)
+            self.sanitize_metric_object(timeseries_limit_metric)
 
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
@@ -1204,7 +1181,7 @@ class DruidDatasource(Model, BaseDatasource):
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
-                order_by = timeseries_limit_metric
+                order_by = utils.get_metric_name(timeseries_limit_metric)
                 aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
@@ -1273,7 +1250,7 @@ class DruidDatasource(Model, BaseDatasource):
                     order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
-                    order_by = timeseries_limit_metric
+                    order_by = utils.get_metric_name(timeseries_limit_metric)
                     aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
@@ -1355,12 +1332,14 @@ class DruidDatasource(Model, BaseDatasource):
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
 
-        df = self.homogenize_types(df, query_obj.get('groupby', []))
-
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [
-            DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
+            DTTM_ALIAS if c in ('timestamp', '__time') else c
+            for c in df.columns
+        ]
 
         is_timeseries = query_obj['is_timeseries'] \
             if 'is_timeseries' in query_obj else True

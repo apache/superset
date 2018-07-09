@@ -59,9 +59,6 @@ def downgrade():
         )
 
     # Remove the previous missing uniqueness constraints.
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     for table, column in names.items():
         with op.batch_alter_table(table, naming_convention=conv) as batch_op:
             batch_op.drop_constraint(

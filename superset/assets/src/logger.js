@@ -1,63 +1,61 @@
 import $ from 'jquery';
 
-export const LOG_ACTIONS_PAGE_LOAD = 'page_load_perf';
-export const LOG_ACTIONS_LOAD_EVENT = 'load_events';
-export const LOG_ACTIONS_RENDER_EVENT = 'render_events';
-
-const handlers = {};
+// This creates an association between an eventName and the ActionLog instance so that
+// Logger.append calls do not have to know about the appropriate ActionLog instance
+const addEventHandlers = {};
 
 export const Logger = {
   start(log) {
-    log.setAttribute('startAt', new Date().getTime() - this.getTimestamp());
+    // create a handler to handle adding each event type
     log.eventNames.forEach((eventName) => {
-      if (!handlers[eventName]) {
-        handlers[eventName] = [];
+      if (!addEventHandlers[eventName]) {
+        addEventHandlers[eventName] = log.addEvent.bind(log);
+      } else {
+        console.warn(`Duplicate event handler for event '${eventName}'`);
       }
-      handlers[eventName].push(log.addEvent.bind(log));
     });
   },
 
-  append(eventName, eventBody) {
-    return handlers[eventName].length &&
-      handlers[eventName].forEach(handler => (handler(eventName, eventBody)));
+  append(eventName, eventBody, sendNow) {
+    if (addEventHandlers[eventName]) {
+      addEventHandlers[eventName](eventName, eventBody, sendNow);
+    } else {
+      console.warn(`No event handler for event '${eventName}'`);
+    }
   },
 
   end(log) {
-    log.setAttribute('duration', new Date().getTime() - log.startAt);
     this.send(log);
 
+    // remove handlers
     log.eventNames.forEach((eventName) => {
-      if (handlers[eventName].length) {
-        const index = handlers[eventName]
-          .findIndex(handler => (handler === log.addEvent));
-        handlers[eventName].splice(index, 1);
+      if (addEventHandlers[eventName]) {
+        delete addEventHandlers[eventName];
       }
     });
   },
 
   send(log) {
-    const { impressionId, actionType, source, sourceId, events, startAt, duration } = log;
-    const requestPrams = [];
-    requestPrams.push(['impression_id', impressionId]);
-    switch (source) {
-      case 'dashboard':
-        requestPrams.push(['dashboard_id', sourceId]);
-        break;
-      case 'slice':
-        requestPrams.push(['slice_id', sourceId]);
-        break;
-      default:
-        break;
-    }
+    const { impressionId, source, sourceId, events } = log;
     let url = '/superset/log/';
-    if (requestPrams.length) {
-      url += '?' + requestPrams.map(([k, v]) => (k + '=' + v)).join('&');
+
+    // backend logs treat these request params as first-class citizens
+    if (source === 'dashboard') {
+      url += `?dashboard_id=${sourceId}`;
+    } else if (source === 'slice') {
+      url += `?slice_id=${sourceId}`;
     }
-    const eventData = {};
+
+    const eventData = [];
     for (const eventName in events) {
-      eventData[eventName] = [];
       events[eventName].forEach((event) => {
-        eventData[eventName].push(event);
+        eventData.push({
+          source,
+          source_id: sourceId,
+          event_name: eventName,
+          impression_id: impressionId,
+          ...event,
+        });
       });
     }
 
@@ -66,30 +64,28 @@ export const Logger = {
       method: 'POST',
       dataType: 'json',
       data: {
-        source: 'client',
-        type: actionType,
-        started_time: startAt,
-        duration,
+        explode: 'events',
         events: JSON.stringify(eventData),
       },
     });
+
+    // flush events for this logger
+    log.events = {}; // eslint-disable-line no-param-reassign
   },
 
+  // note that this returns ms since page load, NOT ms since epoc
   getTimestamp() {
     return Math.round(window.performance.now());
   },
 };
 
 export class ActionLog {
-  constructor({ impressionId, actionType, source, sourceId, eventNames, sendNow }) {
+  constructor({ impressionId, source, sourceId, sendNow, eventNames }) {
     this.impressionId = impressionId;
     this.source = source;
     this.sourceId = sourceId;
-    this.actionType = actionType;
     this.eventNames = eventNames;
     this.sendNow = sendNow || false;
-    this.startAt = 0;
-    this.duration = 0;
     this.events = {};
 
     this.addEvent = this.addEvent.bind(this);
@@ -99,16 +95,81 @@ export class ActionLog {
     this[name] = value;
   }
 
-  addEvent(eventName, eventBody) {
-    if (!this.events[eventName]) {
-      this.events[eventName] = [];
-    }
-    this.events[eventName].push(eventBody);
+  addEvent(eventName, eventBody, sendNow) {
+    if (sendNow) {
+      Logger.send({
+        ...this,
+        // overwrite events so that Logger.send doesn't clear this.events
+        events: {
+          [eventName]: [
+            {
+              ts: new Date().getTime(),
+              start_offset: Logger.getTimestamp(),
+              ...eventBody,
+            },
+          ],
+        },
+      });
+    } else {
+      this.events[eventName] = this.events[eventName] || [];
 
-    if (this.sendNow) {
-      this.setAttribute('duration', new Date().getTime() - this.startAt);
-      Logger.send(this);
-      this.events = {};
+      this.events[eventName].push({
+        ts: new Date().getTime(),
+        start_offset: Logger.getTimestamp(),
+        ...eventBody,
+      });
+
+      if (this.sendNow) {
+        Logger.send(this);
+      }
     }
   }
 }
+
+// Log event types ------------------------------------------------------------
+export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
+export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
+
+export const LOG_ACTIONS_FIRST_DASHBOARD_LOAD = 'first_dashboard_load';
+export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
+export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
+export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
+export const LOG_ACTIONS_REFRESH_CHART = 'force_refresh_chart';
+
+export const LOG_ACTIONS_REFRESH_DASHBOARD = 'force_refresh_dashboard';
+export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
+export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART = 'export_csv_dashboard_chart';
+export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
+
+// @TODO remove upon v1 deprecation
+export const LOG_ACTIONS_PREVIEW_V2 = 'preview_dashboard_v2';
+export const LOG_ACTIONS_FALLBACK_TO_V1 = 'fallback_to_dashboard_v1';
+export const LOG_ACTIONS_READ_ABOUT_V2_CHANGES = 'read_about_v2_changes';
+export const LOG_ACTIONS_DISMISS_V2_PROMPT = 'dismiss_v2_conversion_prompt';
+export const LOG_ACTIONS_SHOW_V2_INFO_PROMPT = 'show_v2_conversion_prompt';
+
+export const DASHBOARD_EVENT_NAMES = [
+  LOG_ACTIONS_MOUNT_DASHBOARD,
+  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
+  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_RENDER_CHART,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_REFRESH_DASHBOARD,
+
+  LOG_ACTIONS_PREVIEW_V2,
+  LOG_ACTIONS_FALLBACK_TO_V1,
+  LOG_ACTIONS_READ_ABOUT_V2_CHANGES,
+  LOG_ACTIONS_DISMISS_V2_PROMPT,
+  LOG_ACTIONS_SHOW_V2_INFO_PROMPT,
+];
+
+export const EXPLORE_EVENT_NAMES = [
+  LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_RENDER_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
+];
