@@ -428,7 +428,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error(t('The datasource couldn\'t be loaded')),
+      error: () => notify.error(t("The datasource couldn't be loaded")),
     });
   };
 }

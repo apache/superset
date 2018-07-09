@@ -154,9 +154,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def select_star(self):
-        mydb = db.session.query(Database).filter_by(
-            id=self.database.data['id']).first()    # pylint: disable=no-member
-        return mydb.select_star(self.name, show_cols=True)
+        pass
 
     @property
     def data(self):

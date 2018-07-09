@@ -60,7 +60,7 @@ export default function ExploreActionButtons({
         queryResponse={queryResponse}
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
-        actions={actions}
+        onOpenInEditor={actions.redirectSQLLab}
       />
     </div>
   );

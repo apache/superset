@@ -8,6 +8,8 @@ import json from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
+import 'react-bootstrap-table/css/react-bootstrap-table.css';
+
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
@@ -15,8 +17,6 @@ import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import { t } from '../../locales';
-
-require('react-bootstrap-table/css/react-bootstrap-table.css');
 
 registerLanguage('markdown', markdown);
 registerLanguage('html', html);
@@ -26,7 +26,7 @@ registerLanguage('json', json);
 const $ = (window.$ = require('jquery'));
 
 const propTypes = {
-  actions: PropTypes.object.isRequired,
+  onOpenInEditor: PropTypes.func,
   animation: PropTypes.bool,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
@@ -79,7 +79,7 @@ export default class DisplayQueryButton extends React.PureComponent {
     });
   }
   redirectSQLLab() {
-    this.props.actions.redirectSQLLab(this.props.latestQueryFormData);
+    this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
   renderQueryModalBody() {
     if (this.state.isLoading) {

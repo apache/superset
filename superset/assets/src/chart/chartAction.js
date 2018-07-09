@@ -203,9 +203,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 
 export function redirectSQLLab(formData) {
   return function () {
+    const { url, payload } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
     $.ajax({
       type: 'GET',
-      url: `/superset/sql?form_data=${JSON.stringify(formData)}`,
+      url: url,
       success: (response) => {
         const url = new URL(window.location);
         url.pathname = '/superset/sqllab';
@@ -216,7 +217,7 @@ export function redirectSQLLab(formData) {
         url.searchParams.set('sql', response.query);
         window.open(url.href, '_blank');
       },
-      error: () => notify.error(t('The SQL couldn\'t be loaded')),
+      error: () => notify.error(t("The SQL couldn't be loaded")),
     });
   };
 }
