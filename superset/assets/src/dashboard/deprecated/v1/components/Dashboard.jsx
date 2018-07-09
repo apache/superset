@@ -10,6 +10,7 @@ import {
   Logger,
   ActionLog,
   DASHBOARD_EVENT_NAMES,
+  LOG_ACTIONS_PREVIEW_V2,
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
@@ -68,6 +69,7 @@ class Dashboard extends React.PureComponent {
       unsavedChanges: false,
     };
     this.handleSetEditMode = this.handleSetEditMode.bind(this);
+    this.handleConvertToV2 = this.handleConvertToV2.bind(this);
 
     this.rerenderCharts = this.rerenderCharts.bind(this);
     this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
@@ -346,6 +348,21 @@ class Dashboard extends React.PureComponent {
     exportChart(formData, 'csv');
   }
 
+  handleConvertToV2(editMode) {
+    Logger.append(
+      LOG_ACTIONS_PREVIEW_V2,
+      {
+        force_v2_edit: this.props.dashboard.forceV2Edit,
+        edit_mode: editMode === true,
+      },
+      true,
+    );
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v2');
+    if (editMode === true) url.searchParams.set('edit', true);
+    window.location = url; // eslint-disable-line
+  }
+
   handleSetEditMode(nextEditMode) {
     if (this.props.dashboard.forceV2Edit) {
       this.handleConvertToV2(true);
@@ -386,6 +403,7 @@ class Dashboard extends React.PureComponent {
             addSlicesToDashboard={this.addSlicesToDashboard}
             editMode={this.props.editMode}
             setEditMode={this.handleSetEditMode}
+            handleConvertToV2={this.handleConvertToV2}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">
