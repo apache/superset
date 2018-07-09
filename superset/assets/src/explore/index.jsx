@@ -1,4 +1,4 @@
-/* eslint camelcase: 0 */
+/* eslint no-undef: 2 */
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { createStore, applyMiddleware, compose } from 'redux';
@@ -14,6 +14,7 @@ import { getControlsState, getFormDataFromControls } from './store';
 import { initJQueryAjax } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import rootReducer from './reducers/index';
+import getToastsFromPyFlashMessages from '../messageToasts/utils/getToastsFromPyFlashMessages';
 
 import { appSetup } from '../common';
 import './main.css';
@@ -26,6 +27,7 @@ const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 const rawFormData = { ...bootstrapData.form_data };
+
 delete bootstrapData.form_data;
 delete bootstrapData.common.locale;
 delete bootstrapData.common.language_pack;
@@ -66,8 +68,9 @@ const initState = {
   },
   explore: bootstrappedState,
   impressionId: shortid.generate(),
-  messageToasts: [],
+  messageToasts: getToastsFromPyFlashMessages((bootstrapData.common || {}).flash_messages || []),
 };
+
 const store = createStore(
   rootReducer,
   initState,

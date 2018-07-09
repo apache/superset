@@ -1,5 +1,7 @@
+/* eslint no-undef: 2 */
 import shortid from 'shortid';
 import { t } from '../locales';
+import getToastsFromPyFlashMessages from '../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   const defaultQueryEditor = {
@@ -22,8 +24,10 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       tables: [],
       queriesLastUpdate: 0,
       activeSouthPaneTab: 'Results',
-      ...restBootstrapData, // @TODO do something with flash_messages?
+      ...restBootstrapData,
     },
-    messageToasts: [],
+    messageToasts: getToastsFromPyFlashMessages(
+      (restBootstrapData.common || {}).flash_messages || [],
+    ),
   };
 }

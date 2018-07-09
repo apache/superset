@@ -7,12 +7,12 @@ import {
   DANGER_TOAST,
 } from '../constants';
 
-function getToastUuid(type) {
+export function getToastUuid(type) {
   return `${type}-${shortid.generate()}`;
 }
 
 export const ADD_TOAST = 'ADD_TOAST';
-export function addToast({ toastType, text, duration }) {
+export function addToast({ toastType, text, duration = 8000 }) {
   return {
     type: ADD_TOAST,
     payload: {
