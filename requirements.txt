@@ -99,3 +99,6 @@ webencodings==0.5.1       # via bleach
 werkzeug==0.14.1          # via flask
 wtforms==2.2.1            # via flask-wtf
 xlrd==1.1.0               # via tabulator
+contextlib2==0.5.5
+elasticsearch==5.5.3
+
