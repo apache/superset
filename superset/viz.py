@@ -1191,15 +1191,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
         num_period_compare = fd.get('num_period_compare')
         if num_period_compare:
             num_period_compare = int(num_period_compare)
+            if num_period_compare == -1:
+                shifted = df.T[0]
+            else:
+                shifted = df.shift(num_period_compare)
             prt = fd.get('period_ratio_type')
             if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
+                df = (df / shifted) - 1
             elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
+                df = df - shifted
             else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
+                df = df / shifted
+            if num_period_compare != -1:
+                df = df[num_period_compare:]
         return df
 
     def run_extra_queries(self):

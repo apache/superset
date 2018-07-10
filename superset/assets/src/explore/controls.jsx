@@ -1548,7 +1548,8 @@ export const controls = {
     default: '',
     isInt: true,
     description: t('[integer] Number of period to compare against, ' +
-    'this is relative to the granularity selected'),
+    'this is relative to the granularity selected; ' +
+    '-1 means comparing agaist the origin point'),
   },
 
   period_ratio_type: {
