@@ -514,6 +514,12 @@ class DruidDatasource(Model, BaseDatasource):
         """Returns schema permission if present, cluster one otherwise."""
         return security_manager.get_schema_perm(self.cluster, self.schema)
 
+    def get_col(self, col_name):
+        columns = self.columns
+        for col in columns:
+            if col_name == col.column_name:
+                return col
+
     def get_perm(self):
         return (
             '[{obj.cluster_name}].[{obj.datasource_name}]'

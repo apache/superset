@@ -1123,11 +1123,15 @@ class Superset(BaseSupersetView):
         ):
             status = 400
 
-        time_cols = [col for col in payload['form_data']['groupby'] if viz_obj.datasource.get_col(col).is_time]
-        if time_cols:
-            for col in time_cols:
-                for record in payload['data']['records']:
-                    record[col] = str(record[col])      
+        if 'groupby' in payload['form_data'].keys():
+            time_cols = [
+                col for col in payload['form_data']['groupby'] if viz_obj.datasource.get_col(col)
+            ]
+            time_cols = [col for col in time_cols if hasattr(col, 'is_time') and col.is_time]
+            if time_cols:
+                for col in time_cols:
+                    for record in payload['data']['records']:
+                        record[col] = str(record[col])      
                     
         return json_success(viz_obj.json_dumps(payload), status=status)
 
