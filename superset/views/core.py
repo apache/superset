@@ -340,13 +340,7 @@ class CsvToDatabaseView(SimpleFormView):
 
     def form_get(self, form):
         form.sep.data = ','
-        form.header.data = 0
         form.mangle_dupe_cols.data = True
-        form.skipinitialspace.data = False
-        form.skip_blank_lines.data = True
-        form.infer_datetime_format.data = True
-        form.decimal.data = '.'
-        form.if_exists.data = 'append'
 
     def form_post(self, form):
         csv_file = form.csv_file.data

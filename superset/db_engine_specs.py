@@ -169,16 +169,13 @@ class BaseEngineSpec(object):
             raise Exception('Invalid file type selected')
         kwargs = {
             'filepath_or_buffer': filename,
-            'sep': form.sep.data,
-            'header': form.header.data if form.header.data else 0,
+            'header': 0,
             'index_col': form.index_col.data,
-            'mangle_dupe_cols': form.mangle_dupe_cols.data,
-            'skipinitialspace': form.skipinitialspace.data,
-            'skiprows': form.skiprows.data,
-            'nrows': form.nrows.data,
-            'skip_blank_lines': form.skip_blank_lines.data,
+            'mangle_dupe_cols': False,
+            'skipinitialspace': True,
+            'skip_blank_lines': True,
             'parse_dates': form.parse_dates.data,
-            'infer_datetime_format': form.infer_datetime_format.data,
+            'infer_datetime_format': True,
             'chunksize': 10000,
         }
         df = BaseEngineSpec.csv_to_df(**kwargs)
@@ -189,9 +186,7 @@ class BaseEngineSpec(object):
             'name': form.name.data,
             'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
             'schema': form.schema.data,
-            'if_exists': form.if_exists.data,
-            'index': form.index.data,
-            'index_label': form.index_label.data,
+            'if_exists': 'fail',
             'chunksize': 10000,
         }
 
