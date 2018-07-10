@@ -16,11 +16,16 @@ const defaultProps = {
 };
 
 const options = [
-  [0, t('Don\'t refresh')],
+  [0, t("Don't refresh")],
   [10, t('10 seconds')],
   [30, t('30 seconds')],
   [60, t('1 minute')],
   [300, t('5 minutes')],
+  [1800, t('30 minutes')],
+  [3600, t('1 hour')],
+  [21600, t('6 hours')],
+  [43200, t('12 hours')],
+  [86400, t('24 hours')],
 ].map(o => ({ value: o[0], label: o[1] }));
 
 class RefreshIntervalModal extends React.PureComponent {
@@ -42,9 +47,12 @@ class RefreshIntervalModal extends React.PureComponent {
             <Select
               options={options}
               value={this.state.refreshFrequency}
-              onChange={(opt) => {
-                this.setState({ refreshFrequency: opt.value });
-                this.props.onChange(opt.value);
+              onChange={opt => {
+                const value = opt ? opt.value : options[0].value;
+                this.setState({
+                  refreshFrequency: value,
+                });
+                this.props.onChange(value);
               }}
             />
           </div>

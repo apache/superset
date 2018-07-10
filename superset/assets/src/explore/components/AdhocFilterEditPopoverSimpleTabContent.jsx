@@ -29,6 +29,7 @@ const propTypes = {
     PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
     adhocMetricType,
   ])).isRequired,
+  onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
 };
 
@@ -41,9 +42,13 @@ function translateOperator(operator) {
     return 'equals';
   } else if (operator === OPERATORS['!=']) {
     return 'not equal to';
+  } else if (operator === OPERATORS.LIKE) {
+    return 'like';
   }
   return operator;
 }
+
+const SINGLE_LINE_SELECT_CONTROL_HEIGHT = 30;
 
 export default class AdhocFilterEditPopoverSimpleTabContent extends React.Component {
   constructor(props) {
@@ -54,9 +59,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.onInputComparatorChange = this.onInputComparatorChange.bind(this);
     this.isOperatorRelevant = this.isOperatorRelevant.bind(this);
     this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(this);
+    this.multiComparatorRef = this.multiComparatorRef.bind(this);
 
     this.state = {
       suggestions: [],
+      multiComparatorHeight: SINGLE_LINE_SELECT_CONTROL_HEIGHT,
     };
 
     this.selectProps = {
@@ -73,10 +80,15 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.refreshComparatorSuggestions();
   }
 
+  componentDidMount() {
+    this.handleMultiComparatorInputHeightChange();
+  }
+
   componentDidUpdate(prevProps) {
     if (prevProps.adhocFilter.subject !== this.props.adhocFilter.subject) {
       this.refreshComparatorSuggestions();
     }
+    this.handleMultiComparatorInputHeightChange();
   }
 
   onSubjectChange(option) {
@@ -127,6 +139,23 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }));
   }
 
+  handleMultiComparatorInputHeightChange() {
+    if (this.multiComparatorComponent) {
+      /* eslint-disable no-underscore-dangle */
+      const multiComparatorDOMNode = this.multiComparatorComponent._selectRef &&
+        this.multiComparatorComponent._selectRef.select &&
+        this.multiComparatorComponent._selectRef.select.control;
+      if (multiComparatorDOMNode) {
+        if (multiComparatorDOMNode.clientHeight !== this.state.multiComparatorHeight) {
+          this.props.onHeightChange((
+            multiComparatorDOMNode.clientHeight - this.state.multiComparatorHeight
+          ));
+          this.setState({ multiComparatorHeight: multiComparatorDOMNode.clientHeight });
+        }
+      }
+    }
+  }
+
   refreshComparatorSuggestions() {
     const datasource = this.props.datasource;
     const col = this.props.adhocFilter.subject;
@@ -160,6 +189,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   focusComparator(ref) {
     if (ref) {
       ref.focus();
+    }
+  }
+
+  multiComparatorRef(ref) {
+    if (ref) {
+      this.multiComparatorComponent = ref;
     }
   }
 
@@ -238,6 +273,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 onChange={this.onComparatorChange}
                 showHeader={false}
                 noResultsText={t('type a value here')}
+                refFunc={this.multiComparatorRef}
               /> :
               <input
                 ref={this.focusComparator}

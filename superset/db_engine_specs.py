@@ -30,13 +30,15 @@ import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
+from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
+from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
-import unicodecsv
+from tableschema import Table
 from werkzeug.utils import secure_filename
 
 from superset import app, cache_util, conf, db, utils
@@ -55,6 +57,7 @@ class LimitMethod(object):
     """Enum the ways that limits can be applied"""
     FETCH_MANY = 'fetch_many'
     WRAP_SQL = 'wrap_sql'
+    FORCE_LIMIT = 'force_limit'
 
 
 class BaseEngineSpec(object):
@@ -65,7 +68,7 @@ class BaseEngineSpec(object):
     cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
-    limit_method = LimitMethod.FETCH_MANY
+    limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
     inner_joins = True
 
@@ -81,17 +84,63 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if isinstance(type_code, basestring) and len(type_code):
+            return type_code.upper()
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
 
+    @classmethod
+    def apply_limit_to_sql(cls, sql, limit, database):
+        """Alters the SQL statement to apply a LIMIT clause"""
+        if cls.limit_method == LimitMethod.WRAP_SQL:
+            sql = sql.strip('\t\n ;')
+            qry = (
+                select('*')
+                .select_from(
+                    TextAsFrom(text(sql), ['*']).alias('inner_qry'),
+                )
+                .limit(limit)
+            )
+            return database.compile_sqla_query(qry)
+        elif LimitMethod.FORCE_LIMIT:
+            sql_without_limit = cls.get_query_without_limit(sql)
+            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+        return sql
+
+    @classmethod
+    def get_limit_from_sql(cls, sql):
+        limit_pattern = re.compile(r"""
+                (?ix)          # case insensitive, verbose
+                \s+            # whitespace
+                LIMIT\s+(\d+)  # LIMIT $ROWS
+                ;?             # optional semi-colon
+                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                """)
+        matches = limit_pattern.findall(sql)
+        if matches:
+            return int(matches[0][0])
+
+    @classmethod
+    def get_query_without_limit(cls, sql):
+        return re.sub(r"""
+                (?ix)        # case insensitive, verbose
+                \s+          # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                ;?           # optional semi-colon
+                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                """, '', sql)
+
     @staticmethod
     def csv_to_df(**kwargs):
         kwargs['filepath_or_buffer'] = \
-            app.config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
+            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
         kwargs['encoding'] = 'utf-8'
         kwargs['iterator'] = True
         chunks = pandas.read_csv(**kwargs)
@@ -113,7 +162,7 @@ class BaseEngineSpec(object):
         def _allowed_file(filename):
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in app.config['ALLOWED_EXTENSIONS']
+            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
@@ -232,7 +281,7 @@ class BaseEngineSpec(object):
         return False
 
     @classmethod
-    def select_star(cls, my_db, table_name, schema=None, limit=100,
+    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
                     show_cols=False, indent=True, latest_partition=True,
                     cols=None):
         fields = '*'
@@ -243,9 +292,14 @@ class BaseEngineSpec(object):
         if show_cols:
             fields = [sqla.column(c.get('name')) for c in cols]
         full_table_name = table_name
+        quote = engine.dialect.identifier_preparer.quote
         if schema:
-            full_table_name = schema + '.' + table_name
+            full_table_name = quote(schema) + '.' + quote(table_name)
+        else:
+            full_table_name = quote(table_name)
+
         qry = select(fields).select_from(text(full_table_name))
+
         if limit:
             qry = qry.limit(limit)
         if latest_partition:
@@ -280,6 +334,15 @@ class BaseEngineSpec(object):
         :return: Dictionary with configs required for impersonation
         """
         return {}
+
+    @classmethod
+    def get_normalized_column_names(cls, cursor_description):
+        columns = cursor_description if cursor_description else []
+        return [cls.normalize_column_name(col[0]) for col in columns]
+
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -337,7 +400,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
-
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
@@ -350,6 +412,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
     )
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -358,9 +424,14 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -379,9 +450,14 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
+    limit_method = LimitMethod.WRAP_SQL
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
@@ -446,6 +522,9 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('year', _('year'),
+              "DATETIME(STRFTIME('%Y-01-01T00:00:00', {col}))",
+              'P1Y'),
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "DATE({col}, 'weekday 6')",
               'P1W/1970-01-03T00:00:00Z'),
@@ -523,6 +602,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
               'P1W'),
     )
+    type_code_map = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -536,6 +616,23 @@ class MySQLEngineSpec(BaseEngineSpec):
         if selected_schema:
             uri.database = selected_schema
         return uri
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if not cls.type_code_map:
+            # only import and store if needed at least once
+            import MySQLdb
+            ft = MySQLdb.constants.FIELD_TYPE
+            cls.type_code_map = {
+                getattr(ft, k): k
+                for k in dir(ft)
+                if not k.startswith('_')
+            }
+        datatype = type_code
+        if isinstance(type_code, int):
+            datatype = cls.type_code_map.get(type_code)
+        if datatype and isinstance(datatype, basestring) and len(datatype):
+            return datatype
 
     @classmethod
     def epoch_to_dttm(cls):
@@ -680,6 +777,12 @@ class PrestoEngineSpec(BaseEngineSpec):
                 break
 
             if stats:
+                state = stats.get('state')
+
+                # if already finished, then stop polling
+                if state == 'FINISHED':
+                    break
+
                 completed_splits = float(stats.get('completedSplits'))
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
@@ -887,38 +990,75 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        from TCLIService import ttypes
+        state = cursor.poll()
+        if state.operationState == ttypes.TOperationState.ERROR_STATE:
+            raise Exception('Query error', state.errorMessage)
+        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+
     @staticmethod
     def create_table_from_csv(form, table):
         """Uploads a csv file and creates a superset datasource in Hive."""
-        def get_column_names(filepath):
-            with open(filepath, 'rb') as f:
-                return next(unicodecsv.reader(f, encoding='utf-8-sig'))
+        def convert_to_hive_type(col_type):
+            """maps tableschema's types to hive types"""
+            tableschema_to_hive_types = {
+                'boolean': 'BOOLEAN',
+                'integer': 'INT',
+                'number': 'DOUBLE',
+                'string': 'STRING',
+            }
+            return tableschema_to_hive_types.get(col_type, 'STRING')
 
         table_name = form.name.data
-        filename = form.csv_file.data.filename
+        schema_name = form.schema.data
 
-        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
+        if config.get('UPLOADED_CSV_HIVE_NAMESPACE'):
+            if '.' in table_name or schema_name:
+                raise Exception(
+                    "You can't specify a namespace. "
+                    'All tables will be uploaded to the `{}` namespace'.format(
+                        config.get('HIVE_NAMESPACE')))
+            table_name = '{}.{}'.format(
+                config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
+        else:
+            if '.' in table_name and schema_name:
+                raise Exception(
+                    "You can't specify a namespace both in the name of the table "
+                    'and in the schema field. Please remove one')
+            if schema_name:
+                table_name = '{}.{}'.format(schema_name, table_name)
+
+        filename = form.csv_file.data.filename
+        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
             logging.info('No upload bucket specified')
             raise Exception(
                 'No upload bucket specified. You can specify one in the config file.')
 
-        upload_prefix = app.config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
-        dest_path = os.path.join(table_name, filename)
+        table_name = form.name.data
+        filename = form.csv_file.data.filename
+        upload_prefix = config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
 
-        upload_path = app.config['UPLOAD_FOLDER'] + \
+        upload_path = config['UPLOAD_FOLDER'] + \
             secure_filename(form.csv_file.data.filename)
-        column_names = get_column_names(upload_path)
-        schema_definition = ', '.join(
-            [s + ' STRING ' for s in column_names])
+
+        hive_table_schema = Table(upload_path).infer()
+        column_name_and_type = []
+        for column_info in hive_table_schema['fields']:
+            column_name_and_type.append(
+                '{} {}'.format(
+                    column_info['name'], convert_to_hive_type(column_info['type'])))
+        schema_definition = ', '.join(column_name_and_type)
 
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
+        sql = """CREATE TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')""".format(**locals())
@@ -1106,6 +1246,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -1294,6 +1435,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
+    def epoch_to_dttm(cls):
+        return 'from_unixtime({col})'
+
+    @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
@@ -1310,8 +1455,19 @@ class ImpalaEngineSpec(BaseEngineSpec):
 class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
-    limit_method = LimitMethod.FETCH_MANY
     inner_joins = False
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), 'FLOOR({col} TO SECOND)', 'PT1S'),
+        Grain('minute', _('minute'), 'FLOOR({col} TO MINUTE)', 'PT1M'),
+        Grain('hour', _('hour'), 'FLOOR({col} TO HOUR)', 'PT1H'),
+        Grain('day', _('day'), 'FLOOR({col} TO DAY)', 'P1D'),
+        Grain('week', _('week'), 'FLOOR({col} TO WEEK)', 'P1W'),
+        Grain('month', _('month'), 'FLOOR({col} TO MONTH)', 'P1M'),
+        Grain('quarter', _('quarter'), 'FLOOR({col} TO QUARTER)', 'P3M'),
+        Grain('year', _('year'), 'FLOOR({col} TO YEAR)', 'P1Y'),
+    )
 
 
 class KylinEngineSpec(BaseEngineSpec):
@@ -1321,12 +1477,32 @@ class KylinEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('second', _('second'), 'SECOND({col})', 'PT1S'),
-        Grain('minute', _('minute'), 'MINUTE({col})', 'PT1M'),
-        Grain('hour', _('hour'), 'HOUR({col})', 'PT1H'),
-        Grain('month', _('month'), 'MONTH({col})', 'P1M'),
-        Grain('quarter', _('quarter'), 'QUARTER({col})', 'P0.25Y'),
-        Grain('year', _('year'), 'YEAR({col})', 'P1Y'),
+        Grain('second', _('second'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)',
+              'PT1S'),
+        Grain('minute', _('minute'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)',
+              'PT1M'),
+        Grain('hour', _('hour'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)',
+              'PT1H'),
+        Grain('day', _('day'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)',
+              'P1D'),
+        Grain('week', _('week'),
+              'CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P1W'),
+        Grain('month', _('month'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)',
+              'P1M'),
+        Grain('quarter', _('quarter'),
+              'CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P0.25Y'),
+        Grain('year', _('year'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)',
+              'P1Y'),
     )
 
     @classmethod

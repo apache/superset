@@ -219,3 +219,9 @@
   padding: 4px;
 }
 
+.custom-sql-disabled-message {
+  color: gray;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 60px;
+}

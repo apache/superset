@@ -1,0 +1,62 @@
+.dashboard {
+  position: relative;
+  color: @almost-black;
+}
+
+.dashboard-header {
+  background: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1); /* @TODO color */
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: auto;
+}
+
+/* only top-level tabs have popover, give it more padding to match header + tabs */
+.dashboard > .with-popover-menu > .popover-menu {
+  left: 24px;
+}
+
+/* drop shadow for top-level tabs only */
+.dashboard .dashboard-component-tabs {
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
+  padding-left: 8px; /* note this is added to tab-level padding, to match header */
+}
+
+.dashboard-content .grid-container .dashboard-component-tabs {
+  box-shadow: none;
+  padding-left: 0;
+}
+
+.dashboard-content > div:first-child {
+  width: 100%;
+  flex-grow: 1;
+  position: relative;
+}
+
+/* @TODO remove upon new theme */
+.btn.btn-primary {
+  background: @almost-black !important;
+  border-color: @almost-black;
+  color: white !important;
+}
+
+.dropdown-toggle.btn.btn-primary .caret {
+  color: white;
+}
+
+.background--transparent {
+  background-color: transparent;
+}
+
+.background--white {
+  background-color: white;
+}

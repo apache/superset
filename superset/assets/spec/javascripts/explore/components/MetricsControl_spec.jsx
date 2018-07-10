@@ -211,8 +211,8 @@ describe('MetricsControl', () => {
 
       expect(!!wrapper.instance().selectFilterOption(
         {
-          metric_name: 'a_metric',
-          optionName: 'a_metric',
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
           expression: 'AVG(metric)',
         },
         'a',
@@ -224,7 +224,7 @@ describe('MetricsControl', () => {
 
       expect(!!wrapper.instance().selectFilterOption(
         { type: 'VARCHAR(255)', column_name: 'source', optionName: '_col_source' },
-        'Sou',
+        'sou',
       )).to.be.true;
 
       expect(!!wrapper.instance().selectFilterOption(
@@ -233,17 +233,39 @@ describe('MetricsControl', () => {
       )).to.be.true;
     });
 
+    it('includes columns based on verbose_name', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { metric_name: 'sum__num', verbose_name: 'babies', optionName: '_col_sum_num' },
+        'bab',
+      )).to.be.true;
+    });
+
     it('excludes auto generated avg metrics for sqla', () => {
       const { wrapper } = setup();
 
       expect(!!wrapper.instance().selectFilterOption(
         {
-          metric_name: 'a_metric',
-          optionName: 'a_metric',
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
           expression: 'AVG(metric)',
         },
         'a',
       )).to.be.false;
+    });
+
+    it('includes custom made simple saved metrics', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'my_fancy_sum_metric',
+          optionName: 'my_fancy_sum_metric',
+          expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.true;
     });
 
     it('excludes auto generated metrics', () => {
@@ -254,6 +276,15 @@ describe('MetricsControl', () => {
           metric_name: 'sum__value',
           optionName: 'sum__value',
           expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.false;
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'sum__value',
+          optionName: 'sum__value',
+          expression: 'SUM("table"."value")',
         },
         'sum',
       )).to.be.false;

@@ -47,7 +47,6 @@ import {
 import * as v from './validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
-import MetricOption from '../components/MetricOption';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
@@ -104,6 +103,10 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  filterOption: (opt, text) => (
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+  ),
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -114,6 +117,32 @@ const groupByControl = {
     }
     return newState;
   },
+};
+
+const metrics = {
+  type: 'MetricsControl',
+  multi: true,
+  label: t('Metrics'),
+  validators: [v.nonEmpty],
+  default: (c) => {
+    const metric = mainMetric(c.savedMetrics);
+    return metric ? [metric] : null;
+  },
+  mapStateToProps: (state) => {
+    const datasource = state.datasource;
+    return {
+      columns: datasource ? datasource.columns : [],
+      savedMetrics: datasource ? datasource.metrics : [],
+      datasourceType: datasource && datasource.type,
+    };
+  },
+  description: t('One or many metrics to display'),
+};
+const metric = {
+  ...metrics,
+  multi: false,
+  label: t('Metric'),
+  default: props => mainMetric(props.savedMetrics),
 };
 
 const sandboxUrl = (
@@ -152,6 +181,11 @@ function jsFunctionControl(label, description, extraDescr = null, height = 100, 
 }
 
 export const controls = {
+
+  metrics,
+
+  metric,
+
   datasource: {
     type: 'DatasourceControl',
     label: t('Datasource'),
@@ -169,36 +203,11 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  metrics: {
-    type: 'MetricsControl',
-    multi: true,
-    label: t('Metrics'),
-    validators: [v.nonEmpty],
-    default: (c) => {
-      const metric = mainMetric(c.savedMetrics);
-      return metric ? [metric] : null;
-    },
-    mapStateToProps: (state) => {
-      const datasource = state.datasource;
-      return {
-        columns: datasource ? datasource.columns : [],
-        savedMetrics: datasource ? datasource.metrics : [],
-        datasourceType: datasource && datasource.type,
-      };
-    },
-    description: t('One or many metrics to display'),
-  },
-
   percent_metrics: {
-    type: 'SelectControl',
+    ...metrics,
     multi: true,
     label: t('Percentage Metrics'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
+    validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
   },
 
@@ -262,33 +271,11 @@ export const controls = {
     renderTrigger: true,
   },
 
-  metric: {
-    type: 'MetricsControl',
-    multi: false,
-    label: t('Metric'),
-    clearable: false,
-    validators: [v.nonEmpty],
-    default: props => mainMetric(props.savedMetrics),
-    mapStateToProps: state => ({
-      columns: state.datasource ? state.datasource.columns : [],
-      savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
-    }),
-  },
-
   metric_2: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Right Axis Metric'),
-    default: null,
-    validators: [v.nonEmpty],
     clearable: true,
     description: t('Choose a metric for right axis'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   stacked_style: {
@@ -508,13 +495,10 @@ export const controls = {
   },
 
   secondary_metric: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Color Metric'),
     default: null,
     description: t('A metric to use for color'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
-    }),
   },
   select_country: {
     type: 'SelectControl',
@@ -972,12 +956,14 @@ export const controls = {
   },
 
   timeseries_limit_metric: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     label: t('Sort By'),
     default: null,
     description: t('Metric used to define the top series'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
   },
 
@@ -1098,44 +1084,23 @@ export const controls = {
   },
 
   x: {
-    type: 'SelectControl',
+    ...metric,
     label: t('X Axis'),
     description: t('Metric assigned to the [X] axis'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   y: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Y Axis'),
     default: null,
-    validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   size: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Bubble Size'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   url: {
@@ -1158,34 +1123,6 @@ export const controls = {
     label: t('Y Axis Label'),
     renderTrigger: true,
     default: '',
-  },
-
-  where: {
-    type: 'TextAreaControl',
-    label: t('Custom WHERE clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s WHERE ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
-  },
-
-  having: {
-    type: 'TextAreaControl',
-    label: t('Custom HAVING clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s HAVING ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
   },
 
   compare_lag: {
@@ -1518,6 +1455,14 @@ export const controls = {
     description: t('Whether to display the metric name as a title'),
   },
 
+  show_trend_line: {
+    type: 'CheckboxControl',
+    label: t('Show Trend Line'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the trend line'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
@@ -1538,7 +1483,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Rich Tooltip'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('The rich tooltip shows a list of all series for that ' +
     'point in time'),
   },
@@ -1609,11 +1554,20 @@ export const controls = {
   },
 
   time_compare: {
-    type: 'TextControl',
+    type: 'SelectControl',
+    multi: true,
+    freeForm: true,
     label: t('Time Shift'),
-    default: null,
-    description: t('Overlay a timeseries from a ' +
-    'relative time period. Expects relative time delta ' +
+    default: [],
+    choices: formatSelectOptions([
+      '1 day',
+      '1 week',
+      '28 days',
+      '30 days',
+      '1 year',
+    ]),
+    description: t('Overlay one or more timeseries from a ' +
+    'relative time period. Expects relative time deltas ' +
     'in natural language (example:  24 hours, 7 days, ' +
     '56 weeks, 365 days)'),
   },
@@ -1841,16 +1795,6 @@ export const controls = {
     description: t('Labels for the marker lines'),
   },
 
-  filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      datasource: state.datasource,
-    }),
-  },
-
   annotation_layers: {
     type: 'AnnotationLayerControl',
     label: '',
@@ -1873,23 +1817,11 @@ export const controls = {
     provideFormDataToProps: true,
   },
 
-  having_filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo
-        .concat(state.datasource.filterable_cols) : [],
-      datasource: state.datasource,
-    }),
-  },
-
   slice_id: {
     type: 'HiddenControl',
-    label: t('Slice ID'),
+    label: t('Chart ID'),
     hidden: true,
-    description: t('The id of the active slice'),
+    description: t('The id of the active chart'),
   },
 
   cache_timeout: {
@@ -2100,6 +2032,49 @@ export const controls = {
     isInt: true,
     default: 10,
     description: t('The width of the lines'),
+  },
+
+  line_charts: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Line charts'),
+    validators: [v.nonEmpty],
+    default: [],
+    description: t('Pick a set of line charts to layer on top of one another'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
+  },
+
+  line_charts_2: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Right Axis chart(s)'),
+    validators: [],
+    default: [],
+    description: t('Choose one or more charts for right axis'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
+  },
+
+  prefix_metric_with_slice_name: {
+    type: 'CheckboxControl',
+    label: t('Prefix metric name with slice name'),
+    default: false,
+    renderTrigger: true,
   },
 
   reverse_long_lat: {

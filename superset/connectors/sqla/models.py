@@ -306,8 +306,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        return Markup(
-            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
+        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor.format(**locals()))
 
     @property
     def schema_perm(self):
@@ -450,10 +450,24 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sa(self, metric):
+    def adhoc_metric_to_sa(self, metric, cols):
+        """
+        Turn an adhoc metric into a sqlalchemy column.
+
+        :param dict metric: Adhoc metric definition
+        :param dict cols: Columns for the current table
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
         expressionType = metric.get('expressionType')
         if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
-            sa_column = column(metric.get('column').get('column_name'))
+            column_name = metric.get('column').get('column_name')
+            sa_column = column(column_name)
+            table_column = cols.get(column_name)
+
+            if table_column:
+                sa_column = table_column.sqla_col
+
             sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
             sa_metric = sa_metric.label(metric.get('label'))
             return sa_metric
@@ -518,7 +532,7 @@ class SqlaTable(Model, BaseDatasource):
         metrics_exprs = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
-                metrics_exprs.append(self.adhoc_metric_to_sa(m))
+                metrics_exprs.append(self.adhoc_metric_to_sa(m, cols))
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).sqla_col)
             else:
@@ -637,6 +651,8 @@ class SqlaTable(Model, BaseDatasource):
 
         for col, ascending in orderby:
             direction = asc if ascending else desc
+            if utils.is_adhoc_metric(col):
+                col = self.adhoc_metric_to_sa(col, cols)
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -661,8 +677,15 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
-                    ob = timeseries_limit_metric.sqla_col
+                    if utils.is_adhoc_metric(timeseries_limit_metric):
+                        ob = self.adhoc_metric_to_sa(timeseries_limit_metric, cols)
+                    elif timeseries_limit_metric in metrics_dict:
+                        timeseries_limit_metric = metrics_dict.get(
+                            timeseries_limit_metric,
+                        )
+                        ob = timeseries_limit_metric.sqla_col
+                    else:
+                        raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)

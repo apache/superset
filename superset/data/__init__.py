@@ -19,6 +19,7 @@ import polyline
 
 from superset import app, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import TableColumn
 from superset.models import core as models
 
 # Shortcuts
@@ -585,6 +586,13 @@ def load_birth_names():
     obj.main_dttm_col = 'ds'
     obj.database = utils.get_or_create_main_db()
     obj.filter_select_enabled = True
+
+    if not any(col.column_name == 'num_california' for col in obj.columns):
+        obj.columns.append(TableColumn(
+            column_name='num_california',
+            expression="CASE WHEN state = 'CA' THEN num ELSE 0 END"
+        ))
+
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -621,7 +629,8 @@ def load_birth_names():
                     'op': 'in',
                     'val': ['girl'],
                 }],
-                row_limit=50)),
+                row_limit=50,
+                timeseries_limit_metric='sum__num')),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -737,6 +746,71 @@ def load_birth_names():
                     'val': ['girl'],
                 }],
                 subheader='total female participants')),
+        Slice(
+            slice_name="Number of California Births",
+            viz_type='big_number_total',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                metric={
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "column_name": "num_california",
+                        "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    "aggregate": "SUM",
+                    "label": "SUM(num_california)",
+                },
+                viz_type="big_number_total",
+                granularity_sqla="ds")),
+        Slice(
+            slice_name='Top 10 California Names Timeseries',
+            viz_type='line',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                metrics=[{
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                }],
+                viz_type='line',
+                granularity_sqla='ds',
+                groupby=['name'],
+                timeseries_limit_metric={
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                },
+                limit='10')),
+        Slice(
+            slice_name="Names Sorted by Num in California",
+            viz_type='table',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                groupby=['name'],
+                row_limit=50,
+                timeseries_limit_metric={
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                })),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -1168,10 +1242,10 @@ def load_multiformat_time_series_data():
     obj.fetch_metadata()
     tbl = obj
 
-    print("Creating some slices")
+    print("Creating Heatmap charts")
     for i, col in enumerate(tbl.columns):
         slice_data = {
-            "metric": 'count',
+            "metrics": ['count'],
             "granularity_sqla": col.column_name,
             "granularity_sqla": "day",
             "row_limit": config.get("ROW_LIMIT"),
@@ -1864,3 +1938,31 @@ def load_bart_lines():
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
+
+
+def load_multi_line():
+    load_world_bank_health_n_pop()
+    load_birth_names()
+    ids = [
+        row.id for row in
+        db.session.query(Slice).filter(
+            Slice.slice_name.in_(['Growth Rate', 'Trends']))
+    ]
+
+    slc = Slice(
+        datasource_type='table',  # not true, but needed
+        datasource_id=1,          # cannot be empty
+        slice_name="Multi Line",
+        viz_type='line_multi',
+        params=json.dumps({
+            "slice_name": "Multi Line",
+            "viz_type": "line_multi",
+            "line_charts": [ids[0]],
+            "line_charts_2": [ids[1]],
+            "since": "1960-01-01",
+            "prefix_metric_with_slice_name": True,
+        }),
+    )
+
+    misc_dash_slices.append(slc.slice_name)
+    merge_slice(slc)

@@ -311,7 +311,6 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
-
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -324,6 +323,11 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, bytes):
+        try:
+            return '{}'.format(obj)
+        except Exception:
+            return '[bytes]'
 
 
 def json_iso_dttm_ser(obj, pessimistic=False):
@@ -733,7 +737,7 @@ def merge_extra_filters(form_data):
             return f['col'] + '__' + f['op']
         existing_filters = {}
         for existing in form_data['filters']:
-            if existing['col'] is not None:
+            if existing['col'] is not None and existing['val'] is not None:
                 existing_filters[get_filter_key(existing)] = existing['val']
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
@@ -910,3 +914,43 @@ def since_until_to_time_range(form_data):
     since = form_data.get('since', '')
     until = form_data.get('until', 'now')
     form_data['time_range'] = ' : '.join((since, until))
+
+
+def split_adhoc_filters_into_base_filters(fd):
+    """
+    Mutates form data to restructure the adhoc filters in the form of the four base
+    filters, `where`, `having`, `filters`, and `having_filters` which represent
+    free form where sql, free form having sql, structured where clauses and structured
+    having clauses.
+    """
+    adhoc_filters = fd.get('adhoc_filters', None)
+    if isinstance(adhoc_filters, list):
+        simple_where_filters = []
+        simple_having_filters = []
+        sql_where_filters = []
+        sql_having_filters = []
+        for adhoc_filter in adhoc_filters:
+            expression_type = adhoc_filter.get('expressionType')
+            clause = adhoc_filter.get('clause')
+            if expression_type == 'SIMPLE':
+                if clause == 'WHERE':
+                    simple_where_filters.append({
+                        'col': adhoc_filter.get('subject'),
+                        'op': adhoc_filter.get('operator'),
+                        'val': adhoc_filter.get('comparator'),
+                    })
+                elif clause == 'HAVING':
+                    simple_having_filters.append({
+                        'col': adhoc_filter.get('subject'),
+                        'op': adhoc_filter.get('operator'),
+                        'val': adhoc_filter.get('comparator'),
+                    })
+            elif expression_type == 'SQL':
+                if clause == 'WHERE':
+                    sql_where_filters.append(adhoc_filter.get('sqlExpression'))
+                elif clause == 'HAVING':
+                    sql_having_filters.append(adhoc_filter.get('sqlExpression'))
+        fd['where'] = ' AND '.join(['({})'.format(sql) for sql in sql_where_filters])
+        fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
+        fd['having_filters'] = simple_having_filters
+        fd['filters'] = simple_where_filters

@@ -1,14 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
-import html from 'react-syntax-highlighter/dist/languages/htmlbars';
-import markdown from 'react-syntax-highlighter/dist/languages/markdown';
-import sql from 'react-syntax-highlighter/dist/languages/sql';
-import json from 'react-syntax-highlighter/dist/languages/json';
-import github from 'react-syntax-highlighter/dist/styles/github';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
+import html from 'react-syntax-highlighter/languages/hljs/htmlbars';
+import markdown from 'react-syntax-highlighter/languages/hljs/markdown';
+import sql from 'react-syntax-highlighter/languages/hljs/sql';
+import json from 'react-syntax-highlighter/languages/hljs/json';
+import github from 'react-syntax-highlighter/styles/hljs/github';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
+import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import { t } from '../../locales';
@@ -18,7 +19,7 @@ registerLanguage('html', html);
 registerLanguage('sql', sql);
 registerLanguage('json', json);
 
-const $ = window.$ = require('jquery');
+const $ = (window.$ = require('jquery'));
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -80,8 +81,9 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   beforeOpen() {
     if (
-      ['loading', null].indexOf(this.props.chartStatus) >= 0
-      || !this.props.queryResponse || !this.props.queryResponse.query
+      ['loading', null].indexOf(this.props.chartStatus) >= 0 ||
+      !this.props.queryResponse ||
+      !this.props.queryResponse.query
     ) {
       this.fetchQuery();
     } else {
@@ -90,11 +92,7 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   renderModalBody() {
     if (this.state.isLoading) {
-      return (<img
-        className="loading"
-        alt="Loading..."
-        src="/static/assets/images/loading.gif"
-      />);
+      return <Loading />;
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.query) {

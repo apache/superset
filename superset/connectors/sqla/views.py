@@ -37,12 +37,12 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
+        'table', 'expression',
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max', 'is_dttm']
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
+        'is_dttm']
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -86,10 +86,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
         'table': _('Table'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
         'expression': _('Expression'),
         'is_dttm': _('Is temporal'),
         'python_date_format': _('Datetime Format'),
@@ -169,14 +165,14 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
-        'table_name', 'sql', 'filter_select_enabled', 'slices',
+        'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
     ]
     base_filters = [['id', DatasourceFilter, lambda: []]]
-    show_columns = edit_columns + ['perm']
+    show_columns = edit_columns + ['perm', 'slices']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
@@ -184,13 +180,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     )
     description_columns = {
         'slices': _(
-            'The list of slices associated with this table. By '
+            'The list of charts associated with this table. By '
             'altering this datasource, you may change how these associated '
-            'slices behave. '
-            'Also note that slices need to point to a datasource, so '
-            'this form will fail at saving if removing slices from a '
-            'datasource. If you want to change the datasource for a slice, '
-            "overwrite the slice from the 'explore view'"),
+            'charts behave. '
+            'Also note that charts need to point to a datasource, so '
+            'this form will fail at saving if removing charts from a '
+            'datasource. If you want to change the datasource for a chart, '
+            "overwrite the chart from the 'explore view'"),
         'offset': _('Timezone offset (in hours) for this datasource'),
         'table_name': _(
             'Name of the table that exists in the source database'),
@@ -223,6 +219,10 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'template_params': _(
             'A set of parameters that become available in the query using '
             'Jinja templating syntax'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this table. '
+            'A timeout of 0 indicates that the cache never expires. '
+            'Note this defaults to the database timeout if undefined.'),
     }
     label_columns = {
         'slices': _('Associated Charts'),

@@ -56,6 +56,9 @@ export function getControlsState(state, form_data) {
       delete control.mapStateToProps;
     }
 
+    formData[k] = (control.multi && formData[k] && !Array.isArray(formData[k])) ? [formData[k]]
+      : formData[k];
+
     // If the value is not valid anymore based on choices, clear it
     if (control.type === 'SelectControl' && control.choices && k !== 'datasource' && formData[k]) {
       const choiceValues = control.choices.map(c => c[0]);
@@ -64,14 +67,6 @@ export function getControlsState(state, form_data) {
       } else if (!control.multi && !control.freeForm && choiceValues.indexOf(formData[k]) < 0) {
         delete formData[k];
       }
-    }
-    // Removing invalid filters that point to a now inexisting column
-    if (control.type === 'FilterControl' && control.choices) {
-      if (!formData[k]) {
-        formData[k] = [];
-      }
-      const choiceValues = control.choices.map(c => c[0]);
-      formData[k] = formData[k].filter(flt => choiceValues.indexOf(flt.col) >= 0);
     }
 
     if (typeof control.default === 'function') {

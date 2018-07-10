@@ -71,7 +71,7 @@ class SaveModal extends React.Component {
     if (sliceParams.action === 'saveas') {
       sliceName = this.state.newSliceName;
       if (sliceName === '') {
-        this.setState({ alert: t('Please enter a slice name') });
+        this.setState({ alert: t('Please enter a chart name') });
         return;
       }
       sliceParams.slice_name = sliceName;
@@ -108,7 +108,7 @@ class SaveModal extends React.Component {
       .then((data) => {
         // Go to new slice url or dashboard url
         if (gotodash) {
-          window.location = supersetURL(data.dashboard, { edit: 'true' });
+          window.location = supersetURL(data.dashboard);
         } else {
           window.location = data.slice.slice_url;
         }

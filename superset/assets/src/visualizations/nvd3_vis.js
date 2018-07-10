@@ -15,7 +15,7 @@ import AnnotationTypes, {
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy } from '../utils/common';
+import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -31,6 +31,16 @@ const minHeightForBrush = 480;
 const BREAKPOINTS = {
   small: 340,
 };
+
+const TIMESERIES_VIZ_TYPES = [
+  'line',
+  'dual_line',
+  'line_multi',
+  'area',
+  'compare',
+  'bar',
+  'time_pivot',
+];
 
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
   const format = d3.format(axisFormat || '.3s');
@@ -93,11 +103,8 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
     label = verboseLabels.join(', ');
-    if (input.length > verboseLabels.length) {
-      label += ' ---';
-    }
   } else {
     label = verboseLkp(input);
   }
@@ -111,9 +118,13 @@ export default function nvd3Vis(slice, payload) {
 
   let data;
   if (payload.data) {
-    data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
-    }));
+    if (Array.isArray(payload.data)) {
+        data = payload.data.map(x => ({
+            ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+        }));
+    } else {
+      data = payload.data;
+    }
   } else {
     data = [];
   }
@@ -149,8 +160,7 @@ export default function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     let height = slice.height();
-    const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
+    const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
 
     // Handling xAxis ticks settings
     let xLabelRotation = 0;
@@ -200,6 +210,11 @@ export default function nvd3Vis(slice, payload) {
       case 'dual_line':
         chart = nv.models.multiChart();
         chart.interpolate('linear');
+        break;
+
+      case 'line_multi':
+        chart = nv.models.multiChart();
+        chart.interpolate(fd.line_interpolation);
         break;
 
       case 'bar':
@@ -461,14 +476,22 @@ export default function nvd3Vis(slice, payload) {
       }
     }
 
-    if (vizType === 'dual_line') {
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
-      customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
-      chart.showLegend(width > BREAKPOINTS.small);
+      const yAxisFormatters = data.map(datum => (
+        datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2));
+      customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
+      if (vizType === 'dual_line') {
+        chart.showLegend(width > BREAKPOINTS.small);
+      } else {
+        chart.showLegend(fd.show_legend);
+      }
     }
+    // This is needed for correct chart dimensions if a chart is rendered in a hidden container
+    chart.width(width);
     chart.height(height);
     slice.container.css('height', height + 'px');
 
@@ -478,6 +501,31 @@ export default function nvd3Vis(slice, payload) {
     .attr('height', height)
     .attr('width', width)
     .call(chart);
+
+    // align yAxis1 and yAxis2 ticks
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+      const count = chart.yAxis1.ticks();
+      const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
+      const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
+
+      // match number of ticks in both axes
+      const difference = ticks1.length - ticks2.length;
+      if (ticks1.length && ticks2.length && difference !== 0) {
+        const smallest = difference < 0 ? ticks1 : ticks2;
+        const delta = smallest[1] - smallest[0];
+        for (let i = 0; i < Math.abs(difference); i++) {
+          if (i % 2 === 0) {
+            smallest.unshift(smallest[0] - delta);
+          } else {
+            smallest.push(smallest[smallest.length - 1] + delta);
+          }
+        }
+        chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
+        chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
+        chart.yAxis1.tickValues(ticks1);
+        chart.yAxis2.tickValues(ticks2);
+      }
+    }
 
     if (fd.show_markers) {
       svg.selectAll('.nv-point')
@@ -516,12 +564,9 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = 40;
       }
 
-      if (vizType === 'dual_line') {
+      if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          margins.right = maxYAxis2LabelWidth + marginPad;
-        }
+        margins.right = maxYAxis2LabelWidth + marginPad;
       }
       if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
         margins.bottom = parseInt(fd.bottom_margin, 10);
@@ -600,7 +645,13 @@ export default function nvd3Vis(slice, payload) {
         } else {
           xMin = chart.xAxis.scale().domain()[0].valueOf();
           xMax = chart.xAxis.scale().domain()[1].valueOf();
-          xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
+          if (chart.xScale) {
+            xScale = chart.xScale();
+          } else if (chart.xAxis.scale) {
+            xScale = chart.xAxis.scale();
+          } else {
+            xScale = d3.scale.linear();
+          }
         }
         if (xScale && xScale.clamp) {
           xScale.clamp(true);
@@ -784,6 +835,12 @@ export default function nvd3Vis(slice, payload) {
             });
           });
         }
+
+        // rerender chart appended with annotation layer
+        svg.datum(data)
+          .attr('height', height)
+          .attr('width', width)
+          .call(chart);
       }
     }
     return chart;

@@ -40,14 +40,6 @@ export const sections = {
       ['time_range'],
     ],
   },
-  sqlClause: {
-    label: t('SQL'),
-    controlSetRows: [
-      ['where'],
-      ['having'],
-    ],
-    description: t('This section exposes ways to include snippets of SQL in your query'),
-  },
   annotations: {
     label: t('Annotations and Layers'),
     expanded: true,
@@ -74,24 +66,10 @@ export const sections = {
       'of query results'),
       controlSetRows: [
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        ['time_compare', null],
+        ['time_compare'],
         ['num_period_compare', 'period_ratio_type'],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
-    },
-  ],
-  filters: [
-    {
-      label: t('Filters'),
-      expanded: true,
-      controlSetRows: [['filters']],
-    },
-    {
-      label: t('Result Filters'),
-      expanded: true,
-      description: t('The filters to apply after post-aggregation.' +
-      'Leave the value control empty to filter empty strings or nulls'),
-      controlSetRows: [['having_filters']],
     },
   ],
 };
@@ -161,7 +139,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metrics'],
+          ['metric'],
           ['adhoc_filters'],
           ['groupby'],
           ['limit'],
@@ -225,6 +203,87 @@ export const visTypes = {
     },
   },
 
+  line_multi: {
+    label: t('Time Series - Multiple Line Charts'),
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+          ['prefix_metric_with_slice_name', null],
+          ['show_legend', 'show_markers'],
+          ['line_interpolation', null],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis 1'),
+        expanded: true,
+        controlSetRows: [
+          ['line_charts', 'y_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis 2'),
+        expanded: false,
+        controlSetRows: [
+          ['line_charts_2', 'y_axis_2_format'],
+        ],
+      },
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
+        ],
+      },
+      sections.annotations,
+    ],
+    controlOverrides: {
+      line_charts: {
+        label: t('Left Axis chart(s)'),
+        description: t('Choose one or more charts for left axis'),
+      },
+      y_axis_format: {
+        label: t('Left Axis Format'),
+      },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
+    sectionOverrides: {
+      datasourceAndVizType: {
+        label: t('Chart Type'),
+        controlSetRows: [
+          ['viz_type'],
+          ['slice_id', 'cache_timeout'],
+        ],
+      },
+      sqlaTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
+      },
+      druidTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
+      },
+    },
+  },
+
   time_pivot: {
     label: t('Time Series - Periodicity Pivot'),
     showOnExplore: true,
@@ -234,7 +293,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metric', 'freq'],
+          ['metric'],
+          ['adhoc_filters'],
+          ['freq'],
         ],
       },
       {
@@ -295,6 +356,13 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metric_2', 'y_axis_2_format'],
+        ],
+      },
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
         ],
       },
       sections.annotations,
@@ -413,6 +481,13 @@ export const visTypes = {
           ['deck_slices', null],
         ],
       },
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
+        ],
+      },
     ],
   },
 
@@ -426,6 +501,7 @@ export const visTypes = {
         controlSetRows: [
           ['spatial', 'size'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -464,6 +540,7 @@ export const visTypes = {
         controlSetRows: [
           ['spatial', 'size'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -503,6 +580,7 @@ export const visTypes = {
         controlSetRows: [
           ['line_column', 'line_type'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -536,6 +614,7 @@ export const visTypes = {
         controlSetRows: [
           ['spatial', 'size'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -580,6 +659,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['geojson', 'row_limit'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -620,6 +700,7 @@ export const visTypes = {
         controlSetRows: [
           ['line_column', 'line_type'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -660,6 +741,7 @@ export const visTypes = {
         controlSetRows: [
           ['start_spatial', 'end_spatial'],
           ['row_limit', null],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -708,6 +790,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'row_limit'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -826,6 +909,13 @@ export const visTypes = {
         ],
       },
       {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
+        ],
+      },
+      {
         label: t('Options'),
         expanded: true,
         controlSetRows: [
@@ -853,7 +943,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['groupby', 'metrics'],
+          ['metrics'],
+          ['adhoc_filters'],
+          ['groupby'],
           ['limit'],
           ['column_collection'],
           ['url'],
@@ -893,8 +985,10 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['groupby', 'columns'],
           ['metrics'],
+          ['adhoc_filters'],
+          ['groupby'],
+          ['columns'],
           ['row_limit', null],
         ],
       },
@@ -941,7 +1035,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['series', 'metric'],
+          ['metric'],
+          ['adhoc_filters'],
+          ['series'],
           ['row_limit', null],
         ],
       },
@@ -964,6 +1060,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metrics'],
+          ['adhoc_filters'],
           ['groupby'],
         ],
       },
@@ -994,6 +1091,7 @@ export const visTypes = {
         controlSetRows: [
           ['domain_granularity', 'subdomain_granularity'],
           ['metrics'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1030,7 +1128,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metrics'],
-          ['groupby', 'limit'],
+          ['adhoc_filters'],
+          ['groupby'],
+          ['limit'],
         ],
       },
       {
@@ -1052,8 +1152,11 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['series', 'entity'],
-          ['x', 'y'],
-          ['size', 'max_bubble_size'],
+          ['x'],
+          ['y'],
+          ['adhoc_filters'],
+          ['size'],
+          ['max_bubble_size'],
           ['limit', null],
         ],
       },
@@ -1103,6 +1206,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metric'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1135,6 +1239,7 @@ export const visTypes = {
         controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
+          ['show_trend_line', null],
         ],
       },
     ],
@@ -1180,6 +1285,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['all_columns_x'],
+          ['adhoc_filters'],
           ['row_limit'],
           ['groupby'],
         ],
@@ -1222,7 +1328,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['groupby'],
-          ['metric', 'secondary_metric'],
+          ['metric'],
+          ['secondary_metric'],
+          ['adhoc_filters'],
           ['row_limit'],
         ],
       },
@@ -1262,6 +1370,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
+          ['adhoc_filters'],
           ['row_limit'],
         ],
       },
@@ -1290,6 +1399,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
+          ['adhoc_filters'],
           ['row_limit'],
         ],
       },
@@ -1315,8 +1425,11 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['groupby', 'columns'],
-          ['metric', 'row_limit'],
+          ['groupby'],
+          ['columns'],
+          ['metric'],
+          ['adhoc_filters'],
+          ['row_limit'],
         ],
       },
       {
@@ -1356,6 +1469,7 @@ export const visTypes = {
         controlSetRows: [
           ['entity'],
           ['metric'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1391,6 +1505,7 @@ export const visTypes = {
           ['entity'],
           ['country_fieldtype'],
           ['metric'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1427,6 +1542,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
+          ['adhoc_filters'],
           ['date_filter', 'instant_filtering'],
           ['show_sqla_time_granularity', 'show_sqla_time_column'],
           ['show_druid_time_granularity', 'show_druid_time_origin'],
@@ -1468,6 +1584,7 @@ export const visTypes = {
           ['series'],
           ['metrics'],
           ['secondary_metric'],
+          ['adhoc_filters'],
           ['limit'],
         ],
       },
@@ -1488,7 +1605,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['all_columns_x', 'all_columns_y'],
-          ['metric', 'row_limit'],
+          ['metric'],
+          ['adhoc_filters'],
+          ['row_limit'],
         ],
       },
       {
@@ -1551,6 +1670,7 @@ export const visTypes = {
           ['all_columns_x', 'all_columns_y'],
           ['clustering_radius'],
           ['row_limit'],
+          ['adhoc_filters'],
           ['groupby'],
         ],
       },
@@ -1623,6 +1743,13 @@ export const visTypes = {
           ['row_limit'],
           ['order_by_entity'],
           ['min_leaf_node_event_count'],
+        ],
+      },
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1723,19 +1850,26 @@ export const visTypes = {
 
 export default visTypes;
 
-function adhocFilterEnabled(viz) {
-  return viz.controlPanelSections.find((
-    section => section.controlSetRows.find(row => row.find(control => control === 'adhoc_filters'))
-  ));
-}
-
 export function sectionsToRender(vizType, datasourceType) {
   const viz = visTypes[vizType];
+
+  const sectionsCopy = { ...sections };
+  if (viz.sectionOverrides) {
+    Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
+      if (typeof overrides === 'object' && overrides.constructor === Object) {
+        sectionsCopy[section] = {
+          ...sectionsCopy[section],
+          ...overrides,
+        };
+      } else {
+        sectionsCopy[section] = overrides;
+      }
+    });
+  }
+
   return [].concat(
-    sections.datasourceAndVizType,
-    datasourceType === 'table' ? sections.sqlaTimeSeries : sections.druidTimeSeries,
+    sectionsCopy.datasourceAndVizType,
+    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
-    !adhocFilterEnabled(viz) && (datasourceType === 'table' ? sections.sqlClause : []),
-    !adhocFilterEnabled(viz) && (datasourceType === 'table' ? sections.filters[0] : sections.filters),
   ).filter(section => section);
 }
