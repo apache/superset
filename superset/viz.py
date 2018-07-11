@@ -573,6 +573,18 @@ class TableViz(BaseViz):
                 columns=list(df.columns),
             ))
 
+        # Reformat dates and datetime groupbys 
+        if fd.get('groupby'):
+            time_cols = [
+                self.datasource.get_col(col).column_name
+                for col in fd.get('groupby')
+                if self.datasource.get_col(col).is_time
+            ]
+            if time_cols:
+                for col in time_cols:
+                    for record in data['records']:
+                        record[col] = str(record[col])
+
         return data
 
     def json_dumps(self, obj, sort_keys=False):

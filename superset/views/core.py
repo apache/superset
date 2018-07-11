@@ -1123,19 +1123,6 @@ class Superset(BaseSupersetView):
         ):
             status = 400
 
-        # ensures proper formatting for creating tables
-        if 'groupby' in payload['form_data'].keys() and viz_obj.viz_type == 'table':
-            time_cols = [
-                viz_obj.datasource.get_col(col).column_name
-                for col in payload['form_data']['groupby']
-                if viz_obj.datasource.get_col(col) is not None and
-                viz_obj.datasource.get_col(col).is_time
-            ]
-            if time_cols:
-                for col in time_cols:
-                    for record in payload['data']['records']:
-                        record[col] = str(record[col])
-
         return json_success(viz_obj.json_dumps(payload), status=status)
 
     @log_this
