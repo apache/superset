@@ -51,8 +51,6 @@ const defaultProps = {
   getFilters: () => ({}),
 };
 
-let logged = {};
-
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
