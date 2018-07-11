@@ -573,7 +573,7 @@ class TableViz(BaseViz):
                 columns=list(df.columns),
             ))
 
-        # Reformat dates and datetime groupbys 
+        # Reformat dates and datetime groupbys
         if fd.get('groupby'):
             time_cols = [
                 self.datasource.get_col(col).column_name
