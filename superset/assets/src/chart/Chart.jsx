@@ -1,4 +1,4 @@
-/* eslint camelcase: 0 */
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
@@ -50,6 +50,8 @@ const defaultProps = {
   addFilter: () => ({}),
   getFilters: () => ({}),
 };
+
+let logged = {};
 
 class Chart extends React.PureComponent {
   constructor(props) {
@@ -139,7 +141,7 @@ class Chart extends React.PureComponent {
         }
       })
       .catch((error) => {
-        console.error(error); // eslint-disable-line
+        console.warn(error); // eslint-disable-line
         this.props.actions.chartRenderingFailed(error, this.props.chartId);
       });
   }
@@ -183,6 +185,7 @@ class Chart extends React.PureComponent {
     return this.props.datasource.verbose_map[metric] || metric;
   }
 
+  // eslint-disable-next-line camelcase
   render_template(s) {
     const context = {
       width: this.width(),
@@ -212,8 +215,10 @@ class Chart extends React.PureComponent {
   }
 
   renderVis() {
+    const { chartStatus } = this.props;
+    const hasVisPromise = !!this.state.renderVis;
     // check that we have the render function and data
-    if (this.state.renderVis && ['success', 'rendered'].indexOf(this.props.chartStatus) > -1) {
+    if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
       const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
       const renderStart = Logger.getTimestamp();
 
@@ -236,7 +241,7 @@ class Chart extends React.PureComponent {
           duration: Logger.getTimestamp() - renderStart,
         });
       } catch (e) {
-        console.error(e); // eslint-disable-line
+        console.warn(e); // eslint-disable-line
         this.props.actions.chartRenderingFailed(e, chartId);
       }
     }
