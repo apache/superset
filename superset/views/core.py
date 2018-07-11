@@ -1126,9 +1126,9 @@ class Superset(BaseSupersetView):
         # ensures proper formatting for creating tables
         if 'groupby' in payload['form_data'].keys() and viz_obj.viz_type == 'table':
             time_cols = [
-                viz_obj.datasource.get_col(col).column_name 
-                for col in payload['form_data']['groupby'] 
-                if viz_obj.datasource.get_col(col) is not None and \
+                viz_obj.datasource.get_col(col).column_name
+                for col in payload['form_data']['groupby']
+                if viz_obj.datasource.get_col(col) is not None and
                 viz_obj.datasource.get_col(col).is_time
             ]
             if time_cols:
