@@ -513,7 +513,7 @@ class DruidTests(SupersetTestCase):
             self.get_json_resp(url, {'form_data': json.dumps(form_data)})
             self.assertEqual(
                 granularity_map[granularity_mapping],
-                instance.timeseries.call_args[1]['granularity']['period']
+                instance.timeseries.call_args[1]['granularity']['period'],
             )
 
 
