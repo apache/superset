@@ -272,9 +272,10 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         blacklist = ['PT1M']
         grain_functions = {
             'PT1S': ('second', 'second'),
-            'PT1M': ('minute', 'minute')
+            'PT1M': ('minute', 'minute'),
         }
-        time_grains = db_engine_specs._create_time_grains_tuple(grain_functions, blacklist)
+        time_grains = db_engine_specs._create_time_grains_tuple(grain_functions,
+                                                                blacklist)
         self.assertEqual(1, len(time_grains))
         self.assertEqual('PT1S', time_grains[0].duration)
 
