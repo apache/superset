@@ -1,6 +1,7 @@
-/* global notify */
+/* global window */
 import $ from 'jquery';
 import { getExploreUrlAndPayload } from '../../../explore/exploreUtils';
+import { addSuccessToast, addDangerToast } from '../../../messageToasts/actions';
 
 export const ADD_FILTER = 'ADD_FILTER';
 export function addFilter(sliceId, col, vals, merge = true, refresh = true) {
@@ -36,10 +37,10 @@ export function addSlicesToDashboard(dashboardId, sliceIds) {
         data: JSON.stringify({ slice_ids: sliceIds }),
       },
     })
-      .done(() => {
-        // Refresh page to allow for slices to re-render
-        window.location.reload();
-      })
+    .done(() => {
+      // Refresh page to allow for slices to re-render
+      window.location.reload();
+    })
   );
 }
 
@@ -75,13 +76,13 @@ export function saveSlice(slice, sliceName) {
       },
       success: () => {
         dispatch(updateSliceName(slice, sliceName));
-        notify.success('This slice name was saved successfully.');
+        dispatch(addSuccessToast('This slice name was saved successfully.'));
       },
       error: () => {
         // if server-side reject the overwrite action,
         // revert to old state
         dispatch(updateSliceName(slice, oldName));
-        notify.error("You don't have the rights to alter this slice");
+        dispatch(addDangerToast("You don't have the rights to alter this slice"));
       },
     });
   };

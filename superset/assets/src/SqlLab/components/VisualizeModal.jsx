@@ -1,4 +1,4 @@
-/* global notify */
+/* eslint no-undef: 2 */
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -168,13 +168,13 @@ class VisualizeModal extends React.PureComponent {
         if (mainGroupBy) {
           formData.groupby = [mainGroupBy.name];
         }
-        notify.info(t('Creating a data source and popping a new tab'));
+        this.props.actions.addInfoToast(t('Creating a data source and creating a new tab'));
 
         // open new window for data visualization
         exportChart(formData);
       })
       .fail(() => {
-        notify.error(this.props.errorMessage);
+        this.props.actions.addDangerToast(this.props.errorMessage);
       });
   }
   changeDatasourceName(event) {
@@ -295,11 +295,11 @@ class VisualizeModal extends React.PureComponent {
 VisualizeModal.propTypes = propTypes;
 VisualizeModal.defaultProps = defaultProps;
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    datasource: state.datasource,
-    errorMessage: state.errorMessage,
-    timeout: state.common ? state.common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
+    datasource: sqlLab.datasource,
+    errorMessage: sqlLab.errorMessage,
+    timeout: sqlLab.common ? sqlLab.common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
 }
 

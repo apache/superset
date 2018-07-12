@@ -20,13 +20,15 @@ describe('async actions', () => {
 
   describe('saveQuery', () => {
     it('makes the ajax request', () => {
-      actions.saveQuery(query);
+      const thunk = actions.saveQuery(query);
+      thunk((/* mockDispatch */) => {});
       expect(ajaxStub.calledOnce).to.be.true;
     });
 
     it('calls correct url', () => {
       const url = '/savedqueryviewapi/api/create';
-      actions.saveQuery(query);
+      const thunk = actions.saveQuery(query);
+      thunk((/* mockDispatch */) => {});
       expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
     });
   });

@@ -1,3 +1,4 @@
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
@@ -14,7 +15,7 @@ import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
 import { t } from '../../locales';
 
-const $ = (window.$ = require('jquery'));
+const $ = require('jquery');
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -127,10 +128,7 @@ class QuerySearch extends React.PureComponent {
     const options = data.result.map(db => ({ value: db.id, label: db.database_name }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
-      this.props.actions.addAlert({
-        bsStyle: 'danger',
-        msg: t("It seems you don't have access to any database"),
-      });
+      this.props.actions.addDangerToast(t("It seems you don't have access to any database"));
     }
     return options;
   }

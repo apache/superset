@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js 'spec/**/*_spec.*'",
+    "test:one": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require ignore-styles spec/helpers/browser.js 'spec/**/*_spec.*'",
     "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool eval-cheap-source-map",
     "dev-slow": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
@@ -89,7 +90,6 @@
     "react-ace": "^5.10.0",
     "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
-    "react-alert": "^2.3.0",
     "react-bootstrap": "^0.31.5",
     "react-bootstrap-slider": "2.1.5",
     "react-bootstrap-table": "^4.3.1",
