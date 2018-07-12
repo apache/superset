@@ -1,3 +1,5 @@
+@import '../../dashboard/stylesheets/variables.less';
+
 .toast-presenter {
   position: fixed;
   bottom: 16px;
@@ -16,7 +18,7 @@
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
   will-change: transform, opacity;
   transform: translateY(-100%);
-  transition: transform .3s, opacity .3s;
+  transition: transform 0.3s, opacity 0.3s;
 }
 
 .toast > button {
@@ -33,7 +35,7 @@
 }
 
 .toast:after {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;

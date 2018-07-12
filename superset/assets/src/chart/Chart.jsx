@@ -238,7 +238,9 @@ class Chart extends React.PureComponent {
               vizType={this.props.vizType}
               height={this.height}
               width={this.width}
-              faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
+              faded={
+                this.props.refreshOverlayVisible && !this.props.errorMessage
+              }
               ref={(inner) => {
                 this.container = inner;
               }}

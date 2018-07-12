@@ -9,6 +9,7 @@ import { getParam } from '../../../modules/utils';
 import { alterInArr, removeFromArr } from '../../../reduxUtils';
 import { applyDefaultFormData } from '../../../explore/store';
 import { getColorFromScheme } from '../../../modules/colors';
+import messageToasts from '../../../messageToasts/reducers';
 
 export function getInitialState(bootstrapData) {
   const {
@@ -121,6 +122,7 @@ export function getInitialState(bootstrapData) {
       common,
       editMode,
     },
+    messageToasts: [],
   };
 }
 
@@ -269,4 +271,5 @@ export default combineReducers({
   charts,
   dashboard,
   impressionId: () => shortid.generate(),
+  messageToasts,
 });

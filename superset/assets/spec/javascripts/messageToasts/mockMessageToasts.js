@@ -1,7 +1,4 @@
-import {
-  INFO_TOAST,
-  DANGER_TOAST,
-} from '../../../../src/dashboard/util/constants';
+import { INFO_TOAST, DANGER_TOAST } from '../../../src/messageToasts/constants';
 
 export default [
   { id: 'info_id', toastType: INFO_TOAST, text: 'info toast' },

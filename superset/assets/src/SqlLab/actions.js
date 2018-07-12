@@ -1,10 +1,15 @@
-/* global notify */
+/* global window */
+/* eslint no-undef: 2 */
+import $ from 'jquery';
 import shortid from 'shortid';
 import { now } from '../modules/dates';
 import { t } from '../locales';
+import {
+  addSuccessToast as addSuccessToastAction,
+  addDangerToast as addDangerToastAction,
+  addInfoToast as addInfoToastAction,
+} from '../messageToasts/actions';
 import { COMMON_ERR_MESSAGES } from '../common';
-
-const $ = require('jquery');
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -28,8 +33,6 @@ export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
-export const ADD_ALERT = 'ADD_ALERT';
-export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
@@ -46,21 +49,31 @@ export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
 export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
 
+export const addInfoToast = addInfoToastAction;
+export const addSuccessToast = addSuccessToastAction;
+export const addDangerToast = addDangerToastAction;
+
 export function resetState() {
   return { type: RESET_STATE };
 }
 
 export function saveQuery(query) {
-  const url = '/savedqueryviewapi/api/create';
-  $.ajax({
-    type: 'POST',
-    url,
-    data: query,
-    success: () => notify.success(t('Your query was saved')),
-    error: () => notify.error(t('Your query could not be saved')),
-    dataType: 'json',
-  });
-  return { type: SAVE_QUERY };
+  return (dispatch) => {
+    const url = '/savedqueryviewapi/api/create';
+    $.ajax({
+      type: 'POST',
+      url,
+      data: query,
+      success: () => {
+        dispatch(addSuccessToast(t('Your query was saved')));
+      },
+      error: () => {
+        dispatch(addDangerToast(t('Your query could not be saved')));
+      },
+      dataType: 'json',
+    });
+    return { type: SAVE_QUERY };
+  };
 }
 
 export function startQuery(query) {
@@ -144,7 +157,7 @@ export function runQuery(query) {
       select_as_cta: query.ctas,
       templateParams: query.templateParams,
     };
-    const sqlJsonUrl = '/superset/sql_json/' + location.search;
+    const sqlJsonUrl = '/superset/sql_json/' + window.location.search;
     $.ajax({
       type: 'POST',
       dataType: 'json',
@@ -191,10 +204,10 @@ export function postStopQuery(query) {
       url: stopQueryUrl,
       data: stopQueryRequestData,
       success() {
-        notify.success(t('Query was stopped.'));
+        dispatch(addSuccessToast(t('Query was stopped.')));
       },
       error() {
-        notify.error(t('Failed at stopping query.'));
+        dispatch(addDangerToast(t('Failed at stopping query.')));
       },
     });
   };
@@ -214,16 +227,6 @@ export function addQueryEditor(queryEditor) {
 
 export function cloneQueryToNewTab(query) {
   return { type: CLONE_QUERY_TO_NEW_TAB, query };
-}
-
-export function addAlert(alert) {
-  const o = Object.assign({}, alert);
-  o.id = shortid.generate();
-  return { type: ADD_ALERT, alert: o };
-}
-
-export function removeAlert(alert) {
-  return { type: REMOVE_ALERT, alert };
 }
 
 export function setActiveQueryEditor(queryEditor) {
@@ -314,7 +317,7 @@ export function addTable(query, tableName, schemaName) {
         isMetadataLoading: false,
       });
       dispatch(mergeTable(newTable));
-      notify.error(t('Error occurred while fetching table metadata'));
+      dispatch(addDangerToast(t('Error occurred while fetching table metadata')));
     });
 
     url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`;
@@ -327,7 +330,7 @@ export function addTable(query, tableName, schemaName) {
         isExtraMetadataLoading: false,
       });
       dispatch(mergeTable(newTable));
-      notify.error(t('Error occurred while fetching table metadata'));
+      dispatch(addDangerToast(t('Error occurred while fetching table metadata')));
     });
   };
 }
@@ -389,7 +392,9 @@ export function popStoredQuery(urlId) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error(t('The query couldn\'t be loaded')),
+      error: () => {
+        dispatch(addDangerToast(t('The query couldn\'t be loaded')));
+      },
     });
   };
 }
@@ -409,7 +414,9 @@ export function popSavedQuery(saveQueryId) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error(t('The query couldn\'t be loaded')),
+      error: () => {
+        dispatch(addDangerToast(t('The query couldn\'t be loaded')));
+      },
     });
   };
 }

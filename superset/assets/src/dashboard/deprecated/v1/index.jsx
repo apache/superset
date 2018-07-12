@@ -15,10 +15,16 @@ initJQueryAjax();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-const initState = Object.assign({}, getInitialState(bootstrapData));
+const initState = getInitialState(bootstrapData);
 
 const store = createStore(
-  rootReducer, initState, compose(applyMiddleware(thunk), initEnhancer(false)));
+  rootReducer,
+  initState,
+  compose(
+    applyMiddleware(thunk),
+    initEnhancer(false),
+  ),
+);
 
 ReactDOM.render(
   <Provider store={store}>
