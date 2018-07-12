@@ -6,6 +6,9 @@ from __future__ import unicode_literals
 
 from six import text_type
 
+import inspect
+
+from superset import db_engine_specs
 from superset.db_engine_specs import (
     BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
     MySQLEngineSpec, PrestoEngineSpec,
@@ -264,3 +267,23 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 SELECT
                     'LIMIT 777' LIMIT 1000""",
         )
+
+    def test_time_grain_blacklist(self):
+        blacklist = ['PT1M']
+        grain_functions = {
+            'PT1S': ('second', 'second'),
+            'PT1M': ('minute', 'minute')
+        }
+        time_grains = db_engine_specs._create_time_grains_tuple(grain_functions, blacklist)
+        self.assertEqual(1, len(time_grains))
+        self.assertEqual('PT1S', time_grains[0].duration)
+
+    def test_engine_time_grain_validity(self):
+        supported_time_grains = set(db_engine_specs.supported_time_grains.keys())
+        # loop over all subclasses of BaseEngineSpec
+        for cls_name, cls in inspect.getmembers(db_engine_specs):
+            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec):
+                # make sure that all defined time grains are supported
+                defined_time_grains = set(grain.duration for grain in cls.time_grains())
+                intersection = supported_time_grains.intersection(defined_time_grains)
+                self.assertSetEqual(defined_time_grains, intersection, cls_name)
