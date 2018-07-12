@@ -765,6 +765,8 @@ export const controls = {
       ['week_starting_sunday', 'week starting Sunday'],
       ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
+      ['P3M', 'quarter'],
+      ['P1Y', 'year'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
     'can type and use simple natural language as in `10 seconds`, ' +
