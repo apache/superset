@@ -412,14 +412,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
         'PT1M': "DATE_TRUNC('MINUTE', {col})",
-        'PT5M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 5) * 5, "
-                "DATE_TRUNC('HOUR', {col}))",
-        'PT10M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 10) * 10, "
-                 "DATE_TRUNC('HOUR', {col}))",
-        'PT15M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, "
-                 "DATE_TRUNC('HOUR', {col}))",
-        'PT0.5H': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, "
-                  "DATE_TRUNC('HOUR', {col}))",
+        'PT5M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 5) * 5, \
+                DATE_TRUNC('HOUR', {col}))",
+        'PT10M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 10) * 10, \
+                 DATE_TRUNC('HOUR', {col}))",
+        'PT15M': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 15) * 15, \
+                 DATE_TRUNC('HOUR', {col}))",
+        'PT0.5H': "DATEADD(MINUTE, FLOOR(DATE_PART(MINUTE, {col}) / 30) * 30, \
+                  DATE_TRUNC('HOUR', {col}))",
         'PT1H': "DATE_TRUNC('HOUR', {col})",
         'P1D': "DATE_TRUNC('DAY', {col})",
         'P1W': "DATE_TRUNC('WEEK', {col})",
@@ -443,7 +443,7 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "CAST({col} as DATE)",
+        'PT1S': 'CAST({col} as DATE)',
         'PT1M': "TRUNC(TO_DATE({col}), 'MI')",
         'PT1H': "TRUNC(TO_DATE({col}), 'HH')",
         'P1D': "TRUNC(TO_DATE({col}), 'DDD')",
@@ -636,11 +636,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         'P0.25Y': "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         'P1Y': "date_trunc('year', CAST({col} AS TIMESTAMP))",
         'P1W/1970-01-03T00:00:00Z':
-            "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-            "CAST({col} AS TIMESTAMP))))",
+            "date_add('day', 5, date_trunc('week', date_add('day', 1, \
+            CAST({col} AS TIMESTAMP))))",
         '1969-12-28T00:00:00Z/P1W':
-            "date_add('day', -1, date_trunc('week', "
-            "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+            "date_add('day', -1, date_trunc('week', \
+            date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
     @classmethod
@@ -1239,10 +1239,10 @@ class AthenaEngineSpec(BaseEngineSpec):
         'P1M': "date_trunc('month', CAST({col} AS TIMESTAMP))",
         'P0.25Y': "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         'P1Y': "date_trunc('year', CAST({col} AS TIMESTAMP))",
-        'P1W/1970-01-03T00:00:00Z': "date_add('day', 5, date_trunc('week', "
-                                    "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-        '1969-12-28T00:00:00Z/P1W': "date_add('day', -1, date_trunc('week', "
-                                    "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+        'P1W/1970-01-03T00:00:00Z': "date_add('day', 5, date_trunc('week', \
+                                    date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+        '1969-12-28T00:00:00Z/P1W': "date_add('day', -1, date_trunc('week', \
+                                    date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
     @classmethod
@@ -1390,11 +1390,11 @@ class KylinEngineSpec(BaseEngineSpec):
         'PT1M': 'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)',
         'PT1H': 'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)',
         'P1D': 'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)',
-        'P1W': 'CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, '
-               'FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+        'P1W': 'CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, \
+               FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
         'P1M': 'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)',
-        'P0.25Y': 'CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, '
-                  'FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+        'P0.25Y': 'CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, \
+                  FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
         'P1Y': 'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)',
     }
 
