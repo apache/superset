@@ -202,6 +202,7 @@ export const controls = {
   percent_metrics: {
     ...metrics,
     multi: true,
+    default: [],
     label: t('Percentage Metrics'),
     validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
@@ -1442,6 +1443,16 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the legend (toggles)'),
+  },
+
+  show_labels: {
+    type: 'CheckboxControl',
+    label: t('Show Labels'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'Whether to display the labels. Note that the label only displays when the the 5% ' +
+      'threshold.'),
   },
 
   show_values: {
