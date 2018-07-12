@@ -20,8 +20,8 @@ import 'react-bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css';
 import moment from 'moment';
 
 import ControlHeader from '../ControlHeader';
-import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import { t } from '../../../locales';
+import PopoverSection from '../../../components/PopoverSection';
 
 const TYPES = Object.freeze({
   DEFAULTS: 'defaults',
@@ -32,7 +32,13 @@ const RELATIVE_TIME_OPTIONS = Object.freeze({
   LAST: 'Last',
   NEXT: 'Next',
 });
-const COMMON_TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
+const COMMON_TIME_FRAMES = [
+  'Last day',
+  'Last week',
+  'Last month',
+  'Last quarter',
+  'Last year',
+];
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
@@ -110,12 +116,7 @@ export default class DateFilterControl extends React.Component {
       common: timeFrame,
       until: moment().startOf('day').format(MOMENT_FORMAT),
     };
-    let units;
-    if (timeFrame === 'Yesterday') {
-      units = 'days';
-    } else {
-      units = timeFrame.split(' ')[1] + 's';
-    }
+    const units = timeFrame.split(' ')[1] + 's';
     nextState.since = moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT);
     this.setState(nextState, this.updateRefs);
   }
@@ -208,100 +209,105 @@ export default class DateFilterControl extends React.Component {
             </Tab>
             <Tab eventKey={2} title="Custom">
               <FormGroup>
-                <div className="clearfix centered">
-                  <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
-                    <DropdownButton
-                      bsSize="small"
-                      componentClass={InputGroup.Button}
-                      id="input-dropdown-rel"
-                      title={this.state.rel}
-                      onFocus={this.setCustomRange.bind(this)}
-                    >
-                      <MenuItem
-                        onSelect={this.setCustomRange.bind(this, 'rel')}
-                        key={RELATIVE_TIME_OPTIONS.LAST}
-                        eventKey={RELATIVE_TIME_OPTIONS.LAST}
-                        active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
-                      >Last
-                      </MenuItem>
-                      <MenuItem
-                        onSelect={this.setCustomRange.bind(this, 'rel')}
-                        key={RELATIVE_TIME_OPTIONS.NEXT}
-                        eventKey={RELATIVE_TIME_OPTIONS.NEXT}
-                        active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
-                      >Next
-                      </MenuItem>
-                    </DropdownButton>
-                  </div>
-                  <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
-                    <FormControl
-                      bsSize="small"
-                      type="text"
-                      onChange={event => (
+                <PopoverSection
+                  title="Relative to today"
+                  isSelected={this.state.type === TYPES.CUSTOM_RANGE}
+                  onSelect={this.setCustomRange.bind(this)}
+                >
+                  <div className="clearfix centered">
+                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                      <DropdownButton
+                        bsSize="small"
+                        componentClass={InputGroup.Button}
+                        id="input-dropdown-rel"
+                        title={this.state.rel}
+                        onFocus={this.setCustomRange.bind(this)}
+                      >
+                        <MenuItem
+                          onSelect={this.setCustomRange.bind(this, 'rel')}
+                          key={RELATIVE_TIME_OPTIONS.LAST}
+                          eventKey={RELATIVE_TIME_OPTIONS.LAST}
+                          active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
+                        >Last
+                        </MenuItem>
+                        <MenuItem
+                          onSelect={this.setCustomRange.bind(this, 'rel')}
+                          key={RELATIVE_TIME_OPTIONS.NEXT}
+                          eventKey={RELATIVE_TIME_OPTIONS.NEXT}
+                          active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
+                        >Next
+                        </MenuItem>
+                      </DropdownButton>
+                    </div>
+                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                      <FormControl
+                        bsSize="small"
+                        type="text"
+                        onChange={event => (
                           this.setCustomRange.call(this, 'num', event.target.value)
                         )}
-                      onFocus={this.setCustomRange.bind(this)}
-                      onKeyPress={this.onEnter.bind(this)}
-                      value={this.state.num}
-                      style={{ height: '30px' }}
-                    />
+                        onFocus={this.setCustomRange.bind(this)}
+                        onKeyPress={this.onEnter.bind(this)}
+                        value={this.state.num}
+                        style={{ height: '30px' }}
+                      />
+                    </div>
+                    <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
+                      <DropdownButton
+                        bsSize="small"
+                        componentClass={InputGroup.Button}
+                        id="input-dropdown-grain"
+                        title={this.state.grain}
+                        onFocus={this.setCustomRange.bind(this)}
+                      >
+                        {grainOptions}
+                      </DropdownButton>
+                    </div>
                   </div>
-                  <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
-                    <DropdownButton
-                      bsSize="small"
-                      componentClass={InputGroup.Button}
-                      id="input-dropdown-grain"
-                      title={this.state.grain}
-                      onFocus={this.setCustomRange.bind(this)}
-                    >
-                      {grainOptions}
-                    </DropdownButton>
-                  </div>
-                </div>
-                <InputGroup>
-                  <div style={{ margin: '5px 0' }}>
-                    <strong>Start</strong> &nbsp;
-                    <InfoTooltipWithTrigger
-                      tooltip={FREEFORM_TOOLTIP}
-                      label="date-free-tooltip"
-                    />
-                    <DateTimeField
-                      ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
-                      dateTime={
+                </PopoverSection>
+                <PopoverSection
+                  title="Start / end"
+                  isSelected={this.state.type === TYPES.CUSTOM_START_END}
+                  onSelect={this.setCustomStartEnd.bind(this)}
+                  info={FREEFORM_TOOLTIP}
+                >
+                  <InputGroup>
+                    <div style={{ margin: '5px 0' }}>
+                      <DateTimeField
+                        ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
+                        dateTime={
                           this.state.freeformInputs.since ?
                             DEFAULT_SINCE :
                             this.state.since
                         }
-                      defaultText={this.state.since}
-                      onChange={this.setCustomStartEnd.bind(this, 'since')}
-                      maxDate={moment(this.state.until, MOMENT_FORMAT)}
-                      format={MOMENT_FORMAT}
-                      inputFormat={MOMENT_FORMAT}
-                      inputProps={{ onKeyPress: this.onEnter.bind(this) }}
-                    />
-                  </div>
-                  <div style={{ margin: '5px 0' }}>
-                    <strong>End</strong> &nbsp;
-                    <InfoTooltipWithTrigger
-                      tooltip={FREEFORM_TOOLTIP}
-                      label="date-free-tooltip"
-                    />
-                    <DateTimeField
-                      ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
-                      dateTime={
+                        defaultText={this.state.since}
+                        onChange={this.setCustomStartEnd.bind(this, 'since')}
+                        onFocus={this.setCustomStartEnd.bind(this, 'since')}
+                        maxDate={moment(this.state.until, MOMENT_FORMAT)}
+                        format={MOMENT_FORMAT}
+                        inputFormat={MOMENT_FORMAT}
+                        inputProps={{ onKeyPress: this.onEnter.bind(this) }}
+                      />
+                    </div>
+                    <div style={{ margin: '5px 0' }}>
+                      <DateTimeField
+                        ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
+                        dateTime={
                           this.state.freeformInputs.until ?
                             DEFAULT_UNTIL :
                             this.state.until
                         }
-                      defaultText={this.state.until}
-                      onChange={this.setCustomStartEnd.bind(this, 'until')}
-                      minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
-                      format={MOMENT_FORMAT}
-                      inputFormat={MOMENT_FORMAT}
-                      inputProps={{ onKeyPress: this.onEnter.bind(this) }}
-                    />
-                  </div>
-                </InputGroup>
+                        defaultText={this.state.until}
+                        onChange={this.setCustomStartEnd.bind(this, 'until')}
+                        onFocus={this.setCustomStartEnd.bind(this, 'until')}
+                        minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
+                        format={MOMENT_FORMAT}
+                        inputFormat={MOMENT_FORMAT}
+                        inputProps={{ onKeyPress: this.onEnter.bind(this) }}
+                      />
+                    </div>
+                  </InputGroup>
+                </PopoverSection>
               </FormGroup>
             </Tab>
           </Tabs>
