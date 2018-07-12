@@ -67,9 +67,8 @@ export function addToArr(state, arrKey, obj) {
 export function initEnhancer(persist = true) {
   let enhancer = persist ? compose(persistState()) : compose();
   if (process.env.NODE_ENV === 'dev') {
-    /* eslint-disable no-underscore-dangle */
+    /* eslint-disable-next-line no-underscore-dangle */
     const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-    /* eslint-enable */
     enhancer = persist ? composeEnhancers(persistState()) : composeEnhancers();
   }
   return enhancer;

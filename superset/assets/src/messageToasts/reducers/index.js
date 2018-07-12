@@ -1,4 +1,4 @@
-import { ADD_TOAST, REMOVE_TOAST } from '../actions/messageToasts';
+import { ADD_TOAST, REMOVE_TOAST } from '../actions';
 
 export default function messageToastsReducer(toasts = [], action) {
   switch (action.type) {

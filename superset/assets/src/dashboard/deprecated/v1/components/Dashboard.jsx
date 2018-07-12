@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import AlertsWrapper from '../../../../components/AlertsWrapper';
+import ToastsPresenter from '../../../../messageToasts/containers/ToastPresenter';
 import GridLayout from './GridLayout';
 import Header from './Header';
 import { exportChart } from '../../../../explore/exploreUtils';
@@ -385,7 +385,7 @@ class Dashboard extends React.PureComponent {
     return (
       <div id="dashboard-container">
         <div id="dashboard-header">
-          <AlertsWrapper initMessages={this.props.initMessages} />
+          <ToastsPresenter />
           <Header
             dashboard={this.props.dashboard}
             unsavedChanges={this.state.unsavedChanges}

@@ -2,7 +2,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ToastPresenter from '../components/ToastPresenter';
 
-import { removeToast } from '../actions/messageToasts';
+import { removeToast } from '../actions';
 
 export default connect(
   ({ messageToasts: toasts }) => ({ toasts }),
