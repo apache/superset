@@ -231,14 +231,14 @@ class TabbedSqlEditors extends React.PureComponent {
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    databases: state.databases,
-    queryEditors: state.queryEditors,
-    queries: state.queries,
-    tabHistory: state.tabHistory,
-    tables: state.tables,
-    defaultDbId: state.defaultDbId,
+    databases: sqlLab.databases,
+    queryEditors: sqlLab.queryEditors,
+    queries: sqlLab.queries,
+    tabHistory: sqlLab.tabHistory,
+    tables: sqlLab.tables,
+    defaultDbId: sqlLab.defaultDbId,
   };
 }
 function mapDispatchToProps(dispatch) {

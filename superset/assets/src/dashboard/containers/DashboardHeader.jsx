@@ -27,7 +27,7 @@ import {
   addSuccessToast,
   addDangerToast,
   addWarningToast,
-} from '../actions/messageToasts';
+} from '../../messageToasts/actions';
 
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 

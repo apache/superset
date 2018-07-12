@@ -1,4 +1,4 @@
-/* global notify */
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'reactable';
@@ -13,12 +13,15 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
+import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
 import Loading from '../../../components/Loading';
 import { t } from '../../../locales';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
+import withToasts from '../../../messageToasts/enhancers/withToasts';
+
 
 const propTypes = {
   description: PropTypes.string,
@@ -27,13 +30,14 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
   datasource: PropTypes.object,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   onChange: () => {},
 };
 
-export default class DatasourceControl extends React.PureComponent {
+class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -85,7 +89,7 @@ export default class DatasourceControl extends React.PureComponent {
         },
         error() {
           that.setState({ loading: false });
-          notify.error(t('Something went wrong while fetching the datasource list'));
+          this.props.addDangerToast(t('Something went wrong while fetching the datasource list'));
         },
       });
     }
@@ -229,3 +233,5 @@ export default class DatasourceControl extends React.PureComponent {
 
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
+
+export default withToasts(DatasourceControl);

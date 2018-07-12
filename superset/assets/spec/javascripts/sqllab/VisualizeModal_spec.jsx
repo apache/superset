@@ -17,17 +17,16 @@ import { VISUALIZE_VALIDATION_ERRORS } from '../../../src/SqlLab/constants';
 import VisualizeModal from '../../../src/SqlLab/components/VisualizeModal';
 import * as exploreUtils from '../../../src/explore/exploreUtils';
 
-global.notify = {
-  info: () => {},
-  error: () => {},
-};
-
 describe('VisualizeModal', () => {
   const middlewares = [thunk];
   const mockStore = configureStore(middlewares);
-  const initialState = sqlLabReducer({}, {});
-  initialState.common = {
-    conf: { SUPERSET_WEBSERVER_TIMEOUT: 45 },
+  const initialState = {
+    sqlLab: {
+      ...sqlLabReducer(undefined, {}),
+      common: {
+        conf: { SUPERSET_WEBSERVER_TIMEOUT: 45 },
+      },
+    },
   };
   const store = mockStore(initialState);
   const mockedProps = {
@@ -277,7 +276,7 @@ describe('VisualizeModal', () => {
   });
 
   it('should build visualize advise for long query', () => {
-    const longQuery = Object.assign({}, queries[0], { endDttm: 1476910666798 });
+    const longQuery = { ...queries[0], endDttm: 1476910666798 };
     const props = {
       show: true,
       query: longQuery,
@@ -334,29 +333,46 @@ describe('VisualizeModal', () => {
       expect(spyCall.args[0].data.data).to.equal(JSON.stringify(mockOptions));
     });
     it('should open new window', () => {
+      const infoToastSpy = sinon.spy();
+
       datasourceSpy.callsFake(() => {
         const d = $.Deferred();
         d.resolve('done');
         return d.promise();
       });
-      wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
+
+      wrapper.setProps({
+        actions: {
+          createDatasource: datasourceSpy,
+          addInfoToast: infoToastSpy,
+        },
+      });
 
       wrapper.instance().visualize();
       expect(exploreUtils.exportChart.callCount).to.equal(1);
       expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
+      expect(infoToastSpy.callCount).to.equal(1);
     });
-    it('should notify error', () => {
+    it('should add error toast', () => {
+      const dangerToastSpy = sinon.spy();
+
       datasourceSpy.callsFake(() => {
         const d = $.Deferred();
         d.reject('error message');
         return d.promise();
       });
-      wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
-      sinon.spy(notify, 'error');
+
+
+      wrapper.setProps({
+        actions: {
+          createDatasource: datasourceSpy,
+          addDangerToast: dangerToastSpy,
+        },
+      });
 
       wrapper.instance().visualize();
       expect(exploreUtils.exportChart.callCount).to.equal(0);
-      expect(notify.error.callCount).to.equal(1);
+      expect(dangerToastSpy.callCount).to.equal(1);
     });
   });
 });

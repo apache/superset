@@ -319,15 +319,18 @@ export const runningQuery = {
 export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
-  alerts: [],
-  queries: {},
-  databases: {},
-  queryEditors: [defaultQueryEditor],
-  tabHistory: [defaultQueryEditor.id],
-  tables: [],
-  workspaceQueries: [],
-  queriesLastUpdate: 0,
-  activeSouthPaneTab: 'Results',
+  sqlLab: {
+    alerts: [],
+    queries: {},
+    databases: {},
+    queryEditors: [defaultQueryEditor],
+    tabHistory: [defaultQueryEditor.id],
+    tables: [],
+    workspaceQueries: [],
+    queriesLastUpdate: 0,
+    activeSouthPaneTab: 'Results',
+  },
+  messageToasts: [],
 };
 
 export const query = {

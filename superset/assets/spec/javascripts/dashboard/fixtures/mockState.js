@@ -2,7 +2,7 @@ import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import dashboardState from './mockDashboardState';
-import messageToasts from './mockMessageToasts';
+import messageToasts from '../../messageToasts/mockMessageToasts';
 import datasources from './mockDatasource';
 import sliceEntities from './mockSliceEntities';
 

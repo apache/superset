@@ -1,6 +1,6 @@
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
-import { addInfoToast } from './messageToasts';
+import { addInfoToast } from '../../messageToasts/actions';
 import { setUnsavedChanges } from './dashboardState';
 import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
