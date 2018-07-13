@@ -1,4 +1,4 @@
-import { VIZ_TYPES } from '../visualizations';
+import { VIZ_TYPES } from '../modules/vizTypes';
 import vizTypes from '../explore/visTypes';
 
 export const ANNOTATION_TYPES = {
