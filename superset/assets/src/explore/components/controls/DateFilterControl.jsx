@@ -67,6 +67,15 @@ const defaultProps = {
   value: 'Last week',
 };
 
+
+function isFreeform(s) {
+  /* Moment sometimes consider invalid dates as valid, eg, "10 years ago" gets
+   * parsed as "Fri Jan 01 2010 00:00:00" local time. This function does a
+   * better check by comparing a string with a parse/format roundtrip.
+   */
+  return (s !== moment(s, MOMENT_FORMAT).format(MOMENT_FORMAT));
+}
+
 export default class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
@@ -99,11 +108,19 @@ export default class DateFilterControl extends React.Component {
         [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
     }
-    this.state.freeformInputs.since = !moment(this.state.since, MOMENT_FORMAT).isValid();
-    this.state.freeformInputs.until = !moment(this.state.until, MOMENT_FORMAT).isValid();
+    this.state.freeformInputs.since = isFreeform(this.state.since);
+    this.state.freeformInputs.until = isFreeform(this.state.until);
 
     // We need direct access to the state of the `DateTimeField` component
     this.dateTimeFieldRefs = {};
+
+    this.handleClick = this.handleClick.bind(this);
+  }
+  componentDidMount() {
+    document.addEventListener('click', this.handleClick);
+  }
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleClick);
   }
   onEnter(event) {
     if (event.key === 'Enter') {
@@ -156,6 +173,12 @@ export default class DateFilterControl extends React.Component {
       nextState[key] = value;
     }
     this.setState(nextState, this.updateRefs);
+  }
+  handleClick(e) {
+    // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
+    if (this.startEndSectionRef.contains(e.target)) {
+      this.setState({ type: TYPES.CUSTOM_START_END });
+    }
   }
   updateRefs() {
     /* This is required because the <DateTimeField> component does not accept
@@ -271,42 +294,49 @@ export default class DateFilterControl extends React.Component {
                   onSelect={this.setCustomStartEnd.bind(this)}
                   info={FREEFORM_TOOLTIP}
                 >
-                  <InputGroup>
-                    <div style={{ margin: '5px 0' }}>
-                      <DateTimeField
-                        ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
-                        dateTime={
+                  <div ref={(ref) => { this.startEndSectionRef = ref; }}>
+                    <InputGroup>
+                      <div style={{ margin: '5px 0' }}>
+                        <DateTimeField
+                          ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
+                          dateTime={
                           this.state.freeformInputs.since ?
                             DEFAULT_SINCE :
                             this.state.since
                         }
-                        defaultText={this.state.since}
-                        onChange={this.setCustomStartEnd.bind(this, 'since')}
-                        onFocus={this.setCustomStartEnd.bind(this, 'since')}
-                        maxDate={moment(this.state.until, MOMENT_FORMAT)}
-                        format={MOMENT_FORMAT}
-                        inputFormat={MOMENT_FORMAT}
-                        inputProps={{ onKeyPress: this.onEnter.bind(this) }}
-                      />
-                    </div>
-                    <div style={{ margin: '5px 0' }}>
-                      <DateTimeField
-                        ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
-                        dateTime={
+                          defaultText={this.state.since}
+                          onChange={this.setCustomStartEnd.bind(this, 'since')}
+                          maxDate={moment(this.state.until, MOMENT_FORMAT)}
+                          format={MOMENT_FORMAT}
+                          inputFormat={MOMENT_FORMAT}
+                          onClick={this.setCustomStartEnd.bind(this)}
+                          inputProps={{
+                          onKeyPress: this.onEnter.bind(this),
+                          onFocus: this.setCustomStartEnd.bind(this),
+                        }}
+                        />
+                      </div>
+                      <div style={{ margin: '5px 0' }}>
+                        <DateTimeField
+                          ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
+                          dateTime={
                           this.state.freeformInputs.until ?
                             DEFAULT_UNTIL :
                             this.state.until
                         }
-                        defaultText={this.state.until}
-                        onChange={this.setCustomStartEnd.bind(this, 'until')}
-                        onFocus={this.setCustomStartEnd.bind(this, 'until')}
-                        minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
-                        format={MOMENT_FORMAT}
-                        inputFormat={MOMENT_FORMAT}
-                        inputProps={{ onKeyPress: this.onEnter.bind(this) }}
-                      />
-                    </div>
-                  </InputGroup>
+                          defaultText={this.state.until}
+                          onChange={this.setCustomStartEnd.bind(this, 'until')}
+                          minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
+                          format={MOMENT_FORMAT}
+                          inputFormat={MOMENT_FORMAT}
+                          inputProps={{
+                          onKeyPress: this.onEnter.bind(this),
+                          onFocus: this.setCustomStartEnd.bind(this),
+                        }}
+                        />
+                      </div>
+                    </InputGroup>
+                  </div>
                 </PopoverSection>
               </FormGroup>
             </Tab>
