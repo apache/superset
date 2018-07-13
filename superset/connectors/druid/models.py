@@ -536,7 +536,7 @@ class DruidDatasource(Model, BaseDatasource):
                 'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
                 '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
-                'month',
+                'month', 'quarter', 'year',
             ],
             'time_grains': ['now'],
         }
@@ -744,6 +744,8 @@ class DruidDatasource(Model, BaseDatasource):
             'week_starting_sunday': 'P1W',
             'week_ending_saturday': 'P1W',
             'month': 'P1M',
+            'quarter': 'P3M',
+            'year': 'P1Y',
         }
 
         granularity = {'type': 'period'}

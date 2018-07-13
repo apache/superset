@@ -11,7 +11,7 @@ describe('SqlEditor', () => {
   const mockedProps = {
     actions: {},
     database: {},
-    queryEditor: initialState.queryEditors[0],
+    queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
     queries,

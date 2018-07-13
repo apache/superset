@@ -1,13 +1,14 @@
-/* global notify */
+/* global window */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import $ from 'jquery';
+
 import { getAjaxErrorMsg } from '../../../../modules/utils';
 import ModalTrigger from '../../../../components/ModalTrigger';
 import { t } from '../../../../locales';
 import Checkbox from '../../../../components/Checkbox';
-
-const $ = window.$ = require('jquery');
+import withToasts from '../../../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
   css: PropTypes.string,
@@ -16,6 +17,8 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   serialize: PropTypes.func,
   onSave: PropTypes.func,
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 class SaveModal extends React.PureComponent {
@@ -57,19 +60,23 @@ class SaveModal extends React.PureComponent {
       data: {
         data: JSON.stringify(data),
       },
-      success(resp) {
+      success: (resp) => {
         saveModal.close();
         onSaveDashboard();
         if (saveType === 'newDashboard') {
           window.location = `/superset/dashboard/${resp.id}/`;
         } else {
-          notify.success(t('This dashboard was saved successfully.'));
+          this.props.addSuccessToast(
+            t('This dashboard was saved successfully.'),
+          );
         }
       },
-      error(error) {
+      error: (error) => {
         saveModal.close();
         const errorMsg = getAjaxErrorMsg(error);
-        notify.error(t('Sorry, there was an error saving this dashboard: ') + errorMsg);
+        this.props.addDangerToast(
+          t('Sorry, there was an error saving this dashboard: ') + errorMsg,
+        );
       },
     });
   }
@@ -91,10 +98,9 @@ class SaveModal extends React.PureComponent {
     } else if (saveType === 'newDashboard') {
       if (!newDashboardTitle) {
         this.modal.close();
-        showModal({
-          title: t('Error'),
-          body: t('You must pick a name for the new dashboard'),
-        });
+        this.props.addDangerToast(
+          t('You must pick a name for the new dashboard'),
+        );
       } else {
         data.dashboard_title = newDashboardTitle;
         url = `/superset/copy_dash/${dashboard.id}/`;
@@ -156,6 +162,7 @@ class SaveModal extends React.PureComponent {
     );
   }
 }
+
 SaveModal.propTypes = propTypes;
 
-export default SaveModal;
+export default withToasts(SaveModal);

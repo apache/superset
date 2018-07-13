@@ -2,7 +2,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import AlertsWrapper from '../../components/AlertsWrapper';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
@@ -220,12 +219,7 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    return (
-      <div>
-        <AlertsWrapper initMessages={this.props.initMessages} />
-        <DashboardBuilder />
-      </div>
-    );
+    return <DashboardBuilder />;
   }
 }
 
