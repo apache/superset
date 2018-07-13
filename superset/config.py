@@ -250,7 +250,6 @@ BACKUP_COUNT = 30
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000000
 DISPLAY_SQL_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
