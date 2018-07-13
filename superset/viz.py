@@ -125,7 +125,7 @@ class BaseViz(object):
                     # if an int is too big for Java Script to handle
                     # convert it to a string
                     if abs(v) > JS_MAX_INTEGER:
-                        d[k] = str(v)
+                        d[k] = text_type(v)
         return data
 
     def run_extra_queries(self):
@@ -770,7 +770,7 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                text_type(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
                 for obj in records
             }
 
@@ -1530,7 +1530,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(metrics) > 1:
                 series_title = ', '.join(name)
             else:
-                l = [str(s) for s in name[1:]]  # noqa: E741
+                l = [text_type(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
             for i, v in ys.items():
