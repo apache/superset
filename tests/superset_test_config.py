@@ -14,7 +14,7 @@ if 'SUPERSET__SQLALCHEMY_DATABASE_URI' in os.environ:
 
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 SQL_SELECT_AS_CTA = True
-DISPLAY_SQL_MAX_ROW = 666
+SQL_MAX_ROW = 666
 
 TESTING = True
 SECRET_KEY = 'thisismyscretkey'
