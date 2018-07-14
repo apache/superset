@@ -193,14 +193,14 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'creator', 'modified']
+        'allow_dml', 'allow_csv_upload', 'creator', 'modified']
     order_columns = [
         'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified',
+        'modified', 'allow_csv_upload',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
-        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
         'allow_multi_schema_metadata_fetch',
     ]
@@ -326,7 +326,7 @@ class DatabaseAsync(DatabaseView):
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_run_sync', 'allow_dml',
-        'allow_multi_schema_metadata_fetch',
+        'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
     ]
 
 
