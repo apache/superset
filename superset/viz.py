@@ -38,7 +38,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.exceptions import NullValueException
+from superset.exceptions import NullValueException, SpatialException
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
@@ -2084,10 +2084,13 @@ class BaseDeckGLViz(BaseViz):
 
     @staticmethod
     def parse_coordinates(s):
+        if not s:
+            return None
         try:
             p = Point(s)
-        except:
-            raise Exception(_("Invalid spatial point encountered: %s" % s))
+        except Exception:
+            raise SpatialException(
+                _('Invalid spatial point encountered: %s' % s))
         return (p.latitude, p.longitude)
 
     def process_spatial_data_obj(self, key, df):
