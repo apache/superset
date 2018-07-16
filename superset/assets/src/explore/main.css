@@ -225,3 +225,24 @@
   text-align: center;
   margin-top: 60px;
 }
+
+h1.section-header {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+  margin-left: -16px;
+}
+
+h2.section-header {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+}
+
+.Select {
+  margin-bottom: 15px;
+}
