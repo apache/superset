@@ -73,7 +73,13 @@ export function getControlsState(state, form_data) {
       control.default = control.default(control);
     }
     control.validationErrors = [];
-    control.value = formData[k] !== undefined ? formData[k] : control.default;
+    control.value = control.default;
+    // formData[k]'s type should match control value type
+    if (formData[k] !== undefined &&
+      (Array.isArray(formData[k]) && control.multi || !control.multi)
+    ) {
+      control.value = formData[k];
+    }
     controlsState[k] = control;
   });
   if (viz.onInit) {
