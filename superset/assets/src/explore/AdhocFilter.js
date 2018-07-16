@@ -21,6 +21,8 @@ const OPERATORS_TO_SQL = {
   'not in': 'not in',
   LIKE: 'like',
   regex: 'regex',
+  'IS NOT NULL': 'IS NOT NULL',
+  'IS NULL': 'IS NULL',
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
@@ -84,6 +86,13 @@ export default class AdhocFilter {
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
+      if (this.operator === 'IS NOT NULL' || this.operator === 'IS NULL') {
+        return !!(
+          this.operator &&
+          this.subject
+        );
+      }
+
       return !!(
         this.operator &&
         this.subject &&
