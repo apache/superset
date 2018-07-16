@@ -41,11 +41,13 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
-    if (query.id || query.sql || query.savedQueryId) {
+    if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
       if (query.id) {
         this.props.actions.popStoredQuery(query.id);
       } else if (query.savedQueryId) {
         this.props.actions.popSavedQuery(query.savedQueryId);
+      } else if (query.datasourceKey) {
+        this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
       } else if (query.sql) {
         let dbId = query.dbid;
         if (dbId) {

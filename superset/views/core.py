@@ -1072,7 +1072,8 @@ class Superset(BaseSupersetView):
             json.dumps({
                 'query': query,
                 'language': viz_obj.datasource.query_language,
-            }),
+                'data': viz_obj.get_df().to_dict('records'),
+            }, default=utils.json_iso_dttm_ser),
             status=200,
             mimetype='application/json')
 
