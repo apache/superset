@@ -200,8 +200,7 @@ export const dashboard = function(state = {}, action) {
       let filters = state.filters;
       const { sliceId, col, vals, merge, refresh } = action;
       const filterKeys = [
-        '__from',
-        '__to',
+        '__time_range',
         '__time_col',
         '__time_grain',
         '__time_origin',
