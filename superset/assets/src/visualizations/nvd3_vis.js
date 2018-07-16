@@ -613,6 +613,7 @@ export default function nvd3Vis(slice, payload) {
             color: a.color,
             strokeWidth: a.width,
             classed: `${a.opacity} ${a.style}`,
+            source: 'annotation',
           };
         })), []);
         data.push(...timeSeriesAnnotations);
@@ -738,6 +739,7 @@ export default function nvd3Vis(slice, payload) {
             color: fo.color,
             strokeWidth: fo.width,
             classed: `${fo.opacity} ${fo.style}`,
+            source: 'annotation',
           }));
           data.push(...formulaData);
         }
