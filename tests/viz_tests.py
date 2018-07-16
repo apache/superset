@@ -11,6 +11,7 @@ from mock import Mock, patch
 import pandas as pd
 
 from superset import app
+from superset.exceptions import SpatialException
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 from .utils import load_fixture
@@ -949,3 +950,29 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert results['metrics'] == []
         assert results['groupby'] == []
         assert results['columns'] == ['test_col']
+
+    def test_parse_coordinates(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        viz_instance = viz.BaseDeckGLViz(datasource, form_data)
+
+        coord = viz_instance.parse_coordinates('1.23, 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        coord = viz_instance.parse_coordinates('1.23 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        self.assertEquals(viz_instance.parse_coordinates(None), None)
+
+        self.assertEquals(viz_instance.parse_coordinates(''), None)
+
+    def test_parse_coordinates_raises(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('NULL')
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
