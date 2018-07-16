@@ -186,11 +186,11 @@ function bigNumberVis(slice, payload) {
       .attr('fill-opacity', 0)
       .on('mouseover', function (d) {
         d3.select(this).attr('fill-opacity', 1);
-        tip.show(d);
+        tip.show(d, this);
       })
       .on('mouseout', function (d) {
         d3.select(this).attr('fill-opacity', 0);
-        tip.hide(d);
+        tip.hide(d, this);
       });
 
     div.on('mouseover', function () {
