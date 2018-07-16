@@ -631,6 +631,7 @@ export const visTypes = {
       },
       {
         label: t('Grid'),
+        expanded: true,
         controlSetRows: [
           ['grid_size', 'color_picker'],
         ],

@@ -11,6 +11,7 @@ export const Logger = {
       if (!addEventHandlers[eventName]) {
         addEventHandlers[eventName] = log.addEvent.bind(log);
       } else {
+        // eslint-disable-next-line no-console
         console.warn(`Duplicate event handler for event '${eventName}'`);
       }
     });
@@ -20,6 +21,7 @@ export const Logger = {
     if (addEventHandlers[eventName]) {
       addEventHandlers[eventName](eventName, eventBody, sendNow);
     } else {
+      // eslint-disable-next-line no-console
       console.warn(`No event handler for event '${eventName}'`);
     }
   },
