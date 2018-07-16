@@ -200,7 +200,7 @@ export default class AdhocMetricEditPopover extends React.Component {
 
     const stateIsValid = adhocMetric.isValid();
     const hasUnsavedChanges = !adhocMetric.equals(propsAdhocMetric);
-
+    // I think we can delete this right???
     return (
       <Popover
         id="metrics-edit-popover"

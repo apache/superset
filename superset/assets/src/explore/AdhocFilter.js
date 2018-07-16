@@ -89,8 +89,7 @@ export default class AdhocFilter {
       if (this.operator === 'IS NOT NULL' || this.operator === 'IS NULL') {
         return !!(
           this.operator &&
-          this.subject &&
-          this.clause
+          this.subject
         );
       }
 
