@@ -2,6 +2,7 @@
  * This file defines how controls (defined in controls.js) are structured into sections
  * and associated with each and every visualization type.
  */
+import React from 'react';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';
@@ -65,9 +66,12 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results'),
       controlSetRows: [
+        [<h1 className="section-header">Moving Average</h1>],
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        ['time_compare'],
-        ['num_period_compare', 'period_ratio_type'],
+        [<h1 className="section-header">Time Comparison</h1>],
+        ['time_compare', 'comparison_type'],
+        [<h1 className="section-header">Python Functions</h1>],
+        [<h2 className="section-header">pandas.resample</h2>],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
     },
