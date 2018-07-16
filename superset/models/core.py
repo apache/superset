@@ -647,6 +647,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         return {
+            'id': self.id,
             'name': self.database_name,
             'backend': self.backend,
             'allow_multi_schema_metadata_fetch':

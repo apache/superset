@@ -201,6 +201,27 @@ export function runQuery(formData, force = false, timeout = 60, key) {
   };
 }
 
+export function redirectSQLLab(formData) {
+  return function () {
+    const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (response) => {
+        const redirectUrl = new URL(window.location);
+        redirectUrl.pathname = '/superset/sqllab';
+        for (const k of redirectUrl.searchParams.keys()) {
+          redirectUrl.searchParams.delete(k);
+        }
+        redirectUrl.searchParams.set('datasourceKey', formData.datasource);
+        redirectUrl.searchParams.set('sql', response.query);
+        window.open(redirectUrl.href, '_blank');
+      },
+      error: () => notify.error(t("The SQL couldn't be loaded")),
+    });
+  };
+}
+
 export function refreshChart(chart, force, timeout) {
   return (dispatch) => {
     if (!chart.latestQueryFormData || Object.keys(chart.latestQueryFormData).length === 0) {
