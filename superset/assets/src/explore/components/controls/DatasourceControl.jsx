@@ -224,6 +224,19 @@ class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
+        {this.props.datasource.type === 'table' &&
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'datasource-sqllab'}>
+                {t('Run SQL queries against this datasource')}
+              </Tooltip>
+            }
+          >
+            <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
+              <i className="fa fa-flask m-r-5" />
+            </a>
+          </OverlayTrigger>}
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         {this.renderModal()}
       </div>

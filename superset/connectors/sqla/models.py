@@ -369,6 +369,10 @@ class SqlaTable(Model, BaseDatasource):
             'time_grains': [grain.name for grain in self.database.grains()],
         }
 
+    @property
+    def select_star(self):
+        return self.database.select_star(self.name, show_cols=True)
+
     def get_col(self, col_name):
         columns = self.columns
         for col in columns:

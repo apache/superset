@@ -109,6 +109,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         return {
+            'id': self.id,
             'name': self.cluster_name,
             'backend': 'druid',
         }
