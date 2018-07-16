@@ -8,10 +8,11 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
+import regression from 'regression';
 
 import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
-  applyNativeColumns,
+  applyNativeColumns, STAT_ANNOTATION_TYPES,
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
@@ -630,6 +631,53 @@ export default function nvd3Vis(slice, payload) {
 
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
+
+        // Statistical annotations
+        annotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.STATISTICAL)
+          .forEach((config) => {
+            const dataLength = data.length;
+            for (let i = 0; i < dataLength; i++) {
+              if (data[i].hasOwnProperty('source') && data[i].source === 'annotation') {
+                continue;
+              }
+              let res = null;
+              const x0 = data[i].values[0].x;
+              const minIntv = Math.round(data[i].values
+                .reduce(function (accumulator, currentValue, currentIndex, array) {
+                  if (currentIndex < array.length - 1) {
+                    return Math.min(accumulator, array[currentIndex + 1].x - currentValue.x);
+                  }
+                  return accumulator;
+                }, Infinity));
+              // x values are scaled down to avoid number overflow
+              const scaledDownData = data[i].values.map(d => [(d.x - x0) / minIntv, d.y]);
+              const statOption = { precision: config.statAnnoPrecision };
+              if (config.statAnnoType === STAT_ANNOTATION_TYPES.LINEAR) {
+                res = regression.linear(scaledDownData, statOption);
+              } else if (config.statAnnoType === STAT_ANNOTATION_TYPES.EXPONENTIAL) {
+                res = regression.exponential(scaledDownData, statOption);
+              } else if (config.statAnnoType === STAT_ANNOTATION_TYPES.LOGARITHMIC) {
+                res = regression.logarithmic(scaledDownData, statOption);
+              } else if (config.statAnnoType === STAT_ANNOTATION_TYPES.POWER) {
+                res = regression.power(scaledDownData, statOption);
+              } else if (config.statAnnoType === STAT_ANNOTATION_TYPES.POLYNOMIAL) {
+                res = regression.polynomial(scaledDownData,
+                  { ...statOption, order: config.statAnnoPolyOrder });
+              }
+              if (res && !isNaN(res.r2) && res.r2 <= 1 && res.r2 >= 0) {
+                data.push({
+                  key: config.name + ': ' + res.string + ', R<sup>2</sup>: ' + res.r2,
+                  values: data[i].values.map((d, idx) => ({ x: d.x, y: res.points[idx][1] })),
+                  color: config.color,
+                  strokeWidth: config.width,
+                  classed: `${config.opacity} ${config.style}`,
+                  source: 'annotation',
+                });
+              }
+            }
+          });
+
         // Formula annotations
         const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
           .map(a => ({ ...a, formula: mathjs.parse(a.value) }));

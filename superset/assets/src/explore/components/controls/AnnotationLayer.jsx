@@ -13,20 +13,24 @@ import CheckboxControl from './CheckboxControl';
 import AnnotationTypes, {
   DEFAULT_ANNOTATION_TYPE,
   ANNOTATION_SOURCE_TYPES,
+  STAT_ANNOTATION_TYPES,
   getAnnotationSourceTypeLabels,
   getAnnotationTypeLabel,
   getSupportedSourceTypes,
   getSupportedAnnotationTypes,
   requiresQuery,
+  getStatAnnotationTypeLabel,
+  getStatAnnotationTypes,
 } from '../../../modules/AnnotationTypes';
 
 import { ALL_COLOR_SCHEMES } from '../../../modules/colors';
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
-import { nonEmpty } from '../../validators';
+import { nonEmpty, integer, positive } from '../../validators';
 import vizTypes from '../../visTypes';
 
 const AUTOMATIC_COLOR = '';
+const STAT_ANNO_POLY_ORDER_LIMIT = 6;
 
 const propTypes = {
   name: PropTypes.string,
@@ -50,6 +54,9 @@ const propTypes = {
 
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
+  statAnnoType: PropTypes.string,
+  statAnnoPolyOrder: PropTypes.number,
+  statAnnoPrecision: PropTypes.number,
   close: PropTypes.func,
 };
 
@@ -71,6 +78,9 @@ const defaultProps = {
 
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
+  statAnnoType: '',
+  statAnnoPrecision: 3,
+  statAnnoPolyOrder: 0,
   close: () => {},
 };
 
@@ -80,7 +90,7 @@ export default class AnnotationLayer extends React.PureComponent {
     const { name, annotationType, sourceType,
       color, opacity, style, width, value,
       overrides, show, titleColumn, descriptionColumns,
-      timeColumn, intervalEndColumn } = props;
+      timeColumn, intervalEndColumn, statAnnoType, statAnnoPolyOrder, statAnnoPrecision } = props;
     this.state = {
       // base
       name,
@@ -90,6 +100,9 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      statAnnoType,
+      statAnnoPrecision,
+      statAnnoPolyOrder,
       // slice
       titleColumn,
       descriptionColumns,
@@ -142,7 +155,7 @@ export default class AnnotationLayer extends React.PureComponent {
   isValidForm() {
     const {
       name, annotationType, sourceType,
-      value, timeColumn, intervalEndColumn,
+      value, timeColumn, intervalEndColumn, statAnnoPrecision,
     } = this.state;
     const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
@@ -152,6 +165,10 @@ export default class AnnotationLayer extends React.PureComponent {
       if (annotationType === AnnotationTypes.INTERVAL) {
         errors.push(nonEmpty(timeColumn));
         errors.push(nonEmpty(intervalEndColumn));
+      }
+      if (annotationType === AnnotationTypes.STATISTICAL) {
+        errors.push(integer(statAnnoPrecision));
+        errors.push(positive(statAnnoPrecision));
       }
     }
     errors.push(this.isValidFormula(value, annotationType));
@@ -538,7 +555,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType,
+    const { isNew, name, annotationType, statAnnoType, statAnnoPrecision, statAnnoPolyOrder,
       sourceType, show } = this.state;
     const isValid = this.isValidForm();
     return (
@@ -581,7 +598,43 @@ export default class AnnotationLayer extends React.PureComponent {
                 value={annotationType}
                 onChange={this.handleAnnotationType}
               />
+              {annotationType === AnnotationTypes.STATISTICAL &&
+              <div>
+                <SelectControl
+                  hovered
+                  name="stat-annotation-type"
+                  label="Annotation Type"
+                  description={'Select the type of Statistical Annotation'}
+                  options={getStatAnnotationTypes().map(
+                    x => ({ value: x, label: getStatAnnotationTypeLabel(x) }))}
+                  value={statAnnoType}
+                  onChange={s => this.setState({ statAnnoType: s, value: s })}
+                />
+                <TextControl
+                  hovered
+                  name="stat-annotation-type"
+                  label="Precision"
+                  description={'Select the number of significant figures the output is rounded to.'}
+                  value={statAnnoPrecision}
+                  onChange={s => this.setState({ statAnnoPrecision: s, value: s })}
+                  validationErrors={positive(statAnnoPrecision) || integer(statAnnoPrecision) ? ['It should be a positive integer'] : []}
+                />
+              </div>
+              }
+              {statAnnoType === STAT_ANNOTATION_TYPES.POLYNOMIAL &&
+              <SelectControl
+                hovered
+                name="stat-annotation-poly-order"
+                label="Polynomial Order"
+                description={'Select the polynomial order'}
+                options={[...Array(STAT_ANNO_POLY_ORDER_LIMIT).keys()]
+                  .map(x => ({ value: x, label: x }))}
+                value={statAnnoPolyOrder}
+                onChange={s => this.setState({ statAnnoPolyOrder: s, value: s })}
+              />
+              }
               {!!getSupportedSourceTypes(annotationType).length &&
+              annotationType !== AnnotationTypes.STATISTICAL &&
                 <SelectControl
                   hovered
                   description="Choose the source of your annotations"

@@ -41,6 +41,6 @@ install:
   - pip install --upgrade pip
   - pip install codecov tox
 script:
-  - tox
+  - travis_wait 30 tox
 after_success:
   - codecov

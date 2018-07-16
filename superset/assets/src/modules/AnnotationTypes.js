@@ -6,6 +6,7 @@ export const ANNOTATION_TYPES = {
   EVENT: 'EVENT',
   INTERVAL: 'INTERVAL',
   TIME_SERIES: 'TIME_SERIES',
+  STATISTICAL: 'STATISTICAL',
 };
 
 export const ANNOTATION_TYPE_LABELS = {
@@ -13,6 +14,7 @@ export const ANNOTATION_TYPE_LABELS = {
   EVENT: 'Event',
   INTERVAL: 'Interval',
   TIME_SERIES: 'Time Series',
+  STATISTICAL: 'Statistical',
 };
 
 export function getAnnotationTypeLabel(annotationType) {
@@ -61,6 +63,7 @@ const SUPPORTED_ANNOTATIONS = {
     ANNOTATION_TYPES.INTERVAL,
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.FORMULA,
+    ANNOTATION_TYPES.STATISTICAL,
   ],
   [VIZ_TYPES.bar]: [
     ANNOTATION_TYPES.INTERVAL,
@@ -92,3 +95,35 @@ export function applyNativeColumns(annotation) {
 
 export default ANNOTATION_TYPES;
 
+export const STAT_ANNOTATION_TYPES = {
+  LINEAR: 'LINEAR',
+  EXPONENTIAL: 'EXPONENTIAL',
+  LOGARITHMIC: 'LOGARITHMIC',
+  POWER: 'POWER',
+  POLYNOMIAL: 'POLYNOMIAL',
+};
+
+export const STAT_ANNOTATION_TYPE_LABELS = {
+  LINEAR: 'Linear',
+  EXPONENTIAL: 'Exponential',
+  LOGARITHMIC: 'Logarithmic',
+  POWER: 'Power',
+  POLYNOMIAL: 'Polynomial',
+};
+
+export const SUPPORTED_STAT_ANNOTATION_TYPES =
+[
+  STAT_ANNOTATION_TYPES.LINEAR,
+  STAT_ANNOTATION_TYPES.EXPONENTIAL,
+  STAT_ANNOTATION_TYPES.LOGARITHMIC,
+  STAT_ANNOTATION_TYPES.POWER,
+  STAT_ANNOTATION_TYPES.POLYNOMIAL,
+];
+
+export function getStatAnnotationTypeLabel(statAnnotationType) {
+  return STAT_ANNOTATION_TYPE_LABELS[statAnnotationType];
+}
+
+export function getStatAnnotationTypes() {
+  return SUPPORTED_STAT_ANNOTATION_TYPES;
+}

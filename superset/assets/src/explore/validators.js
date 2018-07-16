@@ -20,6 +20,13 @@ export function integer(v) {
   return false;
 }
 
+export function positive(v) {
+  const res = numeric(v);
+  if (res) return res;
+  if (v <= 0) return t('is expected to be positive');
+  return false;
+}
+
 export function nonEmpty(v) {
   if (
       v === null ||
