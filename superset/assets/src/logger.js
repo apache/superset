@@ -1,3 +1,5 @@
+/* eslint no-console: 0 */
+
 import $ from 'jquery';
 
 // This creates an association between an eventName and the ActionLog instance so that

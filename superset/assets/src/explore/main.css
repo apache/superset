@@ -211,6 +211,14 @@
   position: static;
 }
 
+.time-filter-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.time-filter-tabs > .nav-tabs > li > a {
+  padding: 4px;
+}
+
 .custom-sql-disabled-message {
   color: gray;
   font-size: 11px;
