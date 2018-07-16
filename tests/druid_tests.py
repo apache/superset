@@ -460,6 +460,62 @@ class DruidTests(SupersetTestCase):
             cluster.get_base_broker_url(),
             'http://localhost:7980/druid/v2')
 
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_druid_time_granularities(self, PyDruid):
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
+        cluster.refresh_datasources(merge_flag=True)
+        datasource_id = cluster.datasources[0].id
+        db.session.commit()
+
+        nres = [
+            list(v['event'].items()) + [('timestamp', v['timestamp'])]
+            for v in GB_RESULT_SET]
+        nres = [dict(v) for v in nres]
+        import pandas as pd
+        df = pd.DataFrame(nres)
+        instance = PyDruid.return_value
+        instance.export_pandas.return_value = df
+        instance.query_dict = {}
+        instance.query_builder.last_query.query_dict = {}
+
+        form_data = {
+            'viz_type': 'table',
+            'since': '7+days+ago',
+            'until': 'now',
+            'metrics': ['count'],
+            'groupby': [],
+            'include_time': 'true',
+        }
+
+        granularity_map = {
+            '5 seconds': 'PT5S',
+            '30 seconds': 'PT30S',
+            '1 minute': 'PT1M',
+            '5 minutes': 'PT5M',
+            '1 hour': 'PT1H',
+            '6 hour': 'PT6H',
+            'one day': 'P1D',
+            '1 day': 'P1D',
+            '7 days': 'P7D',
+            'week': 'P1W',
+            'week_starting_sunday': 'P1W',
+            'week_ending_saturday': 'P1W',
+            'month': 'P1M',
+            'quarter': 'P3M',
+            'year': 'P1Y',
+        }
+        url = ('/superset/explore_json/druid/{}/'.format(datasource_id))
+
+        for granularity_mapping in granularity_map:
+            form_data['granularity'] = granularity_mapping
+            self.get_json_resp(url, {'form_data': json.dumps(form_data)})
+            self.assertEqual(
+                granularity_map[granularity_mapping],
+                instance.timeseries.call_args[1]['granularity']['period'],
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

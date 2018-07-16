@@ -97,9 +97,9 @@ class SouthPane extends React.PureComponent {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    activeSouthPaneTab: state.activeSouthPaneTab,
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
   };
 }
 

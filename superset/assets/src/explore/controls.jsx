@@ -206,7 +206,9 @@ export const controls = {
   percent_metrics: {
     ...metrics,
     multi: true,
+    default: [],
     label: t('Percentage Metrics'),
+    default: [],
     validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
   },
@@ -765,6 +767,8 @@ export const controls = {
       ['week_starting_sunday', 'week starting Sunday'],
       ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
+      ['P3M', 'quarter'],
+      ['P1Y', 'year'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
     'can type and use simple natural language as in `10 seconds`, ' +
@@ -1444,6 +1448,16 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the legend (toggles)'),
+  },
+
+  show_labels: {
+    type: 'CheckboxControl',
+    label: t('Show Labels'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'Whether to display the labels. Note that the label only displays when the the 5% ' +
+      'threshold.'),
   },
 
   show_values: {
