@@ -13,7 +13,7 @@ export const sections = {
     description: t('Time related form attributes'),
     controlSetRows: [
       ['granularity', 'druid_time_origin'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   datasourceAndVizType: {
@@ -37,7 +37,7 @@ export const sections = {
     expanded: true,
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   annotations: {

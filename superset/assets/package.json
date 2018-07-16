@@ -91,6 +91,7 @@
     "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
     "react-bootstrap": "^0.31.5",
+    "react-bootstrap-datetimepicker": "0.0.22",
     "react-bootstrap-slider": "2.1.5",
     "react-bootstrap-table": "^4.3.1",
     "react-color": "^2.13.8",
