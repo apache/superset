@@ -32,3 +32,7 @@ class NullValueException(SupersetException):
 
 class SupersetTemplateException(SupersetException):
     pass
+
+
+class SpatialException(SupersetException):
+    pass
