@@ -2,7 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import Toast from './Toast';
-import { toastShape } from '../util/propShapes';
+import { toastShape } from '../propShapes';
+
+import '../stylesheets/toast.less';
 
 const propTypes = {
   toasts: PropTypes.arrayOf(toastShape),

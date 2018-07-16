@@ -1050,7 +1050,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         for column_info in hive_table_schema['fields']:
             column_name_and_type.append(
                 '{} {}'.format(
-                    column_info['name'], convert_to_hive_type(column_info['type'])))
+                    "'" + column_info['name'] + "'",
+                    convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
 
         s3 = boto3.client('s3')

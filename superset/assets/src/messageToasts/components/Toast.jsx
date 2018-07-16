@@ -3,13 +3,14 @@ import cx from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import { toastShape } from '../util/propShapes';
+import { toastShape } from '../propShapes';
+
 import {
   INFO_TOAST,
   SUCCESS_TOAST,
   WARNING_TOAST,
   DANGER_TOAST,
-} from '../util/constants';
+} from '../constants';
 
 const propTypes = {
   toast: toastShape.isRequired,

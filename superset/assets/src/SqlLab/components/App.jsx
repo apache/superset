@@ -2,14 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import $ from 'jquery';
 
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
-import AlertsWrapper from '../../components/AlertsWrapper';
+import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import * as Actions from '../actions';
-
-const $ = window.$ = require('jquery');
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -39,8 +38,10 @@ class App extends React.PureComponent {
     const alertEl = $('#sqllab-alerts');
     const headerEl = $('header .navbar');
     const headerHeight = headerEl.outerHeight() + parseInt(headerEl.css('marginBottom'), 10);
-    const searchHeaderHeight = searchHeaderEl.length > 0 ?
-      searchHeaderEl.outerHeight() + parseInt(searchHeaderEl.css('marginBottom'), 10) : 0;
+    const searchHeaderHeight =
+      searchHeaderEl.length > 0
+        ? searchHeaderEl.outerHeight() + parseInt(searchHeaderEl.css('marginBottom'), 10)
+        : 0;
     const tabsHeight = tabsEl.length > 0 ? tabsEl.outerHeight() : searchHeaderHeight;
     const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
     const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
@@ -71,27 +72,17 @@ class App extends React.PureComponent {
     }
     return (
       <div className="App SqlLab">
-        <AlertsWrapper initMessages={this.props.initMessages} />
-        <div className="container-fluid">
-          {content}
-        </div>
+        <div className="container-fluid">{content}</div>
+        <ToastPresenter />
       </div>
     );
   }
 }
 
 App.propTypes = {
-  alerts: PropTypes.array,
   actions: PropTypes.object,
-  initMessages: PropTypes.array,
 };
 
-function mapStateToProps(state) {
-  return {
-    alerts: state.alerts,
-    initMessages: state.flash_messages,
-  };
-}
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),
@@ -99,4 +90,7 @@ function mapDispatchToProps(dispatch) {
 }
 
 export { App };
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default connect(
+  null,
+  mapDispatchToProps,
+)(App);
