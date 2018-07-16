@@ -402,8 +402,8 @@ export default function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (fd.num_period_compare || fd.contribution) {
-        // When computing a "Period Ratio" or "Contribution" selected, we force a percentage format
+      if (fd.contribution || fd.comparison_type === 'percentage') {
+        // When computing a "Percentage" or "Contribution" selected, we force a percentage format
         const percentageFormat = d3.format('.1%');
         chart.yAxis.tickFormat(percentageFormat);
       } else {
