@@ -888,18 +888,11 @@ export const controls = {
     description: t('Pandas resample fill method'),
   },
 
-  since: {
+  time_range: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: t('Since'),
-    default: t('7 days ago'),
-  },
-
-  until: {
-    type: 'DateFilterControl',
-    freeForm: true,
-    label: t('Until'),
-    default: 'now',
+    label: t('Time range'),
+    default: t('Last week'),
   },
 
   max_bubble_size: {
