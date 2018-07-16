@@ -208,7 +208,6 @@ export const controls = {
     multi: true,
     default: [],
     label: t('Percentage Metrics'),
-    default: [],
     validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
   },
