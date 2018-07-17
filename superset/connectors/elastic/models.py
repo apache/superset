@@ -1,32 +1,32 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+
+from datetime import datetime
 import json
 import logging
-from datetime import datetime, timedelta
-from six import string_types
-
-import requests
-import sqlalchemy as sa
-import pandas as pd
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime,
-)
-from sqlalchemy.orm import backref, relationship
-from dateutil.parser import parse as dparse
-
-from flask import Markup, escape
-from flask_appbuilder.models.decorators import renders
-from flask_appbuilder import Model
-
-from flask_babel import lazy_gettext as _
 
 from elasticsearch import Elasticsearch
+from flask import escape, Markup
+from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
+import pandas as pd
+from six import string_types
+import sqlalchemy as sa
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
+                        Text)
+from sqlalchemy.orm import backref, relationship
 
-from superset import conf, db, import_util, utils, security_manager
-from superset.utils import flasher
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
+from superset import db, import_util, security_manager, utils
+from superset.connectors.base.models import (BaseColumn, BaseDatasource,
+                                             BaseMetric)
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
-
+from superset.utils import flasher
 
 
 class ElasticCluster(Model, AuditMixinNullable):
@@ -34,7 +34,7 @@ class ElasticCluster(Model, AuditMixinNullable):
     """ORM object referencing the Elastic clusters"""
 
     __tablename__ = 'elastic_clusters'
-    type = "elastic"
+    type = 'elastic'
 
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
@@ -44,7 +44,7 @@ class ElasticCluster(Model, AuditMixinNullable):
 
     def __repr__(self):
         return self.cluster_name
-    
+
     @property
     def data(self):
         return {
@@ -74,7 +74,7 @@ class ElasticCluster(Model, AuditMixinNullable):
 
     @property
     def perm(self):
-        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
+        return '[{obj.cluster_name}].(id:{obj.id})'.format(obj=self)
 
     def get_perm(self):
         return self.perm
@@ -106,7 +106,7 @@ class ElasticColumn(Model, BaseColumn):
     export_fields = (
         'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json'
+        'description', 'dimension_spec_json',
     )
 
     @property
@@ -129,53 +129,48 @@ class ElasticColumn(Model, BaseColumn):
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
-            json=json.dumps({'type': 'count', 'name': 'count'})
+            json=json.dumps({'type': 'count', 'name': 'count'}),
         ))
         if self.sum and self.is_num:
-            mt = self.type.lower() + 'Sum'
             name = 'sum__' + self.column_name
             metrics.append(ElasticMetric(
                 metric_name=name,
                 metric_type='sum',
                 verbose_name='SUM({})'.format(self.column_name),
-                json=json.dumps({'sum': {'field': self.column_name}})
+                json=json.dumps({'sum': {'field': self.column_name}}),
             ))
 
         if self.avg and self.is_num:
-            mt = self.type.lower() + 'Avg'
             name = 'avg__' + self.column_name
             metrics.append(ElasticMetric(
                 metric_name=name,
                 metric_type='avg',
                 verbose_name='AVG({})'.format(self.column_name),
-                json=json.dumps({'avg': {'field': self.column_name}})
+                json=json.dumps({'avg': {'field': self.column_name}}),
             ))
 
         if self.min and self.is_num:
-            mt = self.type.lower() + 'Min'
             name = 'min__' + self.column_name
             metrics.append(ElasticMetric(
                 metric_name=name,
                 metric_type='min',
                 verbose_name='MIN({})'.format(self.column_name),
-                json=json.dumps({'min': {'field': self.column_name}})
+                json=json.dumps({'min': {'field': self.column_name}}),
             ))
         if self.max and self.is_num:
-            mt = self.type.lower() + 'Max'
             name = 'max__' + self.column_name
             metrics.append(ElasticMetric(
                 metric_name=name,
                 metric_type='max',
                 verbose_name='MAX({})'.format(self.column_name),
-                json=json.dumps({'max': {'field': self.column_name}})
+                json=json.dumps({'max': {'field': self.column_name}}),
             ))
         if self.count_distinct:
-            mt = 'count_distinct'
             metrics.append(ElasticMetric(
                 metric_name=name,
                 verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
                 metric_type='count_distinct',
-                json=json.dumps({'cardinality': {'field': self.column_name}})
+                json=json.dumps({'cardinality': {'field': self.column_name}}),
             ))
         session = db.session
         new_metrics = []
@@ -220,7 +215,7 @@ class ElasticMetric(Model, BaseMetric):
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
-        'json', 'description', 'is_restricted', 'd3format'
+        'json', 'description', 'is_restricted', 'd3format',
     )
 
     @property
@@ -238,9 +233,9 @@ class ElasticMetric(Model, BaseMetric):
     @property
     def perm(self):
         return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+            '{parent_name}.[{obj.metric_name}](id:{obj.id})'
         ).format(obj=self,
-                 parent_name=self.datasource.full_name
+                 parent_name=self.datasource.full_name,
                  ) if self.datasource else None
 
     @classmethod
@@ -258,13 +253,13 @@ class ElasticDatasource(Model, BaseDatasource):
 
     __tablename__ = 'elastic_datasources'
 
-    type = "elastic"
-    query_langtage = "json"
+    type = 'elastic'
+    query_langtage = 'json'
     cluster_class = ElasticCluster
     metric_class = ElasticMetric
     column_class = ElasticColumn
 
-    baselink = "elasticdatasourcemodelview"
+    baselink = 'elasticdatasourcemodelview'
 
     # Columns
     datasource_name = Column(String(255), unique=True)
@@ -282,13 +277,13 @@ class ElasticDatasource(Model, BaseDatasource):
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
-        'cluster_name', 'offset', 'cache_timeout', 'params'
+        'cluster_name', 'offset', 'cache_timeout', 'params',
     )
     slices = relationship(
         'Slice',
         primaryjoin=(
-            "ElasticDatasource.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'elastic'"))
+            'ElasticDatasource.id == foreign(Slice.datasource_id) and '
+            'Slice.datasource_type == "elastic"'))
 
     @property
     def database(self):
@@ -318,8 +313,8 @@ class ElasticDatasource(Model, BaseDatasource):
 
     def get_perm(self):
         return (
-            "[{obj.cluster_name}].[{obj.datasource_name}]"
-            "(id:{obj.id})").format(obj=self)
+            '[{obj.cluster_name}].[{obj.datasource_name}]'
+            '(id:{obj.id})').format(obj=self)
 
     @property
     def link(self):
@@ -334,13 +329,13 @@ class ElasticDatasource(Model, BaseDatasource):
     @property
     def time_column_grains(self):
         return {
-            "time_columns": [
+            'time_columns': [
                 'all', '5 seconds', '30 seconds', '1 minute',
                 '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month',
             ],
-            "time_grains": ['now']
+            'time_grains': ['now'],
         }
 
     def __repr__(self):
@@ -348,7 +343,7 @@ class ElasticDatasource(Model, BaseDatasource):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+        url = '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
         name = escape(self.datasource_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
@@ -413,21 +408,21 @@ class ElasticDatasource(Model, BaseDatasource):
             col.generate_metrics()
 
     def query_str(self):
-        d = {"query": None}
+        d = {'query': None}
         return json.dumps(d)
 
     @classmethod
     def sync_to_db(cls, name, metadata, cluster):
         """Fetches metadata for that datasource and merges the Superset db"""
-        logging.info("Syncing Elastic datasource [{}]".format(name))
+        logging.info('Syncing Elastic datasource [{}]'.format(name))
         session = db.session
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
             datasource = cls(datasource_name=name)
             session.add(datasource)
-            flasher("Adding new datasource [{}]".format(name), "success")
+            flasher('Adding new datasource [{}]'.format(name), 'success')
         else:
-            flasher("Refreshing datasource [{}]".format(name), "info")
+            flasher('Refreshing datasource [{}]'.format(name), 'info')
         session.flush()
         datasource.cluster = cluster
         session.flush()
@@ -451,7 +446,7 @@ class ElasticDatasource(Model, BaseDatasource):
                 datasource_name=datasource.datasource_name,
                 column_name=col_name)
             sesh.add(col_obj)
-        if datatype == "string":
+        if datatype == 'string':
             col_obj.groupby = True
             col_obj.filterable = True
         if col_obj.is_num:
@@ -462,7 +457,6 @@ class ElasticDatasource(Model, BaseDatasource):
         col_obj.datasource = datasource
         col_obj.generate_metrics()
         sesh.flush()
-
 
     @staticmethod
     def time_offset(granularity):
@@ -524,7 +518,6 @@ class ElasticDatasource(Model, BaseDatasource):
         """Retrieve some values for the given column"""
         # TODO
 
-
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
 
@@ -564,10 +557,10 @@ class ElasticDatasource(Model, BaseDatasource):
         print(equery)
         data = client.search(index=self.index, body=equery)
         from pprint import pprint
-        print('-='*20)
-        print("query is : {}".format(equery))
+        print('-=' * 20)
+        print('query is : {}'.format(equery))
         pprint(data)
-        print('-='*20)
+        print('-=' * 20)
         query_str = self.query_str()
         qry_start_dttm = datetime.now()
         df = pd.DataFrame(data)
@@ -588,6 +581,7 @@ class ElasticDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
 
 sa.event.listen(ElasticDatasource, 'after_insert', set_perm)
 sa.event.listen(ElasticDatasource, 'after_update', set_perm)
