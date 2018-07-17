@@ -64,55 +64,24 @@ def console_log_run(app, port, use_reloader):
     run()
 
 
-<<<<<<< HEAD
-@manager.option(
-    '-d', '--debug', action='store_true',
-    help='Start the web server in debug mode')
-@manager.option(
-    '--console-log', action='store_true',
-    help='Create logger that logs to the browser console (implies -d)')
-@manager.option(
-    '-n', '--no-reload', action='store_false', dest='use_reloader',
-    default=config.get('FLASK_USE_RELOAD'),
-    help="Don't use the reloader in debug mode")
-@manager.option(
-    '-a', '--address', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
-    help='Specify the address to which to bind the web server')
-@manager.option(
-    '-p', '--port', default=config.get('SUPERSET_WEBSERVER_PORT'),
-    help='Specify the port on which to run the web server')
-@manager.option(
-    '-w', '--workers',
-    default=config.get('SUPERSET_WORKERS', 2),
-    help='Number of gunicorn web server workers to fire up [DEPRECATED]')
-@manager.option(
-    '-t', '--timeout', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-    help='Specify the timeout (seconds) for the gunicorn web server [DEPRECATED]')
-@manager.option(
-    '-s', '--socket', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
-    help='Path to a UNIX socket as an alternative to address:port, e.g. '
-         '/var/run/superset.sock. '
-         'Will override the address and port values. [DEPRECATED]')
-def runserver(debug, console_log, use_reloader, address, port, timeout, workers, socket):
-=======
 @app.cli.command()
 @click.option('--debug', '-d', is_flag=True, help="Start the web server in debug mode")
-@click.option('--no-reload', '-n', is_flag=True, default=config.get('FLASK_USE_RELOAD'),
+@click.option('--console-log', is_flag=True, help='Create logger that logs to the browser console (implies -d)')
+@click.option('----no-reload', '-n', flag_value=False, default=config.get('FLASK_USE_RELOAD'),
               help="Don't use the reloader in debug mode")
 @click.option('--address', '-a', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
               help="Specify the address to which to bind the web server")
 @click.option('--port', '-p', default=config.get('SUPERSET_WEBSERVER_PORT'),
               help="Specify the port on which to run the web server")
 @click.option('--workers', '-w', default=config.get('SUPERSET_WORKERS', 2),
-              help="Number of gunicorn web server workers to fire up")
+              help="Number of gunicorn web server workers to fire up [DEPRECATED]")
 @click.option('--timeout', '-t', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-              help="Specify the timeout (seconds) for the gunicorn web server")
+              help="Specify the timeout (seconds) for the gunicorn web server [DEPRECATED]")
 @click.option('--socket', '-s', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
               help='Path to a UNIX socket as an alternative to address:port, e.g. '
                    '/var/run/superset.sock. '
-                   'Will override the address and port values.')
-def runserver(debug, no_reload, address, port, timeout, workers, socket):
->>>>>>> Migrate flask_script to the Flask built-in click.
+                   'Will override the address and port values. [DEPRECATED]')
+def runserver(debug, console_log, use_reloader, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get('DEBUG') or console_log
     if debug:
@@ -214,27 +183,11 @@ def load_examples(load_test_data):
     data.load_deck_dash()
 
 
-<<<<<<< HEAD
-@manager.option(
-    '-d', '--datasource',
-    help=(
-        'Specify which datasource name to load, if omitted, all '
-        'datasources will be refreshed'
-    ),
-)
-@manager.option(
-    '-m', '--merge',
-    action='store_true',
-    help="Specify using 'merge' property during operation.",
-    default=False,
-)
-=======
 @app.cli.command()
 @click.option('--datasource', '-d', help='Specify which datasource name to load, if omitted, all '
                                          'datasources will be refreshed')
-@click.option('--merge', '-m', is_flag=True,
+@click.option('--merge', '-m', is_flag=True, default=False,
               help="Specify using 'merge' property during operation. Default value is False. ")
->>>>>>> Migrate flask_script to the Flask built-in click.
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
