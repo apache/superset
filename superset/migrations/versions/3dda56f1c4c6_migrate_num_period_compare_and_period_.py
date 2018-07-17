@@ -9,18 +9,20 @@ Create Date: 2018-07-05 15:19:14.609299
 from __future__ import division
 
 # revision identifiers, used by Alembic.
-revision = '3dda56f1c4c6'
-down_revision = 'bddc498dd179'
 
+import datetime
 import json
 
 from alembic import op
 import isodate
-import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Text
 
 from superset import db
+from superset.utils import parse_human_timedelta
+
+revision = '3dda56f1c4c6'
+down_revision = 'bddc498dd179'
 
 
 Base = declarative_base()
@@ -96,6 +98,8 @@ def format_seconds(value):
 
 
 def compute_time_compare(granularity, periods):
+    if not granularity:
+        return None
     # convert old db_engine_spec granularity to ISO duration
     if granularity in db_engine_specs_map:
         granularity = db_engine_specs_map[granularity]
