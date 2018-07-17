@@ -176,7 +176,7 @@ export default class DateFilterControl extends React.Component {
   }
   handleClick(e) {
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
-    if (this.startEndSectionRef.contains(e.target)) {
+    if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
       this.setState({ type: TYPES.CUSTOM_START_END });
     }
   }
