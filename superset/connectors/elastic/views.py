@@ -1,26 +1,30 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from datetime import datetime
 import logging
 
-import sqlalchemy as sqla
-
-from flask import Markup, flash, redirect
+from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-
-from flask_babel import lazy_gettext as _
-from flask_babel import gettext as __
-
-from superset import db, utils, appbuilder, security_manager
-from superset.connectors.connector_registry import ConnectorRegistry
 from flask_appbuilder.security.decorators import has_access
+from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
+import sqlalchemy as sqla
+
+from superset import appbuilder, db, security_manager, utils
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.views.base import BaseSupersetView
 from superset.views.base import (
-    SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
-    DatasourceFilter, get_datasource_exist_error_mgs)
-
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    ListWidgetWithCheckboxes, SupersetModelView, validate_json)
 from . import models
 
-appbuilder.add_separator("Sources", )
+appbuilder.add_separator('Sources')
 
 
 class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
@@ -35,27 +39,27 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     can_delete = False
     page_size = 500
     label_columns = {
-        'column_name': _("Column"),
-        'type': _("Type"),
-        'datasource': _("Datasource"),
-        'groupby': _("Groupable"),
-        'filterable': _("Filterable"),
-        'count_distinct': _("Count Distinct"),
-        'sum': _("Sum"),
-        'min': _("Min"),
-        'max': _("Max"),
+        'column_name': _('Column'),
+        'type': _('Type'),
+        'datasource': _('Datasource'),
+        'groupby': _('Groupable'),
+        'filterable': _('Filterable'),
+        'count_distinct': _('Count Distinct'),
+        'sum': _('Sum'),
+        'min': _('Min'),
+        'max': _('Max'),
     }
     description_columns = {
         'filterable': _(
-            "Whether this column is exposed in the `Filters` section "
-            "of the explore view."),
+            'Whether this column is exposed in the `Filters` section '
+            'of the explore view.'),
         'json': utils.markdown(
-            "this field can be used to specify  "
-            "a `dimensionSpec` as documented [here]"
-            "(http://elastic.io/docs/latest/querying/dimensionspecs.html). "
-            "Make sure to input valid JSON and that the "
-            "`outputName` matches the `column_name` defined "
-            "above.",
+            'this field can be used to specify  '
+            'a `dimensionSpec` as documented [here]'
+            '(http://elastic.io/docs/latest/querying/dimensionspecs.html). '
+            'Make sure to input valid JSON and that the '
+            '`outputName` matches the `column_name` defined '
+            'above.',
             True),
     }
 
@@ -65,6 +69,7 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, col):
         self.post_update(col)
+
 
 appbuilder.add_view_no_menu(ElasticColumnInlineView)
 
@@ -82,22 +87,22 @@ class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
     description_columns = {
         'metric_type': utils.markdown(
-            "use `postagg` as the metric type if you are defining a "
-            "[Elastic Post Aggregation]"
-            "(http://elastic.io/docs/latest/querying/post-aggregations.html)",
+            'use `postagg` as the metric type if you are defining a '
+            '[Elastic Post Aggregation]'
+            '(http://elastic.io/docs/latest/querying/post-aggregations.html)',
             True),
-        'is_restricted': _("Whether the access to this metric is restricted "
-                           "to certain roles. Only roles with the permission "
-                           "'metric access on XXX (the name of this metric)' "
-                           "are allowed to access this metric"),
+        'is_restricted': _('Whether the access to this metric is restricted '
+                           'to certain roles. Only roles with the permission '
+                           '\'metric access on XXX (the name of this metric)\' '
+                           'are allowed to access this metric'),
     }
     label_columns = {
-        'metric_name': _("Metric"),
-        'description': _("Description"),
-        'verbose_name': _("Verbose Name"),
-        'metric_type': _("Type"),
-        'json': _("JSON"),
-        'datasource': _("Elastic Datasource"),
+        'metric_name': _('Metric'),
+        'description': _('Description'),
+        'verbose_name': _('Verbose Name'),
+        'metric_type': _('Type'),
+        'json': _('JSON'),
+        'datasource': _('Elastic Datasource'),
     }
 
     def post_add(self, metric):
@@ -107,6 +112,7 @@ class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_update(self, metric):
         if metric.is_restricted:
             security_manager.merge_perm('metric_access', metric.get_perm())
+
 
 appbuilder.add_view_no_menu(ElasticMetricInlineView)
 
@@ -120,14 +126,14 @@ class ElasticClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     list_columns = ['cluster_name', 'metadata_last_refreshed']
     search_columns = ('cluster_name',)
     label_columns = {
-        'cluster_name': _("Cluster"),
-        'hosts_json': _("Hosts JSON configuration")
+        'cluster_name': _('Cluster'),
+        'hosts_json': _('Hosts JSON configuration'),
     }
     description_columns = {
         'hosts_json': _(
-            "A JSON string that represents a host, and array of host, "
-            "or anything else that ``elasticsearch.Elasticsearch()`` will "
-            "be able to interpret"),
+            'A JSON string that represents a host, and array of host, '
+            'or anything else that ``elasticsearch.Elasticsearch()`` will '
+            'be able to interpret'),
     }
 
     def pre_add(self, cluster):
@@ -139,14 +145,15 @@ class ElasticClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
+
 appbuilder.add_view(
     ElasticClusterModelView,
-    name="Elastic Clusters",
-    label=__("Elastic Clusters"),
-    icon="fa-cubes",
-    category="Sources",
-    category_label=__("Sources"),
-    category_icon='fa-database',)
+    name='Elastic Clusters',
+    label=__('Elastic Clusters'),
+    icon='fa-cubes',
+    category='Sources',
+    category_label=__('Sources'),
+    category_icon='fa-database')
 
 
 class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -163,7 +170,7 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner'
+        'datasource_name', 'cluster', 'description', 'owner',
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
@@ -171,44 +178,44 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     base_order = ('datasource_name', 'asc')
     description_columns = {
         'slices': _(
-            "The list of slices associated with this table. By "
-            "altering this datasource, you may change how these associated "
-            "slices behave. "
-            "Also note that slices need to point to a datasource, so "
-            "this form will fail at saving if removing slices from a "
-            "datasource. If you want to change the datasource for a slice, "
-            "overwrite the slice from the 'explore view'"),
-        'offset': _("Timezone offset (in hours) for this datasource"),
+            'The list of slices associated with this table. By '
+            'altering this datasource, you may change how these associated '
+            'slices behave. '
+            'Also note that slices need to point to a datasource, so '
+            'this form will fail at saving if removing slices from a '
+            'datasource. If you want to change the datasource for a slice, '
+            'overwrite the slice from the \'explore view\''),
+        'offset': _('Timezone offset (in hours) for this datasource'),
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
         'fetch_values_from': _(
-            "Time expression to use as a predicate when retrieving "
-            "distinct values to populate the filter component. "
-            "Only applies when `Enable Filter Select` is on. If "
-            "you enter `7 days ago`, the distinct list of values in "
-            "the filter will be populated based on the distinct value over "
-            "the past week"),
+            'Time expression to use as a predicate when retrieving '
+            'distinct values to populate the filter component. '
+            'Only applies when `Enable Filter Select` is on. If '
+            'you enter `7 days ago`, the distinct list of values in '
+            'the filter will be populated based on the distinct value over '
+            'the past week'),
         'filter_select_enabled': _(
-            "Whether to populate the filter's dropdown in the explore "
-            "view's filter section with a list of distinct values fetched "
-            "from the backend on the fly"),
+            'Whether to populate the filter\'s dropdown in the explore '
+            'view\'s filter section with a list of distinct values fetched '
+            'from the backend on the fly'),
         'default_endpoint': _(
-            "Redirects to this endpoint when clicking on the datasource "
-            "from the datasource list"),
+            'Redirects to this endpoint when clicking on the datasource '
+            'from the datasource list'),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
-        'slices': _("Associated Slices"),
-        'datasource_link': _("Data Source"),
-        'cluster': _("Cluster"),
-        'description': _("Description"),
-        'owner': _("Owner"),
-        'is_hidden': _("Is Hidden"),
-        'filter_select_enabled': _("Enable Filter Select"),
-        'default_endpoint': _("Default Endpoint"),
-        'offset': _("Time Offset"),
-        'cache_timeout': _("Cache Timeout"),
+        'slices': _('Associated Slices'),
+        'datasource_link': _('Data Source'),
+        'cluster': _('Cluster'),
+        'description': _('Description'),
+        'owner': _('Owner'),
+        'is_hidden': _('Is Hidden'),
+        'filter_select_enabled': _('Enable Filter Select'),
+        'default_endpoint': _('Default Endpoint'),
+        'offset': _('Time Offset'),
+        'cache_timeout': _('Cache Timeout'),
     }
 
     def pre_add(self, datasource):
@@ -216,7 +223,7 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             sqla.func.count('*')).filter(
             models.ElasticDatasource.datasource_name ==
                 datasource.datasource_name,
-            models.ElasticDatasource.cluster_name == datasource.cluster.id
+            models.ElasticDatasource.cluster_name == datasource.cluster.id,
         ).scalar()
 
         # table object is already added to the session
@@ -236,50 +243,52 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
+
 appbuilder.add_view(
     ElasticDatasourceModelView,
-    "Elastic Datasources",
-    label=__("Elastic Datasources"),
-    category="Sources",
-    category_label=__("Sources"),
-    icon="fa-cube")
+    'Elastic Datasources',
+    label=__('Elastic Datasources'),
+    category='Sources',
+    category_label=__('Sources'),
+    icon='fa-cube')
 
 
 class Elastic(BaseSupersetView):
     """The base views for Superset!"""
 
     @has_access
-    @expose("/refresh_datasources/")
+    @expose('/refresh_datasources/')
     def refresh_datasources(self):
         """endpoint that refreshes elastic datasources metadata"""
         session = db.session()
-        ElasticCluster = ConnectorRegistry.sources['elastic'].cluster_class
-        for cluster in session.query(ElasticCluster).all():
+        elastic_cluster = ConnectorRegistry.sources['elastic'].cluster_class
+        for cluster in session.query(elastic_cluster).all():
             cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
             except Exception as e:
                 flash(
-                    "Error while processing cluster '{}'\n{}".format(
+                    'Error while processing cluster \'{}\'\n{}'.format(
                         cluster_name, utils.error_msg_from_exception(e)),
-                    "danger")
+                    'danger')
                 logging.exception(e)
                 return redirect('/elasticclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
-                "Refreshed metadata from cluster "
-                "[" + cluster.cluster_name + "]",
+                'Refreshed metadata from cluster '
+                '[' + cluster.cluster_name + ']',
                 'info')
         session.commit()
-        return redirect("/elasticdatasourcemodelview/list/")
+        return redirect('/elasticdatasourcemodelview/list/')
+
 
 appbuilder.add_view_no_menu(Elastic)
 
 appbuilder.add_link(
-    "Refresh Elastic Metadata",
-    label=__("Refresh Elastic Metadata"),
+    'Refresh Elastic Metadata',
+    label=__('Refresh Elastic Metadata'),
     href='/elastic/refresh_datasources/',
     category='Sources',
-    category_label=__("Sources"),
+    category_label=__('Sources'),
     category_icon='fa-database',
-    icon="fa-cog")
+    icon='fa-cog')
