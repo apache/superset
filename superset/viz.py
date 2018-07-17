@@ -1901,7 +1901,7 @@ class HeatmapViz(BaseViz):
         if overall:
             df['perc'] = (df.v - min_) / (max_ - min_)
             df['rank'] = df.v.rank(pct=True)
-        df[['x', 'y']] = df[['x', 'y']].fillna('Null')
+        df[['x', 'y']] = df[['x', 'y']].fillna('<NULL>')
         return {
             'records': df.to_dict(orient='records'),
             'extents': [min_, max_],
