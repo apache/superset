@@ -38,7 +38,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.exceptions import NullValueException
+from superset.exceptions import NullValueException, SpatialException
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
@@ -66,6 +66,9 @@ class BaseViz(object):
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
+
+        utils.since_until_to_time_range(form_data)
+
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get('viz_type')
@@ -258,21 +261,9 @@ class BaseViz(object):
         # default order direction
         order_desc = form_data.get('order_desc', True)
 
-        since = form_data.get('since', '')
-        until = form_data.get('until', 'now')
+        since, until = utils.get_since_until(form_data)
         time_shift = form_data.get('time_shift', '')
-
-        # Backward compatibility hack
-        if since:
-            since_words = since.split(' ')
-            grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
-            if (len(since_words) == 2 and since_words[1] in grains):
-                since += ' ago'
-
         self.time_shift = utils.parse_human_timedelta(time_shift)
-
-        since = utils.parse_human_datetime(since)
-        until = utils.parse_human_datetime(until)
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
@@ -509,7 +500,7 @@ class TableViz(BaseViz):
                 'Choose either fields to [Group By] and [Metrics] or '
                 '[Columns], not both'))
 
-        sort_by = fd.get('timeseries_limit_metric') or []
+        sort_by = fd.get('timeseries_limit_metric')
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
@@ -783,8 +774,7 @@ class CalHeatmapViz(BaseViz):
                 for obj in records
             }
 
-        start = utils.parse_human_datetime(form_data.get('since'))
-        end = utils.parse_human_datetime(form_data.get('until'))
+        start, end = utils.get_since_until(form_data)
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')
@@ -1191,18 +1181,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if min_periods:
             df = df[min_periods:]
 
-        num_period_compare = fd.get('num_period_compare')
-        if num_period_compare:
-            num_period_compare = int(num_period_compare)
-            prt = fd.get('period_ratio_type')
-            if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
-            elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
-            else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
         return df
 
     def run_extra_queries(self):
@@ -1213,8 +1191,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if not isinstance(time_compare, list):
             time_compare = [time_compare]
 
-        classes = ['time-shift-{}'.format(i) for i in range(10)]
-        i = 0
         for option in time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(option)
@@ -1229,24 +1205,50 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['to_dttm'] -= delta
 
             df2 = self.get_df_payload(query_object).get('df')
-            if df2 is not None:
-                classed = classes[i % len(classes)]
-                i += 1
+            if df2 is not None and DTTM_ALIAS in df2:
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data.extend(self.to_series(
-                    df2, classed=classed, title_suffix=label))
+                self._extra_chart_data.append((label, df2))
 
     def get_data(self, df):
+        fd = self.form_data
+        comparison_type = fd.get('comparison_type') or 'values'
         df = self.process_data(df)
-        chart_data = self.to_series(df)
 
-        if self._extra_chart_data:
-            chart_data += self._extra_chart_data
-            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
+        if comparison_type == 'values':
+            chart_data = self.to_series(df)
+            for i, (label, df2) in enumerate(self._extra_chart_data):
+                chart_data.extend(
+                    self.to_series(
+                        df2, classed='time-shift-{}'.format(i), title_suffix=label))
+        else:
+            chart_data = []
+            for i, (label, df2) in enumerate(self._extra_chart_data):
+                # reindex df2 into the df2 index
+                combined_index = df.index.union(df2.index)
+                df2 = df2.reindex(combined_index) \
+                    .interpolate(method='time') \
+                    .reindex(df.index)
 
-        return chart_data
+                if comparison_type == 'absolute':
+                    diff = df - df2
+                elif comparison_type == 'percentage':
+                    diff = (df - df2) / df2
+                elif comparison_type == 'ratio':
+                    diff = df / df2
+                else:
+                    raise Exception(
+                        'Invalid `comparison_type`: {0}'.format(comparison_type))
+
+                # remove leading/trailing NaNs from the time shift difference
+                diff = diff[diff.first_valid_index():diff.last_valid_index()]
+
+                chart_data.extend(
+                    self.to_series(
+                        diff, classed='time-shift-{}'.format(i), title_suffix=label))
+
+        return sorted(chart_data, key=lambda x: tuple(x['key']))
 
 
 class MultiLineViz(NVD3Viz):
@@ -2082,6 +2084,17 @@ class BaseDeckGLViz(BaseViz):
         elif spatial.get('type') == 'geohash':
             group_by += [spatial.get('geohashCol')]
 
+    @staticmethod
+    def parse_coordinates(s):
+        if not s:
+            return None
+        try:
+            p = Point(s)
+        except Exception:
+            raise SpatialException(
+                _('Invalid spatial point encountered: %s' % s))
+        return (p.latitude, p.longitude)
+
     def process_spatial_data_obj(self, key, df):
         spatial = self.form_data.get(key)
         if spatial is None:
@@ -2092,19 +2105,15 @@ class BaseDeckGLViz(BaseViz):
                 pd.to_numeric(df[spatial.get('latCol')], errors='coerce'),
             ))
         elif spatial.get('type') == 'delimited':
-
-            def tupleify(s):
-                p = Point(s)
-                return (p.latitude, p.longitude)
-
-            df[key] = df[spatial.get('lonlatCol')].apply(tupleify)
+            lon_lat_col = spatial.get('lonlatCol')
+            df[key] = df[lon_lat_col].apply(self.parse_coordinates)
 
             if spatial.get('reverseCheckbox'):
                 df[key] = [
                     tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
                     for o in df[key]
                 ]
-            del df[spatial.get('lonlatCol')]
+            del df[lon_lat_col]
         elif spatial.get('type') == 'geohash':
             latlong = df[spatial.get('geohashCol')].map(geohash.decode)
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
@@ -2114,7 +2123,6 @@ class BaseDeckGLViz(BaseViz):
         if df.get(key) is None:
             raise NullValueException(_('Encountered invalid NULL spatial entry, \
                                        please consider filtering those out'))
-
         return df
 
     def query_obj(self):
@@ -2148,6 +2156,8 @@ class BaseDeckGLViz(BaseViz):
     def get_data(self, df):
         if df is None:
             return None
+
+        # Processing spatial info
         for key in self.spatial_control_keys:
             df = self.process_spatial_data_obj(key, df)
 
@@ -2194,8 +2204,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         return {
-            'metric': d.get(self.metric),
-            'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
+            'metric': d.get(self.metric_label),
+            'radius': self.fixed_value if self.fixed_value else d.get(self.metric_label),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
             DTTM_ALIAS: d.get(DTTM_ALIAS),
@@ -2203,6 +2213,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_data(self, df):
         fd = self.form_data
+        self.metric_label = \
+            self.get_metric_label(self.metric) if self.metric else None
         self.point_radius_fixed = fd.get('point_radius_fixed')
         self.fixed_value = None
         self.dim = self.form_data.get('dimension')
@@ -2228,9 +2240,13 @@ class DeckScreengrid(BaseDeckGLViz):
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
-            'weight': d.get(self.metric) or 1,
+            'weight': d.get(self.metric_label) or 1,
             '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckScreengrid, self).get_data(df)
 
 
 class DeckGrid(BaseDeckGLViz):
@@ -2244,8 +2260,12 @@ class DeckGrid(BaseDeckGLViz):
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
-            'weight': d.get(self.metric) or 1,
+            'weight': d.get(self.metric_label) or 1,
         }
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckGrid, self).get_data(df)
 
 
 class DeckPathViz(BaseDeckGLViz):
@@ -2300,8 +2320,12 @@ class DeckHex(BaseDeckGLViz):
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
-            'weight': d.get(self.metric) or 1,
+            'weight': d.get(self.metric_label) or 1,
         }
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckHex, self).get_data(df)
 
 
 class DeckGeoJson(BaseDeckGLViz):
