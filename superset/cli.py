@@ -67,7 +67,7 @@ def console_log_run(app, port, use_reloader):
 @app.cli.command()
 @click.option('--debug', '-d', is_flag=True, help="Start the web server in debug mode")
 @click.option('--console-log', is_flag=True, help='Create logger that logs to the browser console (implies -d)')
-@click.option('----no-reload', '-n', flag_value=False, default=config.get('FLASK_USE_RELOAD'),
+@click.option('--no-reload', '-n', 'use_reloader', flag_value=False, default=config.get('FLASK_USE_RELOAD'),
               help="Don't use the reloader in debug mode")
 @click.option('--address', '-a', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
               help="Specify the address to which to bind the web server")
