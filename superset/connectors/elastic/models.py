@@ -19,27 +19,17 @@ import pandas as pd
 from six import string_types
 import sqlalchemy as sa
 import pandas as pd
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime,
-)
+from six import string_types
+import sqlalchemy as sa
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
+                        Text)
 from sqlalchemy.orm import backref, relationship
-from dateutil.parser import parse as dparse
 
-from flask import Markup, escape
-from flask_appbuilder.models.decorators import renders
-from flask_appbuilder import Model
-
-from flask_babel import lazy_gettext as _
-
-from elasticsearch import Elasticsearch
-
-from superset import conf, db, import_util, utils, security_manager
-from superset.utils import flasher
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
+from superset import db, import_util, security_manager, utils
+from superset.connectors.base.models import (BaseColumn, BaseDatasource,
+                                             BaseMetric)
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 from superset.utils import flasher
-
 
 
 class ElasticCluster(Model, AuditMixinNullable):
@@ -57,7 +47,7 @@ class ElasticCluster(Model, AuditMixinNullable):
 
     def __repr__(self):
         return self.cluster_name
-    
+
     @property
     def data(self):
         return {
@@ -429,7 +419,7 @@ class ElasticDatasource(Model, BaseDatasource):
     @classmethod
     def sync_to_db(cls, name, metadata, cluster):
         """Fetches metadata for that datasource and merges the Superset db"""
-        logging.info("Syncing Elastic datasource [{}]".format(name))
+        logging.info('Syncing Elastic datasource [{}]'.format(name))
         session = db.session
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
@@ -597,6 +587,7 @@ class ElasticDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
 
 sa.event.listen(ElasticDatasource, 'after_insert', set_perm)
 sa.event.listen(ElasticDatasource, 'after_update', set_perm)

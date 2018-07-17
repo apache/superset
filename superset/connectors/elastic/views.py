@@ -16,9 +16,8 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import sqlalchemy as sqla
 
-from superset import db, utils, appbuilder, security_manager
+from superset import appbuilder, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
-from flask_appbuilder.security.decorators import has_access
 from superset.views.base import BaseSupersetView
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
@@ -71,6 +70,7 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_add(self, col):
         self.post_update(col)
 
+
 appbuilder.add_view_no_menu(ElasticColumnInlineView)
 
 
@@ -112,6 +112,7 @@ class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_update(self, metric):
         if metric.is_restricted:
             security_manager.merge_perm('metric_access', metric.get_perm())
+
 
 appbuilder.add_view_no_menu(ElasticMetricInlineView)
 
