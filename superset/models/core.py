@@ -619,6 +619,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     expose_in_sqllab = Column(Boolean, default=False)
     allow_run_sync = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
+    allow_csv_upload = Column(Boolean, default=True)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
@@ -634,7 +635,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-                     'allow_ctas', 'extra')
+                     'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
     def __repr__(self):
