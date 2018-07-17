@@ -11,14 +11,16 @@ import logging
 from subprocess import Popen
 from sys import stdout
 
+import click
 from colorama import Fore, Style
 from flask.cli import FlaskGroup
 from pathlib2 import Path
 import werkzeug.serving
 import yaml
-import click
 
-from superset import app, data, db, dict_import_export_util, security_manager, utils, create_app
+from superset import (
+    app, create_app, data, db, dict_import_export_util, security_manager, utils,
+)
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -65,18 +67,21 @@ def console_log_run(app, port, use_reloader):
 
 
 @app.cli.command()
-@click.option('--debug', '-d', is_flag=True, help="Start the web server in debug mode")
-@click.option('--console-log', is_flag=True, help='Create logger that logs to the browser console (implies -d)')
-@click.option('--no-reload', '-n', 'use_reloader', flag_value=False, default=config.get('FLASK_USE_RELOAD'),
-              help="Don't use the reloader in debug mode")
+@click.option('--debug', '-d', is_flag=True, help='Start the web server in debug mode')
+@click.option('--console-log', is_flag=True,
+              help='Create logger that logs to the browser console (implies -d)')
+@click.option('--no-reload', '-n', 'use_reloader', flag_value=False,
+              default=config.get('FLASK_USE_RELOAD'),
+              help='Don\'t use the reloader in debug mode')
 @click.option('--address', '-a', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
-              help="Specify the address to which to bind the web server")
+              help='Specify the address to which to bind the web server')
 @click.option('--port', '-p', default=config.get('SUPERSET_WEBSERVER_PORT'),
-              help="Specify the port on which to run the web server")
+              help='Specify the port on which to run the web server')
 @click.option('--workers', '-w', default=config.get('SUPERSET_WORKERS', 2),
-              help="Number of gunicorn web server workers to fire up [DEPRECATED]")
+              help='Number of gunicorn web server workers to fire up [DEPRECATED]')
 @click.option('--timeout', '-t', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-              help="Specify the timeout (seconds) for the gunicorn web server [DEPRECATED]")
+              help='Specify the timeout (seconds) for the '
+                   'gunicorn web server [DEPRECATED]')
 @click.option('--socket', '-s', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
               help='Path to a UNIX socket as an alternative to address:port, e.g. '
                    '/var/run/superset.sock. '
@@ -116,7 +121,7 @@ def runserver(debug, console_log, use_reloader, address, port, timeout, workers,
 
 
 @app.cli.command()
-@click.option('--verbose', '-v', is_flag=True, help="Show extra information")
+@click.option('--verbose', '-v', is_flag=True, help='Show extra information')
 def version(verbose):
     """Prints the current version number"""
     print(Fore.BLUE + '-=' * 15)
@@ -129,7 +134,7 @@ def version(verbose):
 
 
 @app.cli.command()
-@click.option('--load-test-data', is_flag=True, help="Load additional test data")
+@click.option('--load-test-data', is_flag=True, help='Load additional test data')
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print('Loading examples into {}'.format(db))
@@ -184,10 +189,11 @@ def load_examples(load_test_data):
 
 
 @app.cli.command()
-@click.option('--datasource', '-d', help='Specify which datasource name to load, if omitted, all '
-                                         'datasources will be refreshed')
+@click.option('--datasource', '-d', help='Specify which datasource name to load, if '
+                                         'omitted, all datasources will be refreshed')
 @click.option('--merge', '-m', is_flag=True, default=False,
-              help="Specify using 'merge' property during operation. Default value is False. ")
+              help='Specify using \'merge\' property during operation. '
+                   'Default value is False.')
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
