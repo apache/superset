@@ -3,7 +3,12 @@ import 'babel-polyfill';
 import chai from 'chai';
 import jsdom from 'jsdom';
 
-require('babel-register')();
+require('babel-register')({
+  // NOTE: If `dynamic-import-node` is in .babelrc alongside
+  // `syntax-dynamic-import` it breaks webpack's bundle splitting capability.
+  // So only load during runtime on the node-side (in tests)
+  plugins: ['dynamic-import-node'],
+});
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
