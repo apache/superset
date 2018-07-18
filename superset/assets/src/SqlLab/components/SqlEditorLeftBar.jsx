@@ -1,4 +1,5 @@
-/* global notify */
+/* global window */
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
@@ -9,7 +10,7 @@ import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
 import { t } from '../../locales';
 
-const $ = window.$ = require('jquery');
+const $ = require('jquery');
 
 const propTypes = {
   queryEditor: PropTypes.object.isRequired,
@@ -62,10 +63,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     const options = data.result.map(db => ({ value: db.id, label: db.database_name }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
-      this.props.actions.addAlert({
-        bsStyle: 'danger',
-        msg: t('It seems you don\'t have access to any database'),
-      });
+      this.props.actions.addDangerToast(t('It seems you don\'t have access to any database'));
     }
     return options;
   }
@@ -88,7 +86,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       })
       .fail(() => {
         this.setState({ tableLoading: false, tableOptions: [], tableLength: 0 });
-        notify.error(t('Error while fetching table list'));
+        this.props.actions.addDangerToast(t('Error while fetching table list'));
       });
     } else {
       this.setState({ tableLoading: false, tableOptions: [], filterOptions: null });
@@ -129,7 +127,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       })
       .fail(() => {
         this.setState({ schemaLoading: false, schemaOptions: [] });
-        notify.error(t('Error while fetching schema list'));
+        this.props.actions.addDangerToast(t('Error while fetching schema list'));
       });
     }
   }
@@ -159,7 +157,9 @@ class SqlEditorLeftBar extends React.PureComponent {
               '_od_DatabaseAsync=asc'
             }
             onChange={this.onDatabaseChange.bind(this)}
-            onAsyncError={() => notify.error(t('Error while fetching database list'))}
+            onAsyncError={() => {
+              this.props.actions.addDangerToast(t('Error while fetching database list'));
+            }}
             value={this.props.queryEditor.dbId}
             databaseId={this.props.queryEditor.dbId}
             actions={this.props.actions}

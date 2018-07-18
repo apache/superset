@@ -86,7 +86,7 @@ class SouthPane extends React.PureComponent {
             title={t('Query History')}
             eventKey="History"
           >
-            <div style={{ height: `${innerTabHeight}px`, overflow: 'scroll' }}>
+            <div style={{ height: `${innerTabHeight}px`, overflow: 'auto' }}>
               <QueryHistory queries={props.editorQueries} actions={props.actions} />
             </div>
           </Tab>
@@ -97,9 +97,9 @@ class SouthPane extends React.PureComponent {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    activeSouthPaneTab: state.activeSouthPaneTab,
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
   };
 }
 

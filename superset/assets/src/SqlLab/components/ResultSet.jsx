@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 
+import Loading from '../../components/Loading';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
@@ -29,6 +30,8 @@ const defaultProps = {
 };
 
 const SEARCH_HEIGHT = 46;
+
+const LOADING_STYLES = { position: 'relative', height: 50 };
 
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
@@ -237,9 +240,9 @@ export default class ResultSet extends React.PureComponent {
       );
     }
     return (
-      <div>
-        <img className="loading" alt={t('Loading...')} src="/static/assets/images/loading.gif" />
+      <div style={LOADING_STYLES}>
         <QueryStateLabel query={query} />
+        {!progressBar && <Loading />}
         {progressBar}
         <div>
           {trackingUrl}

@@ -3,7 +3,7 @@ import URI from 'urijs';
 
 export function getChartKey(explore) {
   const slice = explore.slice;
-  return slice ? ('slice_' + slice.slice_id) : 'slice';
+  return slice ? (slice.slice_id) : 0;
 }
 
 export function getAnnotationJsonUrl(slice_id, form_data, isNative) {

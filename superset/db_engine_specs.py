@@ -30,6 +30,7 @@ import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
+from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
@@ -37,10 +38,10 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
-import unicodecsv
+from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, utils
+from superset import app, cache_util, conf, db, sql_parse, utils
 from superset.exceptions import SupersetTemplateException
 from superset.utils import QueryStatus
 
@@ -83,7 +84,12 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if isinstance(type_code, basestring) and len(type_code):
+            return type_code.upper()
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
@@ -104,37 +110,24 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            sql_without_limit = cls.get_query_without_limit(sql)
-            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+            parsed_query = sql_parse.SupersetQuery(sql)
+            sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        limit_pattern = re.compile(r"""
-                (?ix)          # case insensitive, verbose
-                \s+            # whitespace
-                LIMIT\s+(\d+)  # LIMIT $ROWS
-                ;?             # optional semi-colon
-                (\s|;)*$       # remove trailing spaces tabs or semicolons
-                """)
-        matches = limit_pattern.findall(sql)
-        if matches:
-            return int(matches[0][0])
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.limit
 
     @classmethod
-    def get_query_without_limit(cls, sql):
-        return re.sub(r"""
-                (?ix)        # case insensitive, verbose
-                \s+          # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
-                """, '', sql)
+    def get_query_with_new_limit(cls, sql, limit):
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
     def csv_to_df(**kwargs):
         kwargs['filepath_or_buffer'] = \
-            app.config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
+            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
         kwargs['encoding'] = 'utf-8'
         kwargs['iterator'] = True
         chunks = pandas.read_csv(**kwargs)
@@ -156,7 +149,7 @@ class BaseEngineSpec(object):
         def _allowed_file(filename):
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in app.config['ALLOWED_EXTENSIONS']
+            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
@@ -418,6 +411,10 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
@@ -592,6 +589,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
               'P1W'),
     )
+    type_code_map = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -605,6 +603,23 @@ class MySQLEngineSpec(BaseEngineSpec):
         if selected_schema:
             uri.database = selected_schema
         return uri
+
+    @classmethod
+    def get_datatype(cls, type_code):
+        if not cls.type_code_map:
+            # only import and store if needed at least once
+            import MySQLdb
+            ft = MySQLdb.constants.FIELD_TYPE
+            cls.type_code_map = {
+                getattr(ft, k): k
+                for k in dir(ft)
+                if not k.startswith('_')
+            }
+        datatype = type_code
+        if isinstance(type_code, int):
+            datatype = cls.type_code_map.get(type_code)
+        if datatype and isinstance(datatype, basestring) and len(datatype):
+            return datatype
 
     @classmethod
     def epoch_to_dttm(cls):
@@ -973,28 +988,58 @@ class HiveEngineSpec(PrestoEngineSpec):
     @staticmethod
     def create_table_from_csv(form, table):
         """Uploads a csv file and creates a superset datasource in Hive."""
-        def get_column_names(filepath):
-            with open(filepath, 'rb') as f:
-                return next(unicodecsv.reader(f, encoding='utf-8-sig'))
+        def convert_to_hive_type(col_type):
+            """maps tableschema's types to hive types"""
+            tableschema_to_hive_types = {
+                'boolean': 'BOOLEAN',
+                'integer': 'INT',
+                'number': 'DOUBLE',
+                'string': 'STRING',
+            }
+            return tableschema_to_hive_types.get(col_type, 'STRING')
 
         table_name = form.name.data
-        filename = form.csv_file.data.filename
+        schema_name = form.schema.data
 
-        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
+        if config.get('UPLOADED_CSV_HIVE_NAMESPACE'):
+            if '.' in table_name or schema_name:
+                raise Exception(
+                    "You can't specify a namespace. "
+                    'All tables will be uploaded to the `{}` namespace'.format(
+                        config.get('HIVE_NAMESPACE')))
+            table_name = '{}.{}'.format(
+                config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
+        else:
+            if '.' in table_name and schema_name:
+                raise Exception(
+                    "You can't specify a namespace both in the name of the table "
+                    'and in the schema field. Please remove one')
+            if schema_name:
+                table_name = '{}.{}'.format(schema_name, table_name)
+
+        filename = form.csv_file.data.filename
+        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
             logging.info('No upload bucket specified')
             raise Exception(
                 'No upload bucket specified. You can specify one in the config file.')
 
-        upload_prefix = app.config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
-        dest_path = os.path.join(table_name, filename)
+        table_name = form.name.data
+        filename = form.csv_file.data.filename
+        upload_prefix = config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
 
-        upload_path = app.config['UPLOAD_FOLDER'] + \
+        upload_path = config['UPLOAD_FOLDER'] + \
             secure_filename(form.csv_file.data.filename)
-        column_names = get_column_names(upload_path)
-        schema_definition = ', '.join(
-            [s + ' STRING ' for s in column_names])
+
+        hive_table_schema = Table(upload_path).infer()
+        column_name_and_type = []
+        for column_info in hive_table_schema['fields']:
+            column_name_and_type.append(
+                '{} {}'.format(
+                    "'" + column_info['name'] + "'",
+                    convert_to_hive_type(column_info['type'])))
+        schema_definition = ', '.join(column_name_and_type)
 
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
@@ -1376,6 +1421,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         Grain('quarter', _('quarter'), "TRUNC({col}, 'Q')", 'P0.25Y'),
         Grain('year', _('year'), "TRUNC({col}, 'YYYY')", 'P1Y'),
     )
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return 'from_unixtime({col})'
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

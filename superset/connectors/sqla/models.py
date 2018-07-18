@@ -306,8 +306,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        return Markup(
-            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
+        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor.format(**locals()))
 
     @property
     def schema_perm(self):
@@ -368,6 +368,10 @@ class SqlaTable(Model, BaseDatasource):
             'time_columns': self.dttm_cols,
             'time_grains': [grain.name for grain in self.database.grains()],
         }
+
+    @property
+    def select_star(self):
+        return self.database.select_star(self.name, show_cols=True)
 
     def get_col(self, col_name):
         columns = self.columns

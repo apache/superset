@@ -20,7 +20,7 @@ describe('Chart', () => {
   };
   const mockedProps = {
     ...chart,
-    chartKey: 'slice_223',
+    id: 223,
     containerId: 'slice-container-223',
     datasource: {},
     formData: {},
@@ -38,10 +38,10 @@ describe('Chart', () => {
       <Chart {...mockedProps} />,
     );
   });
-  describe('renderViz', () => {
+  describe('renderVis', () => {
     let stub;
     beforeEach(() => {
-      stub = sinon.stub(wrapper.instance(), 'renderViz');
+      stub = sinon.stub(wrapper.instance(), 'renderVis');
     });
     afterEach(() => {
       stub.restore();

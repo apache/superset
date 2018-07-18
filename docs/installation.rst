@@ -50,7 +50,7 @@ initialize development environment: ::
     docker-compose exec superset bash
     bash docker-init.sh
 
-After several minutes for sueprset initialization to finish, you can open a 
+After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
 Or if you're curious and want to install superset from bottom up, then go 
@@ -74,7 +74,7 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
-**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also
+**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
 

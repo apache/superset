@@ -3,12 +3,17 @@ import { expect } from 'chai';
 
 import * as r from '../../../src/SqlLab/reducers';
 import * as actions from '../../../src/SqlLab/actions';
-import { alert, table, initialState } from './fixtures';
+import { table, initialState as mockState } from './fixtures';
+
+const initialState = mockState.sqlLab;
 
 describe('sqlLabReducer', () => {
   describe('CLONE_QUERY_TO_NEW_TAB', () => {
     const testQuery = { sql: 'SELECT * FROM...', dbId: 1, id: 'flasj233' };
-    let newState = Object.assign({}, initialState, { queries: { [testQuery.id]: testQuery } });
+    let newState = {
+      ...initialState,
+      queries: { [testQuery.id]: testQuery },
+    };
     beforeEach(() => {
       newState = r.sqlLabReducer(newState, actions.cloneQueryToNewTab(testQuery));
     });
@@ -29,24 +34,12 @@ describe('sqlLabReducer', () => {
       expect(newState.tabHistory[1]).to.eq(newState.queryEditors[1].id);
     });
   });
-  describe('Alerts', () => {
-    const state = Object.assign({}, initialState);
-    let newState;
-    it('should add one alert', () => {
-      newState = r.sqlLabReducer(state, actions.addAlert(alert));
-      expect(newState.alerts).to.have.lengthOf(1);
-    });
-    it('should remove one alert', () => {
-      newState = r.sqlLabReducer(newState, actions.removeAlert(newState.alerts[0]));
-      expect(newState.alerts).to.have.lengthOf(0);
-    });
-  });
   describe('Query editors actions', () => {
     let newState;
     let defaultQueryEditor;
     let qe;
     beforeEach(() => {
-      newState = Object.assign({}, initialState);
+      newState = { ...initialState };
       defaultQueryEditor = newState.queryEditors[0];
       qe = Object.assign({}, defaultQueryEditor);
       newState = r.sqlLabReducer(newState, actions.addQueryEditor(qe));
@@ -134,8 +127,8 @@ describe('sqlLabReducer', () => {
     let query;
     let newQuery;
     beforeEach(() => {
-      newState = Object.assign({}, initialState);
-      newQuery = Object.assign({}, query);
+      newState = { ...initialState };
+      newQuery = { ...query };
     });
     it('should start a query', () => {
       newState = r.sqlLabReducer(newState, actions.startQuery(newQuery));

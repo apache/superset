@@ -24,6 +24,7 @@ import sqlalchemy as sqla
 
 from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
@@ -226,6 +227,14 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(url.format(tbl_id, slice_id))
         assert len(resp) > 0
         assert 'Carbon Dioxide' in resp
+
+    def test_slice_data(self):
+        # slice data should have some required attributes
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        slc_data_attributes = slc.data.keys()
+        assert('changed_on' in slc_data_attributes)
+        assert('modified' in slc_data_attributes)
 
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
@@ -618,8 +627,7 @@ class CoreTests(SupersetTestCase):
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
             (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
         ]
-        df = dataframe.SupersetDataFrame(pd.DataFrame(data=list(data),
-                                                      columns=['data']))
+        df = dataframe.SupersetDataFrame(list(data), [['data']], BaseEngineSpec)
         data = df.data
         self.assertDictEqual(
             data[0],
