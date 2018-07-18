@@ -20,7 +20,6 @@ from __future__ import unicode_literals
 
 from collections import defaultdict, namedtuple
 import inspect
-import itertools
 import logging
 import os
 import re

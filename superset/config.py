@@ -205,18 +205,23 @@ CSV_EXPORT = {
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
 # time grains in superset/db_engine_specs.builtin_time_grains).
-# Example: to disable 1 second time grain, define
+# For example: to disable 1 second time grain:
 # TIME_GRAIN_BLACKLIST = ['PT1S']
 TIME_GRAIN_BLACKLIST = []
+
 # Additional time grains to be supported using similar definitions as in
-# superset/db_engine_specs.builtin_time_grains. To add a new 2 second
-# time grain define
+# superset/db_engine_specs.builtin_time_grains.
+# For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
 TIME_GRAIN_ADDONS = {}
-# Implementation of additional time grains per engine. Example: To
-# implement 2 second time grain on clickhouse engine define
-# TIME_GRAIN_ADDON_FUNCTIONS = {'clickhouse': {'PT2S': 
-# 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'}}
+
+# Implementation of additional time grains per engine.
+# For example: To implement 2 second time grain on clickhouse engine:
+# TIME_GRAIN_ADDON_FUNCTIONS = {
+#     'clickhouse': {
+#         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
+#     }
+# }
 TIME_GRAIN_ADDON_FUNCTIONS = {}
 
 # ---------------------------------------------------
