@@ -5,6 +5,7 @@ import CopyToClipboard from './../../components/CopyToClipboard';
 import { getShortUrl } from '../../utils/common';
 import { getExploreLongUrl } from '../exploreUtils';
 import { t } from '../../locales';
+import withToasts from '../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
