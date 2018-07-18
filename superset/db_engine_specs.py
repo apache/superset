@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 
 from collections import defaultdict, namedtuple
 import inspect
+import itertools
 import logging
 import os
 import re
@@ -52,33 +53,33 @@ hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
 Grain = namedtuple('Grain', 'name label function duration')
 
-supported_time_grains = {
-    None: ('Time Column', _('Time Column')),
-    'PT1S': ('second', _('second')),
-    'PT1M': ('minute', _('minute')),
-    'PT5M': ('5 minute', _('5 minute')),
-    'PT10M': ('10 minute', _('10 minute')),
-    'PT15M': ('15 minute', _('15 minute')),
-    'PT0.5H': ('half hour', _('half hour')),
-    'PT1H': ('hour', _('hour')),
-    'P1D': ('day', _('day')),
-    'P1W': ('week', _('week')),
-    'P1M': ('month', _('month')),
-    'P0.25Y': ('quarter', _('quarter')),
-    'P1Y': ('year', _('year')),
-    '1969-12-28T00:00:00Z/P1W': ('week_start_sunday', _('week_start_sunday')),
-    '1969-12-29T00:00:00Z/P1W': ('week_start_monday', _('week_start_monday')),
-    'P1W/1970-01-03T00:00:00Z': ('week_ending_saturday', _('week_ending_saturday')),
+builtin_time_grains = {
+    None: 'Time Column',
+    'PT1S': 'second',
+    'PT1M': 'minute',
+    'PT5M': '5 minute',
+    'PT10M': '10 minute',
+    'PT15M': '15 minute',
+    'PT0.5H': 'half hour',
+    'PT1H': 'hour',
+    'P1D': 'day',
+    'P1W': 'week',
+    'P1M': 'month',
+    'P0.25Y': 'quarter',
+    'P1Y': 'year',
+    '1969-12-28T00:00:00Z/P1W': 'week_start_sunday',
+    '1969-12-29T00:00:00Z/P1W': 'week_start_monday',
+    'P1W/1970-01-03T00:00:00Z': 'week_ending_saturday',
 }
 
 
-def _create_time_grains_tuple(grain_functions, blacklist=None):
+def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
     ret_list = list()
     blacklist = blacklist if blacklist else []
-    for duration, func in grain_functions.items():
+    for duration, func in time_grain_functions.items():
         if duration not in blacklist:
-            name, label = supported_time_grains.get(duration, (None, None))
-            ret_list.append(Grain(name, label, func, duration))
+            name = time_grains.get(duration, None)
+            ret_list.append(Grain(name, _(name), func, duration))
     return tuple(ret_list)
 
 
@@ -103,8 +104,13 @@ class BaseEngineSpec(object):
 
     @classmethod
     def time_grains(cls):
-        return _create_time_grains_tuple(cls.time_grain_functions,
-                                         config.get('TIME_GRAIN_BLACKLIST'))
+        blacklist = config.get('TIME_GRAIN_BLACKLIST', [])
+        grains = builtin_time_grains.copy()
+        grains.update(config.get('TIME_GRAIN_ADDONS', {}))
+        grain_functions = cls.time_grain_functions.copy()
+        grain_addon_functions = config.get('TIME_GRAIN_ADDON_FUNCTIONS', {})
+        grain_functions.update(grain_addon_functions.get(cls.engine, {}))
+        return _create_time_grains_tuple(grains, grain_functions, blacklist)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
