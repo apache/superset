@@ -4,8 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import textwrap
-
 from superset.db_engine_specs import (
     BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
     MySQLEngineSpec, PrestoEngineSpec,
@@ -143,18 +141,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             'SELECT * FROM a LIMIT 1000',
         )
 
-    def test_modify_newline_query(self):
-        self.sql_limit_regex(
-            'SELECT * FROM a\nLIMIT 9999',
-            'SELECT * FROM a LIMIT 1000',
-        )
-
-    def test_modify_lcase_limit_query(self):
-        self.sql_limit_regex(
-            'SELECT * FROM a\tlimit 9999',
-            'SELECT * FROM a LIMIT 1000',
-        )
-
     def test_limit_query_with_limit_subquery(self):
         self.sql_limit_regex(
             'SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999',
@@ -163,37 +149,38 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_limit_with_expr(self):
         self.sql_limit_regex(
-            textwrap.dedent("""\
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT
-                99990"""),
-            textwrap.dedent("""\
+            """
             SELECT
                 'LIMIT 777' AS a
                 , b
             FROM
-            table LIMIT 1000"""),
+            table
+            LIMIT 99990""",
+            """
+            SELECT
+                'LIMIT 777' AS a
+                , b
+            FROM
+            table
+            LIMIT 1000""",
         )
 
     def test_limit_expr_and_semicolon(self):
         self.sql_limit_regex(
-            textwrap.dedent("""\
+            """
                 SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
                 table
-                LIMIT         99990            ;"""),
-            textwrap.dedent("""\
+                LIMIT         99990            ;""",
+            """
                 SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
-                table LIMIT 1000"""),
+                table
+                LIMIT         1000            ;""",
         )
 
     def test_get_datatype(self):
@@ -201,3 +188,51 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
         self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
         self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
+
+    def test_limit_with_implicit_offset(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990, 999999""",
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990, 1000""",
+        )
+
+    def test_limit_with_explicit_offset(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990
+                OFFSET 999999""",
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 1000
+                OFFSET 999999""",
+        )
+
+    def test_limit_with_non_token_limit(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777'""",
+            """
+                SELECT
+                    'LIMIT 777' LIMIT 1000""",
+        )

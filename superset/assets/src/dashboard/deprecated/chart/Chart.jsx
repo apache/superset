@@ -10,7 +10,7 @@ import Loading from '../../../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger';
 import StackTraceMessage from '../../../components/StackTraceMessage';
 import RefreshChartOverlay from '../../../components/RefreshChartOverlay';
-import visMap from '../../../visualizations';
+import visPromiseLookup from '../../../visualizations';
 import sandboxedEval from '../../../modules/sandbox';
 import './chart.css';
 
@@ -58,7 +58,10 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {};
+    // visualizations are lazy-loaded with promises that resolve to a renderVis function
+    this.state = {
+      renderVis: null,
+    };
     // these properties are used by visualizations
     this.annotationData = props.annotationData;
     this.containerId = props.containerId;
@@ -72,6 +75,7 @@ class Chart extends React.PureComponent {
     this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
     this.width = this.width.bind(this);
+    this.visPromise = null;
   }
 
   componentDidMount() {
@@ -81,6 +85,7 @@ class Chart extends React.PureComponent {
         this.props.chartKey,
       );
     }
+    this.loadAsyncVis(this.props.vizType);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -89,6 +94,10 @@ class Chart extends React.PureComponent {
     this.selector = `#${this.containerId}`;
     this.formData = nextProps.formData;
     this.datasource = nextProps.datasource;
+    if (nextProps.vizType !== this.props.vizType) {
+      this.setState(() => ({ renderVis: null }));
+      this.loadAsyncVis(nextProps.vizType);
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -106,12 +115,32 @@ class Chart extends React.PureComponent {
     }
   }
 
+  componentWillUnmount() {
+    this.visPromise = null;
+  }
+
   getFilters() {
     return this.props.getFilters();
   }
 
   setTooltip(tooltip) {
     this.setState({ tooltip });
+  }
+
+  loadAsyncVis(visType) {
+    this.visPromise = visPromiseLookup[visType];
+
+    this.visPromise()
+      .then((renderVis) => {
+        // ensure Component is still mounted
+        if (this.visPromise) {
+          this.setState({ renderVis }, this.renderViz);
+        }
+      })
+      .catch((error) => {
+        console.error(error); // eslint-disable-line
+        this.props.actions.chartRenderingFailed(error, this.props.chartKey);
+      });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
@@ -186,31 +215,37 @@ class Chart extends React.PureComponent {
   }
 
   renderViz() {
-    const viz = visMap[this.props.vizType];
-    const fd = this.props.formData;
-    const qr = this.props.queryResponse;
-    const renderStart = Logger.getTimestamp();
-    try {
-      // Executing user-defined data mutator function
-      if (fd.js_data) {
-        qr.data = sandboxedEval(fd.js_data)(qr.data);
+    const hasVisPromise = !!this.state.renderVis;
+
+    if (hasVisPromise && ['success', 'rendered'].indexOf(this.props.chartStatus) > -1) {
+      const fd = this.props.formData;
+      const qr = this.props.queryResponse;
+      const renderStart = Logger.getTimestamp();
+      try {
+        // Executing user-defined data mutator function
+        if (fd.js_data) {
+          qr.data = sandboxedEval(fd.js_data)(qr.data);
+        }
+        // [re]rendering the visualization
+        this.state.renderVis(this, qr, this.props.setControlValue);
+        Logger.append(LOG_ACTIONS_RENDER_CHART, {
+          slice_id: this.props.chartKey,
+          viz_type: this.props.vizType,
+          start_offset: renderStart,
+          duration: Logger.getTimestamp() - renderStart,
+        });
+        if (this.props.chartStatus !== 'rendered') {
+          this.props.actions.chartRenderingSucceeded(this.props.chartKey);
+        }
+      } catch (e) {
+        this.props.actions.chartRenderingFailed(e, this.props.chartKey);
       }
-      // [re]rendering the visualization
-      viz(this, qr, this.props.setControlValue);
-      Logger.append(LOG_ACTIONS_RENDER_CHART, {
-        slice_id: this.props.chartKey,
-        viz_type: this.props.vizType,
-        start_offset: renderStart,
-        duration: Logger.getTimestamp() - renderStart,
-      });
-      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
-    } catch (e) {
-      this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
   }
 
   render() {
-    const isLoading = this.props.chartStatus === 'loading';
+    const isLoading = this.props.chartStatus === 'loading' || !this.state.renderVis;
+
     return (
       <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
         {this.renderTooltip()}

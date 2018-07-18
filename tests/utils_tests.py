@@ -14,10 +14,41 @@ import numpy
 
 from superset.exceptions import SupersetException
 from superset.utils import (
-    base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
-    JSONEncodedDict, memoized, merge_extra_filters, merge_request_params,
-    parse_human_timedelta, validate_json, zlib_compress, zlib_decompress_to_string,
+    base_json_conv,
+    datetime_f,
+    get_since_until,
+    json_int_dttm_ser,
+    json_iso_dttm_ser,
+    JSONEncodedDict,
+    memoized,
+    merge_extra_filters,
+    merge_request_params,
+    parse_human_timedelta,
+    validate_json,
+    zlib_compress,
+    zlib_decompress_to_string,
 )
+
+
+def mock_parse_human_datetime(s):
+    if s in ['now', 'today']:
+        return datetime(2016, 11, 7)
+    elif s == 'yesterday':
+        return datetime(2016, 11, 6)
+    elif s == 'tomorrow':
+        return datetime(2016, 11, 8)
+    elif s == 'Last year':
+        return datetime(2015, 11, 7)
+    elif s == 'Last 5 months':
+        return datetime(2016, 6, 7)
+    elif s == 'Next 5 months':
+        return datetime(2017, 4, 7)
+    elif s in ['5 days', '5 days ago']:
+        return datetime(2016, 11, 2)
+    elif s == '2018-01-01T00:00:00':
+        return datetime(2018, 1, 1)
+    elif s == '2018-12-31T23:59:59':
+        return datetime(2018, 12, 31, 23, 59, 59)
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -98,8 +129,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(form_data, expected)
         # adds extra filters to existing filters and sets time options
         form_data = {'extra_filters': [
-            {'col': '__from', 'op': 'in', 'val': '1 year ago'},
-            {'col': '__to', 'op': 'in', 'val': None},
+            {'col': '__time_range', 'op': 'in', 'val': '1 year ago :'},
             {'col': '__time_col', 'op': 'in', 'val': 'birth_year'},
             {'col': '__time_grain', 'op': 'in', 'val': 'years'},
             {'col': 'A', 'op': 'like', 'val': 'hello'},
@@ -108,7 +138,7 @@ class UtilsTestCase(unittest.TestCase):
         ]}
         expected = {
             'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
-            'since': '1 year ago',
+            'time_range': '1 year ago :',
             'granularity_sqla': 'birth_year',
             'time_grain_sqla': 'years',
             'granularity': '90 seconds',
@@ -331,3 +361,50 @@ class UtilsTestCase(unittest.TestCase):
         result8 = instance.test_method(1, 2, 3)
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
+
+    @patch('superset.utils.parse_human_datetime', mock_parse_human_datetime)
+    def test_get_since_until(self):
+        form_data = {}
+        result = get_since_until(form_data)
+        expected = None, datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': ' : now'}
+        result = get_since_until(form_data)
+        expected = None, datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': 'yesterday : tomorrow'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': '2018-01-01T00:00:00 : 2018-12-31T23:59:59'}
+        result = get_since_until(form_data)
+        expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': 'Last year'}
+        result = get_since_until(form_data)
+        expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': 'Last 5 months'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'time_range': 'Next 5 months'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'since': '5 days'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        form_data = {'since': '5 days ago', 'until': 'tomorrow'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
+        self.assertEqual(result, expected)
