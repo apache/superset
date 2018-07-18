@@ -3,7 +3,7 @@
  *
  * While the React components located in `controls/components` represent different
  * types of controls (CheckboxControl, SelectControl, TextControl, ...), the controls here
- * represent instances of control types, that can be reused across visualisation types.
+ * represent instances of control types, that can be reused across visualization types.
  *
  * When controls are reused across viz types, their values are carried over as a user
  * changes the chart types.
