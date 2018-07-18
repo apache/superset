@@ -371,7 +371,10 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def select_star(self):
-        return self.database.select_star(self.name, show_cols=True)
+        # show_cols and latest_partition set to false to avoid
+        # the expensive cost of inspecting the DB
+        return self.database.select_star(
+            self.name, show_cols=False, latest_partition=False)
 
     def get_col(self, col_name):
         columns = self.columns
