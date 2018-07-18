@@ -17,7 +17,7 @@ from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
 import polyline
 
-from superset import app, db, security_manager, utils
+from superset import app, db, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import TableColumn
 from superset.models import core as models
