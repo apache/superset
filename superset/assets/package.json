@@ -114,6 +114,7 @@
     "react-split-pane": "^0.1.66",
     "react-sticky": "^6.0.2",
     "react-syntax-highlighter": "^7.0.4",
+    "react-tag-autocomplete": "^5.5.1",
     "react-virtualized": "9.19.1",
     "react-virtualized-select": "^2.4.0",
     "reactable": "1.0.2",
