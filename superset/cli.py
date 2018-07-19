@@ -13,19 +13,24 @@ from sys import stdout
 
 import click
 from colorama import Fore, Style
-from flask.cli import FlaskGroup
 from pathlib2 import Path
 import werkzeug.serving
 import yaml
 
 from superset import (
-    app, create_app, data, db, dict_import_export_util, security_manager, utils,
+    app, data, db, dict_import_export_util, security_manager, utils,
 )
 
 config = app.config
 celery_app = utils.get_celery_app(config)
 
-manager = FlaskGroup(create_app=create_app)
+def create_app(script_info=None):
+    return app
+
+
+@app.shell_context_processor
+def make_shell_context():
+    return dict(app=app, db=db)
 
 
 @app.cli.command()
@@ -133,10 +138,7 @@ def version(verbose):
     print(Style.RESET_ALL)
 
 
-@app.cli.command()
-@click.option('--load-test-data', is_flag=True, help='Load additional test data')
-def load_examples(load_test_data):
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+def load_examples_run(load_test_data):
     print('Loading examples into {}'.format(db))
 
     data.load_css_templates()
@@ -186,6 +188,12 @@ def load_examples(load_test_data):
 
     print('Loading DECK.gl demo')
     data.load_deck_dash()
+
+@app.cli.command()
+@click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
+def load_examples(load_test_data):
+    """Loads a set of Slices and Dashboards and a supporting dataset """
+    load_examples_run(load_test_data)
 
 
 @app.cli.command()
