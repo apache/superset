@@ -37,7 +37,6 @@ class ElasticCluster(Model, AuditMixinNullable):
     type = 'elastic'
 
     id = Column(Integer, primary_key=True)
-    verbose_name = Column(String(250), unique=True)
     cluster_name = Column(String(250), unique=True)
     hosts_json = Column(Text)
     metadata_last_refreshed = Column(DateTime)
@@ -82,11 +81,11 @@ class ElasticCluster(Model, AuditMixinNullable):
 
     @property
     def name(self):
-        return self.verbose_name if self.verbose_name else self.cluster_name
+        return self.cluster_name
 
     @property
     def unique_name(self):
-        return self.verbose_name if self.verbose_name else self.cluster_name
+        return self.cluster_name
 
 
 class ElasticColumn(Model, BaseColumn):
@@ -103,12 +102,11 @@ class ElasticColumn(Model, BaseColumn):
         backref=backref('columns', cascade='all, delete-orphan'),
         enable_typechecks=False)
     json = Column(Text)
-    dimension_spec_json = Column(Text)
 
     export_fields = (
         'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json', 'verbose_name',
+        'description',
     )
 
     @property
@@ -117,11 +115,6 @@ class ElasticColumn(Model, BaseColumn):
 
     def __repr__(self):
         return self.column_name
-
-    @property
-    def dimension_spec(self):
-        if self.dimension_spec_json:
-            return json.loads(self.dimension_spec_json)
 
     def generate_metrics(self):
         """Generate metrics based on the column metadata"""
