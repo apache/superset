@@ -86,7 +86,7 @@ class BaseViz(object):
         self.force = force
 
         # Keeping track of whether some data came from cache
-        # this is useful to trigerr the <CachedLabel /> when
+        # this is useful to trigger the <CachedLabel /> when
         # in the cases where visualization have many queries
         # (FilterBox for instance)
         self._some_from_cache = False
@@ -129,7 +129,7 @@ class BaseViz(object):
         return data
 
     def run_extra_queries(self):
-        """Lyfecycle method to use when more than one query is needed
+        """Lifecycle method to use when more than one query is needed
 
         In rare-ish cases, a visualization may need to execute multiple
         queries. That is the case for FilterBox or for time comparison
@@ -156,7 +156,7 @@ class BaseViz(object):
         df = df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
-        """Returns the value for use as filler for a specific Column.type"""
+        """Returns the value to use as filler for a specific Column.type"""
         if col:
             if col.is_string:
                 return ' NULL'
@@ -323,7 +323,7 @@ class BaseViz(object):
 
         We remove datetime bounds that are hard values,
         and replace them with the use-provided inputs to bounds, which
-        may we time-relative (as in "5 days ago" or "now").
+        may be time-relative (as in "5 days ago" or "now").
         """
         cache_dict = copy.copy(query_obj)
 
