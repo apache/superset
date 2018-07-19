@@ -526,6 +526,10 @@ class DruidDatasource(Model, BaseDatasource):
         return Markup('<a href="{self.url}">{name}</a>').format(**locals())
 
     @property
+    def datasource_sources(self):
+        return '{}.{}'.format(self.cluster_name, self.datasource_name)
+
+    @property
     def full_name(self):
         return utils.get_datasource_full_name(
             self.cluster_name, self.datasource_name)

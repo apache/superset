@@ -157,6 +157,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         pass
 
     @property
+    def datasource_sources(self):
+        pass
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []

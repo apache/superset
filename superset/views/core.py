@@ -1093,8 +1093,10 @@ class Superset(BaseSupersetView):
                 stacktrace=traceback.format_exc())
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
+            print("this is where the good error message happens")
+            ERR_MSG = 'You don\'t have access to the following tables \n' + ', \n'.join([i[0] for i in security_manager.get_gandalf_denied_tables(g.user, viz_obj.datasource)])
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=404, link=config.get(
+                ERR_MSG, status=404, link=config.get(
                     'PERMISSION_INSTRUCTIONS_LINK'))
 
         if csv:
@@ -1262,13 +1264,21 @@ class Superset(BaseSupersetView):
 
         if not security_manager.datasource_access(datasource):
             flash(
-                __(get_datasource_access_error_msg(datasource.name)),
+                __('You do not have access to the following tables: {}'.format(
+                    security_manager.get_gandalf_denied_tables(g.user, datasource))),
                 'danger')
-            return redirect(
-                'superset/request_access/?'
-                'datasource_type={datasource_type}&'
-                'datasource_id={datasource_id}&'
-                ''.format(**locals()))
+            print("~~~~~~!!!~~~~~~~~")
+            if config.get("ENABLE_ACCESS_REQUEST"):
+                #err=json_error_response(
+                #DATASOURCE_ACCESS_ERR, status=404, link=config.get(
+                #    'PERMISSION_INSTRUCTIONS_LINK'))
+                #print(err)
+                #flash(__(err))
+                return redirect(
+                    'superset/request_access/?'
+                    'datasource_type={datasource_type}&'
+                    'datasource_id={datasource_id}&'
+                    ''.format(**locals()))
 
         viz_type = form_data.get('viz_type')
         if not viz_type and datasource.default_endpoint:

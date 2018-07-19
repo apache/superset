@@ -23,7 +23,7 @@ from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 
-from superset import db, import_util, security_manager, utils
+from superset import db, import_util, security_manager, sql_parse, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
@@ -323,6 +323,10 @@ class SqlaTable(Model, BaseDatasource):
         if not self.schema:
             return self.table_name
         return '{}.{}'.format(self.schema, self.table_name)
+
+    @property
+    def datasource_sources(self):
+        return sql_parse.SupersetQuery(self.sql).tables
 
     @property
     def full_name(self):
