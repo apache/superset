@@ -24,6 +24,7 @@ from superset import (
 config = app.config
 celery_app = utils.get_celery_app(config)
 
+
 def create_app(script_info=None):
     return app
 
@@ -188,6 +189,7 @@ def load_examples_run(load_test_data):
 
     print('Loading DECK.gl demo')
     data.load_deck_dash()
+
 
 @app.cli.command()
 @click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
