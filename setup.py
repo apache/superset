@@ -59,6 +59,7 @@ setup(
         'colorama',
         'contextlib2',
         'cryptography',
+        'elasticsearch'
         'flask>=1.0.0, <2.0.0',
         'flask-appbuilder>=1.12.1, <2.0.0',
         'flask-caching',
