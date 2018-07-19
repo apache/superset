@@ -97,8 +97,7 @@ export default function dashboardStateReducer(state = {}, action) {
       const { chart, col, vals: nextVals, merge, refresh } = action;
       const sliceId = chart.id;
       const filterKeys = [
-        '__from',
-        '__to',
+        '__time_range',
         '__time_col',
         '__time_grain',
         '__time_origin',

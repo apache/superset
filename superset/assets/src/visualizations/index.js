@@ -1,6 +1,4 @@
 /* eslint-disable global-require */
-import nvd3Vis from './nvd3_vis';
-import lineMulti from './line_multi';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
@@ -54,54 +52,91 @@ export const VIZ_TYPES = {
   rose: 'rose',
 };
 
+const loadVis = promise =>
+  promise.then((module) => {
+    const defaultExport = module.default || module;
+
+    // deckgl visualizations don't use esModules, fix it?
+    return defaultExport.default || defaultExport;
+  });
+const loadNvd3 = () => loadVis(import(/* webpackChunkName: "nvd3_vis" */ './nvd3_vis.js'));
+
 const vizMap = {
-  [VIZ_TYPES.area]: nvd3Vis,
-  [VIZ_TYPES.bar]: nvd3Vis,
-  [VIZ_TYPES.big_number]: require('./big_number.js'),
-  [VIZ_TYPES.big_number_total]: require('./big_number.js'),
-  [VIZ_TYPES.box_plot]: nvd3Vis,
-  [VIZ_TYPES.bubble]: nvd3Vis,
-  [VIZ_TYPES.bullet]: nvd3Vis,
-  [VIZ_TYPES.cal_heatmap]: require('./cal_heatmap.js'),
-  [VIZ_TYPES.compare]: nvd3Vis,
-  [VIZ_TYPES.directed_force]: require('./directed_force.js'),
-  [VIZ_TYPES.chord]: require('./chord.jsx'),
-  [VIZ_TYPES.dist_bar]: nvd3Vis,
-  [VIZ_TYPES.filter_box]: require('./filter_box.jsx'),
-  [VIZ_TYPES.heatmap]: require('./heatmap.js'),
-  [VIZ_TYPES.histogram]: require('./histogram.js'),
-  [VIZ_TYPES.horizon]: require('./horizon.js'),
-  [VIZ_TYPES.iframe]: require('./iframe.js'),
-  [VIZ_TYPES.line]: nvd3Vis,
-  [VIZ_TYPES.line_multi]: lineMulti,
-  [VIZ_TYPES.time_pivot]: nvd3Vis,
-  [VIZ_TYPES.mapbox]: require('./mapbox.jsx'),
-  [VIZ_TYPES.markup]: require('./markup.js'),
-  [VIZ_TYPES.para]: require('./parallel_coordinates.js'),
-  [VIZ_TYPES.pie]: nvd3Vis,
-  [VIZ_TYPES.pivot_table]: require('./pivot_table.js'),
-  [VIZ_TYPES.sankey]: require('./sankey.js'),
-  [VIZ_TYPES.separator]: require('./markup.js'),
-  [VIZ_TYPES.sunburst]: require('./sunburst.js'),
-  [VIZ_TYPES.table]: require('./table.js'),
-  [VIZ_TYPES.time_table]: require('./time_table.jsx'),
-  [VIZ_TYPES.treemap]: require('./treemap.js'),
-  [VIZ_TYPES.country_map]: require('./country_map.js'),
-  [VIZ_TYPES.word_cloud]: require('./word_cloud.js'),
-  [VIZ_TYPES.world_map]: require('./world_map.js'),
-  [VIZ_TYPES.dual_line]: nvd3Vis,
-  [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
-  [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
-  [VIZ_TYPES.partition]: require('./partition.js'),
-  [VIZ_TYPES.deck_scatter]: require('./deckgl/layers/scatter.jsx').default,
-  [VIZ_TYPES.deck_screengrid]: require('./deckgl/layers/screengrid.jsx').default,
-  [VIZ_TYPES.deck_grid]: require('./deckgl/layers/grid.jsx').default,
-  [VIZ_TYPES.deck_hex]: require('./deckgl/layers/hex.jsx').default,
-  [VIZ_TYPES.deck_path]: require('./deckgl/layers/path.jsx').default,
-  [VIZ_TYPES.deck_geojson]: require('./deckgl/layers/geojson.jsx').default,
-  [VIZ_TYPES.deck_arc]: require('./deckgl/layers/arc.jsx').default,
-  [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx').default,
-  [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
-  [VIZ_TYPES.rose]: require('./rose.js'),
+  [VIZ_TYPES.area]: loadNvd3,
+  [VIZ_TYPES.bar]: loadNvd3,
+  [VIZ_TYPES.big_number]: () =>
+    loadVis(import(/* webpackChunkName: 'big_number' */ './big_number.js')),
+  [VIZ_TYPES.big_number_total]: () =>
+    loadVis(import(/* webpackChunkName: "big_number" */ './big_number.js')),
+  [VIZ_TYPES.box_plot]: loadNvd3,
+  [VIZ_TYPES.bubble]: loadNvd3,
+  [VIZ_TYPES.bullet]: loadNvd3,
+  [VIZ_TYPES.cal_heatmap]: () =>
+    loadVis(import(/* webpackChunkName: "cal_heatmap" */ './cal_heatmap.js')),
+  [VIZ_TYPES.compare]: loadNvd3,
+  [VIZ_TYPES.directed_force]: () =>
+    loadVis(import(/* webpackChunkName: "directed_force" */ './directed_force.js')),
+  [VIZ_TYPES.chord]: () => loadVis(import(/* webpackChunkName: "chord" */ './chord.jsx')),
+  [VIZ_TYPES.dist_bar]: loadNvd3,
+  [VIZ_TYPES.filter_box]: () =>
+    loadVis(import(/* webpackChunkName: "filter_box" */ './filter_box.jsx')),
+  [VIZ_TYPES.heatmap]: () => loadVis(import(/* webpackChunkName: "heatmap" */ './heatmap.js')),
+  [VIZ_TYPES.histogram]: () =>
+    loadVis(import(/* webpackChunkName: "histogram" */ './histogram.js')),
+  [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './horizon.js')),
+  [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
+  [VIZ_TYPES.line]: loadNvd3,
+  [VIZ_TYPES.line_multi]: () =>
+    loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
+  [VIZ_TYPES.time_pivot]: loadNvd3,
+  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './mapbox.jsx')),
+  [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
+  [VIZ_TYPES.para]: () =>
+    loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './parallel_coordinates.js')),
+  [VIZ_TYPES.pie]: loadNvd3,
+  [VIZ_TYPES.pivot_table]: () =>
+    loadVis(import(/* webpackChunkName: "pivot_table" */ './pivot_table.js')),
+  [VIZ_TYPES.sankey]: () => loadVis(import(/* webpackChunkName: "sankey" */ './sankey.js')),
+  [VIZ_TYPES.separator]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
+  [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './sunburst.js')),
+  [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './table.js')),
+  [VIZ_TYPES.time_table]: () =>
+    loadVis(import(/* webpackChunkName: "time_table" */ './time_table.jsx')),
+  [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './treemap.js')),
+  [VIZ_TYPES.country_map]: () =>
+    loadVis(import(/* webpackChunkName: "country_map" */ './country_map.js')),
+  [VIZ_TYPES.word_cloud]: () =>
+    loadVis(import(/* webpackChunkName: "word_cloud" */ './word_cloud.js')),
+  [VIZ_TYPES.world_map]: () =>
+    loadVis(import(/* webpackChunkName: "world_map" */ './world_map.js')),
+  [VIZ_TYPES.dual_line]: loadNvd3,
+  [VIZ_TYPES.event_flow]: () =>
+    loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
+  [VIZ_TYPES.paired_ttest]: () =>
+    loadVis(import(/* webpackChunkName: "paired_ttest" */ './paired_ttest.jsx')),
+  [VIZ_TYPES.partition]: () =>
+    loadVis(import(/* webpackChunkName: "partition" */ './partition.js')),
+  [VIZ_TYPES.deck_scatter]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/scatter.jsx')),
+  [VIZ_TYPES.deck_screengrid]: () =>
+    loadVis(
+      import(/* webpackChunkName: "deckgl/layers/screengrid" */ './deckgl/layers/screengrid.jsx'),
+    ),
+  [VIZ_TYPES.deck_grid]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/grid" */ './deckgl/layers/grid.jsx')),
+  [VIZ_TYPES.deck_hex]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/hex" */ './deckgl/layers/hex.jsx')),
+  [VIZ_TYPES.deck_path]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/path" */ './deckgl/layers/path.jsx')),
+  [VIZ_TYPES.deck_geojson]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/geojson" */ './deckgl/layers/geojson.jsx')),
+  [VIZ_TYPES.deck_arc]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/arc" */ './deckgl/layers/arc.jsx')),
+  [VIZ_TYPES.deck_polygon]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/polygon.jsx')),
+  [VIZ_TYPES.deck_multi]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/multi.jsx')),
+  [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './rose.js')),
 };
+
 export default vizMap;

@@ -230,7 +230,7 @@ def refresh_druid(datasource, merge):
     help='Path to a single YAML file or path containing multiple YAML '
          'files to import (*.yaml or *.yml)')
 @click.option(
-    '--sync', '-s', default='',
+    '--sync', '-s', 'sync', default='',
     help='comma seperated list of element types to synchronize '
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
