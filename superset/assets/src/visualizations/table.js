@@ -3,7 +3,7 @@ import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
 
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
+import { fixDataTableBodyHeight, d3TimeFormatPreset, d3format } from '../modules/utils';
 import './table.css';
 
 const $ = require('jquery');
@@ -22,6 +22,8 @@ function tableVis(slice, payload) {
   metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
   // Removing metrics (aggregates) that are strings
   metrics = metrics.filter(m => !isNaN(data.records[0][m]));
+  // Get the headers of columns use in groupby
+  let groupby = fd.groupby || []
 
   function col(c) {
     const arr = [];
@@ -90,8 +92,8 @@ function tableVis(slice, payload) {
       if (typeof (val) === 'string') {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
-      if (isMetric) {
-        html = slice.d3format(c, val);
+      if (isMetric || (typeof(val) === 'number' && groupby.indexOf(c) < 0)) {
+        html = d3format(fd.number_format, val);
       }
       if (c[0] === '%') {
         html = d3.format('.3p')(val);

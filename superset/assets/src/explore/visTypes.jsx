@@ -930,6 +930,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['table_timestamp_format'],
+          ['number_format', null],
           ['page_length', null],
           ['include_search', 'table_filter'],
           ['align_pn', 'color_pn'],
