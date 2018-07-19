@@ -37,6 +37,7 @@ class ElasticCluster(Model, AuditMixinNullable):
     type = 'elastic'
 
     id = Column(Integer, primary_key=True)
+    verbose_name = Column(String(250), unique=True)
     cluster_name = Column(String(250), unique=True)
     hosts_json = Column(Text)
     metadata_last_refreshed = Column(DateTime)
@@ -102,11 +103,12 @@ class ElasticColumn(Model, BaseColumn):
         backref=backref('columns', cascade='all, delete-orphan'),
         enable_typechecks=False)
     json = Column(Text)
+    dimension_spec_json = Column(Text)
 
     export_fields = (
         'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json',
+        'description', 'dimension_spec_json', 'verbose_name',
     )
 
     @property
