@@ -493,7 +493,7 @@ https://github.com/apache/incubator-superset/pull/3013
   In the future we'll start publishing release candidates for minor releases
   only, but typically not for micro release.
   The process will be similar to the process described above, expect the
-  tags will be formated `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
+  tags will be formatted `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
   is reached.
 
   We should also have a Github PR label process to target the proper
