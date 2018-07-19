@@ -203,7 +203,7 @@ def execute_sql(
     cdf = dataframe.SupersetDataFrame(data, cursor.description, db_engine_spec)
 
     query.rows = cdf.size
-    query.progress = 100
+    query.progress = 95
     query.status = QueryStatus.SUCCESS
     if query.select_as_cta:
         query.select_sql = '{}'.format(
