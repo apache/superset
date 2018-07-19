@@ -1,4 +1,5 @@
 /* eslint camelcase: 0 */
+import isReact from 'is-react';
 import controls from './controls';
 import visTypes, { sectionsToRender } from './visTypes';
 
@@ -50,6 +51,10 @@ export function getControlsState(state, form_data) {
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
   controlNames.forEach((k) => {
+    if (isReact.element(k)) {
+      // no state
+      return;
+    }
     const control = Object.assign({}, controls[k], controlOverrides[k]);
     if (control.mapStateToProps) {
       Object.assign(control, control.mapStateToProps(state, control));
@@ -68,20 +73,18 @@ export function getControlsState(state, form_data) {
         delete formData[k];
       }
     }
-    // Removing invalid filters that point to a now inexisting column
-    if (control.type === 'FilterControl' && control.choices) {
-      if (!formData[k]) {
-        formData[k] = [];
-      }
-      const choiceValues = control.choices.map(c => c[0]);
-      formData[k] = formData[k].filter(flt => choiceValues.indexOf(flt.col) >= 0);
-    }
 
     if (typeof control.default === 'function') {
       control.default = control.default(control);
     }
     control.validationErrors = [];
-    control.value = formData[k] !== undefined ? formData[k] : control.default;
+    control.value = control.default;
+    // formData[k]'s type should match control value type
+    if (formData[k] !== undefined &&
+      (Array.isArray(formData[k]) && control.multi || !control.multi)
+    ) {
+      control.value = formData[k];
+    }
     controlsState[k] = control;
   });
   if (viz.onInit) {

@@ -3,7 +3,7 @@
  *
  * While the React components located in `controls/components` represent different
  * types of controls (CheckboxControl, SelectControl, TextControl, ...), the controls here
- * represent instances of control types, that can be reused across visualisation types.
+ * represent instances of control types, that can be reused across visualization types.
  *
  * When controls are reused across viz types, their values are carried over as a user
  * changes the chart types.
@@ -103,6 +103,10 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  filterOption: (opt, text) => (
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+  ),
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -202,6 +206,7 @@ export const controls = {
   percent_metrics: {
     ...metrics,
     multi: true,
+    default: [],
     label: t('Percentage Metrics'),
     validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
@@ -761,6 +766,8 @@ export const controls = {
       ['week_starting_sunday', 'week starting Sunday'],
       ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
+      ['P3M', 'quarter'],
+      ['P1Y', 'year'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
     'can type and use simple natural language as in `10 seconds`, ' +
@@ -857,7 +864,7 @@ export const controls = {
   resample_rule: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample Rule'),
+    label: t('Rule'),
     default: null,
     choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
     description: t('Pandas resample rule'),
@@ -866,7 +873,7 @@ export const controls = {
   resample_how: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample How'),
+    label: t('How'),
     default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
     description: t('Pandas resample how'),
@@ -875,24 +882,17 @@ export const controls = {
   resample_fillmethod: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample Fill Method'),
+    label: t('Fill Method'),
     default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
     description: t('Pandas resample fill method'),
   },
 
-  since: {
+  time_range: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: t('Since'),
-    default: t('7 days ago'),
-  },
-
-  until: {
-    type: 'DateFilterControl',
-    freeForm: true,
-    label: t('Until'),
-    default: 'now',
+    label: t('Time range'),
+    default: t('Last week'),
   },
 
   max_bubble_size: {
@@ -959,12 +959,14 @@ export const controls = {
   },
 
   timeseries_limit_metric: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     label: t('Sort By'),
     default: null,
     description: t('Metric used to define the top series'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
   },
 
@@ -1126,34 +1128,6 @@ export const controls = {
     default: '',
   },
 
-  where: {
-    type: 'TextAreaControl',
-    label: t('Custom WHERE clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s WHERE ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
-  },
-
-  having: {
-    type: 'TextAreaControl',
-    label: t('Custom HAVING clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s HAVING ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
-  },
-
   compare_lag: {
     type: 'TextControl',
     label: t('Comparison Period Lag'),
@@ -1229,11 +1203,12 @@ export const controls = {
     mapStateToProps: (state) => {
       const showWarning = (
           state.controls &&
-          state.controls.num_period_compare &&
-          state.controls.num_period_compare.value !== '');
+          state.controls.comparison_type &&
+          state.controls.comparison_type.value === 'percentage');
       return {
         warning: showWarning ?
-          t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
+          t('When `Calculation type` is set to "Percentage change", the Y ' +
+            'Axis Format is forced to `.1%`') : null,
         disabled: showWarning,
       };
     },
@@ -1468,6 +1443,16 @@ export const controls = {
     description: t('Whether to display the legend (toggles)'),
   },
 
+  show_labels: {
+    type: 'CheckboxControl',
+    label: t('Show Labels'),
+    renderTrigger: true,
+    default: true,
+    description: t(
+      'Whether to display the labels. Note that the label only displays when the the 5% ' +
+      'threshold.'),
+  },
+
   show_values: {
     type: 'CheckboxControl',
     label: t('Show Values'),
@@ -1482,6 +1467,14 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the metric name as a title'),
+  },
+
+  show_trend_line: {
+    type: 'CheckboxControl',
+    label: t('Show Trend Line'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the trend line'),
   },
 
   x_axis_showminmax: {
@@ -1504,7 +1497,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Rich Tooltip'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('The rich tooltip shows a list of all series for that ' +
     'point in time'),
   },
@@ -1556,30 +1549,11 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
-  num_period_compare: {
-    type: 'TextControl',
-    label: t('Period Ratio'),
-    default: '',
-    isInt: true,
-    description: t('[integer] Number of period to compare against, ' +
-    'this is relative to the granularity selected'),
-  },
-
-  period_ratio_type: {
-    type: 'SelectControl',
-    label: t('Period Ratio Type'),
-    default: 'growth',
-    choices: formatSelectOptions(['factor', 'growth', 'value']),
-    description: t('`factor` means (new/previous), `growth` is ' +
-    '((new/previous) - 1), `value` is (new-previous)'),
-  },
-
   time_compare: {
     type: 'SelectControl',
     multi: true,
     freeForm: true,
     label: t('Time Shift'),
-    default: [],
     choices: formatSelectOptions([
       '1 day',
       '1 week',
@@ -1591,6 +1565,21 @@ export const controls = {
     'relative time period. Expects relative time deltas ' +
     'in natural language (example:  24 hours, 7 days, ' +
     '56 weeks, 365 days)'),
+  },
+
+  comparison_type: {
+    type: 'SelectControl',
+    label: t('Calculation type'),
+    default: 'values',
+    choices: [
+      ['values', 'Actual Values'],
+      ['absolute', 'Absolute difference'],
+      ['percentage', 'Percentage change'],
+      ['ratio', 'Ratio'],
+    ],
+    description: t('How to display time shifts: as individual lines; as the ' +
+    'absolute difference between the main time series and each time shift; ' +
+    'as the percentage change; or as the ratio between series and time shifts.'),
   },
 
   subheader: {
@@ -1816,16 +1805,6 @@ export const controls = {
     description: t('Labels for the marker lines'),
   },
 
-  filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      datasource: state.datasource,
-    }),
-  },
-
   annotation_layers: {
     type: 'AnnotationLayerControl',
     label: '',
@@ -1846,18 +1825,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  having_filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo
-        .concat(state.datasource.filterable_cols) : [],
-      datasource: state.datasource,
-    }),
   },
 
   slice_id: {

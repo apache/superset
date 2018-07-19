@@ -18,6 +18,8 @@ export const OPERATORS = {
   'not in': 'not in',
   LIKE: 'LIKE',
   regex: 'regex',
+  'IS NOT NULL': 'IS NOT NULL',
+  'IS NULL': 'IS NULL',
 };
 
 export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];

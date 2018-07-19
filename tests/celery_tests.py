@@ -14,7 +14,7 @@ import unittest
 import pandas as pd
 from past.builtins import basestring
 
-from superset import app, cli, dataframe, db, security_manager
+from superset import app, cli, db, security_manager
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
@@ -244,55 +244,6 @@ class CeleryTestCase(SupersetTestCase):
     @classmethod
     def dictify_list_of_dicts(cls, l, k):
         return {str(o[k]): cls.de_unicode_dict(o) for o in l}
-
-    def test_get_columns(self):
-        main_db = self.get_main_database(db.session)
-        df = main_db.get_df('SELECT * FROM multiformat_time_series', None)
-        cdf = dataframe.SupersetDataFrame(df)
-
-        # Making ordering non-deterministic
-        cols = self.dictify_list_of_dicts(cdf.columns, 'name')
-
-        if main_db.sqlalchemy_uri.startswith('sqlite'):
-            self.assertEqual(self.dictify_list_of_dicts([
-                {'is_date': True, 'type': 'STRING', 'name': 'ds',
-                    'is_dim': False},
-                {'is_date': True, 'type': 'STRING', 'name': 'ds2',
-                    'is_dim': False},
-                {'agg': 'sum', 'is_date': False, 'type': 'INT',
-                    'name': 'epoch_ms', 'is_dim': False},
-                {'agg': 'sum', 'is_date': False, 'type': 'INT',
-                    'name': 'epoch_s', 'is_dim': False},
-                {'is_date': True, 'type': 'STRING', 'name': 'string0',
-                    'is_dim': False},
-                {'is_date': False, 'type': 'STRING',
-                    'name': 'string1', 'is_dim': True},
-                {'is_date': True, 'type': 'STRING', 'name': 'string2',
-                    'is_dim': False},
-                {'is_date': False, 'type': 'STRING',
-                    'name': 'string3', 'is_dim': True}], 'name'),
-                cols,
-            )
-        else:
-            self.assertEqual(self.dictify_list_of_dicts([
-                {'is_date': True, 'type': 'DATETIME', 'name': 'ds',
-                    'is_dim': False},
-                {'is_date': True, 'type': 'DATETIME',
-                    'name': 'ds2', 'is_dim': False},
-                {'agg': 'sum', 'is_date': False, 'type': 'INT',
-                    'name': 'epoch_ms', 'is_dim': False},
-                {'agg': 'sum', 'is_date': False, 'type': 'INT',
-                    'name': 'epoch_s', 'is_dim': False},
-                {'is_date': True, 'type': 'STRING', 'name': 'string0',
-                    'is_dim': False},
-                {'is_date': False, 'type': 'STRING',
-                    'name': 'string1', 'is_dim': True},
-                {'is_date': True, 'type': 'STRING', 'name': 'string2',
-                    'is_dim': False},
-                {'is_date': False, 'type': 'STRING',
-                    'name': 'string3', 'is_dim': True}], 'name'),
-                cols,
-            )
 
 
 if __name__ == '__main__':

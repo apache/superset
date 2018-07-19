@@ -1,16 +1,27 @@
-/* global notify */
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table } from 'reactable';
 import {
-  Row, Col, Collapse, Label, FormControl, Modal,
-  OverlayTrigger, Tooltip, Well,
+  Row,
+  Col,
+  Collapse,
+  Label,
+  FormControl,
+  Modal,
+  OverlayTrigger,
+  Tooltip,
+  Well,
 } from 'react-bootstrap';
+import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
+import Loading from '../../../components/Loading';
 import { t } from '../../../locales';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
+import withToasts from '../../../messageToasts/enhancers/withToasts';
+
 
 const propTypes = {
   description: PropTypes.string,
@@ -19,13 +30,14 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
   datasource: PropTypes.object,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   onChange: () => {},
 };
 
-export default class DatasourceControl extends React.PureComponent {
+class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -68,7 +80,8 @@ export default class DatasourceControl extends React.PureComponent {
                 className="datasource-link"
               >
                 {ds.name}
-              </a>),
+              </a>
+            ),
             type: ds.type,
           }));
 
@@ -76,7 +89,7 @@ export default class DatasourceControl extends React.PureComponent {
         },
         error() {
           that.setState({ loading: false });
-          notify.error(t('Something went wrong while fetching the datasource list'));
+          this.props.addDangerToast(t('Something went wrong while fetching the datasource list'));
         },
       });
     }
@@ -113,7 +126,9 @@ export default class DatasourceControl extends React.PureComponent {
           <div>
             <FormControl
               id="formControlsText"
-              inputRef={(ref) => { this.setSearchRef(ref); }}
+              inputRef={(ref) => {
+                this.setSearchRef(ref);
+              }}
               type="text"
               bsSize="sm"
               value={this.state.filter}
@@ -121,14 +136,8 @@ export default class DatasourceControl extends React.PureComponent {
               onChange={this.changeSearch}
             />
           </div>
-          {this.state.loading &&
-            <img
-              className="loading"
-              alt="Loading..."
-              src="/static/assets/images/loading.gif"
-            />
-          }
-          {this.state.datasources &&
+          {this.state.loading && <Loading />}
+          {this.state.datasources && (
             <Table
               columns={['name', 'type', 'schema', 'connection', 'creator']}
               className="table table-condensed"
@@ -138,9 +147,10 @@ export default class DatasourceControl extends React.PureComponent {
               filterBy={this.state.filter}
               hideFilterInput
             />
-          }
+          )}
         </Modal.Body>
-      </Modal>);
+      </Modal>
+    );
   }
   renderDatasource() {
     const datasource = this.props.datasource;
@@ -157,18 +167,23 @@ export default class DatasourceControl extends React.PureComponent {
             <Col md={6}>
               <strong>Columns</strong>
               {datasource.columns.map(col => (
-                <div key={col.column_name}><ColumnOption showType column={col} /></div>
+                <div key={col.column_name}>
+                  <ColumnOption showType column={col} />
+                </div>
               ))}
             </Col>
             <Col md={6}>
               <strong>Metrics</strong>
               {datasource.metrics.map(m => (
-                <div key={m.metric_name}><MetricOption metric={m} showType /></div>
+                <div key={m.metric_name}>
+                  <MetricOption metric={m} showType />
+                </div>
               ))}
             </Col>
           </Row>
         </Well>
-      </div>);
+      </div>
+    );
   }
   render() {
     return (
@@ -188,7 +203,7 @@ export default class DatasourceControl extends React.PureComponent {
           placement="right"
           overlay={
             <Tooltip id={'edit-datasource-tooltip'}>
-              {t('Edit the datasource\'s configuration')}
+              {t("Edit the datasource's configuration")}
             </Tooltip>
           }
         >
@@ -199,9 +214,7 @@ export default class DatasourceControl extends React.PureComponent {
         <OverlayTrigger
           placement="right"
           overlay={
-            <Tooltip id={'toggle-datasource-tooltip'}>
-              {t('Show datasource configuration')}
-            </Tooltip>
+            <Tooltip id={'toggle-datasource-tooltip'}>{t('Show datasource configuration')}</Tooltip>
           }
         >
           <a href="#">
@@ -211,13 +224,27 @@ export default class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
-        <Collapse in={this.state.showDatasource}>
-          {this.renderDatasource()}
-        </Collapse>
+        {this.props.datasource.type === 'table' &&
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'datasource-sqllab'}>
+                {t('Run SQL queries against this datasource')}
+              </Tooltip>
+            }
+          >
+            <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
+              <i className="fa fa-flask m-r-5" />
+            </a>
+          </OverlayTrigger>}
+        <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         {this.renderModal()}
-      </div>);
+      </div>
+    );
   }
 }
 
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
+
+export default withToasts(DatasourceControl);

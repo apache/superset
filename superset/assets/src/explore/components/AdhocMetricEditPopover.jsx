@@ -200,7 +200,6 @@ export default class AdhocMetricEditPopover extends React.Component {
 
     const stateIsValid = adhocMetric.isValid();
     const hasUnsavedChanges = !adhocMetric.equals(propsAdhocMetric);
-
     return (
       <Popover
         id="metrics-edit-popover"

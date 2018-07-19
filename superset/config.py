@@ -250,8 +250,7 @@ BACKUP_COUNT = 30
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000000
-DISPLAY_SQL_MAX_ROW = 1000
+SQL_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -313,6 +312,10 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 # The directory within the bucket specified above that will
 # contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
+
+# The namespace within hive where the tables created from
+# uploading CSVs will be stored.
+UPLOADED_CSV_HIVE_NAMESPACE = None
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
@@ -412,6 +415,14 @@ SQL_QUERY_MUTATOR = None
 # When not using gunicorn, (nginx for instance), you may want to disable
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
+
+# Dashboard v1 deprecation configuration
+DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = True
+CAN_FALLBACK_TO_DASH_V1_EDIT_MODE = True
+
+# these are incorporated into messages displayed to users
+PLANNED_V2_AUTO_CONVERT_DATE = None  # e.g. '2018-06-16'
+V2_FEEDBACK_URL = None  # e.g., 'https://goo.gl/forms/...'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

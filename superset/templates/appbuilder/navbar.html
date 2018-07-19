@@ -12,7 +12,8 @@
       </button>
       <a class="navbar-brand" href="/superset/profile/{{ current_user.username }}/">
         <img
-          width="126" src="{{ appbuilder.app_icon }}"
+          width="126"
+          src="{{ appbuilder.app_icon }}"
           alt="{{ appbuilder.app_name }}"
         />
       </a>
@@ -28,23 +29,7 @@
       </ul>
       <ul class="nav navbar-nav navbar-right">
         {% include 'appbuilder/navbar_right.html' %}
-        <li>
-          <a href="/static/assets/version_info.json" title="Version info">
-            <i class="fa fa-code-fork"></i> &nbsp;
-          </a>
-        </li>
-        <li>
-          <a href="https://github.com/apache/incubator-superset" title="Superset's Github" target="_blank">
-            <i class="fa fa-github"></i> &nbsp;
-          </a>
-        </li>
-        <li>
-          <a href="https://superset.incubator.apache.org" title="Documentation" target="_blank">
-            <i class="fa fa-book"></i> &nbsp;
-          </a>
-        </li>
       </ul>
     </div>
   </div>
 </div>
-

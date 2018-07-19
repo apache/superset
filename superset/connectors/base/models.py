@@ -153,6 +153,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
+    def select_star(self):
+        pass
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
@@ -185,6 +189,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'metrics': [o.data for o in self.metrics],
             'columns': [o.data for o in self.columns],
             'verbose_map': verbose_map,
+            'schema': self.schema,
+            'select_star': self.select_star,
         }
 
     @staticmethod
