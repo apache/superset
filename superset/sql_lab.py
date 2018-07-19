@@ -100,8 +100,9 @@ def execute_sql(
     user_name=None, session=None,
 ):
     """Executes the sql query returns the results."""
-
+    time_at_worker = utils.now_as_float()
     query = get_query(query_id, session)
+    query.time_at_worker = time_at_worker
     payload = dict(query_id=query_id)
 
     database = query.database
@@ -157,7 +158,6 @@ def execute_sql(
 
     query.executed_sql = executed_sql
     query.status = QueryStatus.RUNNING
-    query.start_running_time = utils.now_as_float()
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
@@ -172,11 +172,13 @@ def execute_sql(
         cursor = conn.cursor()
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
+        query.time_at_db = utils.now_as_float()
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
         data = db_engine_spec.fetch_data(cursor, query.limit)
+        query.time_at_db_result = utils.now_as_float()
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
         if conn is not None:
@@ -199,7 +201,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
+    cdf = dataframe.SupersetDataFrame(data, cursor.description, db_engine_spec)
 
     query.rows = cdf.size
     query.progress = 100
@@ -212,7 +214,6 @@ def execute_sql(
                 schema=database.force_ctas_schema,
                 show_cols=False,
                 latest_partition=False))
-    query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()
 
@@ -225,6 +226,7 @@ def execute_sql(
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
+        query.time_at_results_backend_write = utils.now_as_float()
         json_payload = json.dumps(
             payload, default=utils.json_iso_dttm_ser, ignore_nan=True)
         cache_timeout = database.cache_timeout
@@ -232,7 +234,7 @@ def execute_sql(
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
         results_backend.set(key, utils.zlib_compress(json_payload), cache_timeout)
         query.results_key = key
-        query.end_result_backend_time = utils.now_as_float()
+        query.time_after_results_backend_write = utils.now_as_float()
 
     session.merge(query)
     session.commit()
