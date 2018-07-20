@@ -23,7 +23,7 @@ function tableVis(slice, payload) {
   // Removing metrics (aggregates) that are strings
   metrics = metrics.filter(m => !isNaN(data.records[0][m]));
   // Get the headers of columns use in groupby
-  const let groupby = fd.groupby || [];
+  const groupby = fd.groupby || [];
 
   function col(c) {
     const arr = [];
