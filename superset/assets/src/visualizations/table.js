@@ -23,7 +23,7 @@ function tableVis(slice, payload) {
   // Removing metrics (aggregates) that are strings
   metrics = metrics.filter(m => !isNaN(data.records[0][m]));
   // Get the headers of columns use in groupby
-  let groupby = fd.groupby || []
+  const let groupby = fd.groupby || [];
 
   function col(c) {
     const arr = [];
@@ -92,7 +92,7 @@ function tableVis(slice, payload) {
       if (typeof (val) === 'string') {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
-      if (isMetric || (typeof(val) === 'number' && groupby.indexOf(c) < 0)) {
+      if (isMetric || (typeof (val) === 'number' && groupby.indexOf(c) < 0)) {
         html = d3format(fd.number_format, val);
       }
       if (c[0] === '%') {
