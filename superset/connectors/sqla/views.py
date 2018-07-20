@@ -27,6 +27,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from wtforms.validators import Regexp
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
@@ -34,7 +35,6 @@ from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter,
     DeleteMixin,
-    get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes,
     SupersetModelView,
     YamlExportMixin,
@@ -303,6 +303,11 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         "template_params": _("Template parameters"),
         "modified": _("Modified"),
     }
+    validators_columns = {
+        "table_name": [
+            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema"))
+        ]
+    }
 
     edit_form_extra_fields = {
         "database": QuerySelectField(
@@ -313,14 +318,10 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     }
 
     def pre_add(self, table):
-        with db.session.no_autoflush:
-            table_query = db.session.query(models.SqlaTable).filter(
-                models.SqlaTable.table_name == table.table_name,
-                models.SqlaTable.schema == table.schema,
-                models.SqlaTable.database_id == table.database.id,
-            )
-            if db.session.query(table_query.exists()).scalar():
-                raise Exception(get_datasource_exist_error_msg(table.full_name))
+
+        # Although the listener exists this is necessary to ensure that FAB flashes the
+        # specific message as opposed to "General Error <class.Exception>".
+        models.SqlaTable.before_insert(None, None, table)
 
         # Fail before adding if the table can't be found
         try:

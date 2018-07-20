@@ -41,9 +41,11 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
+from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import CompileError, SQLAlchemyError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -304,7 +306,11 @@ class SqlaTable(Model, BaseDatasource):
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
-    __table_args__ = (UniqueConstraint("database_id", "table_name"),)
+
+    # Note this unqiuness constraint is not part of the physicalschema, i.e., it doesn't
+    # exist in the migrations, but is required by `import_from_dict` to ensure the
+    # correct filters are applied in order to identify uniqueness.
+    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
@@ -1112,6 +1118,82 @@ class SqlaTable(Model, BaseDatasource):
             return extra_cache_keys
         return []
 
+    @staticmethod
+    def before_insert(
+        mapper: Mapper, connection: Connection, target: "SqlaTable"
+    ) -> None:
+        """
+        Check whether before insert if the target table already exists.
+
+        :param mapper: The table mappper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        :raises Exception: If the target table is not unique
+        """
+
+        from superset.views.base import get_datasource_exist_error_msg
+
+        if SqlaTable.exists(target):
+            raise SQLAlchemyError(get_datasource_exist_error_msg(target.full_name))
+
+    @staticmethod
+    def before_update(
+        mapper: Mapper, connection: Connection, target: "SqlaTable"
+    ) -> None:
+        """
+        Check whether before update if the target table already exists.
+
+        Note this listener is called when any fields are being updated and thus it is
+        necessary to first check whether the reference table is being updated.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        :raises Exception: If the target table is not unique
+        """
+
+        from superset.views.base import get_datasource_exist_error_msg
+
+        # Check whether the relevant attributes have changed.
+        state = db.inspect(target)  # pylint: disable=no-member
+
+        for attr in ["database_id", "schema", "table_name"]:
+            history = state.get_history(attr, True)
+
+            if history.has_changes():
+                break
+        else:
+            return None
+
+        if SqlaTable.exists(target):
+            raise SQLAlchemyError(get_datasource_exist_error_msg(target.full_name))
+
+    @staticmethod
+    def exists(record: "SqlaTable") -> bool:
+        """
+        Return True if the table exists, False otherwise.
+
+        A table is deemed to already exist based on the uniqueness of the database,
+        schema, and name.
+
+        :param record: The table record
+        :returns: Whether the record exists
+        """
+
+        count = (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=record.database_id,
+                schema=record.schema,
+                table_name=record.table_name,
+            )
+            .count()
+        )
+
+        return count != 0
+
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
+sa.event.listen(SqlaTable, "before_insert", SqlaTable.before_insert)
+sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)

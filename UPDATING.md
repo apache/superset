@@ -40,6 +40,10 @@ in your configuration.
 `tables.table_name`, `dbs.database_name`, and `clusters.cluster_name` non-nullable.
 Depending on the integrity of the data, manual intervention may be required.
 
+* [5449](https://github.com/apache/incubator-superset/pull/5449): a change which
+adds a uniqueness criterion to the tables table. Depending on the integrity of
+the data, manual intervention may be required.
+
 ## 0.34.0
 
 * [7848](https://github.com/apache/incubator-superset/pull/7848): If you are
