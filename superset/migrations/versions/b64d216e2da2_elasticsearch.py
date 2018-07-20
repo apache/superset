@@ -1,14 +1,14 @@
 """elasticsearch
 
 Revision ID: b64d216e2da2
-Revises: bddc498dd179
+Revises: 1d9e835a84f9
 Create Date: 2018-07-20 09:51:53.069326
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'b64d216e2da2'
-down_revision = 'bddc498dd179'
+down_revision = '1d9e835a84f9'
 
 from alembic import op
 import sqlalchemy as sa
