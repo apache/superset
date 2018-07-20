@@ -269,9 +269,7 @@ class DruidColumn(Model, BaseColumn):
     __tablename__ = 'columns'
     __table_args__ = (UniqueConstraint('column_name', 'datasource_id'),)
 
-    datasource_id = Column(
-        Integer,
-        ForeignKey('datasources.id'))
+    datasource_id = Column(Integer, ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
