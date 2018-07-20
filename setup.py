@@ -77,7 +77,7 @@ setup(
         'humanize',
         'idna',
         'markdown',
-        'pandas>=0.18.0',
+        'pandas>=0.18.0, <=0.22.0',
         'parsedatetime',
         'pathlib2',
         'polyline',
