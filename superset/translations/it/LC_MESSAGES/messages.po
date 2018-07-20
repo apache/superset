@@ -5198,7 +5198,7 @@ msgstr "Query salvate"
 #~ msgid "Edit slice properties"
 #~ msgstr ""
 
-#~ msgid "Takes effect on chart immediatly"
+#~ msgid "Takes effect on chart immediately"
 #~ msgstr ""
 
 #~ msgid "Error..."
