@@ -31,7 +31,7 @@ class SupersetTestCase(unittest.TestCase):
             not os.environ.get('examples_loaded')
         ):
             logging.info('Loading examples')
-            cli.load_examples(load_test_data=True)
+            cli.load_examples_run(load_test_data=True)
             logging.info('Done loading examples')
             security_manager.sync_role_definitions()
             os.environ['examples_loaded'] = '1'
