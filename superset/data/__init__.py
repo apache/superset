@@ -197,6 +197,7 @@ def load_world_bank_health_n_pop():
         "row_limit": config.get("ROW_LIMIT"),
         "since": "2014-01-01",
         "until": "2014-01-02",
+        "time_range": "2014-01-01 : 2014-01-02",
         "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
