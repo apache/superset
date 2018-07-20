@@ -23,7 +23,7 @@ import {
   updateDashboardTitle,
 } from '../actions/dashboardLayout';
 
-import { addSuccessToast, addDangerToast } from '../actions/messageToasts';
+import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
 
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 

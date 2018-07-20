@@ -5,14 +5,14 @@ import {
   SUCCESS_TOAST,
   WARNING_TOAST,
   DANGER_TOAST,
-} from '../util/constants';
+} from '../constants';
 
-function getToastUuid(type) {
+export function getToastUuid(type) {
   return `${type}-${shortid.generate()}`;
 }
 
 export const ADD_TOAST = 'ADD_TOAST';
-export function addToast({ toastType, text, duration }) {
+export function addToast({ toastType, text, duration = 8000 }) {
   return {
     type: ADD_TOAST,
     payload: {
@@ -50,10 +50,11 @@ export function addSuccessToast(text) {
 export const ADD_WARNING_TOAST = 'ADD_WARNING_TOAST';
 export function addWarningToast(text) {
   return dispatch =>
-    dispatch(addToast({ text, toastType: WARNING_TOAST, duration: 4000 }));
+    dispatch(addToast({ text, toastType: WARNING_TOAST, duration: 6000 }));
 }
 
 export const ADD_DANGER_TOAST = 'ADD_DANGER_TOAST';
 export function addDangerToast(text) {
-  return dispatch => dispatch(addToast({ text, toastType: DANGER_TOAST }));
+  return dispatch =>
+    dispatch(addToast({ text, toastType: DANGER_TOAST, duration: 8000 }));
 }

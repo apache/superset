@@ -2,6 +2,7 @@
  * This file defines how controls (defined in controls.js) are structured into sections
  * and associated with each and every visualization type.
  */
+import React from 'react';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';
@@ -13,7 +14,7 @@ export const sections = {
     description: t('Time related form attributes'),
     controlSetRows: [
       ['granularity', 'druid_time_origin'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   datasourceAndVizType: {
@@ -37,7 +38,7 @@ export const sections = {
     expanded: true,
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   annotations: {
@@ -65,9 +66,12 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results'),
       controlSetRows: [
+        [<h1 className="section-header">Moving Average</h1>],
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        ['time_compare'],
-        ['num_period_compare', 'period_ratio_type'],
+        [<h1 className="section-header">Time Comparison</h1>],
+        ['time_compare', 'comparison_type'],
+        [<h1 className="section-header">Python Functions</h1>],
+        [<h2 className="section-header">pandas.resample</h2>],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
     },
@@ -142,7 +146,7 @@ export const visTypes = {
           ['metric'],
           ['adhoc_filters'],
           ['groupby'],
-          ['limit'],
+          ['row_limit'],
         ],
       },
       {
@@ -151,11 +155,16 @@ export const visTypes = {
         controlSetRows: [
           ['pie_label_type'],
           ['donut', 'show_legend'],
-          ['labels_outside'],
+          ['show_labels', 'labels_outside'],
           ['color_scheme'],
         ],
       },
     ],
+    controlOverrides: {
+      row_limit: {
+        default: 25,
+      },
+    },
   },
 
   line: {
@@ -626,6 +635,7 @@ export const visTypes = {
       },
       {
         label: t('Grid'),
+        expanded: true,
         controlSetRows: [
           ['grid_size', 'color_picker'],
         ],

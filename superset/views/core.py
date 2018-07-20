@@ -42,7 +42,7 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
-from superset.legacy import cast_form_data
+from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
@@ -193,14 +193,14 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'creator', 'modified']
+        'allow_dml', 'allow_csv_upload', 'creator', 'modified']
     order_columns = [
         'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified',
+        'modified', 'allow_csv_upload',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
-        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
         'allow_multi_schema_metadata_fetch',
     ]
@@ -268,6 +268,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'tables, this can be expensive and put strain on the system.'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this database. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
     }
     label_columns = {
@@ -325,7 +326,7 @@ class DatabaseAsync(DatabaseView):
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_run_sync', 'allow_dml',
-        'allow_multi_schema_metadata_fetch',
+        'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
     ]
 
 
@@ -1071,7 +1072,8 @@ class Superset(BaseSupersetView):
             json.dumps({
                 'query': query,
                 'language': viz_obj.datasource.query_language,
-            }),
+                'data': viz_obj.get_df().to_dict('records'),
+            }, default=utils.json_iso_dttm_ser),
             status=200,
             mimetype='application/json')
 
@@ -1310,6 +1312,10 @@ class Superset(BaseSupersetView):
                 datasource_id,
                 datasource_type,
                 datasource.name)
+
+        # update to new time filter
+        if 'since' in form_data and 'until' in form_data:
+            form_data = update_time_range(form_data)
 
         standalone = request.args.get('standalone') == 'true'
         bootstrap_data = {
@@ -2168,6 +2174,8 @@ class Superset(BaseSupersetView):
             else:
                 dashboard_view = 'v1'
                 prompt_v2_conversion = not force_v1
+                if force_v2_edit:
+                    dash_edit_perm = False
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
@@ -2473,14 +2481,7 @@ class Superset(BaseSupersetView):
             return json_error_response(get_datasource_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json['data'] = payload_json['data'][:display_limit]
-        return json_success(
-            json.dumps(
-                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
+        return json_success(utils.zlib_decompress_to_string(blob))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])

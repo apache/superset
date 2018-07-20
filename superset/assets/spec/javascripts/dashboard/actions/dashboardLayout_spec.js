@@ -23,7 +23,7 @@ import {
 } from '../../../../src/dashboard/actions/dashboardLayout';
 
 import { setUnsavedChanges } from '../../../../src/dashboard/actions/dashboardState';
-import { addInfoToast } from '../../../../src/dashboard/actions/messageToasts';
+import { addInfoToast } from '../../../../src/messageToasts/actions';
 
 import {
   DASHBOARD_GRID_TYPE,

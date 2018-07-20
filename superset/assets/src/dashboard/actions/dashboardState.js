@@ -19,7 +19,7 @@ import {
   addSuccessToast,
   addWarningToast,
   addDangerToast,
-} from './messageToasts';
+} from '../../messageToasts/actions';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {

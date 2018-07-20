@@ -72,7 +72,7 @@ export default class FilterableTable extends PureComponent {
   fitTableToWidthIfNeeded() {
     const containerWidth = this.container.getBoundingClientRect().width;
     if (containerWidth > this.totalTableWidth) {
-      this.totalTableWidth = containerWidth - 2; // accomodates 1px border on container
+      this.totalTableWidth = containerWidth - 2; // accommodates 1px border on container
     }
     this.setState({ fitted: true });
   }

@@ -57,10 +57,10 @@ QueryAutoRefresh.propTypes = {
   queriesLastUpdate: PropTypes.number.isRequired,
 };
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    queries: state.queries,
-    queriesLastUpdate: state.queriesLastUpdate,
+    queries: sqlLab.queries,
+    queriesLastUpdate: sqlLab.queriesLastUpdate,
   };
 }
 

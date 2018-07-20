@@ -41,7 +41,7 @@ import sqlparse
 from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, utils
+from superset import app, cache_util, conf, db, sql_parse, utils
 from superset.exceptions import SupersetTemplateException
 from superset.utils import QueryStatus
 
@@ -110,32 +110,19 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            sql_without_limit = cls.get_query_without_limit(sql)
-            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+            parsed_query = sql_parse.SupersetQuery(sql)
+            sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        limit_pattern = re.compile(r"""
-                (?ix)          # case insensitive, verbose
-                \s+            # whitespace
-                LIMIT\s+(\d+)  # LIMIT $ROWS
-                ;?             # optional semi-colon
-                (\s|;)*$       # remove trailing spaces tabs or semicolons
-                """)
-        matches = limit_pattern.findall(sql)
-        if matches:
-            return int(matches[0][0])
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.limit
 
     @classmethod
-    def get_query_without_limit(cls, sql):
-        return re.sub(r"""
-                (?ix)        # case insensitive, verbose
-                \s+          # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
-                """, '', sql)
+    def get_query_with_new_limit(cls, sql, limit):
+        parsed_query = sql_parse.SupersetQuery(sql)
+        return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
     def csv_to_df(**kwargs):
@@ -1012,16 +999,25 @@ class HiveEngineSpec(PrestoEngineSpec):
             return tableschema_to_hive_types.get(col_type, 'STRING')
 
         table_name = form.name.data
+        schema_name = form.schema.data
+
         if config.get('UPLOADED_CSV_HIVE_NAMESPACE'):
-            if '.' in table_name:
+            if '.' in table_name or schema_name:
                 raise Exception(
                     "You can't specify a namespace. "
                     'All tables will be uploaded to the `{}` namespace'.format(
                         config.get('HIVE_NAMESPACE')))
             table_name = '{}.{}'.format(
                 config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
-        filename = form.csv_file.data.filename
+        else:
+            if '.' in table_name and schema_name:
+                raise Exception(
+                    "You can't specify a namespace both in the name of the table "
+                    'and in the schema field. Please remove one')
+            if schema_name:
+                table_name = '{}.{}'.format(schema_name, table_name)
 
+        filename = form.csv_file.data.filename
         bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
@@ -1041,7 +1037,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         for column_info in hive_table_schema['fields']:
             column_name_and_type.append(
                 '{} {}'.format(
-                    column_info['name'], convert_to_hive_type(column_info['type'])))
+                    "'" + column_info['name'] + "'",
+                    convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
 
         s3 = boto3.client('s3')
