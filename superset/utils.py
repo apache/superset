@@ -861,10 +861,12 @@ def get_since_until(form_data):
 
     Additionally, for `time_range` (these specify both `since` and `until`):
 
-        - Yesterday
+        - Last day
         - Last week
         - Last month
+        - Last quarter
         - Last year
+        - No filter
         - Last X seconds/minutes/hours/days/weeks/months/years
         - Next X seconds/minutes/hours/days/weeks/months/years
 
@@ -872,9 +874,10 @@ def get_since_until(form_data):
     separator = ' : '
     today = parse_human_datetime('today')
     common_time_frames = {
-        'Yesterday': (today - relativedelta(days=1), today),
+        'Last day': (today - relativedelta(days=1), today),
         'Last week': (today - relativedelta(weeks=1), today),
         'Last month': (today - relativedelta(months=1), today),
+        'Last quarter': (today - relativedelta(months=3), today),
         'Last year': (today - relativedelta(years=1), today),
     }
 
@@ -886,6 +889,8 @@ def get_since_until(form_data):
             until = parse_human_datetime(until)
         elif time_range in common_time_frames:
             since, until = common_time_frames[time_range]
+        elif time_range == 'No filter':
+            since = until = None
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
