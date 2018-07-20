@@ -996,6 +996,8 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metrics'],
+          ['percent_metrics'],
+          ['by_line'],
           ['adhoc_filters'],
           ['groupby'],
           ['columns'],
