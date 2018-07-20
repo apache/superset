@@ -370,6 +370,24 @@ You can also use `PyAthena` library
 
 _(See more details at https://github.com/laughingman7743/PyAthena#sqlalchemy.)_
 
+Snowflake
+---------
+
+The connection string for Snowflake looks like this ::
+
+    snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}
+
+The schema is not necessary in the connection string, as it is defined per table/query.
+The role and warehouse can be omitted if defaults are defined for the user, i.e.
+
+    snowflake://{user}:{password}@{account}.{region}/{database}
+
+Make sure the user has privileges to access and use all required
+databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
+not test for user rights during engine creation.
+
+_(See more details at https://github.com/snowflakedb/snowflake-sqlalchemy.)_
+
 Caching
 -------
 
