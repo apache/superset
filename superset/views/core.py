@@ -2481,14 +2481,7 @@ class Superset(BaseSupersetView):
             return json_error_response(get_datasource_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('SQL_MAX_ROW', None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json['data'] = payload_json['data'][:display_limit]
-        return json_success(
-            json.dumps(
-                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
+        return json_success(utils.zlib_decompress_to_string(blob))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])

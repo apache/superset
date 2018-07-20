@@ -226,7 +226,8 @@ def execute_sql(
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
-        json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+        json_payload = json.dumps(
+            payload, default=utils.json_iso_dttm_ser, ignore_nan=True)
         cache_timeout = database.cache_timeout
         if cache_timeout is None:
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
