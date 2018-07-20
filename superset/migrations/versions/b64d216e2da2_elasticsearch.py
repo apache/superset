@@ -1,16 +1,18 @@
 """elasticsearch
 
-Revision ID: b97e54338b27
-Revises: a65458420354
-Create Date: 2017-06-11 22:03:07.505841
+Revision ID: b64d216e2da2
+Revises: bddc498dd179
+Create Date: 2018-07-20 09:51:53.069326
 
 """
+
+# revision identifiers, used by Alembic.
+revision = 'b64d216e2da2'
+down_revision = 'bddc498dd179'
+
 from alembic import op
 import sqlalchemy as sa
 
-# revision identifiers, used by Alembic.
-revision = 'b97e54338b27'
-down_revision = 'a65458420354'
 
 
 def upgrade():
@@ -111,3 +113,4 @@ def downgrade():
     op.drop_table('elastic_columns')
     op.drop_table('elastic_datasources')
     op.drop_table('elastic_clusters')
+
