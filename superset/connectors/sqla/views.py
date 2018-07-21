@@ -156,7 +156,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_title = _('List Tables')
     show_title = _('Show Table')
-    add_title = _('Add Table')
+    add_title = _('Import a table definition')
     edit_title = _('Edit Table')
 
     list_columns = [
