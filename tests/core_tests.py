@@ -436,6 +436,15 @@ class CoreTests(SupersetTestCase):
         expected_data = csv.reader(
             io.StringIO('first_name,last_name\nadmin, user\n'))
 
+        sql = "SELECT first_name FROM ab_user WHERE first_name LIKE '%admin%'"
+        client_id = '{}'.format(random.getrandbits(64))[:10]
+        self.run_sql(sql, client_id, raise_on_error=True)
+
+        resp = self.get_resp('/superset/csv/{}'.format(client_id))
+        data = csv.reader(io.StringIO(resp))
+        expected_data = csv.reader(
+            io.StringIO('first_name\nadmin\n'))
+
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
