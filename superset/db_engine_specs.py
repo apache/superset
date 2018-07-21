@@ -65,7 +65,6 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -331,6 +330,10 @@ class BaseEngineSpec(object):
     def normalize_column_name(column_name):
         return column_name
 
+    @staticmethod
+    def execute(cursor, query, async=False):
+        cursor.execute(query)
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -558,7 +561,6 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
-    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'DATE_ADD(DATE({col}), '
@@ -639,7 +641,6 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
-    cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -938,7 +939,6 @@ class HiveEngineSpec(PrestoEngineSpec):
     """Reuses PrestoEngineSpec functionality."""
 
     engine = 'hive'
-    cursor_execute_kwargs = {'async': True}
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -1229,6 +1229,10 @@ class HiveEngineSpec(PrestoEngineSpec):
                 impersonate_user is True and username is not None):
             configuration['hive.server2.proxy.user'] = username
         return configuration
+
+    @staticmethod
+    def execute(cursor, query, async=False):
+        cursor.execute(query, async=async)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
