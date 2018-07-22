@@ -1,7 +1,7 @@
 """remove double percents
 
 Revision ID: 4451805bbaa1
-Revises: afb7730f6a9c
+Revises: bddc498dd179
 Create Date: 2018-06-13 10:20:35.846744
 
 """
