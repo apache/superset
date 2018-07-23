@@ -505,3 +505,21 @@ https://github.com/apache/incubator-superset/pull/3013
   with a PGP key and providing MD5, Apache voting, as well as
   publishing to Apache's SVN repository. View the ASF docs for more
   information.
+
+
+## Merging DB migrations
+
+When 2 db migrations collide, you'll get an error message like this one:
+
+```
+  alembic.util.exc.CommandError: Multiple head revisions are present for
+  given argument 'head'; please specify a specific target
+  revision, '<branchname>@head' to narrow to a specific head,
+  or 'heads' for all heads`
+```
+
+To fix it, first run `superset db heads`, this should list 2 or more
+migration hashes. Then run
+`superset db merge {PASTE_SHA1_HERE} {PASTE_SHA2_HERE}`. This will create
+a new merge migration. You can then `superset db upgrade` to this new
+checkpoint.
