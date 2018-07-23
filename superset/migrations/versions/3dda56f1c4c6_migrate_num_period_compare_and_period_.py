@@ -125,7 +125,7 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for chart in session.query(Slice):
-        params = json.loads(chart.params)
+        params = json.loads(chart.params or '{}')
 
         if not params.get('num_period_compare'):
             continue
@@ -150,7 +150,7 @@ def downgrade():
     session = db.Session(bind=bind)
 
     for chart in session.query(Slice):
-        params = json.loads(chart.params)
+        params = json.loads(chart.params or '{}')
 
         if 'time_compare' in params or 'comparison_type' in params:
             params.pop('time_compare', None)
