@@ -321,15 +321,6 @@ class BaseEngineSpec(object):
         """
         return {}
 
-    @classmethod
-    def get_normalized_column_names(cls, cursor_description):
-        columns = cursor_description if cursor_description else []
-        return [cls.normalize_column_name(col[0]) for col in columns]
-
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name
-
     @staticmethod
     def execute(cursor, query, async=False):
         cursor.execute(query)
@@ -402,10 +393,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
     )
 
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
-
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -413,10 +400,6 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
@@ -439,10 +422,6 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
-
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
 
 
 class Db2EngineSpec(BaseEngineSpec):
