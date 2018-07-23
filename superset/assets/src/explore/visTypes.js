@@ -57,6 +57,7 @@ export const sections = {
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
         ['order_desc', 'contribution'],
+        ['row_limit', null],
       ],
     },
     {
