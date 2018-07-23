@@ -70,12 +70,11 @@ class SupersetDataFrame(object):
         if cursor_description:
             column_names = [col[0] for col in cursor_description]
 
-        self.column_names = dedup(
-            db_engine_spec.get_normalized_column_names(cursor_description))
+        self.column_names = dedup(column_names)
 
         data = data or []
         self.df = (
-            pd.DataFrame(list(data), columns=column_names).infer_objects())
+            pd.DataFrame(list(data), columns=self.column_names).infer_objects())
 
         self._type_dict = {}
         try:
