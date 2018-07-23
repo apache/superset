@@ -843,10 +843,12 @@ class SqlaTable(Model, BaseDatasource):
     @classmethod
     def query_datasources_by_name(
             cls, session, database, datasource_name, schema=None):
+        unquote = db.engine.dialect.identifier_preparer.unformat_identifiers
+        unformatted_ds = unquote(datasource_name)[0]
         query = (
             session.query(cls)
             .filter_by(database_id=database.id)
-            .filter_by(table_name=datasource_name)
+            .filter_by(table_name=unformatted_ds)
         )
         if schema:
             query = query.filter_by(schema=schema)
