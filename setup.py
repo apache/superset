@@ -75,6 +75,7 @@ setup(
         'gunicorn',  # deprecated
         'humanize',
         'idna',
+        'isodate',
         'markdown',
         'pandas>=0.18.0',
         'parsedatetime',
