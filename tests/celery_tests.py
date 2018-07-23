@@ -109,7 +109,7 @@ class CeleryTestCase(SupersetTestCase):
                 'admin', 'admin', ' user', 'admin@fab.org',
                 security_manager.find_role('Admin'),
                 password='general')
-        cli.load_examples(load_test_data=True)
+        cli.load_examples_run(load_test_data=True)
 
     @classmethod
     def tearDownClass(cls):

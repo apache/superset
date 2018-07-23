@@ -38,6 +38,7 @@ const COMMON_TIME_FRAMES = [
   'Last month',
   'Last quarter',
   'Last year',
+  'No filter',
 ];
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 
