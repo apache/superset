@@ -202,7 +202,7 @@ msgstr "Calendário com Mapa de Calor"
 #: superset/assets/javascripts/explore/stores/visTypes.js:529
 #: superset/viz.py:674
 msgid "Box Plot"
-msgstr "Parcela"
+msgstr "Box Plot"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:550
 #: superset/viz.py:763
@@ -292,11 +292,11 @@ msgstr "Deve ser especificada uma coluna númerica"
 #: superset/assets/javascripts/explore/stores/visTypes.js:96
 #: superset/viz.py:1205
 msgid "Distribution - Bar Chart"
-msgstr "Distribuição - Gráfico de barras"
+msgstr "Gráfico de barras"
 
 #: superset/viz.py:1216
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr "Não pode haver sobreposição entre Series e Desagregação"
+msgstr "Não pode haver sobreposição entre Séries e Desagregação"
 
 #: superset/viz.py:1220
 msgid "Pick at least one field for [Series]"
@@ -384,7 +384,7 @@ msgstr "Deve ter uma coluna [Agrupar por] para ter 'count' como [Label]"
 
 #: superset/viz.py:1662
 msgid "Choice of [Label] must be present in [Group By]"
-msgstr "A escolha da [Label] deve estar presente em []"
+msgstr "A escolha do [Rótulo] deve estar presente em [Agrupar por]"
 
 #: superset/viz.py:1667
 msgid "Choice of [Point Radius] must be present in [Group By]"
@@ -444,7 +444,7 @@ msgstr "Falha ao parar a query."
 #: superset/assets/javascripts/SqlLab/actions.js:297
 #: superset/assets/javascripts/SqlLab/actions.js:310
 msgid "Error occurred while fetching table metadata"
-msgstr "Ocorreu um erro ao carregar os metadados na tabela"
+msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 
 #: superset/assets/javascripts/SqlLab/actions.js:364
 msgid "shared query"
@@ -490,7 +490,7 @@ msgstr "Query sem título"
 #: superset/assets/javascripts/SqlLab/reducers.js:44
 #, python-format
 msgid "Copy of %s"
-msgstr "Cópia de% s"
+msgstr "Cópia de %s"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
@@ -636,12 +636,12 @@ msgstr "Indefinido"
 #: superset/views/sql_lab.py:53
 #, fuzzy
 msgid "Label"
-msgstr "Label"
+msgstr "Rótulo"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:71
 #, fuzzy
 msgid "Label for your query"
-msgstr "Label para a sua query"
+msgstr "Rótulo para a sua query"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:81
 #: superset/connectors/druid/views.py:105
@@ -805,7 +805,7 @@ msgstr "Remover pré-visualização de tabela"
 msgid ""
 "%s is not right as a column name, please alias it (as in SELECT count(*) "
 msgstr ""
-"%s não é um nome de coluna aceite, deve ser renomeada (como SELECT count(*) "
+"%s não é aceite como nome de coluna, por favor renomeie (como SELECT count(*) "
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:91
 msgid "AS my_alias"
@@ -857,7 +857,7 @@ msgstr "Escolha um tipo de visualização"
 
 #: superset/assets/javascripts/addSlice/AddSliceContainer.jsx:87
 msgid "Create new slice"
-msgstr "Crie um novo mostrador"
+msgstr "Crie uma nova visualização"
 
 #: superset/assets/javascripts/components/AsyncSelect.jsx:23
 #: superset/assets/javascripts/explore/components/controls/SelectAsyncControl.jsx:26
@@ -943,7 +943,7 @@ msgstr "Erro"
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:359
 #, python-format
 msgid "Sorry, there was an error adding slices to this dashboard: %s"
-msgstr "Desculpe, houve um erro ao adicionar fatias a este painel:% s"
+msgstr "Desculpe, houve um erro ao adicionar visualizações a este dashboard: %s"
 
 #: superset/assets/javascripts/dashboard/components/CodeModal.jsx:35
 msgid "Active Dashboard Filters"
@@ -1107,7 +1107,7 @@ msgstr "não pode estar vazio"
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:180
 #, python-format
 msgid "%s - untitled"
-msgstr "% s - sem título"
+msgstr "%s - sem título"
 
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:287
 msgid "Edit slice properties"
@@ -1183,7 +1183,7 @@ msgstr "Por favor selecione um dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:97
 msgid "Please enter a dashboard name"
-msgstr "Por favor insira"
+msgstr "Por favor insira um nome para o dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:134
 msgid "Save A Slice"
@@ -1204,7 +1204,7 @@ msgstr "[nome da visualização]"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:181
 msgid "Do not add to a dashboard"
-msgstr "Não adicione um dashboard"
+msgstr "Não adicione a um dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:189
 msgid "Add slice to existing dashboard"
@@ -1290,7 +1290,7 @@ msgstr "O carregamento de dados falhou"
 #: superset/assets/javascripts/explore/components/controls/SelectControl.jsx:155
 #, python-format
 msgid "Select %s"
-msgstr "Selecione% s"
+msgstr "Selecione %s"
 
 #: superset/assets/javascripts/explore/components/controls/TextAreaControl.jsx:63
 msgid "textarea"
@@ -1316,7 +1316,7 @@ msgstr "A atualização do gráfico parou"
 #: superset/assets/javascripts/modules/superset.js:226
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
-msgstr "Ocorreu um erro ao renderizar a visualização:% s"
+msgstr "Ocorreu um erro ao renderizar a visualização: %s"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:47
 msgid ""
@@ -1327,7 +1327,7 @@ msgid ""
 msgstr ""
 "Talvez a quantidade de dados tenha aumentado, a base de dados está em "
 "sobrecarga anormal, ou está simplesmente a consultar uma origem de dados  "
-"grande de mais para ser processada dentro do intervalo de tempo limite. Se "
+"grande demais para ser processada dentro do intervalo de tempo limite. Se "
 "for esse o caso, recomendamos que sintetize mais os seus dados."
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:56
@@ -1383,7 +1383,7 @@ msgstr "Métricas para qual porcentagem do total deve ser exibida"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:118
 msgid "Y Axis Bounds"
-msgstr "Y Axis Bounds"
+msgstr "Limites para o Eixo Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:121
 msgid ""
@@ -1441,11 +1441,11 @@ msgstr "Estilo empilhado"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:199
 msgid "Sort X Axis"
-msgstr "Classificar X Axis"
+msgstr "Ordenar Eixo X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:207
 msgid "Sort Y Axis"
-msgstr "Eixo de classificação Y"
+msgstr "Ordenar Eixo Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:215
 msgid "Linear Color Scheme"
@@ -1453,7 +1453,7 @@ msgstr "Esquema de cores lineares"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:233
 msgid "Normalize Across"
-msgstr "Normalize across"
+msgstr "Normalize em função de"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:240
 msgid ""
@@ -1652,8 +1652,8 @@ msgid ""
 "Defines the origin where time buckets start, accepts natural dates as in "
 "`now`, `sunday` or `1970-01-01`"
 msgstr ""
-"Define a origem onde os campos de tempo começam, aceita datas naturais como "
-"`agora`,`domingo` ou `1970-01-01`"
+"Define a origem onde os campos de tempo começam, aceita datas naturais em inglês como "
+"`now`,`sunday` ou `1970-01-01`"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:480
 msgid "Bottom Margin"
@@ -1685,7 +1685,7 @@ msgid ""
 "simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
 msgstr ""
 "O tempo de granularidade para a visualização. Observe que você pode digitar "
-"e usar linguagem natural simples como `10 segundos`, `1 dia` ou `56 semanas`"
+"e usar linguagem natural simples, em inglês, como `10 seconds`, `1 day` ou `56 weeks`"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:524
 msgid "Domain"
@@ -1909,7 +1909,7 @@ msgstr "Eixo XX"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:767
 msgid "Metric assigned to the [X] axis"
-msgstr "Metric atribuído ao eixo [X]"
+msgstr "Métrica atribuída ao eixo [X]"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:780
 #: superset/assets/javascripts/explore/stores/visTypes.js:180
@@ -1919,7 +1919,7 @@ msgstr "Eixo YY"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:783
 msgid "Metric assigned to the [Y] axis"
-msgstr "Metric atribuído ao eixo [Y]"
+msgstr "Metrica atribuída ao eixo [Y]"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:794
 msgid "Bubble Size"
@@ -1940,11 +1940,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:815
 msgid "X Axis Label"
-msgstr "Etiqueta Eixo XX"
+msgstr "Rótulo Eixo XX"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:822
 msgid "Y Axis Label"
-msgstr "Etiqueta Eixo YY"
+msgstr "Rótulo Eixo YY"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:829
 msgid "Custom WHERE clause"
@@ -2144,7 +2144,7 @@ msgstr "Mostrar seleção da granularidade do Druid"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1068
 msgid "Check to include Druid Granularity dropdown"
-msgstr "Selecione para incluir seleção  de granularidade do Druid"
+msgstr "Selecione para incluir seleção de granularidade do Druid"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1073
 msgid "Show Druid Time Origin"
@@ -2225,7 +2225,7 @@ msgstr "Rich Tooltip"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1145
 msgid "The rich tooltip shows a list of all series for that point in time"
-msgstr ""
+msgstr "A descrição de apoio mostra uma lista de todas as séries para esse ponto temporal"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1151
 msgid "Y Log Scale"
@@ -2322,7 +2322,7 @@ msgstr "Descritivo que aparece em baixo do número grande"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1233
 msgid "label"
-msgstr "etiqueta"
+msgstr "rótulo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1235
 msgid ""
@@ -2368,7 +2368,7 @@ msgid ""
 "cluster"
 msgstr ""
 "O raio de pontos individuais (aqueles que não estão num cluster). Ou uma "
-"coluna numérica ou `Auto ', que escala o ponto com base no maior cluster"
+"coluna numérica ou `Auto`, que escala o ponto com base no maior cluster"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1294
 msgid "Point Radius Unit"
@@ -2755,7 +2755,7 @@ msgstr "Define como se separam cada série"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:134
 msgid "Pie Chart"
-msgstr ""
+msgstr "Gráfico de Queijo"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:199
 msgid "Dual Axis Line Chart"
@@ -2811,7 +2811,7 @@ msgid ""
 "Templated link, it's possible to include {{ metric }} or other values "
 "coming from the controls."
 msgstr ""
-"Ligação predefinida, é possível incluir {{metric}} ou outros valores "
+"Ligação predefinida, é possível incluir {{ metric }} ou outros valores "
 "provenientes dos controlos."
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:424
@@ -3170,7 +3170,7 @@ msgstr "As nossas desculpas, mas parecem não existir dados"
 #: superset/assets/visualizations/filter_box.jsx:181
 #, python-format
 msgid "Select [%s]"
-msgstr "Selecionar [% s]"
+msgstr "Selecionar [%s]"
 
 #: superset/connectors/druid/models.py:1073
 msgid "No data was returned."
@@ -3704,7 +3704,7 @@ msgstr "Requisição de Permissão"
 
 #: superset/templates/superset/welcome.html:3
 msgid "Welcome!"
-msgstr "Bem vindo ao OBI !"
+msgstr "Bem vindo!"
 
 #: superset/templates/superset/models/database/macros.html:4
 msgid "Test Connection"
