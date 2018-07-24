@@ -3,6 +3,14 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.27.0
+* Superset 0.27 start to use nested layout for dashboard builder, which is not 
+backward-compatible with earlier dashboard grid data. We provide migration script
+to automatically convert dashboard grid to nested layout data. To be safe, please 
+take a database backup prior to this upgrade. It's the only way people could go 
+back to a previous state.
+
+
 ## Superset 0.26.0
 * Superset 0.26.0 deprecates the `superset worker` CLI, which is a simple
 wrapper around the `celery worker` command, forcing you into crafting
