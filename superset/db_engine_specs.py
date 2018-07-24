@@ -393,6 +393,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
     )
 
+    @classmethod
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        database = uri.database
+        if '/' in uri.database:
+            database = uri.database.split('/')[0]
+        if selected_schema:
+            uri.database = database + '/' + selected_schema
+        return uri
+
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
