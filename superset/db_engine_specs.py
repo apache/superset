@@ -50,7 +50,7 @@ config = app.config
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
-Grain = namedtuple('Grain', 'label function duration')
+Grain = namedtuple('Grain', 'name label function duration')
 
 builtin_time_grains = {
     None: 'Time Column',
@@ -79,7 +79,7 @@ def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
     for duration, func in time_grain_functions.items():
         if duration not in blacklist:
             name = time_grains.get(duration)
-            ret_list.append(Grain(_(name), func, duration))
+            ret_list.append(Grain(name, _(name), func, duration))
     return tuple(ret_list)
 
 
