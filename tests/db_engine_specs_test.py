@@ -290,6 +290,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         for cls_name, cls in inspect.getmembers(db_engine_specs):
             if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec):
                 # make sure that all defined time grains are supported
-                defined_time_grains = {grain.duration for grain in cls.time_grains()}
+                defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
                 intersection = time_grains.intersection(defined_time_grains)
                 self.assertSetEqual(defined_time_grains, intersection, cls_name)

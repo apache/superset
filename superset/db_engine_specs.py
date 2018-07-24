@@ -50,7 +50,7 @@ config = app.config
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
-Grain = namedtuple('Grain', 'name label function duration')
+Grain = namedtuple('Grain', 'label function duration')
 
 builtin_time_grains = {
     None: 'Time Column',
@@ -69,16 +69,17 @@ builtin_time_grains = {
     '1969-12-28T00:00:00Z/P1W': 'week_start_sunday',
     '1969-12-29T00:00:00Z/P1W': 'week_start_monday',
     'P1W/1970-01-03T00:00:00Z': 'week_ending_saturday',
+    'P1W/1970-01-04T00:00:00Z': 'week_ending_sunday',
 }
 
 
 def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
-    ret_list = list()
+    ret_list = []
     blacklist = blacklist if blacklist else []
     for duration, func in time_grain_functions.items():
         if duration not in blacklist:
-            name = time_grains.get(duration, None)
-            ret_list.append(Grain(name, _(name), func, duration))
+            name = time_grains.get(duration)
+            ret_list.append(Grain(_(name), func, duration))
     return tuple(ret_list)
 
 
@@ -94,14 +95,14 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions = dict()
+    time_grain_functions = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
     inner_joins = True
 
     @classmethod
-    def time_grains(cls):
+    def get_time_grains(cls):
         blacklist = config.get('TIME_GRAIN_BLACKLIST', [])
         grains = builtin_time_grains.copy()
         grains.update(config.get('TIME_GRAIN_ADDONS', {}))
@@ -372,7 +373,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "{col}) AT TIME ZONE 'UTC'",
+        'PT1S': "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'",
         'PT1M': "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'",
         'PT1H': "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'",
         'P1D': "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'",
