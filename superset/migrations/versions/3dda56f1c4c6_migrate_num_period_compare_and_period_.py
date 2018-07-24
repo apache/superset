@@ -16,7 +16,7 @@ import json
 from alembic import op
 import isodate
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy import Column, Integer, String, Text
 
 from superset import db
 from superset.utils import parse_human_timedelta
@@ -32,6 +32,7 @@ class Slice(Base):
     __tablename__ = 'slices'
 
     id = Column(Integer, primary_key=True)
+    datasource_type = Column(String(200))
     params = Column(Text)
 
 
@@ -50,6 +51,12 @@ db_engine_specs_map = {
     'hour': 'PT1H',
     'day': 'P1D',
     'week': 'P1W',
+    'week_ending_saturday': 'P1W',
+    'week_start_sunday': 'P1W',
+    'week_start_monday': 'P1W',
+    'week_starting_sunday': 'P1W',
+    'P1W/1970-01-03T00:00:00Z': 'P1W',
+    '1969-12-28T00:00:00Z/P1W': 'P1W',
     'month': 'P1M',
     'quarter': 'P0.25Y',
     'year': 'P1Y',
@@ -131,10 +138,11 @@ def upgrade():
             continue
 
         num_period_compare = int(params.get('num_period_compare'))
-        granularity = params.get('granularity') or params.get('time_grain_sqla')
-        period_ratio_type = params.get('period_ratio_type', 'growth')
-
+        granularity = (params.get('granularity') if chart.datasource_type == 'druid'
+            else params.get('time_grain_sqla'))
         time_compare = compute_time_compare(granularity, num_period_compare)
+
+        period_ratio_type = params.get('period_ratio_type') or 'growth'
         comparison_type = comparison_type_map[period_ratio_type.lower()]
 
         params['time_compare'] = [time_compare]
