@@ -549,16 +549,17 @@ class ElasticDatasource(Model, BaseDatasource):
             if m.metric_name in query_obj.get('metrics'):
                 equery['aggregations'][m.metric_name] = m.json_obj
 
-        print(equery)
         data = client.search(index=self.index, body=equery)
-        from pprint import pprint
         print('-=' * 20)
-        print('query is : {}'.format(equery))
-        pprint(data)
+        print('query is: {}'.format(equery))
+        data = data['hits']['hits']
+        data = [k['_source'] for k in data]
         print('-=' * 20)
         query_str = self.query_str()
         qry_start_dttm = datetime.now()
         df = pd.DataFrame(data)
+        print('-=' * 20)
+        print(df)
         return QueryResult(
             df=df,
             query=query_str,
