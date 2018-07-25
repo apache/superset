@@ -1,6 +1,5 @@
 /* eslint camelcase: 0 */
 import React from 'react';
-import isReact from 'is-react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -30,7 +29,7 @@ class ControlPanelsContainer extends React.Component {
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
   getControlData(controlName) {
-    if (isReact.element(controlName)) {
+    if (React.isValidElement(controlName)) {
       return controlName;
     }
 
@@ -77,7 +76,7 @@ class ControlPanelsContainer extends React.Component {
             controls={controlSets.map((controlName) => {
               if (!controlName) {
                 return null;
-              } else if (isReact.element(controlName)) {
+              } else if (React.isValidElement(controlName)) {
                 return controlName;
               } else if (ctrls[controlName]) {
                 return (<Control
