@@ -51,6 +51,34 @@ METRIC_KEYS = [
 ]
 
 
+def _fix_df_column_case(df, fd, other_cols):
+    """Helper function to rename columns that have changed case during query.
+    This usually happens when a sqla engine does Oracle-like uppercasing of
+    lowercase column names."""
+    form_fields = ['metrics', 'groupby']
+    columns = set()
+    lowercase_mapping = {}
+
+    for field in form_fields:
+        for col in fd.get(field, []):
+            col_str = str(col)
+            columns.add(col_str)
+            lowercase_mapping[col_str.lower()] = col_str
+
+    for col in other_cols:
+        columns.add(col)
+        lowercase_mapping[col.lower()] = col
+
+    rename_cols = {}
+    for col in df.columns:
+        if col not in columns:
+            orig_col = lowercase_mapping.get(col.lower())
+            if orig_col:
+                rename_cols[col] = orig_col
+
+    return df.rename(index=str, columns=rename_cols)
+
+
 class BaseViz(object):
 
     """All visualizations derive this base class"""
@@ -218,6 +246,7 @@ class BaseViz(object):
 
             df.replace([np.inf, -np.inf], np.nan)
             self.handle_nulls(df)
+
         return df
 
     @staticmethod
@@ -1127,6 +1156,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def process_data(self, df, aggregate=False):
         fd = self.form_data
         df = df.fillna(0)
+        df = _fix_df_column_case(df, fd, [DTTM_ALIAS])
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
         if not aggregate:
@@ -1213,6 +1243,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def get_data(self, df):
         fd = self.form_data
         comparison_type = fd.get('comparison_type') or 'values'
+        df = _fix_df_column_case(df, fd, [DTTM_ALIAS])
         df = self.process_data(df)
 
         if comparison_type == 'values':
