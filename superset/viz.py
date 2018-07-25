@@ -51,34 +51,6 @@ METRIC_KEYS = [
 ]
 
 
-def _fix_df_column_case(df, fd, other_cols):
-    """Helper function to rename columns that have changed case during query.
-    This usually happens when a sqla engine does Oracle-like uppercasing of
-    lowercase column names."""
-    form_fields = ['metrics', 'groupby']
-    columns = set()
-    lowercase_mapping = {}
-
-    for field in form_fields:
-        for col in fd.get(field, []):
-            col_str = str(col)
-            columns.add(col_str)
-            lowercase_mapping[col_str.lower()] = col_str
-
-    for col in other_cols:
-        columns.add(col)
-        lowercase_mapping[col.lower()] = col
-
-    rename_cols = {}
-    for col in df.columns:
-        if col not in columns:
-            orig_col = lowercase_mapping.get(col.lower())
-            if orig_col:
-                rename_cols[col] = orig_col
-
-    return df.rename(index=str, columns=rename_cols)
-
-
 class BaseViz(object):
 
     """All visualizations derive this base class"""
@@ -411,6 +383,7 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
+                df = self.fix_df_column_case(df)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
@@ -494,6 +467,36 @@ class BaseViz(object):
     @property
     def json_data(self):
         return json.dumps(self.data)
+
+    def fix_df_column_case(self, df):
+        """Helper function to rename columns that have changed case during query.
+        This usually happens when a sqla engine does Oracle-like uppercasing of
+        lowercase column names."""
+
+        form_fields = ['metrics', 'groupby']
+        other_cols = [DTTM_ALIAS]
+
+        columns = set()
+        lowercase_mapping = {}
+
+        for field in form_fields:
+            for col in self.form_data.get(field, []):
+                col_str = str(col)
+                columns.add(col_str)
+                lowercase_mapping[col_str.lower()] = col_str
+
+        for col in other_cols:
+            columns.add(col)
+            lowercase_mapping[col.lower()] = col
+
+        rename_cols = {}
+        for col in df.columns:
+            if col not in columns:
+                orig_col = lowercase_mapping.get(col.lower())
+                if orig_col:
+                    rename_cols[col] = orig_col
+
+        return df.rename(index=str, columns=rename_cols)
 
 
 class TableViz(BaseViz):
@@ -1156,7 +1159,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def process_data(self, df, aggregate=False):
         fd = self.form_data
         df = df.fillna(0)
-        df = _fix_df_column_case(df, fd, [DTTM_ALIAS])
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
         if not aggregate:
@@ -1243,7 +1245,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def get_data(self, df):
         fd = self.form_data
         comparison_type = fd.get('comparison_type') or 'values'
-        df = _fix_df_column_case(df, fd, [DTTM_ALIAS])
         df = self.process_data(df)
 
         if comparison_type == 'values':
