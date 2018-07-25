@@ -218,7 +218,6 @@ class BaseViz(object):
 
             df.replace([np.inf, -np.inf], np.nan)
             df = self.handle_nulls(df)
-
         return df
 
     @staticmethod
