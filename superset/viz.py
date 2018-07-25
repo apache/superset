@@ -181,7 +181,7 @@ class BaseViz(object):
 
     def handle_nulls(self, df):
         fillna = self.get_fillna_for_columns(df.columns)
-        df = df.fillna(fillna)
+        return df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
@@ -245,7 +245,7 @@ class BaseViz(object):
                 self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            self.handle_nulls(df)
+            df = self.handle_nulls(df)
 
         return df
 
