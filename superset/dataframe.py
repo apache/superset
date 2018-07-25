@@ -27,21 +27,24 @@ INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
 
 
-def dedup(l, suffix='__'):
+def dedup(l, suffix='__', case_sensitive=True):
     """De-duplicates a list of string by suffixing a counter
 
     Always returns the same number of entries as provided, and always returns
-    unique values.
+    unique values. Case sensitive comparison by default.
 
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
-    foo,bar,bar__1,bar__2
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'])))
+    foo,bar,bar__1,bar__2,Bar
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar', 'Bar'], case_sensitive=False)))
+    foo,bar,bar__1,bar__2,Bar__3
     """
     new_l = []
     seen = {}
     for s in l:
-        if s in seen:
-            seen[s] += 1
-            s += suffix + str(seen[s])
+        s2 = s if case_sensitive else s.lower()
+        if s2 in seen:
+            seen[s2] += 1
+            s += suffix + str(seen[s2])
         else:
             seen[s] = 0
         new_l.append(s)
@@ -70,7 +73,7 @@ class SupersetDataFrame(object):
         if cursor_description:
             column_names = [col[0] for col in cursor_description]
 
-        self.column_names = dedup(column_names)
+        self.column_names = dedup(column_names, case_sensitive=False)
 
         data = data or []
         self.df = (
