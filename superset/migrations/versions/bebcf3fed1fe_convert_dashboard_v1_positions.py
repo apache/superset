@@ -351,13 +351,13 @@ def convert(positions, level, parent, root):
     # they can be a list of charts, or arranged in columns, or mixed
     for layer in layers:
         if len(layer) == 0:
-            return
+            continue
 
         if len(layer) == 1 and parent['type'] == COLUMN_TYPE:
             chart_holder = get_chart_holder(layer[0])
             root[chart_holder['id']] = chart_holder
             parent['children'].append(chart_holder['id'])
-            return
+            continue
 
         # create a new row
         row_container = get_row_container()
