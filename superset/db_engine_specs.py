@@ -1051,10 +1051,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def extract_error_message(cls, e):
-        try:
-            msg = e.message.status.errorMessage
-        except Exception:
-            msg = str(e)
+        msg = str(e)
+        match = re.search('errorMessage="(.*)", ', msg)
+        if match:
+            msg = match.group(1)
         return msg
 
     @classmethod

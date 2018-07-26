@@ -4,6 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from six import text_type
+
 from superset.db_engine_specs import (
     BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
     MySQLEngineSpec, PrestoEngineSpec,
@@ -83,6 +85,23 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
         """.split('\n')  # noqa ignore: E501
         self.assertEquals(60, HiveEngineSpec.progress(log))
+
+    def test_hive_error_msg(self):
+        msg = (
+            '{...} errorMessage="Error while compiling statement: FAILED: '
+            'SemanticException [Error 10001]: Line 4'
+            ':5 Table not found \'fact_ridesfdslakj\'", statusCode=3, '
+            'sqlState=\'42S02\', errorCode=10001)){...}')
+        self.assertEquals((
+            'Error while compiling statement: FAILED: '
+            'SemanticException [Error 10001]: Line 4:5 '
+            "Table not found 'fact_ridesfdslakj'"),
+            HiveEngineSpec.extract_error_message(Exception(msg)))
+
+        e = Exception("Some string that doesn't match the regex")
+        self.assertEquals(
+            text_type(e),
+            HiveEngineSpec.extract_error_message(e))
 
     def get_generic_database(self):
         return Database(sqlalchemy_uri='mysql://localhost')
