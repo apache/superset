@@ -101,7 +101,7 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
-    dedup_case_sensitive = True
+    case_sensitive_cols = True
 
     @classmethod
     def get_time_grains(cls):
@@ -382,7 +382,10 @@ class BaseEngineSpec(object):
         correspond to the case of the fields specified in the form data for Viz
         to work properly. This adjustment can be done here.
         """
-        return df
+        if cls.case_sensitive_cols:
+            return df
+        else:
+            return cls.align_df_col_names_with_form_data(df, fd, other_cols)
 
     @staticmethod
     def align_df_col_names_with_form_data(df, fd, other_cols):
@@ -467,6 +470,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
+    case_sensitive_cols = False
     time_grain_functions = {
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
@@ -496,10 +500,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             uri.database = database + '/' + selected_schema
         return uri
 
-    @classmethod
-    def adjust_df_column_names(cls, df, fd, other_cols):
-        return cls.align_df_col_names_with_form_data(df, fd, other_cols)
-
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -507,17 +507,12 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    dedup_case_sensitive = False
-
-    @classmethod
-    def adjust_df_column_names(cls, df, fd, other_cols):
-        return cls.align_df_col_names_with_form_data(df, fd, other_cols)
-
+    case_sensitive_cols = False
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
-    dedup_case_sensitive = False
+    case_sensitive_cols = False
 
     time_grain_functions = {
         None: '{col}',
@@ -536,10 +531,6 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
-
-    @classmethod
-    def adjust_df_column_names(cls, df, fd, other_cols):
-        return cls.align_df_col_names_with_form_data(df, fd, other_cols)
 
 
 class Db2EngineSpec(BaseEngineSpec):
