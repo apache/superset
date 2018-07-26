@@ -401,7 +401,9 @@ export function popSavedQuery(saveQueryId) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error(t('The query couldn\'t be loaded')),
+      error: () => {
+        dispatch(addDangerToast(t('The query couldn\'t be loaded')));
+      },
     });
   };
 }

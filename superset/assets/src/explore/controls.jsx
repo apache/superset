@@ -857,7 +857,7 @@ export const controls = {
   resample_rule: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample Rule'),
+    label: t('Rule'),
     default: null,
     choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
     description: t('Pandas resample rule'),
@@ -866,7 +866,7 @@ export const controls = {
   resample_how: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample How'),
+    label: t('How'),
     default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
     description: t('Pandas resample how'),
@@ -875,7 +875,7 @@ export const controls = {
   resample_fillmethod: {
     type: 'SelectControl',
     freeForm: true,
-    label: t('Resample Fill Method'),
+    label: t('Fill Method'),
     default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
     description: t('Pandas resample fill method'),
@@ -1128,34 +1128,6 @@ export const controls = {
     default: '',
   },
 
-  where: {
-    type: 'TextAreaControl',
-    label: t('Custom WHERE clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s WHERE ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
-  },
-
-  having: {
-    type: 'TextAreaControl',
-    label: t('Custom HAVING clause'),
-    default: '',
-    language: 'sql',
-    minLines: 2,
-    maxLines: 10,
-    offerEditInModal: false,
-    description: t('The text in this box gets included in your query\'s HAVING ' +
-    'clause, as an AND to other criteria. You can include ' +
-    'complex expression, parenthesis and anything else ' +
-    'supported by the backend it is directed towards.'),
-  },
-
   compare_lag: {
     type: 'TextControl',
     label: t('Comparison Period Lag'),
@@ -1231,11 +1203,12 @@ export const controls = {
     mapStateToProps: (state) => {
       const showWarning = (
           state.controls &&
-          state.controls.num_period_compare &&
-          state.controls.num_period_compare.value !== '');
+          state.controls.comparison_type &&
+          state.controls.comparison_type.value === 'percentage');
       return {
         warning: showWarning ?
-          t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
+          t('When `Calculation type` is set to "Percentage change", the Y ' +
+            'Axis Format is forced to `.1%`') : null,
         disabled: showWarning,
       };
     },
@@ -1558,32 +1531,37 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
-  num_period_compare: {
-    type: 'TextControl',
-    label: t('Period Ratio'),
-    default: '',
-    isInt: true,
-    description: t('[integer] Number of period to compare against, ' +
-    'this is relative to the granularity selected'),
-  },
-
-  period_ratio_type: {
-    type: 'SelectControl',
-    label: t('Period Ratio Type'),
-    default: 'growth',
-    choices: formatSelectOptions(['factor', 'growth', 'value']),
-    description: t('`factor` means (new/previous), `growth` is ' +
-    '((new/previous) - 1), `value` is (new-previous)'),
-  },
-
   time_compare: {
-    type: 'TextControl',
+    type: 'SelectControl',
+    multi: true,
+    freeForm: true,
     label: t('Time Shift'),
-    default: null,
-    description: t('Overlay a timeseries from a ' +
-    'relative time period. Expects relative time delta ' +
+    choices: formatSelectOptions([
+      '1 day',
+      '1 week',
+      '28 days',
+      '30 days',
+      '1 year',
+    ]),
+    description: t('Overlay one or more timeseries from a ' +
+    'relative time period. Expects relative time deltas ' +
     'in natural language (example:  24 hours, 7 days, ' +
     '56 weeks, 365 days)'),
+  },
+
+  comparison_type: {
+    type: 'SelectControl',
+    label: t('Calculation type'),
+    default: 'values',
+    choices: [
+      ['values', 'Actual Values'],
+      ['absolute', 'Absolute difference'],
+      ['percentage', 'Percentage change'],
+      ['ratio', 'Ratio'],
+    ],
+    description: t('How to display time shifts: as individual lines; as the ' +
+    'absolute difference between the main time series and each time shift; ' +
+    'as the percentage change; or as the ratio between series and time shifts.'),
   },
 
   subheader: {
@@ -1809,16 +1787,6 @@ export const controls = {
     description: t('Labels for the marker lines'),
   },
 
-  filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      datasource: state.datasource,
-    }),
-  },
-
   annotation_layers: {
     type: 'AnnotationLayerControl',
     label: '',
@@ -1839,18 +1807,6 @@ export const controls = {
       datasource: state.datasource,
     }),
     provideFormDataToProps: true,
-  },
-
-  having_filters: {
-    type: 'FilterControl',
-    label: '',
-    default: [],
-    description: '',
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo
-        .concat(state.datasource.filterable_cols) : [],
-      datasource: state.datasource,
-    }),
   },
 
   slice_id: {

@@ -7,7 +7,6 @@ import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
-import V2PreviewModal from '../deprecated/V2PreviewModal';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
@@ -32,7 +31,6 @@ const propTypes = {
   startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
-  isV2Preview: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
@@ -60,7 +58,6 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       hightlightRedo: false,
-      showV2PreviewModal: props.isV2Preview,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -69,7 +66,6 @@ class Header extends React.PureComponent {
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
-    this.toggleShowV2PreviewModal = this.toggleShowV2PreviewModal.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -129,10 +125,6 @@ class Header extends React.PureComponent {
     this.props.setEditMode(!this.props.editMode);
   }
 
-  toggleShowV2PreviewModal() {
-    this.setState({ showV2PreviewModal: !this.state.showV2PreviewModal });
-  }
-
   overwriteDashboard() {
     const {
       dashboardTitle,
@@ -161,7 +153,6 @@ class Header extends React.PureComponent {
       filters,
       expandedSlices,
       css,
-      isV2Preview,
       onUndo,
       onRedo,
       undoLength,
@@ -177,7 +168,7 @@ class Header extends React.PureComponent {
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
-    const popButton = hasUnsavedChanges || isV2Preview;
+    const popButton = hasUnsavedChanges;
 
     return (
       <div className="dashboard-header">
@@ -196,20 +187,6 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
           </span>
-          {isV2Preview && (
-            <div
-              role="none"
-              className="v2-preview-badge"
-              onClick={this.toggleShowV2PreviewModal}
-            >
-              {t('v2 Preview')}
-              <span className="fa fa-info-circle m-l-5" />
-            </div>
-          )}
-          {isV2Preview &&
-            this.state.showV2PreviewModal && (
-              <V2PreviewModal onClose={this.toggleShowV2PreviewModal} />
-            )}
         </div>
 
         {userCanSaveAs && (
@@ -245,32 +222,17 @@ class Header extends React.PureComponent {
             )}
 
             {editMode &&
-              (hasUnsavedChanges || isV2Preview) && (
+              hasUnsavedChanges && (
                 <Button
                   bsSize="small"
                   bsStyle={popButton ? 'primary' : undefined}
                   onClick={this.overwriteDashboard}
                 >
-                  {isV2Preview
-                    ? t('Persist as Dashboard v2')
-                    : t('Save changes')}
+                  {t('Save changes')}
                 </Button>
               )}
 
             {!editMode &&
-              isV2Preview && (
-                <Button
-                  bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={popButton ? 'primary' : undefined}
-                  disabled={!userCanEdit}
-                >
-                  {t('Edit to persist Dashboard v2')}
-                </Button>
-              )}
-
-            {!editMode &&
-              !isV2Preview &&
               !hasUnsavedChanges && (
                 <Button
                   bsSize="small"
@@ -283,7 +245,6 @@ class Header extends React.PureComponent {
               )}
 
             {editMode &&
-              !isV2Preview &&
               !hasUnsavedChanges && (
                 <Button
                   bsSize="small"
@@ -312,7 +273,6 @@ class Header extends React.PureComponent {
               editMode={editMode}
               hasUnsavedChanges={hasUnsavedChanges}
               userCanEdit={userCanEdit}
-              isV2Preview={isV2Preview}
             />
 
             {editMode && (

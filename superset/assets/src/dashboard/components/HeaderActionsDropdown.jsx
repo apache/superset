@@ -28,7 +28,6 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
-  isV2Preview: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {};
@@ -83,7 +82,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       expandedSlices,
       onSave,
       userCanEdit,
-      isV2Preview,
     } = this.props;
 
     const emailBody = t('Check out this dashboard: %s', window.location.href);
@@ -93,7 +91,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       <DropdownButton
         title=""
         id="save-dash-split-button"
-        bsStyle={hasUnsavedChanges || isV2Preview ? 'primary' : undefined}
+        bsStyle={hasUnsavedChanges ? 'primary' : undefined}
         bsSize="small"
         pullRight
       >
@@ -111,9 +109,8 @@ class HeaderActionsDropdown extends React.PureComponent {
           isMenuItem
           triggerNode={<span>{t('Save as')}</span>}
           canOverwrite={userCanEdit}
-          isV2Preview={isV2Preview}
         />
-        {(isV2Preview || hasUnsavedChanges) && (
+        {hasUnsavedChanges && (
           <MenuItem
             eventKey="discard"
             onSelect={HeaderActionsDropdown.discardChanges}

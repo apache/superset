@@ -11,5 +11,4 @@ export default {
   maxUndoHistoryExceeded: false,
   isStarred: true,
   css: '',
-  isV2Preview: false, // @TODO remove upon v1 deprecation
 };
