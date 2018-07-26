@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 import logging
 
-from flask import escape, Markup, g
+from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -430,7 +430,7 @@ class SqlaTable(Model, BaseDatasource):
         Typically adds comments to the query with context"""
         SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
         if SQL_QUERY_MUTATOR:
-            username = g.user.username if g.user else None
+            username = utils.get_username()
             sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
         return sql
 
@@ -445,6 +445,7 @@ class SqlaTable(Model, BaseDatasource):
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
+        sql = self.mutate_query_from_config(sql)
         return sql
 
     def get_sqla_table(self):
@@ -749,7 +750,6 @@ class SqlaTable(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         sql = self.get_query_str(query_obj)
-        sql = self.mutate_query_from_config(sql)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
