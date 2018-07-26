@@ -65,7 +65,6 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -322,14 +321,9 @@ class BaseEngineSpec(object):
         """
         return {}
 
-    @classmethod
-    def get_normalized_column_names(cls, cursor_description):
-        columns = cursor_description if cursor_description else []
-        return [cls.normalize_column_name(col[0]) for col in columns]
-
     @staticmethod
-    def normalize_column_name(column_name):
-        return column_name
+    def execute(cursor, query, async=False):
+        cursor.execute(query)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -399,10 +393,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
     )
 
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
-
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -410,10 +400,6 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
@@ -436,10 +422,6 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
-
-    @staticmethod
-    def normalize_column_name(column_name):
-        return column_name.lower()
 
 
 class Db2EngineSpec(BaseEngineSpec):
@@ -558,7 +540,6 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
-    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'DATE_ADD(DATE({col}), '
@@ -639,7 +620,6 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
-    cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -938,7 +918,6 @@ class HiveEngineSpec(PrestoEngineSpec):
     """Reuses PrestoEngineSpec functionality."""
 
     engine = 'hive'
-    cursor_execute_kwargs = {'async': True}
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -1230,6 +1209,10 @@ class HiveEngineSpec(PrestoEngineSpec):
             configuration['hive.server2.proxy.user'] = username
         return configuration
 
+    @staticmethod
+    def execute(cursor, query, async=False):
+        cursor.execute(query, async=async)
+
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
@@ -1350,6 +1333,9 @@ class ClickHouseEngineSpec(BaseEngineSpec):
         Grain('day', _('day'),
               'toStartOfDay(toDateTime({col}))',
               'P1D'),
+        Grain('week', _('week'),
+              'toMonday(toDateTime({col}))',
+              'P1W'),
         Grain('month', _('month'),
               'toStartOfMonth(toDateTime({col}))',
               'P1M'),

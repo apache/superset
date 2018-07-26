@@ -172,8 +172,7 @@ def execute_sql(
         cursor = conn.cursor()
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
-        cursor.execute(query.executed_sql,
-                       **db_engine_spec.cursor_execute_kwargs)
+        db_engine_spec.execute(cursor, query.executed_sql, async=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
@@ -226,7 +225,8 @@ def execute_sql(
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
-        json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+        json_payload = json.dumps(
+            payload, default=utils.json_iso_dttm_ser, ignore_nan=True)
         cache_timeout = database.cache_timeout
         if cache_timeout is None:
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)

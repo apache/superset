@@ -12,7 +12,6 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
-import six
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
@@ -371,7 +370,10 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def select_star(self):
-        return self.database.select_star(self.name, show_cols=True)
+        # show_cols and latest_partition set to false to avoid
+        # the expensive cost of inspecting the DB
+        return self.database.select_star(
+            self.name, show_cols=False, latest_partition=False)
 
     def get_col(self, col_name):
         columns = self.columns
@@ -424,14 +426,8 @@ class SqlaTable(Model, BaseDatasource):
             table=self, database=self.database, **kwargs)
 
     def get_query_str(self, query_obj):
-        engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = six.text_type(
-            qry.compile(
-                engine,
-                compile_kwargs={'literal_binds': True},
-            ),
-        )
+        sql = self.database.compile_sqla_query(qry)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:

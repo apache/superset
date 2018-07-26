@@ -135,7 +135,6 @@ describe('dashboardState reducer', () => {
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       editMode: false,
-      isV2Preview: false, // @TODO remove upon v1 deprecation
     });
   });
 

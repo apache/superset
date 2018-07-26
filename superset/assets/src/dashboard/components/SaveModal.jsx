@@ -22,7 +22,6 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
-  isV2Preview: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -104,16 +103,12 @@ class SaveModal extends React.PureComponent {
   }
 
   render() {
-    const { isV2Preview } = this.props;
     return (
       <ModalTrigger
         ref={this.setModalRef}
         isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
-        modalTitle={t(
-          'Save Dashboard%s',
-          isV2Preview ? ' (⚠️ all saved dashboards will be V2)' : '',
-        )}
+        modalTitle={t('Save Dashboard')}
         modalBody={
           <FormGroup>
             <Radio
@@ -144,7 +139,7 @@ class SaveModal extends React.PureComponent {
                 checked={this.state.duplicateSlices}
                 onChange={this.toggleDuplicateSlices}
               />
-              <span className="m-l-5">also copy (duplicate) charts</span>
+              <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
           </FormGroup>
         }
