@@ -470,36 +470,6 @@ class BaseViz(object):
     def json_data(self):
         return json.dumps(self.data)
 
-    def fix_df_column_case(self, df):
-        """Helper function to rename columns that have changed case during query.
-        This usually happens when a sqla engine does Oracle-like uppercasing of
-        lowercase column names."""
-
-        form_fields = ['metrics', 'groupby']
-        other_cols = [DTTM_ALIAS]
-
-        columns = set()
-        lowercase_mapping = {}
-
-        for field in form_fields:
-            for col in self.form_data.get(field, []):
-                col_str = str(col)
-                columns.add(col_str)
-                lowercase_mapping[col_str.lower()] = col_str
-
-        for col in other_cols:
-            columns.add(col)
-            lowercase_mapping[col.lower()] = col
-
-        rename_cols = {}
-        for col in df.columns:
-            if col not in columns:
-                orig_col = lowercase_mapping.get(col.lower())
-                if orig_col:
-                    rename_cols[col] = orig_col
-
-        return df.rename(index=str, columns=rename_cols)
-
 
 class TableViz(BaseViz):
 
