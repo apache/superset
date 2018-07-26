@@ -101,7 +101,7 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
-    case_sensitive_cols = True
+    consistent_case_sensitivity = True # do query results have same case for column names?
 
     @classmethod
     def get_time_grains(cls):
@@ -382,7 +382,7 @@ class BaseEngineSpec(object):
         correspond to the case of the fields specified in the form data for Viz
         to work properly. This adjustment can be done here.
         """
-        if cls.case_sensitive_cols:
+        if cls.consistent_case_sensitivity:
             return df
         else:
             return cls.align_df_col_names_with_form_data(df, fd, other_cols)
@@ -470,7 +470,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
-    case_sensitive_cols = False
+    consistent_case_sensitivity = False
     time_grain_functions = {
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
@@ -507,13 +507,13 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    case_sensitive_cols = False
+    consistent_case_sensitivity = False
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
-    case_sensitive_cols = False
+    consistent_case_sensitivity = False
 
     time_grain_functions = {
         None: '{col}',
