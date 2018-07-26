@@ -27,7 +27,8 @@ import zlib
 import bleach
 import celery
 from dateutil.parser import parse
-from flask import flash, Markup, render_template
+from dateutil.relativedelta import relativedelta
+from flask import flash, g, Markup, render_template
 from flask_babel import gettext as __
 from flask_caching import Cache
 import markdown as md
@@ -885,3 +886,11 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
+
+
+def get_username():
+    """Get username if within the flask context, otherwise return noffin'"""
+    try:
+        return g.user.username
+    except Exception:
+        pass
