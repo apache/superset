@@ -9,7 +9,6 @@ flask-appbuilder==1.10.0
 flask-caching==1.4.0
 flask-compress==1.4.0
 flask-migrate==2.1.1
-flask-testing==0.7.1
 flask-wtf==0.14.2
 flower==0.9.2
 future==0.16.0
