@@ -101,7 +101,7 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
-    consistent_case_sensitivity = True # do query results have same case for column names?
+    consistent_case_sensitivity = True  # do results have same case as qry for col names?
 
     @classmethod
     def get_time_grains(cls):
