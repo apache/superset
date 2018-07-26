@@ -372,18 +372,15 @@ class BaseEngineSpec(object):
 
         Usually sqla engines return column names whose case matches that of the
         original query. For example:
-
             SELECT 1 as col1, 2 as COL2, 3 as Col_3
-
         will usually result in the following df.columns:
-
             ['col1', 'COL2', 'Col_3'].
-
-        For these engines there is no need to adjust the dataframe column names.
-        However, some engines (at least Snowflake, Oracle and Redshift) return column
-        names with different case than in the original query, usually all uppercase.
-        For these the column names need to be adjusted to correspond to the case of
-        the fields specified in the form data. This adjustment can be done here.
+        For these engines there is no need to adjust the dataframe column names
+        (default behavior). However, some engines (at least Snowflake, Oracle and
+        Redshift) return column names with different case than in the original query,
+        usually all uppercase. For these the column names need to be adjusted to
+        correspond to the case of the fields specified in the form data for Viz
+        to work properly. This adjustment can be done here.
         """
         return df
 
