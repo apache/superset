@@ -319,7 +319,6 @@ class BaseEngineSpec(object):
 
         if show_cols:
             fields = [sqla.column(c.get('name')) for c in cols]
-        full_table_name = table_name
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + '.' + quote(table_name)
