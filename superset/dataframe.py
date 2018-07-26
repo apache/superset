@@ -46,7 +46,7 @@ def dedup(l, suffix='__', case_sensitive=True):
             seen[s2] += 1
             s += suffix + str(seen[s2])
         else:
-            seen[s] = 0
+            seen[s2] = 0
         new_l.append(s)
     return new_l
 
