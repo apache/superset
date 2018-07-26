@@ -364,11 +364,15 @@ Where you need to escape/encode at least the s3_staging_dir, i.e., ::
 
     s3://... -> s3%3A//...
 
-You can also use `PyAthena` library
+<<<<<<< HEAD
+You can also use `PyAthena` library(no java required) like this ::
+=======
+You can also use `PyAthena` library(no JDBC driver needed) like this ::
+>>>>>>> dbb7d4172b0e379ceb7330ddbd2f644645c54811
 
     awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 
-_(See more details at https://github.com/laughingman7743/PyAthena#sqlalchemy.)_
+See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
 Snowflake
 ---------
@@ -386,7 +390,7 @@ Make sure the user has privileges to access and use all required
 databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
 not test for user rights during engine creation.
 
-_(See more details at https://github.com/snowflakedb/snowflake-sqlalchemy.)_
+See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
 
 Caching
 -------
