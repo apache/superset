@@ -364,7 +364,11 @@ Where you need to escape/encode at least the s3_staging_dir, i.e., ::
 
     s3://... -> s3%3A//...
 
+<<<<<<< HEAD
+You can also use `PyAthena` library(no java required) like this ::
+=======
 You can also use `PyAthena` library(no JDBC driver needed) like this ::
+>>>>>>> dbb7d4172b0e379ceb7330ddbd2f644645c54811
 
     awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 
