@@ -23,7 +23,7 @@ from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 
-from superset import db, import_util, security_manager, utils
+from superset import app, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
@@ -31,6 +31,8 @@ from superset.models.core import Database
 from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
+
+config = app.config
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -417,9 +419,20 @@ class SqlaTable(Model, BaseDatasource):
         sql = '{}'.format(
             qry.compile(engine, compile_kwargs={'literal_binds': True}),
         )
+        sql = self.mutate_query_from_config(sql)
 
         df = pd.read_sql_query(sql=sql, con=engine)
         return [row[0] for row in df.to_records(index=False)]
+
+    def mutate_query_from_config(self, sql):
+        """Apply config's SQL_QUERY_MUTATOR
+
+        Typically adds comments to the query with context"""
+        SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
+        if SQL_QUERY_MUTATOR:
+            username = utils.get_username()
+            sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
+        return sql
 
     def get_template_processor(self, **kwargs):
         return get_template_processor(
@@ -432,6 +445,7 @@ class SqlaTable(Model, BaseDatasource):
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
+        sql = self.mutate_query_from_config(sql)
         return sql
 
     def get_sqla_table(self):
