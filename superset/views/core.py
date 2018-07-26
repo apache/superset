@@ -2569,6 +2569,25 @@ class Superset(BaseSupersetView):
         return response
 
     @has_access
+    @expose('/usr_can_access_slice/<user>/<slice_id>')
+    @log_this
+    def user_can_access_slice(self, user, slice):
+        slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+        security_manager.has_access(slc.datasource)
+
+        if slice_id:
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=slice_id)
+                .one()
+            )
+            return security_manager.datasource_access(user=user, slc.get_viz().datasource)
+
+        #if the user does not exist, or slice does not exist, return error
+        #get the datasource corresponding to the slice
+        # check if it has access and return. 
+
+    @has_access
     @expose('/fetch_datasource_metadata')
     @log_this
     def fetch_datasource_metadata(self):
