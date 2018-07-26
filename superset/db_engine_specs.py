@@ -509,6 +509,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
     case_sensitive_cols = False
 
+
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
