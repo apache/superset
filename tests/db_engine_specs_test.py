@@ -103,6 +103,15 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             text_type(e),
             HiveEngineSpec.extract_error_message(e))
 
+        msg = (
+            'errorCode=10001, '
+            'errorMessage="Error while compiling statement"), operationHandle'
+            '=None)"'
+        )
+        self.assertEquals((
+            'Error while compiling statement'),
+            HiveEngineSpec.extract_error_message(Exception(msg)))
+
     def get_generic_database(self):
         return Database(sqlalchemy_uri='mysql://localhost')
 
