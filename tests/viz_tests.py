@@ -976,3 +976,39 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
 
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
+
+
+class TimeSeriesVizTestCase(unittest.TestCase):
+
+    def test_timeseries_unicode_data(self):
+        datasource = Mock()
+        form_data = {
+            'groupby': ['name'],
+            'metrics': ['sum__payout'],
+        }
+        raw = {}
+        raw['name'] = [
+            'Real Madrid C.F.🇺🇸🇬🇧', 'Real Madrid C.F.🇺🇸🇬🇧',
+            'Real Madrid Basket', 'Real Madrid Basket',
+        ]
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
+        raw['sum__payout'] = [2, 2, 4, 4]
+        df = pd.DataFrame(raw)
+
+        test_viz = viz.NVD3TimeSeriesViz(datasource, form_data)
+        viz_data = {}
+        viz_data = test_viz.get_data(df)
+        expected = [
+            {u'values': [
+                {u'y': 4, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 4, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid Basket',)},
+            {u'values': [
+                {u'y': 2, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 2, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7',)},
+        ]
+        self.assertEqual(expected, viz_data)

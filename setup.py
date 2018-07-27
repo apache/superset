@@ -67,8 +67,6 @@ setup(
         'flask-caching',
         'flask-compress',
         'flask-migrate',
-        'flask-script',
-        'flask-testing',
         'flask-wtf',
         'flower',  # deprecated
         'future>=0.16.0, <0.17',
@@ -76,6 +74,7 @@ setup(
         'gunicorn',  # deprecated
         'humanize',
         'idna',
+        'isodate',
         'markdown',
         'pandas>=0.18.0',
         'parsedatetime',

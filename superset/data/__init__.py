@@ -17,7 +17,7 @@ from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
 import polyline
 
-from superset import app, db, security_manager, utils
+from superset import app, db, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import TableColumn
 from superset.models import core as models
@@ -197,6 +197,7 @@ def load_world_bank_health_n_pop():
         "row_limit": config.get("ROW_LIMIT"),
         "since": "2014-01-01",
         "until": "2014-01-02",
+        "time_range": "2014-01-01 : 2014-01-02",
         "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",

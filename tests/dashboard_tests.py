@@ -33,6 +33,25 @@ class DashboardTests(SupersetTestCase):
     def tearDown(self):
         pass
 
+    def get_mock_positions(self, dash):
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2',
+        }
+        for i, slc in enumerate(dash.slices):
+            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
+            d = {
+                'type': 'DASHBOARD_CHART_TYPE',
+                'id': id,
+                'children': [],
+                'meta': {
+                    'width': 4,
+                    'height': 50,
+                    'chartId': slc.id,
+                },
+            }
+            positions[id] = d
+        return positions
+
     def test_dashboard(self):
         self.login(username='admin')
         urls = {}
@@ -61,10 +80,11 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -76,12 +96,13 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
 
+        positions = self.get_mock_positions(dash)
         filters = {str(dash.slices[0].id): {'region': ['North America']}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
             'default_filters': default_filters,
         }
@@ -104,12 +125,13 @@ class DashboardTests(SupersetTestCase):
             slug='world_health').first()
 
         # add an invalid filter slice
+        positions = self.get_mock_positions(dash)
         filters = {str(99999): {'region': ['North America']}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
             'default_filters': default_filters,
         }
@@ -131,10 +153,11 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         origin_title = dash.dashboard_title
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': 'new title',
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -153,11 +176,12 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'duplicate_slices': False,
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': 'Copy Of Births',
         }
 
@@ -216,8 +240,15 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = dash.position_array[:-1]
         origin_slices_length = len(dash.slices)
+
+        positions = self.get_mock_positions(dash)
+        # remove one chart
+        chart_keys = []
+        for key in positions.keys():
+            if key.startswith('DASHBOARD_CHART_TYPE'):
+                chart_keys.append(key)
+        positions.pop(chart_keys[0])
 
         data = {
             'css': '',

@@ -113,3 +113,15 @@ class SupersetDataFrameTestCase(SupersetTestCase):
                 },
             ],
         )
+
+    def test_dedup_with_data(self):
+        data = [
+            ('a', 1),
+            ('a', 2),
+        ]
+        cursor_descr = (
+            ('a', 'string'),
+            ('a', 'string'),
+        )
+        cdf = SupersetDataFrame(data, cursor_descr, BaseEngineSpec)
+        self.assertListEqual(cdf.column_names, ['a', 'a__1'])
