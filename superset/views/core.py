@@ -68,7 +68,6 @@ DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
-DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 FORM_DATA_KEY_BLACKLIST = []
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
@@ -82,11 +81,6 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
 def get_database_access_error_msg(database_name):
     return __('This view requires the database %(name)s or '
               '`all_datasource_access` permission', name=database_name)
-
-
-def get_datasource_access_error_msg(datasource_name):
-    return __('This endpoint requires the datasource %(name)s, database or '
-              '`all_datasource_access` permission', name=datasource_name)
 
 
 def json_success(json_msg, status=200):
@@ -1094,8 +1088,9 @@ class Superset(BaseSupersetView):
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=404, link=config.get(
-                    'PERMISSION_INSTRUCTIONS_LINK'))
+                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
+                status=404,
+                link=security_manager.get_datasource_access_error_msg(viz_obj.datasource))
 
         if csv:
             return CsvResponse(
@@ -1260,9 +1255,11 @@ class Superset(BaseSupersetView):
             flash(DATASOURCE_MISSING_ERR, 'danger')
             return redirect(error_redirect)
 
-        if not security_manager.datasource_access(datasource):
+        if config.get('ENABLE_ACCESS_REQUEST') and (
+            not security_manager.datasource_access(datasource)
+        ):
             flash(
-                __(get_datasource_access_error_msg(datasource.name)),
+                __(security_manager.get_datasource_access_error_msg(datasource)),
                 'danger')
             return redirect(
                 'superset/request_access/?'
@@ -1364,7 +1361,8 @@ class Superset(BaseSupersetView):
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not security_manager.datasource_access(datasource):
-            return json_error_response(DATASOURCE_ACCESS_ERR)
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg(datasource))
 
         payload = json.dumps(
             datasource.values_for_column(
@@ -2086,7 +2084,7 @@ class Superset(BaseSupersetView):
             for datasource in datasources:
                 if datasource and not security_manager.datasource_access(datasource):
                     flash(
-                        __(get_datasource_access_error_msg(datasource.name)),
+                        __(security_manager.get_datasource_access_error_msg(datasource)),
                         'danger')
                     return redirect(
                         'superset/request_access/?'
@@ -2384,7 +2382,7 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            return json_error_response(get_datasource_access_error_msg(
+            return json_error_response(security_manager.get_table_access_error_msg(
                 '{}'.format(rejected_tables)))
 
         return json_success(utils.zlib_decompress_to_string(blob))
@@ -2426,8 +2424,10 @@ class Superset(BaseSupersetView):
 
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
-            return json_error_response(get_datasource_access_error_msg(
-                '{}'.format(rejected_tables)))
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg('{}'.format(
+                    rejected_tables)),
+                link=security_manager.get_table_error_link(rejected_tables))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
@@ -2540,7 +2540,8 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
+            flash(
+                security_manager.get_table_access_error_msg('{}'.format(rejected_tables)))
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
@@ -2582,7 +2583,9 @@ class Superset(BaseSupersetView):
 
         # Check permission for datasource
         if not security_manager.datasource_access(datasource):
-            return json_error_response(DATASOURCE_ACCESS_ERR)
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg(datasource),
+                link=security_manager.get_datasource_error_link(datasource))
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2760,8 +2763,9 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         if not security_manager.datasource_access(viz_obj.datasource):
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=401, link=config.get(
-                    'PERMISSION_INSTRUCTIONS_LINK'))
+                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
+                status=401,
+                link=security_manager.get_datasource_error_link(viz_obj.datasource))
         return self.get_query_string_response(viz_obj)
 
 
