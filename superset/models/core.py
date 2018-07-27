@@ -726,7 +726,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
         engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
