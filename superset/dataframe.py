@@ -41,12 +41,12 @@ def dedup(l, suffix='__', case_sensitive=True):
     new_l = []
     seen = {}
     for s in l:
-        s2 = s if case_sensitive else s.lower()
-        if s2 in seen:
-            seen[s2] += 1
-            s += suffix + str(seen[s2])
+        s_fixed_case = s if case_sensitive else s.lower()
+        if s_fixed_case in seen:
+            seen[s_fixed_case] += 1
+            s += suffix + str(seen[s_fixed_case])
         else:
-            seen[s2] = 0
+            seen[s_fixed_case] = 0
         new_l.append(s)
     return new_l
 
