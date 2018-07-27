@@ -384,8 +384,7 @@ class BaseViz(object):
                 df = self.get_df(query_obj)
                 if hasattr(self.datasource.database, 'db_engine_spec'):
                     db_engine_spec = self.datasource.database.db_engine_spec
-                    df = db_engine_spec.adjust_df_column_names(df, self.form_data,
-                                                               [DTTM_ALIAS])
+                    df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True

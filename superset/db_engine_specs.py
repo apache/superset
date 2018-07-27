@@ -19,6 +19,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import defaultdict, namedtuple
+from superset import utils
 import inspect
 import logging
 import os
@@ -367,7 +368,7 @@ class BaseEngineSpec(object):
         cursor.execute(query)
 
     @classmethod
-    def adjust_df_column_names(cls, df, fd, other_cols):
+    def adjust_df_column_names(cls, df, fd):
         """Based of fields in form_data, return dataframe with new column names
 
         Usually sqla engines return column names whose case matches that of the
@@ -385,10 +386,10 @@ class BaseEngineSpec(object):
         if cls.consistent_case_sensitivity:
             return df
         else:
-            return cls.align_df_col_names_with_form_data(df, fd, other_cols)
+            return cls.align_df_col_names_with_form_data(df, fd)
 
     @staticmethod
-    def align_df_col_names_with_form_data(df, fd, other_cols):
+    def align_df_col_names_with_form_data(df, fd):
         """Helper function to rename columns that have changed case during query.
 
         Returns a dataframe where column names have been adjusted to correspond with
@@ -397,19 +398,14 @@ class BaseEngineSpec(object):
         dataframe: 'COL1', form_data: 'col1' -> dataframe column renamed: 'col1'
         dataframe: 'col1', form_data: 'Col1' -> dataframe column renamed: 'Col1'
         """
-        form_fields = ['metrics', 'groupby']
-        other_cols = other_cols or []
 
         columns = set()
         lowercase_mapping = {}
 
-        for field in form_fields:
-            for col in fd.get(field, []):
-                col_str = str(col)
-                columns.add(col_str)
-                lowercase_mapping[col_str.lower()] = col_str
-
-        for col in other_cols:
+        metrics = utils.get_metric_names(fd.get('metrics', []))
+        groupby = fd.get('groupby', [])
+        other_cols = [utils.DTTM_ALIAS]
+        for col in metrics + groupby + other_cols:
             columns.add(col)
             lowercase_mapping[col.lower()] = col
 
