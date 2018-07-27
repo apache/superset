@@ -9,7 +9,11 @@ import { getColorFromScheme } from '../../modules/colors';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
-import { DASHBOARD_HEADER_ID } from '../util/constants';
+import {
+  DASHBOARD_HEADER_ID,
+  GRID_DEFAULT_CHART_WIDTH,
+  GRID_COLUMN_COUNT,
+} from '../util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
@@ -55,6 +59,10 @@ export default function(bootstrapData) {
 
   // find root level chart container node for newly-added slices
   const parentId = findFirstParentContainerId(layout);
+  const parent = layout[parentId];
+  let newSlicesContainer;
+  let newSlicesContainerWidth = 0;
+
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
@@ -84,20 +92,26 @@ export default function(bootstrapData) {
 
       sliceIds.add(key);
 
-      // if chart is newly added from explore view, add a row in layout
+      // if there are newly added slices from explore view, fill slices into 1 or more rows
       if (!chartIdToLayoutId[key] && layout[parentId]) {
-        const parent = layout[parentId];
-        const rowContainer = newComponentFactory(ROW_TYPE);
-        layout[rowContainer.id] = rowContainer;
-        parent.children.push(rowContainer.id);
+        if (
+          newSlicesContainerWidth === 0 ||
+          newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
+        ) {
+          newSlicesContainer = newComponentFactory(ROW_TYPE);
+          layout[newSlicesContainer.id] = newSlicesContainer;
+          parent.children.push(newSlicesContainer.id);
+          newSlicesContainerWidth = 0;
+        }
 
         const chartHolder = newComponentFactory(CHART_TYPE, {
           chartId: slice.slice_id,
         });
 
         layout[chartHolder.id] = chartHolder;
-        rowContainer.children.push(chartHolder.id);
+        newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
+        newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
       }
     }
 
