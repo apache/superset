@@ -4,9 +4,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from six import text_type
-
 import inspect
+
+from six import text_type
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
