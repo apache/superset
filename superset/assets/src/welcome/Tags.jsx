@@ -14,6 +14,64 @@ const propTypes = {
   search: PropTypes.string,
 };
 
+export function fetchTags(objectType, objectId, includeTypes, callback) {
+  const url = `/tagview/tags/${objectType}/${objectId}/`;
+  fetch(url)
+    .then(response => response.json())
+    .then(json => callback(
+      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
+}
+
+export function fetchSuggestions(includeTypes, callback) {
+  fetch('/tagview/tags/suggestions/')
+    .then(response => response.json())
+    .then(json => callback(
+      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
+}
+
+export function deleteTag(CSRF_TOKEN, objectType, objectId, tag, callback, error) {
+  const url = `/tagview/tags/${objectType}/${objectId}/`;
+  fetch(url, {
+    body: JSON.stringify([tag]),
+    headers: {
+      'content-type': 'application/json',
+      'X-CSRFToken': CSRF_TOKEN,
+    },
+    credentials: 'same-origin',
+    method: 'DELETE',
+  })
+  .then((response) => {
+    if (response.ok) {
+      callback(response);
+    } else {
+      error(response);
+    }
+  });
+}
+
+export function addTag(CSRF_TOKEN, objectType, objectId, includeTypes, tag, callback, error) {
+  if (tag.indexOf(':') !== -1 && !includeTypes) {
+    return;
+  }
+  const url = `/tagview/tags/${objectType}/${objectId}/`;
+  fetch(url, {
+    body: JSON.stringify([tag]),
+    headers: {
+      'content-type': 'application/json',
+      'X-CSRFToken': CSRF_TOKEN,
+    },
+    credentials: 'same-origin',
+    method: 'POST',
+  })
+  .then((response) => {
+    if (response.ok) {
+      callback(response);
+    } else {
+      error(response);
+    }
+  });
+}
+
 export default class Tags extends React.PureComponent {
   constructor(props) {
     super(props);

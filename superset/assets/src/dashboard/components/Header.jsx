@@ -8,10 +8,18 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+} from '../../welcome/Tags';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
 import { UNDO_LIMIT, SAVE_TYPE_OVERWRITE } from '../util/constants';
+
+const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -188,8 +196,10 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
             <ObjectTags
-              object_type={'dashboard'}
-              object_id={dashboardInfo.id}
+              fetchTags={fetchTags.bind(this, 'dashboard', dashboardInfo.id, false)}
+              fetchSuggestions={fetchSuggestions.bind(this, false)}
+              deleteTag={deleteTag.bind(this, CSRF_TOKEN, 'dashboard', dashboardInfo.id)}
+              addTag={addTag.bind(this, CSRF_TOKEN, 'dashboard', dashboardInfo.id, false)}
               editable={dashboardInfo.dash_edit_perm}
             />
           </span>

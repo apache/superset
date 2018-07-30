@@ -11,7 +11,15 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import ObjectTags from '../../components/ObjectTags';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+} from '../../welcome/Tags';
 import { t } from '../../locales';
+
+const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -110,8 +118,10 @@ class ExploreChartHeader extends React.PureComponent {
         </span>
         }
         <ObjectTags
-          object_type={'chart'}
-          object_id={this.props.chart.id}
+          fetchTags={fetchTags.bind(this, 'chart', this.props.chart.id, false)}
+          fetchSuggestions={fetchSuggestions.bind(this, false)}
+          deleteTag={deleteTag.bind(this, CSRF_TOKEN, 'chart', this.props.chart.id)}
+          addTag={addTag.bind(this, CSRF_TOKEN, 'chart', this.props.chart.id, false)}
           editable={this.props.can_overwrite}
         />
         {this.props.chart.sliceFormData &&

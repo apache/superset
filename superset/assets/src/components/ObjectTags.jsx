@@ -7,26 +7,25 @@ import './ObjectTags.css';
 
 import { t } from '../locales';
 
-const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
-
 const propTypes = {
-  object_type: PropTypes.string.isRequired,
-  object_id: PropTypes.number.isRequired,
+  fetchTags: PropTypes.func.isRequired,
+  fetchSuggestions: PropTypes.func,
+  deleteTag: PropTypes.func,
+  addTag: PropTypes.func,
   editable: PropTypes.bool,
-  includeTypes: PropTypes.bool,
 };
 
 const defaultProps = {
+  fetchSuggestions: () => {},
+  deleteTag: () => {},
+  addTag: () => {},
   editable: true,
-  includeTypes: false,
 };
 
 export default class ObjectTags extends React.Component {
 
   constructor(props) {
     super(props);
-
-    this.url = `/tagview/tags/${this.props.object_type}/${this.props.object_id}/`;
     this.state = {
       tags: [],
       suggestions: [],
@@ -34,60 +33,19 @@ export default class ObjectTags extends React.Component {
   }
 
   componentDidMount() {
-    fetch(this.url)
-      .then(response => response.json())
-      .then(json => this.setState({
-        tags: json.filter(tag => tag.name.indexOf(':') === -1 || this.props.includeTypes),
-      }));
-
-    fetch('/tagview/tags/suggestions/')
-      .then(response => response.json())
-      .then(json => this.setState({
-        suggestions: json.filter(tag => tag.name.indexOf(':') === -1 || this.props.includeTypes),
-      }));
+    this.props.fetchTags(tags => this.setState({ tags }));
+    this.props.fetchSuggestions(suggestions => this.setState({ suggestions }));
   }
 
   handleDelete(i) {
     const tags = this.state.tags.slice(0);
     const tag = tags.splice(i, 1)[0].name;
-    fetch(
-      this.url, {
-        body: JSON.stringify([tag]),
-        headers: {
-          'content-type': 'application/json',
-          'X-CSRFToken': CSRF_TOKEN,
-        },
-        credentials: 'same-origin',
-        method: 'DELETE',
-      })
-      .then((response) => {
-        if (response.ok) {
-          this.setState({ tags });
-        }
-      });
+    this.props.deleteTag(tag, () => this.setState({ tags }));
   }
 
   handleAddition(tag) {
-    if (tag.name.indexOf(':') !== -1 && !this.props.includeTypes) {
-      return;
-    }
-
     const tags = [].concat(this.state.tags, tag);
-    fetch(
-      this.url, {
-        body: JSON.stringify([tag.name]),
-        headers: {
-          'content-type': 'application/json',
-          'X-CSRFToken': CSRF_TOKEN,
-        },
-        credentials: 'same-origin',
-        method: 'POST',
-      })
-      .then((response) => {
-        if (response.ok) {
-          this.setState({ tags });
-        }
-      });
+    this.props.addTag(tag.name, () => this.setState({ tags }));
   }
 
   renderEditableTags() {
