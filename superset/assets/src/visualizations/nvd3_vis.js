@@ -89,6 +89,18 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function wrapTooltip(chart, container) {
+  const tooltipLayer = chart.useInteractiveGuideline && chart.useInteractiveGuideline() ?
+    chart.interactiveLayer : chart;
+  const tooltipGeneratorFunc = tooltipLayer.tooltip.contentGenerator();
+  tooltipLayer.tooltip.contentGenerator((d) => {
+    let tooltip = `<div style="max-width: ${container.width() * 0.5}px">`;
+    tooltip += tooltipGeneratorFunc(d);
+    tooltip += '</div>';
+    return tooltip;
+  });
+}
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -844,6 +856,8 @@ export default function nvd3Vis(slice, payload) {
           .call(chart);
       }
     }
+
+    wrapTooltip(chart, slice.container);
     return chart;
   };
 
