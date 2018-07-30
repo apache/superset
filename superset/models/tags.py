@@ -79,23 +79,23 @@ def get_tag(name, session, type):
     return tag
 
 
+def get_object_type(class_name):
+    mapping = {
+        'slice': ObjectTypes.chart,
+        'dashboard': ObjectTypes.dashboard,
+        'query': ObjectTypes.query,
+    }
+    try:
+        return mapping[class_name.lower()]
+    except KeyError:
+        raise Exception('No mapping found for {0}'.format(class_name))
+
+
 class Updater:
 
     @classmethod
     def get_owners_ids(cls, target):
         raise NotImplementedError('Subclass should implement `get_owners_ids`')
-
-    @classmethod
-    def after_delete(cls, mapper, connection, target):
-        session = Session(bind=connection)
-
-        # delete row from `tagged_objects`
-        session.query(TaggedObject).filter(
-            TaggedObject.object_type == cls.object_type,
-            TaggedObject.object_id == target.id,
-        ).delete()
-
-        session.commit()
 
     @classmethod
     def after_insert(cls, mapper, connection, target):
@@ -128,13 +128,15 @@ class Updater:
     def after_update(cls, mapper, connection, target):
         session = Session(bind=connection)
 
-        # delete current `owner:` tag
+        # delete current `owner:` tags
         ids = session.query(TaggedObject.id).join(Tag).filter(
             TaggedObject.object_type == cls.object_type,
             TaggedObject.object_id == target.id,
             Tag.type == TagTypes.owner,
         )
-        session.query(TaggedObject).filter(TaggedObject.id.in_(ids.subquery())).delete(synchronize_session=False)
+        session.query(TaggedObject).filter(
+            TaggedObject.id.in_(ids.subquery())).delete(
+                synchronize_session=False)
 
         # add `owner:` tags
         for owner_id in cls.get_owners_ids(target):
@@ -146,6 +148,18 @@ class Updater:
                 object_type=ObjectTypes.chart,
             )
             session.add(tagged_object)
+
+        session.commit()
+
+    @classmethod
+    def after_delete(cls, mapper, connection, target):
+        session = Session(bind=connection)
+
+        # delete row from `tagged_objects`
+        session.query(TaggedObject).filter(
+            TaggedObject.object_type == cls.object_type,
+            TaggedObject.object_id == target.id,
+        ).delete()
 
         session.commit()
 
@@ -175,3 +189,33 @@ class QueryUpdater(Updater):
     @classmethod
     def get_owners_ids(cls, target):
         return [target.user_id]
+
+
+class FavStarUpdater:
+
+    @classmethod
+    def after_insert(cls, mapper, connection, target):
+        session = Session(bind=connection)
+        name = 'favorited_by:{0}'.format(target.user_id)
+        tag = get_tag(name, session, TagTypes.favorited_by)
+        tagged_object = TaggedObject(
+            tag_id=tag.id,
+            object_id=target.obj_id,
+            object_type=get_object_type(target.class_name),
+        )
+        session.add(tagged_object)
+
+        session.commit()
+
+    @classmethod
+    def after_delete(cls, mapper, connection, target):
+        session = Session(bind=connection)
+        name = 'favorited_by:{0}'.format(target.user_id)
+        ids = session.query(TaggedObject.id).join(Tag).filter(
+            TaggedObject.object_id == target.obj_id,
+            Tag.type == TagTypes.favorited_by,
+            Tag.name == name,
+        )
+        session.query(TaggedObject).filter(
+            TaggedObject.id.in_(ids.subquery())).delete(
+                synchronize_session=False)

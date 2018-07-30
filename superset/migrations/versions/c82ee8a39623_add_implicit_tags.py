@@ -18,7 +18,12 @@ from sqlalchemy.orm import relationship
 
 from superset import db
 from superset.models.helpers import AuditMixinNullable
-from superset.models.tags import get_tag, ObjectTypes, TagTypes
+from superset.models.tags import (
+    get_object_type,
+    get_tag,
+    ObjectTypes,
+    TagTypes,
+)
 
 
 Base = declarative_base()
@@ -95,17 +100,6 @@ class Favstar(Base):
     obj_id = Column(Integer)
 
 
-def get_object_type(class_name):
-    mapping = {
-        'slice': ObjectTypes.chart,
-        'dashboard': ObjectTypes.dashboard,
-    }
-    try:
-        return mapping[class_name.lower()]
-    except KeyError:
-        raise Exception('No mapping found for {0}'.format(class_name))
-
-
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -129,13 +123,13 @@ def upgrade():
             )
             session.add(tagged_object)
 
-            tag = get_tag('type:chart', session, TagTypes.type)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=chart.id,
-                object_type=ObjectTypes.chart,
-            )
-            session.add(tagged_object)
+        tag = get_tag('type:chart', session, TagTypes.type)
+        tagged_object = TaggedObject(
+            tag_id=tag.id,
+            object_id=chart.id,
+            object_type=ObjectTypes.chart,
+        )
+        session.add(tagged_object)
 
 
     for dashboard in session.query(Dashboard):
@@ -149,13 +143,13 @@ def upgrade():
             )
             session.add(tagged_object)
 
-            tag = get_tag('type:dashboard', session, TagTypes.type)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=dashboard.id,
-                object_type=ObjectTypes.dashboard,
-            )
-            session.add(tagged_object)
+        tag = get_tag('type:dashboard', session, TagTypes.type)
+        tagged_object = TaggedObject(
+            tag_id=tag.id,
+            object_id=dashboard.id,
+            object_type=ObjectTypes.dashboard,
+        )
+        session.add(tagged_object)
 
     for query in session.query(SavedQuery):
         name = 'owner:{0}'.format(query.user_id)

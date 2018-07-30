@@ -38,7 +38,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
-from superset.models.tags import ChartUpdater, DashboardUpdater
+from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -300,7 +300,10 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
-        return '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'.format(self.id)
+        return (
+            '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'
+            .format(self.id)
+        )
 
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
@@ -1074,3 +1077,5 @@ sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
 sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
 sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
 sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)

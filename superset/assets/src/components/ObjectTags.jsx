@@ -50,7 +50,7 @@ export default class ObjectTags extends React.Component {
 
   renderEditableTags() {
     const Tag = props => (
-      <Label bsStyle="primary">
+      <Label bsStyle="info">
         <a
           href={`/superset/welcome?q=${props.tag.name}#tags`}
           className="deco-none"
@@ -77,7 +77,7 @@ export default class ObjectTags extends React.Component {
     return (
       <div className="react-tags-rw">
         {this.state.tags.map(tag => (
-          <Label bsStyle="primary">
+          <Label bsStyle="info">
             <a
               href={`/superset/welcome?q=${tag.name}#tags`}
               className="deco-none"
