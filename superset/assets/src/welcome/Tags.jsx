@@ -7,6 +7,7 @@ import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
 
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
+import { t } from '../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -131,10 +132,13 @@ export default class Tags extends React.PureComponent {
     if (this.state.objects) {
       return (
         <div>
+          <h3>{t('Dashboards')}</h3>
           {this.renderTable('dashboard')}
           <hr />
+          <h3>{t('Charts')}</h3>
           {this.renderTable('chart')}
           <hr />
+          <h3>{t('Queries')}</h3>
           {this.renderTable('query')}
         </div>
       );

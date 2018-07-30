@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ReactTags from 'react-tag-autocomplete';
 import { Glyphicon, Label } from 'react-bootstrap';
+import TooltipWrapper from './TooltipWrapper';
 
 import './ObjectTags.css';
 
@@ -57,7 +58,12 @@ export default class ObjectTags extends React.Component {
         >
           {props.tag.name}
         </a>
-        <Glyphicon title="Remove tag" onClick={props.onDelete} glyph="remove" />
+        <TooltipWrapper
+          label="remove"
+          tooltip={t('Click to remove tag')}
+        >
+          <Glyphicon onClick={props.onDelete} glyph="remove" />
+        </TooltipWrapper>
       </Label>
     );
     return (
