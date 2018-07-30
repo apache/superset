@@ -68,7 +68,6 @@ DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
-DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 FORM_DATA_KEY_BLACKLIST = []
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
@@ -82,11 +81,6 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
 def get_database_access_error_msg(database_name):
     return __('This view requires the database %(name)s or '
               '`all_datasource_access` permission', name=database_name)
-
-
-def get_datasource_access_error_msg(datasource_name):
-    return __('This endpoint requires the datasource %(name)s, database or '
-              '`all_datasource_access` permission', name=datasource_name)
 
 
 def json_success(json_msg, status=200):
@@ -1094,8 +1088,9 @@ class Superset(BaseSupersetView):
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=404, link=config.get(
-                    'PERMISSION_INSTRUCTIONS_LINK'))
+                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
+                status=404,
+                link=security_manager.get_datasource_access_error_msg(viz_obj.datasource))
 
         if csv:
             return CsvResponse(
@@ -1260,9 +1255,11 @@ class Superset(BaseSupersetView):
             flash(DATASOURCE_MISSING_ERR, 'danger')
             return redirect(error_redirect)
 
-        if not security_manager.datasource_access(datasource):
+        if config.get('ENABLE_ACCESS_REQUEST') and (
+            not security_manager.datasource_access(datasource)
+        ):
             flash(
-                __(get_datasource_access_error_msg(datasource.name)),
+                __(security_manager.get_datasource_access_error_msg(datasource)),
                 'danger')
             return redirect(
                 'superset/request_access/?'
@@ -1364,7 +1361,8 @@ class Superset(BaseSupersetView):
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not security_manager.datasource_access(datasource):
-            return json_error_response(DATASOURCE_ACCESS_ERR)
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg(datasource))
 
         payload = json.dumps(
             datasource.values_for_column(
@@ -1561,7 +1559,6 @@ class Superset(BaseSupersetView):
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data['dashboard_title']
 
-        is_v2_dash = Superset._is_v2_dash(data['positions'])
         if data['duplicate_slices']:
             # Duplicating slices as well, mapping old ids to new ones
             old_to_new_sliceids = {}
@@ -1577,18 +1574,14 @@ class Superset(BaseSupersetView):
             # update chartId of layout entities
             # in v2_dash positions json data, chartId should be integer,
             # while in older version slice_id is string type
-            if is_v2_dash:
-                for value in data['positions'].values():
-                    if (
-                        isinstance(value, dict) and value.get('meta') and
-                        value.get('meta').get('chartId')
-                    ):
-                        old_id = '{}'.format(value.get('meta').get('chartId'))
-                        new_id = int(old_to_new_sliceids[old_id])
-                        value['meta']['chartId'] = new_id
-            else:
-                for d in data['positions']:
-                    d['slice_id'] = old_to_new_sliceids[d['slice_id']]
+            for value in data['positions'].values():
+                if (
+                    isinstance(value, dict) and value.get('meta') and
+                    value.get('meta').get('chartId')
+                ):
+                    old_id = '{}'.format(value.get('meta').get('chartId'))
+                    new_id = int(old_to_new_sliceids[old_id])
+                    value['meta']['chartId'] = new_id
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
@@ -1618,42 +1611,8 @@ class Superset(BaseSupersetView):
         return 'SUCCESS'
 
     @staticmethod
-    def _is_v2_dash(positions):
-        return (
-            isinstance(positions, dict) and
-            positions.get('DASHBOARD_VERSION_KEY') == 'v2'
-        )
-
-    @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-        is_v2_dash = Superset._is_v2_dash(positions)
-
-        # @TODO remove upon v1 deprecation
-        if not is_v2_dash:
-            positions = data['positions']
-            slice_ids = [int(d['slice_id']) for d in positions]
-            dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
-            positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
-            dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
-            md = dashboard.params_dict
-            dashboard.css = data['css']
-            dashboard.dashboard_title = data['dashboard_title']
-
-            if 'filter_immune_slices' not in md:
-                md['filter_immune_slices'] = []
-            if 'timed_refresh_immune_slices' not in md:
-                md['timed_refresh_immune_slices'] = []
-            if 'filter_immune_slice_fields' not in md:
-                md['filter_immune_slice_fields'] = {}
-            md['expanded_slices'] = data['expanded_slices']
-            default_filters_data = json.loads(data.get('default_filters', '{}'))
-            applicable_filters =\
-                {key: v for key, v in default_filters_data.items()
-                 if int(key) in slice_ids}
-            md['default_filters'] = json.dumps(applicable_filters)
-            dashboard.json_metadata = json.dumps(md, indent=4)
-            return
 
         # find slices in the position data
         slice_ids = []
@@ -2125,7 +2084,7 @@ class Superset(BaseSupersetView):
             for datasource in datasources:
                 if datasource and not security_manager.datasource_access(datasource):
                     flash(
-                        __(get_datasource_access_error_msg(datasource.name)),
+                        __(security_manager.get_datasource_access_error_msg(datasource)),
                         'danger')
                     return redirect(
                         'superset/request_access/?'
@@ -2140,57 +2099,14 @@ class Superset(BaseSupersetView):
         standalone_mode = request.args.get('standalone') == 'true'
         edit_mode = request.args.get('edit') == 'true'
 
-        # TODO remove switch upon v1 deprecation 🎉
-        # during v2 rollout, multiple factors determine whether we show v1 or v2
-        # if layout == v1
-        #   view = v1 for non-editors
-        #   view = v1 or v2 for editors depending on config + request (force)
-        #   edit = v1 or v2 for editors depending on config + request (force)
-        #
-        # if layout == v2 (not backwards compatible)
-        #   view = v2
-        #   edit = v2
-        dashboard_layout = dash.data.get('position_json', {})
-        is_v2_dash = (
-            isinstance(dashboard_layout, dict) and
-            dashboard_layout.get('DASHBOARD_VERSION_KEY') == 'v2'
-        )
-
-        force_v1 = request.args.get('version') == 'v1' and not is_v2_dash
-        force_v2 = request.args.get('version') == 'v2'
-        force_v2_edit = (
-            is_v2_dash or
-            not app.config.get('CAN_FALLBACK_TO_DASH_V1_EDIT_MODE')
-        )
-        v2_is_default_view = app.config.get('DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS')
-        prompt_v2_conversion = False
-        if is_v2_dash:
-            dashboard_view = 'v2'
-        elif not dash_edit_perm:
-            dashboard_view = 'v1'
-        else:
-            if force_v2 or (v2_is_default_view and not force_v1):
-                dashboard_view = 'v2'
-            else:
-                dashboard_view = 'v1'
-                prompt_v2_conversion = not force_v1
-                if force_v2_edit:
-                    dash_edit_perm = False
-
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
         def dashboard(**kwargs):  # noqa
             pass
-
-        # TODO remove extra logging upon v1 deprecation 🎉
         dashboard(
             dashboard_id=dash.id,
-            dashboard_version='v2' if is_v2_dash else 'v1',
-            dashboard_view=dashboard_view,
+            dashboard_version='v2',
             dash_edit_perm=dash_edit_perm,
-            force_v1=force_v1,
-            force_v2=force_v2,
-            force_v2_edit=force_v2_edit,
             edit_mode=edit_mode)
 
         dashboard_data = dash.data
@@ -2208,26 +2124,14 @@ class Superset(BaseSupersetView):
             'datasources': {ds.uid: ds.data for ds in datasources},
             'common': self.common_bootsrap_payload(),
             'editMode': edit_mode,
-            # TODO remove the following upon v1 deprecation 🎉
-            'force_v2_edit': force_v2_edit,
-            'prompt_v2_conversion': prompt_v2_conversion,
-            'v2_auto_convert_date': app.config.get('PLANNED_V2_AUTO_CONVERT_DATE'),
-            'v2_feedback_url': app.config.get('V2_FEEDBACK_URL'),
         }
 
         if request.args.get('json') == 'true':
             return json_success(json.dumps(bootstrap_data))
 
-        if dashboard_view == 'v2':
-            entry = 'dashboard'
-            template = 'superset/dashboard.html'
-        else:
-            entry = 'dashboard_deprecated'
-            template = 'superset/dashboard_v1_deprecated.html'
-
         return self.render_template(
-            template,
-            entry=entry,
+            'superset/dashboard.html',
+            entry='dashboard',
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
@@ -2478,17 +2382,10 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            return json_error_response(get_datasource_access_error_msg(
+            return json_error_response(security_manager.get_table_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('SQL_MAX_ROW', None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json['data'] = payload_json['data'][:display_limit]
-        return json_success(
-            json.dumps(
-                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
+        return json_success(utils.zlib_decompress_to_string(blob))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2527,8 +2424,10 @@ class Superset(BaseSupersetView):
 
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
-            return json_error_response(get_datasource_access_error_msg(
-                '{}'.format(rejected_tables)))
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg('{}'.format(
+                    rejected_tables)),
+                link=security_manager.get_table_error_link(rejected_tables))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
@@ -2641,7 +2540,8 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
+            flash(
+                security_manager.get_table_access_error_msg('{}'.format(rejected_tables)))
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
@@ -2683,7 +2583,9 @@ class Superset(BaseSupersetView):
 
         # Check permission for datasource
         if not security_manager.datasource_access(datasource):
-            return json_error_response(DATASOURCE_ACCESS_ERR)
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg(datasource),
+                link=security_manager.get_datasource_error_link(datasource))
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2861,8 +2763,9 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         if not security_manager.datasource_access(viz_obj.datasource):
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=401, link=config.get(
-                    'PERMISSION_INSTRUCTIONS_LINK'))
+                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
+                status=401,
+                link=security_manager.get_datasource_error_link(viz_obj.datasource))
         return self.get_query_string_response(viz_obj)
 
 

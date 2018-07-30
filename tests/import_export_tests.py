@@ -22,6 +22,8 @@ from .base_tests import SupersetTestCase
 class ImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
+    requires_examples = True
+
     def __init__(self, *args, **kwargs):
         super(ImportExportTests, self).__init__(*args, **kwargs)
 
@@ -155,9 +157,9 @@ class ImportExportTests(SupersetTestCase):
         self.assertEquals(
             len(expected_dash.slices), len(actual_dash.slices))
         expected_slices = sorted(
-            expected_dash.slices, key=lambda s: s.slice_name)
+            expected_dash.slices, key=lambda s: s.slice_name or '')
         actual_slices = sorted(
-            actual_dash.slices, key=lambda s: s.slice_name)
+            actual_dash.slices, key=lambda s: s.slice_name or '')
         for e_slc, a_slc in zip(expected_slices, actual_slices):
             self.assert_slice_equals(e_slc, a_slc)
         if check_position:
@@ -191,7 +193,10 @@ class ImportExportTests(SupersetTestCase):
             set([m.metric_name for m in actual_ds.metrics]))
 
     def assert_slice_equals(self, expected_slc, actual_slc):
-        self.assertEquals(expected_slc.slice_name, actual_slc.slice_name)
+        # to avoid bad slice data (no slice_name)
+        expected_slc_name = expected_slc.slice_name or ''
+        actual_slc_name = actual_slc.slice_name or ''
+        self.assertEquals(expected_slc_name, actual_slc_name)
         self.assertEquals(
             expected_slc.datasource_type, actual_slc.datasource_type)
         self.assertEquals(expected_slc.viz_type, actual_slc.viz_type)
@@ -209,6 +214,7 @@ class ImportExportTests(SupersetTestCase):
             resp.data.decode('utf-8'),
             object_hook=utils.decode_dashboards,
         )['dashboards']
+
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
@@ -320,13 +326,18 @@ class ImportExportTests(SupersetTestCase):
         dash_with_1_slice = self.create_dashboard(
             'dash_with_1_slice', slcs=[slc], id=10002)
         dash_with_1_slice.position_json = """
-            [{{
-                "col": 5,
-                "row": 10,
-                "size_x": 4,
-                "size_y": 2,
-                "slice_id": "{}"
-            }}]
+            {{"DASHBOARD_VERSION_KEY": "v2",
+              "DASHBOARD_CHART_TYPE-{0}": {{
+                "type": "DASHBOARD_CHART_TYPE",
+                "id": {0},
+                "children": [],
+                "meta": {{
+                  "width": 4,
+                  "height": 50,
+                  "chartId": {0}
+                }}
+              }}
+            }}
         """.format(slc.id)
         imported_dash_id = models.Dashboard.import_obj(
             dash_with_1_slice, import_time=1990)
@@ -340,10 +351,8 @@ class ImportExportTests(SupersetTestCase):
         self.assertEquals({'remote_id': 10002, 'import_time': 1990},
                           json.loads(imported_dash.json_metadata))
 
-        expected_position = dash_with_1_slice.position_array
-        expected_position[0]['slice_id'] = '{}'.format(
-            imported_dash.slices[0].id)
-        self.assertEquals(expected_position, imported_dash.position_array)
+        expected_position = dash_with_1_slice.position
+        self.assertEquals(expected_position, imported_dash.position)
 
     def test_import_dashboard_2_slices(self):
         e_slc = self.create_slice('e_slc', id=10007, table_name='energy_usage')

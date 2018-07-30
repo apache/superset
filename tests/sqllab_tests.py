@@ -254,7 +254,7 @@ class SqlLabTests(SupersetTestCase):
             'sql': """\
                 SELECT viz_type, count(1) as ccount
                 FROM slices
-                WHERE viz_type LIKE '%%a%%'
+                WHERE viz_type LIKE '%a%'
                 GROUP BY viz_type""",
             'dbId': 1,
         }

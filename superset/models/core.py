@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
 import functools
@@ -19,6 +20,7 @@ from flask_appbuilder.models.decorators import renders
 from future.standard_library import install_aliases
 import numpy
 import pandas as pd
+import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -399,10 +401,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         self.json_metadata = value
 
     @property
-    def position_array(self):
+    def position(self):
         if self.position_json:
             return json.loads(self.position_json)
-        return []
+        return {}
 
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
@@ -418,16 +420,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         def alter_positions(dashboard, old_to_new_slc_id_dict):
             """ Updates slice_ids in the position json.
 
-            Sample position json v1:
-            [{
-                "col": 5,
-                "row": 10,
-                "size_x": 4,
-                "size_y": 2,
-                "slice_id": "3610"
-            }]
-
-            Sample position json v2:
+            Sample position_json data:
             {
                 "DASHBOARD_VERSION_KEY": "v2",
                 "DASHBOARD_ROOT_ID": {
@@ -453,32 +446,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             }
             """
             position_data = json.loads(dashboard.position_json)
-            is_v2_dash = (
-                isinstance(position_data, dict) and
-                position_data.get('DASHBOARD_VERSION_KEY') == 'v2'
-            )
-            if is_v2_dash:
-                position_json = position_data.values()
-                for value in position_json:
-                    if (isinstance(value, dict) and value.get('meta') and
-                            value.get('meta').get('chartId')):
-                        old_slice_id = value.get('meta').get('chartId')
+            position_json = position_data.values()
+            for value in position_json:
+                if (isinstance(value, dict) and value.get('meta') and
+                        value.get('meta').get('chartId')):
+                    old_slice_id = value.get('meta').get('chartId')
 
-                        if old_slice_id in old_to_new_slc_id_dict:
-                            value['meta']['chartId'] = (
-                                old_to_new_slc_id_dict[old_slice_id]
-                            )
-                dashboard.position_json = json.dumps(position_data)
-            else:
-                position_array = dashboard.position_array
-                for position in position_array:
-                    if 'slice_id' not in position:
-                        continue
-                    old_slice_id = int(position['slice_id'])
                     if old_slice_id in old_to_new_slc_id_dict:
-                        position['slice_id'] = '{}'.format(
-                            old_to_new_slc_id_dict[old_slice_id])
-                dashboard.position_json = json.dumps(position_array)
+                        value['meta']['chartId'] = (
+                            old_to_new_slc_id_dict[old_slice_id]
+                        )
+            dashboard.position_json = json.dumps(position_data)
 
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
@@ -748,13 +726,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        eng = self.get_sqla_engine(schema=schema)
-
-        for i in range(len(sqls) - 1):
-            eng.execute(sqls[i])
-
-        df = pd.read_sql_query(sqls[-1], eng)
+        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -763,15 +736,35 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
-        for k, v in df.dtypes.items():
-            if v.type == numpy.object_ and needs_conversion(df[k]):
-                df[k] = df[k].apply(utils.json_dumps_w_dates)
-        return df
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                for sql in sqls:
+                    self.db_engine_spec.execute(cursor, sql)
+                df = pd.DataFrame.from_records(
+                    data=list(cursor.fetchall()),
+                    columns=[col_desc[0] for col_desc in cursor.description],
+                    coerce_float=True,
+                )
+
+                for k, v in df.dtypes.items():
+                    if v.type == numpy.object_ and needs_conversion(df[k]):
+                        df[k] = df[k].apply(utils.json_dumps_w_dates)
+                return df
 
     def compile_sqla_query(self, qry, schema=None):
-        eng = self.get_sqla_engine(schema=schema)
-        compiled = qry.compile(eng, compile_kwargs={'literal_binds': True})
-        return '{}'.format(compiled)
+        engine = self.get_sqla_engine(schema=schema)
+
+        sql = six.text_type(
+            qry.compile(
+                engine,
+                compile_kwargs={'literal_binds': True},
+            ),
+        )
+
+        if engine.dialect.identifier_preparer._double_percents:
+            sql = sql.replace('%%', '%')
+
+        return sql
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
