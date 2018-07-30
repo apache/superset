@@ -188,7 +188,7 @@ class TagView(BaseSupersetView):
                 'created_by': get_attribute(obj, 'created_by_fk'),
                 'creator': get_creator(obj),
             }
-            for obj in query
+            for obj in query if get_attribute(obj, 'id')
         ], default=utils.json_int_dttm_ser)
 
         return Response(objects, status=200, content_type='application/json')

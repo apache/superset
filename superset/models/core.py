@@ -38,6 +38,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.tags import ChartUpdater, DashboardUpdater
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -1064,3 +1065,12 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+# events for updating tags
+sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)

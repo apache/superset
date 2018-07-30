@@ -18,7 +18,7 @@ from sqlalchemy.orm import relationship
 
 from superset import db
 from superset.models.helpers import AuditMixinNullable
-from superset.models.tags import ObjectTypes, TagTypes
+from superset.models.tags import get_tag, ObjectTypes, TagTypes
 
 
 Base = declarative_base()
@@ -93,17 +93,6 @@ class Favstar(Base):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     class_name = Column(String(50))
     obj_id = Column(Integer)
-
-
-def get_tag(name, session, type):
-    try:
-        tag = session.query(Tag).filter_by(name=name, type=type).one()
-    except Exception:
-        tag = Tag(name=name, type=type)
-        session.add(tag)
-        session.commit()
-
-    return tag
 
 
 def get_object_type(class_name):

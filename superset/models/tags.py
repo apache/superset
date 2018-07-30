@@ -8,9 +8,13 @@ import enum
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
 
+from superset import db
 from superset.models.helpers import AuditMixinNullable
+
+
+Session = sessionmaker()
 
 
 class TagTypes(enum.Enum):
@@ -62,3 +66,112 @@ class TaggedObject(Model, AuditMixinNullable):
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship('Tag')
+
+
+def get_tag(name, session, type):
+    try:
+        tag = session.query(Tag).filter_by(name=name, type=type).one()
+    except Exception:
+        tag = Tag(name=name, type=type)
+        session.add(tag)
+        session.commit()
+
+    return tag
+
+
+class Updater:
+
+    @classmethod
+    def get_owners_ids(cls, target):
+        raise NotImplementedError('Subclass should implement `get_owners_ids`')
+
+    @classmethod
+    def after_delete(cls, mapper, connection, target):
+        session = Session(bind=connection)
+
+        # delete row from `tagged_objects`
+        session.query(TaggedObject).filter(
+            TaggedObject.object_type == cls.object_type,
+            TaggedObject.object_id == target.id,
+        ).delete()
+
+        session.commit()
+
+    @classmethod
+    def after_insert(cls, mapper, connection, target):
+        session = Session(bind=connection)
+
+        # add `owner:` tags
+        for owner_id in cls.get_owners_ids(target):
+            name = 'owner:{0}'.format(owner_id)
+            tag = get_tag(name, session, TagTypes.owner)
+            tagged_object = TaggedObject(
+                tag_id=tag.id,
+                object_id=target.id,
+                object_type=ObjectTypes.chart,
+            )
+            session.add(tagged_object)
+
+        # add `type:` tags
+        tag = get_tag(
+            'type:{0}'.format(cls.object_type), session, TagTypes.type)
+        tagged_object = TaggedObject(
+            tag_id=tag.id,
+            object_id=target.id,
+            object_type=ObjectTypes.query,
+        )
+        session.add(tagged_object)
+
+        session.commit()
+
+    @classmethod
+    def after_update(cls, mapper, connection, target):
+        session = Session(bind=connection)
+
+        # delete current `owner:` tag
+        ids = session.query(TaggedObject.id).join(Tag).filter(
+            TaggedObject.object_type == cls.object_type,
+            TaggedObject.object_id == target.id,
+            Tag.type == TagTypes.owner,
+        )
+        session.query(TaggedObject).filter(TaggedObject.id.in_(ids.subquery())).delete(synchronize_session=False)
+
+        # add `owner:` tags
+        for owner_id in cls.get_owners_ids(target):
+            name = 'owner:{0}'.format(owner_id)
+            tag = get_tag(name, session, TagTypes.owner)
+            tagged_object = TaggedObject(
+                tag_id=tag.id,
+                object_id=target.id,
+                object_type=ObjectTypes.chart,
+            )
+            session.add(tagged_object)
+
+        session.commit()
+
+
+class ChartUpdater(Updater):
+
+    object_type = 'chart'
+
+    @classmethod
+    def get_owners_ids(cls, target):
+        return [owner.id for owner in target.owners]
+
+
+class DashboardUpdater(Updater):
+
+    object_type = 'dashboard'
+
+    @classmethod
+    def get_owners_ids(cls, target):
+        return [owner.id for owner in target.owners]
+
+
+class QueryUpdater(Updater):
+
+    object_type = 'query'
+
+    @classmethod
+    def get_owners_ids(cls, target):
+        return [target.user_id]
