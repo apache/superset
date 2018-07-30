@@ -131,7 +131,6 @@ def upgrade():
         )
         session.add(tagged_object)
 
-
     for dashboard in session.query(Dashboard):
         for owner in dashboard.owners:
             name = 'owner:{0}'.format(owner.id)

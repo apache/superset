@@ -123,6 +123,7 @@
   top: 100%;
   left: 0;
   width: 100%;
+  z-index: 9999;
 }
 
 @media screen and (min-width: 30em) {

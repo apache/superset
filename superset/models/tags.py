@@ -91,7 +91,7 @@ def get_object_type(class_name):
         raise Exception('No mapping found for {0}'.format(class_name))
 
 
-class Updater:
+class ObjectUpdater:
 
     @classmethod
     def get_owners_ids(cls, target):
@@ -164,7 +164,7 @@ class Updater:
         session.commit()
 
 
-class ChartUpdater(Updater):
+class ChartUpdater(ObjectUpdater):
 
     object_type = 'chart'
 
@@ -173,7 +173,7 @@ class ChartUpdater(Updater):
         return [owner.id for owner in target.owners]
 
 
-class DashboardUpdater(Updater):
+class DashboardUpdater(ObjectUpdater):
 
     object_type = 'dashboard'
 
@@ -182,7 +182,7 @@ class DashboardUpdater(Updater):
         return [owner.id for owner in target.owners]
 
 
-class QueryUpdater(Updater):
+class QueryUpdater(ObjectUpdater):
 
     object_type = 'query'
 
