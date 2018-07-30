@@ -386,7 +386,7 @@ HIVE_POLL_INTERVAL = 5
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
 
-# A callable that allows altering the database conneciton URL and params
+# A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or
 # arbitrary logic. For instance you can wire different users to
 # use different connection parameters, or pass their email address as the

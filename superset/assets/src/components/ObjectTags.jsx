@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactTags from 'react-tag-autocomplete';
-import { Label } from 'react-bootstrap';
+import { Glyphicon, Label } from 'react-bootstrap';
 
 import './ObjectTags.css';
 
@@ -91,6 +91,17 @@ export default class ObjectTags extends React.Component {
   }
 
   renderEditableTags() {
+    const Tag = props => (
+      <Label bsStyle="primary">
+        <a
+          href={`/superset/welcome?q=${props.tag.name}#tags`}
+          className="deco-none"
+        >
+          {props.tag.name}
+        </a>
+        <Glyphicon title="Remove tag" onClick={props.onDelete} glyph="remove" />
+      </Label>
+    );
     return (
       <ReactTags
         tags={this.state.tags}
@@ -99,6 +110,7 @@ export default class ObjectTags extends React.Component {
         handleAddition={this.handleAddition.bind(this)}
         allowNew
         placeHolder={t('Add new tag')}
+        tagComponent={Tag}
       />
     );
   }
@@ -106,7 +118,16 @@ export default class ObjectTags extends React.Component {
   renderReadOnlyTags() {
     return (
       <div className="react-tags-rw">
-        {this.state.tags.map(tag => <Label bsStyle="primary">{tag.name}</Label>)}
+        {this.state.tags.map(tag => (
+          <Label bsStyle="primary">
+            <a
+              href={`/superset/welcome?q=${tag.name}#tags`}
+              className="deco-none"
+            >
+              {tag.name}
+            </a>
+          </Label>
+        ))}
       </div>
     );
   }

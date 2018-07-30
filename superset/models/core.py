@@ -297,6 +297,10 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         session.flush()
         return slc_to_import.id
 
+    @property
+    def url(self):
+        return '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'.format(self.id)
+
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
 sqla.event.listen(Slice, 'before_update', set_related_perm)

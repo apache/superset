@@ -154,3 +154,7 @@ class SavedQuery(Model, AuditMixinNullable):
                 <i class="fa fa-link"></i>
             </a>
         """.format(**locals()))
+
+    @property
+    def url(self):
+        return '/superset/sqllab?savedQueryId={0}'.format(self.id)

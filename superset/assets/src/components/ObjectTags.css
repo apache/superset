@@ -25,13 +25,13 @@
 .react-tags {
   position: relative;
   display: inline-block;
-  padding: 6px 0 0 6px;
+  padding: 1px 0 0 1px;
   margin: 0 10px;
-  border: 1px solid #F1F1F1;
+  border: 1px solid #F5F5F5;
   border-radius: 1px;
 
   /* shared font styles */
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
 
   /* clicking anywhere will focus the input */
@@ -46,7 +46,7 @@
 }
 
 .react-tags.is-focused {
-  border-color: #C1C1C1;
+  border-color: #F0F0F0;
 }
 
 .react-tags__selected {
@@ -56,9 +56,9 @@
 .react-tags__selected-tag {
   display: inline-block;
   box-sizing: border-box;
-  margin: 0 6px 6px 0;
+  margin: 0;
   padding: 6px 8px;
-  border: 1px solid #D1D1D1;
+  border: 1px solid #F5F5F5;
   border-radius: 2px;
   background: #F1F1F1;
 
@@ -83,7 +83,7 @@
 
   /* match tag layout */
   padding: 7px 2px;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 
   /* prevent autoresize overflowing the container */
   max-width: 100%;
@@ -104,6 +104,7 @@
 
   /* remove styles and layout from this element */
   margin: 0;
+  margin-left: 2px;
   padding: 0;
   border: 0;
   outline: none;
@@ -167,6 +168,25 @@
   cursor: auto;
 }
 
-span.label {
-    margin-left: 5px;
+.react-tags span.label {
+  margin-left: 5px;
+}
+
+.react-tags a.deco-none {
+  color: inherit;
+  text-decoration:none;
+}
+
+.react-tags-rw span.label {
+  margin-left: 5px;
+}
+
+.react-tags-rw a.deco-none {
+  color: inherit;
+  text-decoration:none;
+}
+
+.react-tags span.glyphicon {
+  cursor: pointer;
+  margin-left: 3px;
 }

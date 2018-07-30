@@ -6,6 +6,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
@@ -185,6 +186,11 @@ class Header extends React.PureComponent {
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
+            />
+            <ObjectTags
+              object_type={'dashboard'}
+              object_id={dashboardInfo.id}
+              editable={dashboardInfo.dash_edit_perm}
             />
           </span>
         </div>
