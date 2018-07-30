@@ -75,6 +75,27 @@ class Header extends React.PureComponent {
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
+
+    this.fetchTags = fetchTags.bind(
+      this,
+      'dashboard',
+      props.dashboardInfo.id,
+      false,
+    );
+    this.fetchSuggestions = fetchSuggestions.bind(this, false);
+    this.deleteTag = deleteTag.bind(
+      this,
+      CSRF_TOKEN,
+      'dashboard',
+      props.dashboardInfo.id,
+    );
+    this.addTag = addTag.bind(
+      this,
+      CSRF_TOKEN,
+      'dashboard',
+      props.dashboardInfo.id,
+      false,
+    );
   }
 
   componentWillReceiveProps(nextProps) {
@@ -196,10 +217,10 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
             <ObjectTags
-              fetchTags={fetchTags.bind(this, 'dashboard', dashboardInfo.id, false)}
-              fetchSuggestions={fetchSuggestions.bind(this, false)}
-              deleteTag={deleteTag.bind(this, CSRF_TOKEN, 'dashboard', dashboardInfo.id)}
-              addTag={addTag.bind(this, CSRF_TOKEN, 'dashboard', dashboardInfo.id, false)}
+              fetchTags={this.fetchTags}
+              fetchSuggestions={this.fetchSuggestions}
+              deleteTag={this.deleteTag}
+              addTag={this.addTag}
               editable={dashboardInfo.dash_edit_perm}
             />
           </span>
