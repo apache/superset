@@ -183,7 +183,6 @@ class UtilsTestCase(unittest.TestCase):
             {'col': '__granularity', 'op': 'in', 'val': '90 seconds'},
         ]}
         expected = {
-            'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
             'since': '1 year ago',
             'adhoc_filters': [
                 {
