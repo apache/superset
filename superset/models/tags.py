@@ -9,6 +9,7 @@ import enum
 from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset.models.helpers import AuditMixinNullable
 
@@ -49,7 +50,7 @@ class Tag(Model, AuditMixinNullable):
     """A tag attached to an object (query, chart or dashboard)."""
 
     __tablename__ = 'tag'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
@@ -59,7 +60,7 @@ class TaggedObject(Model, AuditMixinNullable):
     """An association between an object and a tag."""
 
     __tablename__ = 'tagged_object'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)  # pylint: disable=invalid-name
     tag_id = Column(Integer, ForeignKey('tag.id'))
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectTypes))
@@ -70,7 +71,7 @@ class TaggedObject(Model, AuditMixinNullable):
 def get_tag(name, session, type_):
     try:
         tag = session.query(Tag).filter_by(name=name, type=type_).one()
-    except Exception:
+    except NoResultFound:
         tag = Tag(name=name, type=type_)
         session.add(tag)
         session.commit()
@@ -100,6 +101,7 @@ class ObjectUpdater:
 
     @classmethod
     def after_insert(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # add `owner:` tags
@@ -127,6 +129,7 @@ class ObjectUpdater:
 
     @classmethod
     def after_update(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # delete current `owner:` tags
@@ -154,6 +157,7 @@ class ObjectUpdater:
 
     @classmethod
     def after_delete(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
         session = Session(bind=connection)
 
         # delete row from `tagged_objects`
@@ -196,6 +200,7 @@ class FavStarUpdater:
 
     @classmethod
     def after_insert(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
         session = Session(bind=connection)
         name = 'favorited_by:{0}'.format(target.user_id)
         tag = get_tag(name, session, TagTypes.favorited_by)
@@ -210,6 +215,7 @@ class FavStarUpdater:
 
     @classmethod
     def after_delete(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
         session = Session(bind=connection)
         name = 'favorited_by:{0}'.format(target.user_id)
         ids = session.query(TaggedObject.id).join(Tag).filter(
@@ -220,3 +226,5 @@ class FavStarUpdater:
         session.query(TaggedObject).filter(
             TaggedObject.id.in_(ids.subquery())).delete(
                 synchronize_session=False)
+
+        session.commit()
