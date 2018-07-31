@@ -30,27 +30,6 @@ from superset.utils import (
 )
 
 
-def mock_parse_human_datetime(s):
-    if s in ['now', 'today']:
-        return datetime(2016, 11, 7)
-    elif s == 'yesterday':
-        return datetime(2016, 11, 6)
-    elif s == 'tomorrow':
-        return datetime(2016, 11, 8)
-    elif s == 'Last year':
-        return datetime(2015, 11, 7)
-    elif s == 'Last 5 months':
-        return datetime(2016, 6, 7)
-    elif s == 'Next 5 months':
-        return datetime(2017, 4, 7)
-    elif s in ['5 days', '5 days ago']:
-        return datetime(2016, 11, 2)
-    elif s == '2018-01-01T00:00:00':
-        return datetime(2018, 1, 1)
-    elif s == '2018-12-31T23:59:59':
-        return datetime(2018, 12, 31, 23, 59, 59)
-
-
 def mock_to_adhoc(filt, expressionType='SIMPLE', clause='where'):
     result = {
         'clause': clause.upper(),
