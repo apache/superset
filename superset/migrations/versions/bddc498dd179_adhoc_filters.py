@@ -36,39 +36,11 @@ class Slice(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    mapping = {'having': 'having_filters', 'where': 'filters'}
 
     for slc in session.query(Slice).all():
         try:
             params = json.loads(slc.params)
-
-            if not 'adhoc_filters' in params:
-                params['adhoc_filters'] = []
-
-                for clause, filters in mapping.items():
-                    if clause in params and params[clause] != '':
-                        params['adhoc_filters'].append({
-                            'clause': clause.upper(),
-                            'expressionType': 'SQL',
-                            'filterOptionName': str(uuid.uuid4()),
-                            'sqlExpression': params[clause],
-                        })
-
-                    if filters in params:
-                        for filt in params[filters]:
-                            params['adhoc_filters'].append({
-                                'clause': clause.upper(),
-                                'comparator': filt['val'],
-                                'expressionType': 'SIMPLE',
-                                'filterOptionName': str(uuid.uuid4()),
-                                'operator': filt['op'],
-                                'subject': filt['col'],
-                            })
-
-            for key in ('filters', 'having', 'having_filters', 'where'):
-                if key in params:
-                    del params[key]
-
+            utils.convert_legacy_filters_into_adhoc(params)
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:
             pass
