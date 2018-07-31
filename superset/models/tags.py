@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=no-init
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -14,7 +15,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from superset.models.helpers import AuditMixinNullable
 
 
-Session = sessionmaker()
+Session = sessionmaker(autoflush=False)
 
 
 class TagTypes(enum.Enum):
@@ -91,7 +92,7 @@ def get_object_type(class_name):
         raise Exception('No mapping found for {0}'.format(class_name))
 
 
-class ObjectUpdater:
+class ObjectUpdater(object):
 
     object_type = None
 
@@ -196,7 +197,7 @@ class QueryUpdater(ObjectUpdater):
         return [target.user_id]
 
 
-class FavStarUpdater:
+class FavStarUpdater(object):
 
     @classmethod
     def after_insert(cls, mapper, connection, target):
