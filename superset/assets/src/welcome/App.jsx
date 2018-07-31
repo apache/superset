@@ -6,6 +6,7 @@ import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
 import Tags from './Tags';
 import { t } from '../locales';
+import 'url-polyfill';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
