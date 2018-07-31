@@ -5,19 +5,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import simplejson as json
-
-from flask import Response, request
+from flask import request, Response
 from flask_appbuilder import expose
 from jinja2.sandbox import SandboxedEnvironment
+import simplejson as json
 from sqlalchemy import and_, func
 from werkzeug.routing import BaseConverter
 
 from superset import app, appbuilder, db, utils
 from superset.jinja_context import current_user_id, current_username
-from superset.models.sql_lab import SavedQuery
-from superset.models.tags import Tag, TaggedObject, TagTypes, ObjectTypes
 import superset.models.core
+from superset.models.sql_lab import SavedQuery
+from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
 from .base import BaseSupersetView
 
 
