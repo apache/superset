@@ -65,11 +65,17 @@ export function getControlsState(state, form_data) {
       : formData[k];
 
     // If the value is not valid anymore based on choices, clear it
-    if (control.type === 'SelectControl' && control.choices && k !== 'datasource' && formData[k]) {
+    if (
+      control.type === 'SelectControl' &&
+      !control.freeForm &&
+      control.choices &&
+      k !== 'datasource' &&
+      formData[k]
+    ) {
       const choiceValues = control.choices.map(c => c[0]);
-      if (control.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
-        delete formData[k];
-      } else if (!control.multi && !control.freeForm && choiceValues.indexOf(formData[k]) < 0) {
+      if (control.multi && formData[k].length > 0) {
+        formData[k] = formData[k].filter(el => choiceValues.indexOf(el) > -1);
+      } else if (!control.multi && choiceValues.indexOf(formData[k]) < 0) {
         delete formData[k];
       }
     }
