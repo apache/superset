@@ -246,10 +246,9 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
 
-        utils.split_adhoc_filters_into_base_filters(form_data)
-
+        utils.convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
-
+        utils.split_adhoc_filters_into_base_filters(form_data)
         granularity = (
             form_data.get('granularity') or
             form_data.get('granularity_sqla')
