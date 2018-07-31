@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
-import 'whatwg-fetch';
+import { fetch } from 'whatwg-fetch';
 
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
