@@ -1541,6 +1541,7 @@ export const controls = {
       '1 week',
       '28 days',
       '30 days',
+      '52 weeks',
       '1 year',
     ]),
     description: t('Overlay one or more timeseries from a ' +
