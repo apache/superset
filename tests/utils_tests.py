@@ -194,7 +194,7 @@ class UtilsTestCase(unittest.TestCase):
                     'subject': 'A',
                 },
             ],
-            'time_range': '1 year ago :',
+            'since': '1 year ago',
             'granularity_sqla': 'birth_year',
             'time_grain_sqla': 'years',
             'granularity': '90 seconds',
