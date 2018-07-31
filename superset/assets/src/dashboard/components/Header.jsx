@@ -7,12 +7,10 @@ import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
-import URLShortLinkButton from '../../components/URLShortLinkButton';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
 import { UNDO_LIMIT, SAVE_TYPE_OVERWRITE } from '../util/constants';
-import getDashboardUrl from '../util/getDashboardUrl';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -192,12 +190,6 @@ class Header extends React.PureComponent {
         </div>
 
         <div className="button-container">
-          <URLShortLinkButton
-            url={getDashboardUrl(window.location.pathname, this.props.filters)}
-            emailSubject="Superset Dashboard"
-            emailContent="Check out this dashboard: "
-          />
-
           {userCanSaveAs && (
             <div className="button-container">
               {editMode && (
@@ -231,25 +223,13 @@ class Header extends React.PureComponent {
               )}
 
               {editMode &&
-              hasUnsavedChanges && (
+                hasUnsavedChanges && (
                   <Button
                     bsSize="small"
                     bsStyle={popButton ? 'primary' : undefined}
                     onClick={this.overwriteDashboard}
                   >
-                  {t('Save changes')}
-                  </Button>
-                )}
-
-              {!editMode &&
-                !hasUnsavedChanges && (
-                  <Button
-                    bsSize="small"
-                    onClick={this.toggleEditMode}
-                    bsStyle={popButton ? 'primary' : undefined}
-                    disabled={!userCanEdit}
-                  >
-                    {t('Edit dashboard')}
+                    {t('Save changes')}
                   </Button>
                 )}
 
@@ -265,25 +245,6 @@ class Header extends React.PureComponent {
                   </Button>
                 )}
 
-              <HeaderActionsDropdown
-                addSuccessToast={this.props.addSuccessToast}
-                addDangerToast={this.props.addDangerToast}
-                dashboardId={dashboardInfo.id}
-                dashboardTitle={dashboardTitle}
-                layout={layout}
-                filters={filters}
-                expandedSlices={expandedSlices}
-                css={css}
-                onSave={onSave}
-                onChange={onChange}
-                forceRefreshAllCharts={this.forceRefresh}
-                startPeriodicRender={this.props.startPeriodicRender}
-                updateCss={updateCss}
-                editMode={editMode}
-                hasUnsavedChanges={hasUnsavedChanges}
-                userCanEdit={userCanEdit}
-              />
-
               {editMode && (
                 <UndoRedoKeylisteners
                   onUndo={this.handleCtrlZ}
@@ -292,6 +253,38 @@ class Header extends React.PureComponent {
               )}
             </div>
           )}
+
+          {!editMode &&
+            !hasUnsavedChanges && (
+              <Button
+                bsSize="small"
+                onClick={this.toggleEditMode}
+                bsStyle={popButton ? 'primary' : undefined}
+                disabled={!userCanEdit}
+              >
+                {t('Edit dashboard')}
+              </Button>
+            )}
+
+          <HeaderActionsDropdown
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
+            dashboardId={dashboardInfo.id}
+            dashboardTitle={dashboardTitle}
+            layout={layout}
+            filters={filters}
+            expandedSlices={expandedSlices}
+            css={css}
+            onSave={onSave}
+            onChange={onChange}
+            forceRefreshAllCharts={this.forceRefresh}
+            startPeriodicRender={this.props.startPeriodicRender}
+            updateCss={updateCss}
+            editMode={editMode}
+            hasUnsavedChanges={hasUnsavedChanges}
+            userCanEdit={userCanEdit}
+            userCanSave={userCanSaveAs}
+          />
         </div>
       </div>
     );
