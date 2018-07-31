@@ -832,7 +832,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        return self.db_engine_spec.time_grains
+        return self.db_engine_spec.get_time_grains()
 
     def grains_dict(self):
         """Allowing to lookup grain by either label or duration
