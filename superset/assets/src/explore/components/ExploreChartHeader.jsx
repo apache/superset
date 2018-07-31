@@ -135,6 +135,12 @@ class ExploreChartHeader extends React.PureComponent {
             </TooltipWrapper>
           </span>
         )}
+        {this.props.chart.sliceFormData && (
+          <AlteredSliceTag
+            origFormData={this.props.chart.sliceFormData}
+            currentFormData={formData}
+          />
+        )}
         <ObjectTags
           fetchTags={this.fetchTags}
           fetchSuggestions={this.fetchSuggestions}
@@ -142,12 +148,6 @@ class ExploreChartHeader extends React.PureComponent {
           addTag={this.addTag}
           editable={this.props.can_overwrite}
         />
-        {this.props.chart.sliceFormData && (
-          <AlteredSliceTag
-            origFormData={this.props.chart.sliceFormData}
-            currentFormData={formData}
-          />
-        )}
         <div className="pull-right">
           {chartSucceeded &&
             queryResponse && (

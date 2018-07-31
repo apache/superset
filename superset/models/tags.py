@@ -10,7 +10,6 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship, sessionmaker
 
-from superset import db
 from superset.models.helpers import AuditMixinNullable
 
 
@@ -68,11 +67,11 @@ class TaggedObject(Model, AuditMixinNullable):
     tag = relationship('Tag')
 
 
-def get_tag(name, session, type):
+def get_tag(name, session, type_):
     try:
-        tag = session.query(Tag).filter_by(name=name, type=type).one()
+        tag = session.query(Tag).filter_by(name=name, type=type_).one()
     except Exception:
-        tag = Tag(name=name, type=type)
+        tag = Tag(name=name, type=type_)
         session.add(tag)
         session.commit()
 
@@ -92,6 +91,8 @@ def get_object_type(class_name):
 
 
 class ObjectUpdater:
+
+    object_type = None
 
     @classmethod
     def get_owners_ids(cls, target):

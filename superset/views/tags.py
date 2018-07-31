@@ -112,7 +112,7 @@ class TagView(BaseSupersetView):
                     object_id=object_id,
                     object_type=object_type,
                     tag=tag,
-                )
+                ),
             )
 
         db.session.add_all(tagged_objects)
