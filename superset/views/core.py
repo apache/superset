@@ -2205,7 +2205,6 @@ class Superset(BaseSupersetView):
         from pprint import pprint
         pprint(data)
         table_name = data.get('datasourceName')
-        template_params = data.get('templateParams')
         table = (
             db.session.query(SqlaTable)
             .filter_by(table_name=table_name)

@@ -129,7 +129,6 @@
     "viewport-mercator-project": "^5.0.0"
   },
   "devDependencies": {
-    "//": "known minor issues in >5.0",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
     "babel-eslint": "^8.2.2",

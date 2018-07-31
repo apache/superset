@@ -623,7 +623,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def name(self):
         return self.verbose_name if self.verbose_name else self.database_name
 
-
     @property
     def allows_subquery(self):
         return self.db_engine_spec.allows_subquery
