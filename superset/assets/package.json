@@ -85,6 +85,7 @@
     "object.values": "^1.0.4",
     "parse-iso-duration": "^1.0.0",
     "po2json": "^0.4.5",
+    "promise-polyfill": "8.0.0",
     "prop-types": "^15.6.0",
     "re-resizable": "^4.3.1",
     "react": "^15.6.2",
@@ -126,7 +127,9 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^5.0.0"
+    "url-polyfill": "^1.0.13",
+    "viewport-mercator-project": "^5.0.0",
+    "whatwg-fetch": "^2.0.4"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
