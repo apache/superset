@@ -129,6 +129,10 @@ class SupersetSecurityManager(SecurityManager):
         return """You need access to the following tables: {}, all database access or
               `all_datasource_access` permission""".format(table_name)
 
+    def get_table_access_link(self, tables):
+        from superset import conf
+        return conf.get('PERMISSION_INSTRUCTIONS_LINK')
+
     def datasource_access_by_name(
             self, database, datasource_name, schema=None):
         from superset import db
@@ -147,15 +151,19 @@ class SupersetSecurityManager(SecurityManager):
                 return True
         return False
 
-    def datasource_access_by_fullname(
-            self, database, full_table_name, schema):
-        table_name_pieces = full_table_name.split('.')
+    def get_schema_and_table(self, table_in_query, schema):
+        table_name_pieces = table_in_query.split('.')
         if len(table_name_pieces) == 2:
             table_schema = table_name_pieces[0]
             table_name = table_name_pieces[1]
         else:
             table_schema = schema
             table_name = table_name_pieces[0]
+        return (table_schema, table_name)
+
+    def datasource_access_by_fullname(
+            self, database, table_in_query, schema):
+        table_schema, table_name = self.get_schema_and_table(table_in_query, schema)
         return self.datasource_access_by_name(
             database, table_name, schema=table_schema)
 
