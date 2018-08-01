@@ -593,8 +593,6 @@ class TableViz(BaseViz):
             ):
                 del df[m]
 
-        columns = self.get_column_names(df)
-
         data = self.handle_js_int_overflow(
             dict(
                 records=df.to_dict(orient='records'),
