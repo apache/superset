@@ -40,27 +40,30 @@ CollectionTabTitle.propTypes = {
 };
 
 function ColumnCollectionTable({
-  columns, onChange, editableColumnName, showExpression, allowAddItem, allowEditDataType,
+  columns, onChange, editableColumnName, showExpression, allowAddItem,
+  allowEditDataType, itemGenerator,
 }) {
   return (
     <CollectionTable
       collection={columns}
       tableColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
       allowDeletes
+      allowAddItem={allowAddItem}
+      itemGenerator={itemGenerator}
       expandFieldset={
         <FormContainer>
           <Fieldset compact>
-            <Field
-              fieldKey="verbose_name"
-              label={t('Label')}
-              control={<TextControl />}
-            />
             {showExpression &&
               <Field
                 fieldKey="expression"
                 label="SQL Expression"
                 control={<TextControl />}
               />}
+            <Field
+              fieldKey="verbose_name"
+              label={t('Label')}
+              control={<TextControl />}
+            />
             {allowEditDataType &&
               <Field
                 fieldKey="type"
@@ -114,13 +117,6 @@ function ColumnCollectionTable({
         filterable: 'Is Filterable',
       }}
       onChange={onChange}
-      itemGenerator={
-        allowAddItem ? () => ({
-          column_name: '<new column>',
-          filterable: true,
-          groupby: true,
-        }) : null
-      }
       itemRenderers={{
         column_name: (v, onItemChange) => (
           editableColumnName ?
@@ -141,12 +137,18 @@ ColumnCollectionTable.propTypes = {
   showExpression: PropTypes.bool,
   allowAddItem: PropTypes.bool,
   allowEditDataType: PropTypes.bool,
+  itemGenerator: PropTypes.func,
 };
-ColumnCollectionTable.defaultTypes = {
+ColumnCollectionTable.defaultProps = {
   editableColumnName: false,
   showExpression: false,
   allowAddItem: false,
   allowEditDataType: false,
+  itemGenerator: () => ({
+    column_name: '<new column>',
+    filterable: true,
+    groupby: true,
+  }),
 };
 
 function StackedField({ label, formElement }) {
@@ -547,6 +549,13 @@ export class DatasourceEditor extends React.PureComponent {
                 showExpression
                 allowAddItem
                 allowEditDataType
+                itemGenerator={() => ({
+                  column_name: '<new column>',
+                  filterable: true,
+                  groupby: true,
+                  expression: '<enter SQL expression here>',
+                  __expanded: true,
+                })}
               />
             }
           </Tab>

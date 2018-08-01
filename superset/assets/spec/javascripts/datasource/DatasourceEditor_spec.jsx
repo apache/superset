@@ -13,7 +13,7 @@ import mockDatasource from '../../fixtures/mockDatasource';
 const props = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
-  GaddDangerToast: () => {},
+  addDangerToast: () => {},
   onChange: sinon.spy(),
 };
 const extraColumn = {

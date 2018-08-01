@@ -5,6 +5,7 @@ import shortid from 'shortid';
 import Button from '../components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
+import './styles.css';
 
 const propTypes = {
   collection: PropTypes.array,
@@ -18,6 +19,7 @@ const propTypes = {
   expandFieldset: PropTypes.node,
   emptyMessage: PropTypes.node,
   extraButtons: PropTypes.node,
+  allowAddItem: PropTypes.bool,
 };
 const defaultProps = {
   onChange: () => {},
@@ -25,24 +27,11 @@ const defaultProps = {
   columnLabels: {},
   allowDeletes: false,
   emptyMessage: 'No entries',
-};
-const caretStyle = {
-  width: '5px',
-};
-const expandedTdStyle = {
-  borderTop: '0px',
-  padding: '0px',
-};
-const frameStyle = {
-  border: '1px solid #AAA',
-  borderRadius: 5,
-  padding: 10,
-  background: '#F4F4F4',
+  allowAddItem: false,
+  itemGenerator: () => ({}),
 };
 const Frame = props => (
-  <div
-    style={frameStyle}
-  >
+  <div className="frame">
     {props.children}
   </div>);
 Frame.propTypes = { children: PropTypes.node };
@@ -130,6 +119,7 @@ export default class CRUDCollection extends React.PureComponent {
     return expandFieldset ? ['__expand'].concat(cols) : cols;
   }
   toggleExpand(id) {
+    this.onCellChange(id, '__expanded', false);
     this.setState({
       expandedColumns: {
         ...this.state.expandedColumns,
@@ -161,13 +151,12 @@ export default class CRUDCollection extends React.PureComponent {
   }
   renderItem(record) {
     const { tableColumns, allowDeletes, expandFieldset } = this.props;
-    const isExpanded = !!this.state.expandedColumns[record.id];
+    const isExpanded = !!this.state.expandedColumns[record.id] || record.__expanded;
     let tds = [];
     if (expandFieldset) {
       tds.push(
         <td key="__expand" className="expand">
           <i
-            style={caretStyle}
             className={`fa fa-caret-${isExpanded ? 'down' : 'right'} text-primary pointer`}
             onClick={this.toggleExpand.bind(this, record.id)}
           />
@@ -189,7 +178,7 @@ export default class CRUDCollection extends React.PureComponent {
     if (isExpanded) {
       trs.push(
         <tr className="exp" key={'exp__' + record.id}>
-          <td colSpan={this.effectiveTableColumns().length} style={expandedTdStyle}>
+          <td colSpan={this.effectiveTableColumns().length} className="expanded">
             <div>
               {this.renderExpandableSection(record)}
             </div>
@@ -216,7 +205,7 @@ export default class CRUDCollection extends React.PureComponent {
           {this.renderTableBody()}
         </table>
         <div>
-          {this.props.itemGenerator &&
+          {this.props.allowAddItem &&
             <Button bsStyle="primary" onClick={this.onAddItem}>
               <i className="fa fa-plus" /> Add Item
             </Button>}
