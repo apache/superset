@@ -301,11 +301,15 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         if not isinstance(tables, list):
             tables = [tables]
         for t in tables:
-            t.fetch_metadata()
-        msg = _(
-            'Metadata refreshed for the following table(s): %(tables)s',
-            tables=', '.join([t.table_name for t in tables]))
-        flash(msg, 'info')
+            try:
+                t.fetch_metadata()
+                msg = _(
+                    'Metadata refreshed for the following table(s): %(tables)s',
+                    tables=', '.join([t.table_name for t in tables]))
+                flash(msg, 'info')
+            except Exception as e:
+                flash(str(e), 'danger')
+
         return redirect('/tablemodelview/list/')
 
 
