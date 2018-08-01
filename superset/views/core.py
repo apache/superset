@@ -1086,7 +1086,6 @@ class Superset(BaseSupersetView):
                 stacktrace=traceback.format_exc())
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
-            perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=404,
@@ -2423,9 +2422,8 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
-                security_manager.get_datasource_access_error_msg('{}'.format(
-                    rejected_tables)),
-                link=security_manager.get_table_error_link(rejected_tables))
+                security_manager.get_table_access_error_msg(rejected_tables),
+                link=security_manager.get_table_access_link(rejected_tables))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'

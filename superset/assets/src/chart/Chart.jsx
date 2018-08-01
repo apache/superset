@@ -211,13 +211,12 @@ class Chart extends React.PureComponent {
       <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
         {this.renderTooltip()}
         {isLoading &&
-          <Loading size={25} />
+          <Loading size={75} />
         }
         {this.props.chartAlert &&
         <StackTraceMessage
           message={this.props.chartAlert}
           queryResponse={this.props.queryResponse}
-          resolutionLink={this.props.resolutionLink}
         />
         }
 
