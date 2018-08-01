@@ -164,7 +164,7 @@ class TableVizTestCase(unittest.TestCase):
         data = test_viz.get_data(df)
         # Check method correctly transforms data and computes percents
         self.assertEqual(list([
-            'groupA', '__timestamp', 'count', 'avg__C'
+            'groupA', '__timestamp', 'count', 'avg__C',
         ]), data['columns'])
 
     def test_get_data_maintains_column_order_grouped(self):
