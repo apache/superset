@@ -134,13 +134,14 @@ class ObjectUpdater(object):
         session = Session(bind=connection)
 
         # delete current `owner:` tags
-        ids = session.query(TaggedObject.id).join(Tag).filter(
+        query = session.query(TaggedObject.id).join(Tag).filter(
             TaggedObject.object_type == cls.object_type,
             TaggedObject.object_id == target.id,
             Tag.type == TagTypes.owner,
         )
+        ids = [row[0] for row in query]
         session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids.subquery())).delete(
+            TaggedObject.id.in_(ids)).delete(
                 synchronize_session=False)
 
         # add `owner:` tags
@@ -219,13 +220,14 @@ class FavStarUpdater(object):
         # pylint: disable=unused-argument
         session = Session(bind=connection)
         name = 'favorited_by:{0}'.format(target.user_id)
-        ids = session.query(TaggedObject.id).join(Tag).filter(
+        query = session.query(TaggedObject.id).join(Tag).filter(
             TaggedObject.object_id == target.obj_id,
             Tag.type == TagTypes.favorited_by,
             Tag.name == name,
         )
+        ids = [row[0] for row in query]
         session.query(TaggedObject).filter(
-            TaggedObject.id.in_(ids.subquery())).delete(
+            TaggedObject.id.in_(ids)).delete(
                 synchronize_session=False)
 
         session.commit()
