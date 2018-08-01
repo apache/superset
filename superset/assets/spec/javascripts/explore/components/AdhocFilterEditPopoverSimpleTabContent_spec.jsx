@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
+import $ from 'jquery';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
@@ -9,6 +10,7 @@ import { FormGroup } from 'react-bootstrap';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
 import AdhocMetric from '../../../../src/explore/AdhocMetric';
 import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
+import SelectControl from '../../../../src/explore/components/controls/SelectControl';
 import { AGGREGATES } from '../../../../src/explore/constants';
 
 const simpleAdhocFilter = new AdhocFilter({
@@ -27,6 +29,14 @@ const simpleMultiAdhocFilter = new AdhocFilter({
   clause: CLAUSES.WHERE,
 });
 
+const simpleGroupableAdhocFilter = new AdhocFilter({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
+  subject: 'geo',
+  operator: '==',
+  comparator: 'US',
+  clauses: CLAUSES.WHERE,
+});
+
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   column: { type: 'VARCHAR(255)', column_name: 'source' },
@@ -34,6 +44,7 @@ const sumValueAdhocMetric = new AdhocMetric({
 });
 
 const options = [
+  { type: 'VARCHAR(255)', column_name: 'geo' },
   { type: 'VARCHAR(255)', column_name: 'source' },
   { type: 'VARCHAR(255)', column_name: 'target' },
   { type: 'DOUBLE', column_name: 'value' },
@@ -57,6 +68,14 @@ function setup(overrides) {
 }
 
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
+  let ajaxSpy;
+  beforeEach(() => {
+    ajaxSpy = sinon.spy($, 'ajax');
+  });
+  afterEach(() => {
+    ajaxSpy.restore();
+  });
+
   it('renders the simple tab form', () => {
     const { wrapper } = setup();
     expect(wrapper.find(FormGroup)).to.have.lengthOf(3);
@@ -131,5 +150,15 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
     expect(onHeightChange.calledOnce).to.be.true;
     expect(onHeightChange.lastCall.args[0]).to.equal(27);
+  });
+
+  it('builds filter request if filter select is enabled and column is groupable', () => {
+    const datasource = { type: 'druid', id: 1, filter_select: true, gb_cols: [['geo', 'geo']] };
+    const { wrapper } = setup({ datasource, adhocFilter: simpleGroupableAdhocFilter });
+    expect(wrapper.find(SelectControl)).to.have.lengthOf(1);
+    expect(ajaxSpy.callCount).to.equal(1);
+    const spyCall = ajaxSpy.getCall(0);
+    expect(spyCall.args[0].type).to.equal('GET');
+    expect(spyCall.args[0].url).to.equal(`/superset/filter/${datasource.type}/${datasource.id}/${simpleGroupableAdhocFilter.subject}/`);
   });
 });

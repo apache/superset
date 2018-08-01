@@ -57,6 +57,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.onOperatorChange = this.onOperatorChange.bind(this);
     this.onComparatorChange = this.onComparatorChange.bind(this);
     this.onInputComparatorChange = this.onInputComparatorChange.bind(this);
+    this.isColumnGroupable = this.isColumnGroupable.bind(this);
     this.isOperatorRelevant = this.isOperatorRelevant.bind(this);
     this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(this);
     this.multiComparatorRef = this.multiComparatorRef.bind(this);
@@ -161,7 +162,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     const col = this.props.adhocFilter.subject;
     const having = this.props.adhocFilter.clause === CLAUSES.HAVING;
 
-    if (col && datasource && datasource.filter_select && !having) {
+    if (col && datasource && datasource.filter_select && !having && this.isColumnGroupable(col)) {
       if (this.state.activeRequest) {
         this.state.activeRequest.abort();
       }
@@ -173,6 +174,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         }),
       });
     }
+  }
+
+  isColumnGroupable(column) {
+    return this.props.datasource.gb_cols &&
+      this.props.datasource.gb_cols.map(col => col[0]).indexOf(column) > -1;
   }
 
   isOperatorRelevant(operator) {
@@ -261,14 +267,14 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           {
             (
               MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0 ||
-              this.state.suggestions.length > 0
+              (datasource.filter_select && this.isColumnGroupable(adhocFilter.subject))
             ) ?
               <SelectControl
                 multi={MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0}
                 freeForm
                 name="filter-comparator-value"
                 value={adhocFilter.comparator}
-                isLoading={false}
+                isLoading={!!this.state.activeRequest}
                 choices={this.state.suggestions}
                 onChange={this.onComparatorChange}
                 showHeader={false}
