@@ -16,7 +16,7 @@ describe('App', () => {
   it('renders Tab, Panel, and Row components', () => {
     const wrapper = shallow(<App {...mockedProps} />);
     expect(wrapper.find(Tab)).to.have.length(4);
-    expect(wrapper.find(Panel)).to.have.length(3);
-    expect(wrapper.find(Row)).to.have.length(3);
+    expect(wrapper.find(Panel)).to.have.length(4);
+    expect(wrapper.find(Row)).to.have.length(4);
   });
 });

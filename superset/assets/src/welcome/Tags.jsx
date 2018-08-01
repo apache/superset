@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
-import { fetch } from 'whatwg-fetch';
+import 'whatwg-fetch';
 
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
@@ -18,14 +18,14 @@ const propTypes = {
 
 export function fetchTags(objectType, objectId, includeTypes, callback) {
   const url = `/tagview/tags/${objectType}/${objectId}/`;
-  fetch(url)
+  window.fetch(url)
     .then(response => response.json())
     .then(json => callback(
       json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
 }
 
 export function fetchSuggestions(includeTypes, callback) {
-  fetch('/tagview/tags/suggestions/')
+  window.fetch('/tagview/tags/suggestions/')
     .then(response => response.json())
     .then(json => callback(
       json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
@@ -33,7 +33,7 @@ export function fetchSuggestions(includeTypes, callback) {
 
 export function deleteTag(CSRF_TOKEN, objectType, objectId, tag, callback, error) {
   const url = `/tagview/tags/${objectType}/${objectId}/`;
-  fetch(url, {
+  window.fetch(url, {
     body: JSON.stringify([tag]),
     headers: {
       'content-type': 'application/json',
@@ -56,7 +56,7 @@ export function addTag(CSRF_TOKEN, objectType, objectId, includeTypes, tag, call
     return;
   }
   const url = `/tagview/tags/${objectType}/${objectId}/`;
-  fetch(url, {
+  window.fetch(url, {
     body: JSON.stringify([tag]),
     headers: {
       'content-type': 'application/json',
