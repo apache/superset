@@ -1642,7 +1642,7 @@ class Superset(BaseSupersetView):
                 session.merge(slc)
                 session.flush()
 
-        dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+        dashboard.position_json = json.dumps(positions, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
@@ -1659,7 +1659,7 @@ class Superset(BaseSupersetView):
             {key: v for key, v in default_filters_data.items()
              if int(key) in slice_ids}
         md['default_filters'] = json.dumps(applicable_filters)
-        dashboard.json_metadata = json.dumps(md, indent=4)
+        dashboard.json_metadata = json.dumps(md)
 
     @api
     @has_access_api
