@@ -623,7 +623,7 @@ export default function nvd3Vis(slice, payload) {
             key,
             color: a.color,
             strokeWidth: a.width,
-            classed: `${a.opacity} ${a.style}`,
+            classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
           };
         })), []);
         data.push(...timeSeriesAnnotations);
@@ -854,6 +854,13 @@ export default function nvd3Vis(slice, payload) {
           .attr('height', height)
           .attr('width', width)
           .call(chart);
+
+        // Display styles for Time Series Annotations
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
+          .style('stroke-width', 0);
       }
     }
 
