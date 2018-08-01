@@ -140,13 +140,13 @@ class TableVizTestCase(unittest.TestCase):
         data = test_viz.get_data(df)
         # Check method correctly transforms data and computes percents
         self.assertEqual(list(['groupB']), data['columns'])
-    
+
     def test_get_data_maintains_column_order_with_timestamp(self):
         form_data = {
             'groupby': ['groupA'],
             'include_time': True,
             'granularity_sqla': 'ds',
-            'time_grain_sqla':"P1D",
+            'time_grain_sqla': 'P1D',
             'metrics': ['count', 'avg__C'],
         }
 
@@ -163,7 +163,9 @@ class TableVizTestCase(unittest.TestCase):
         test_viz = viz.TableViz(datasource, form_data)
         data = test_viz.get_data(df)
         # Check method correctly transforms data and computes percents
-        self.assertEqual(list(['groupA', '__timestamp', 'count', 'avg__C']), data['columns'])
+        self.assertEqual(list([
+            'groupA', '__timestamp', 'count', 'avg__C'
+        ]), data['columns'])
 
     def test_get_data_maintains_column_order_grouped(self):
         form_data = {
@@ -198,7 +200,7 @@ class TableVizTestCase(unittest.TestCase):
             'SUM(value1)', 'count', 'avg__C',
             '%SUM(value1)', '%avg__B',
         ]), data['columns'])
-    
+
     def test_get_data_applies_percentage(self):
         form_data = {
             'groupby': ['groupA', 'groupB'],

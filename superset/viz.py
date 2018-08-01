@@ -544,17 +544,17 @@ class TableViz(BaseViz):
         for metric in metrics_columns:
             column_name = self.get_metric_label(metric)
             columns[column_name] = column_name
-        
+
         percent_metrics_columns = fd.get('percent_metrics') or []
         for metric in percent_metrics_columns:
-            column_name = '%'+self.get_metric_label(metric)
+            column_name = '%' + self.get_metric_label(metric)
             columns[column_name] = column_name
 
         timeseries_limit_metric_column = fd.get('timeseries_limit_metric') or None
         if timeseries_limit_metric_column:
             column_name = self.get_metric_label(timeseries_limit_metric_column)
             columns[column_name] = column_name
-        
+
         return list(filter(lambda c: c in df, columns))
 
     def get_data(self, df):
