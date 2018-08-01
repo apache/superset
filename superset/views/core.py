@@ -2426,9 +2426,8 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
-                security_manager.get_datasource_access_error_msg('{}'.format(
-                    rejected_tables)),
-                link=security_manager.get_table_error_link(rejected_tables))
+                security_manager.get_table_access_error_msg(rejected_tables),
+                link=security_manager.get_table_access_link(rejected_tables))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'

@@ -46,8 +46,9 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         payload = {'error': str(msg)}
         if stacktrace:
             payload['stacktrace'] = stacktrace
-        if link:
-            payload['link'] = link
+    if link:
+        payload['link'] = link
+
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser),
         status=status, mimetype='application/json')
