@@ -81,7 +81,6 @@ def get_datasource_exist_error_msg(full_name):
     return __('Datasource %(name)s already exists', name=full_name)
 
 
-
 def get_user_roles():
     if g.user.is_anonymous():
         public_role = conf.get('AUTH_ROLE_PUBLIC')

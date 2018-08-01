@@ -306,7 +306,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             try:
                 t.fetch_metadata()
                 successes.append(t)
-            except:
+            except Exception:
                 failures.append(t)
 
         if len(successes) > 0:
