@@ -77,8 +77,9 @@ def api(f):
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_mgs(full_name):
+def get_datasource_exist_error_msg(full_name):
     return __('Datasource %(name)s already exists', name=full_name)
+
 
 
 def get_user_roles():
