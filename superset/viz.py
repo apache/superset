@@ -523,23 +523,37 @@ class TableViz(BaseViz):
 
     def get_column_names(self, df):
         fd = self.form_data
-        groupby_columns = fd.get('groupby') or []
 
-        metrics_columns = fd.get('metrics') or []
-        metrics_columns = [self.get_metric_label(m) for m in metrics_columns]
-        
-        percent_metrics_columns = fd.get('percent_metrics') or []
-        percent_metrics_columns = ['%'+self.get_metric_label(m) for m in percent_metrics_columns]
-        
-        timeseries_limit_metric_column = fd.get('timeseries_limit_metric') or None
-        if timeseries_limit_metric_column:
-            timeseries_limit_metric_column = [self.get_metric_label(timeseries_limit_metric_column)]
-        else:
-            timeseries_limit_metric_column = []
+        all_columns = fd.get('all_columns') or []
+
+        if len(all_columns):
+            return list(filter(lambda c: c in df, all_columns))
 
         columns = OrderedDict()
-        for c in groupby_columns + metrics_columns + percent_metrics_columns + timeseries_limit_metric_column:
-            columns[c] = c
+
+        groupby_columns = fd.get('groupby') or []
+
+        for column_name in groupby_columns:
+            columns[column_name] = column_name
+
+        if fd.get('include_time'):
+            columns['__timestamp'] = '__timestamp'
+
+        metrics_columns = fd.get('metrics') or []
+
+        for metric in metrics_columns:
+            column_name = self.get_metric_label(metric)
+            columns[column_name] = column_name
+        
+        percent_metrics_columns = fd.get('percent_metrics') or []
+        for metric in percent_metrics_columns:
+            column_name = '%'+self.get_metric_label(metric)
+            columns[column_name] = column_name
+
+        timeseries_limit_metric_column = fd.get('timeseries_limit_metric') or None
+        if timeseries_limit_metric_column:
+            column_name = self.get_metric_label(timeseries_limit_metric_column)
+            columns[column_name] = column_name
         
         return list(filter(lambda c: c in df, columns))
 

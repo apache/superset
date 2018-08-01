@@ -121,7 +121,51 @@ class BaseVizTestCase(unittest.TestCase):
 
 
 class TableVizTestCase(unittest.TestCase):
-    def test_get_data_maintains_column_order(self):
+    def test_get_data_maintains_column_order_all_columns(self):
+        form_data = {
+            'all_columns': ['groupB'],
+            'percent_metrics': [],
+            'metrics': [],
+        }
+        datasource = Mock()
+        raw = {}
+        raw['SUM(value1)'] = [15, 20, 25, 40]
+        raw['avg__B'] = [10, 20, 5, 15]
+        raw['avg__C'] = [11, 22, 33, 44]
+        raw['count'] = [6, 7, 8, 9]
+        raw['groupA'] = ['A', 'B', 'C', 'C']
+        raw['groupB'] = ['x', 'x', 'y', 'z']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data and computes percents
+        self.assertEqual(list(['groupB']), data['columns'])
+    
+    def test_get_data_maintains_column_order_with_timestamp(self):
+        form_data = {
+            'groupby': ['groupA'],
+            'include_time': True,
+            'granularity_sqla': 'ds',
+            'time_grain_sqla':"P1D",
+            'metrics': ['count', 'avg__C'],
+        }
+
+        datasource = Mock()
+        raw = {}
+        raw['SUM(value1)'] = [15, 20, 25, 40]
+        raw['avg__B'] = [10, 20, 5, 15]
+        raw['avg__C'] = [11, 22, 33, 44]
+        raw['count'] = [6, 7, 8, 9]
+        raw['__timestamp'] = [6, 7, 8, 9]
+        raw['groupA'] = ['A', 'B', 'C', 'C']
+        raw['groupB'] = ['x', 'x', 'y', 'z']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data and computes percents
+        self.assertEqual(list(['groupA', '__timestamp', 'count', 'avg__C']), data['columns'])
+
+    def test_get_data_maintains_column_order_grouped(self):
         form_data = {
             'groupby': ['groupA', 'groupB'],
             'percent_metrics': [{
