@@ -74,7 +74,7 @@ export function addTag(CSRF_TOKEN, objectType, objectId, includeTypes, tag, call
   });
 }
 
-export default class Tags extends React.PureComponent {
+export class Tags extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

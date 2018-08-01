@@ -9,18 +9,21 @@ import './ObjectTags.css';
 import { t } from '../locales';
 
 const propTypes = {
-  fetchTags: PropTypes.func.isRequired,
+  fetchTags: PropTypes.func,
   fetchSuggestions: PropTypes.func,
   deleteTag: PropTypes.func,
   addTag: PropTypes.func,
   editable: PropTypes.bool,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
-  fetchSuggestions: () => {},
-  deleteTag: () => {},
-  addTag: () => {},
+  fetchTags: (callback) => { callback([]); },
+  fetchSuggestions: (callback) => { callback([]); },
+  deleteTag: (tag, callback) => { callback(); },
+  addTag: (tag, callback) => { callback(); },
   editable: true,
+  onChange: () => {},
 };
 
 export default class ObjectTags extends React.Component {
@@ -42,18 +45,20 @@ export default class ObjectTags extends React.Component {
     const tags = this.state.tags.slice(0);
     const tag = tags.splice(i, 1)[0].name;
     this.props.deleteTag(tag, () => this.setState({ tags }));
+    this.props.onChange(tags);
   }
 
   handleAddition(tag) {
     const tags = [].concat(this.state.tags, tag);
     this.props.addTag(tag.name, () => this.setState({ tags }));
+    this.props.onChange(tags);
   }
 
   renderEditableTags() {
     const Tag = props => (
       <Label bsStyle="info">
         <a
-          href={`/superset/welcome?q=${props.tag.name}#tags`}
+          href={`/superset/welcome?tags=${props.tag.name}#tags`}
           className="deco-none"
         >
           {props.tag.name}
@@ -66,8 +71,17 @@ export default class ObjectTags extends React.Component {
         </TooltipWrapper>
       </Label>
     );
+    const {
+      fetchTags,
+      fetchSuggestions,
+      deleteTag,
+      addTag,
+      editable,
+      onChange,
+      ...rest } = this.props;
     return (
       <ReactTags
+        {...rest}
         tags={this.state.tags}
         suggestions={this.state.suggestions}
         handleDelete={this.handleDelete.bind(this)}
@@ -85,7 +99,7 @@ export default class ObjectTags extends React.Component {
         {this.state.tags.map(tag => (
           <Label bsStyle="info">
             <a
-              href={`/superset/welcome?q=${tag.name}#tags`}
+              href={`/superset/welcome?tags=${tag.name}#tags`}
               className="deco-none"
             >
               {tag.name}

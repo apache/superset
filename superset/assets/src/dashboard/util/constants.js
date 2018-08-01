@@ -39,3 +39,8 @@ export const UNDO_LIMIT = 50;
 // save dash options
 export const SAVE_TYPE_OVERWRITE = 'overwrite';
 export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
+
+export const STANDARD_TAGS = [
+  ['owner:{{ current_user_id() }}', 'Owned by me'],
+  ['favorited_by:{{ current_user_id() }}', 'Favorited by me'],
+];
