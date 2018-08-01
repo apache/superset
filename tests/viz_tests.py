@@ -121,8 +121,43 @@ class BaseVizTestCase(unittest.TestCase):
 
 
 class TableVizTestCase(unittest.TestCase):
+    def test_get_data_maintains_column_order(self):
+        form_data = {
+            'groupby': ['groupA', 'groupB'],
+            'percent_metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'avg__B'],
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'count', 'avg__C'],
+        }
+        datasource = Mock()
+        raw = {}
+        raw['SUM(value1)'] = [15, 20, 25, 40]
+        raw['avg__B'] = [10, 20, 5, 15]
+        raw['avg__C'] = [11, 22, 33, 44]
+        raw['count'] = [6, 7, 8, 9]
+        raw['groupA'] = ['A', 'B', 'C', 'C']
+        raw['groupB'] = ['x', 'x', 'y', 'z']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data and computes percents
+        self.assertEqual(list([
+            'groupA', 'groupB',
+            'SUM(value1)', 'count', 'avg__C',
+            '%SUM(value1)', '%avg__B',
+        ]), data['columns'])
+    
     def test_get_data_applies_percentage(self):
         form_data = {
+            'groupby': ['groupA', 'groupB'],
             'percent_metrics': [{
                 'expressionType': 'SIMPLE',
                 'aggregate': 'SUM',

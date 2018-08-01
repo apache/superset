@@ -10,7 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
 import hashlib
@@ -521,6 +521,28 @@ class TableViz(BaseViz):
         d['is_timeseries'] = self.should_be_timeseries()
         return d
 
+    def get_column_names(self, df):
+        fd = self.form_data
+        groupby_columns = fd.get('groupby') or []
+
+        metrics_columns = fd.get('metrics') or []
+        metrics_columns = [self.get_metric_label(m) for m in metrics_columns]
+        
+        percent_metrics_columns = fd.get('percent_metrics') or []
+        percent_metrics_columns = ['%'+self.get_metric_label(m) for m in percent_metrics_columns]
+        
+        timeseries_limit_metric_column = fd.get('timeseries_limit_metric') or None
+        if timeseries_limit_metric_column:
+            timeseries_limit_metric_column = [self.get_metric_label(timeseries_limit_metric_column)]
+        else:
+            timeseries_limit_metric_column = []
+
+        columns = OrderedDict()
+        for c in groupby_columns + metrics_columns + percent_metrics_columns + timeseries_limit_metric_column:
+            columns[c] = c
+        
+        return list(filter(lambda c: c in df, columns))
+
     def get_data(self, df):
         fd = self.form_data
         if (
@@ -557,10 +579,12 @@ class TableViz(BaseViz):
             ):
                 del df[m]
 
+        columns = self.get_column_names(df)
+
         data = self.handle_js_int_overflow(
             dict(
                 records=df.to_dict(orient='records'),
-                columns=list(df.columns),
+                columns=self.get_column_names(df),
             ))
 
         return data
