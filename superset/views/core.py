@@ -1280,10 +1280,9 @@ class Superset(BaseSupersetView):
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
-        # On explore, merge extra filters into the form data
+        # On explore, merge legacy and extra filters into the form data
         utils.convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
-        utils.split_adhoc_filters_into_base_filters(form_data)
 
         # merge request url params
         if request.method == 'GET':
