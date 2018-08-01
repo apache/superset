@@ -161,7 +161,7 @@ export default class ResultSet extends React.PureComponent {
       return (
         <Alert bsStyle="danger">
           {query.errorMessage}
-          {query.link && <a href={query.link}> {t('(Common errors and their resolutions)')} </a>}
+          {query.link && <a href={query.link}> {t('(Request Access)')} </a>}
         </Alert>);
     } else if (query.state === 'success' && query.ctas) {
       return (

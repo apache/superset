@@ -187,7 +187,7 @@ export function runQuery(query) {
         if (msg.indexOf('CSRF token') > 0) {
           msg = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
         }
-        dispatch(queryFailed(query, msg, getErrorLink(msg)));
+        dispatch(queryFailed(query, msg, getErrorLink(err)));
       },
     });
   };
