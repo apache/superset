@@ -297,7 +297,7 @@ def check_ownership(obj, raise_if_false=True):
         if raise_if_false:
             raise security_exception
         return False
-    roles = (r.name for r in get_user_roles())
+    roles = [r.name for r in get_user_roles()]
     if 'Admin' in roles:
         return True
     session = db.create_scoped_session()
@@ -312,7 +312,7 @@ def check_ownership(obj, raise_if_false=True):
     if hasattr(orig_obj, 'created_by'):
         owners += [orig_obj.created_by]
 
-    owner_names = (o.username for o in owners)
+    owner_names = [o.username for o in owners]
 
     if (
             g.user and hasattr(g.user, 'username') and

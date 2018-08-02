@@ -307,8 +307,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
                 orm_kwargs = {}
                 for k in obj:
                     if (
-                            k in fkmany_class.update_from_object_fields and
-                            k in obj
+                        k in fkmany_class.update_from_object_fields and
+                        k in obj
                     ):
                         orm_kwargs[k] = obj[k]
                 new_obj = fkmany_class(**orm_kwargs)
@@ -320,7 +320,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         """Update datasource from a data structure
 
         The UI's table editor crafts a complex data structure that
-        contains most of the datsource's properties as well as
+        contains most of the datasource's properties as well as
         an array of metrics and columns objects. This method
         receives the object from the UI and syncs the datasource to
         match it. Since the fields are different for the different
