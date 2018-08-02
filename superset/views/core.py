@@ -2202,8 +2202,6 @@ class Superset(BaseSupersetView):
     def sqllab_viz(self):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
-        from pprint import pprint
-        pprint(data)
         table_name = data.get('datasourceName')
         table = (
             db.session.query(SqlaTable)
