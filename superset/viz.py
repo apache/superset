@@ -396,6 +396,7 @@ class BaseViz(object):
                     is_loaded and
                     cache_key and
                     cache and
+                    not df.empty and
                     self.status != utils.QueryStatus.FAILED):
                 try:
                     cache_value = dict(
