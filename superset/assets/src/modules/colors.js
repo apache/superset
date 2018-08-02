@@ -159,6 +159,29 @@ export const spectrums = {
     '#a6dba0',
     '#008837',
   ],
+    // The following schemes come from d3
+    // https://github.com/d3/d3-scale-chromatic
+    // https://github.com/d3/d3-scale-chromatic#diverging
+    schemeBrBG: d3.schemeBrBG[10],
+    schemePRGn: d3.schemePRGn[10],
+    schemePiYG: d3.schemePiYG[10],
+    schemePuOr: d3.schemePuOr[10],
+    schemeRdBu: d3.schemeRdBu[10],
+    schemeRdGy: d3.schemeRdGy[10],
+    schemeRdYlBu: d3.schemeRdYlBu[10],
+    schemeRdYlGn: d3.schemeRdYlGn[10],
+    schemeSpectral: d3.schemeSpectral[10],
+    // https://github.com/d3/d3-scale-chromatic#sequential-single-hue
+    schemeBlues: d3.schemeBlues[10],
+    schemeGreens: d3.schemeGreens[10],
+    // schemeGrays: d3.schemeGreys[10],
+    schemeOranges: d3.schemeOranges[10],
+    schemePurples: d3.schemePurples[10],
+    schemeReds: d3.schemeReds[10],
+    // https://github.com/d3/d3-scale-chromatic#sequential-multi-hue
+    schemeViridis: d3Schema(d3.interpolateViridis),
+    schemeInferno: d3Schema(d3.interpolateInferno),
+
 };
 
 /**
@@ -229,3 +252,11 @@ export function hexToRGB(hex, alpha = 255) {
   const b = parseInt(hex.slice(5, 7), 16);
   return [r, g, b, alpha];
 }
+
+function d3Schema(scale) {
+    var colors = [];
+    for (var i = 0.1; i <= 1; i += 0.1) {
+        colors.push(scale(i));
+    }
+}
+
