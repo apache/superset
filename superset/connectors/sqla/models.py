@@ -751,6 +751,7 @@ class SqlaTable(Model, BaseDatasource):
         qry_start_dttm = datetime.now()
         sql = self.get_query_str(query_obj)
         status = QueryStatus.SUCCESS
+        print(sql)
         error_message = None
         df = None
         try:

@@ -414,6 +414,7 @@ if config.get('ENABLE_ACCESS_REQUEST'):
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
+    route_base = '/chart'
     datamodel = SQLAInterface(models.Slice)
 
     list_title = _('List Charts')
@@ -503,6 +504,7 @@ appbuilder.add_view(
 
 
 class SliceAsync(SliceModelView):  # noqa
+    route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
         'creator', 'modified', 'icons']
@@ -516,6 +518,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 
 class SliceAddView(SliceModelView):  # noqa
+    route_base = '/sliceaddview'
     list_columns = [
         'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
         'description', 'description_markeddown', 'datasource_id', 'datasource_type',
@@ -527,6 +530,7 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
+    route_base = '/dashboard'
     datamodel = SQLAInterface(models.Dashboard)
 
     list_title = _('List Dashboards')
@@ -602,7 +606,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             items = [items]
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
-            '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
+            '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
 
     @expose('/export_dashboards_form')
     def download_dashboards(self):
@@ -614,7 +618,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                 mimetype='application/text')
         return self.render_template(
             'superset/export_dashboards.html',
-            dashboards_url='/dashboardmodelview/list',
+            dashboards_url='/dashboard/list',
         )
 
 
@@ -628,6 +632,7 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
+    route_base = '/dashboardasync'
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
         'changed_on', 'url', 'changed_by_name',
@@ -644,6 +649,7 @@ appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
 class DashboardAddView(DashboardModelView):  # noqa
+    route_base = '/dashboardaddview'
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
         'changed_on', 'url', 'changed_by_name',
@@ -1205,7 +1211,7 @@ class Superset(BaseSupersetView):
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
             db.session.commit()
-            return redirect('/dashboardmodelview/list/')
+            return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
     @log_this
@@ -1249,7 +1255,7 @@ class Superset(BaseSupersetView):
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)
 
-        error_redirect = '/slicemodelview/list/'
+        error_redirect = '/chart/list/'
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
         if not datasource:

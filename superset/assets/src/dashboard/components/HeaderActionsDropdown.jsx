@@ -133,7 +133,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         {editMode && (
           <MenuItem
             target="_blank"
-            href={`/dashboardmodelview/edit/${dashboardId}`}
+            href={`/dashboard/edit/${dashboardId}`}
           >
             {t('Edit dashboard metadata')}
           </MenuItem>
