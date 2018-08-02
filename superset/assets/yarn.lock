@@ -8993,6 +8993,10 @@ react-bootstrap-datetimepicker@0.0.22:
     classnames "^2.1.2"
     moment "^2.8.2"
 
+react-bootstrap-dialog@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/react-bootstrap-dialog/-/react-bootstrap-dialog-0.10.0.tgz#fca5c84804ea2b6debe3833c6d4b7480bcff0175"
+
 react-bootstrap-slider@2.1.5:
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/react-bootstrap-slider/-/react-bootstrap-slider-2.1.5.tgz#2f79e57b69ddf2b5bd23310bddbd2de0c6bdfef3"

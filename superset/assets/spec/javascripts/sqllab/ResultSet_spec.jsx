@@ -4,9 +4,9 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { Alert, ProgressBar, Button } from 'react-bootstrap';
+import { Alert, ProgressBar } from 'react-bootstrap';
 import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
-import VisualizeModal from '../../../src/SqlLab/components/VisualizeModal';
+import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
 import ResultSet from '../../../src/SqlLab/components/ResultSet';
 import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
 
@@ -48,20 +48,6 @@ describe('ResultSet', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     expect(wrapper.find(FilterableTable)).to.have.length(1);
   });
-  describe('getControls', () => {
-    it('should render controls', () => {
-      const wrapper = shallow(<ResultSet {...mockedProps} />);
-      wrapper.instance().getControls();
-      expect(wrapper.find(Button)).to.have.length(2);
-      expect(wrapper.find('input').props().placeholder).to.equal('Search Results');
-    });
-    it('should handle no controls', () => {
-      const wrapper = shallow(<ResultSet {...mockedProps} />);
-      wrapper.setProps({ search: false, visualize: false, csv: false });
-      const controls = wrapper.instance().getControls();
-      expect(controls.props.className).to.equal('noControls');
-    });
-  });
   describe('componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     let spy;
@@ -88,7 +74,7 @@ describe('ResultSet', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
       const filterableTable = wrapper.find(FilterableTable);
       expect(filterableTable.props().data).to.equal(mockedProps.query.results.data);
-      expect(wrapper.find(VisualizeModal)).to.have.length(1);
+      expect(wrapper.find(ExploreResultsButton)).to.have.length(1);
     });
     it('should render empty results', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
