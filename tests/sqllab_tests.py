@@ -236,21 +236,18 @@ class SqlLabTests(SupersetTestCase):
             'chartType': 'dist_bar',
             'datasourceName': 'test_viz_flow_table',
             'schema': 'superset',
-            'columns': {
-                'viz_type': {
-                    'is_date': False,
-                    'type': 'STRING',
-                    'nam:qe': 'viz_type',
-                    'is_dim': True,
-                },
-                'ccount': {
-                    'is_date': False,
-                    'type': 'OBJECT',
-                    'name': 'ccount',
-                    'is_dim': True,
-                    'agg': 'sum',
-                },
-            },
+            'columns': [{
+                'is_date': False,
+                'type': 'STRING',
+                'nam:qe': 'viz_type',
+                'is_dim': True,
+            }, {
+                'is_date': False,
+                'type': 'OBJECT',
+                'name': 'ccount',
+                'is_dim': True,
+                'agg': 'sum',
+            }],
             'sql': """\
                 SELECT viz_type, count(1) as ccount
                 FROM slices
