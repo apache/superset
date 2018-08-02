@@ -624,6 +624,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.verbose_name if self.verbose_name else self.database_name
 
     @property
+    def allows_subquery(self):
+        return self.db_engine_spec.allows_subquery
+
+    @property
     def data(self):
         return {
             'id': self.id,
@@ -631,6 +635,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             'backend': self.backend,
             'allow_multi_schema_metadata_fetch':
                 self.allow_multi_schema_metadata_fetch,
+            'allows_subquery': self.allows_subquery,
         }
 
     @property
