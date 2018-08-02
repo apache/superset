@@ -17,10 +17,11 @@ from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Text,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, relationship, configure_mappers
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy_continuum import make_versioned
 import sqlparse
 
 from superset import app, db, import_util, security_manager, utils
@@ -33,6 +34,7 @@ from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
 
 config = app.config
+make_versioned(user_cls=None)
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -255,6 +257,7 @@ class SqlaTable(Model, BaseDatasource):
     column_class = TableColumn
 
     __tablename__ = 'tables'
+    __versioned__ = {}
     __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
 
     table_name = Column(String(250))
@@ -873,3 +876,4 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)
 sa.event.listen(SqlaTable, 'after_update', set_perm)
+configure_mappers()

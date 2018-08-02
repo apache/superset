@@ -28,11 +28,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import url
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, subqueryload, configure_mappers
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
+from sqlalchemy_continuum import make_versioned
 import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
@@ -57,6 +58,7 @@ def set_related_perm(mapper, connection, target):  # noqa
         if ds:
             target.perm = ds.perm
 
+make_versioned(user_cls=None)
 
 class Url(Model, AuditMixinNullable):
     """Used for the short url feature"""
@@ -94,7 +96,7 @@ slice_user = Table('slice_user', metadata,
 class Slice(Model, AuditMixinNullable, ImportMixin):
 
     """A slice is essentially a report or a view on data"""
-
+    __versioned__ = {}
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
@@ -1060,3 +1062,5 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+configure_mappers()
