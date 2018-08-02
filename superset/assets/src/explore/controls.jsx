@@ -324,7 +324,6 @@ export const controls = {
       ['red_yellow_blue', 'red/yellowish/blue'],
       ['brown_white_green', 'brown/white/green'],
       ['purple_white_green', 'purple/white/green'],
-        //Begin d3 choices
         ['schemeBrBG', 'd3BrBG'],
         ['schemePRGn', 'd3PRGn'],
         ['schemePiYG', 'd3PiYG'],

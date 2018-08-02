@@ -92,74 +92,74 @@ export const ALL_COLOR_SCHEMES = {
 };
 
 export const spectrums = {
-  'blue_white_yellow': [
+  blue_white_yellow: [
     '#00d1c1',
     'white',
     '#ffb400',
   ],
-  'fire': [
+  fire: [
     'white',
     'yellow',
     'red',
     'black',
   ],
-  'white_black': [
+  white_black: [
     'white',
     'black',
   ],
-  'black_white': [
+  black_white: [
     'black',
     'white',
   ],
-  'dark_blue': [
+  dark_blue: [
     '#EBF5F8',
     '#6BB1CC',
     '#357E9B',
     '#1B4150',
     '#092935',
   ],
-  'pink_grey': [
+  pink_grey: [
     '#E70B81',
     '#FAFAFA',
     '#666666',
   ],
-  'greens': [
+  greens: [
     '#ffffcc',
     '#78c679',
     '#006837',
   ],
-  'purples': [
+  purples: [
     '#f2f0f7',
     '#9e9ac8',
     '#54278f',
   ],
-  'oranges': [
+  oranges: [
     '#fef0d9',
     '#fc8d59',
     '#b30000',
   ],
-  'red_yellow_blue': [
+  red_yellow_blue: [
     '#d7191c',
     '#fdae61',
     '#ffffbf',
     '#abd9e9',
     '#2c7bb6',
   ],
-  'brown_white_green': [
+  brown_white_green: [
     '#a6611a',
     '#dfc27d',
     '#f5f5f5',
     '#80cdc1',
     '#018571',
   ],
-  'purple_white_green': [
+  purple_white_green: [
     '#7b3294',
     '#c2a5cf',
     '#f7f7f7',
     '#a6dba0',
     '#008837',
   ],
-  'schemeBrBG': [
+  schemeBrBG: [
     '#543005',
     '#8c510a',
     '#bf812d',
@@ -171,7 +171,7 @@ export const spectrums = {
     '#01665e',
     '#003c30',
   ],
-  'schemePRGn': [
+  schemePRGn: [
     '#40004b',
     '#762a83',
     '#9970ab',
@@ -183,7 +183,7 @@ export const spectrums = {
     '#1b7837',
     '#00441b',
   ],
-  'schemePiYG': [
+  schemePiYG: [
     '#8e0152',
     '#c51b7d',
     '#de77ae',
@@ -195,7 +195,7 @@ export const spectrums = {
     '#4d9221',
     '#276419',
   ],
-  'schemePuOr': [
+  schemePuOr: [
     '#2d004b',
     '#542788',
     '#8073ac',
@@ -207,7 +207,7 @@ export const spectrums = {
     '#b35806',
     '#7f3b08',
   ],
-  'schemeRdBu': [
+  schemeRdBu: [
     '#67001f',
     '#b2182b',
     '#d6604d',
@@ -219,7 +219,7 @@ export const spectrums = {
     '#2166ac',
     '#053061',
   ],
-  'schemeRdGy': [
+  schemeRdGy: [
     '#67001f',
     '#b2182b',
     '#d6604d',
@@ -231,7 +231,7 @@ export const spectrums = {
     '#4d4d4d',
     '#1a1a1a',
   ],
-  'schemeRdYlBu': [
+  schemeRdYlBu: [
     '#a50026',
     '#d73027',
     '#f46d43',
@@ -243,7 +243,7 @@ export const spectrums = {
     '#4575b4',
     '#313695',
   ],
-  'schemeRdYlGn': [
+  schemeRdYlGn: [
     '#a50026',
     '#d73027',
     '#f46d43',
@@ -255,7 +255,7 @@ export const spectrums = {
     '#1a9850',
     '#006837',
   ],
-  'schemeSpectral': [
+  schemeSpectral: [
     '#9e0142',
     '#d53e4f',
     '#f46d43',
@@ -267,7 +267,7 @@ export const spectrums = {
     '#3288bd',
     '#5e4fa2',
   ],
-  'schemeBlues': [
+  schemeBlues: [
     '#e3eef9',
     '#cfe1f2',
     '#b5d4e9',
@@ -279,7 +279,7 @@ export const spectrums = {
     '#0a4a90',
     '#08306b',
   ],
-  'schemeGreens': [
+  schemeGreens: [
     '#e8f6e3',
     '#d3eecd',
     '#b7e2b1',
@@ -291,7 +291,7 @@ export const spectrums = {
     '#036429',
     '#00441b',
   ],
-  'schemeGrays': [
+  schemeGrays: [
     '#f2f2f2',
     '#e2e2e2',
     '#cecece',
@@ -303,7 +303,7 @@ export const spectrums = {
     '#1e1e1e',
     '#000000',
   ],
-  'schemeOranges': [
+  schemeOranges: [
     '#fee8d3',
     '#fdd8b3',
     '#fdc28c',
@@ -315,7 +315,7 @@ export const spectrums = {
     '#9f3303',
     '#7f2704',
   ],
-  'schemePurples': [
+  schemePurples: [
     '#f1eff6',
     '#e2e1ef',
     '#cecee5',
@@ -327,7 +327,7 @@ export const spectrums = {
     '#501f8c',
     '#3f007d',
   ],
-  'schemeReds': [
+  schemeReds: [
     '#fee3d6',
     '#fdc9b4',
     '#fcaa8e',
@@ -339,7 +339,7 @@ export const spectrums = {
     '#970b13',
     '#67000d',
   ],
-  'schemeViridis': [
+  schemeViridis: [
     '#482475',
     '#414487',
     '#355f8d',
@@ -351,7 +351,7 @@ export const spectrums = {
     '#bddf26',
     '#fde725',
   ],
-  'schemeInferno': [
+  schemeInferno: [
     '#160b39',
     '#420a68',
     '#6a176e',
@@ -363,7 +363,7 @@ export const spectrums = {
     '#f6d746',
     '#fcffa4',
   ],
-  'schemeMagma': [
+  schemeMagma: [
     '#140e36',
     '#3b0f70',
     '#641a80',
@@ -375,7 +375,7 @@ export const spectrums = {
     '#fecf92',
     '#fcfdbf',
   ],
-  'schemePlasma': [
+  schemePlasma: [
     '#41049d',
     '#6a00a8',
     '#8f0da4',
@@ -387,7 +387,7 @@ export const spectrums = {
     '#fcce25',
     '#f0f921',
   ],
-  'schemeWarm': [
+  schemeWarm: [
     '#963db3',
     '#bf3caf',
     '#e4419d',
@@ -399,7 +399,7 @@ export const spectrums = {
     '#c6d63c',
     '#aff05b',
   ],
-  'schemeCool': [
+  schemeCool: [
     '#6054c8',
     '#4c6edb',
     '#368ce1',
@@ -411,7 +411,7 @@ export const spectrums = {
     '#7ff658',
     '#aff05b',
   ],
-  'schemeCubehelixDefault': [
+  schemeCubehelixDefault: [
     '#1a1530',
     '#163d4e',
     '#1f6642',
@@ -423,7 +423,7 @@ export const spectrums = {
     '#d2eeef',
     '#ffffff',
   ],
-  'schemeBuGn': [
+  schemeBuGn: [
     '#e8f6f9',
     '#d5efed',
     '#b7e4da',
@@ -435,7 +435,7 @@ export const spectrums = {
     '#036429',
     '#00441b',
   ],
-  'schemeBuPu': [
+  schemeBuPu: [
     '#e4eef5',
     '#ccddec',
     '#b2cae1',
@@ -447,7 +447,7 @@ export const spectrums = {
     '#730f71',
     '#4d004b',
   ],
-  'schemeGnBu': [
+  schemeGnBu: [
     '#e5f5df',
     '#d3eece',
     '#bde5bf',
@@ -459,7 +459,7 @@ export const spectrums = {
     '#0b60a1',
     '#084081',
   ],
-  'schemeOrRd': [
+  schemeOrRd: [
     '#feebcf',
     '#fddcaf',
     '#fdca94',
@@ -471,7 +471,7 @@ export const spectrums = {
     '#a70403',
     '#7f0000',
   ],
-  'schemePuBuGn': [
+  schemePuBuGn: [
     '#efe7f2',
     '#dbd8ea',
     '#bec9e2',
@@ -483,7 +483,7 @@ export const spectrums = {
     '#016353',
     '#014636',
   ],
-  'schemePuBu': [
+  schemePuBu: [
     '#efeaf4',
     '#dbdaeb',
     '#bfc9e2',
@@ -495,7 +495,7 @@ export const spectrums = {
     '#045281',
     '#023858',
   ],
-  'schemePuRd': [
+  schemePuRd: [
     '#eae3f0',
     '#dcc9e2',
     '#d0aad2',
@@ -507,7 +507,7 @@ export const spectrums = {
     '#8f023a',
     '#67001f',
   ],
-  'schemeRdPu': [
+  schemeRdPu: [
     '#fde4e1',
     '#fccfcc',
     '#fbb5bc',
@@ -519,7 +519,7 @@ export const spectrums = {
     '#700174',
     '#49006a',
   ],
-  'schemeYlGnBu': [
+  schemeYlGnBu: [
     '#eff9bd',
     '#d5eeb3',
     '#a9ddb7',
@@ -531,7 +531,7 @@ export const spectrums = {
     '#1c3185',
     '#081d58',
   ],
-  'schemeYlGn': [
+  schemeYlGn: [
     '#f7fcc4',
     '#e4f4ac',
     '#c7e89b',
@@ -543,7 +543,7 @@ export const spectrums = {
     '#036034',
     '#004529',
   ],
-  'schemeYlOrBr': [
+  schemeYlOrBr: [
     '#fff8c4',
     '#feeaa1',
     '#fed676',
@@ -555,7 +555,7 @@ export const spectrums = {
     '#8f3204',
     '#662506',
   ],
-  'schemeYlOrRd': [
+  schemeYlOrRd: [
     '#fff0a9',
     '#fee087',
     '#fec965',
