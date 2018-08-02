@@ -102,12 +102,11 @@ class DatasourceModal extends React.PureComponent {
         <Alert bsStyle="warning" className="pointer" onClick={this.hideAlert}>
           <div>
             <i className="fa fa-exclamation-triangle" />{' '}
-            {t('The data source configuration exposed here ')}
-            <strong>{t('affects all the charts using this datasource. ')} </strong>
-            {t(
-              'Be mindful that changing settings ' +
-              'here may affect other charts ' +
-              'in undesirable ways.')}
+            {t(`The data source configuration exposed here
+                affects all the charts using this datasource.
+                Be mindful that changing settings
+                here may affect other charts
+                in undesirable ways.`)}
           </div>
         </Alert>
         {t('Are you sure you want to save and apply changes?')}
