@@ -17,6 +17,7 @@ import textwrap
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_appbuilder.security.sqla.models import User
 from future.standard_library import install_aliases
 import numpy
 import pandas as pd
@@ -28,7 +29,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import url
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
@@ -56,6 +57,32 @@ def set_related_perm(mapper, connection, target):  # noqa
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+
+
+def copy_dashboard(mapper, connection, target):
+    dashboard_id = config.get('DASHBOARD_TEMPLATE_ID')
+    if dashboard_id is None:
+        return
+
+    Session = sessionmaker()
+    session = Session(bind=connection)
+    new_user = session.query(User).filter_by(id=target.id).first()
+
+    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    dashboard = Dashboard(
+        dashboard_title=template.dashboard_title,
+        position_json=template.position_json,
+        description=template.description,
+        css=template.css,
+        json_metadata=template.json_metadata,
+        slices=template.slices,
+        owners=[new_user],
+    )
+    session.add(dashboard)
+    session.commit()
+
+
+sqla.event.listen(User, 'after_insert', copy_dashboard)
 
 
 class Url(Model, AuditMixinNullable):
