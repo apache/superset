@@ -151,6 +151,7 @@ export default class CRUDCollection extends React.PureComponent {
   }
   renderItem(record) {
     const { tableColumns, allowDeletes, expandFieldset } = this.props;
+    /* eslint-disable no-underscore-dangle */
     const isExpanded = !!this.state.expandedColumns[record.id] || record.__expanded;
     let tds = [];
     if (expandFieldset) {

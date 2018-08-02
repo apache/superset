@@ -56,6 +56,7 @@ describe('DatasourceEditor', () => {
   });
 
   it('makes an async request', () => {
+    wrapper.setState({ activeTabKey: 2 });
     const syncButton = wrapper.find('.sync-from-source');
     expect(syncButton).to.have.lengthOf(1);
     syncButton.simulate('click');

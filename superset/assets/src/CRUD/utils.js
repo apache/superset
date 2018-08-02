@@ -1,7 +1,7 @@
 import React from 'react';
 
 export function recurseReactClone(children, type, propExtender) {
-	/**
+  /**
    * Clones a React component's children, and injects new props
    * where the type specified is matched.
    */
