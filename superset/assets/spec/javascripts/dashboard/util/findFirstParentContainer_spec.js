@@ -10,94 +10,91 @@ import {
 describe('findFirstParentContainer', () => {
   const mockGridLayout = {
     DASHBOARD_VERSION_KEY: 'v2',
-    DASHBOARD_ROOT_ID: {
-      type: 'DASHBOARD_ROOT_TYPE',
-      id: 'DASHBOARD_ROOT_ID',
-      children: ['DASHBOARD_GRID_ID'],
+    ROOT_ID: {
+      type: 'ROOT',
+      id: 'ROOT_ID',
+      children: ['GRID_ID'],
     },
-    DASHBOARD_GRID_ID: {
-      type: 'DASHBOARD_GRID_TYPE',
-      id: 'DASHBOARD_GRID_ID',
-      children: ['DASHBOARD_ROW_TYPE-Bk45URrlQ'],
+    GRID_ID: {
+      type: 'GRID',
+      id: 'GRID_ID',
+      children: ['ROW-Bk45URrlQ'],
     },
-    'DASHBOARD_ROW_TYPE-Bk45URrlQ': {
-      type: 'DASHBOARD_ROW_TYPE',
-      id: 'DASHBOARD_ROW_TYPE-Bk45URrlQ',
-      children: ['DASHBOARD_CHART_TYPE-ryxVc8RHlX'],
+    'ROW-Bk45URrlQ': {
+      type: 'ROW',
+      id: 'ROW-Bk45URrlQ',
+      children: ['CHART-ryxVc8RHlX'],
     },
-    'DASHBOARD_CHART_TYPE-ryxVc8RHlX': {
-      type: 'DASHBOARD_CHART_TYPE',
-      id: 'DASHBOARD_CHART_TYPE-ryxVc8RHlX',
+    'CHART-ryxVc8RHlX': {
+      type: 'CHART',
+      id: 'CHART-ryxVc8RHlX',
       children: [],
     },
-    DASHBOARD_HEADER_ID: {
-      id: 'DASHBOARD_HEADER_ID',
-      type: 'DASHBOARD_HEADER_TYPE',
+    HEADER_ID: {
+      id: 'HEADER_ID',
+      type: 'HEADER',
     },
   };
   const mockTabsLayout = {
-    'DASHBOARD_CHART_TYPE-S1gilYABe7': {
+    'CHART-S1gilYABe7': {
       children: [],
-      id: 'DASHBOARD_CHART_TYPE-S1gilYABe7',
-      type: 'DASHBOARD_CHART_TYPE',
+      id: 'CHART-S1gilYABe7',
+      type: 'CHART',
     },
-    'DASHBOARD_CHART_TYPE-SJli5K0HlQ': {
+    'CHART-SJli5K0HlQ': {
       children: [],
-      id: 'DASHBOARD_CHART_TYPE-SJli5K0HlQ',
-      type: 'DASHBOARD_CHART_TYPE',
+      id: 'CHART-SJli5K0HlQ',
+      type: 'CHART',
     },
-    DASHBOARD_GRID_ID: {
+    GRID_ID: {
       children: [],
-      id: 'DASHBOARD_GRID_ID',
-      type: 'DASHBOARD_GRID_TYPE',
+      id: 'GRID_ID',
+      type: 'GRID',
     },
-    DASHBOARD_HEADER_ID: {
-      id: 'DASHBOARD_HEADER_ID',
-      type: 'DASHBOARD_HEADER_TYPE',
+    HEADER_ID: {
+      id: 'HEADER_ID',
+      type: 'HEADER',
     },
-    DASHBOARD_ROOT_ID: {
-      children: ['DASHBOARD_TABS_TYPE-SkgJ5t0Bem'],
-      id: 'DASHBOARD_ROOT_ID',
-      type: 'DASHBOARD_ROOT_TYPE',
+    ROOT_ID: {
+      children: ['TABS-SkgJ5t0Bem'],
+      id: 'ROOT_ID',
+      type: 'ROOT',
     },
-    'DASHBOARD_ROW_TYPE-S1B8-JLgX': {
-      children: ['DASHBOARD_CHART_TYPE-SJli5K0HlQ'],
-      id: 'DASHBOARD_ROW_TYPE-S1B8-JLgX',
-      type: 'DASHBOARD_ROW_TYPE',
+    'ROW-S1B8-JLgX': {
+      children: ['CHART-SJli5K0HlQ'],
+      id: 'ROW-S1B8-JLgX',
+      type: 'ROW',
     },
-    'DASHBOARD_ROW_TYPE-S1bUb1Ilm': {
-      children: ['DASHBOARD_CHART_TYPE-S1gilYABe7'],
-      id: 'DASHBOARD_ROW_TYPE-S1bUb1Ilm',
-      type: 'DASHBOARD_ROW_TYPE',
+    'ROW-S1bUb1Ilm': {
+      children: ['CHART-S1gilYABe7'],
+      id: 'ROW-S1bUb1Ilm',
+      type: 'ROW',
     },
-    'DASHBOARD_TABS_TYPE-ByeLSWyLe7': {
-      children: ['DASHBOARD_TAB_TYPE-BJbLSZ1UeQ'],
-      id: 'DASHBOARD_TABS_TYPE-ByeLSWyLe7',
-      type: 'DASHBOARD_TABS_TYPE',
+    'TABS-ByeLSWyLe7': {
+      children: ['TAB-BJbLSZ1UeQ'],
+      id: 'TABS-ByeLSWyLe7',
+      type: 'TABS',
     },
-    'DASHBOARD_TABS_TYPE-SkgJ5t0Bem': {
-      children: [
-        'DASHBOARD_TAB_TYPE-HkWJcFCHxQ',
-        'DASHBOARD_TAB_TYPE-ByDBbkLlQ',
-      ],
-      id: 'DASHBOARD_TABS_TYPE-SkgJ5t0Bem',
+    'TABS-SkgJ5t0Bem': {
+      children: ['TAB-HkWJcFCHxQ', 'TAB-ByDBbkLlQ'],
+      id: 'TABS-SkgJ5t0Bem',
       meta: {},
-      type: 'DASHBOARD_TABS_TYPE',
+      type: 'TABS',
     },
-    'DASHBOARD_TAB_TYPE-BJbLSZ1UeQ': {
-      children: ['DASHBOARD_ROW_TYPE-S1bUb1Ilm'],
-      id: 'DASHBOARD_TAB_TYPE-BJbLSZ1UeQ',
-      type: 'DASHBOARD_TAB_TYPE',
+    'TAB-BJbLSZ1UeQ': {
+      children: ['ROW-S1bUb1Ilm'],
+      id: 'TAB-BJbLSZ1UeQ',
+      type: 'TAB',
     },
-    'DASHBOARD_TAB_TYPE-ByDBbkLlQ': {
-      children: ['DASHBOARD_ROW_TYPE-S1B8-JLgX'],
-      id: 'DASHBOARD_TAB_TYPE-ByDBbkLlQ',
-      type: 'DASHBOARD_TAB_TYPE',
+    'TAB-ByDBbkLlQ': {
+      children: ['ROW-S1B8-JLgX'],
+      id: 'TAB-ByDBbkLlQ',
+      type: 'TAB',
     },
-    'DASHBOARD_TAB_TYPE-HkWJcFCHxQ': {
-      children: ['DASHBOARD_TABS_TYPE-ByeLSWyLe7'],
-      id: 'DASHBOARD_TAB_TYPE-HkWJcFCHxQ',
-      type: 'DASHBOARD_TAB_TYPE',
+    'TAB-HkWJcFCHxQ': {
+      children: ['TABS-ByeLSWyLe7'],
+      id: 'TAB-HkWJcFCHxQ',
+      type: 'TAB',
     },
     DASHBOARD_VERSION_KEY: 'v2',
   };
