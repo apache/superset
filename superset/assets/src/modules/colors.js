@@ -159,6 +159,7 @@ export const spectrums = {
     "#a6dba0",
     "#008837"
   ],
+    //Begin d3 color schemes
   "schemeBrBG": [
     "#543005",
     "#8c510a",
