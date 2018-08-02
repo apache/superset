@@ -18,7 +18,7 @@ from past.builtins import basestring
 from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
@@ -252,7 +252,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
                 models.SqlaTable.database_id == table.database.id)
             if db.session.query(table_query.exists()).scalar():
                 raise Exception(
-                    get_datasource_exist_error_mgs(table.full_name))
+                    get_datasource_exist_error_msg(table.full_name))
 
         # Fail before adding if the table can't be found
         try:
@@ -300,12 +300,26 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def refresh(self, tables):
         if not isinstance(tables, list):
             tables = [tables]
+        successes = []
+        failures = []
         for t in tables:
-            t.fetch_metadata()
-        msg = _(
-            'Metadata refreshed for the following table(s): %(tables)s',
-            tables=', '.join([t.table_name for t in tables]))
-        flash(msg, 'info')
+            try:
+                t.fetch_metadata()
+                successes.append(t)
+            except Exception:
+                failures.append(t)
+
+        if len(successes) > 0:
+            success_msg = _(
+                'Metadata refreshed for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in successes]))
+            flash(success_msg, 'info')
+        if len(failures) > 0:
+            failure_msg = _(
+                'Unable to retrieve metadata for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in failures]))
+            flash(failure_msg, 'danger')
+
         return redirect('/tablemodelview/list/')
 
 
