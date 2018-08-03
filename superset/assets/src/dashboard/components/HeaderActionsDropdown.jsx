@@ -10,6 +10,8 @@ import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import { t } from '../../locales';
+import URLShortLinkModal from '../../components/URLShortLinkModal';
+import getDashboardUrl from '../util/getDashboardUrl';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -24,6 +26,7 @@ const propTypes = {
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
+  userCanSave: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -82,10 +85,12 @@ class HeaderActionsDropdown extends React.PureComponent {
       expandedSlices,
       onSave,
       userCanEdit,
+      userCanSave,
     } = this.props;
 
-    const emailBody = t('Check out this dashboard: %s', window.location.href);
-    const emailLink = `mailto:?Subject=Superset%20Dashboard%20${dashboardTitle}&Body=${emailBody}`;
+    const emailTitle = t('Superset Dashboard');
+    const emailSubject = `${emailTitle} ${dashboardTitle}`;
+    const emailBody = t('Check out this dashboard: ');
 
     return (
       <DropdownButton
@@ -95,31 +100,37 @@ class HeaderActionsDropdown extends React.PureComponent {
         bsSize="small"
         pullRight
       >
-        <SaveModal
-          addSuccessToast={this.props.addSuccessToast}
-          addDangerToast={this.props.addDangerToast}
-          dashboardId={dashboardId}
-          dashboardTitle={dashboardTitle}
-          saveType={SAVE_TYPE_NEWDASHBOARD}
-          layout={layout}
-          filters={filters}
-          expandedSlices={expandedSlices}
-          css={css}
-          onSave={onSave}
-          isMenuItem
-          triggerNode={<span>{t('Save as')}</span>}
-          canOverwrite={userCanEdit}
-        />
-        {hasUnsavedChanges && (
-          <MenuItem
-            eventKey="discard"
-            onSelect={HeaderActionsDropdown.discardChanges}
-          >
-            {t('Discard changes')}
-          </MenuItem>
+        {userCanSave && (
+          <SaveModal
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
+            dashboardId={dashboardId}
+            dashboardTitle={dashboardTitle}
+            saveType={SAVE_TYPE_NEWDASHBOARD}
+            layout={layout}
+            filters={filters}
+            expandedSlices={expandedSlices}
+            css={css}
+            onSave={onSave}
+            isMenuItem
+            triggerNode={<span>{t('Save as')}</span>}
+            canOverwrite={userCanEdit}
+          />
         )}
 
-        <MenuItem divider />
+        {hasUnsavedChanges &&
+          userCanSave && (
+            <div>
+              <MenuItem
+                eventKey="discard"
+                onSelect={HeaderActionsDropdown.discardChanges}
+              >
+                {t('Discard changes')}
+              </MenuItem>
+            </div>
+          )}
+
+        {userCanSave && <MenuItem divider />}
 
         <MenuItem onClick={forceRefreshAllCharts}>
           {t('Force refresh dashboard')}
@@ -138,9 +149,16 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Edit dashboard metadata')}
           </MenuItem>
         )}
-        {editMode && (
-          <MenuItem href={emailLink}>{t('Email dashboard link')}</MenuItem>
-        )}
+
+        <URLShortLinkModal
+          url={getDashboardUrl(window.location.pathname, this.props.filters)}
+          emailSubject={emailSubject}
+          emailContent={emailBody}
+          addDangerToast={this.props.addDangerToast}
+          isMenuItem
+          triggerNode={<span>{t('Share dashboard')}</span>}
+        />
+
         {editMode && (
           <CssEditor
             triggerNode={<span>{t('Edit CSS')}</span>}
