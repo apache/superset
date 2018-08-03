@@ -101,6 +101,7 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
+    consistent_case_sensitivity = True  # do results have same case as qry for col names?
 
     @classmethod
     def get_time_grains(cls):
@@ -318,7 +319,6 @@ class BaseEngineSpec(object):
 
         if show_cols:
             fields = [sqla.column(c.get('name')) for c in cols]
-        full_table_name = table_name
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + '.' + quote(table_name)
@@ -365,6 +365,57 @@ class BaseEngineSpec(object):
     @staticmethod
     def execute(cursor, query, async=False):
         cursor.execute(query)
+
+    @classmethod
+    def adjust_df_column_names(cls, df, fd):
+        """Based of fields in form_data, return dataframe with new column names
+
+        Usually sqla engines return column names whose case matches that of the
+        original query. For example:
+            SELECT 1 as col1, 2 as COL2, 3 as Col_3
+        will usually result in the following df.columns:
+            ['col1', 'COL2', 'Col_3'].
+        For these engines there is no need to adjust the dataframe column names
+        (default behavior). However, some engines (at least Snowflake, Oracle and
+        Redshift) return column names with different case than in the original query,
+        usually all uppercase. For these the column names need to be adjusted to
+        correspond to the case of the fields specified in the form data for Viz
+        to work properly. This adjustment can be done here.
+        """
+        if cls.consistent_case_sensitivity:
+            return df
+        else:
+            return cls.align_df_col_names_with_form_data(df, fd)
+
+    @staticmethod
+    def align_df_col_names_with_form_data(df, fd):
+        """Helper function to rename columns that have changed case during query.
+
+        Returns a dataframe where column names have been adjusted to correspond with
+        column names in form data (case insensitive). Examples:
+        dataframe: 'col1', form_data: 'col1' -> no change
+        dataframe: 'COL1', form_data: 'col1' -> dataframe column renamed: 'col1'
+        dataframe: 'col1', form_data: 'Col1' -> dataframe column renamed: 'Col1'
+        """
+
+        columns = set()
+        lowercase_mapping = {}
+
+        metrics = utils.get_metric_names(fd.get('metrics', []))
+        groupby = fd.get('groupby', [])
+        other_cols = [utils.DTTM_ALIAS]
+        for col in metrics + groupby + other_cols:
+            columns.add(col)
+            lowercase_mapping[col.lower()] = col
+
+        rename_cols = {}
+        for col in df.columns:
+            if col not in columns:
+                orig_col = lowercase_mapping.get(col.lower())
+                if orig_col:
+                    rename_cols[col] = orig_col
+
+        return df.rename(index=str, columns=rename_cols)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -414,6 +465,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
+    consistent_case_sensitivity = False
     time_grain_functions = {
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
@@ -434,6 +486,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         'P1Y': "DATE_TRUNC('YEAR', {col})",
     }
 
+    @classmethod
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        database = uri.database
+        if '/' in uri.database:
+            database = uri.database.split('/')[0]
+        if selected_schema:
+            uri.database = database + '/' + selected_schema
+        return uri
+
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -441,11 +502,13 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
+    consistent_case_sensitivity = False
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
+    consistent_case_sensitivity = False
 
     time_grain_functions = {
         None: '{col}',
