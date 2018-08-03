@@ -16,12 +16,16 @@ class SupersetDataFrameTestCase(SupersetTestCase):
             ['foo', 'bar'],
         )
         self.assertEquals(
-            dedup(['foo', 'bar', 'foo', 'bar']),
-            ['foo', 'bar', 'foo__1', 'bar__1'],
+            dedup(['foo', 'bar', 'foo', 'bar', 'Foo']),
+            ['foo', 'bar', 'foo__1', 'bar__1', 'Foo'],
         )
         self.assertEquals(
-            dedup(['foo', 'bar', 'bar', 'bar']),
-            ['foo', 'bar', 'bar__1', 'bar__2'],
+            dedup(['foo', 'bar', 'bar', 'bar', 'Bar']),
+            ['foo', 'bar', 'bar__1', 'bar__2', 'Bar'],
+        )
+        self.assertEquals(
+            dedup(['foo', 'bar', 'bar', 'bar', 'Bar'], case_sensitive=False),
+            ['foo', 'bar', 'bar__1', 'bar__2', 'Bar__3'],
         )
 
     def test_get_columns_basic(self):
