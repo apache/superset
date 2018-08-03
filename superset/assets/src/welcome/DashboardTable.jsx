@@ -22,7 +22,7 @@ export default class DashboardTable extends React.PureComponent {
   }
   componentDidMount() {
     const url = (
-      '/dashboardmodelviewasync/api/read' +
+      '/dashboardasync/api/read' +
       '?_oc_DashboardModelViewAsync=changed_on' +
       '&_od_DashboardModelViewAsync=desc');
     $.getJSON(url, (data) => {
