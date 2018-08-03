@@ -89,10 +89,6 @@ def get_datasource_access_error_msg(datasource_name):
               '`all_datasource_access` permission', name=datasource_name)
 
 
-def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
-
-
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
     return obj and user in obj.owners
