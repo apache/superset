@@ -80,7 +80,6 @@
     "mustache": "^2.2.1",
     "nvd3": "1.8.6",
     "parse-iso-duration": "^1.0.0",
-    "po2json": "^0.4.5",
     "promise-polyfill": "8.0.0",
     "prop-types": "^15.6.0",
     "re-resizable": "^4.3.1",
