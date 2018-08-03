@@ -371,7 +371,6 @@ class BaseViz(object):
                     self.query = cache_value['query']
                     self._any_cached_dttm = cache_value['dttm']
                     self._any_cache_key = cache_key
-                    print(cache_value)
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                 except Exception as e:
