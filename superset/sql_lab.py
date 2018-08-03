@@ -130,7 +130,7 @@ def execute_sql(
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
     SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
-    if not superset_query.is_select() and not database.allow_dml:
+    if not superset_query.is_readonly() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
     if query.select_as_cta:
