@@ -1089,8 +1089,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=404,
-                link=security_manager.security_manager.get_datasource_error_link(
-                    viz_obj.datasource))
+                link=security_manager.get_datasource_access_link(viz_obj.datasource))
 
         if csv:
             return CsvResponse(
@@ -2580,7 +2579,7 @@ class Superset(BaseSupersetView):
         if not security_manager.datasource_access(datasource):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(datasource),
-                link=security_manager.get_datasource_error_link(datasource))
+                link=security_manager.get_datasource_access_link(datasource))
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2760,7 +2759,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=401,
-                link=security_manager.get_datasource_error_link(viz_obj.datasource))
+                link=security_manager.get_datasource_access_link(viz_obj.datasource))
         return self.get_query_string_response(viz_obj)
 
 
