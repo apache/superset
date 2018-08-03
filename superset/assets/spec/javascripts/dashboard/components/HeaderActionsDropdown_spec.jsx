@@ -37,48 +37,105 @@ describe('HeaderActionsDropdown', () => {
     return wrapper;
   }
 
-  it('read-only', () => {
+  describe('readonly-user', () => {
     const overrideProps = { userCanSave: false };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    it('should render the DropdownButton', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(SaveModal)).to.have.lengthOf(0);
+    it('should not render the SaveModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(SaveModal)).to.have.lengthOf(0);
+    });
 
-    expect(wrapper.find(MenuItem)).to.have.lengthOf(1);
-    expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    it('should render one MenuItem', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(MenuItem)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
-    expect(wrapper.find(CssEditor)).to.have.lengthOf(0);
+    it('should render the RefreshIntervalModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    });
+
+    it('should render the URLShortLinkModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
+    });
+
+    it('should not render the CssEditor', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(CssEditor)).to.have.lengthOf(0);
+    });
   });
 
-  it('write user', () => {
+  describe('write-user', () => {
     const overrideProps = { userCanSave: true };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    it('should render the DropdownButton', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(SaveModal)).to.have.lengthOf(1);
+    it('should render the SaveModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(SaveModal)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(MenuItem)).to.have.lengthOf(2);
-    expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    it('should render two MenuItems', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(MenuItem)).to.have.lengthOf(2);
+    });
 
-    expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
-    expect(wrapper.find(CssEditor)).to.have.lengthOf(0);
+    it('should render the RefreshIntervalModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    });
+
+    it('should render the URLShortLinkModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
+    });
+
+    it('should not render the CssEditor', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(CssEditor)).to.have.lengthOf(0);
+    });
   });
 
-  it('write user with editMode', () => {
+  describe('write-user-with-edit-mode', () => {
     const overrideProps = { userCanSave: true, editMode: true };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    it('should render the DropdownButton', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(DropdownButton)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(SaveModal)).to.have.lengthOf(1);
+    it('should render the SaveModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(SaveModal)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(MenuItem)).to.have.lengthOf(3);
-    expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    it('should render three MenuItems', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(MenuItem)).to.have.lengthOf(3);
+    });
 
-    expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
-    expect(wrapper.find(CssEditor)).to.have.lengthOf(1);
+    it('should render the RefreshIntervalModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(RefreshIntervalModal)).to.have.lengthOf(1);
+    });
+
+    it('should render the URLShortLinkModal', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(URLShortLinkModal)).to.have.lengthOf(1);
+    });
+
+    it('should render the CssEditor', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(CssEditor)).to.have.lengthOf(1);
+    });
   });
 });

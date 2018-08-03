@@ -24,6 +24,7 @@ class URLShortLinkModal extends React.Component {
     this.modal = null;
     this.setModalRef = this.setModalRef.bind(this);
     this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
+    this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
   onShortUrlSuccess(data) {
@@ -47,7 +48,7 @@ class URLShortLinkModal extends React.Component {
         ref={this.setModalRef}
         isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
-        beforeOpen={this.getCopyUrl.bind(this)}
+        beforeOpen={this.getCopyUrl}
         modalTitle={t('Share Dashboard')}
         modalBody={
           <div>

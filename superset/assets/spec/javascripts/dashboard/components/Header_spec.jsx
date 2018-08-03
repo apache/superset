@@ -50,48 +50,98 @@ describe('Header', () => {
     return wrapper;
   }
 
-  it('read-only user sees minimal header', () => {
+  describe('read-only-user', () => {
     const overrideProps = {
       dashboardInfo: { id: 1, dash_edit_perm: false, dash_save_perm: false },
     };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
-    expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
-    expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+    it('should render the EditableTitle', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(Button)).to.have.lengthOf(1);
-    expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+    it('should render the FaveStar', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+    });
+
+    it('should render the HeaderActionsDropdown', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+    });
+
+    it('should render one Button', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(Button)).to.have.lengthOf(1);
+    });
+
+    it('should not set up undo/redo', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+    });
   });
 
-  it('write user sees single edit button header', () => {
+  describe('write-user', () => {
     const overrideProps = {
       editMode: false,
       dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true },
     };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
-    expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
-    expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
-    expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+    it('should render the EditableTitle', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+    });
 
-    expect(wrapper.find(Button)).to.have.lengthOf(1);
+    it('should render the FaveStar', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+    });
+
+    it('should render the HeaderActionsDropdown', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+    });
+
+    it('should render one Button', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(Button)).to.have.lengthOf(1);
+    });
+
+    it('should not set up undo/redo', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+    });
   });
 
-  it('edit mode sees button list', () => {
+  describe('write-user-with-edit-mode', () => {
     const overrideProps = {
       editMode: true,
       dashboardInfo: { id: 1, dash_edit_perm: true, dash_save_perm: true },
     };
 
-    const wrapper = setup(overrideProps);
-    expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
-    expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
-    expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
-    expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(1);
+    it('should render the EditableTitle', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+    });
 
-    const buttons = wrapper.find(Button);
-    expect(buttons).to.have.lengthOf(4);
+    it('should render the FaveStar', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+    });
+
+    it('should render the HeaderActionsDropdown', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+    });
+
+    it('should render four Buttons', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(Button)).to.have.lengthOf(4);
+    });
+
+    it('should set up undo/redo', () => {
+      const wrapper = setup(overrideProps);
+      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(1);
+    });
   });
 });
