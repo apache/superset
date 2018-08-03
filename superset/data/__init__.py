@@ -33,7 +33,17 @@ config = app.config
 
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
 
-misc_dash_slices = []  # slices assembled in a "Misc Chart" dashboard
+misc_dash_slices = set()  # slices assembled in a "Misc Chart" dashboard
+
+
+def update_slice_ids(layout_dict, slices):
+    charts = [
+        component for component in layout_dict.values()
+        if isinstance(component, dict) and component['type'] == 'CHART'
+    ]
+    sorted_charts = sorted(charts, key=lambda k: k['meta']['chartId'])
+    for i, chart_component in enumerate(sorted_charts):
+        chart_component['meta']['chartId'] = int(slices[i].id)
 
 
 def merge_slice(slc):
@@ -98,7 +108,7 @@ def load_energy():
         }
         """),
     )
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
     slc = Slice(
@@ -124,7 +134,7 @@ def load_energy():
         }
         """),
     )
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
     slc = Slice(
@@ -150,7 +160,7 @@ def load_energy():
         }
         """),
     )
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
 
@@ -351,7 +361,7 @@ def load_world_bank_health_n_pop():
                 secondary_metric='sum__SP_POP_TOTL',
                 series="country_name",)),
     ]
-    misc_dash_slices.append(slices[-1].slice_name)
+    misc_dash_slices.add(slices[-1].slice_name)
     for slc in slices:
         merge_slice(slc)
 
@@ -363,92 +373,224 @@ def load_world_bank_health_n_pop():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-    [
-      {
-          "slice_id": "567",
-          "size_x": 8,
-          "size_y": 8,
-          "v": 1,
-          "col": 1,
-          "row": 0
-      },
-      {
-          "slice_id": "568",
-          "size_x": 8,
-          "size_y": 8,
-          "v": 1,
-          "col": 1,
-          "row": 8
-      },
-      {
-          "slice_id": "569",
-          "size_x": 12,
-          "size_y": 28,
-          "v": 1,
-          "col": 37,
-          "row": 0
-      },
-      {
-          "slice_id": "570",
-          "size_x": 24,
-          "size_y": 12,
-          "v": 1,
-          "col": 1,
-          "row": 16
-      },
-      {
-          "slice_id": "571",
-          "size_x": 28,
-          "size_y": 16,
-          "v": 1,
-          "col": 9,
-          "row": 0
-      },
-      {
-          "slice_id": "572",
-          "size_x": 32,
-          "size_y": 16,
-          "v": 1,
-          "col": 17,
-          "row": 28
-      },
-      {
-          "slice_id": "573",
-          "size_x": 12,
-          "size_y": 12,
-          "v": 1,
-          "col": 25,
-          "row": 16
-      },
-      {
-          "slice_id": "574",
-          "size_x": 16,
-          "size_y": 16,
-          "v": 1,
-          "col": 1,
-          "row": 28
-      },
-      {
-          "slice_id": "575",
-          "size_x": 16,
-          "size_y": 16,
-          "v": 1,
-          "col": 33,
-          "row": 44
-      },
-      {
-          "slice_id": "576",
-          "size_x": 32,
-          "size_y": 16,
-          "v": 1,
-          "col": 1,
-          "row": 44
-      }
-    ]
+{
+    "CHART-36bfc934": {
+        "children": [],
+        "id": "CHART-36bfc934",
+        "meta": {
+            "chartId": 40,
+            "height": 25,
+            "sliceName": "Region Filter",
+            "width": 2
+        },
+        "type": "CHART"
+    },
+    "CHART-37982887": {
+        "children": [],
+        "id": "CHART-37982887",
+        "meta": {
+            "chartId": 41,
+            "height": 25,
+            "sliceName": "World's Population",
+            "width": 2
+        },
+        "type": "CHART"
+    },
+    "CHART-17e0f8d8": {
+        "children": [],
+        "id": "CHART-17e0f8d8",
+        "meta": {
+            "chartId": 42,
+            "height": 92,
+            "sliceName": "Most Populated Countries",
+            "width": 3
+        },
+        "type": "CHART"
+    },
+    "CHART-2ee52f30": {
+        "children": [],
+        "id": "CHART-2ee52f30",
+        "meta": {
+            "chartId": 43,
+            "height": 38,
+            "sliceName": "Growth Rate",
+            "width": 6
+        },
+        "type": "CHART"
+    },
+    "CHART-2d5b6871": {
+        "children": [],
+        "id": "CHART-2d5b6871",
+        "meta": {
+            "chartId": 44,
+            "height": 52,
+            "sliceName": "% Rural",
+            "width": 7
+        },
+        "type": "CHART"
+    },
+    "CHART-0fd0d252": {
+        "children": [],
+        "id": "CHART-0fd0d252",
+        "meta": {
+            "chartId": 45,
+            "height": 50,
+            "sliceName": "Life Expectancy VS Rural %",
+            "width": 8
+        },
+        "type": "CHART"
+    },
+    "CHART-97f4cb48": {
+        "children": [],
+        "id": "CHART-97f4cb48",
+        "meta": {
+            "chartId": 46,
+            "height": 38,
+            "sliceName": "Rural Breakdown",
+            "width": 3
+        },
+        "type": "CHART"
+    },
+    "CHART-b5e05d6f": {
+        "children": [],
+        "id": "CHART-b5e05d6f",
+        "meta": {
+            "chartId": 47,
+            "height": 50,
+            "sliceName": "World's Pop Growth",
+            "width": 4
+        },
+        "type": "CHART"
+    },
+    "CHART-e76e9f5f": {
+        "children": [],
+        "id": "CHART-e76e9f5f",
+        "meta": {
+            "chartId": 48,
+            "height": 50,
+            "sliceName": "Box plot",
+            "width": 4
+        },
+        "type": "CHART"
+    },    
+    "CHART-a4808bba": {
+        "children": [],
+        "id": "CHART-a4808bba",
+        "meta": {
+            "chartId": 49,
+            "height": 50,
+            "sliceName": "Treemap",
+            "width": 8
+        },
+        "type": "CHART"
+    },
+    "COLUMN-071bbbad": {
+        "children": [
+            "ROW-1e064e3c",
+            "ROW-afdefba9"
+        ],
+        "id": "COLUMN-071bbbad",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT",
+            "width": 9
+        },
+        "type": "COLUMN"
+    },
+    "COLUMN-fe3914b8": {
+        "children": [
+            "CHART-36bfc934",
+            "CHART-37982887"
+        ],
+        "id": "COLUMN-fe3914b8",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT",
+            "width": 2
+        },
+        "type": "COLUMN"
+    },
+    "GRID_ID": {
+        "children": [
+            "ROW-46632bc2",
+            "ROW-3fa26c5d",
+            "ROW-812b3f13"
+        ],
+        "id": "GRID_ID",
+        "type": "GRID"
+    },
+    "HEADER_ID": {
+        "id": "HEADER_ID",
+        "meta": {
+            "text": "World's Bank Data"
+        },
+        "type": "HEADER"
+    },
+    "ROOT_ID": {
+        "children": [
+            "GRID_ID"
+        ],
+        "id": "ROOT_ID",
+        "type": "ROOT"
+    },
+    "ROW-1e064e3c": {
+        "children": [
+            "COLUMN-fe3914b8",
+            "CHART-2d5b6871"
+        ],
+        "id": "ROW-1e064e3c",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-3fa26c5d": {
+        "children": [
+            "CHART-b5e05d6f",
+            "CHART-0fd0d252"
+        ],
+        "id": "ROW-3fa26c5d",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-46632bc2": {
+        "children": [
+            "COLUMN-071bbbad",
+            "CHART-17e0f8d8"
+        ],
+        "id": "ROW-46632bc2",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-812b3f13": {
+        "children": [
+            "CHART-a4808bba",
+            "CHART-e76e9f5f"
+        ],
+        "id": "ROW-812b3f13",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-afdefba9": {
+        "children": [
+            "CHART-2ee52f30",
+            "CHART-97f4cb48"
+        ],
+        "id": "ROW-afdefba9",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "VERSION_KEY": "v2"
+}
     """)
     l = json.loads(js)
-    for i, pos in enumerate(l):
-        pos['slice_id'] = str(slices[i].id)
+    update_slice_ids(l, slices)
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(l, indent=4)
@@ -705,15 +847,15 @@ def load_birth_names():
                 defaults,
                 viz_type="markup", markup_type="html",
                 code="""\
-<div style="text-align:center">
-    <h1>Birth Names Dashboard</h1>
-    <p>
-        The source dataset came from
-        <a href="https://github.com/hadley/babynames" target="_blank">[here]</a>
-    </p>
-    <img src="/static/assets/images/babytux.jpg">
-</div>
-""")),
+    <div style="text-align:center">
+        <h1>Birth Names Dashboard</h1>
+        <p>
+            The source dataset came from
+            <a href="https://github.com/hadley/babynames" target="_blank">[here]</a>
+        </p>
+        <img src="/static/assets/images/babytux.jpg">
+    </div>
+    """)),
         Slice(
             slice_name="Name Cloud",
             viz_type='word_cloud',
@@ -822,97 +964,262 @@ def load_birth_names():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-    [
-      {
-        "slice_id": "578",
-        "size_x": 8,
-        "size_y": 16,
-        "v": 1,
-        "col": 33,
-        "row": 24
-      },
-      {
-        "slice_id": "579",
-        "size_x": 8,
-        "size_y": 16,
-        "v": 1,
-        "col": 41,
-        "row": 24
-      },
-      {
-        "slice_id": "580",
-        "size_x": 8,
-        "size_y": 8,
-        "v": 1,
-        "col": 1,
-        "row": 0
-      },
-      {
-        "slice_id": "581",
-        "size_x": 8,
-        "size_y": 8,
-        "v": 1,
-        "col": 9,
-        "row": 0
-      },
-      {
-        "slice_id": "582",
-        "size_x": 32,
-        "size_y": 12,
-        "v": 1,
-        "col": 17,
-        "row": 12
-      },
-      {
-        "slice_id": "583",
-        "size_x": 32,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 24
-      },
-      {
-        "slice_id": "584",
-        "size_x": 12,
-        "size_y": 12,
-        "v": 1,
-        "col": 37,
-        "row": 0
-      },
-      {
-        "slice_id": "585",
-        "size_x": 20,
-        "size_y": 12,
-        "v": 1,
-        "col": 17,
-        "row": 0
-      },
-      {
-        "slice_id": "586",
-        "size_x": 16,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 8
-      },
-      {
-        "slice_id": "587",
-        "size_x": 16,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 48
-      }
-    ]
-
+{
+    "CHART-0dd270f0": {
+        "meta": {
+            "chartId": 51,
+            "width": 2,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-0dd270f0",
+        "children": []
+    },
+    "CHART-a3c21bcc": {
+        "meta": {
+            "chartId": 52,
+            "width": 2,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-a3c21bcc",
+        "children": []
+    },
+    "CHART-976960a5": {
+        "meta": {
+            "chartId": 53,
+            "width": 2,
+            "height": 25
+        },
+        "type": "CHART",
+        "id": "CHART-976960a5",
+        "children": []
+    },    
+    "CHART-58575537": {
+        "meta": {
+            "chartId": 54,
+            "width": 2,
+            "height": 25
+        },
+        "type": "CHART",
+        "id": "CHART-58575537",
+        "children": []
+    },
+    "CHART-e9cd8f0b": {
+        "meta": {
+            "chartId": 55,
+            "width": 8,
+            "height": 38
+        },
+        "type": "CHART",
+        "id": "CHART-e9cd8f0b",
+        "children": []
+    },
+    "CHART-e440d205": {
+        "meta": {
+            "chartId": 56,
+            "width": 8,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-e440d205",
+        "children": []
+    },  
+    "CHART-59444e0b": {
+        "meta": {
+            "chartId": 57,
+            "width": 3,
+            "height": 38
+        },
+        "type": "CHART",
+        "id": "CHART-59444e0b",
+        "children": []
+    },
+    "CHART-e2cb4997": {
+        "meta": {
+            "chartId": 59,
+            "width": 4,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-e2cb4997",
+        "children": []
+    },
+    "CHART-e8774b49": {
+        "meta": {
+            "chartId": 60,
+            "width": 12,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-e8774b49",
+        "children": []
+    },    
+    "CHART-985bfd1e": {
+        "meta": {
+            "chartId": 61,
+            "width": 4,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-985bfd1e",
+        "children": []
+    },    
+    "CHART-17f13246": {
+        "meta": {
+            "chartId": 62,
+            "width": 4,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-17f13246",
+        "children": []
+    },
+    "CHART-729324f6": {
+        "meta": {
+            "chartId": 63,
+            "width": 4,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-729324f6",
+        "children": []
+    },
+    "COLUMN-25a865d6": {
+        "meta": {
+            "width": 4,
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "COLUMN",
+        "id": "COLUMN-25a865d6",
+        "children": [
+            "ROW-cc97c6ac",
+            "CHART-e2cb4997"
+        ]
+    },
+    "COLUMN-4557b6ba": {
+        "meta": {
+            "width": 8,
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "COLUMN",
+        "id": "COLUMN-4557b6ba",
+        "children": [
+            "ROW-d2e78e59",
+            "CHART-e9cd8f0b"
+        ]
+    },
+    "GRID_ID": {
+        "type": "GRID",
+        "id": "GRID_ID",
+        "children": [
+            "ROW-8515ace3",
+            "ROW-1890385f",
+            "ROW-f0b64094",
+            "ROW-be9526b8"
+        ]
+    },
+    "HEADER_ID": {
+        "meta": {
+            "text": "Births"
+        },
+        "type": "HEADER",
+        "id": "HEADER_ID"
+    },
+    "MARKDOWN-00178c27": {
+        "meta": {
+            "width": 5,
+            "code": "<div style=\\"text-align:center\\">\\n <h1>Birth Names Dashboard</h1>\\n <p>\\n The source dataset came from\\n <a href=\\"https://github.com/hadley/babynames\\" target=\\"_blank\\">[here]</a>\\n </p>\\n <img src=\\"/static/assets/images/babytux.jpg\\">\\n</div>\\n",
+            "height": 38
+        },
+        "type": "MARKDOWN",
+        "id": "MARKDOWN-00178c27",
+        "children": []
+    },
+    "ROOT_ID": {
+        "type": "ROOT",
+        "id": "ROOT_ID",
+        "children": [
+            "GRID_ID"
+        ]
+    },
+    "ROW-1890385f": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-1890385f",
+        "children": [
+            "CHART-e440d205",
+            "CHART-0dd270f0",
+            "CHART-a3c21bcc"
+        ]
+    },
+    "ROW-8515ace3": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-8515ace3",
+        "children": [
+            "COLUMN-25a865d6",
+            "COLUMN-4557b6ba"
+        ]
+    },
+    "ROW-be9526b8": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-be9526b8",
+        "children": [
+            "CHART-985bfd1e",
+            "CHART-17f13246",
+            "CHART-729324f6"
+        ]
+    },
+    "ROW-cc97c6ac": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-cc97c6ac",
+        "children": [
+            "CHART-976960a5",
+            "CHART-58575537"
+        ]
+    },
+    "ROW-d2e78e59": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-d2e78e59",
+        "children": [
+            "MARKDOWN-00178c27",
+            "CHART-59444e0b"
+        ]
+    },
+    "ROW-f0b64094": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-f0b64094",
+        "children": [
+            "CHART-e8774b49"
+        ]
+    },
+    "VERSION_KEY": "v2"
+}
         """)
     l = json.loads(js)
-    for i, pos in enumerate(l):
-        pos['slice_id'] = str(slices[i].id)
+    # dashboard v2 doesn't allow add markup slice
+    dash.slices = [slc for slc in slices if slc.viz_type != 'markup']
+    update_slice_ids(l, dash.slices)
     dash.dashboard_title = "Births"
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "births"
-    dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
 
@@ -986,15 +1293,50 @@ def load_unicode_test_data():
 
     if not dash:
         dash = Dash()
-    pos = {
-        "size_y": 16,
-        "size_x": 16,
-        "col": 1,
-        "row": 1,
-        "slice_id": slc.id,
-    }
+    js = """\
+{
+    "CHART-Hkx6154FEm": {
+        "children": [],
+        "id": "CHART-Hkx6154FEm",
+        "meta": {
+            "chartId": 2225,
+            "height": 30,
+            "sliceName": "slice 1",
+            "width": 4
+        },
+        "type": "CHART"
+    },
+    "GRID_ID": {
+        "children": [
+            "ROW-SyT19EFEQ"
+        ],
+        "id": "GRID_ID",
+        "type": "GRID"
+    },
+    "ROOT_ID": {
+        "children": [
+            "GRID_ID"
+        ],
+        "id": "ROOT_ID",
+        "type": "ROOT"
+    },
+    "ROW-SyT19EFEQ": {
+        "children": [
+            "CHART-Hkx6154FEm"
+        ],
+        "id": "ROW-SyT19EFEQ",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "VERSION_KEY": "v2"
+}    
+    """
     dash.dashboard_title = "Unicode Test"
-    dash.position_json = json.dumps([pos], indent=4)
+    l = json.loads(js)
+    update_slice_ids(l, [slc])
+    dash.position_json = json.dumps(l, indent=4)
     dash.slug = "unicode-test"
     dash.slices = [slc]
     db.session.merge(dash)
@@ -1111,7 +1453,7 @@ def load_country_map_data():
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
 
@@ -1188,7 +1530,7 @@ def load_long_lat_data():
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
 
@@ -1266,7 +1608,7 @@ def load_multiformat_time_series_data():
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
 
 
 def load_misc_dashboard():
@@ -1280,56 +1622,177 @@ def load_misc_dashboard():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-    [
-      {
-        "slice_id": "564",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 28
-      },
-      {
-        "slice_id": "565",
-        "size_x": 24,
-        "size_y": 20,
-        "v": 1,
-        "col": 1,
-        "row": 8
-      },
-      {
-        "slice_id": "566",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 25,
-        "row": 8
-      },
-      {
-        "slice_id": "577",
-        "size_x": 16,
-        "size_y": 8,
-        "v": 1,
-        "col": 33,
-        "row": 0
-      },
-      {
-        "slice_id": "590",
-        "size_x": 24,
-        "size_y": 20,
-        "v": 1,
-        "col": 25,
-        "row": 24
-      },
-      {
-        "slice_id": "591",
-        "size_x": 32,
-        "size_y": 8,
-        "v": 1,
-        "col": 1,
-        "row": 0
-      }
-    ]
+{
+    "CHART-BkeVbh8ANQ": {
+        "children": [],
+        "id": "CHART-BkeVbh8ANQ",
+        "meta": {
+            "chartId": 4004,
+            "height": 34,
+            "sliceName": "Multi Line",
+            "width": 8
+        },
+        "type": "CHART"
+    },
+    "CHART-H1HYNzEANX": {
+        "children": [],
+        "id": "CHART-H1HYNzEANX",
+        "meta": {
+            "chartId": 3940,
+            "height": 50,
+            "sliceName": "Energy Sankey",
+            "width": 6
+        },
+        "type": "CHART"
+    },
+    "CHART-HJOYVMV0E7": {
+        "children": [],
+        "id": "CHART-HJOYVMV0E7",
+        "meta": {
+            "chartId": 3969,
+            "height": 63,
+            "sliceName": "Mapbox Long/Lat",
+            "width": 6
+        },
+        "type": "CHART"
+    },
+    "CHART-S1WYNz4AVX": {
+        "children": [],
+        "id": "CHART-S1WYNz4AVX",
+        "meta": {
+            "chartId": 3989,
+            "height": 25,
+            "sliceName": "Parallel Coordinates",
+            "width": 4
+        },
+        "type": "CHART"
+    },
+    "CHART-r19KVMNCE7": {
+        "children": [],
+        "id": "CHART-r19KVMNCE7",
+        "meta": {
+            "chartId": 3978,
+            "height": 34,
+            "sliceName": "Calendar Heatmap multiformat 7",
+            "width": 4
+        },
+        "type": "CHART"
+    },
+    "CHART-rJ4K4GV04Q": {
+        "children": [],
+        "id": "CHART-rJ4K4GV04Q",
+        "meta": {
+            "chartId": 3941,
+            "height": 63,
+            "sliceName": "Energy Force Layout",
+            "width": 6
+        },
+        "type": "CHART"
+    },
+    "CHART-rkgF4G4A4X": {
+        "children": [],
+        "id": "CHART-rkgF4G4A4X",
+        "meta": {
+            "chartId": 3970,
+            "height": 25,
+            "sliceName": "Birth in France by department in 2016",
+            "width": 8
+        },
+        "type": "CHART"
+    },
+    "CHART-rywK4GVR4X": {
+        "children": [],
+        "id": "CHART-rywK4GVR4X",
+        "meta": {
+            "chartId": 3942,
+            "height": 50,
+            "sliceName": "Heatmap",
+            "width": 6
+        },
+        "type": "CHART"
+    },
+    "COLUMN-ByUFVf40EQ": {
+        "children": [
+            "CHART-rywK4GVR4X",
+            "CHART-HJOYVMV0E7"
+        ],
+        "id": "COLUMN-ByUFVf40EQ",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT",
+            "width": 6
+        },
+        "type": "COLUMN"
+    },
+    "COLUMN-rkmYVGN04Q": {
+        "children": [
+            "CHART-rJ4K4GV04Q",
+            "CHART-H1HYNzEANX"
+        ],
+        "id": "COLUMN-rkmYVGN04Q",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT",
+            "width": 6
+        },
+        "type": "COLUMN"
+    },
+    "GRID_ID": {
+        "children": [
+            "ROW-SytNzNA4X",
+            "ROW-S1MK4M4A4X",
+            "ROW-HkFFEzVRVm"
+        ],
+        "id": "GRID_ID",
+        "type": "GRID"
+    },
+    "HEADER_ID": {
+        "id": "HEADER_ID",
+        "meta": {
+            "text": "Misc Charts"
+        },
+        "type": "HEADER"
+    },
+    "ROOT_ID": {
+        "children": [
+            "GRID_ID"
+        ],
+        "id": "ROOT_ID",
+        "type": "ROOT"
+    },
+    "ROW-HkFFEzVRVm": {
+        "children": [
+            "CHART-r19KVMNCE7",
+            "CHART-BkeVbh8ANQ"
+        ],
+        "id": "ROW-HkFFEzVRVm",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-S1MK4M4A4X": {
+        "children": [
+            "COLUMN-rkmYVGN04Q",
+            "COLUMN-ByUFVf40EQ"
+        ],
+        "id": "ROW-S1MK4M4A4X",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "ROW-SytNzNA4X": {
+        "children": [
+            "CHART-rkgF4G4A4X",
+            "CHART-S1WYNz4AVX"
+        ],
+        "id": "ROW-SytNzNA4X",
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW"
+    },
+    "VERSION_KEY": "v2"
+}
     """)
     l = json.loads(js)
     slices = (
@@ -1339,8 +1802,7 @@ def load_misc_dashboard():
         .all()
     )
     slices = sorted(slices, key=lambda x: x.id)
-    for i, pos in enumerate(l):
-        pos['slice_id'] = str(slices[i].id)
+    update_slice_ids(l, slices)
     dash.dashboard_title = "Misc Charts"
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = DASH_SLUG
@@ -1742,68 +2204,149 @@ def load_deck_dash():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-    [
-      {
-        "slice_id": "600",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 0
-      },
-      {
-        "slice_id": "601",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 25,
-        "row": 0
-      },
-      {
-        "slice_id": "602",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 25,
-        "row": 16
-      },
-      {
-        "slice_id": "603",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 16
-      },
-      {
-        "slice_id": "604",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 16
-      },
-      {
-        "slice_id": "605",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 25,
-        "row": 16
-      },
-      {
-        "slice_id": "606",
-        "size_x": 24,
-        "size_y": 16,
-        "v": 1,
-        "col": 1,
-        "row": 20
-      }
-    ]
+{
+    "CHART-3afd9d70": {
+        "meta": {
+            "chartId": 66,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-3afd9d70",
+        "children": []
+    },
+    "CHART-2ee7fa5e": {
+        "meta": {
+            "chartId": 67,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2ee7fa5e",
+        "children": []
+    },
+    "CHART-201f7715": {
+        "meta": {
+            "chartId": 68,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-201f7715",
+        "children": []
+    },
+    "CHART-d02f6c40": {
+        "meta": {
+            "chartId": 69,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-d02f6c40",
+        "children": []
+    },    
+    "CHART-2673431d": {
+        "meta": {
+            "chartId": 70,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2673431d",
+        "children": []
+    },
+    "CHART-85265a60": {
+        "meta": {
+            "chartId": 71,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-85265a60",
+        "children": []
+    },
+    "CHART-2b87513c": {
+        "meta": {
+            "chartId": 72,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2b87513c",
+        "children": []
+    },
+    "GRID_ID": {
+        "type": "GRID",
+        "id": "GRID_ID",
+        "children": [
+            "ROW-a7b16cb5",
+            "ROW-72c218a5",
+            "ROW-957ba55b",
+            "ROW-af041bdd"
+        ]
+    },
+    "HEADER_ID": {
+        "meta": {
+            "text": "deck.gl Demo"
+        },
+        "type": "HEADER",
+        "id": "HEADER_ID"
+    },
+    "ROOT_ID": {
+        "type": "ROOT",
+        "id": "ROOT_ID",
+        "children": [
+            "GRID_ID"
+        ]
+    },
+    "ROW-72c218a5": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-72c218a5",
+        "children": [
+            "CHART-d02f6c40",
+            "CHART-201f7715"
+        ]
+    },
+    "ROW-957ba55b": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-957ba55b",
+        "children": [
+            "CHART-2673431d",
+            "CHART-85265a60"
+        ]
+    },
+    "ROW-a7b16cb5": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-a7b16cb5",
+        "children": [
+            "CHART-3afd9d70",
+            "CHART-2ee7fa5e"
+        ]
+    },
+    "ROW-af041bdd": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-af041bdd",
+        "children": [
+            "CHART-2b87513c"
+        ]
+    },
+    "VERSION_KEY": "v2"
+}
     """)
     l = json.loads(js)
-    for i, pos in enumerate(l):
-        pos['slice_id'] = str(slices[i].id)
+    update_slice_ids(l, slices)
     dash.dashboard_title = title
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "deck"
@@ -1965,5 +2508,5 @@ def load_multi_line():
         }),
     )
 
-    misc_dash_slices.append(slc.slice_name)
+    misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
