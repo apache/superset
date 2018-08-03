@@ -45,7 +45,7 @@ class SupersetQuery(object):
         return self.sql.strip().upper().startswith('EXPLAIN')
 
     def is_readonly(self):
-        """Pessimestic readonly, 100% sure statement won't mutate anything"""
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return self.is_select() or self.is_explain()
 
     def stripped(self):
