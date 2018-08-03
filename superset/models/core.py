@@ -64,7 +64,7 @@ def copy_dashboard(mapper, connection, target):
     if dashboard_id is None:
         return
 
-    Session = sessionmaker()
+    Session = sessionmaker(autoflush=False)
     session = Session(bind=connection)
     new_user = session.query(User).filter_by(id=target.id).first()
 
