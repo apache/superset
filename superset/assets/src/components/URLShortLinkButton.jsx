@@ -20,6 +20,7 @@ class URLShortLinkButton extends React.Component {
       shortUrl: '',
     };
     this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
+    this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
   onShortUrlSuccess(data) {
@@ -54,7 +55,7 @@ class URLShortLinkButton extends React.Component {
         trigger="click"
         rootClose
         placement="left"
-        onEnter={this.getCopyUrl.bind(this)}
+        onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}
       >
         <span className="btn btn-default btn-sm">
