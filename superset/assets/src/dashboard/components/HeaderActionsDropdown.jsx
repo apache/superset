@@ -142,10 +142,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
         {editMode && (
-          <MenuItem
-            target="_blank"
-            href={`/dashboardmodelview/edit/${dashboardId}`}
-          >
+          <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
             {t('Edit dashboard metadata')}
           </MenuItem>
         )}
