@@ -165,9 +165,6 @@ def load_examples_run(load_test_data):
     print('Loading [Multiformat time series]')
     data.load_multiformat_time_series_data()
 
-    print('Loading [Misc Charts] dashboard')
-    data.load_misc_dashboard()
-
     print('Loading [Paris GeoJson]')
     data.load_paris_iris_geojson()
 
@@ -182,6 +179,9 @@ def load_examples_run(load_test_data):
 
     print('Loading [Multi Line]')
     data.load_multi_line()
+
+    print('Loading [Misc Charts] dashboard')
+    data.load_misc_dashboard()
 
     if load_test_data:
         print('Loading [Unicode test data]')
