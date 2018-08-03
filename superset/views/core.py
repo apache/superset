@@ -417,6 +417,7 @@ if config.get('ENABLE_ACCESS_REQUEST'):
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
+    route_base = '/chart'
     datamodel = SQLAInterface(models.Slice)
 
     list_title = _('List Charts')
@@ -506,6 +507,7 @@ appbuilder.add_view(
 
 
 class SliceAsync(SliceModelView):  # noqa
+    route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
         'creator', 'modified', 'icons']
@@ -519,6 +521,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 
 class SliceAddView(SliceModelView):  # noqa
+    route_base = '/sliceaddview'
     list_columns = [
         'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
         'description', 'description_markeddown', 'datasource_id', 'datasource_type',
@@ -530,6 +533,7 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
+    route_base = '/dashboard'
     datamodel = SQLAInterface(models.Dashboard)
 
     list_title = _('List Dashboards')
@@ -605,7 +609,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             items = [items]
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
-            '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
+            '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
 
     @expose('/export_dashboards_form')
     def download_dashboards(self):
@@ -617,7 +621,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                 mimetype='application/text')
         return self.render_template(
             'superset/export_dashboards.html',
-            dashboards_url='/dashboardmodelview/list',
+            dashboards_url='/dashboard/list',
         )
 
 
@@ -631,6 +635,7 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
+    route_base = '/dashboardasync'
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
         'changed_on', 'url', 'changed_by_name',
@@ -647,6 +652,7 @@ appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
 class DashboardAddView(DashboardModelView):  # noqa
+    route_base = '/dashboardaddview'
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
         'changed_on', 'url', 'changed_by_name',
@@ -1008,6 +1014,8 @@ class Superset(BaseSupersetView):
             slice_form_data.update(form_data)
             form_data = slice_form_data
 
+        update_time_range(form_data)
+
         return form_data, slc
 
     def get_viz(
@@ -1093,8 +1101,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=404,
-                link=security_manager.security_manager.get_datasource_error_link(
-                    viz_obj.datasource))
+                link=security_manager.get_datasource_access_link(viz_obj.datasource))
 
         if csv:
             return CsvResponse(
@@ -1208,7 +1215,7 @@ class Superset(BaseSupersetView):
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
             db.session.commit()
-            return redirect('/dashboardmodelview/list/')
+            return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
     @log_this
@@ -1252,7 +1259,7 @@ class Superset(BaseSupersetView):
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)
 
-        error_redirect = '/slicemodelview/list/'
+        error_redirect = '/chart/list/'
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
         if not datasource:
@@ -1313,10 +1320,6 @@ class Superset(BaseSupersetView):
                 datasource_id,
                 datasource_type,
                 datasource.name)
-
-        # update to new time filter
-        if 'since' in form_data and 'until' in form_data:
-            form_data = update_time_range(form_data)
 
         standalone = request.args.get('standalone') == 'true'
         bootstrap_data = {
@@ -2571,7 +2574,7 @@ class Superset(BaseSupersetView):
         if not security_manager.datasource_access(datasource):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(datasource),
-                link=security_manager.get_datasource_error_link(datasource))
+                link=security_manager.get_datasource_access_link(datasource))
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2751,7 +2754,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=401,
-                link=security_manager.get_datasource_error_link(viz_obj.datasource))
+                link=security_manager.get_datasource_access_link(viz_obj.datasource))
         return self.get_query_string_response(viz_obj)
 
 
