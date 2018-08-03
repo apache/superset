@@ -1,8 +1,8 @@
 import d3 from 'd3';
-import {TIME_SHIFT_PATTERN} from '../utils/common';
+import { TIME_SHIFT_PATTERN } from '../utils/common';
 
 export const brandColor = '#00A699';
-export const colorPrimary = {r: 0, g: 122, b: 135, a: 1};
+export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
 
 // Color related utility functions go in this object
 export const bnbColors = [
