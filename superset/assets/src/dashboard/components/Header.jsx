@@ -12,13 +12,18 @@ import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
-import { UNDO_LIMIT, SAVE_TYPE_OVERWRITE } from '../util/constants';
+import {
+  UNDO_LIMIT,
+  SAVE_TYPE_OVERWRITE,
+  DASHBOARD_POSITION_DATA_LIMIT,
+} from '../util/constants';
 
 const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  addWarningToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
@@ -168,7 +173,24 @@ class Header extends React.PureComponent {
       default_filters: JSON.stringify(filters),
     };
 
-    this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+    // make sure positions data less than DB storage limitation:
+    const positionJSONLength = JSON.stringify(positions).length;
+    const limit =
+      dashboardInfo.common.conf.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
+      DASHBOARD_POSITION_DATA_LIMIT;
+    if (positionJSONLength >= limit) {
+      this.props.addDangerToast(
+        t(
+          'Your dashboard is too large. Please reduce the size before save it.',
+        ),
+      );
+    } else {
+      if (positionJSONLength >= limit * 0.9) {
+        this.props.addWarningToast('Your dashboard is near the size limit.');
+      }
+
+      this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+    }
   }
 
   render() {

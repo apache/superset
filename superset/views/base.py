@@ -26,6 +26,7 @@ from superset.translations.utils import get_language_pack
 
 FRONTEND_CONF_KEYS = (
     'SUPERSET_WEBSERVER_TIMEOUT',
+    'SUPERSET_DASHBOARD_POSITION_DATA_LIMIT',
     'ENABLE_JAVASCRIPT_CONTROLS',
 )
 
