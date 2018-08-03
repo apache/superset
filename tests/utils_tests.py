@@ -15,6 +15,7 @@ import numpy
 from superset.exceptions import SupersetException
 from superset.utils import (
     base_json_conv,
+    convert_legacy_filters_into_adhoc,
     datetime_f,
     get_since_until,
     json_int_dttm_ser,
@@ -49,6 +50,26 @@ def mock_parse_human_datetime(s):
         return datetime(2018, 1, 1)
     elif s == '2018-12-31T23:59:59':
         return datetime(2018, 12, 31, 23, 59, 59)
+
+
+def mock_to_adhoc(filt, expressionType='SIMPLE', clause='where'):
+    result = {
+        'clause': clause.upper(),
+        'expressionType': expressionType,
+    }
+
+    if expressionType == 'SIMPLE':
+        result.update({
+            'comparator': filt['val'],
+            'operator': filt['op'],
+            'subject': filt['col'],
+        })
+    elif expressionType == 'SQL':
+        result.update({
+            'sqlExpression': filt[clause],
+        })
+
+    return result
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -93,6 +114,7 @@ class UtilsTestCase(unittest.TestCase):
         got_str = zlib_decompress_to_string(blob)
         self.assertEquals(json_str, got_str)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {'A': 1, 'B': 2, 'c': 'test'}
@@ -101,7 +123,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(form_data, expected)
         # empty extra_filters
         form_data = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
-        expected = {'A': 1, 'B': 2, 'c': 'test', 'filters': []}
+        expected = {'A': 1, 'B': 2, 'c': 'test', 'adhoc_filters': []}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # copy over extra filters into empty filters
@@ -109,22 +131,67 @@ class UtilsTestCase(unittest.TestCase):
             {'col': 'a', 'op': 'in', 'val': 'someval'},
             {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
-        expected = {'filters': [
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-        ]}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # adds extra filters to existing filters
-        form_data = {'extra_filters': [
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-        ], 'filters': [{'col': 'D', 'op': '!=', 'val': ['G1', 'g2']}]}
-        expected = {'filters': [
-            {'col': 'D', 'op': '!=', 'val': ['G1', 'g2']},
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-        ]}
+        form_data = {
+            'extra_filters': [
+                {'col': 'a', 'op': 'in', 'val': 'someval'},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['G1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '!=',
+                    'subject': 'D',
+                },
+            ],
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['G1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '!=',
+                    'subject': 'D',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # adds extra filters to existing filters and sets time options
@@ -137,7 +204,15 @@ class UtilsTestCase(unittest.TestCase):
             {'col': '__granularity', 'op': 'in', 'val': '90 seconds'},
         ]}
         expected = {
-            'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'hello',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'like',
+                    'subject': 'A',
+                },
+            ],
             'time_range': '1 year ago :',
             'granularity_sqla': 'birth_year',
             'time_grain_sqla': 'years',
@@ -147,66 +222,140 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_empty_filters(self):
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': ''},
             {'col': 'B', 'op': '==', 'val': []},
         ]}
-        expected = {'filters': []}
+        expected = {'adhoc_filters': []}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_nones(self):
         form_data = {
-            'filters': [
-                {'col': None, 'op': 'in', 'val': ''},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': '',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': None,
+                },
             ],
             'extra_filters': [
                 {'col': 'B', 'op': '==', 'val': []},
             ],
         }
         expected = {
-            'filters': [
-                {'col': None, 'op': 'in', 'val': ''},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': '',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': None,
+                },
             ],
         }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_equal_filters(self):
         form_data = {
             'extra_filters': [
                 {'col': 'a', 'op': 'in', 'val': 'someval'},
                 {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
             ],
-            'filters': [
-                {'col': 'a', 'op': 'in', 'val': 'someval'},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
             ],
         }
-        expected = {'filters': [
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-        ]}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_merges_different_val_types(self):
         form_data = {
             'extra_filters': [
                 {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
                 {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
             ],
-            'filters': [
-                {'col': 'a', 'op': 'in', 'val': 'someval'},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
             ],
         }
-        expected = {'filters': [
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
-        ]}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         form_data = {
@@ -214,36 +363,107 @@ class UtilsTestCase(unittest.TestCase):
                 {'col': 'a', 'op': 'in', 'val': 'someval'},
                 {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
             ],
-            'filters': [
-                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
             ],
         }
-        expected = {'filters': [
-            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-            {'col': 'a', 'op': 'in', 'val': 'someval'},
-        ]}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_adds_unequal_lists(self):
         form_data = {
             'extra_filters': [
                 {'col': 'a', 'op': 'in', 'val': ['g1', 'g2', 'g3']},
                 {'col': 'B', 'op': '==', 'val': ['c1', 'c2', 'c3']},
             ],
-            'filters': [
-                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
             ],
         }
-        expected = {'filters': [
-            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
-            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2', 'g3']},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2', 'c3']},
-        ]}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['g1', 'g2', 'g3'],
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+                {
+                    'clause': 'WHERE',
+                    'comparator': ['c1', 'c2', 'c3'],
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'B',
+                },
+            ],
+        }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
@@ -408,3 +628,88 @@ class UtilsTestCase(unittest.TestCase):
         result = get_since_until(form_data)
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_where(self):
+        form_data = {
+            'where': 'a = 1',
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'expressionType': 'SQL',
+                    'sqlExpression': 'a = 1',
+                },
+            ],
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_filters(self):
+        form_data = {
+            'filters': [{'col': 'a', 'op': 'in', 'val': 'someval'}],
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'comparator': 'someval',
+                    'expressionType': 'SIMPLE',
+                    'operator': 'in',
+                    'subject': 'a',
+                },
+            ],
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_having(self):
+        form_data = {
+            'having': 'COUNT(1) = 1',
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'HAVING',
+                    'expressionType': 'SQL',
+                    'sqlExpression': 'COUNT(1) = 1',
+                },
+            ],
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_having_filters(self):
+        form_data = {
+            'having_filters': [{'col': 'COUNT(1)', 'op': '==', 'val': 1}],
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'HAVING',
+                    'comparator': 1,
+                    'expressionType': 'SIMPLE',
+                    'operator': '==',
+                    'subject': 'COUNT(1)',
+                },
+            ],
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_existing(self):
+        form_data = {
+            'adhoc_filters': [],
+            'filters': [{'col': 'a', 'op': 'in', 'val': 'someval'}],
+            'having': 'COUNT(1) = 1',
+            'having_filters': [{'col': 'COUNT(1)', 'op': '==', 'val': 1}],
+            'where': 'a = 1',
+        }
+        expected = {'adhoc_filters': []}
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)

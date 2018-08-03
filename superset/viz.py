@@ -125,7 +125,7 @@ class BaseViz(object):
                     # if an int is too big for Java Script to handle
                     # convert it to a string
                     if abs(v) > JS_MAX_INTEGER:
-                        d[k] = str(v)
+                        d[k] = text_type(v)
         return data
 
     def run_extra_queries(self):
@@ -153,7 +153,7 @@ class BaseViz(object):
 
     def handle_nulls(self, df):
         fillna = self.get_fillna_for_columns(df.columns)
-        df = df.fillna(fillna)
+        return df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
@@ -217,7 +217,7 @@ class BaseViz(object):
                 self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            self.handle_nulls(df)
+            df = self.handle_nulls(df)
         return df
 
     @staticmethod
@@ -246,10 +246,9 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
 
-        utils.split_adhoc_filters_into_base_filters(form_data)
-
+        utils.convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
-
+        utils.split_adhoc_filters_into_base_filters(form_data)
         granularity = (
             form_data.get('granularity') or
             form_data.get('granularity_sqla')
@@ -383,6 +382,9 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
+                if hasattr(self.datasource.database, 'db_engine_spec'):
+                    db_engine_spec = self.datasource.database.db_engine_spec
+                    df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
@@ -770,7 +772,7 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                text_type(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
                 for obj in records
             }
 
@@ -1530,7 +1532,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(metrics) > 1:
                 series_title = ', '.join(name)
             else:
-                l = [str(s) for s in name[1:]]  # noqa: E741
+                l = [text_type(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
             for i, v in ys.items():

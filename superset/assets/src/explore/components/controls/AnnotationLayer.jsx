@@ -36,6 +36,8 @@ const propTypes = {
   opacity: PropTypes.string,
   style: PropTypes.string,
   width: PropTypes.number,
+  showMarkers: PropTypes.bool,
+  hideLine: PropTypes.bool,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   overrides: PropTypes.object,
   show: PropTypes.bool,
@@ -61,6 +63,8 @@ const defaultProps = {
   opacity: '',
   style: 'solid',
   width: 1,
+  showMarkers: false,
+  hideLine: false,
   overrides: {},
   colorScheme: 'd3Category10',
   show: true,
@@ -78,7 +82,7 @@ export default class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const { name, annotationType, sourceType,
-      color, opacity, style, width, value,
+      color, opacity, style, width, showMarkers, hideLine, value,
       overrides, show, titleColumn, descriptionColumns,
       timeColumn, intervalEndColumn } = props;
     this.state = {
@@ -100,6 +104,8 @@ export default class AnnotationLayer extends React.PureComponent {
       opacity,
       style,
       width,
+      showMarkers,
+      hideLine,
       // refData
       isNew: !this.props.name,
       isLoadingOptions: true,
@@ -469,7 +475,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderDisplayConfiguration() {
-    const { color, opacity, style, width } = this.state;
+    const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
     const colorScheme = [...ALL_COLOR_SCHEMES[this.props.colorScheme]];
     if (color && color !== AUTOMATIC_COLOR &&
       !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())) {
@@ -533,6 +539,26 @@ export default class AnnotationLayer extends React.PureComponent {
           value={width}
           onChange={v => this.setState({ width: v })}
         />
+        {annotationType === AnnotationTypes.TIME_SERIES &&
+        <CheckboxControl
+          hovered
+          name="annotation-layer-show-markers"
+          label="Show Markers"
+          description={'Shows or hides markers for the time series'}
+          value={showMarkers}
+          onChange={v => this.setState({ showMarkers: v })}
+        />
+        }
+        {annotationType === AnnotationTypes.TIME_SERIES &&
+        <CheckboxControl
+          hovered
+          name="annotation-layer-hide-line"
+          label="Hide Line"
+          description={'Hides the Line for the time series'}
+          value={hideLine}
+          onChange={v => this.setState({ hideLine: v })}
+        />
+        }
       </PopoverSection>
     );
   }

@@ -8,7 +8,7 @@ import textwrap
 
 from sqlalchemy.engine.url import make_url
 
-from superset import db
+from superset import app, db
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -186,3 +186,27 @@ class SqlaTableModelTestCase(SupersetTestCase):
         compiled = '{}'.format(sqla_literal.compile())
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'ds')
+
+    def test_sql_mutator(self):
+        tbl = self.get_table_by_name('birth_names')
+        query_obj = dict(
+            groupby=[],
+            metrics=[],
+            filter=[],
+            is_timeseries=False,
+            columns=['name'],
+            granularity=None,
+            from_dttm=None, to_dttm=None,
+            is_prequery=False,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn('--COMMENT', sql)
+
+        def mutator(*args):
+            return '--COMMENT\n' + args[0]
+        app.config['SQL_QUERY_MUTATOR'] = mutator
+        sql = tbl.get_query_str(query_obj)
+        self.assertIn('--COMMENT', sql)
+
+        app.config['SQL_QUERY_MUTATOR'] = None

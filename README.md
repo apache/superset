@@ -92,6 +92,7 @@ Superset can be used to visualize data out of most databases:
 * MonetDB
 * Snowflake
 * Redshift
+* Clickhouse
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
 

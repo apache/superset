@@ -3,13 +3,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
-import json
 import logging
 from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
+import simplejson as json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -191,7 +191,7 @@ def execute_sql(
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info('Fetching cursor description')
-
+    cursor_description = cursor.description
     if conn is not None:
         conn.commit()
         conn.close()
@@ -199,7 +199,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = dataframe.SupersetDataFrame(data, cursor.description, db_engine_spec)
+    cdf = dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
 
     query.rows = cdf.size
     query.progress = 100
