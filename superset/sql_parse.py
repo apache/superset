@@ -41,6 +41,13 @@ class SupersetQuery(object):
     def is_select(self):
         return self._parsed[0].get_type() == 'SELECT'
 
+    def is_explain(self):
+        return self.sql.strip().upper().startswith('EXPLAIN')
+
+    def is_readonly(self):
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return self.is_select() or self.is_explain()
+
     def stripped(self):
         return self.sql.strip(' \t\n;')
 

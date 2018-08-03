@@ -292,9 +292,21 @@ class SupersetTestCase(unittest.TestCase):
         """
         self.assertEquals({'src'}, self.extract_tables(query))
 
-    def multistatement(self):
+    def test_multistatement(self):
         query = 'SELECT * FROM t1; SELECT * FROM t2'
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
 
         query = 'SELECT * FROM t1; SELECT * FROM t2;'
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
+
+    def test_update_not_select(self):
+        sql = sql_parse.SupersetQuery('UPDATE t1 SET col1 = NULL')
+        self.assertEquals(False, sql.is_select())
+        self.assertEquals(False, sql.is_readonly())
+
+    def test_explain(self):
+        sql = sql_parse.SupersetQuery('EXPLAIN SELECT 1')
+
+        self.assertEquals(True, sql.is_explain())
+        self.assertEquals(False, sql.is_select())
+        self.assertEquals(True, sql.is_readonly())
