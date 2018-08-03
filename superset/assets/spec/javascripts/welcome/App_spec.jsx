@@ -17,6 +17,6 @@ describe('App', () => {
     const wrapper = shallow(<App {...mockedProps} />);
     expect(wrapper.find(Tab)).to.have.length(4);
     expect(wrapper.find(Panel)).to.have.length(4);
-    expect(wrapper.find(Row)).to.have.length(4);
+    expect(wrapper.find(Row)).to.have.length(5);
   });
 });

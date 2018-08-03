@@ -6,7 +6,8 @@ import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
 import SelectControl from '../explore/components/controls/SelectControl';
-import { fetchSuggestions, Tags } from './Tags';
+import TagsTable from './TagsTable';
+import { fetchSuggestions } from '../tags';
 import { t } from '../locales';
 import { STANDARD_TAGS } from '../dashboard/util/constants';
 
@@ -121,7 +122,7 @@ export default class App extends React.PureComponent {
                 </Col>
               </Row>
               <hr />
-              <Tags search={this.state.tagSearch} />
+              <TagsTable search={this.state.tagSearch} />
             </Panel>
           </Tab>
         </Tabs>

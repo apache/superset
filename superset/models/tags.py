@@ -101,11 +101,7 @@ class ObjectUpdater(object):
         raise NotImplementedError('Subclass should implement `get_owners_ids`')
 
     @classmethod
-    def after_insert(cls, mapper, connection, target):
-        # pylint: disable=unused-argument
-        session = Session(bind=connection)
-
-        # add `owner:` tags
+    def _add_owners(cls, session, target):
         for owner_id in cls.get_owners_ids(target):
             name = 'owner:{0}'.format(owner_id)
             tag = get_tag(name, session, TagTypes.owner)
@@ -115,6 +111,14 @@ class ObjectUpdater(object):
                 object_type=ObjectTypes.chart,
             )
             session.add(tagged_object)
+
+    @classmethod
+    def after_insert(cls, mapper, connection, target):
+        # pylint: disable=unused-argument
+        session = Session(bind=connection)
+
+        # add `owner:` tags
+        cls._add_owners(session, target)
 
         # add `type:` tags
         tag = get_tag(
@@ -145,15 +149,7 @@ class ObjectUpdater(object):
                 synchronize_session=False)
 
         # add `owner:` tags
-        for owner_id in cls.get_owners_ids(target):
-            name = 'owner:{0}'.format(owner_id)
-            tag = get_tag(name, session, TagTypes.owner)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=target.id,
-                object_type=ObjectTypes.chart,
-            )
-            session.add(tagged_object)
+        cls._add_owners(session, target)
 
         session.commit()
 

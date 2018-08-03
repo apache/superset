@@ -16,7 +16,7 @@ import {
   deleteTag,
   fetchSuggestions,
   fetchTags,
-} from '../../welcome/Tags';
+} from '../../tags';
 import { t } from '../../locales';
 
 const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;

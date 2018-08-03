@@ -17,7 +17,7 @@ from superset.jinja_context import current_user_id, current_username
 import superset.models.core
 from superset.models.sql_lab import SavedQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
-from .base import BaseSupersetView
+from .base import BaseSupersetView, json_success
 
 
 class ObjectTypeConverter(BaseConverter):
@@ -72,13 +72,14 @@ class TagView(BaseSupersetView):
 
     @expose('/tags/suggestions/', methods=['GET'])
     def suggestions(self):
-        query = db.session.query(
-            TaggedObject,
-        ).group_by(TaggedObject.tag_id).order_by(func.count().desc()).all()
-        tags = json.dumps([
-            {'id': obj.tag.id, 'name': obj.tag.name} for obj in query])
-
-        return Response(tags, status=200, content_type='application/json')
+        query = (
+            db.session.query(TaggedObject)
+            .group_by(TaggedObject.tag_id)
+            .order_by(func.count().desc())
+            .all()
+        )
+        tags = [{'id': obj.tag.id, 'name': obj.tag.name} for obj in query]
+        return json_success(json.dumps(tags))
 
     @expose('/tags/<object_type:object_type>/<int:object_id>/', methods=['GET'])
     def get(self, object_type, object_id):
@@ -86,10 +87,8 @@ class TagView(BaseSupersetView):
         query = db.session.query(TaggedObject).filter(and_(
             TaggedObject.object_type == object_type,
             TaggedObject.object_id == object_id))
-        tags = json.dumps([
-            {'id': obj.tag.id, 'name': obj.tag.name} for obj in query])
-
-        return Response(tags, status=200, content_type='application/json')
+        tags = [{'id': obj.tag.id, 'name': obj.tag.name} for obj in query]
+        return json_success(json.dumps(tags))
 
     @expose('/tags/<object_type:object_type>/<int:object_id>/', methods=['POST'])
     def post(self, object_type, object_id):
@@ -146,8 +145,7 @@ class TagView(BaseSupersetView):
 
         tags = request.args.get('tags')
         if not tags:
-            return Response(
-                json.dumps([]), status=200, content_type='application/json')
+            return json_success(json.dumps([]))
 
         tags = [process_template(tag) for tag in tags.split(',')]
         query = query.filter(Tag.name.in_(tags))
@@ -178,7 +176,7 @@ class TagView(BaseSupersetView):
             ),
         ).group_by(TaggedObject.object_id, TaggedObject.object_type)
 
-        objects = json.dumps([
+        objects = [
             {
                 'type': obj.TaggedObject.object_type.name,
                 'name': get_name(obj),
@@ -188,9 +186,9 @@ class TagView(BaseSupersetView):
                 'creator': get_creator(obj),
             }
             for obj in query if get_attribute(obj, 'id')
-        ], default=utils.json_int_dttm_ser)
+        ]
 
-        return Response(objects, status=200, content_type='application/json')
+        return json_success(json.dumps(objects, default=utils.json_int_dttm_ser))
 
 
 app.url_map.converters['object_type'] = ObjectTypeConverter

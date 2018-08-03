@@ -8,12 +8,7 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
-import {
-  addTag,
-  deleteTag,
-  fetchSuggestions,
-  fetchTags,
-} from '../../welcome/Tags';
+import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';

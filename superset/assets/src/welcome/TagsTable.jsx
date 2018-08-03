@@ -1,80 +1,21 @@
-/* eslint no-unused-vars: 0 */
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
+import { Table, Tr, Td, unsafe } from 'reactable';
 import 'whatwg-fetch';
 
+import { fetchObjects } from '../tags';
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 import { t } from '../locales';
 
-const $ = window.$ = require('jquery');
+const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
 
 const propTypes = {
   search: PropTypes.string,
 };
 
-export function fetchTags(objectType, objectId, includeTypes, callback) {
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  window.fetch(url)
-    .then(response => response.json())
-    .then(json => callback(
-      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
-}
-
-export function fetchSuggestions(includeTypes, callback) {
-  window.fetch('/tagview/tags/suggestions/')
-    .then(response => response.json())
-    .then(json => callback(
-      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
-}
-
-export function deleteTag(CSRF_TOKEN, objectType, objectId, tag, callback, error) {
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  window.fetch(url, {
-    body: JSON.stringify([tag]),
-    headers: {
-      'content-type': 'application/json',
-      'X-CSRFToken': CSRF_TOKEN,
-    },
-    credentials: 'same-origin',
-    method: 'DELETE',
-  })
-  .then((response) => {
-    if (response.ok) {
-      callback(response);
-    } else {
-      error(response);
-    }
-  });
-}
-
-export function addTag(CSRF_TOKEN, objectType, objectId, includeTypes, tag, callback, error) {
-  if (tag.indexOf(':') !== -1 && !includeTypes) {
-    return;
-  }
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  window.fetch(url, {
-    body: JSON.stringify([tag]),
-    headers: {
-      'content-type': 'application/json',
-      'X-CSRFToken': CSRF_TOKEN,
-    },
-    credentials: 'same-origin',
-    method: 'POST',
-  })
-  .then((response) => {
-    if (response.ok) {
-      callback(response);
-    } else {
-      error(response);
-    }
-  });
-}
-
-export class Tags extends React.PureComponent {
+export default class TagsTable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -91,8 +32,7 @@ export class Tags extends React.PureComponent {
     }
   }
   fetchResults(search) {
-    const url = `/tagview/tagged_objects/?tags=${search}`;
-    $.getJSON(url, (data) => {
+    fetchObjects(CSRF_TOKEN, search, null, (data) => {
       const objects = { dashboard: [], chart: [], query: [] };
       data.forEach((object) => {
         objects[object.type].push(object);
@@ -148,4 +88,4 @@ export class Tags extends React.PureComponent {
   }
 }
 
-Tags.propTypes = propTypes;
+TagsTable.propTypes = propTypes;
