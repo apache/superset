@@ -37,6 +37,7 @@ import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 from superset.viz import viz_types
 install_aliases()
@@ -213,8 +214,10 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'datasource': '{}__{}'.format(
                 self.datasource_id, self.datasource_type),
         })
+
         if self.cache_timeout:
             form_data['cache_timeout'] = self.cache_timeout
+        update_time_range(form_data)
         return form_data
 
     def get_explore_url(self, base_url='/superset/explore', overrides=None):

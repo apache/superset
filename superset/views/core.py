@@ -1006,6 +1006,8 @@ class Superset(BaseSupersetView):
             slice_form_data.update(form_data)
             form_data = slice_form_data
 
+        update_time_range(form_data)
+
         return form_data, slc
 
     def get_viz(
@@ -1311,10 +1313,6 @@ class Superset(BaseSupersetView):
                 datasource_id,
                 datasource_type,
                 datasource.name)
-
-        # update to new time filter
-        if 'since' in form_data and 'until' in form_data:
-            form_data = update_time_range(form_data)
 
         standalone = request.args.get('standalone') == 'true'
         bootstrap_data = {
