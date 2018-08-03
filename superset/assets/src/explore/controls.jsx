@@ -1479,6 +1479,14 @@ export const controls = {
     description: t('Whether to display the trend line'),
   },
 
+  do_not_start_y_axis_at_zero: {
+    type: 'CheckboxControl',
+    label: t('Do not start y-axis at 0'),
+    renderTrigger: true,
+    default: false,
+    description: t('Start y-axis range at minimum value in the data, instead of 0'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
