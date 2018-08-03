@@ -9,8 +9,6 @@ import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 import { t } from '../locales';
 
-const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
-
 const propTypes = {
   search: PropTypes.string,
 };
@@ -32,7 +30,7 @@ export default class TagsTable extends React.PureComponent {
     }
   }
   fetchResults(search) {
-    fetchObjects(CSRF_TOKEN, search, null, (data) => {
+    fetchObjects(search, null, (data) => {
       const objects = { dashboard: [], chart: [], query: [] };
       data.forEach((object) => {
         objects[object.type].push(object);

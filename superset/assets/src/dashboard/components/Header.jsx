@@ -18,8 +18,6 @@ import {
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
 
-const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
-
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
@@ -83,19 +81,8 @@ class Header extends React.PureComponent {
       false,
     );
     this.fetchSuggestions = fetchSuggestions.bind(this, false);
-    this.deleteTag = deleteTag.bind(
-      this,
-      CSRF_TOKEN,
-      'dashboard',
-      props.dashboardInfo.id,
-    );
-    this.addTag = addTag.bind(
-      this,
-      CSRF_TOKEN,
-      'dashboard',
-      props.dashboardInfo.id,
-      false,
-    );
+    this.deleteTag = deleteTag.bind(this, 'dashboard', props.dashboardInfo.id);
+    this.addTag = addTag.bind(this, 'dashboard', props.dashboardInfo.id, false);
   }
 
   componentWillReceiveProps(nextProps) {

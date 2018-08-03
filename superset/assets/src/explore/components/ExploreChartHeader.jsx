@@ -19,8 +19,6 @@ import {
 } from '../../tags';
 import { t } from '../../locales';
 
-const CSRF_TOKEN = (document.getElementById('csrf_token') || {}).value;
-
 const CHART_STATUS_MAP = {
   failed: 'danger',
   loading: 'warning',
@@ -46,8 +44,8 @@ class ExploreChartHeader extends React.PureComponent {
 
     this.fetchTags = fetchTags.bind(this, 'chart', props.chart.id, false);
     this.fetchSuggestions = fetchSuggestions.bind(this, false);
-    this.deleteTag = deleteTag.bind(this, CSRF_TOKEN, 'chart', props.chart.id);
-    this.addTag = addTag.bind(this, CSRF_TOKEN, 'chart', props.chart.id, false);
+    this.deleteTag = deleteTag.bind(this, 'chart', props.chart.id);
+    this.addTag = addTag.bind(this, 'chart', props.chart.id, false);
   }
 
   runQuery() {
