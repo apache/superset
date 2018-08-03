@@ -23,7 +23,11 @@ import {
   updateDashboardTitle,
 } from '../actions/dashboardLayout';
 
-import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
+import {
+  addSuccessToast,
+  addDangerToast,
+  addWarningToast,
+} from '../../messageToasts/actions';
 
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 
@@ -59,6 +63,7 @@ function mapDispatchToProps(dispatch) {
     {
       addSuccessToast,
       addDangerToast,
+      addWarningToast,
       onUndo: undoLayoutAction,
       onRedo: redoLayoutAction,
       setEditMode,
