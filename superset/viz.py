@@ -100,6 +100,8 @@ class BaseViz(object):
         self.process_metrics()
 
     def process_metrics(self):
+        # metrics in TableViz is order sensitive, so metric_dict should be
+        # OrderedDict
         self.metric_dict = OrderedDict()
         fd = self.form_data
         for mkey in METRIC_KEYS:
@@ -115,8 +117,6 @@ class BaseViz(object):
 
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
-        self.metric_labels = list(self.metric_dict.keys())
-
     def get_metric_label(self, metric):
         if isinstance(metric, string_types):
             return metric
