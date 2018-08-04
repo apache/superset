@@ -21,7 +21,6 @@ function getLayer(formData, payload, slice) {
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}`,
     data,

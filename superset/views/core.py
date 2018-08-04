@@ -1075,7 +1075,7 @@ class Superset(BaseSupersetView):
             json.dumps({
                 'query': query,
                 'language': viz_obj.datasource.query_language,
-                'data': viz_obj.get_df().to_dict('records'),
+                'data': viz_obj.get_df().to_dict('records'),  # TODO, split into endpoint
             }, default=utils.json_iso_dttm_ser),
             status=200,
             mimetype='application/json')
@@ -2742,7 +2742,7 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/slice_query/<slice_id>/')
-    def sliceQuery(self, slice_id):
+    def slice_query(self, slice_id):
         """
         This method exposes an API endpoint to
         get the database query string for this slice
