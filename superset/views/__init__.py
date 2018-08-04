@@ -1,3 +1,4 @@
+from . import lyft # noqa
 from . import base  # noqa
 from . import api # noqa
 from . import core  # noqa
