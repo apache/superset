@@ -29,59 +29,59 @@ class BaseVizTestCase(SupersetTestCase):
     def test_process_metrics(self):
         # test TableViz metrics in correct order
         form_data = {
-            "url_params": {},
-            "row_limit": 500,
-            "metric": "sum__SP_POP_TOTL",
-            "entity": "country_code",
-            "secondary_metric": "sum__SP_POP_TOTL",
-            "granularity_sqla": "year",
-            "page_length": 0,
-            "all_columns": [],
-            "viz_type": "table",
-            "since": "2014-01-01",
-            "until": "2014-01-02",
-            "metrics": [
-                "sum__SP_POP_TOTL",
-                "SUM(SE_PRM_NENR_MA)",
+            'url_params': {},
+            'row_limit': 500,
+            'metric': 'sum__SP_POP_TOTL',
+            'entity': 'country_code',
+            'secondary_metric': 'sum__SP_POP_TOTL',
+            'granularity_sqla': 'year',
+            'page_length': 0,
+            'all_columns': [],
+            'viz_type': 'table',
+            'since': '2014-01-01',
+            'until': '2014-01-02',
+            'metrics': [
+                'sum__SP_POP_TOTL',
+                'SUM(SE_PRM_NENR_MA)',
                 {
-                    "hasCustomLabel": False,
-                    "expressionType": "SIMPLE",
-                    "fromFormData": True,
-                    "label": "SUM(SH_DTH_IMRT)",
-                    "column": {
-                        "optionName": "_col_SH_DTH_IMRT",
-                        "description": None,
-                        "filterable": False,
-                        "expression": "",
-                        "is_dttm": False,
-                        "verbose_name": None,
-                        "type": "FLOAT",
-                        "groupby": False,
-                        "column_name": "SH_DTH_IMRT"
+                    'hasCustomLabel': False,
+                    'expressionType': 'SIMPLE',
+                    'fromFormData': True,
+                    'label': 'SUM(SH_DTH_IMRT)',
+                    'column': {
+                        'optionName': '_col_SH_DTH_IMRT',
+                        'description': None,
+                        'filterable': False,
+                        'expression': '',
+                        'is_dttm': False,
+                        'verbose_name': None,
+                        'type': 'FLOAT',
+                        'groupby': False,
+                        'column_name': 'SH_DTH_IMRT',
                     },
-                    "sqlExpression": None,
-                    "aggregate": "SUM",
-                    "optionName": "metric_hww53ilkph_jo8b2fyt8rs"
+                    'sqlExpression': None,
+                    'aggregate': 'SUM',
+                    'optionName': 'metric_hww53ilkph_jo8b2fyt8rs',
                 },
-                "SUM(SP_URB_TOTL)"
+                'SUM(SP_URB_TOTL)',
             ],
-            "country_fieldtype": "cca3",
-            "percent_metrics": [
-                "count"
+            'country_fieldtype': 'cca3',
+            'percent_metrics': [
+                'count',
             ],
-            "slice_id": 74,
-            "time_grain_sqla": None,
-            "order_by_cols": [],
-            "groupby": [
-                "country_name"
+            'slice_id': 74,
+            'time_grain_sqla': None,
+            'order_by_cols': [],
+            'groupby': [
+                'country_name',
             ],
-            "compare_lag": "10",
-            "limit": "25",
-            "datasource": "2__table",
-            "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
-            "markup_type": "markdown",
-            "where": "",
-            "compare_suffix": "o10Y"
+            'compare_lag': '10',
+            'limit': '25',
+            'datasource': '2__table',
+            'table_timestamp_format': '%Y-%m-%d %H:%M:%S',
+            'markup_type': 'markdown',
+            'where': '',
+            'compare_suffix': 'o10Y',
         }
         datasource = {'type': 'table'}
         test_viz = viz.BaseViz(datasource, form_data)

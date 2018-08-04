@@ -100,9 +100,16 @@ class BaseViz(object):
         self.process_metrics()
 
     def process_metrics(self):
+<<<<<<< HEAD
         # metrics in TableViz is order sensitive, so metric_dict should be
         # OrderedDict
         self.metric_dict = OrderedDict()
+=======
+        # metrics in TableViz is order sensitive,
+        # so all_metrics and metric_labels should be list
+        self.all_metrics = []
+        self.metric_labels = []
+>>>>>>> lint code
         fd = self.form_data
         for mkey in METRIC_KEYS:
             val = fd.get(mkey)
