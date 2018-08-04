@@ -26,6 +26,94 @@ class BaseVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             viz.BaseViz(datasource, form_data)
 
+    def test_process_metrics(self):
+        # test TableViz metrics in correct order
+        form_data = {
+            "url_params": {},
+            "row_limit": 500,
+            "metric": "sum__SP_POP_TOTL",
+            "entity": "country_code",
+            "secondary_metric": "sum__SP_POP_TOTL",
+            "granularity_sqla": "year",
+            "page_length": 0,
+            "all_columns": [],
+            "viz_type": "table",
+            "since": "2014-01-01",
+            "until": "2014-01-02",
+            "metrics": [
+                "sum__SP_POP_TOTL",
+                "SUM(SE_PRM_NENR_MA)",
+                {
+                    "hasCustomLabel": False,
+                    "expressionType": "SIMPLE",
+                    "fromFormData": True,
+                    "label": "SUM(SH_DTH_IMRT)",
+                    "column": {
+                        "optionName": "_col_SH_DTH_IMRT",
+                        "description": None,
+                        "filterable": False,
+                        "expression": "",
+                        "is_dttm": False,
+                        "verbose_name": None,
+                        "type": "FLOAT",
+                        "groupby": False,
+                        "column_name": "SH_DTH_IMRT"
+                    },
+                    "sqlExpression": None,
+                    "aggregate": "SUM",
+                    "optionName": "metric_hww53ilkph_jo8b2fyt8rs"
+                },
+                "SUM(SP_URB_TOTL)"
+            ],
+            "country_fieldtype": "cca3",
+            "percent_metrics": [
+                "count"
+            ],
+            "slice_id": 74,
+            "time_grain_sqla": None,
+            "order_by_cols": [],
+            "groupby": [
+                "country_name"
+            ],
+            "compare_lag": "10",
+            "limit": "25",
+            "datasource": "2__table",
+            "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
+            "markup_type": "markdown",
+            "where": "",
+            "compare_suffix": "o10Y"
+        }
+        datasource = {'type': 'table'}
+        test_viz = viz.BaseViz(datasource, form_data)
+        expect_metric_labels = [u'sum__SP_POP_TOTL',
+                                u'SUM(SE_PRM_NENR_MA)',
+                                u'SUM(SH_DTH_IMRT)',
+                                u'SUM(SP_URB_TOTL)',
+                                u'count']
+        self.assertEqual(test_viz.metric_labels, expect_metric_labels)
+        expect_all_metrics = [u'sum__SP_POP_TOTL',
+                              u'SUM(SE_PRM_NENR_MA)',
+                              {u'label': u'SUM(SH_DTH_IMRT)',
+                               u'column':
+                                   {u'filterable': False,
+                                    u'description': None,
+                                    u'type': u'FLOAT',
+                                    u'expression': u'',
+                                    u'optionName': u'_col_SH_DTH_IMRT',
+                                    u'is_dttm': False,
+                                    u'verbose_name': None,
+                                    u'column_name': u'SH_DTH_IMRT',
+                                    u'groupby': False},
+                               u'aggregate': u'SUM',
+                               u'fromFormData': True,
+                               u'hasCustomLabel': False,
+                               u'expressionType': u'SIMPLE',
+                               u'sqlExpression': None,
+                               u'optionName': u'metric_hww53ilkph_jo8b2fyt8rs'},
+                              u'SUM(SP_URB_TOTL)',
+                              u'count']
+        self.assertEqual(test_viz.all_metrics, expect_all_metrics)
+
     def test_get_fillna_returns_default_on_null_columns(self):
         form_data = {
             'viz_type': 'table',
