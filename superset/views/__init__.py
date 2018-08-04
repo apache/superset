@@ -23,3 +23,4 @@ from . import annotations # noqa
 from . import datasource # noqa
 from . import schedules # noqa
 from . import tags # noqa
+from . import lyft # noqa

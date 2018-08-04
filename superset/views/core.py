@@ -2507,6 +2507,9 @@ class Superset(BaseSupersetView):
     @expose('/sql_json/', methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
+        return self.sql_json_call(request)
+
+    def sql_json_call(self, request):
         """Runs arbitrary sql and returns and json"""
         async_ = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
