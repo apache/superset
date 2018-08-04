@@ -65,7 +65,7 @@ meets these guidelines:
 3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-4.  The pull request should work for Python 2.7, and ideally Python 3.6+.
+4.  The pull request should work for Python 2.7 and Python 3.6.
     ``from __future__ import`` will be required in every `.py` file soon.
 5.  If the pull request adds a Python dependency include it in `setup.py`
     denoting any specific restrictions and in `requirements.txt` pinned to a
