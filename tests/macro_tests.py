@@ -50,7 +50,7 @@ class MacroTestCase(SupersetTestCase):
             self.assertEqual(filter_values, ['bar'])
 
             filter_values = jinja_context.filter_values('')
-            self.assertEqual(filter_values, None)
+            self.assertEqual(filter_values, [])
 
         with app.test_request_context(data=data2):
             filter_values = jinja_context.filter_values('my_special_filter')
@@ -59,3 +59,7 @@ class MacroTestCase(SupersetTestCase):
         with app.test_request_context(data=data3):
             filter_values = jinja_context.filter_values('my_special_filter')
             self.assertEqual(filter_values, ['savage', 'foo', 'bar'])
+
+        with app.test_request_context():
+            filter_values = jinja_context.filter_values('nonexistent_filter', 'foo')
+            self.assertEqual(filter_values, ['foo'])

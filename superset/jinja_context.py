@@ -84,7 +84,7 @@ def filter_values(column, default=None):
     :return: returns a list of filter values
     :rtype: list
     """
-    form_data = json.loads(request.form.get('form_data'))
+    form_data = json.loads(request.form.get('form_data', '{}'))
     return_val = []
     for filter_type in ['filters', 'extra_filters']:
         if filter_type not in form_data:
@@ -98,7 +98,10 @@ def filter_values(column, default=None):
     if return_val:
         return return_val
 
-    return default
+    if default:
+        return [default]
+    else:
+        return []
 
 
 class BaseTemplateProcessor(object):
