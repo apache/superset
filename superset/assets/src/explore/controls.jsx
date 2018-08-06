@@ -554,6 +554,7 @@ export const controls = {
       'Russia',
       'Singapore',
       'Spain',
+      'Thailand',
       'Uk',
       'Ukraine',
       'Usa',

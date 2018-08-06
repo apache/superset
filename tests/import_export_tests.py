@@ -206,7 +206,7 @@ class ImportExportTests(SupersetTestCase):
     def test_export_1_dashboard(self):
         birth_dash = self.get_dash_by_slug('births')
         export_dash_url = (
-            '/dashboardmodelview/export_dashboards_form?id={}&action=go'
+            '/dashboard/export_dashboards_form?id={}&action=go'
             .format(birth_dash.id)
         )
         resp = self.client.get(export_dash_url)
@@ -235,7 +235,7 @@ class ImportExportTests(SupersetTestCase):
         birth_dash = self.get_dash_by_slug('births')
         world_health_dash = self.get_dash_by_slug('world_health')
         export_dash_url = (
-            '/dashboardmodelview/export_dashboards_form?id={}&id={}&action=go'
+            '/dashboard/export_dashboards_form?id={}&id={}&action=go'
             .format(birth_dash.id, world_health_dash.id))
         resp = self.client.get(export_dash_url)
         exported_dashboards = sorted(

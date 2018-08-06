@@ -946,15 +946,6 @@ def get_since_until(form_data):
     return since, until
 
 
-def since_until_to_time_range(form_data):
-    if 'time_range' in form_data:
-        return
-
-    since = form_data.get('since', '')
-    until = form_data.get('until', 'now')
-    form_data['time_range'] = ' : '.join((since, until))
-
-
 def convert_legacy_filters_into_adhoc(fd):
     mapping = {'having': 'having_filters', 'where': 'filters'}
 

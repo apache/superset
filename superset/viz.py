@@ -67,8 +67,6 @@ class BaseViz(object):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
 
-        utils.since_until_to_time_range(form_data)
-
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get('viz_type')
@@ -153,7 +151,7 @@ class BaseViz(object):
 
     def handle_nulls(self, df):
         fillna = self.get_fillna_for_columns(df.columns)
-        df = df.fillna(fillna)
+        return df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
@@ -217,7 +215,7 @@ class BaseViz(object):
                 self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            self.handle_nulls(df)
+            df = self.handle_nulls(df)
         return df
 
     @staticmethod
@@ -382,6 +380,9 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
+                if hasattr(self.datasource.database, 'db_engine_spec'):
+                    db_engine_spec = self.datasource.database.db_engine_spec
+                    df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
@@ -2064,7 +2065,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys = []
 
     def handle_nulls(self, df):
-        pass
+        return df
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
@@ -2145,7 +2146,6 @@ class BaseDeckGLViz(BaseViz):
             d['columns'] = []
         else:
             d['columns'] = gb
-
         return d
 
     def get_js_columns(self, d):

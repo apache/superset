@@ -10,11 +10,16 @@ import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
-import { UNDO_LIMIT, SAVE_TYPE_OVERWRITE } from '../util/constants';
+import {
+  UNDO_LIMIT,
+  SAVE_TYPE_OVERWRITE,
+  DASHBOARD_POSITION_DATA_LIMIT,
+} from '../util/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  addWarningToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
@@ -143,7 +148,24 @@ class Header extends React.PureComponent {
       default_filters: JSON.stringify(filters),
     };
 
-    this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+    // make sure positions data less than DB storage limitation:
+    const positionJSONLength = JSON.stringify(positions).length;
+    const limit =
+      dashboardInfo.common.conf.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
+      DASHBOARD_POSITION_DATA_LIMIT;
+    if (positionJSONLength >= limit) {
+      this.props.addDangerToast(
+        t(
+          'Your dashboard is too large. Please reduce the size before save it.',
+        ),
+      );
+    } else {
+      if (positionJSONLength >= limit * 0.9) {
+        this.props.addWarningToast('Your dashboard is near the size limit.');
+      }
+
+      this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+    }
   }
 
   render() {
@@ -189,100 +211,103 @@ class Header extends React.PureComponent {
           </span>
         </div>
 
-        {userCanSaveAs && (
-          <div className="button-container">
-            {editMode && (
+        <div className="button-container">
+          {userCanSaveAs && (
+            <div className="button-container">
+              {editMode && (
+                <Button
+                  bsSize="small"
+                  onClick={onUndo}
+                  disabled={undoLength < 1}
+                  bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+                >
+                  <div title="Undo" className="undo-action fa fa-reply" />
+                </Button>
+              )}
+
+              {editMode && (
+                <Button
+                  bsSize="small"
+                  onClick={onRedo}
+                  disabled={redoLength < 1}
+                  bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
+                >
+                  <div title="Redo" className="redo-action fa fa-share" />
+                </Button>
+              )}
+
+              {editMode && (
+                <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
+                  {showBuilderPane
+                    ? t('Hide components')
+                    : t('Insert components')}
+                </Button>
+              )}
+
+              {editMode &&
+                hasUnsavedChanges && (
+                  <Button
+                    bsSize="small"
+                    bsStyle={popButton ? 'primary' : undefined}
+                    onClick={this.overwriteDashboard}
+                  >
+                    {t('Save changes')}
+                  </Button>
+                )}
+
+              {editMode &&
+                !hasUnsavedChanges && (
+                  <Button
+                    bsSize="small"
+                    onClick={this.toggleEditMode}
+                    bsStyle={undefined}
+                    disabled={!userCanEdit}
+                  >
+                    {t('Switch to view mode')}
+                  </Button>
+                )}
+
+              {editMode && (
+                <UndoRedoKeylisteners
+                  onUndo={this.handleCtrlZ}
+                  onRedo={this.handleCtrlY}
+                />
+              )}
+            </div>
+          )}
+
+          {!editMode &&
+            !hasUnsavedChanges && (
               <Button
                 bsSize="small"
-                onClick={onUndo}
-                disabled={undoLength < 1}
-                bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+                onClick={this.toggleEditMode}
+                bsStyle={popButton ? 'primary' : undefined}
+                disabled={!userCanEdit}
               >
-                <div title="Undo" className="undo-action fa fa-reply" />
+                {t('Edit dashboard')}
               </Button>
             )}
 
-            {editMode && (
-              <Button
-                bsSize="small"
-                onClick={onRedo}
-                disabled={redoLength < 1}
-                bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
-              >
-                <div title="Redo" className="redo-action fa fa-share" />
-              </Button>
-            )}
-
-            {editMode && (
-              <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
-                {showBuilderPane
-                  ? t('Hide components')
-                  : t('Insert components')}
-              </Button>
-            )}
-
-            {editMode &&
-              hasUnsavedChanges && (
-                <Button
-                  bsSize="small"
-                  bsStyle={popButton ? 'primary' : undefined}
-                  onClick={this.overwriteDashboard}
-                >
-                  {t('Save changes')}
-                </Button>
-              )}
-
-            {!editMode &&
-              !hasUnsavedChanges && (
-                <Button
-                  bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={popButton ? 'primary' : undefined}
-                  disabled={!userCanEdit}
-                >
-                  {t('Edit dashboard')}
-                </Button>
-              )}
-
-            {editMode &&
-              !hasUnsavedChanges && (
-                <Button
-                  bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={undefined}
-                  disabled={!userCanEdit}
-                >
-                  {t('Switch to view mode')}
-                </Button>
-              )}
-
-            <HeaderActionsDropdown
-              addSuccessToast={this.props.addSuccessToast}
-              addDangerToast={this.props.addDangerToast}
-              dashboardId={dashboardInfo.id}
-              dashboardTitle={dashboardTitle}
-              layout={layout}
-              filters={filters}
-              expandedSlices={expandedSlices}
-              css={css}
-              onSave={onSave}
-              onChange={onChange}
-              forceRefreshAllCharts={this.forceRefresh}
-              startPeriodicRender={this.props.startPeriodicRender}
-              updateCss={updateCss}
-              editMode={editMode}
-              hasUnsavedChanges={hasUnsavedChanges}
-              userCanEdit={userCanEdit}
-            />
-
-            {editMode && (
-              <UndoRedoKeylisteners
-                onUndo={this.handleCtrlZ}
-                onRedo={this.handleCtrlY}
-              />
-            )}
-          </div>
-        )}
+          <HeaderActionsDropdown
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
+            dashboardId={dashboardInfo.id}
+            dashboardTitle={dashboardTitle}
+            layout={layout}
+            filters={filters}
+            expandedSlices={expandedSlices}
+            css={css}
+            onSave={onSave}
+            onChange={onChange}
+            forceRefreshAllCharts={this.forceRefresh}
+            startPeriodicRender={this.props.startPeriodicRender}
+            updateCss={updateCss}
+            editMode={editMode}
+            hasUnsavedChanges={hasUnsavedChanges}
+            userCanEdit={userCanEdit}
+            userCanSave={userCanSaveAs}
+          />
+        </div>
       </div>
     );
   }
