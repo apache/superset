@@ -1,6 +1,4 @@
 /* eslint camelcase: 0 */
-import { triggerQuery } from '../../chart/chartAction';
-
 const $ = window.$ = require('jquery');
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -20,19 +18,10 @@ export function setDatasources(datasources) {
   return { type: SET_DATASOURCES, datasources };
 }
 
-export const FETCH_DATASOURCE_STARTED = 'FETCH_DATASOURCE_STARTED';
-export function fetchDatasourceStarted() {
-  return { type: FETCH_DATASOURCE_STARTED };
-}
-
+export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
 export const FETCH_DATASOURCE_SUCCEEDED = 'FETCH_DATASOURCE_SUCCEEDED';
 export function fetchDatasourceSucceeded() {
   return { type: FETCH_DATASOURCE_SUCCEEDED };
-}
-
-export const FETCH_DATASOURCE_FAILED = 'FETCH_DATASOURCE_FAILED';
-export function fetchDatasourceFailed(error) {
-  return { type: FETCH_DATASOURCE_FAILED, error };
 }
 
 export const FETCH_DATASOURCES_STARTED = 'FETCH_DATASOURCES_STARTED';
@@ -45,36 +34,14 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
-export const FETCH_DATASOURCES_FAILED = 'FETCH_DATASOURCES_FAILED';
-export function fetchDatasourcesFailed(error) {
-  return { type: FETCH_DATASOURCES_FAILED, error };
+export const POST_DATASOURCES_FAILED = 'POST_DATASOURCES_FAILED';
+export function postDatasourcesFailed(error) {
+  return { type: POST_DATASOURCES_FAILED, error };
 }
 
 export const RESET_FIELDS = 'RESET_FIELDS';
 export function resetControls() {
   return { type: RESET_FIELDS };
-}
-
-export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false) {
-  return function (dispatch) {
-    dispatch(fetchDatasourceStarted());
-    const url = `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`;
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setDatasource(data));
-        dispatch(fetchDatasourceSucceeded());
-        dispatch(resetControls());
-        if (alsoTriggerQuery) {
-          dispatch(triggerQuery());
-        }
-      },
-      error(error) {
-        dispatch(fetchDatasourceFailed(error.responseJSON.error));
-      },
-    });
-  };
 }
 
 export function fetchDatasources() {

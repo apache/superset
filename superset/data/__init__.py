@@ -296,7 +296,7 @@ def load_world_bank_health_n_pop():
                         "TUV", "IMY", "KNA", "ASM", "ADO", "AMA", "PLW",
                     ],
                     "op": "not in"}],
-                )),
+            )),
         Slice(
             slice_name="Rural Breakdown",
             viz_type='sunburst',

@@ -9,7 +9,7 @@ import DashboardBuilder from '../../../../src/dashboard/containers/DashboardBuil
 
 // mock data
 import chartQueries, { sliceId as chartId } from '../fixtures/mockChartQueries';
-import datasources from '../fixtures/mockDatasource';
+import datasources from '../../../fixtures/mockDatasource';
 import dashboardInfo from '../fixtures/mockDashboardInfo';
 import { dashboardLayout } from '../fixtures/mockDashboardLayout';
 import dashboardState from '../fixtures/mockDashboardState';

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-import TableLoader from './TableLoader';
+import TableLoader from '../../components/TableLoader';
 
 const propTypes = {
   user: PropTypes.object,
