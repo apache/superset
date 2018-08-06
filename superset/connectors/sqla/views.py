@@ -328,7 +328,7 @@ appbuilder.add_link(
     'Tables',
     label=__('Tables'),
     href='/tablemodelview/list/?_flt_1_is_sqllab_view=y',
-    icon='fa-upload',
+    icon='fa-table',
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-table')
