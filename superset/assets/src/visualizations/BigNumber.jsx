@@ -53,6 +53,7 @@ const propTypes = {
   formatBigNumber: PropTypes.func,
   subheader: PropTypes.string,
   showTrendline: PropTypes.bool,
+  startYAxisAtZero: PropTypes.bool,
   trendlineData: PropTypes.array,
   mainColor: PropTypes.string,
   gradientId: PropTypes.string,
@@ -63,6 +64,7 @@ const defaultProps = {
   formatBigNumber: identity,
   subheader: '',
   showTrendline: false,
+  startYAxisAtZero: true,
   trendlineData: null,
   mainColor: brandColor,
   gradientId: '',
@@ -152,12 +154,16 @@ class BigNumberVis extends React.Component {
       subheader,
       renderTooltip,
       gradientId,
+      startYAxisAtZero,
     } = this.props;
     return (
       <XYChart
         ariaLabel={`Big number visualization ${subheader}`}
         xScale={{ type: 'timeUtc' }}
-        yScale={{ type: 'linear' }}
+        yScale={{
+          type: 'linear',
+          includeZero: startYAxisAtZero,
+        }}
         width={width}
         height={maxHeight}
         margin={CHART_MARGIN}
@@ -227,6 +233,7 @@ function adaptor(slice, payload) {
   const compareLag = Number(payload.data.compare_lag);
   const supportTrendline = formData.viz_type === 'big_number';
   const showTrendline = supportTrendline && formData.show_trend_line;
+  const startYAxisAtZero = formData.start_y_axis_at_zero;
   const formatValue = d3FormatPreset(formData.y_axis_format);
   const bigNumber = supportTrendline ? data[data.length - 1][1] : data[0][0];
 
@@ -262,6 +269,7 @@ function adaptor(slice, payload) {
       formatBigNumber={formatValue}
       subheader={formattedSubheader}
       showTrendline={showTrendline}
+      startYAxisAtZero={startYAxisAtZero}
       trendlineData={trendlineData}
       mainColor={brandColor}
       gradientId={`big_number_${containerId}`}
