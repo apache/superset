@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
@@ -12,7 +17,7 @@ class UserAttribute(Model, AuditMixinNullable):
     Custom attributes attached to the user.
 
     Extending the user attribute is tricky due to its dependency on the
-    authentication typew an circular dependencies in Superset. Instead, we use 
+    authentication typew an circular dependencies in Superset. Instead, we use
     a custom model for adding attributes.
 
     """
