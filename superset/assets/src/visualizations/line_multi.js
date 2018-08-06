@@ -26,8 +26,7 @@ export default function lineMulti(slice, payload) {
     const fdCopy = {
       ...subslice.form_data,
       filters,
-      since: fd.since,
-      until: fd.until,
+      time_range: fd.time_range,
     };
     const url = getExploreLongUrl(fdCopy, 'json');
     promises.push(new Promise((resolve, reject) => {

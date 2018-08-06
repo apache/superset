@@ -39,13 +39,14 @@ const defaultProps = {
 export default class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
+    const { datasource } = props.latestQueryFormData;
     this.state = {
       language: null,
       query: null,
       data: null,
       isLoading: false,
       error: null,
-      sqlSupported: props.latestQueryFormData.datasource.split('__')[1] === 'table',
+      sqlSupported: datasource && datasource.split('__')[1] === 'table',
     };
     this.beforeOpen = this.beforeOpen.bind(this);
   }
