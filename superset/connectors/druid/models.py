@@ -98,6 +98,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
                      'coordinator_endpoint', 'broker_host', 'broker_port',
                      'broker_endpoint', 'cache_timeout')
+    update_from_object_fields = export_fields
     export_children = ['datasources']
 
     def __repr__(self):
@@ -142,6 +143,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             self.coordinator_host, self.coordinator_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
+    @property
+    @utils.memoized
+    def druid_version(self):
+        return self.get_druid_version()
+
     def refresh_datasources(
             self,
             datasource_name=None,
@@ -150,7 +156,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         """Refresh metadata of all datasources in the cluster
         If ``datasource_name`` is specified, only that datasource is updated
         """
-        self.druid_version = self.get_druid_version()
         ds_list = self.get_datasources()
         blacklist = conf.get('DRUID_DATA_SOURCE_BLACKLIST', [])
         ds_refresh = []
@@ -271,6 +276,7 @@ class DruidColumn(Model, BaseColumn):
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
         'description', 'dimension_spec_json', 'verbose_name',
     )
+    update_from_object_fields = export_fields
     export_parent = 'datasource'
 
     def __repr__(self):
@@ -413,8 +419,9 @@ class DruidMetric(Model, BaseMetric):
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
-        'json', 'description', 'is_restricted', 'd3format',
+        'json', 'description', 'is_restricted', 'd3format', 'warning_text',
     )
+    update_from_object_fields = export_fields
     export_parent = 'datasource'
 
     @property
@@ -481,6 +488,7 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
     )
+    update_from_object_fields = export_fields
 
     export_parent = 'cluster'
     export_children = ['columns', 'metrics']
@@ -519,6 +527,9 @@ class DruidDatasource(Model, BaseDatasource):
         return (
             '[{obj.cluster_name}].[{obj.datasource_name}]'
             '(id:{obj.id})').format(obj=self)
+
+    def update_from_object(self, obj):
+        return NotImplementedError()
 
     @property
     def link(self):
@@ -1574,6 +1585,16 @@ class DruidDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
+    def external_metadata(self):
+        self.merge_flag = True
+        return [
+            {
+                'name': k,
+                'type': v.get('type'),
+            }
+            for k, v in self.latest_metadata().items()
+        ]
 
 
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)

@@ -21,7 +21,8 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import yaml
 
-from superset import conf, security_manager, utils
+from superset import conf, db, security_manager, utils
+from superset.exceptions import SupersetSecurityException
 from superset.translations.utils import get_language_pack
 
 FRONTEND_CONF_KEYS = (
@@ -91,6 +92,13 @@ def get_user_roles():
 
 
 class BaseSupersetView(BaseView):
+
+    def json_response(self, obj, status=200):
+        return Response(
+            json.dumps(obj, default=utils.json_int_dttm_ser),
+            status=status,
+            mimetype='application/json')
+
     def common_bootsrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
@@ -268,3 +276,49 @@ class CsvResponse(Response):
     Override Response to take into account csv encoding from config.py
     """
     charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
+
+
+def check_ownership(obj, raise_if_false=True):
+    """Meant to be used in `pre_update` hooks on models to enforce ownership
+
+    Admin have all access, and other users need to be referenced on either
+    the created_by field that comes with the ``AuditMixin``, or in a field
+    named ``owners`` which is expected to be a one-to-many with the User
+    model. It is meant to be used in the ModelView's pre_update hook in
+    which raising will abort the update.
+    """
+    if not obj:
+        return False
+
+    security_exception = SupersetSecurityException(
+        "You don't have the rights to alter [{}]".format(obj))
+
+    if g.user.is_anonymous():
+        if raise_if_false:
+            raise security_exception
+        return False
+    roles = [r.name for r in get_user_roles()]
+    if 'Admin' in roles:
+        return True
+    session = db.create_scoped_session()
+    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+
+    # Making a list of owners that works across ORM models
+    owners = []
+    if hasattr(orig_obj, 'owners'):
+        owners += orig_obj.owners
+    if hasattr(orig_obj, 'owner'):
+        owners += [orig_obj.owner]
+    if hasattr(orig_obj, 'created_by'):
+        owners += [orig_obj.created_by]
+
+    owner_names = [o.username for o in owners]
+
+    if (
+            g.user and hasattr(g.user, 'username') and
+            g.user.username in owner_names):
+        return True
+    if raise_if_false:
+        raise security_exception
+    else:
+        return False

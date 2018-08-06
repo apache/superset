@@ -516,6 +516,21 @@ class DruidTests(SupersetTestCase):
                 instance.timeseries.call_args[1]['granularity']['period'],
             )
 
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_external_metadata(self, PyDruid):
+        self.login(username='admin')
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
+        datasource = cluster.datasources[0]
+        url = '/datasource/external_metadata/druid/{}/'.format(datasource.id)
+        resp = self.get_json_resp(url)
+        col_names = {o.get('name') for o in resp}
+        self.assertEquals(
+            col_names,
+            {'__time', 'dim1', 'dim2', 'metric1'},
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

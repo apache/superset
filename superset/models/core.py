@@ -646,6 +646,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.database_name
 
     @property
+    def url_object(self):
+        return make_url(self.sqlalchemy_uri_decrypted)
+
+    @property
     def backend(self):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()

@@ -1,5 +1,5 @@
 import { sliceId as id } from './mockChartQueries';
-import { datasourceId } from './mockDatasource';
+import { datasourceId } from '../../../fixtures/mockDatasource';
 
 export const sliceId = id;
 
