@@ -44,8 +44,8 @@ from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
-from superset.models.user_attributes import UserAttribute
 from superset.models.sql_lab import Query
+from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import SupersetQuery
 from superset.utils import (
     merge_extra_filters, merge_request_params, QueryStatus,
