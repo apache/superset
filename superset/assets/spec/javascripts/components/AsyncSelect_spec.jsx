@@ -9,7 +9,7 @@ import AsyncSelect from '../../../src/components/AsyncSelect';
 
 describe('AsyncSelect', () => {
   const mockedProps = {
-    dataEndpoint: '/slicemodelview/api/read',
+    dataEndpoint: '/chart/api/read',
     onChange: sinon.spy(),
     placeholder: 'Select...',
     mutator: () => [

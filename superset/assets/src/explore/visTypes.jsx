@@ -913,6 +913,7 @@ export const visTypes = {
       {
         label: t('NOT GROUPED BY'),
         description: t('Use this section if you want to query atomic rows'),
+        expanded: true,
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
@@ -1250,7 +1251,7 @@ export const visTypes = {
         controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
-          ['show_trend_line', null],
+          ['show_trend_line', 'start_y_axis_at_zero'],
         ],
       },
     ],

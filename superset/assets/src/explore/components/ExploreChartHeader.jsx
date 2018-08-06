@@ -101,7 +101,7 @@ class ExploreChartHeader extends React.PureComponent {
           >
             <a
               className="edit-desc-icon"
-              href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
+              href={`/chart/edit/${this.props.slice.slice_id}`}
             >
               <i className="fa fa-edit" />
             </a>
