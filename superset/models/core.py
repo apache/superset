@@ -39,6 +39,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.user_attributes import UserAttribute
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -68,6 +69,7 @@ def copy_dashboard(mapper, connection, target):
     session = Session(bind=connection)
     new_user = session.query(User).filter_by(id=target.id).first()
 
+    # copy template dashboard to user
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
@@ -79,6 +81,14 @@ def copy_dashboard(mapper, connection, target):
         owners=[new_user],
     )
     session.add(dashboard)
+    session.commit()
+
+    # set dashboard as the welcome dashboard
+    extra_attributes = UserAttribute(
+        user_id=target.id,
+        welcome_dashboard_id=dashboard.id,
+    )
+    session.add(extra_attributes)
     session.commit()
 
 
