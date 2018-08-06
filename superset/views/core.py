@@ -39,7 +39,7 @@ from superset import (
 )
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data, update_time_range
@@ -50,8 +50,10 @@ from superset.utils import (
     merge_extra_filters, merge_request_params, QueryStatus,
 )
 from .base import (
-    api, BaseSupersetView, CsvResponse, DeleteMixin,
-    generate_download_headers, get_error_msg, get_user_roles,
+    api, BaseSupersetView,
+    check_ownership,
+    CsvResponse, DeleteMixin,
+    generate_download_headers, get_error_msg,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
@@ -90,48 +92,6 @@ def json_success(json_msg, status=200):
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
     return obj and user in obj.owners
-
-
-def check_ownership(obj, raise_if_false=True):
-    """Meant to be used in `pre_update` hooks on models to enforce ownership
-
-    Admin have all access, and other users need to be referenced on either
-    the created_by field that comes with the ``AuditMixin``, or in a field
-    named ``owners`` which is expected to be a one-to-many with the User
-    model. It is meant to be used in the ModelView's pre_update hook in
-    which raising will abort the update.
-    """
-    if not obj:
-        return False
-
-    security_exception = SupersetSecurityException(
-        "You don't have the rights to alter [{}]".format(obj))
-
-    if g.user.is_anonymous():
-        if raise_if_false:
-            raise security_exception
-        return False
-    roles = (r.name for r in get_user_roles())
-    if 'Admin' in roles:
-        return True
-    session = db.create_scoped_session()
-    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
-    owner_names = (user.username for user in orig_obj.owners)
-    if (
-            hasattr(orig_obj, 'created_by') and
-            orig_obj.created_by and
-            orig_obj.created_by.username == g.user.username):
-        return True
-    if (
-            hasattr(orig_obj, 'owners') and
-            g.user and
-            hasattr(g.user, 'username') and
-            g.user.username in owner_names):
-        return True
-    if raise_if_false:
-        raise security_exception
-    else:
-        return False
 
 
 class SliceFilter(SupersetFilter):
@@ -768,12 +728,6 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
-    def json_response(self, obj, status=200):
-        return Response(
-            json.dumps(obj, default=utils.json_int_dttm_ser),
-            status=status,
-            mimetype='application/json')
-
     @has_access_api
     @expose('/datasources/')
     def datasources(self):

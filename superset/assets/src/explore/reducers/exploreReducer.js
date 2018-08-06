@@ -10,19 +10,19 @@ export default function exploreReducer(state = {}, action) {
         isStarred: action.isStarred,
       };
     },
-    [actions.FETCH_DATASOURCE_STARTED]() {
+    [actions.POST_DATASOURCE_STARTED]() {
       return {
         ...state,
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.FETCH_DATASOURCE_SUCCEEDED]() {
+    [actions.POST_DATASOURCE_SUCCEEDED]() {
       return {
         ...state,
         isDatasourceMetaLoading: false,
       };
     },
-    [actions.FETCH_DATASOURCE_FAILED]() {
+    [actions.POST_DATASOURCE_FAILED]() {
       return {
         ...state,
         isDatasourceMetaLoading: false,
@@ -30,7 +30,6 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_DATASOURCE]() {
-
       return {
         ...state,
         datasource: action.datasource,

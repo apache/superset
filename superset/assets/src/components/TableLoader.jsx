@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td } from 'reactable';
 import $ from 'jquery';
-import Loading from '../../components/Loading';
-import '../../../stylesheets/reactable-pagination.css';
+import Loading from '../components/Loading';
+import '../../stylesheets/reactable-pagination.css';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
