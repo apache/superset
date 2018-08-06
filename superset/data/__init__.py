@@ -226,6 +226,7 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='filter_box',
+                date_filter=False,
                 groupby=['region', 'country_name'])),
         Slice(
             slice_name="World's Population",
@@ -472,7 +473,7 @@ def load_world_bank_health_n_pop():
             "width": 4
         },
         "type": "CHART"
-    },    
+    },
     "CHART-a4808bba": {
         "children": [],
         "id": "CHART-a4808bba",
@@ -994,7 +995,7 @@ def load_birth_names():
         "type": "CHART",
         "id": "CHART-976960a5",
         "children": []
-    },    
+    },
     "CHART-58575537": {
         "meta": {
             "chartId": 54,
@@ -1024,7 +1025,7 @@ def load_birth_names():
         "type": "CHART",
         "id": "CHART-e440d205",
         "children": []
-    },  
+    },
     "CHART-59444e0b": {
         "meta": {
             "chartId": 57,
@@ -1054,7 +1055,7 @@ def load_birth_names():
         "type": "CHART",
         "id": "CHART-e8774b49",
         "children": []
-    },    
+    },
     "CHART-985bfd1e": {
         "meta": {
             "chartId": 61,
@@ -1064,7 +1065,7 @@ def load_birth_names():
         "type": "CHART",
         "id": "CHART-985bfd1e",
         "children": []
-    },    
+    },
     "CHART-17f13246": {
         "meta": {
             "chartId": 62,
@@ -1331,7 +1332,7 @@ def load_unicode_test_data():
         "type": "ROW"
     },
     "VERSION_KEY": "v2"
-}    
+}
     """
     dash.dashboard_title = "Unicode Test"
     l = json.loads(js)
@@ -1836,6 +1837,7 @@ def load_deck_dash():
         "multiplier": 10,
         "point_radius_fixed": {"type": "metric", "value": "count"},
         "point_unit": "square_m",
+        "min_radius": 1,
         "row_limit": 5000,
         "since": None,
         "size": "count",
@@ -1972,10 +1974,9 @@ def load_deck_dash():
         "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_grid",
-        "since": None,
         "point_radius_unit": "Pixels",
         "point_radius": "Auto",
-        "until": None,
+        "time_range": "No filter",
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -2244,7 +2245,7 @@ def load_deck_dash():
         "type": "CHART",
         "id": "CHART-d02f6c40",
         "children": []
-    },    
+    },
     "CHART-2673431d": {
         "meta": {
             "chartId": 70,

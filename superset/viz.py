@@ -2065,7 +2065,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys = []
 
     def handle_nulls(self, df):
-        pass
+        return df
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
@@ -2146,7 +2146,6 @@ class BaseDeckGLViz(BaseViz):
             d['columns'] = []
         else:
             d['columns'] = gb
-
         return d
 
     def get_js_columns(self, d):
