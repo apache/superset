@@ -36,7 +36,7 @@ export function fetchSuggestions(options, callback, error) {
     .catch(text => error(text));
 }
 
-export function deleteTag(options, callback, tag, error) {
+export function deleteTag(options, tag, callback, error) {
   if (options.objectType === undefined || options.objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }

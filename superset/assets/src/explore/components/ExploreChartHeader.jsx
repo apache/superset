@@ -55,7 +55,7 @@ class ExploreChartHeader extends React.PureComponent {
       objectId: props.chart.id,
     });
     this.addTag = addTag.bind(this, {
-      objectTYpe: 'chart',
+      objectType: 'chart',
       objectId: props.chart.id,
       includeTypes: false,
     });
