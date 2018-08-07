@@ -171,6 +171,7 @@
 
 .react-tags span.label {
   margin-left: 5px;
+  padding: 0.3em 0.6em 0.3em;
 }
 
 .react-tags a.deco-none {
@@ -190,4 +191,5 @@
 .react-tags span.glyphicon {
   cursor: pointer;
   margin-left: 3px;
+  top: 2px;
 }
