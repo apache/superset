@@ -2,23 +2,40 @@
 
 set -ex
 
-# Create an admin user (you will be prompted to set username, first and last name before setting a password)
-fabmanager create-admin --app superset
+# set up Superset if we haven't already
+if [ ! -f $HOME/incubator-superset/.setup-complete ]; then
+  echo "Running first time setup for Superset"
 
-# Initialize the database
-superset db upgrade
+  echo "Creating admin user ${ADMIN_USERNAME}"
+  cat > $HOME/incubator-superset/admin.config <<EOF
+${ADMIN_USERNAME}
+${ADMIN_FIRST_NAME}
+${ADMIN_LAST_NAME}
+${ADMIN_EMAIL}
+${ADMIN_PWD}
+${ADMIN_PWD}
 
-# Load some data to play with
-superset load_examples
+EOF
 
-# Create default roles and permissions
-superset init
+  /bin/sh -c '/usr/local/bin/fabmanager create-admin --app superset < $HOME/incubator-superset/admin.config'
 
-# Need to run `npm run build` when enter contains for first time
-cd superset/assets && npm run build && cd ../../
+  rm $HOME/incubator-superset/admin.config
 
-# Start superset worker for SQL Lab
-superset worker &
+  echo "Initializing database"
+  superset db upgrade
+
+  echo "Creating default roles and permissions"
+  superset init
+
+  cd superset/assets && npm run build && cd ../../
+
+  echo $HOME;
+
+  touch $HOME/incubator-superset/.setup-complete
+else
+  # always upgrade the database, running any pending migrations
+  superset db upgrade
+fi
 
 # To start a development web server, use the -d switch
 superset runserver -d
