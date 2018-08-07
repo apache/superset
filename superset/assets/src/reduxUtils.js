@@ -1,7 +1,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState from 'redux-localstorage';
-import equals from 'deep-equal';
+import { isEqual } from 'underscore';
 
 export function addToObject(state, arrKey, obj) {
   const newObject = Object.assign({}, state[arrKey]);
@@ -95,5 +95,5 @@ export function areArraysShallowEqual(arr1, arr2) {
 }
 
 export function areObjectsEqual(obj1, obj2) {
-  return equals(obj1, obj2, true);
+  return isEqual(obj1, obj2);
 }
