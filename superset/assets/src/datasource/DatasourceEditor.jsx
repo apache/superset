@@ -526,7 +526,13 @@ export class DatasourceEditor extends React.PureComponent {
                   columns={this.state.databaseColumns}
                   onChange={databaseColumns => this.setColumns({ databaseColumns })}
                 />
-                <Button bsStyle="primary" onClick={this.syncMetadata} className="sync-from-source">
+                <Button
+                  bsStyle="primary"
+                  onClick={this.syncMetadata}
+                  className="sync-from-source"
+                  disabled={!!datasource.sql}
+                  tooltip={datasource.sql ? t('This option is not yet available for views') : null}
+                >
                   {t('Sync columns from source')}
                 </Button>
                 {this.state.metadataLoading && <Loading />}
