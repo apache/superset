@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
-import 'url-polyfill';
 import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
@@ -34,10 +33,11 @@ export default class App extends React.PureComponent {
     this.onTagSearchChange = this.onTagSearchChange.bind(this);
   }
   componentDidMount() {
-    fetchSuggestions(false, (suggestions) => {
-      const tagSuggestions = STANDARD_TAGS.concat(
-        suggestions.map(tag => tag.name),
-      );
+    fetchSuggestions({ includeTypes: false }, (suggestions) => {
+      const tagSuggestions = [
+        ...STANDARD_TAGS,
+        ...suggestions.map(tag => tag.name),
+      ];
       this.setState({ tagSuggestions });
     });
   }
@@ -68,7 +68,7 @@ export default class App extends React.PureComponent {
           onSelect={this.handleSelect}
           id="controlled-tab-example"
         >
-          <Tab eventKey={'dashboards'} title={t('Dashboards')}>
+          <Tab eventKey="dashboards" title={t('Dashboards')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Dashboards')}</h2></Col>
@@ -87,7 +87,7 @@ export default class App extends React.PureComponent {
               <DashboardTable search={this.state.dashboardSearch} />
             </Panel>
           </Tab>
-          <Tab eventKey={'recent'} title={t('Recently Viewed')}>
+          <Tab eventKey="recent" title={t('Recently Viewed')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
@@ -96,7 +96,7 @@ export default class App extends React.PureComponent {
               <RecentActivity user={this.props.user} />
             </Panel>
           </Tab>
-          <Tab eventKey={'favorites'} title={t('Favorites')}>
+          <Tab eventKey="favorites" title={t('Favorites')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Favorites')}</h2></Col>
@@ -105,7 +105,7 @@ export default class App extends React.PureComponent {
               <Favorites user={this.props.user} />
             </Panel>
           </Tab>
-          <Tab eventKey={'tags'} title={t('Tags')}>
+          <Tab eventKey="tags" title={t('Tags')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Tags')}</h2></Col>
@@ -113,7 +113,7 @@ export default class App extends React.PureComponent {
               <Row>
                 <Col md={12}>
                   <SelectControl
-                    name={'tags'}
+                    name="tags"
                     value={this.state.tagSearch.split(',')}
                     multi
                     onChange={this.onTagSearchChange}

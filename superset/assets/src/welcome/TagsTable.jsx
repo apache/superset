@@ -13,6 +13,10 @@ const propTypes = {
   search: PropTypes.string,
 };
 
+const defaultProps = {
+  search: '',
+};
+
 export default class TagsTable extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -30,7 +34,7 @@ export default class TagsTable extends React.PureComponent {
     }
   }
   fetchResults(search) {
-    fetchObjects(search, null, (data) => {
+    fetchObjects({ tags: search, types: null }, (data) => {
       const objects = { dashboard: [], chart: [], query: [] };
       data.forEach((object) => {
         objects[object.type].push(object);
@@ -87,3 +91,4 @@ export default class TagsTable extends React.PureComponent {
 }
 
 TagsTable.propTypes = propTypes;
+TagsTable.defaultProps = defaultProps;

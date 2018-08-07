@@ -34,6 +34,9 @@ export default class ObjectTags extends React.Component {
       tags: [],
       suggestions: [],
     };
+
+    this.handleDelete = this.handleDelete.bind(this);
+    this.handleAddition = this.handleAddition.bind(this);
   }
 
   componentDidMount() {
@@ -49,7 +52,7 @@ export default class ObjectTags extends React.Component {
   }
 
   handleAddition(tag) {
-    const tags = [].concat(this.state.tags, tag);
+    const tags = [...this.state.tags, tag];
     this.props.addTag(tag.name, () => this.setState({ tags }));
     this.props.onChange(tags);
   }
@@ -78,14 +81,15 @@ export default class ObjectTags extends React.Component {
       addTag,
       editable,
       onChange,
-      ...rest } = this.props;
+      ...rest
+    } = this.props;
     return (
       <ReactTags
         {...rest}
         tags={this.state.tags}
         suggestions={this.state.suggestions}
-        handleDelete={this.handleDelete.bind(this)}
-        handleAddition={this.handleAddition.bind(this)}
+        handleDelete={this.handleDelete}
+        handleAddition={this.handleAddition}
         allowNew
         placeHolder={t('Add new tag')}
         tagComponent={Tag}

@@ -1,22 +1,48 @@
 import 'whatwg-fetch';
 import { getCSRFToken } from './modules/utils';
 
-export function fetchTags(objectType, objectId, includeTypes, callback) {
+export function fetchTags(options, callback, error) {
+  if (options.objectType === undefined || options.objectId === undefined) {
+    throw new Error('Need to specify objectType and objectId');
+  }
+  const objectType = options.objectType;
+  const objectId = options.objectId;
+  const includeTypes = options.includeTypes !== undefined ? options.includeTypes : false;
+
   const url = `/tagview/tags/${objectType}/${objectId}/`;
   window.fetch(url)
-    .then(response => response.json())
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(response.text());
+    })
     .then(json => callback(
-      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
+      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)))
+    .catch(text => error(text));
 }
 
-export function fetchSuggestions(includeTypes, callback) {
+export function fetchSuggestions(options, callback, error) {
+  const includeTypes = options.includeTypes !== undefined ? options.includeTypes : false;
   window.fetch('/tagview/tags/suggestions/')
-    .then(response => response.json())
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(response.text());
+    })
     .then(json => callback(
-      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)));
+      json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)))
+    .catch(text => error(text));
 }
 
-export function deleteTag(objectType, objectId, tag, callback, error) {
+export function deleteTag(options, callback, tag, error) {
+  if (options.objectType === undefined || options.objectId === undefined) {
+    throw new Error('Need to specify objectType and objectId');
+  }
+  const objectType = options.objectType;
+  const objectId = options.objectId;
+
   const url = `/tagview/tags/${objectType}/${objectId}/`;
   const CSRF_TOKEN = getCSRFToken();
   window.fetch(url, {
@@ -30,14 +56,21 @@ export function deleteTag(objectType, objectId, tag, callback, error) {
   })
   .then((response) => {
     if (response.ok) {
-      callback(response);
+      callback(response.text());
     } else {
-      error(response);
+      error(response.text());
     }
   });
 }
 
-export function addTag(objectType, objectId, includeTypes, tag, callback, error) {
+export function addTag(options, tag, callback, error) {
+  if (options.objectType === undefined || options.objectId === undefined) {
+    throw new Error('Need to specify objectType and objectId');
+  }
+  const objectType = options.objectType;
+  const objectId = options.objectId;
+  const includeTypes = options.includeTypes !== undefined ? options.includeTypes : false;
+
   if (tag.indexOf(':') !== -1 && !includeTypes) {
     return;
   }
@@ -54,14 +87,17 @@ export function addTag(objectType, objectId, includeTypes, tag, callback, error)
   })
   .then((response) => {
     if (response.ok) {
-      callback(response);
+      callback(response.text());
     } else {
-      error(response);
+      error(response.text());
     }
   });
 }
 
-export function fetchObjects(tags, types, callback) {
+export function fetchObjects(options, callback) {
+  const tags = options.tags !== undefined ? options.tags : '';
+  const types = options.types;
+
   let url = `/tagview/tagged_objects/?tags=${tags}`;
   if (types) {
     url += `&types=${types}`;
