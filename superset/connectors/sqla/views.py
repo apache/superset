@@ -323,11 +323,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         return redirect('/tablemodelview/list/')
 
 
+table_list_params = appbuilder.app.config.get('DEFAULT_TABLE_LIST_PARAMS', '')
+
 appbuilder.add_view_no_menu(TableModelView)
 appbuilder.add_link(
     'Tables',
     label=__('Tables'),
-    href='/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+    href='/tablemodelview/list/{}'.format(table_list_params),
     icon='fa-table',
     category='Sources',
     category_label=__('Sources'),
