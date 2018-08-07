@@ -112,8 +112,12 @@ class SupersetTestCase(unittest.TestCase):
             session.commit()
 
     def get_table(self, table_id):
-        return db.session.query(SqlaTable).filter_by(
-            id=table_id).first()
+        return (
+            db.session
+            .query(SqlaTable)
+            .filter_by(id=table_id)
+            .one()
+        )
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
@@ -137,8 +141,7 @@ class SupersetTestCase(unittest.TestCase):
         return slc
 
     def get_table_by_name(self, name):
-        return db.session.query(SqlaTable).filter_by(
-            table_name=name).first()
+        return db.session.query(SqlaTable).filter_by(table_name=name).one()
 
     def get_druid_ds_by_name(self, name):
         return db.session.query(DruidDatasource).filter_by(
@@ -215,50 +218,3 @@ class SupersetTestCase(unittest.TestCase):
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')
         return resp
-
-    def test_gamma_permissions(self):
-        def assert_can_read(view_menu):
-            self.assertIn(('can_show', view_menu), gamma_perm_set)
-            self.assertIn(('can_list', view_menu), gamma_perm_set)
-
-        def assert_can_write(view_menu):
-            self.assertIn(('can_add', view_menu), gamma_perm_set)
-            self.assertIn(('can_download', view_menu), gamma_perm_set)
-            self.assertIn(('can_delete', view_menu), gamma_perm_set)
-            self.assertIn(('can_edit', view_menu), gamma_perm_set)
-
-        def assert_cannot_write(view_menu):
-            self.assertNotIn(('can_add', view_menu), gamma_perm_set)
-            self.assertNotIn(('can_download', view_menu), gamma_perm_set)
-            self.assertNotIn(('can_delete', view_menu), gamma_perm_set)
-            self.assertNotIn(('can_edit', view_menu), gamma_perm_set)
-            self.assertNotIn(('can_save', view_menu), gamma_perm_set)
-
-        def assert_can_all(view_menu):
-            assert_can_read(view_menu)
-            assert_can_write(view_menu)
-
-        gamma_perm_set = set()
-        for perm in security_manager.find_role('Gamma').permissions:
-            gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
-
-        # check read only perms
-        assert_can_read('TableModelView')
-        assert_cannot_write('DruidColumnInlineView')
-
-        # make sure that user can create slices and dashboards
-        assert_can_all('SliceModelView')
-        assert_can_all('DashboardModelView')
-
-        self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_csv', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_dashboard', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_explore', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_explore_json', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_fave_dashboards', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_slice', 'Superset'), gamma_perm_set)

@@ -67,8 +67,6 @@ class BaseViz(object):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
 
-        utils.since_until_to_time_range(form_data)
-
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get('viz_type')
@@ -2067,7 +2065,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys = []
 
     def handle_nulls(self, df):
-        pass
+        return df
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
@@ -2148,7 +2146,6 @@ class BaseDeckGLViz(BaseViz):
             d['columns'] = []
         else:
             d['columns'] = gb
-
         return d
 
     def get_js_columns(self, d):

@@ -5,7 +5,7 @@ import { expect } from 'chai';
 
 import { user } from './fixtures';
 import RecentActivity from '../../../src/profile/components/RecentActivity';
-import TableLoader from '../../../src/profile/components/TableLoader';
+import TableLoader from '../../../src/components/TableLoader';
 
 
 describe('RecentActivity', () => {
