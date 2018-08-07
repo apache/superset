@@ -6,6 +6,12 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
+ENV ADMIN_USERNAME guavus
+ENV ADMIN_FIRST_NAME guavus
+ENV ADMIN_LAST_NAME user
+ENV ADMIN_EMAIL support@guavus.com
+ENV ADMIN_PWD Guavus@123
+
 RUN apt-get update -y
 
 # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
@@ -51,6 +57,6 @@ COPY contrib/docker/docker-init.sh .
 COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
+EXPOSE 8088
 
 EXPOSE 8088

@@ -2,11 +2,18 @@
 
 set -ex
 
-# Create an admin user (you will be prompted to set username, first and last name before setting a password)
-fabmanager create-admin --app superset
+# set up Superset if we haven't already
+if [ ! -f $HOME/incubator-superset/.setup-complete ]; then
+  echo "Running first time setup for Superset"
 
-# Initialize the database
-superset db upgrade
+  echo "Creating admin user ${ADMIN_USERNAME}"
+  cat > $HOME/incubator-superset/admin.config <<EOF
+${ADMIN_USERNAME}
+${ADMIN_FIRST_NAME}
+${ADMIN_LAST_NAME}
+${ADMIN_EMAIL}
+${ADMIN_PWD}
+${ADMIN_PWD}
 
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
