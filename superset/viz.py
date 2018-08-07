@@ -396,8 +396,9 @@ class BaseViz(object):
                     is_loaded and
                     cache_key and
                     cache and
-                    not df.empty and
-                    self.status != utils.QueryStatus.FAILED):
+                    self.status != utils.QueryStatus.FAILED and
+                    not df.empty
+            ):
                 try:
                     cache_value = dict(
                         dttm=cached_dttm,
