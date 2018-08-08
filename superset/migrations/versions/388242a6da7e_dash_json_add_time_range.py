@@ -49,9 +49,8 @@ def upgrade():
 
         metadata['default_filters'] = json.dumps(default_filters, indent=2)
         dashboard.json_metadata = json.dumps(metadata, indent=2)
-        session.merge(dashboard)
-        session.commit()
 
+    session.commit()
     session.close()
 
 
@@ -82,8 +81,7 @@ def downgrade():
 
         metadata['default_filters'] = json.dumps(default_filters, indent=2)
         dashboard.json_metadata = json.dumps(metadata, indent=2)
-        session.merge(dashboard)
-        session.commit()
 
+    session.commit()
     session.close()
 
