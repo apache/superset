@@ -1,14 +1,15 @@
-const webpack = require('webpack');
 const path = require('path');
-const ManifestPlugin = require('webpack-manifest-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
+
+const isDevMode = process.env.NODE_ENV !== 'production';
 
 const config = {
   node: {
@@ -26,20 +27,23 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
+    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
     filename: '[name].[chunkhash].entry.js',
-    chunkFilename: '[name].[chunkhash].entry.js',
+    chunkFilename: '[name].[chunkhash].chunk.js',
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      automaticNameDelimiter: '-',
+    },
   },
   resolve: {
-    extensions: [
-      '.js',
-      '.jsx',
-    ],
-    alias: {
-      webworkify: 'webworkify-webpack',
-    },
-
+    extensions: ['.js', '.jsx'],
   },
   module: {
+    // uglyfying mapbox-gl results in undefined errors, see
+    // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
+    noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
@@ -49,32 +53,20 @@ const config = {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         loader: 'babel-loader',
-        query: {
-          presets: [
-            'airbnb',
-            'env',
-            'react',
-          ],
-        },
       },
-      // Extract css files
       {
         test: /\.css$/,
         include: APP_DIR,
-        loader: ExtractTextPlugin.extract({
-          use: ['css-loader'],
-          fallback: 'style-loader',
-        }),
+        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader'],
       },
-      // Optionally extract less files
-      // or any other compile-to-css language
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: ExtractTextPlugin.extract({
-          use: ['css-loader', 'less-loader'],
-          fallback: 'style-loader',
-        }),
+        use: [
+          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          'css-loader',
+          'less-loader',
+        ],
       },
       /* for css linking images */
       {
@@ -106,27 +98,21 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins: [
-    new ManifestPlugin(),
-    new CleanWebpackPlugin(['dist']),
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-      },
+    // creates a manifest.json mapping of name to hashed output used in template files
+    new WebpackAssetsManifest({
+      publicPath: true,
+      entrypoints: true, // this enables us to include all relevant files for an entry
     }),
-    new ExtractTextPlugin('[name].[chunkhash].css'),
+
+    // create fresh dist/ upon build
+    new CleanWebpackPlugin(['dist']),
+
+    // text loading (webpack 4+)
+    new MiniCssExtractPlugin({
+      filename: '[name].[chunkhash].entry.css',
+      chunkFilename: '[name].[chunkhash].chunk.css',
+    }),
   ],
 };
-if (process.env.NODE_ENV === 'production') {
-  // Using settings suggested in https://github.com/webpack/webpack/issues/537
-  const UJSplugin = new webpack.optimize.UglifyJsPlugin({
-    sourceMap: false,
-    minimize: true,
-    parallel: {
-      cache: true,
-      workers: 4,
-    },
-    compress: false,
-  });
-  config.plugins.push(UJSplugin);
-}
+
 module.exports = config;
