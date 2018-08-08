@@ -121,7 +121,6 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "url-polyfill": "^1.0.13",
     "viewport-mercator-project": "^5.0.0",
     "whatwg-fetch": "^2.0.4"
   },

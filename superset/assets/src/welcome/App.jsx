@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
-import 'url-polyfill';
+import URI from 'urijs';
 import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
@@ -18,10 +18,12 @@ const propTypes = {
 export default class App extends React.PureComponent {
   constructor(props) {
     super(props);
-    const parsedUrl = new URL(window.location);
-    const key = parsedUrl.hash.substr(1) || 'dashboards';
-    const dashboardSearch = parsedUrl.searchParams.get('search') || '';
-    const tagSearch = parsedUrl.searchParams.get('tags') || '';
+
+    const parsedUrl = new URI(window.location);
+    const key = parsedUrl.fragment() || 'dashboards';
+    const searchParams = parsedUrl.search(true);
+    const dashboardSearch = searchParams.search || '';
+    const tagSearch = searchParams.tags || '';
     this.state = {
       key,
       dashboardSearch,
@@ -51,9 +53,9 @@ export default class App extends React.PureComponent {
     this.setState({ tagSearch }, () => this.updateURL('tags', tagSearch));
   }
   updateURL(key, value) {
-    const parsedUrl = new URL(window.location);
-    parsedUrl.searchParams.set(key, value);
-    window.history.pushState({ value }, value, parsedUrl.href);
+    const parsedUrl = new URI(window.location);
+    parsedUrl.search(data => ({ ...data, [key]: value }));
+    window.history.pushState({ value }, value, parsedUrl.href());
   }
   handleSelect(key) {
     // store selected tab in URL
