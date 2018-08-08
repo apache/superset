@@ -1,9 +1,11 @@
-/* global notify */
+/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from '../../../components/AsyncSelect';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
+
+import withToasts from '../../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -18,6 +20,7 @@ const propTypes = {
     PropTypes.arrayOf(PropTypes.string),
     PropTypes.arrayOf(PropTypes.number),
   ]),
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -40,7 +43,7 @@ const SelectAsyncControl = (props) => {
       <Select
         dataEndpoint={dataEndpoint}
         onChange={onSelectionChange}
-        onAsyncError={errorMsg => notify.error(onAsyncErrorMessage + ': ' + errorMsg)}
+        onAsyncError={errorMsg => this.props.addDangerToast(onAsyncErrorMessage + ': ' + errorMsg)}
         mutator={mutator}
         multi={multi}
         value={value}
@@ -54,4 +57,4 @@ const SelectAsyncControl = (props) => {
 SelectAsyncControl.propTypes = propTypes;
 SelectAsyncControl.defaultProps = defaultProps;
 
-export default SelectAsyncControl;
+export default withToasts(SelectAsyncControl);

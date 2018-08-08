@@ -5,17 +5,20 @@ import CopyToClipboard from './../../components/CopyToClipboard';
 import { getShortUrl } from '../../utils/common';
 import { getExploreLongUrl } from '../exploreUtils';
 import { t } from '../../locales';
+import withToasts from '../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
-export default class URLShortLinkButton extends React.Component {
+class URLShortLinkButton extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       shortUrl: '',
     };
+    this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
   }
 
   onShortUrlSuccess(data) {
@@ -26,7 +29,7 @@ export default class URLShortLinkButton extends React.Component {
 
   getCopyUrl() {
     const longUrl = getExploreLongUrl(this.props.latestQueryFormData);
-    getShortUrl(longUrl, this.onShortUrlSuccess.bind(this));
+    getShortUrl(longUrl, this.onShortUrlSuccess.bind(this), this.props.addDangerToast);
   }
 
   renderPopover() {
@@ -63,3 +66,5 @@ export default class URLShortLinkButton extends React.Component {
 }
 
 URLShortLinkButton.propTypes = propTypes;
+
+export default withToasts(URLShortLinkButton);

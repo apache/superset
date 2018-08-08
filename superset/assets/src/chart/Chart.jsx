@@ -190,7 +190,7 @@ class Chart extends React.PureComponent {
         this.props.actions.chartRenderingSucceeded(chartId);
       }
       Logger.append(LOG_ACTIONS_RENDER_CHART, {
-        slice_id: 'slice_' + chartId,
+        slice_id: chartId,
         viz_type: vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
@@ -240,7 +240,9 @@ class Chart extends React.PureComponent {
               vizType={this.props.vizType}
               height={this.height}
               width={this.width}
-              faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
+              faded={
+                this.props.refreshOverlayVisible && !this.props.errorMessage
+              }
               ref={(inner) => {
                 this.container = inner;
               }}

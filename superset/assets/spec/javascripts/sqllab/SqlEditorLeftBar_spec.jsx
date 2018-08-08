@@ -20,6 +20,7 @@ describe('SqlEditorLeftBar', () => {
       queryEditorSetDb: sinon.stub(),
       setDatabases: sinon.stub(),
       addTable: sinon.stub(),
+      addDangerToast: sinon.stub(),
     },
     tables: [table],
     queryEditor: defaultQueryEditor,

@@ -142,7 +142,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       .then(() => queryRequest)
       .then((queryResponse) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: 'slice_' + key,
+          slice_id: key,
           is_cached: queryResponse.is_cached,
           force_refresh: force,
           row_count: queryResponse.rowcount,
@@ -156,7 +156,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       })
       .catch((err) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: 'slice_' + key,
+          slice_id: key,
           has_err: true,
           datasource: formData.datasource,
           start_offset: logStart,
