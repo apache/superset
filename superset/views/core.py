@@ -45,6 +45,7 @@ from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
+from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import SupersetQuery
 from superset.utils import (
     merge_extra_filters, merge_request_params, QueryStatus,
@@ -2647,6 +2648,15 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+
+        welcome_dashboard_id = (
+            db.session
+            .query(UserAttribute.welcome_dashboard_id)
+            .filter_by(user_id=g.user.get_id())
+            .scalar()
+        )
+        if welcome_dashboard_id:
+            return self.dashboard(str(welcome_dashboard_id))
 
         payload = {
             'user': bootstrap_user_data(),
