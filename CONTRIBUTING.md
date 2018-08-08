@@ -65,7 +65,7 @@ meets these guidelines:
 3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-4.  The pull request should work for Python 2.7, and ideally Python 3.4+.
+4.  The pull request should work for Python 2.7 and Python 3.6.
     ``from __future__ import`` will be required in every `.py` file soon.
 5.  If the pull request adds a Python dependency include it in `setup.py`
     denoting any specific restrictions and in `requirements.txt` pinned to a
@@ -291,7 +291,7 @@ All python tests can be run with any of the tox [environments](http://tox.readth
 i.e.,
 
     tox -e py27
-    tox -e py34
+    tox -e py36
 
 Alternatively, you can run all tests in a single file via,
 
