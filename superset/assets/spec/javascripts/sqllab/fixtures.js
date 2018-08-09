@@ -179,7 +179,7 @@ export const defaultQueryEditor = {
 export const queries = [
   {
     dbId: 1,
-    sql: 'SELECT *FROM superset.slices',
+    sql: 'SELECT * FROM superset.slices',
     sqlEditorId: 'SJ8YO72R',
     tab: 'Demo',
     runAsync: false,
@@ -257,6 +257,43 @@ export const queries = [
     results: null,
   },
 ];
+export const queryWithBadColumns = {
+  ...queries[0],
+  results: {
+    data: queries[0].results.data,
+    columns: [{
+      is_date: true,
+      is_dim: false,
+      name: 'COUNT(*)',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'this_col_is_ok',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'a',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '1',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '123',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+      type: 'STRING',
+    }],
+  },
+};
 export const databases = {
   result: [{
     allow_ctas: true,

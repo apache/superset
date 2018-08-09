@@ -33,12 +33,15 @@ class ExploreResultsButton extends React.PureComponent {
     };
     this.visualize = this.visualize.bind(this);
     this.onClick = this.onClick.bind(this);
+    this.getInvalidColumns = this.getInvalidColumns.bind(this);
+    this.renderInvalidColumnMessage = this.renderInvalidColumnMessage.bind(this);
   }
   onClick() {
     const timeout = this.props.timeout;
+    const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
       this.dialog.show({
-        title: 'Explore',
+        title: t('Explore'),
         body: this.renderTimeoutWarning(),
         actions: [
           Dialog.CancelAction(),
@@ -47,6 +50,19 @@ class ExploreResultsButton extends React.PureComponent {
           }),
         ],
         bsSize: 'large',
+        onHide: (dialog) => {
+          dialog.hide();
+        },
+      });
+    } else if (msg) {
+      this.dialog.show({
+        title: t('Explore'),
+        body: msg,
+        actions: [
+          Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
+        ],
+        bsSize: 'large',
+        bsStyle: 'warning',
         onHide: (dialog) => {
           dialog.hide();
         },
@@ -64,6 +80,10 @@ class ExploreResultsButton extends React.PureComponent {
   }
   getQueryDuration() {
     return moment.duration(this.props.query.endDttm - this.props.query.startDttm).asSeconds();
+  }
+  getInvalidColumns() {
+    const re = /^[A-Za-z_]\w*$/;
+    return this.props.query.results.columns.map(col => col.name).filter(col => !re.test(col));
   }
   datasourceName() {
     const { query } = this.props;
@@ -125,6 +145,22 @@ class ExploreResultsButton extends React.PureComponent {
         <strong>CREATE TABLE AS </strong>
         {t('feature to store a summarized data set that you can then explore.')}
       </Alert>);
+  }
+  renderInvalidColumnMessage() {
+    const invalidColumns = this.getInvalidColumns();
+    if (invalidColumns.length === 0) {
+      return null;
+    }
+    return (
+      <div>
+        {t('Column name(s) ')}
+        <code><strong>{invalidColumns.join(', ')} </strong></code>
+        {t('cannot be used as a column name. Please use aliases (as in ')}
+        <code>SELECT count(*)
+          <strong>AS my_alias</strong>
+        </code>){' '}
+        {t('limited to alphanumeric characters and underscores')}
+      </div>);
   }
   render() {
     return (
