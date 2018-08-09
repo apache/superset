@@ -9,7 +9,7 @@ import sinon from 'sinon';
 
 import $ from 'jquery';
 import shortid from 'shortid';
-import { queries } from './fixtures';
+import { queries, queryWithBadColumns } from './fixtures';
 import { sqlLabReducer } from '../../../src/SqlLab/reducers';
 import * as actions from '../../../src/SqlLab/actions';
 import ExploreResultsButton from '../../../src/SqlLab/components/ExploreResultsButton';
@@ -60,19 +60,35 @@ describe('ExploreResultsButton', () => {
     requiresTime: true,
     value: 'bar',
   };
-  const getExploreResultsButtonWrapper = () => (
-    shallow(<ExploreResultsButton {...mockedProps} />, {
+  const getExploreResultsButtonWrapper = (props = mockedProps) => (
+    shallow(<ExploreResultsButton {...props} />, {
       context: { store },
     }).dive());
 
   it('renders', () => {
     expect(React.isValidElement(<ExploreResultsButton />)).to.equal(true);
   });
+
   it('renders with props', () => {
     expect(
       React.isValidElement(<ExploreResultsButton {...mockedProps} />),
     ).to.equal(true);
   });
+
+  it('detects bad columns', () => {
+    const wrapper = getExploreResultsButtonWrapper({
+      database,
+      show: true,
+      query: queryWithBadColumns,
+    });
+
+    const badCols = wrapper.instance().getInvalidColumns();
+    expect(badCols).to.deep.equal(['COUNT(*)', '1', '123', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
+
+    const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
+    expect(msgWrapper.find('div')).to.have.length(1);
+  });
+
   it('renders a Button', () => {
     const wrapper = getExploreResultsButtonWrapper();
     expect(wrapper.find(Button)).to.have.length(1);

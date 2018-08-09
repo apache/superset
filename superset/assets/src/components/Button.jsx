@@ -12,6 +12,8 @@ const defaultProps = {
   placement: 'top',
 };
 
+const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
+
 export default function Button(props) {
   const buttonProps = Object.assign({}, props);
   const tooltip = props.tooltip;
@@ -24,8 +26,19 @@ export default function Button(props) {
       {props.children}
     </BootstrapButton>
   );
-  if (props.tooltip) {
-    button = (
+  if (tooltip) {
+    if (props.disabled) {
+      // Working around the fact that tooltips don't get triggered when buttons are disabled
+      // https://github.com/react-bootstrap/react-bootstrap/issues/1588
+      buttonProps.style = { pointerEvents: 'none' };
+      button = (
+        <div style={BUTTON_WRAPPER_STYLE}>
+          <BootstrapButton {...buttonProps} >
+            {props.children}
+          </BootstrapButton>
+        </div>);
+    }
+    return (
       <OverlayTrigger
         placement={placement}
         overlay={<Tooltip id={`${slugify(tooltip)}-tooltip`}>{tooltip}</Tooltip>}

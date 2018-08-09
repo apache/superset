@@ -412,6 +412,9 @@ HIVE_POLL_INTERVAL = 5
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
 
+# The id of a template dashboard that should be copied to every new user
+DASHBOARD_TEMPLATE_ID = None
+
 # A callable that allows altering the database conneciton URL and params
 # on the fly, at runtime. This allows for things like impersonation or
 # arbitrary logic. For instance you can wire different users to
