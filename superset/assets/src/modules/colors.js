@@ -268,8 +268,6 @@ export const spectrums = {
     '#5e4fa2',
   ],
   schemeBlues: [
-    '#e3eef9',
-    '#cfe1f2',
     '#b5d4e9',
     '#93c3df',
     '#6daed5',
@@ -280,8 +278,6 @@ export const spectrums = {
     '#08306b',
   ],
   schemeGreens: [
-    '#e8f6e3',
-    '#d3eecd',
     '#b7e2b1',
     '#97d494',
     '#73c378',
@@ -292,8 +288,6 @@ export const spectrums = {
     '#00441b',
   ],
   schemeGrays: [
-    '#f2f2f2',
-    '#e2e2e2',
     '#cecece',
     '#b4b4b4',
     '#979797',
@@ -304,8 +298,6 @@ export const spectrums = {
     '#000000',
   ],
   schemeOranges: [
-    '#fee8d3',
-    '#fdd8b3',
     '#fdc28c',
     '#fda762',
     '#fb8d3d',
@@ -316,8 +308,6 @@ export const spectrums = {
     '#7f2704',
   ],
   schemePurples: [
-    '#f1eff6',
-    '#e2e1ef',
     '#cecee5',
     '#b6b5d8',
     '#9e9bc9',
@@ -328,8 +318,6 @@ export const spectrums = {
     '#3f007d',
   ],
   schemeReds: [
-    '#fee3d6',
-    '#fdc9b4',
     '#fcaa8e',
     '#fc8a6b',
     '#f9694c',
@@ -424,8 +412,6 @@ export const spectrums = {
     '#ffffff',
   ],
   schemeBuGn: [
-    '#e8f6f9',
-    '#d5efed',
     '#b7e4da',
     '#8fd3c1',
     '#68c2a3',
@@ -436,8 +422,6 @@ export const spectrums = {
     '#00441b',
   ],
   schemeBuPu: [
-    '#e4eef5',
-    '#ccddec',
     '#b2cae1',
     '#9cb3d5',
     '#8f95c6',
@@ -448,8 +432,6 @@ export const spectrums = {
     '#4d004b',
   ],
   schemeGnBu: [
-    '#e5f5df',
-    '#d3eece',
     '#bde5bf',
     '#9ed9bb',
     '#7bcbc4',
@@ -460,8 +442,6 @@ export const spectrums = {
     '#084081',
   ],
   schemeOrRd: [
-    '#feebcf',
-    '#fddcaf',
     '#fdca94',
     '#fdb07a',
     '#fa8e5d',
@@ -472,8 +452,6 @@ export const spectrums = {
     '#7f0000',
   ],
   schemePuBuGn: [
-    '#efe7f2',
-    '#dbd8ea',
     '#bec9e2',
     '#98b9d9',
     '#69a8cf',
@@ -484,8 +462,6 @@ export const spectrums = {
     '#014636',
   ],
   schemePuBu: [
-    '#efeaf4',
-    '#dbdaeb',
     '#bfc9e2',
     '#9bb9d9',
     '#72a8cf',
@@ -496,8 +472,6 @@ export const spectrums = {
     '#023858',
   ],
   schemePuRd: [
-    '#eae3f0',
-    '#dcc9e2',
     '#d0aad2',
     '#d08ac2',
     '#dd63ae',
@@ -508,8 +482,6 @@ export const spectrums = {
     '#67001f',
   ],
   schemeRdPu: [
-    '#fde4e1',
-    '#fccfcc',
     '#fbb5bc',
     '#f993b0',
     '#f369a3',
@@ -520,7 +492,6 @@ export const spectrums = {
     '#49006a',
   ],
   schemeYlGnBu: [
-    '#eff9bd',
     '#d5eeb3',
     '#a9ddb7',
     '#73c9bd',
@@ -532,7 +503,6 @@ export const spectrums = {
     '#081d58',
   ],
   schemeYlGn: [
-    '#f7fcc4',
     '#e4f4ac',
     '#c7e89b',
     '#a2d88a',
@@ -544,7 +514,6 @@ export const spectrums = {
     '#004529',
   ],
   schemeYlOrBr: [
-    '#fff8c4',
     '#feeaa1',
     '#fed676',
     '#feba4a',
@@ -556,7 +525,6 @@ export const spectrums = {
     '#662506',
   ],
   schemeYlOrRd: [
-    '#fff0a9',
     '#fee087',
     '#fec965',
     '#feab4b',
