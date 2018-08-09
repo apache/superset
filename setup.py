@@ -48,6 +48,7 @@ setup(
     description=(
         'A modern, enterprise-ready business intelligence web application'),
     long_description=long_description,
+    long_description_content_type='text/markdown',
     version=version_string,
     packages=find_packages(),
     include_package_data=True,
@@ -66,8 +67,6 @@ setup(
         'flask-caching',
         'flask-compress',
         'flask-migrate',
-        'flask-script',
-        'flask-testing',
         'flask-wtf',
         'flower',  # deprecated
         'future>=0.16.0, <0.17',
@@ -75,6 +74,7 @@ setup(
         'gunicorn',  # deprecated
         'humanize',
         'idna',
+        'isodate',
         'markdown',
         'pandas>=0.18.0',
         'parsedatetime',

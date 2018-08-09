@@ -271,6 +271,7 @@ class ExploreViewContainer extends React.Component {
               loading={this.props.chart.chartStatus === 'loading'}
               chartIsStale={this.state.chartIsStale}
               errorMessage={this.renderErrorMessage()}
+              datasourceType={this.props.datasource_type}
             />
             <br />
             <ControlPanelsContainer

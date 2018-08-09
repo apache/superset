@@ -144,7 +144,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_gamma_pvm(
             security_manager.find_permission_view_menu('can_show', 'TableModelView')))
 
-    def test_gamma_permissions(self):
+    def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples('Gamma'))
         self.assert_cannot_gamma(get_perm_tuples('Gamma'))
         self.assert_cannot_alpha(get_perm_tuples('Alpha'))
@@ -175,3 +175,50 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assert_cannot_gamma(granter_set)
         self.assert_cannot_alpha(granter_set)
+
+    def test_gamma_permissions(self):
+        def assert_can_read(view_menu):
+            self.assertIn(('can_show', view_menu), gamma_perm_set)
+            self.assertIn(('can_list', view_menu), gamma_perm_set)
+
+        def assert_can_write(view_menu):
+            self.assertIn(('can_add', view_menu), gamma_perm_set)
+            self.assertIn(('can_download', view_menu), gamma_perm_set)
+            self.assertIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertIn(('can_edit', view_menu), gamma_perm_set)
+
+        def assert_cannot_write(view_menu):
+            self.assertNotIn(('can_add', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_download', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_edit', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_save', view_menu), gamma_perm_set)
+
+        def assert_can_all(view_menu):
+            assert_can_read(view_menu)
+            assert_can_write(view_menu)
+
+        gamma_perm_set = set()
+        for perm in security_manager.find_role('Gamma').permissions:
+            gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
+
+        # check read only perms
+        assert_can_read('TableModelView')
+        assert_cannot_write('DruidColumnInlineView')
+
+        # make sure that user can create slices and dashboards
+        assert_can_all('SliceModelView')
+        assert_can_all('DashboardModelView')
+
+        self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_csv', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_dashboard', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore_json', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_slice', 'Superset'), gamma_perm_set)

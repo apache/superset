@@ -11,6 +11,7 @@ from mock import Mock, patch
 import pandas as pd
 
 from superset import app
+from superset.exceptions import SpatialException
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 from .utils import load_fixture
@@ -262,33 +263,6 @@ class TableVizTestCase(unittest.TestCase):
         )
         self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
         self.assertEqual('', query_obj['extras']['having'])
-
-    def test_legacy_filters_still_appear_without_adhoc_filters(self):
-        form_data = {
-            'metrics': [{
-                'expressionType': 'SIMPLE',
-                'aggregate': 'SUM',
-                'label': 'SUM(value1)',
-                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
-            }],
-            'having': 'SUM(value1) > 5',
-            'where': 'value3 in (\'North America\')',
-            'filters': [{'col': 'value2', 'val': '100', 'op': '>'}],
-            'having_filters': [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
-        }
-        datasource = Mock()
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(
-            [{'col': 'value2', 'val': '100', 'op': '>'}],
-            query_obj['filter'],
-        )
-        self.assertEqual(
-            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
-            query_obj['extras']['having_druid'],
-        )
-        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
-        self.assertEqual('SUM(value1) > 5', query_obj['extras']['having'])
 
     @patch('superset.viz.BaseViz.query_obj')
     def test_query_obj_merges_percent_metrics(self, super_query_obj):
@@ -949,3 +923,65 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert results['metrics'] == []
         assert results['groupby'] == []
         assert results['columns'] == ['test_col']
+
+    def test_parse_coordinates(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        viz_instance = viz.BaseDeckGLViz(datasource, form_data)
+
+        coord = viz_instance.parse_coordinates('1.23, 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        coord = viz_instance.parse_coordinates('1.23 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        self.assertEquals(viz_instance.parse_coordinates(None), None)
+
+        self.assertEquals(viz_instance.parse_coordinates(''), None)
+
+    def test_parse_coordinates_raises(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('NULL')
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
+
+
+class TimeSeriesVizTestCase(unittest.TestCase):
+
+    def test_timeseries_unicode_data(self):
+        datasource = Mock()
+        form_data = {
+            'groupby': ['name'],
+            'metrics': ['sum__payout'],
+        }
+        raw = {}
+        raw['name'] = [
+            'Real Madrid C.F.🇺🇸🇬🇧', 'Real Madrid C.F.🇺🇸🇬🇧',
+            'Real Madrid Basket', 'Real Madrid Basket',
+        ]
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
+        raw['sum__payout'] = [2, 2, 4, 4]
+        df = pd.DataFrame(raw)
+
+        test_viz = viz.NVD3TimeSeriesViz(datasource, form_data)
+        viz_data = {}
+        viz_data = test_viz.get_data(df)
+        expected = [
+            {u'values': [
+                {u'y': 4, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 4, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid Basket',)},
+            {u'values': [
+                {u'y': 2, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 2, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7',)},
+        ]
+        self.assertEqual(expected, viz_data)

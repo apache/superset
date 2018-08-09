@@ -1,4 +1,5 @@
 /* eslint camelcase: 0 */
+import React from 'react';
 import controls from './controls';
 import visTypes, { sectionsToRender } from './visTypes';
 
@@ -50,6 +51,10 @@ export function getControlsState(state, form_data) {
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
   controlNames.forEach((k) => {
+    if (React.isValidElement(k)) {
+      // no state
+      return;
+    }
     const control = Object.assign({}, controls[k], controlOverrides[k]);
     if (control.mapStateToProps) {
       Object.assign(control, control.mapStateToProps(state, control));
@@ -60,11 +65,17 @@ export function getControlsState(state, form_data) {
       : formData[k];
 
     // If the value is not valid anymore based on choices, clear it
-    if (control.type === 'SelectControl' && control.choices && k !== 'datasource' && formData[k]) {
+    if (
+      control.type === 'SelectControl' &&
+      !control.freeForm &&
+      control.choices &&
+      k !== 'datasource' &&
+      formData[k]
+    ) {
       const choiceValues = control.choices.map(c => c[0]);
-      if (control.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
-        delete formData[k];
-      } else if (!control.multi && !control.freeForm && choiceValues.indexOf(formData[k]) < 0) {
+      if (control.multi && formData[k].length > 0) {
+        formData[k] = formData[k].filter(el => choiceValues.indexOf(el) > -1);
+      } else if (!control.multi && choiceValues.indexOf(formData[k]) < 0) {
         delete formData[k];
       }
     }
@@ -73,7 +84,13 @@ export function getControlsState(state, form_data) {
       control.default = control.default(control);
     }
     control.validationErrors = [];
-    control.value = formData[k] !== undefined ? formData[k] : control.default;
+    control.value = control.default;
+    // formData[k]'s type should match control value type
+    if (formData[k] !== undefined &&
+      (Array.isArray(formData[k]) && control.multi || !control.multi)
+    ) {
+      control.value = formData[k];
+    }
     controlsState[k] = control;
   });
   if (viz.onInit) {

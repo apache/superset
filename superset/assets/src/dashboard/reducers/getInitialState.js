@@ -7,10 +7,13 @@ import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
 import { getColorFromScheme } from '../../modules/colors';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
-import layoutConverter from '../util/dashboardLayoutConverter';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
-import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';
+import {
+  DASHBOARD_HEADER_ID,
+  GRID_DEFAULT_CHART_WIDTH,
+  GRID_COLUMN_COUNT,
+} from '../util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
@@ -18,15 +21,7 @@ import {
 } from '../util/componentTypes';
 
 export default function(bootstrapData) {
-  const {
-    user_id,
-    datasources,
-    common,
-    editMode,
-    force_v2_edit: forceV2Edit,
-    v2_auto_convert_date: v2AutoConvertDate,
-    v2_feedback_url: v2FeedbackUrl,
-  } = bootstrapData;
+  const { user_id, datasources, common, editMode } = bootstrapData;
   delete common.locale;
   delete common.language_pack;
 
@@ -52,12 +47,7 @@ export default function(bootstrapData) {
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
-  const shouldConvertToV2 =
-    positionJson && positionJson[DASHBOARD_VERSION_KEY] !== 'v2';
-
-  const layout = shouldConvertToV2
-    ? layoutConverter(dashboard)
-    : positionJson || getEmptyLayout();
+  const layout = positionJson || getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
@@ -69,6 +59,10 @@ export default function(bootstrapData) {
 
   // find root level chart container node for newly-added slices
   const parentId = findFirstParentContainerId(layout);
+  const parent = layout[parentId];
+  let newSlicesContainer;
+  let newSlicesContainerWidth = 0;
+
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
@@ -98,20 +92,26 @@ export default function(bootstrapData) {
 
       sliceIds.add(key);
 
-      // if chart is newly added from explore view, add a row in layout
+      // if there are newly added slices from explore view, fill slices into 1 or more rows
       if (!chartIdToLayoutId[key] && layout[parentId]) {
-        const parent = layout[parentId];
-        const rowContainer = newComponentFactory(ROW_TYPE);
-        layout[rowContainer.id] = rowContainer;
-        parent.children.push(rowContainer.id);
+        if (
+          newSlicesContainerWidth === 0 ||
+          newSlicesContainerWidth + GRID_DEFAULT_CHART_WIDTH > GRID_COLUMN_COUNT
+        ) {
+          newSlicesContainer = newComponentFactory(ROW_TYPE);
+          layout[newSlicesContainer.id] = newSlicesContainer;
+          parent.children.push(newSlicesContainer.id);
+          newSlicesContainerWidth = 0;
+        }
 
         const chartHolder = newComponentFactory(CHART_TYPE, {
           chartId: slice.slice_id,
         });
 
         layout[chartHolder.id] = chartHolder;
-        rowContainer.children.push(chartHolder.id);
+        newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
+        newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
       }
     }
 
@@ -160,9 +160,6 @@ export default function(bootstrapData) {
       superset_can_explore: dashboard.superset_can_explore,
       slice_can_edit: dashboard.slice_can_edit,
       common,
-      v2AutoConvertDate,
-      v2FeedbackUrl,
-      forceV2Edit,
     },
     dashboardState: {
       sliceIds: Array.from(sliceIds),
@@ -174,7 +171,6 @@ export default function(bootstrapData) {
       showBuilderPane: dashboard.dash_edit_perm && editMode,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
-      isV2Preview: shouldConvertToV2,
     },
     dashboardLayout,
     messageToasts: [],

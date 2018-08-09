@@ -146,7 +146,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       .then(() => queryRequest)
       .then((queryResponse) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: 'slice_' + key,
+          slice_id: key,
           is_cached: queryResponse.is_cached,
           force_refresh: force,
           row_count: queryResponse.rowcount,
@@ -160,7 +160,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       })
       .catch((err) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: 'slice_' + key,
+          slice_id: key,
           has_err: true,
           datasource: formData.datasource,
           start_offset: logStart,
@@ -198,6 +198,27 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       dispatch(updateQueryFormData(payload, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
+  };
+}
+
+export function redirectSQLLab(formData) {
+  return function () {
+    const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (response) => {
+        const redirectUrl = new URL(window.location);
+        redirectUrl.pathname = '/superset/sqllab';
+        for (const k of redirectUrl.searchParams.keys()) {
+          redirectUrl.searchParams.delete(k);
+        }
+        redirectUrl.searchParams.set('datasourceKey', formData.datasource);
+        redirectUrl.searchParams.set('sql', response.query);
+        window.open(redirectUrl.href, '_blank');
+      },
+      error: () => notify.error(t("The SQL couldn't be loaded")),
+    });
   };
 }
 

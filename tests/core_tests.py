@@ -263,8 +263,8 @@ class CoreTests(SupersetTestCase):
 
     def test_add_slice(self):
         self.login(username='admin')
-        # assert that /slicemodelview/add responds with 200
-        url = '/slicemodelview/add'
+        # assert that /chart/add responds with 200
+        url = '/chart/add'
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
@@ -418,8 +418,8 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Charts' in self.get_resp('/slicemodelview/list/')
-        assert 'List Dashboard' in self.get_resp('/dashboardmodelview/list/')
+        assert 'List Charts' in self.get_resp('/chart/list/')
+        assert 'List Dashboard' in self.get_resp('/dashboard/list/')
 
     def test_csv_endpoint(self):
         self.login('admin')
@@ -435,6 +435,15 @@ class CoreTests(SupersetTestCase):
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(
             io.StringIO('first_name,last_name\nadmin, user\n'))
+
+        sql = "SELECT first_name FROM ab_user WHERE first_name LIKE '%admin%'"
+        client_id = '{}'.format(random.getrandbits(64))[:10]
+        self.run_sql(sql, client_id, raise_on_error=True)
+
+        resp = self.get_resp('/superset/csv/{}'.format(client_id))
+        data = csv.reader(io.StringIO(resp))
+        expected_data = csv.reader(
+            io.StringIO('first_name\nadmin\n'))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()

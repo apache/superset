@@ -13,7 +13,7 @@ import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
 
 const NEW_TAB_INDEX = -1;
-const MAX_TAB_COUNT = 5;
+const MAX_TAB_COUNT = 7;
 
 const propTypes = {
   id: PropTypes.string.isRequired,

@@ -65,7 +65,7 @@ meets these guidelines:
 3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-4.  The pull request should work for Python 2.7, and ideally Python 3.4+.
+4.  The pull request should work for Python 2.7 and Python 3.6.
     ``from __future__ import`` will be required in every `.py` file soon.
 5.  If the pull request adds a Python dependency include it in `setup.py`
     denoting any specific restrictions and in `requirements.txt` pinned to a
@@ -291,7 +291,7 @@ All python tests can be run with any of the tox [environments](http://tox.readth
 i.e.,
 
     tox -e py27
-    tox -e py34
+    tox -e py36
 
 Alternatively, you can run all tests in a single file via,
 
@@ -493,7 +493,7 @@ https://github.com/apache/incubator-superset/pull/3013
   In the future we'll start publishing release candidates for minor releases
   only, but typically not for micro release.
   The process will be similar to the process described above, expect the
-  tags will be formated `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
+  tags will be formatted `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
   is reached.
 
   We should also have a Github PR label process to target the proper
@@ -505,3 +505,21 @@ https://github.com/apache/incubator-superset/pull/3013
   with a PGP key and providing MD5, Apache voting, as well as
   publishing to Apache's SVN repository. View the ASF docs for more
   information.
+
+
+## Merging DB migrations
+
+When 2 db migrations collide, you'll get an error message like this one:
+
+```
+  alembic.util.exc.CommandError: Multiple head revisions are present for
+  given argument 'head'; please specify a specific target
+  revision, '<branchname>@head' to narrow to a specific head,
+  or 'heads' for all heads`
+```
+
+To fix it, first run `superset db heads`, this should list 2 or more
+migration hashes. Then run
+`superset db merge {PASTE_SHA1_HERE} {PASTE_SHA2_HERE}`. This will create
+a new merge migration. You can then `superset db upgrade` to this new
+checkpoint.

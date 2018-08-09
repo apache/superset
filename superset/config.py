@@ -49,6 +49,7 @@ SUPERSET_CELERY_WORKERS = 32  # deprecated
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
 SUPERSET_WEBSERVER_TIMEOUT = 60  # deprecated
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -165,6 +166,7 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+    'pt': {'flag': 'pt', 'name': 'Portuguese'},
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
 }
@@ -199,6 +201,30 @@ ALLOWED_EXTENSIONS = set(['csv'])
 CSV_EXPORT = {
     'encoding': 'utf-8',
 }
+
+# ---------------------------------------------------
+# Time grain configurations
+# ---------------------------------------------------
+# List of time grains to disable in the application (see list of builtin
+# time grains in superset/db_engine_specs.builtin_time_grains).
+# For example: to disable 1 second time grain:
+# TIME_GRAIN_BLACKLIST = ['PT1S']
+TIME_GRAIN_BLACKLIST = []
+
+# Additional time grains to be supported using similar definitions as in
+# superset/db_engine_specs.builtin_time_grains.
+# For example: To add a new 2 second time grain:
+# TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
+TIME_GRAIN_ADDONS = {}
+
+# Implementation of additional time grains per engine.
+# For example: To implement 2 second time grain on clickhouse engine:
+# TIME_GRAIN_ADDON_FUNCTIONS = {
+#     'clickhouse': {
+#         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
+#     }
+# }
+TIME_GRAIN_ADDON_FUNCTIONS = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -250,8 +276,7 @@ BACKUP_COUNT = 30
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000000
-DISPLAY_SQL_MAX_ROW = 1000
+SQL_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -387,6 +412,9 @@ HIVE_POLL_INTERVAL = 5
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
 
+# The id of a template dashboard that should be copied to every new user
+DASHBOARD_TEMPLATE_ID = None
+
 # A callable that allows altering the database conneciton URL and params
 # on the fly, at runtime. This allows for things like impersonation or
 # arbitrary logic. For instance you can wire different users to
@@ -416,14 +444,6 @@ SQL_QUERY_MUTATOR = None
 # When not using gunicorn, (nginx for instance), you may want to disable
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
-
-# Dashboard v1 deprecation configuration
-DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = True
-CAN_FALLBACK_TO_DASH_V1_EDIT_MODE = True
-
-# these are incorporated into messages displayed to users
-PLANNED_V2_AUTO_CONVERT_DATE = None  # e.g. '2018-06-16'
-V2_FEEDBACK_URL = None  # e.g., 'https://goo.gl/forms/...'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

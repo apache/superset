@@ -4,7 +4,7 @@ import configureStore from 'redux-mock-store';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
-import { Modal } from 'react-bootstrap';
+import DatasourceModal from '../../../../src/datasource/DatasourceModal';
 import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
 
 const defaultProps = {
@@ -35,6 +35,6 @@ describe('DatasourceControl', () => {
 
   it('renders a Modal', () => {
     const wrapper = setup();
-    expect(wrapper.find(Modal)).to.have.lengthOf(1);
+    expect(wrapper.find(DatasourceModal)).to.have.lengthOf(1);
   });
 });
