@@ -82,7 +82,7 @@ class ExploreResultsButton extends React.PureComponent {
     return moment.duration(this.props.query.endDttm - this.props.query.startDttm).asSeconds();
   }
   getInvalidColumns() {
-    const re = /^\w+$/;
+    const re = /^[A-Za-z_]\w*$/;
     return this.props.query.results.columns.map(col => col.name).filter(col => !re.test(col));
   }
   datasourceName() {

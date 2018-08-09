@@ -274,6 +274,21 @@ export const queryWithBadColumns = {
     }, {
       is_date: false,
       is_dim: true,
+      name: 'a',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '1',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '123',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
       name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
       type: 'STRING',
     }],

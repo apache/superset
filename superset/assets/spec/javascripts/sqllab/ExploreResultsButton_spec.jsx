@@ -83,7 +83,7 @@ describe('ExploreResultsButton', () => {
     });
 
     const badCols = wrapper.instance().getInvalidColumns();
-    expect(badCols).to.deep.equal(['COUNT(*)', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
+    expect(badCols).to.deep.equal(['COUNT(*)', '1', '123', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
 
     const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
     expect(msgWrapper.find('div')).to.have.length(1);
