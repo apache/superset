@@ -587,7 +587,7 @@ def load_world_bank_health_n_pop():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)
@@ -1211,7 +1211,7 @@ def load_birth_names():
             "CHART-e8774b49"
         ]
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
         """)
     l = json.loads(js)
@@ -1331,7 +1331,7 @@ def load_unicode_test_data():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """
     dash.dashboard_title = "Unicode Test"
@@ -1792,7 +1792,7 @@ def load_misc_dashboard():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)
@@ -2343,7 +2343,7 @@ def load_deck_dash():
             "CHART-2b87513c"
         ]
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)
