@@ -363,18 +363,6 @@ export const spectrums = {
     '#fecf92',
     '#fcfdbf',
   ],
-  schemePlasma: [
-    '#41049d',
-    '#6a00a8',
-    '#8f0da4',
-    '#b12a90',
-    '#cc4778',
-    '#e16462',
-    '#f2844b',
-    '#fca636',
-    '#fcce25',
-    '#f0f921',
-  ],
   schemeWarm: [
     '#963db3',
     '#bf3caf',
