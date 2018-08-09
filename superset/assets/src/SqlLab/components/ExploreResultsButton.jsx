@@ -111,18 +111,15 @@ class ExploreResultsButton extends React.PureComponent {
       .done((resp) => {
         const columns = this.getColumns();
         const data = JSON.parse(resp);
-        const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: [],
+          groupby: [],
           viz_type: 'table',
           since: '100 years ago',
           all_columns: columns.map(c => c.name),
           row_limit: 1000,
         };
-        if (mainGroupBy) {
-          formData.groupby = [mainGroupBy.name];
-        }
         this.props.actions.addInfoToast(t('Creating a data source and creating a new tab'));
 
         // open new window for data visualization
