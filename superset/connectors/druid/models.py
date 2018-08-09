@@ -1351,7 +1351,6 @@ class DruidDatasource(Model, BaseDatasource):
                 df=pandas.DataFrame([]),
                 query=query_str,
                 duration=datetime.now() - qry_start_dttm)
-            raise Exception(_('No data was returned.'))
 
         df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [
