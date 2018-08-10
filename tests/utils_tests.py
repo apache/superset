@@ -702,14 +702,45 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(form_data, expected)
 
     @patch('superset.utils.to_adhoc', mock_to_adhoc)
-    def test_convert_legacy_filters_into_adhoc_existing(self):
+    def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {
             'adhoc_filters': [],
+            'where': 'a = 1',
+        }
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'expressionType': 'SQL',
+                    'sqlExpression': 'a = 1',
+                },
+            ],
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEquals(form_data, expected)
+
+    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
+        form_data = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'expressionType': 'SQL',
+                    'sqlExpression': 'a = 1',
+                },
+            ],
             'filters': [{'col': 'a', 'op': 'in', 'val': 'someval'}],
             'having': 'COUNT(1) = 1',
             'having_filters': [{'col': 'COUNT(1)', 'op': '==', 'val': 1}],
-            'where': 'a = 1',
         }
-        expected = {'adhoc_filters': []}
+        expected = {
+            'adhoc_filters': [
+                {
+                    'clause': 'WHERE',
+                    'expressionType': 'SQL',
+                    'sqlExpression': 'a = 1',
+                },
+            ],
+        }
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
