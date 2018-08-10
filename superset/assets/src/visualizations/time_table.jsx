@@ -132,14 +132,14 @@ function viz(slice, payload) {
                   onMouseMove={onMouseMove}
                   {...yScale}
                 >
-                  {hasMin &&
+                  {column.showYAxisBounds && hasMin &&
                     <HorizontalReferenceLine
                       reference={yScale.min}
                       stroke="#bbb"
                       strokeDasharray="3 3"
                       strokeWidth={1}
                     />}
-                  {hasMax &&
+                  {column.showYAxisBounds && hasMax &&
                     <HorizontalReferenceLine
                       reference={yScale.max}
                       stroke="#bbb"

@@ -7,6 +7,7 @@ import Select from 'react-select';
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import BoundsControl from './BoundsControl';
+import CheckboxControl from './CheckboxControl';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -46,6 +47,9 @@ export default class TimeSeriesColumnControl extends React.Component {
   }
   onTextInputChange(attr, event) {
     this.setState({ [attr]: event.target.value }, this.onChange);
+  }
+  onCheckboxChange(attr, value) {
+    this.setState({ [attr]: value }, this.onChange);
   }
   onBoundsChange(bounds) {
     this.setState({ bounds }, this.onChange);
@@ -177,6 +181,17 @@ export default class TimeSeriesColumnControl extends React.Component {
             <BoundsControl
               value={this.state.yAxisBounds}
               onChange={this.onYAxisBoundsChange.bind(this)}
+            />,
+          )}
+          {this.state.colType === 'spark' && this.formRow(
+            'Show bounds',
+            (
+              'Show Y-axis bounds as dotted line on the sparkline'
+            ),
+            'show-y-axis-bounds',
+            <CheckboxControl
+              value={this.state.showYAxisBounds}
+              onChange={this.onCheckboxChange.bind(this, 'showYAxisBounds')}
             />,
           )}
           {this.state.colType !== 'spark' && this.formRow(
