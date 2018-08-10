@@ -26,7 +26,9 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
 import { chartPropShape } from '../util/propShapes';
 import {
@@ -113,6 +115,24 @@ class Header extends React.PureComponent {
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
+
+    this.fetchTags = fetchTags.bind(this, {
+      objectType: 'dashboard',
+      objectId: props.dashboardInfo.id,
+      includeTypes: false,
+    });
+    this.fetchSuggestions = fetchSuggestions.bind(this, {
+      includeTypes: false,
+    });
+    this.deleteTag = deleteTag.bind(this, {
+      objectType: 'dashboard',
+      objectId: props.dashboardInfo.id,
+    });
+    this.addTag = addTag.bind(this, {
+      objectType: 'dashboard',
+      objectId: props.dashboardInfo.id,
+      includeTypes: false,
+    });
   }
 
   componentDidMount() {
@@ -301,6 +321,13 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
           </span>
+          <ObjectTags
+            fetchTags={this.fetchTags}
+            fetchSuggestions={this.fetchSuggestions}
+            deleteTag={this.deleteTag}
+            addTag={this.addTag}
+            editable={dashboardInfo.dash_edit_perm}
+          />
         </div>
 
         <div className="button-container">

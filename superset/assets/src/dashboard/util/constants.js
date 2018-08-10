@@ -31,6 +31,7 @@ export const NEW_MARKDOWN_ID = 'NEW_MARKDOWN_ID';
 export const NEW_ROW_ID = 'NEW_ROW_ID';
 export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
+export const NEW_TAGS_ID = 'NEW_TAGS_ID';
 
 // grid constants
 export const DASHBOARD_ROOT_DEPTH = 0;
@@ -58,6 +59,13 @@ export const UNDO_LIMIT = 50;
 // save dash options
 export const SAVE_TYPE_OVERWRITE = 'overwrite';
 export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
+
+// objects that can be tagged
+export const TAGGED_CONTENT_TYPES = ['dashboard', 'chart', 'query'];
+export const STANDARD_TAGS = [
+  ['owner:{{ current_user_id() }}', 'Owned by me'],
+  ['favorited_by:{{ current_user_id() }}', 'Favorited by me'],
+];
 
 // default dashboard layout data size limit
 // could be overwritten by server-side config

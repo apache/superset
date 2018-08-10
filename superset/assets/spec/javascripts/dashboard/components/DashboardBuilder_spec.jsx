@@ -46,16 +46,21 @@ const layoutWithTabs = undoableDashboardLayoutWithTabs.present;
 
 describe('DashboardBuilder', () => {
   let favStarStub;
+  let fetchMock; // mock calls to tagview/tags/${objectType}/${objectId}/
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
     favStarStub = sinon
       .stub(dashboardStateActions, 'fetchFaveStar')
       .returns({ type: 'mock-action' });
+    fetchMock = jest
+      .spyOn(window, 'fetch')
+      .mockImplementation(() => Promise.resolve({}));
   });
 
   afterAll(() => {
     favStarStub.restore();
+    fetchMock.mockClear();
   });
 
   const props = {

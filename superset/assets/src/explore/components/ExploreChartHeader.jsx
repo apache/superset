@@ -29,6 +29,13 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
+import ObjectTags from '../../components/ObjectTags';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+} from '../../tags';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -50,6 +57,28 @@ const propTypes = {
 };
 
 class ExploreChartHeader extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    this.fetchTags = fetchTags.bind(this, {
+      objectType: 'chart',
+      objectId: props.chart.id,
+      includeTypes: false,
+    });
+    this.fetchSuggestions = fetchSuggestions.bind(this, {
+      includeTypes: false,
+    });
+    this.deleteTag = deleteTag.bind(this, {
+      objectType: 'chart',
+      objectId: props.chart.id,
+    });
+    this.addTag = addTag.bind(this, {
+      objectType: 'chart',
+      objectId: props.chart.id,
+      includeTypes: false,
+    });
+  }
+
   postChartFormData() {
     this.props.actions.postChartFormData(this.props.form_data, true,
       this.props.timeout, this.props.chart.id);
@@ -134,6 +163,13 @@ class ExploreChartHeader extends React.PureComponent {
             currentFormData={formData}
           />
         }
+        <ObjectTags
+          fetchTags={this.fetchTags}
+          fetchSuggestions={this.fetchSuggestions}
+          deleteTag={this.deleteTag}
+          addTag={this.addTag}
+          editable={this.props.can_overwrite}
+        />
         <div className="pull-right">
           {chartFinished && queryResponse &&
             <RowCountLabel

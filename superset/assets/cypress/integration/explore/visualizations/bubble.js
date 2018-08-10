@@ -59,7 +59,7 @@ export default () => describe('Bubble', () => {
 
   it('should work', () => {
     verify(BUBBLE_FORM_DATA);
-    cy.get('.chart-container svg circle').should('have.length', 208);
+    cy.get('.chart-container svg circle').should('have.length', 220);
   });
 
   it('should work with filter', () => {
