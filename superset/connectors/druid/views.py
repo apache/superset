@@ -21,7 +21,7 @@ from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
-    get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
+    get_datasource_exist_error_msg, ListWidgetWithCheckboxes, SupersetModelView,
     validate_json, YamlExportMixin,
 )
 from . import models
@@ -284,7 +284,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                         datasource.cluster.id)
             )
             if db.session.query(query.exists()).scalar():
-                raise Exception(get_datasource_exist_error_mgs(
+                raise Exception(get_datasource_exist_error_msg(
                     datasource.full_name))
 
     def post_add(self, datasource):

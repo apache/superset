@@ -14,7 +14,7 @@ export function fetchDashboardsFailed(userId) {
 
 export function fetchDashboards(userId) {
   return function (dispatch) {
-    const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + userId;
+    const url = '/dashboardasync/api/read?_flt_0_owners=' + userId;
     return $.ajax({
       type: 'GET',
       url,

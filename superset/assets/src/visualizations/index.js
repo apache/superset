@@ -65,9 +65,9 @@ const vizMap = {
   [VIZ_TYPES.area]: loadNvd3,
   [VIZ_TYPES.bar]: loadNvd3,
   [VIZ_TYPES.big_number]: () =>
-    loadVis(import(/* webpackChunkName: 'big_number' */ './big_number.js')),
+    loadVis(import(/* webpackChunkName: 'big_number' */ './BigNumber.jsx')),
   [VIZ_TYPES.big_number_total]: () =>
-    loadVis(import(/* webpackChunkName: "big_number" */ './big_number.js')),
+    loadVis(import(/* webpackChunkName: "big_number" */ './BigNumber.jsx')),
   [VIZ_TYPES.box_plot]: loadNvd3,
   [VIZ_TYPES.bubble]: loadNvd3,
   [VIZ_TYPES.bullet]: loadNvd3,

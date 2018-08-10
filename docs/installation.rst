@@ -4,7 +4,7 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is tested against Python ``2.7`` and Python ``3.4``.
+Superset is tested against Python ``2.7`` and Python ``3.6``.
 Airbnb currently uses 2.7.* in production. We do not plan on supporting
 Python ``2.6``.
 

@@ -279,27 +279,27 @@ class DashboardTests(SupersetTestCase):
         self.revoke_public_access_to_table(table)
         self.logout()
 
-        resp = self.get_resp('/slicemodelview/list/')
+        resp = self.get_resp('/chart/list/')
         self.assertNotIn('birth_names</a>', resp)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/births/', resp)
 
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn('birth_names', self.get_resp('/slicemodelview/list/'))
+        self.assertIn('birth_names', self.get_resp('/chart/list/'))
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertIn('/superset/dashboard/births/', resp)
 
         self.assertIn('Births', self.get_resp('/superset/dashboard/births/'))
 
         # Confirm that public doesn't have access to other datasets.
-        resp = self.get_resp('/slicemodelview/list/')
+        resp = self.get_resp('/chart/list/')
         self.assertNotIn('wb_health_population</a>', resp)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/world_health/', resp)
 
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
@@ -370,7 +370,7 @@ class DashboardTests(SupersetTestCase):
         gamma_user = security_manager.find_user('gamma')
         self.login(gamma_user.username)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/empty_dashboard/', resp)
 
         dash = (
@@ -383,7 +383,7 @@ class DashboardTests(SupersetTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertIn('/superset/dashboard/empty_dashboard/', resp)
 
 

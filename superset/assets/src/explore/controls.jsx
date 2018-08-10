@@ -191,8 +191,9 @@ export const controls = {
     label: t('Datasource'),
     default: null,
     description: null,
-    mapStateToProps: state => ({
+    mapStateToProps: (state, control, actions) => ({
       datasource: state.datasource,
+      onDatasourceSave: actions ? actions.setDatasource : () => {},
     }),
   },
 
@@ -520,6 +521,7 @@ export const controls = {
       'Russia',
       'Singapore',
       'Spain',
+      'Thailand',
       'Uk',
       'Ukraine',
       'Usa',
@@ -1479,6 +1481,14 @@ export const controls = {
     description: t('Whether to display the trend line'),
   },
 
+  start_y_axis_at_zero: {
+    type: 'CheckboxControl',
+    label: t('Start y-axis at 0'),
+    renderTrigger: true,
+    default: true,
+    description: t('Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
@@ -1561,6 +1571,7 @@ export const controls = {
       '1 week',
       '28 days',
       '30 days',
+      '52 weeks',
       '1 year',
     ]),
     description: t('Overlay one or more timeseries from a ' +

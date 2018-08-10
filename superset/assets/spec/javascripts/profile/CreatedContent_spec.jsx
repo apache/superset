@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { user } from './fixtures';
 import CreatedContent from '../../../src/profile/components/CreatedContent';
-import TableLoader from '../../../src/profile/components/TableLoader';
+import TableLoader from '../../../src/components/TableLoader';
 
 
 describe('CreatedContent', () => {
