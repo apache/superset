@@ -880,7 +880,7 @@ def ensure_path_exists(path):
 def convert_legacy_filters_into_adhoc(fd):
     mapping = {'having': 'having_filters', 'where': 'filters'}
 
-    if 'adhoc_filters' not in fd:
+    if not fd.get('adhoc_filters'):
         fd['adhoc_filters'] = []
 
         for clause, filters in mapping.items():
