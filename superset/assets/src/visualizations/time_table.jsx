@@ -108,6 +108,9 @@ function viz(slice, payload) {
             yScale.max = max;
           }
         }
+        const margin = column.showYAxisBounds && (hasMin || hasMax)
+          ? { ...SPARKLINE_MARGIN, right: SPARKLINE_MARGIN.right + 30 }
+          : SPARKLINE_MARGIN;
         row[column.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
@@ -126,7 +129,7 @@ function viz(slice, payload) {
                   ariaLabel={`spark-${metricLabel}`}
                   width={parseInt(column.width, 10) || 300}
                   height={parseInt(column.height, 10) || 50}
-                  margin={SPARKLINE_MARGIN}
+                  margin={margin}
                   data={sparkData}
                   onMouseLeave={onMouseLeave}
                   onMouseMove={onMouseMove}
@@ -135,6 +138,8 @@ function viz(slice, payload) {
                   {column.showYAxisBounds && hasMin &&
                     <HorizontalReferenceLine
                       reference={yScale.min}
+                      labelPosition="right"
+                      renderLabel={() => d3format(column.d3format, yScale.min)}
                       stroke="#bbb"
                       strokeDasharray="3 3"
                       strokeWidth={1}
@@ -142,6 +147,8 @@ function viz(slice, payload) {
                   {column.showYAxisBounds && hasMax &&
                     <HorizontalReferenceLine
                       reference={yScale.max}
+                      labelPosition="right"
+                      renderLabel={() => d3format(column.d3format, yScale.max)}
                       stroke="#bbb"
                       strokeDasharray="3 3"
                       strokeWidth={1}
