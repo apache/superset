@@ -36,8 +36,8 @@ export default function lineMulti(slice, payload) {
           const addPrefix = fd.prefix_metric_with_slice_name;
           const data = response.data.map(({ key, values }) => ({
             key: addPrefix ? `${subslice.slice_name}: ${key}` : key,
-            values,
             type: fdCopy.viz_type,
+            values,
             yAxis,
           }));
           resolve(data);
