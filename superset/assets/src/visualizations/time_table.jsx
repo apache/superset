@@ -4,7 +4,7 @@ import propTypes from 'prop-types';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
 import Mustache from 'mustache';
-import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
+import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../components/MetricOption';
 import { d3format } from '../modules/utils';
@@ -95,12 +95,16 @@ function viz(slice, payload) {
         }
         const formatDate = formatDateThunk(column.dateFormat);
         const yScale = {};
+        let hasMin = false;
+        let hasMax = false;
         if (column.yAxisBounds) {
           const [min, max] = column.yAxisBounds;
-          if (min !== null && min !== undefined && min !== '') {
+          hasMin = min !== null && min !== undefined && min !== '';
+          if (hasMin) {
             yScale.min = min;
           }
-          if (max !== null && max !== undefined && max !== '') {
+          hasMax = max !== null && max !== undefined && max !== '';
+          if (hasMax) {
             yScale.max = max;
           }
         }
@@ -128,6 +132,20 @@ function viz(slice, payload) {
                   onMouseMove={onMouseMove}
                   {...yScale}
                 >
+                  {hasMin &&
+                    <HorizontalReferenceLine
+                      reference={yScale.min}
+                      stroke="#bbb"
+                      strokeDasharray="3 3"
+                      strokeWidth={1}
+                    />}
+                  {hasMax &&
+                    <HorizontalReferenceLine
+                      reference={yScale.max}
+                      stroke="#bbb"
+                      strokeDasharray="3 3"
+                      strokeWidth={1}
+                    />}
                   <LineSeries
                     showArea={false}
                     stroke="#767676"
