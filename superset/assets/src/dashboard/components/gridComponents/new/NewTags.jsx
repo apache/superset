@@ -16,36 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DASHBOARD_GRID_TYPE,
-  CHART_TYPE,
-  COLUMN_TYPE,
-  MARKDOWN_TYPE,
-  TAB_TYPE,
-  TAGS_TYPE,
-} from './componentTypes';
+import React from 'react';
 
-const typeToWrapChildLookup = {
-  [DASHBOARD_GRID_TYPE]: {
-    [CHART_TYPE]: true,
-    [COLUMN_TYPE]: true,
-    [MARKDOWN_TYPE]: true,
-    [TAGS_TYPE]: true,
-  },
+import { TAGS_TYPE } from '../../../util/componentTypes';
+import { NEW_TAGS_ID } from '../../../util/constants';
+import DraggableNewComponent from './DraggableNewComponent';
 
-  [TAB_TYPE]: {
-    [CHART_TYPE]: true,
-    [COLUMN_TYPE]: true,
-    [MARKDOWN_TYPE]: true,
-    [TAGS_TYPE]: true,
-  },
-};
-
-export default function shouldWrapChildInRow({ parentType, childType }) {
-  if (!parentType || !childType) return false;
-
-  const wrapChildLookup = typeToWrapChildLookup[parentType];
-  if (!wrapChildLookup) return false;
-
-  return Boolean(wrapChildLookup[childType]);
+export default function DraggableNewTags() {
+  return (
+    <DraggableNewComponent
+      id={NEW_TAGS_ID}
+      type={TAGS_TYPE}
+      label="Tagged content"
+      className="fa fa-tags"
+    />
+  );
 }
