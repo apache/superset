@@ -94,6 +94,16 @@ function viz(slice, payload) {
           }
         }
         const formatDate = formatDateThunk(column.dateFormat);
+        const yScale = {};
+        if (column.yAxisBounds) {
+          const [min, max] = column.yAxisBounds;
+          if (min !== null && min !== undefined && min !== '') {
+            yScale.min = min;
+          }
+          if (max !== null && max !== undefined && max !== '') {
+            yScale.max = max;
+          }
+        }
         row[column.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
@@ -116,6 +126,7 @@ function viz(slice, payload) {
                   data={sparkData}
                   onMouseLeave={onMouseLeave}
                   onMouseMove={onMouseMove}
+                  {...yScale}
                 >
                   <LineSeries
                     showArea={false}

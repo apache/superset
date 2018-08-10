@@ -50,6 +50,9 @@ export default class TimeSeriesColumnControl extends React.Component {
   onBoundsChange(bounds) {
     this.setState({ bounds }, this.onChange);
   }
+  onYAxisBoundsChange(yAxisBounds) {
+    this.setState({ yAxisBounds }, this.onChange);
+  }
   setType() {
   }
   textSummary() {
@@ -163,6 +166,17 @@ export default class TimeSeriesColumnControl extends React.Component {
               clearable={false}
               onChange={this.onSelectChange.bind(this, 'comparisonType')}
               options={comparisonTypeOptions}
+            />,
+          )}
+          {this.state.colType === 'spark' && this.formRow(
+            'Y-axis bounds',
+            (
+              'Manually set min/max values for the y-axis.'
+            ),
+            'y-axis-bounds',
+            <BoundsControl
+              value={this.state.yAxisBounds}
+              onChange={this.onYAxisBoundsChange.bind(this)}
             />,
           )}
           {this.state.colType !== 'spark' && this.formRow(
