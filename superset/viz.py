@@ -557,7 +557,7 @@ class TableViz(BaseViz):
                 percent_metrics,
             ):
                 del df[m]
-
+        df = df.fillna('<NULL>')
         data = self.handle_js_int_overflow(
             dict(
                 records=df.to_dict(orient='records'),
