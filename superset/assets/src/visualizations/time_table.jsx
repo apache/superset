@@ -8,6 +8,7 @@ import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalRe
 
 import MetricOption from '../components/MetricOption';
 import { d3format } from '../modules/utils';
+import { getTextDimension } from '../modules/visUtils';
 import { formatDateThunk } from '../modules/dates';
 import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
 import './time_table.css';
@@ -26,6 +27,21 @@ const sparklineTooltipProps = {
 };
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
+
+function isValidBoundValue(value) {
+  return value !== null && value !== undefined && value !== '' && !Number.isNaN(value);
+}
+
+function getSparklineTextWidth(text) {
+  return getTextDimension({
+    text,
+    style: {
+      fontSize: '12px',
+      fontWeight: 200,
+      letterSpacing: 0.4,
+    },
+  }).width + 5;
+}
 
 function FormattedNumber({ num, format }) {
   if (format) {
@@ -97,20 +113,25 @@ function viz(slice, payload) {
         const yScale = {};
         let hasMin = false;
         let hasMax = false;
+        let minLabel = '';
+        let maxLabel = '';
+        let labelLength = 0;
         if (column.yAxisBounds) {
           const [min, max] = column.yAxisBounds;
-          hasMin = min !== null && min !== undefined && min !== '';
+          hasMin = isValidBoundValue(min);
           if (hasMin) {
             yScale.min = min;
+            minLabel = d3format(column.d3format, yScale.min);
+            labelLength = getSparklineTextWidth(minLabel);
           }
-          hasMax = max !== null && max !== undefined && max !== '';
+          hasMax = isValidBoundValue(max);
           if (hasMax) {
             yScale.max = max;
+            maxLabel = d3format(column.d3format, yScale.max);
+            labelLength = Math.max(labelLength, getSparklineTextWidth(maxLabel));
           }
         }
-        const margin = column.showYAxisBounds && (hasMin || hasMax)
-          ? { ...SPARKLINE_MARGIN, right: SPARKLINE_MARGIN.right + 30 }
-          : SPARKLINE_MARGIN;
+        const margin = { ...SPARKLINE_MARGIN, right: SPARKLINE_MARGIN.right + labelLength };
         row[column.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
@@ -139,7 +160,7 @@ function viz(slice, payload) {
                     <HorizontalReferenceLine
                       reference={yScale.min}
                       labelPosition="right"
-                      renderLabel={() => d3format(column.d3format, yScale.min)}
+                      renderLabel={() => minLabel}
                       stroke="#bbb"
                       strokeDasharray="3 3"
                       strokeWidth={1}
@@ -148,7 +169,7 @@ function viz(slice, payload) {
                     <HorizontalReferenceLine
                       reference={yScale.max}
                       labelPosition="right"
-                      renderLabel={() => d3format(column.d3format, yScale.max)}
+                      renderLabel={() => maxLabel}
                       stroke="#bbb"
                       strokeDasharray="3 3"
                       strokeWidth={1}
