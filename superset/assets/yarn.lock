@@ -7843,9 +7843,9 @@ react-gravatar@^2.6.1:
     md5 "^2.1.0"
     query-string "^4.2.2"
 
-react-grid-layout@0.16.6:
-  version "0.16.6"
-  resolved "https://registry.yarnpkg.com/react-grid-layout/-/react-grid-layout-0.16.6.tgz#9b2407a2b946c2260ebaf66f13b556e1da4efeb2"
+react-grid-layout@0.16.5:
+  version "0.16.5"
+  resolved "https://registry.yarnpkg.com/react-grid-layout/-/react-grid-layout-0.16.5.tgz#1ff12d12afa875c11fe05802f7509e52bfe9a2cb"
   dependencies:
     classnames "2.x"
     lodash.isequal "^4.0.0"
