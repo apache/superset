@@ -56,6 +56,8 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'sum': _('Sum'),
         'min': _('Min'),
         'max': _('Max'),
+        'verbose_name': _('Verbose Name'),
+        'description': _('Description'),
     }
     description_columns = {
         'filterable': _(
@@ -137,6 +139,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'json': _('JSON'),
         'datasource': _('Druid Datasource'),
         'warning_text': _('Warning Message'),
+        'is_restricted': _('Is Restricted'),
     }
 
     def post_add(self, metric):
@@ -175,6 +178,9 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),
+        'verbose_name': _('Verbose Name'),
+        'cache_timeout': _('Cache Timeout'),
+        'metadata_last_refreshed': _('Metadata Last Refreshed'),
     }
     description_columns = {
         'cache_timeout': _(
@@ -272,6 +278,10 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'default_endpoint': _('Default Endpoint'),
         'offset': _('Time Offset'),
         'cache_timeout': _('Cache Timeout'),
+        'datasource_name': _('Datasource Name'),
+        'fetch_values_from': _('Fetch Values From'),
+        'changed_by_': _('Changed By'),
+        'modified': _('Modified'),
     }
 
     def pre_add(self, datasource):
