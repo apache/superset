@@ -6,6 +6,8 @@ import DragDroppable from '../../dnd/DragDroppable';
 import { NEW_COMPONENTS_SOURCE_ID } from '../../../util/constants';
 import { NEW_COMPONENT_SOURCE_TYPE } from '../../../util/componentTypes';
 
+import { t } from '../../../../locales';
+
 const propTypes = {
   id: PropTypes.string.isRequired,
   type: PropTypes.string.isRequired,
@@ -34,7 +36,7 @@ export default class DraggableNewComponent extends React.PureComponent {
         {({ dragSourceRef }) => (
           <div ref={dragSourceRef} className="new-component">
             <div className={cx('new-component-placeholder', className)} />
-            {label}
+            {t(label)}
           </div>
         )}
       </DragDroppable>
