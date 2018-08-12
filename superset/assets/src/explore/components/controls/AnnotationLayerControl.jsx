@@ -75,7 +75,7 @@ class AnnotationLayerControl extends React.PureComponent {
     return (
       <Popover
         style={{ maxWidth: 'none' }}
-        title={annotation ? 'Edit Annotation Layer' : 'Add Annotation Layer'}
+        title={annotation ? t('Edit Annotation Layer') : t('Add Annotation Layer')}
         id={`annotation-pop-${id}`}
       >
         <AnnotationLayer
