@@ -240,6 +240,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_run_sync': _('Allow Run Sync'),
         'allow_run_async': _('Allow Run Async'),
         'impersonate_user': _('Impersonate the logged on user'),
+        'allow_csv_upload': _('Allow Csv Upload'),
+        'modified': _('Modified'),
+        'allow_multi_schema_metadata_fetch': _('Allow Multi Schema Metadata Fetch'),
+        'backend': _('Backend'),
     }
 
     def pre_add(self, db):
@@ -624,6 +628,12 @@ appbuilder.add_view_no_menu(DashboardAddView)
 
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
+
+    list_title = _('List Log')
+    show_title = _('Show Log')
+    add_title = _('Add Log')
+    edit_title = _('Edit Log')
+
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
     base_order = ('dttm', 'desc')
@@ -2725,6 +2735,12 @@ appbuilder.add_view_no_menu(Superset)
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
+
+    list_title = _('List Css Template')
+    show_title = _('Show Css Template')
+    add_title = _('Add Css Template')
+    edit_title = _('Edit Css Template')
+
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
