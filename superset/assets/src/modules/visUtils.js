@@ -18,7 +18,7 @@ export function getTextDimension({
   }
 
   if (isDefined(style)) {
-    ['font', 'fontWeight', 'fontStyle', 'fontSize', 'fontFamily']
+    ['font', 'fontWeight', 'fontStyle', 'fontSize', 'fontFamily', 'letterSpacing']
       .filter(field => isDefined(style[field]))
       .forEach((field) => {
         textNode.style[field] = style[field];
