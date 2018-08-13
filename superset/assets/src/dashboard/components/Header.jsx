@@ -74,23 +74,15 @@ class Header extends React.PureComponent {
     this.forceRefresh = this.forceRefresh.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
 
-    this.fetchTags = fetchTags.bind(this, {
+    const tagOptions = {
       objectType: 'dashboard',
       objectId: props.dashboardInfo.id,
       includeTypes: false,
-    });
-    this.fetchSuggestions = fetchSuggestions.bind(this, {
-      includeTypes: false,
-    });
-    this.deleteTag = deleteTag.bind(this, {
-      objectType: 'dashboard',
-      objectId: props.dashboardInfo.id,
-    });
-    this.addTag = addTag.bind(this, {
-      objectType: 'dashboard',
-      objectId: props.dashboardInfo.id,
-      includeTypes: false,
-    });
+    };
+    this.fetchTags = fetchTags.bind(this, tagOptions);
+    this.fetchSuggestions = fetchSuggestions.bind(this, tagOptions);
+    this.deleteTag = deleteTag.bind(this, tagOptions);
+    this.addTag = addTag.bind(this, tagOptions);
   }
 
   componentWillReceiveProps(nextProps) {

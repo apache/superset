@@ -42,23 +42,15 @@ class ExploreChartHeader extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.fetchTags = fetchTags.bind(this, {
+    const options = {
       objectType: 'chart',
       objectId: props.chart.id,
       includeTypes: false,
-    });
-    this.fetchSuggestions = fetchSuggestions.bind(this, {
-      includeTypes: false,
-    });
-    this.deleteTag = deleteTag.bind(this, {
-      objectType: 'chart',
-      objectId: props.chart.id,
-    });
-    this.addTag = addTag.bind(this, {
-      objectType: 'chart',
-      objectId: props.chart.id,
-      includeTypes: false,
-    });
+    };
+    this.fetchTags = fetchTags.bind(this, options);
+    this.fetchSuggestions = fetchSuggestions.bind(this, options);
+    this.deleteTag = deleteTag.bind(this, options);
+    this.addTag = addTag.bind(this, options);
   }
 
   runQuery() {
