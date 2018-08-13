@@ -39,7 +39,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -1011,3 +1012,7 @@ def get_username():
         return g.user.username
     except Exception:
         pass
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')
