@@ -3285,7 +3285,7 @@ Legend.prototype.redraw = function(width) {
   });
   legendItem
   .on("mouseover", function(d) {
-    calendar.legendTip.show(d);
+    calendar.legendTip.show(d, this);
   })
   .on("mouseout", function() {
     calendar.legendTip.hide();
