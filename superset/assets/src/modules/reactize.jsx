@@ -6,12 +6,14 @@ export default function reactize(renderFn) {
     id: PropTypes.string,
     className: PropTypes.string,
     formData: PropTypes.object,
+    data: PropTypes.object,
     setControlValue: PropTypes.func,
   };
   const defaultProps = {
     id: null,
     className: '',
     formData: {},
+    data,
     setControlValue() {},
   };
 
@@ -30,8 +32,8 @@ export default function reactize(renderFn) {
 
     execute() {
       if (this.container) {
-        const { formData, setControlValue } = this.props;
-        renderFn(this.container, formData, setControlValue);
+        const { formData, data, setControlValue } = this.props;
+        renderFn(this.container, formData, data, setControlValue);
       }
     }
 
