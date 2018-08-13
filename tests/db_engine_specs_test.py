@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import textwrap
+
 from six import text_type
 
 from superset.db_engine_specs import (

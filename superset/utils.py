@@ -27,7 +27,6 @@ import zlib
 import bleach
 import celery
 from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 from flask import flash, g, Markup, render_template
 from flask_babel import gettext as __
 from flask_caching import Cache
