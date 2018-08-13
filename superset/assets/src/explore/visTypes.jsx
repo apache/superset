@@ -283,12 +283,12 @@ export const visTypes = {
       },
       sqlaTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
       druidTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
     },
