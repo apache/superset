@@ -12,7 +12,7 @@ const propTypes = {
   ariaLabel: PropTypes.string,
   numberFormat: PropTypes.string,
   yAxisBounds: PropTypes.array,
-  showYAxisBounds: PropTypes.bool,
+  showYAxis: PropTypes.bool,
   renderTooltip: PropTypes.func,
 };
 const defaultProps = {
@@ -22,17 +22,17 @@ const defaultProps = {
   ariaLabel: '',
   numberFormat: undefined,
   yAxisBounds: [null, null],
-  showYAxisBounds: false,
+  showYAxis: false,
   renderTooltip() { return <div />; },
 };
 
-const SPARKLINE_MARGIN = {
+const MARGIN = {
   top: 8,
   right: 8,
   bottom: 8,
   left: 8,
 };
-const sparklineTooltipProps = {
+const tooltipProps = {
   style: {
     opacity: 0.8,
   },
@@ -55,8 +55,17 @@ function isValidBoundValue(value) {
 }
 
 class SparklineCell extends React.Component {
-  renderLine() {
-
+  renderHorizontalReferenceLine(value, label) {
+    return (
+      <HorizontalReferenceLine
+        reference={value}
+        labelPosition="right"
+        renderLabel={() => label}
+        stroke="#bbb"
+        strokeDasharray="3 3"
+        strokeWidth={1}
+      />
+    );
   }
 
   render() {
@@ -67,39 +76,56 @@ class SparklineCell extends React.Component {
       ariaLabel,
       numberFormat,
       yAxisBounds,
-      showYAxisBounds,
+      showYAxis,
       renderTooltip,
     } = this.props;
 
     const yScale = {};
-    let hasMin = false;
-    let hasMax = false;
-    let minLabel = '';
-    let maxLabel = '';
-    let labelLength = 0;
+    let hasMinBound = false;
+    let hasMaxBound = false;
+
     if (yAxisBounds) {
-      const [min, max] = yAxisBounds;
-      hasMin = isValidBoundValue(min);
-      if (hasMin) {
-        yScale.min = min;
-        minLabel = d3format(numberFormat, yScale.min);
-        labelLength = getSparklineTextWidth(minLabel);
+      const [minBound, maxBound] = yAxisBounds;
+      hasMinBound = isValidBoundValue(minBound);
+      if (hasMinBound) {
+        yScale.min = minBound;
       }
-      hasMax = isValidBoundValue(max);
-      if (hasMax) {
-        yScale.max = max;
-        maxLabel = d3format(numberFormat, yScale.max);
-        labelLength = Math.max(labelLength, getSparklineTextWidth(maxLabel));
+      hasMaxBound = isValidBoundValue(maxBound);
+      if (hasMaxBound) {
+        yScale.max = maxBound;
       }
     }
+
+    let min;
+    let max;
+    let minLabel;
+    let maxLabel;
+    let labelLength = 0;
+    if (showYAxis) {
+      const [minBound, maxBound] = yAxisBounds;
+      min = hasMinBound
+        ? minBound
+        : data.reduce((acc, current) => Math.min(acc, current), data[0]);
+      max = hasMaxBound
+        ? maxBound
+        : data.reduce((acc, current) => Math.max(acc, current), data[0]);
+
+      minLabel = d3format(numberFormat, min);
+      maxLabel = d3format(numberFormat, max);
+      labelLength = Math.max(
+        getSparklineTextWidth(minLabel),
+        getSparklineTextWidth(maxLabel),
+      );
+    }
+
     const margin = {
-      ...SPARKLINE_MARGIN,
-      right: SPARKLINE_MARGIN.right + labelLength,
+      ...MARGIN,
+      right: MARGIN.right + labelLength,
     };
 
     return (
       <WithTooltip
-        tooltipProps={sparklineTooltipProps}
+        tooltipProps={tooltipProps}
         hoverStyles={null}
         renderTooltip={renderTooltip}
       >
@@ -114,24 +140,10 @@ class SparklineCell extends React.Component {
             onMouseMove={onMouseMove}
             {...yScale}
           >
-            {showYAxisBounds && hasMin &&
-              <HorizontalReferenceLine
-                reference={yScale.min}
-                labelPosition="right"
-                renderLabel={() => minLabel}
-                stroke="#bbb"
-                strokeDasharray="3 3"
-                strokeWidth={1}
-              />}
-            {showYAxisBounds && hasMax &&
-              <HorizontalReferenceLine
-                reference={yScale.max}
-                labelPosition="right"
-                renderLabel={() => maxLabel}
-                stroke="#bbb"
-                strokeDasharray="3 3"
-                strokeWidth={1}
-              />}
+            {showYAxis &&
+              this.renderHorizontalReferenceLine(min, minLabel)}
+            {showYAxis &&
+              this.renderHorizontalReferenceLine(max, maxLabel)}
             <LineSeries
               showArea={false}
               stroke="#767676"

@@ -93,7 +93,7 @@ function viz(slice, payload) {
               ariaLabel={`spark-${metricLabel}`}
               numberFormat={column.d3format}
               yAxisBounds={column.yAxisBounds}
-              showYAxisBounds={column.showYAxisBounds}
+              showYAxis={column.showYAxis}
               renderTooltip={({ index }) => (
                 <div>
                   <strong>{d3format(column.d3Format, sparkData[index])}</strong>

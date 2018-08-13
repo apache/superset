@@ -184,14 +184,14 @@ export default class TimeSeriesColumnControl extends React.Component {
             />,
           )}
           {this.state.colType === 'spark' && this.formRow(
-            'Show bounds',
+            'Show Y-axis',
             (
-              'Show Y-axis bounds as dotted line on the sparkline'
+              'Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.'
             ),
             'show-y-axis-bounds',
             <CheckboxControl
-              value={this.state.showYAxisBounds}
-              onChange={this.onCheckboxChange.bind(this, 'showYAxisBounds')}
+              value={this.state.showYAxis}
+              onChange={this.onCheckboxChange.bind(this, 'showYAxis')}
             />,
           )}
           {this.state.colType !== 'spark' && this.formRow(
