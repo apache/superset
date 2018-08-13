@@ -165,7 +165,7 @@ def execute_sql(
     try:
         engine = database.get_sqla_engine(
             schema=query.schema,
-            nullpool=not ctask.request.called_directly,
+            nullpool=True,
             user_name=user_name,
         )
         conn = engine.raw_connection()
