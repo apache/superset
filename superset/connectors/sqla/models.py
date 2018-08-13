@@ -410,6 +410,7 @@ class SqlaTable(Model, BaseDatasource):
                 grains = [(g.duration, g.name) for g in grains]
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
+            d['main_dttm_col'] = self.main_dttm_col
         return d
 
     def values_for_column(self, column_name, limit=10000):

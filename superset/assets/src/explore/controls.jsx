@@ -832,22 +832,23 @@ export const controls = {
     'column in the table. Also note that the ' +
     'filter below is applied against this column or ' +
     'expression'),
-    default: (c) => {
-      if (c.options && c.options.length > 0) {
-        return c.options[0].column_name;
-      }
-      return null;
-    },
+    default: control => control.default,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: (state) => {
-      const newState = {};
+      const props = {};
       if (state.datasource) {
-        newState.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.default = null;
+        if (state.datasource.main_dttm_col) {
+          props.default = state.datasource.main_dttm_col;
+        } else if (props.options && props.options.length > 0) {
+          props.default = props.options[0].column_name;
+        }
       }
-      return newState;
+      return props;
     },
   },
 
