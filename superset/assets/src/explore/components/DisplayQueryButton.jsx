@@ -142,7 +142,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         <ModalTrigger
           isMenuItem
           animation={this.props.animation}
-          triggerNode={<span>View query</span>}
+          triggerNode={<span>{t('View query')}</span>}
           modalTitle={t('View query')}
           bsSize="large"
           beforeOpen={this.beforeOpen}
@@ -152,7 +152,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         <ModalTrigger
           isMenuItem
           animation={this.props.animation}
-          triggerNode={<span>View results</span>}
+          triggerNode={<span>{t('View results')}</span>}
           modalTitle={t('View results')}
           bsSize="large"
           beforeOpen={this.beforeOpen}
@@ -163,7 +163,7 @@ export default class DisplayQueryButton extends React.PureComponent {
           eventKey="3"
           onClick={this.redirectSQLLab.bind(this)}
         >
-          Run in SQL Lab
+          {t('Run in SQL Lab')}
         </MenuItem>}
       </DropdownButton>
     );
