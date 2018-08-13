@@ -42,6 +42,7 @@ from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 from superset.models.user_attributes import UserAttribute
+from superset.utils import MediumText
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -363,7 +364,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(Text)
+    position_json = Column(MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)

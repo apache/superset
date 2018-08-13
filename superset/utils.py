@@ -38,7 +38,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -934,3 +935,7 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')
