@@ -20,7 +20,7 @@ from superset import appbuilder, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.views.base import BaseSupersetView
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, validate_json)
 from . import models
 
@@ -228,7 +228,7 @@ class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
         # table object is already added to the session
         if number_of_existing_datasources > 1:
-            raise Exception(get_datasource_exist_error_mgs(
+            raise Exception(get_datasource_exist_error_msg(
                 datasource.full_name))
 
     def post_add(self, datasource):
