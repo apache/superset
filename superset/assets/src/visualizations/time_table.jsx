@@ -1,47 +1,18 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
-import propTypes from 'prop-types';
+import PropTypes from 'prop-types';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
 import Mustache from 'mustache';
-import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../components/MetricOption';
-import { d3format } from '../modules/utils';
-import { getTextDimension } from '../modules/visUtils';
 import { formatDateThunk } from '../modules/dates';
+import { d3format } from '../modules/utils';
 import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
+import SparklineCell from './SparklineCell';
 import './time_table.css';
 
-const SPARKLINE_MARGIN = {
-  top: 8,
-  right: 8,
-  bottom: 8,
-  left: 8,
-};
-const sparklineTooltipProps = {
-  style: {
-    opacity: 0.8,
-  },
-  offsetTop: 0,
-};
-
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
-
-function isValidBoundValue(value) {
-  return value !== null && value !== undefined && value !== '' && !Number.isNaN(value);
-}
-
-function getSparklineTextWidth(text) {
-  return getTextDimension({
-    text,
-    style: {
-      fontSize: '12px',
-      fontWeight: 200,
-      letterSpacing: 0.4,
-    },
-  }).width + 5;
-}
 
 function FormattedNumber({ num, format }) {
   if (format) {
@@ -53,8 +24,8 @@ function FormattedNumber({ num, format }) {
 }
 
 FormattedNumber.propTypes = {
-  num: propTypes.number,
-  format: propTypes.string,
+  num: PropTypes.number,
+  format: PropTypes.string,
 };
 
 function viz(slice, payload) {
@@ -109,90 +80,27 @@ function viz(slice, payload) {
             }
           }
         }
+
         const formatDate = formatDateThunk(column.dateFormat);
-        const yScale = {};
-        let hasMin = false;
-        let hasMax = false;
-        let minLabel = '';
-        let maxLabel = '';
-        let labelLength = 0;
-        if (column.yAxisBounds) {
-          const [min, max] = column.yAxisBounds;
-          hasMin = isValidBoundValue(min);
-          if (hasMin) {
-            yScale.min = min;
-            minLabel = d3format(column.d3format, yScale.min);
-            labelLength = getSparklineTextWidth(minLabel);
-          }
-          hasMax = isValidBoundValue(max);
-          if (hasMax) {
-            yScale.max = max;
-            maxLabel = d3format(column.d3format, yScale.max);
-            labelLength = Math.max(labelLength, getSparklineTextWidth(maxLabel));
-          }
-        }
-        const margin = { ...SPARKLINE_MARGIN, right: SPARKLINE_MARGIN.right + labelLength };
+
         row[column.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
-            <WithTooltip
-              tooltipProps={sparklineTooltipProps}
-              hoverStyles={null}
+            <SparklineCell
+              width={parseInt(column.width, 10) || 300}
+              height={parseInt(column.height, 10) || 50}
+              data={sparkData}
+              ariaLabel={`spark-${metricLabel}`}
+              numberFormat={column.d3format}
+              yAxisBounds={column.yAxisBounds}
+              showYAxisBounds={column.showYAxisBounds}
               renderTooltip={({ index }) => (
                 <div>
-                  <strong>{d3format(column.d3format, sparkData[index])}</strong>
+                  <strong>{d3format(column.d3Format, sparkData[index])}</strong>
                   <div>{formatDate(data[index].iso)}</div>
                 </div>
               )}
-            >
-              {({ onMouseLeave, onMouseMove, tooltipData }) => (
-                <Sparkline
-                  ariaLabel={`spark-${metricLabel}`}
-                  width={parseInt(column.width, 10) || 300}
-                  height={parseInt(column.height, 10) || 50}
-                  margin={margin}
-                  data={sparkData}
-                  onMouseLeave={onMouseLeave}
-                  onMouseMove={onMouseMove}
-                  {...yScale}
-                >
-                  {column.showYAxisBounds && hasMin &&
-                    <HorizontalReferenceLine
-                      reference={yScale.min}
-                      labelPosition="right"
-                      renderLabel={() => minLabel}
-                      stroke="#bbb"
-                      strokeDasharray="3 3"
-                      strokeWidth={1}
-                    />}
-                  {column.showYAxisBounds && hasMax &&
-                    <HorizontalReferenceLine
-                      reference={yScale.max}
-                      labelPosition="right"
-                      renderLabel={() => maxLabel}
-                      stroke="#bbb"
-                      strokeDasharray="3 3"
-                      strokeWidth={1}
-                    />}
-                  <LineSeries
-                    showArea={false}
-                    stroke="#767676"
-                  />
-                  {tooltipData &&
-                    <VerticalReferenceLine
-                      reference={tooltipData.index}
-                      strokeDasharray="3 3"
-                      strokeWidth={1}
-                    />}
-                  {tooltipData &&
-                    <PointSeries
-                      points={[tooltipData.index]}
-                      fill="#767676"
-                      strokeWidth={1}
-                    />}
-                </Sparkline>
-              )}
-            </WithTooltip>
+            />
           ),
         };
       } else {
@@ -257,6 +165,7 @@ function viz(slice, payload) {
     });
     return row;
   });
+
   ReactDOM.render(
     <Table
       className="table table-no-hover"
