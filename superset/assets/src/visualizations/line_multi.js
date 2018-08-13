@@ -13,10 +13,13 @@ export default function lineMulti(slice, payload) {
 
   // fetch data from all the charts
   const promises = [];
-  const subslices = [
-    ...payload.data.slices.axis1.map(subslice => [1, subslice]),
-    ...payload.data.slices.axis2.map(subslice => [2, subslice]),
-  ];
+  let subslices = [];
+  if (payload.data.slices) {
+    subslices = [
+      ...payload.data.slices.axis1.map(subslice => [1, subslice]),
+      ...payload.data.slices.axis2.map(subslice => [2, subslice]),
+    ];
+  }
   subslices.forEach(([yAxis, subslice]) => {
     let filters = subslice.form_data.filters || [];
     filters.concat(fd.filters);
