@@ -38,7 +38,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -880,7 +881,7 @@ def ensure_path_exists(path):
 def convert_legacy_filters_into_adhoc(fd):
     mapping = {'having': 'having_filters', 'where': 'filters'}
 
-    if 'adhoc_filters' not in fd:
+    if not fd.get('adhoc_filters'):
         fd['adhoc_filters'] = []
 
         for clause, filters in mapping.items():
@@ -934,3 +935,7 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')
