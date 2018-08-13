@@ -1,16 +1,17 @@
 """elasticsearch
 
-Revision ID: b97e54338b27
-Revises: a65458420354
-Create Date: 2017-06-11 22:03:07.505841
+Revision ID: 8475d45ad108
+Revises: 0c5070e96b57
+Create Date: 2018-08-13 12:30:10.792053
 
 """
-from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'b97e54338b27'
-down_revision = 'a65458420354'
+revision = '8475d45ad108'
+down_revision = '0c5070e96b57'
+
+from alembic import op
+import sqlalchemy as sa
 
 
 def upgrade():
