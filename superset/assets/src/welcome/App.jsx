@@ -11,6 +11,8 @@ import { fetchSuggestions } from '../tags';
 import { t } from '../locales';
 import { STANDARD_TAGS } from '../dashboard/util/constants';
 
+const OWNED_BY_ME = 'owner:{{ current_user_id() }}';
+
 const propTypes = {
   user: PropTypes.object.isRequired,
 };
@@ -23,7 +25,7 @@ export default class App extends React.PureComponent {
     const key = parsedUrl.fragment() || 'dashboards';
     const searchParams = parsedUrl.search(true);
     const dashboardSearch = searchParams.search || '';
-    const tagSearch = searchParams.tags || '';
+    const tagSearch = searchParams.tags || OWNED_BY_ME;
     this.state = {
       key,
       dashboardSearch,
