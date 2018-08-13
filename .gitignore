@@ -49,3 +49,4 @@ venv
 /docker-entrypoint.sh
 /docker-init.sh
 venv2
+.setup-complete
