@@ -1614,7 +1614,6 @@ class Superset(BaseSupersetView):
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
             positions, indent=None, separators=(',', ':'), sort_keys=True)
-        dashboard.position_json = json.dumps(positions, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
