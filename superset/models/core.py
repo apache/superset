@@ -794,9 +794,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
+                if cursor.description is not None:
+                    columns = [col_desc[0] for col_desc in cursor.description]
+                else:
+                    columns = []
+
                 df = pd.DataFrame.from_records(
                     data=list(cursor.fetchall()),
-                    columns=[col_desc[0] for col_desc in cursor.description],
+                    columns=columns,
                     coerce_float=True,
                 )
 
