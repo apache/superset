@@ -4,10 +4,8 @@ import ControlHeader from '../ControlHeader';
 import Checkbox from '../../../components/Checkbox';
 
 const propTypes = {
-  name: PropTypes.string,
   value: PropTypes.bool,
   label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
 };
 
