@@ -41,7 +41,6 @@ class AnnotationDatasource(BaseDatasource):
     """
 
     cache_timeout = 0
-    database = None
 
     def query(self, query_obj):
         df = None
