@@ -7,8 +7,8 @@ import {
 import './styles.less';
 
 const propTypes = {
-  value: PropTypes.any,
-  label: PropTypes.string,
+  value: PropTypes.any.isRequired,
+  label: PropTypes.string.isRequired,
   descr: PropTypes.node,
   fieldKey: PropTypes.string.isRequired,
   control: PropTypes.node.isRequired,
@@ -19,6 +19,7 @@ const defaultProps = {
   controlProps: {},
   onChange: () => {},
   compact: false,
+  desc: null,
 };
 
 export default class Field extends React.PureComponent {
