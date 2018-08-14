@@ -53,6 +53,9 @@ initialize development environment: ::
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
+If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
+OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
+
 Or if you're curious and want to install superset from bottom up, then go 
 ahead.
 
