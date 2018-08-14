@@ -274,21 +274,14 @@ export const visTypes = {
       },
     },
     sectionOverrides: {
-      datasourceAndVizType: {
-        label: t('Chart Type'),
-        controlSetRows: [
-          ['viz_type'],
-          ['slice_id', 'cache_timeout'],
-        ],
-      },
       sqlaTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
       druidTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
     },
