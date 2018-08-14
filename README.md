@@ -92,6 +92,7 @@ Superset can be used to visualize data out of most databases:
 * MonetDB
 * Snowflake
 * Redshift
+* Clickhouse
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
 
@@ -165,7 +166,7 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
- - [Maieutical Labs](https://cloudschooling.it)
+ - [Maieutical Labs](https://maieuticallabs.it)
  - [PeopleDoc](https://www.people-doc.com)
  - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
@@ -174,6 +175,7 @@ the world know they are using Superset. Join our growing community!
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
  - [Tails.com](https://tails.com)
+ - [THEICONIC](http://theiconic.com.au/)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Twitter](https://twitter.com/)

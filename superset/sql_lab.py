@@ -3,15 +3,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
-import json
 import logging
 from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
-import numpy as np
-import pandas as pd
+import simplejson as json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -29,27 +27,6 @@ SQLLAB_TIMEOUT = config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC', 600)
 
 class SqlLabException(Exception):
     pass
-
-
-def dedup(l, suffix='__'):
-    """De-duplicates a list of string by suffixing a counter
-
-    Always returns the same number of entries as provided, and always returns
-    unique values.
-
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
-    foo,bar,bar__1,bar__2
-    """
-    new_l = []
-    seen = {}
-    for s in l:
-        if s in seen:
-            seen[s] += 1
-            s += suffix + str(seen[s])
-        else:
-            seen[s] = 0
-        new_l.append(s)
-    return new_l
 
 
 def get_query(query_id, session, retry_count=5):
@@ -96,24 +73,6 @@ def session_scope(nullpool):
         session.close()
 
 
-def convert_results_to_df(column_names, data):
-    """Convert raw query results to a DataFrame."""
-    column_names = dedup(column_names)
-
-    # check whether the result set has any nested dict columns
-    if data:
-        first_row = data[0]
-        has_dict_col = any([isinstance(c, dict) for c in first_row])
-        df_data = list(data) if has_dict_col else np.array(data, dtype=object)
-    else:
-        df_data = []
-
-    cdf = dataframe.SupersetDataFrame(
-        pd.DataFrame(df_data, columns=column_names))
-
-    return cdf
-
-
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
@@ -152,9 +111,6 @@ def execute_sql(
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
         troubleshooting_link = config['TROUBLESHOOTING_LINK']
-        msg = 'Error: {}. You can find common superset errors and their \
-            resolutions at: {}'.format(msg, troubleshooting_link) \
-            if troubleshooting_link else msg
         query.error_message = msg
         query.status = QueryStatus.FAILED
         query.tmp_table_name = None
@@ -163,6 +119,8 @@ def execute_sql(
             'status': query.status,
             'error': msg,
         })
+        if troubleshooting_link:
+            payload['link'] = troubleshooting_link
         return payload
 
     if store_results and not results_backend:
@@ -172,7 +130,7 @@ def execute_sql(
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
     SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
-    if not superset_query.is_select() and not database.allow_dml:
+    if not superset_query.is_readonly() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
     if query.select_as_cta:
@@ -214,8 +172,7 @@ def execute_sql(
         cursor = conn.cursor()
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
-        cursor.execute(query.executed_sql,
-                       **db_engine_spec.cursor_execute_kwargs)
+        db_engine_spec.execute(cursor, query.executed_sql, async=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
@@ -234,8 +191,7 @@ def execute_sql(
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info('Fetching cursor description')
-    column_names = db_engine_spec.get_normalized_column_names(cursor.description)
-
+    cursor_description = cursor.description
     if conn is not None:
         conn.commit()
         conn.close()
@@ -243,7 +199,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = convert_results_to_df(column_names, data)
+    cdf = dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
 
     query.rows = cdf.size
     query.progress = 100
@@ -269,7 +225,8 @@ def execute_sql(
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
-        json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+        json_payload = json.dumps(
+            payload, default=utils.json_iso_dttm_ser, ignore_nan=True)
         cache_timeout = database.cache_timeout
         if cache_timeout is None:
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)

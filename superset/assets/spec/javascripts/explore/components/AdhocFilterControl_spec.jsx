@@ -33,18 +33,9 @@ const columns = [
   { type: 'DOUBLE', column_name: 'value' },
 ];
 
-const legacyFilter = { col: 'value', op: '>', val: '5' };
-const legacyHavingFilter = { col: 'SUM(value)', op: '>', val: '10' };
-const whereFilterText = 'target in (\'alpha\')';
-const havingFilterText = 'SUM(value) < 20';
-
 const formData = {
-  filters: [legacyFilter],
-  having: havingFilterText,
-  having_filters: [legacyHavingFilter],
   metric: undefined,
   metrics: [sumValueAdhocMetric, savedMetric.saved_metric_name],
-  where: whereFilterText,
 };
 
 function setup(overrides) {
@@ -66,49 +57,6 @@ describe('AdhocFilterControl', () => {
   it('renders an onPasteSelect', () => {
     const { wrapper } = setup();
     expect(wrapper.find(OnPasteSelect)).to.have.lengthOf(1);
-  });
-
-  it('will translate legacy filters into adhoc filters if no adhoc filters are present', () => {
-    const { wrapper } = setup({ value: undefined });
-    expect(wrapper.state('values')).to.have.lengthOf(4);
-    expect(wrapper.state('values')[0].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: 'value',
-        operator: '>',
-        comparator: '5',
-        clause: CLAUSES.WHERE,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[1].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: 'SUM(value)',
-        operator: '>',
-        comparator: '10',
-        clause: CLAUSES.HAVING,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[2].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        sqlExpression: 'target in (\'alpha\')',
-        clause: CLAUSES.WHERE,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[3].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        sqlExpression: 'SUM(value) < 20',
-        clause: CLAUSES.HAVING,
-      })
-    ))).to.be.true;
-  });
-
-  it('will ignore legacy filters if adhoc filters are present', () => {
-    const { wrapper } = setup();
-    expect(wrapper.state('values')).to.have.lengthOf(1);
-    expect(wrapper.state('values')[0]).to.equal(simpleAdhocFilter);
   });
 
   it('handles saved metrics being selected to filter on', () => {

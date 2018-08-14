@@ -10,6 +10,8 @@ import unittest
 from mock import Mock, patch
 import pandas as pd
 
+from superset import app
+from superset.exceptions import SpatialException
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 from .utils import load_fixture
@@ -38,17 +40,13 @@ class BaseVizTestCase(unittest.TestCase):
     def test_get_df_returns_empty_df(self):
         datasource = Mock()
         datasource.type = 'table'
-        mock_dttm_col = Mock()
-        mock_dttm_col.python_date_format = Mock()
-        datasource.get_col = Mock(return_value=mock_dttm_col)
         form_data = {'dummy': 123}
         query_obj = {'granularity': 'day'}
         results = Mock()
         results.query = Mock()
         results.status = Mock()
         results.error_message = None
-        results.df = Mock()
-        results.df.empty = True
+        results.df = pd.DataFrame()
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
         result = test_viz.get_df(query_obj)
@@ -56,65 +54,70 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertTrue(result.empty)
 
     def test_get_df_handles_dttm_col(self):
-        datasource = Mock()
-        datasource.type = 'table'
-        datasource.offset = 1
-        mock_dttm_col = Mock()
-        mock_dttm_col.python_date_format = 'epoch_ms'
-        datasource.get_col = Mock(return_value=mock_dttm_col)
         form_data = {'dummy': 123}
         query_obj = {'granularity': 'day'}
         results = Mock()
         results.query = Mock()
         results.status = Mock()
         results.error_message = Mock()
-        df = Mock()
-        df.columns = [DTTM_ALIAS]
-        f_datetime = datetime(1960, 1, 1, 5, 0)
-        df.__getitem__ = Mock(return_value=pd.Series([f_datetime]))
-        df.__setitem__ = Mock()
-        df.replace = Mock()
-        df.fillna = Mock()
-        results.df = df
-        results.df.empty = False
+        datasource = Mock()
+        datasource.type = 'table'
         datasource.query = Mock(return_value=results)
+        mock_dttm_col = Mock()
+        datasource.get_col = Mock(return_value=mock_dttm_col)
         test_viz = viz.BaseViz(datasource, form_data)
-
         test_viz.df_metrics_to_num = Mock()
         test_viz.get_fillna_for_columns = Mock(return_value=0)
-        test_viz.get_df(query_obj)
-        mock_call = df.__setitem__.mock_calls[0]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertFalse(mock_call[1][1].empty)
-        self.assertEqual(mock_call[1][1][0], f_datetime)
-        mock_call = df.__setitem__.mock_calls[1]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 6)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
-        mock_dttm_col.python_date_format = 'utc'
-        test_viz.get_df(query_obj)
-        mock_call = df.__setitem__.mock_calls[2]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertFalse(mock_call[1][1].empty)
-        self.assertEqual(mock_call[1][1][0].hour, 7)
-        mock_call = df.__setitem__.mock_calls[3]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 6)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
-        mock_call = df.__setitem__.mock_calls[4]
-        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
-        self.assertEqual(mock_call[1][1][0].hour, 7)
-        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
+
+        results.df = pd.DataFrame(data={DTTM_ALIAS: ['1960-01-01 05:00:00']})
+        datasource.offset = 0
+        mock_dttm_col.python_date_format = 'epoch_ms'
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS),
+        )
+
+        mock_dttm_col.python_date_format = None
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 5, 0)], name=DTTM_ALIAS),
+        )
+
+        datasource.offset = 1
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 6, 0)], name=DTTM_ALIAS),
+        )
+
+        datasource.offset = 0
+        results.df = pd.DataFrame(data={DTTM_ALIAS: ['1960-01-01']})
+        mock_dttm_col.python_date_format = '%Y-%m-%d'
+        result = test_viz.get_df(query_obj)
+        pd.testing.assert_series_equal(
+            result[DTTM_ALIAS],
+            pd.Series([datetime(1960, 1, 1, 0, 0)], name=DTTM_ALIAS),
+        )
 
     def test_cache_timeout(self):
         datasource = Mock()
+        datasource.cache_timeout = 0
+        test_viz = viz.BaseViz(datasource, form_data={})
+        self.assertEqual(0, test_viz.cache_timeout)
         datasource.cache_timeout = 156
         test_viz = viz.BaseViz(datasource, form_data={})
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()
+        datasource.database.cache_timeout = 0
+        self.assertEqual(0, test_viz.cache_timeout)
         datasource.database.cache_timeout = 1666
         self.assertEqual(1666, test_viz.cache_timeout)
+        datasource.database.cache_timeout = None
+        test_viz = viz.BaseViz(datasource, form_data={})
+        self.assertEqual(app.config['CACHE_DEFAULT_TIMEOUT'], test_viz.cache_timeout)
 
 
 class TableVizTestCase(unittest.TestCase):
@@ -260,33 +263,6 @@ class TableVizTestCase(unittest.TestCase):
         )
         self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
         self.assertEqual('', query_obj['extras']['having'])
-
-    def test_legacy_filters_still_appear_without_adhoc_filters(self):
-        form_data = {
-            'metrics': [{
-                'expressionType': 'SIMPLE',
-                'aggregate': 'SUM',
-                'label': 'SUM(value1)',
-                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
-            }],
-            'having': 'SUM(value1) > 5',
-            'where': 'value3 in (\'North America\')',
-            'filters': [{'col': 'value2', 'val': '100', 'op': '>'}],
-            'having_filters': [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
-        }
-        datasource = Mock()
-        test_viz = viz.TableViz(datasource, form_data)
-        query_obj = test_viz.query_obj()
-        self.assertEqual(
-            [{'col': 'value2', 'val': '100', 'op': '>'}],
-            query_obj['filter'],
-        )
-        self.assertEqual(
-            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
-            query_obj['extras']['having_druid'],
-        )
-        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
-        self.assertEqual('SUM(value1) > 5', query_obj['extras']['having'])
 
     @patch('superset.viz.BaseViz.query_obj')
     def test_query_obj_merges_percent_metrics(self, super_query_obj):
@@ -947,3 +923,65 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert results['metrics'] == []
         assert results['groupby'] == []
         assert results['columns'] == ['test_col']
+
+    def test_parse_coordinates(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        viz_instance = viz.BaseDeckGLViz(datasource, form_data)
+
+        coord = viz_instance.parse_coordinates('1.23, 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        coord = viz_instance.parse_coordinates('1.23 3.21')
+        self.assertEquals(coord, (1.23, 3.21))
+
+        self.assertEquals(viz_instance.parse_coordinates(None), None)
+
+        self.assertEquals(viz_instance.parse_coordinates(''), None)
+
+    def test_parse_coordinates_raises(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('NULL')
+
+        with self.assertRaises(SpatialException):
+            test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
+
+
+class TimeSeriesVizTestCase(unittest.TestCase):
+
+    def test_timeseries_unicode_data(self):
+        datasource = Mock()
+        form_data = {
+            'groupby': ['name'],
+            'metrics': ['sum__payout'],
+        }
+        raw = {}
+        raw['name'] = [
+            'Real Madrid C.F.🇺🇸🇬🇧', 'Real Madrid C.F.🇺🇸🇬🇧',
+            'Real Madrid Basket', 'Real Madrid Basket',
+        ]
+        raw['__timestamp'] = [
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+            '2018-02-20T00:00:00', '2018-03-09T00:00:00',
+        ]
+        raw['sum__payout'] = [2, 2, 4, 4]
+        df = pd.DataFrame(raw)
+
+        test_viz = viz.NVD3TimeSeriesViz(datasource, form_data)
+        viz_data = {}
+        viz_data = test_viz.get_data(df)
+        expected = [
+            {u'values': [
+                {u'y': 4, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 4, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid Basket',)},
+            {u'values': [
+                {u'y': 2, u'x': u'2018-02-20T00:00:00'},
+                {u'y': 2, u'x': u'2018-03-09T00:00:00'}],
+                u'key': (u'Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7',)},
+        ]
+        self.assertEqual(expected, viz_data)

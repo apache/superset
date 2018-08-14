@@ -12,7 +12,6 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
-import six
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
@@ -24,7 +23,7 @@ from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 
-from superset import db, import_util, security_manager, utils
+from superset import app, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
@@ -32,6 +31,8 @@ from superset.models.core import Database
 from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
+
+config = app.config
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -92,6 +93,9 @@ class TableColumn(Model, BaseColumn):
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression',
     )
+
+    update_from_object_fields = [
+        s for s in export_fields if s not in ('table_id',)]
     export_parent = 'table'
 
     @property
@@ -169,6 +173,7 @@ class TableColumn(Model, BaseColumn):
             return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
 
     def get_metrics(self):
+        # TODO deprecate, this is not needed since MetricsControl
         metrics = []
         M = SqlMetric  # noqa
         quoted = self.column_name
@@ -220,7 +225,9 @@ class SqlMetric(Model, BaseMetric):
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',
-        'description', 'is_restricted', 'd3format')
+        'description', 'is_restricted', 'd3format', 'warning_text')
+    update_from_object_fields = list([
+        s for s in export_fields if s not in ('table_id', )])
     export_parent = 'table'
 
     @property
@@ -280,6 +287,8 @@ class SqlaTable(Model, BaseDatasource):
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
         'sql', 'params', 'template_params')
+    update_from_object_fields = [
+        f for f in export_fields if f not in ('table_name', 'database_id')]
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
@@ -304,10 +313,14 @@ class SqlaTable(Model, BaseDatasource):
         return utils.markdown(self.description)
 
     @property
+    def datasource_name(self):
+        return self.table_name
+
+    @property
     def link(self):
         name = escape(self.name)
-        return Markup(
-            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
+        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor.format(**locals()))
 
     @property
     def schema_perm(self):
@@ -362,12 +375,25 @@ class SqlaTable(Model, BaseDatasource):
     def sql_url(self):
         return self.database.sql_url + '?table_name=' + str(self.table_name)
 
+    def external_metadata(self):
+        cols = self.database.get_columns(self.table_name, schema=self.schema)
+        for col in cols:
+            col['type'] = '{}'.format(col['type'])
+        return cols
+
     @property
     def time_column_grains(self):
         return {
             'time_columns': self.dttm_cols,
             'time_grains': [grain.name for grain in self.database.grains()],
         }
+
+    @property
+    def select_star(self):
+        # show_cols and latest_partition set to false to avoid
+        # the expensive cost of inspecting the DB
+        return self.database.select_star(
+            self.name, show_cols=False, latest_partition=False)
 
     def get_col(self, col_name):
         columns = self.columns
@@ -384,6 +410,7 @@ class SqlaTable(Model, BaseDatasource):
                 grains = [(g.duration, g.name) for g in grains]
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
+            d['main_dttm_col'] = self.main_dttm_col
         return d
 
     def values_for_column(self, column_name, limit=10000):
@@ -411,27 +438,33 @@ class SqlaTable(Model, BaseDatasource):
         sql = '{}'.format(
             qry.compile(engine, compile_kwargs={'literal_binds': True}),
         )
+        sql = self.mutate_query_from_config(sql)
 
         df = pd.read_sql_query(sql=sql, con=engine)
         return [row[0] for row in df.to_records(index=False)]
+
+    def mutate_query_from_config(self, sql):
+        """Apply config's SQL_QUERY_MUTATOR
+
+        Typically adds comments to the query with context"""
+        SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
+        if SQL_QUERY_MUTATOR:
+            username = utils.get_username()
+            sql = SQL_QUERY_MUTATOR(sql, username, security_manager, self.database)
+        return sql
 
     def get_template_processor(self, **kwargs):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
     def get_query_str(self, query_obj):
-        engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = six.text_type(
-            qry.compile(
-                engine,
-                compile_kwargs={'literal_binds': True},
-            ),
-        )
+        sql = self.database.compile_sqla_query(qry)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
+        sql = self.mutate_query_from_config(sql)
         return sql
 
     def get_sqla_table(self):
@@ -651,6 +684,8 @@ class SqlaTable(Model, BaseDatasource):
 
         for col, ascending in orderby:
             direction = asc if ascending else desc
+            if utils.is_adhoc_metric(col):
+                col = self.adhoc_metric_to_sa(col, cols)
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -675,8 +710,15 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
-                    ob = timeseries_limit_metric.sqla_col
+                    if utils.is_adhoc_metric(timeseries_limit_metric):
+                        ob = self.adhoc_metric_to_sa(timeseries_limit_metric, cols)
+                    elif timeseries_limit_metric in metrics_dict:
+                        timeseries_limit_metric = metrics_dict.get(
+                            timeseries_limit_metric,
+                        )
+                        ob = timeseries_limit_metric.sqla_col
+                    else:
+                        raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)

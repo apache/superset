@@ -18,7 +18,7 @@ from past.builtins import basestring
 from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
@@ -156,7 +156,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_title = _('List Tables')
     show_title = _('Show Table')
-    add_title = _('Add Table')
+    add_title = _('Import a table definition')
     edit_title = _('Edit Table')
 
     list_columns = [
@@ -219,6 +219,10 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'template_params': _(
             'A set of parameters that become available in the query using '
             'Jinja templating syntax'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this table. '
+            'A timeout of 0 indicates that the cache never expires. '
+            'Note this defaults to the database timeout if undefined.'),
     }
     label_columns = {
         'slices': _('Associated Charts'),
@@ -238,6 +242,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'description': _('Description'),
         'is_sqllab_view': _('SQL Lab View'),
         'template_params': _('Template parameters'),
+        'modified': _('Modified'),
     }
 
     def pre_add(self, table):
@@ -248,7 +253,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
                 models.SqlaTable.database_id == table.database.id)
             if db.session.query(table_query.exists()).scalar():
                 raise Exception(
-                    get_datasource_exist_error_mgs(table.full_name))
+                    get_datasource_exist_error_msg(table.full_name))
 
         # Fail before adding if the table can't be found
         try:
@@ -296,12 +301,26 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def refresh(self, tables):
         if not isinstance(tables, list):
             tables = [tables]
+        successes = []
+        failures = []
         for t in tables:
-            t.fetch_metadata()
-        msg = _(
-            'Metadata refreshed for the following table(s): %(tables)s',
-            tables=', '.join([t.table_name for t in tables]))
-        flash(msg, 'info')
+            try:
+                t.fetch_metadata()
+                successes.append(t)
+            except Exception:
+                failures.append(t)
+
+        if len(successes) > 0:
+            success_msg = _(
+                'Metadata refreshed for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in successes]))
+            flash(success_msg, 'info')
+        if len(failures) > 0:
+            failure_msg = _(
+                'Unable to retrieve metadata for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in failures]))
+            flash(failure_msg, 'danger')
+
         return redirect('/tablemodelview/list/')
 
 
@@ -310,7 +329,7 @@ appbuilder.add_link(
     'Tables',
     label=__('Tables'),
     href='/tablemodelview/list/?_flt_1_is_sqllab_view=y',
-    icon='fa-upload',
+    icon='fa-table',
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-table')

@@ -200,7 +200,6 @@ export default class AdhocMetricEditPopover extends React.Component {
 
     const stateIsValid = adhocMetric.isValid();
     const hasUnsavedChanges = !adhocMetric.equals(propsAdhocMetric);
-
     return (
       <Popover
         id="metrics-edit-popover"
@@ -225,27 +224,30 @@ export default class AdhocMetricEditPopover extends React.Component {
               <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
             </FormGroup>
           </Tab>
-          {
-            this.props.datasourceType !== 'druid' &&
-            <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
-              <FormGroup>
-                <AceEditor
-                  ref={this.handleAceEditorRef}
-                  mode="sql"
-                  theme="github"
-                  height={(this.state.height - 43) + 'px'}
-                  onChange={this.onSqlExpressionChange}
-                  width="100%"
-                  showGutter={false}
-                  value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="adhoc-filter-sql-editor"
-                  wrapEnabled
-                />
-              </FormGroup>
-            </Tab>
-          }
+          <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
+            {
+              this.props.datasourceType !== 'druid' ?
+                <FormGroup>
+                  <AceEditor
+                    ref={this.handleAceEditorRef}
+                    mode="sql"
+                    theme="github"
+                    height={(this.state.height - 43) + 'px'}
+                    onChange={this.onSqlExpressionChange}
+                    width="100%"
+                    showGutter={false}
+                    value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
+                    editorProps={{ $blockScrolling: true }}
+                    enableLiveAutocompletion
+                    className="adhoc-filter-sql-editor"
+                    wrapEnabled
+                  />
+                </FormGroup> :
+                <div className="custom-sql-disabled-message">
+                  Custom SQL Metrics are not available on druid datasources
+                </div>
+            }
+          </Tab>
         </Tabs>
         <div>
           <Button

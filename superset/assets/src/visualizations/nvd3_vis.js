@@ -15,7 +15,7 @@ import AnnotationTypes, {
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy } from '../utils/common';
+import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -90,6 +90,18 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function wrapTooltip(chart, container) {
+  const tooltipLayer = chart.useInteractiveGuideline && chart.useInteractiveGuideline() ?
+    chart.interactiveLayer : chart;
+  const tooltipGeneratorFunc = tooltipLayer.tooltip.contentGenerator();
+  tooltipLayer.tooltip.contentGenerator((d) => {
+    let tooltip = `<div style="max-width: ${container.width() * 0.5}px">`;
+    tooltip += tooltipGeneratorFunc(d);
+    tooltip += '</div>';
+    return tooltip;
+  });
+}
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -104,11 +116,8 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
     label = verboseLabels.join(', ');
-    if (input.length > verboseLabels.length) {
-      label += ' ---';
-    }
   } else {
     label = verboseLkp(input);
   }
@@ -122,9 +131,13 @@ export default function nvd3Vis(slice, payload) {
 
   let data;
   if (payload.data) {
-    data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
-    }));
+    if (Array.isArray(payload.data)) {
+        data = payload.data.map(x => ({
+            ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+        }));
+    } else {
+      data = payload.data;
+    }
   } else {
     data = [];
   }
@@ -277,6 +290,7 @@ export default function nvd3Vis(slice, payload) {
         if (fd.donut) {
           chart.donut(true);
         }
+        chart.showLabels(fd.show_labels);
         chart.labelsOutside(fd.labels_outside);
         chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
         if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
@@ -406,8 +420,8 @@ export default function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (fd.num_period_compare || fd.contribution) {
-        // When computing a "Period Ratio" or "Contribution" selected, we force a percentage format
+      if (fd.contribution || fd.comparison_type === 'percentage') {
+        // When computing a "Percentage" or "Contribution" selected, we force a percentage format
         const percentageFormat = d3.format('.1%');
         chart.yAxis.tickFormat(percentageFormat);
       } else {
@@ -495,6 +509,8 @@ export default function nvd3Vis(slice, payload) {
         chart.showLegend(fd.show_legend);
       }
     }
+    // This is needed for correct chart dimensions if a chart is rendered in a hidden container
+    chart.width(width);
     chart.height(height);
     slice.container.css('height', height + 'px');
 
@@ -613,7 +629,7 @@ export default function nvd3Vis(slice, payload) {
             key,
             color: a.color,
             strokeWidth: a.width,
-            classed: `${a.opacity} ${a.style}`,
+            classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
           };
         })), []);
         data.push(...timeSeriesAnnotations);
@@ -838,8 +854,23 @@ export default function nvd3Vis(slice, payload) {
             });
           });
         }
+
+        // rerender chart appended with annotation layer
+        svg.datum(data)
+          .attr('height', height)
+          .attr('width', width)
+          .call(chart);
+
+        // Display styles for Time Series Annotations
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
+          .style('stroke-width', 0);
       }
     }
+
+    wrapTooltip(chart, slice.container);
     return chart;
   };
 

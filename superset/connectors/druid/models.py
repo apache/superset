@@ -98,6 +98,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
                      'coordinator_endpoint', 'broker_host', 'broker_port',
                      'broker_endpoint', 'cache_timeout')
+    update_from_object_fields = export_fields
     export_children = ['datasources']
 
     def __repr__(self):
@@ -109,6 +110,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         return {
+            'id': self.id,
             'name': self.cluster_name,
             'backend': 'druid',
         }
@@ -121,10 +123,10 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         url = '{0}:{1}'.format(host, port) if port else host
         return url
 
-    def get_base_coordinator_url(self):
+    def get_base_broker_url(self):
         base_url = self.get_base_url(
-            self.coordinator_host, self.coordinator_port)
-        return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
+            self.broker_host, self.broker_port)
+        return '{base_url}/{self.broker_endpoint}'.format(**locals())
 
     def get_pydruid_client(self):
         cli = PyDruid(
@@ -133,13 +135,18 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return cli
 
     def get_datasources(self):
-        endpoint = self.get_base_coordinator_url() + '/datasources'
+        endpoint = self.get_base_broker_url() + '/datasources'
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
             self.coordinator_host, self.coordinator_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
+
+    @property
+    @utils.memoized
+    def druid_version(self):
+        return self.get_druid_version()
 
     def refresh_datasources(
             self,
@@ -149,7 +156,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         """Refresh metadata of all datasources in the cluster
         If ``datasource_name`` is specified, only that datasource is updated
         """
-        self.druid_version = self.get_druid_version()
         ds_list = self.get_datasources()
         blacklist = conf.get('DRUID_DATA_SOURCE_BLACKLIST', [])
         ds_refresh = []
@@ -270,6 +276,7 @@ class DruidColumn(Model, BaseColumn):
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
         'description', 'dimension_spec_json', 'verbose_name',
     )
+    update_from_object_fields = export_fields
     export_parent = 'datasource'
 
     def __repr__(self):
@@ -412,8 +419,9 @@ class DruidMetric(Model, BaseMetric):
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
-        'json', 'description', 'is_restricted', 'd3format',
+        'json', 'description', 'is_restricted', 'd3format', 'warning_text',
     )
+    update_from_object_fields = export_fields
     export_parent = 'datasource'
 
     @property
@@ -480,6 +488,7 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
     )
+    update_from_object_fields = export_fields
 
     export_parent = 'cluster'
     export_children = ['columns', 'metrics']
@@ -519,6 +528,9 @@ class DruidDatasource(Model, BaseDatasource):
             '[{obj.cluster_name}].[{obj.datasource_name}]'
             '(id:{obj.id})').format(obj=self)
 
+    def update_from_object(self, obj):
+        return NotImplementedError()
+
     @property
     def link(self):
         name = escape(self.datasource_name)
@@ -536,7 +548,7 @@ class DruidDatasource(Model, BaseDatasource):
                 'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
                 '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
-                'month',
+                'month', 'quarter', 'year',
             ],
             'time_grains': ['now'],
         }
@@ -577,38 +589,6 @@ class DruidDatasource(Model, BaseDatasource):
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 
-    @staticmethod
-    def version_higher(v1, v2):
-        """is v1 higher than v2
-
-        >>> DruidDatasource.version_higher('0.8.2', '0.9.1')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.6.1')
-        True
-        >>> DruidDatasource.version_higher('0.8.2', '0.8.2')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.9.BETA')
-        False
-        >>> DruidDatasource.version_higher('0.8.2', '0.9')
-        False
-        """
-        def int_or_0(v):
-            try:
-                v = int(v)
-            except (TypeError, ValueError):
-                v = 0
-            return v
-        v1nums = [int_or_0(n) for n in v1.split('.')]
-        v2nums = [int_or_0(n) for n in v2.split('.')]
-        v1nums = (v1nums + [0, 0, 0])[:3]
-        v2nums = (v2nums + [0, 0, 0])[:3]
-        return (
-            v1nums[0] > v2nums[0] or
-            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
-            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
-                v1nums[2] > v2nums[2])
-        )
-
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
         logging.info('Syncing datasource [{}]'.format(self.datasource_name))
@@ -627,7 +607,7 @@ class DruidDatasource(Model, BaseDatasource):
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         lbound = (max_time - timedelta(days=7)).isoformat()
-        if not self.version_higher(self.cluster.druid_version, '0.8.2'):
+        if LooseVersion(self.cluster.druid_version) < LooseVersion('0.8.2'):
             rbound = (max_time - timedelta(1)).isoformat()
         else:
             rbound = max_time.isoformat()
@@ -644,7 +624,7 @@ class DruidDatasource(Model, BaseDatasource):
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
             lbound = datetime(1901, 1, 1).isoformat()[:10]
-            if not self.version_higher(self.cluster.druid_version, '0.8.2'):
+            if LooseVersion(self.cluster.druid_version) < LooseVersion('0.8.2'):
                 rbound = datetime.now().isoformat()
             else:
                 rbound = datetime(2050, 1, 1).isoformat()[:10]
@@ -776,6 +756,8 @@ class DruidDatasource(Model, BaseDatasource):
             'week_starting_sunday': 'P1W',
             'week_ending_saturday': 'P1W',
             'month': 'P1M',
+            'quarter': 'P3M',
+            'year': 'P1Y',
         }
 
         granularity = {'type': 'period'}
@@ -1100,6 +1082,18 @@ class DruidDatasource(Model, BaseDatasource):
 
         return values
 
+    @staticmethod
+    def sanitize_metric_object(metric):
+        """
+        Update a metric with the correct type if necessary.
+        :param dict metric: The metric to sanitize
+        """
+        if (
+            utils.is_adhoc_metric(metric) and
+            metric['column']['type'].upper() == 'FLOAT'
+        ):
+            metric['column']['type'] = 'DOUBLE'
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1143,11 +1137,8 @@ class DruidDatasource(Model, BaseDatasource):
             LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
         ):
             for metric in metrics:
-                if (
-                    utils.is_adhoc_metric(metric) and
-                    metric['column']['type'].upper() == 'FLOAT'
-                ):
-                    metric['column']['type'] = 'DOUBLE'
+                self.sanitize_metric_object(metric)
+            self.sanitize_metric_object(timeseries_limit_metric)
 
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
@@ -1203,7 +1194,7 @@ class DruidDatasource(Model, BaseDatasource):
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
-                order_by = timeseries_limit_metric
+                order_by = utils.get_metric_name(timeseries_limit_metric)
                 aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
@@ -1272,7 +1263,7 @@ class DruidDatasource(Model, BaseDatasource):
                     order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
-                    order_by = timeseries_limit_metric
+                    order_by = utils.get_metric_name(timeseries_limit_metric)
                     aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
@@ -1354,10 +1345,10 @@ class DruidDatasource(Model, BaseDatasource):
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
 
-        df = self.homogenize_types(df, query_obj.get('groupby', []))
-
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [
             DTTM_ALIAS if c in ('timestamp', '__time') else c
             for c in df.columns
@@ -1594,6 +1585,16 @@ class DruidDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
+    def external_metadata(self):
+        self.merge_flag = True
+        return [
+            {
+                'name': k,
+                'type': v.get('type'),
+            }
+            for k, v in self.latest_metadata().items()
+        ]
 
 
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)

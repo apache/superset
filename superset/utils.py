@@ -27,7 +27,8 @@ import zlib
 import bleach
 import celery
 from dateutil.parser import parse
-from flask import flash, Markup, render_template
+from dateutil.relativedelta import relativedelta
+from flask import flash, g, Markup, render_template
 from flask_babel import gettext as __
 from flask_caching import Cache
 import markdown as md
@@ -38,7 +39,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -310,7 +312,6 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
-
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -323,6 +324,11 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, bytes):
+        try:
+            return '{}'.format(obj)
+        except Exception:
+            return '[bytes]'
 
 
 def json_iso_dttm_ser(obj, pessimistic=False):
@@ -708,20 +714,44 @@ def get_celery_app(config):
     return _celery_app
 
 
+def to_adhoc(filt, expressionType='SIMPLE', clause='where'):
+    result = {
+        'clause': clause.upper(),
+        'expressionType': expressionType,
+        'filterOptionName': str(uuid.uuid4()),
+    }
+
+    if expressionType == 'SIMPLE':
+        result.update({
+            'comparator': filt['val'],
+            'operator': filt['op'],
+            'subject': filt['col'],
+        })
+    elif expressionType == 'SQL':
+        result.update({
+            'sqlExpression': filt[clause],
+        })
+
+    return result
+
+
 def merge_extra_filters(form_data):
-    # extra_filters are temporary/contextual filters that are external
-    # to the slice definition. We use those for dynamic interactive
-    # filters like the ones emitted by the "Filter Box" visualization
+    # extra_filters are temporary/contextual filters (using the legacy constructs)
+    # that are external to the slice definition. We use those for dynamic
+    # interactive filters like the ones emitted by the "Filter Box" visualization.
+    # Note extra_filters only support simple filters.
     if 'extra_filters' in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
-        if 'filters' not in form_data:
-            form_data['filters'] = []
+        if (
+            'adhoc_filters' not in form_data or
+            not isinstance(form_data['adhoc_filters'], list)
+        ):
+            form_data['adhoc_filters'] = []
         date_options = {
-            '__from': 'since',
-            '__to': 'until',
+            '__time_range': 'time_range',
             '__time_col': 'granularity_sqla',
             '__time_grain': 'time_grain_sqla',
             '__time_origin': 'druid_time_origin',
@@ -730,11 +760,20 @@ def merge_extra_filters(form_data):
         # Grab list of existing filters 'keyed' on the column and operator
 
         def get_filter_key(f):
-            return f['col'] + '__' + f['op']
+            if 'expressionType' in f:
+                return '{}__{}'.format(f['subject'], f['operator'])
+            else:
+                return '{}__{}'.format(f['col'], f['op'])
+
         existing_filters = {}
-        for existing in form_data['filters']:
-            if existing['col'] is not None:
-                existing_filters[get_filter_key(existing)] = existing['val']
+        for existing in form_data['adhoc_filters']:
+            if (
+                existing['expressionType'] == 'SIMPLE' and
+                existing['comparator'] is not None and
+                existing['subject'] is not None
+            ):
+                existing_filters[get_filter_key(existing)] = existing['comparator']
+
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr['col']):
@@ -753,16 +792,16 @@ def merge_extra_filters(form_data):
                                 sorted(existing_filters[filter_key]) !=
                                 sorted(filtr['val'])
                             ):
-                                form_data['filters'] += [filtr]
+                                form_data['adhoc_filters'].append(to_adhoc(filtr))
                         else:
-                            form_data['filters'] += [filtr]
+                            form_data['adhoc_filters'].append(to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr['val'] != existing_filters[filter_key]:
-                            form_data['filters'] += [filtr]
+                            form_data['adhoc_filters'].append(to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    form_data['filters'] += [filtr]
+                    form_data['adhoc_filters'].append(to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']
 
@@ -843,6 +882,90 @@ def ensure_path_exists(path):
             raise
 
 
+def get_since_until(form_data):
+    """Return `since` and `until` from form_data.
+
+    This functiom supports both reading the keys separately (from `since` and
+    `until`), as well as the new `time_range` key. Valid formats are:
+
+        - ISO 8601
+        - X days/years/hours/day/year/weeks
+        - X days/years/hours/day/year/weeks ago
+        - X days/years/hours/day/year/weeks from now
+        - freeform
+
+    Additionally, for `time_range` (these specify both `since` and `until`):
+
+        - Last day
+        - Last week
+        - Last month
+        - Last quarter
+        - Last year
+        - No filter
+        - Last X seconds/minutes/hours/days/weeks/months/years
+        - Next X seconds/minutes/hours/days/weeks/months/years
+
+    """
+    separator = ' : '
+    today = parse_human_datetime('today')
+    common_time_frames = {
+        'Last day': (today - relativedelta(days=1), today),
+        'Last week': (today - relativedelta(weeks=1), today),
+        'Last month': (today - relativedelta(months=1), today),
+        'Last quarter': (today - relativedelta(months=3), today),
+        'Last year': (today - relativedelta(years=1), today),
+    }
+
+    if 'time_range' in form_data:
+        time_range = form_data['time_range']
+        if separator in time_range:
+            since, until = time_range.split(separator, 1)
+            since = parse_human_datetime(since)
+            until = parse_human_datetime(until)
+        elif time_range in common_time_frames:
+            since, until = common_time_frames[time_range]
+        elif time_range == 'No filter':
+            since = until = None
+        else:
+            rel, num, grain = time_range.split()
+            if rel == 'Last':
+                since = today - relativedelta(**{grain: int(num)})
+                until = today
+            else:  # rel == 'Next'
+                since = today
+                until = today + relativedelta(**{grain: int(num)})
+    else:
+        since = form_data.get('since', '')
+        if since:
+            since_words = since.split(' ')
+            grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+            if len(since_words) == 2 and since_words[1] in grains:
+                since += ' ago'
+        since = parse_human_datetime(since)
+        until = parse_human_datetime(form_data.get('until', 'now'))
+
+    return since, until
+
+
+def convert_legacy_filters_into_adhoc(fd):
+    mapping = {'having': 'having_filters', 'where': 'filters'}
+
+    if not fd.get('adhoc_filters'):
+        fd['adhoc_filters'] = []
+
+        for clause, filters in mapping.items():
+            if clause in fd and fd[clause] != '':
+                fd['adhoc_filters'].append(to_adhoc(fd, 'SQL', clause))
+
+            if filters in fd:
+                for filt in fd[filters]:
+                    fd['adhoc_filters'].append(to_adhoc(filt, 'SIMPLE', clause))
+
+    for key in ('filters', 'having', 'having_filters', 'where'):
+        if key in fd:
+            del fd[key]
+
+
 def split_adhoc_filters_into_base_filters(fd):
     """
     Mutates form data to restructure the adhoc filters in the form of the four base
@@ -850,7 +973,7 @@ def split_adhoc_filters_into_base_filters(fd):
     free form where sql, free form having sql, structured where clauses and structured
     having clauses.
     """
-    adhoc_filters = fd.get('adhoc_filters', None)
+    adhoc_filters = fd.get('adhoc_filters')
     if isinstance(adhoc_filters, list):
         simple_where_filters = []
         simple_having_filters = []
@@ -881,4 +1004,15 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
-        del fd['adhoc_filters']
+
+
+def get_username():
+    """Get username if within the flask context, otherwise return noffin'"""
+    try:
+        return g.user.username
+    except Exception:
+        pass
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')

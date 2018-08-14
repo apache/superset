@@ -7,6 +7,7 @@ import ExploreActionButtons from
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {
+    actions: {},
     canDownload: 'True',
     latestQueryFormData: {},
     queryEndpoint: 'localhost',
