@@ -134,8 +134,12 @@ class SupersetDataFrame(object):
 
     @classmethod
     def is_date(cls, dtype):
-        if dtype.name:
-            return dtype.name.startswith('datetime')
+        if dtype and dtype.name:
+            return any([
+                dtype.name.lower().startswith(s)
+                for s in ['date', 'time']
+            ])
+        return False
 
     @classmethod
     def is_dimension(cls, dtype, column_name):
