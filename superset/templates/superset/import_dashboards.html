@@ -1,16 +1,8 @@
-{% extends "superset/basic.html" %}
-
-# TODO: move the libs required by flask into the common.js from welcome.js.
-{% block head_js %}
-  {{ super() }}
-  {% with filename="welcome" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
-{% endblock %}
+{% extends "appbuilder/base.html" %}
 
 {% block title %}{{ _("Import dashboards") }}{% endblock %}
 
-{% block body %}
+{% block content %}
   {% include "superset/flash_wrapper.html" %}
 
   <div class="container">
@@ -23,8 +15,19 @@
       id="csrf_token"
       value="{{ csrf_token() if csrf_token else '' }}" />
       <p>
-        <input type="file" name="file" />
-        <input type="submit" value="Upload" class="btn" />
+        <label class="btn btn-default btn-sm" for="my-file-selector">
+          <input
+            id="my-file-selector"
+            type="file"
+            name="file"
+            style="display:none;"
+            onchange="$('#upload-file-info').html(this.files[0].name)"/>
+          Choose File
+        </label>
+        <span class='label label-info' id="upload-file-info"></span>
+        <br/>
+        <br/>
+        <input type="submit" value="Upload" class="btn btn-primary btn-sm" />
       </p>
     </form>
   </div>
