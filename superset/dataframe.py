@@ -136,7 +136,7 @@ class SupersetDataFrame(object):
     def is_date(cls, dtype):
         if dtype and dtype.name:
             return any([
-                dtype.name.startswith(s.lower())
+                dtype.name.lower().startswith(s)
                 for s in ['date', 'time']
             ])
         return False
