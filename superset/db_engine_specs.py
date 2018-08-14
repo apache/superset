@@ -1367,6 +1367,15 @@ class BQEngineSpec(BaseEngineSpec):
     As contributed by @mxmzdlv on issue #945"""
     engine = 'bigquery'
 
+    """
+    https://www.python.org/dev/peps/pep-0249/#arraysize
+    raw_connections bypass the pybigquery query execution context and deal with
+    raw dbapi connection directly.
+    If this value is not set, the default value is set to 1, as described here,
+    https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
+    """
+    arraysize = 5000
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'TIMESTAMP_TRUNC({col}, SECOND)',
@@ -1388,6 +1397,7 @@ class BQEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        cursor.arraysize = 5000
         data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
         if len(data) != 0 and type(data[0]).__name__ == 'Row':
             data = [r.values() for r in data]
