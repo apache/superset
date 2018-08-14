@@ -569,6 +569,9 @@ class DruidDatasource(Model, BaseDatasource):
             if m.metric_name == metric_name
         ][0]
 
+    def get_columns_dict(self):
+        return {c.column_name: c for c in self.columns}
+
     @classmethod
     def import_obj(cls, i_datasource, import_time=None):
         """Imports the datasource from the object to the database.
@@ -915,7 +918,8 @@ class DruidDatasource(Model, BaseDatasource):
 
     def values_for_column(self,
                           column_name,
-                          limit=10000):
+                          limit=10000,
+                          filters=None):
         """Retrieve some values for the given column"""
         logging.info(
             'Getting values for columns [{}] limited to [{}]'
@@ -935,6 +939,13 @@ class DruidDatasource(Model, BaseDatasource):
             metric='count',
             threshold=limit,
         )
+
+        if filters:
+            new_filter = DruidDatasource.get_filters(filters,
+                                                     self.num_cols,
+                                                     self.get_columns_dict())
+            query_filter = qry.get('filter')
+            qry['filter'] = query_filter & new_filter if query_filter else new_filter
 
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
@@ -1131,7 +1142,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        columns_dict = {c.column_name: c for c in self.columns}
+        columns_dict = self.get_columns_dict()
 
         if (
             self.cluster and

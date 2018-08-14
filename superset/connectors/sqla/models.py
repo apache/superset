@@ -69,7 +69,7 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj):
         raise NotImplementedError()
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name, limit=10000, filters=None):
         raise NotImplementedError()
 
 
@@ -415,7 +415,7 @@ class SqlaTable(Model, BaseDatasource):
             d['main_dttm_col'] = self.main_dttm_col
         return d
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name, limit=10000, filters=None):
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -429,6 +429,11 @@ class SqlaTable(Model, BaseDatasource):
             .select_from(self.get_from_clause(tp, db_engine_spec))
             .distinct()
         )
+
+        if filters:
+            where_clause_and = self._get_where_clause_from_filters(filters)
+            qry = qry.where(and_(*where_clause_and))
+
         if limit:
             qry = qry.limit(limit)
 
@@ -624,48 +629,9 @@ class SqlaTable(Model, BaseDatasource):
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
-        where_clause_and = []
+        where_clause_and = self._get_where_clause_from_filters(filter)
+
         having_clause_and = []
-        for flt in filter:
-            if not all([flt.get(s) for s in ['col', 'op']]):
-                continue
-            col = flt['col']
-            op = flt['op']
-            col_obj = cols.get(col)
-            if col_obj:
-                is_list_target = op in ('in', 'not in')
-                eq = self.filter_values_handler(
-                    flt.get('val'),
-                    target_column_is_numeric=col_obj.is_num,
-                    is_list_target=is_list_target)
-                if op in ('in', 'not in'):
-                    cond = col_obj.sqla_col.in_(eq)
-                    if '<NULL>' in eq:
-                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
-                    if op == 'not in':
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                else:
-                    if col_obj.is_num:
-                        eq = utils.string_to_num(flt['val'])
-                    if op == '==':
-                        where_clause_and.append(col_obj.sqla_col == eq)
-                    elif op == '!=':
-                        where_clause_and.append(col_obj.sqla_col != eq)
-                    elif op == '>':
-                        where_clause_and.append(col_obj.sqla_col > eq)
-                    elif op == '<':
-                        where_clause_and.append(col_obj.sqla_col < eq)
-                    elif op == '>=':
-                        where_clause_and.append(col_obj.sqla_col >= eq)
-                    elif op == '<=':
-                        where_clause_and.append(col_obj.sqla_col <= eq)
-                    elif op == 'LIKE':
-                        where_clause_and.append(col_obj.sqla_col.like(eq))
-                    elif op == 'IS NULL':
-                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
-                    elif op == 'IS NOT NULL':
-                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:
@@ -755,6 +721,51 @@ class SqlaTable(Model, BaseDatasource):
                 qry = qry.where(top_groups)
 
         return qry.select_from(tbl)
+
+    def _get_where_clause_from_filters(self, filters):
+        where_clause_and = []
+        cols = {col.column_name: col for col in self.columns}
+        for flt in filters:
+            if not all([flt.get(s) for s in ['col', 'op']]):
+                continue
+            col = flt['col']
+            op = flt['op']
+            col_obj = cols.get(col)
+            if col_obj:
+                is_list_target = op in ('in', 'not in')
+                eq = self.filter_values_handler(
+                    flt.get('val'),
+                    target_column_is_numeric=col_obj.is_num,
+                    is_list_target=is_list_target)
+                if op in ('in', 'not in'):
+                    cond = col_obj.sqla_col.in_(eq)
+                    if '<NULL>' in eq:
+                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
+                    if op == 'not in':
+                        cond = ~cond
+                    where_clause_and.append(cond)
+                else:
+                    if col_obj.is_num:
+                        eq = utils.string_to_num(flt['val'])
+                    if op == '==':
+                        where_clause_and.append(col_obj.sqla_col == eq)
+                    elif op == '!=':
+                        where_clause_and.append(col_obj.sqla_col != eq)
+                    elif op == '>':
+                        where_clause_and.append(col_obj.sqla_col > eq)
+                    elif op == '<':
+                        where_clause_and.append(col_obj.sqla_col < eq)
+                    elif op == '>=':
+                        where_clause_and.append(col_obj.sqla_col >= eq)
+                    elif op == '<=':
+                        where_clause_and.append(col_obj.sqla_col <= eq)
+                    elif op == 'LIKE':
+                        where_clause_and.append(col_obj.sqla_col.like(eq))
+                    elif op == 'IS NULL':
+                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
+                    elif op == 'IS NOT NULL':
+                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
+        return where_clause_and
 
     def _get_top_groups(self, df, dimensions):
         cols = {col.column_name: col for col in self.columns}

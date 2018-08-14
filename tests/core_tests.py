@@ -230,6 +230,20 @@ class CoreTests(SupersetTestCase):
         assert len(resp) > 0
         assert 'Carbon Dioxide' in resp
 
+    def test_filter_endpoint_with_filters(self):
+        self.login(username='admin')
+        db.session.commit()
+        table_id = self.table_ids.get('birth_names')
+        form_data = {'filters': [
+            {'col': 'gender', 'op': 'not in', 'val': ['girl']},
+            {'col': 'state', 'op': 'in', 'val': ['NJ']},
+        ]}
+        url = '/superset/filter/table/{}/name?form_data={}'.format(table_id,
+                                                                   json.dumps(form_data))
+        response = json.loads(self.get_resp(url))
+        assert 'Connor' in response
+        assert 'Bradley' not in response
+
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username='admin')

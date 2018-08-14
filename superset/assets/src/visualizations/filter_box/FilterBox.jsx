@@ -1,20 +1,19 @@
-// JS
 import d3 from 'd3';
 import React from 'react';
+import $ from 'jquery';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
 import VirtualizedSelect from 'react-virtualized-select';
 import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../explore/components/controls/DateFilterControl';
-import ControlRow from '../explore/components/ControlRow';
-import Control from '../explore/components/Control';
-import controls from '../explore/controls';
-import OnPasteSelect from '../components/OnPasteSelect';
-import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
+import DateFilterControl from '../../explore/components/controls/DateFilterControl';
+import ControlRow from '../../explore/components/ControlRow';
+import Control from '../../explore/components/Control';
+import controls from '../../explore/controls';
+import OnPasteSelect from '../../components/OnPasteSelect';
+import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 import './filter_box.css';
-import { t } from '../locales';
+import { t } from '../../locales';
 
 // maps control names to their key in extra_filters
 const timeFilterMap = {
@@ -24,6 +23,7 @@ const timeFilterMap = {
   druid_time_origin: '__time_origin',
   granularity: '__granularity',
 };
+
 const propTypes = {
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
@@ -36,6 +36,7 @@ const propTypes = {
   showDruidTimeOrigin: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
 };
+
 const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
@@ -47,14 +48,17 @@ const defaultProps = {
   instantFiltering: true,
 };
 
-class FilterBox extends React.Component {
+export default class FilterBox extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = {
       selectedValues: props.origSelectedValues,
       hasChanged: false,
+      cascadingFilterChoices: {},
     };
   }
+
   getControlData(controlName) {
     const control = Object.assign({}, controls[controlName]);
     const controlData = {
@@ -70,6 +74,7 @@ class FilterBox extends React.Component {
     }
     return control;
   }
+
   clickApply() {
     const { selectedValues } = this.state;
     Object.keys(selectedValues).forEach((fltr, i, arr) => {
@@ -81,6 +86,7 @@ class FilterBox extends React.Component {
     });
     this.setState({ hasChanged: false });
   }
+
   changeFilter(filter, options) {
     const fltr = timeFilterMap[filter] || filter;
     let vals = null;
@@ -96,10 +102,63 @@ class FilterBox extends React.Component {
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[fltr] = vals;
     this.setState({ selectedValues, hasChanged: true });
+    this.cascadeFilters(filter, selectedValues);
     if (this.props.instantFiltering) {
       this.props.onChange(fltr, vals, false, true);
     }
   }
+
+  cascadeFilters(filter, selectedValues) {
+    const filters = Object.keys(this.props.filtersChoices);
+    const filterIndex = filters.indexOf(filter);
+    if (filterIndex === -1) return;
+
+    // Construct requestFilters from preceding filters
+    // to be used in backend request form_data
+    const requestFilters = { filters: [] };
+    filters.slice(0, filterIndex + 1).forEach((precedingFilter) => {
+      if (precedingFilter in selectedValues) {
+        const precedingFilterValues = selectedValues[precedingFilter];
+        if (precedingFilterValues.length > 0) {
+          const requestFilter = {
+            col: precedingFilter,
+            op: 'in',
+            val: precedingFilterValues,
+          };
+          requestFilters.filters.push(requestFilter);
+        }
+      }
+    });
+
+    // For each filter following the one that was just changed,
+    // make an API request to get the filtered choices
+    const newCascadingFilterChoices = Object.assign({}, this.state.cascadingFilterChoices);
+    filters.slice(filterIndex + 1).forEach((followingFilter) => {
+      $.ajax({
+        type: 'GET',
+        url: `/superset/filter/${this.props.datasource.type}/${this.props.datasource.id}/${followingFilter}/`,
+        data: {
+          form_data: JSON.stringify(requestFilters),
+        },
+        success: (data) => {
+          newCascadingFilterChoices[followingFilter] = data;
+          this.setState({ cascadingFilterChoices: newCascadingFilterChoices });
+        },
+      });
+    });
+  }
+
+  isSelected(filter, option) {
+    return this.state.selectedValues[filter] &&
+      this.state.selectedValues[filter].includes(option.id);
+  }
+
+  isCascadingFilterChoice(filter, option) {
+    return this.state.cascadingFilterChoices[filter] ?
+      this.state.cascadingFilterChoices[filter].includes(option.id) :
+      true;
+  }
+
   render() {
     let dateFilter;
     const timeRange = '__time_range';
@@ -183,18 +242,25 @@ class FilterBox extends React.Component {
             key={filter}
             multi
             value={this.state.selectedValues[filter]}
-            options={data.map((opt) => {
-              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
-              const backgroundImage = (
-                'linear-gradient(to right, lightgrey, ' +
-                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-              );
-              const style = {
-                backgroundImage,
-                padding: '2px 5px',
-              };
-              return { value: opt.id, label: opt.id, style };
-            })}
+            options={
+              data
+                .filter(opt =>
+                  this.isSelected(filter, opt) ||
+                  this.isCascadingFilterChoice(filter, opt),
+                )
+                .map((opt) => {
+                  const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+                  const backgroundImage = (
+                    'linear-gradient(to right, lightgrey, ' +
+                    `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+                  );
+                  const style = {
+                    backgroundImage,
+                    padding: '2px 5px',
+                  };
+                  return { value: opt.id, label: opt.id, style };
+                })
+            }
             onChange={this.changeFilter.bind(this, filter)}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
@@ -210,51 +276,20 @@ class FilterBox extends React.Component {
           {datasourceFilters}
           {filters}
           {!this.props.instantFiltering &&
-            <Button
-              bsSize="small"
-              bsStyle="primary"
-              onClick={this.clickApply.bind(this)}
-              disabled={!this.state.hasChanged}
-            >
-              {t('Apply')}
-            </Button>
+          <Button
+            bsSize="small"
+            bsStyle="primary"
+            onClick={this.clickApply.bind(this)}
+            disabled={!this.state.hasChanged}
+          >
+            {t('Apply')}
+          </Button>
           }
         </div>
       </div>
     );
   }
 }
+
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
-
-function filterBox(slice, payload) {
-  const d3token = d3.select(slice.selector);
-  d3token.selectAll('*').remove();
-
-  // filter box should ignore the dashboard's filters
-  // const url = slice.jsonEndpoint({ extraFilters: false });
-  const fd = slice.formData;
-  const filtersChoices = {};
-  // Making sure the ordering of the fields matches the setting in the
-  // dropdown as it may have been shuffled while serialized to json
-  fd.groupby.forEach((f) => {
-    filtersChoices[f] = payload.data[f];
-  });
-  ReactDOM.render(
-    <FilterBox
-      filtersChoices={filtersChoices}
-      onChange={slice.addFilter}
-      showDateFilter={fd.date_filter}
-      showSqlaTimeGrain={fd.show_sqla_time_granularity}
-      showSqlaTimeColumn={fd.show_sqla_time_column}
-      showDruidTimeGrain={fd.show_druid_time_granularity}
-      showDruidTimeOrigin={fd.show_druid_time_origin}
-      datasource={slice.datasource}
-      origSelectedValues={slice.getFilters() || {}}
-      instantFiltering={fd.instant_filtering}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
-module.exports = filterBox;
