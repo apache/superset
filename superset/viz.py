@@ -2089,10 +2089,10 @@ class BaseDeckGLViz(BaseViz):
             return None
         try:
             p = Point(s)
+            return p.latitude, p.longitude
         except Exception:
             raise SpatialException(
                 _('Invalid spatial point encountered: %s' % s))
-        return (p.latitude, p.longitude)
 
     def process_spatial_data_obj(self, key, df):
         spatial = self.form_data.get(key)
