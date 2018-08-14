@@ -1194,6 +1194,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if not isinstance(time_compare, list):
             time_compare = [time_compare]
 
+        classes = ['time-shift-{}'.format(i) for i in range(10)]
+        i = 0
         for option in time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(option)
@@ -1209,10 +1211,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None and DTTM_ALIAS in df2:
+                classed = classes[i % len(classes)]
+                i += 1
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data.append((label, df2))
+                self._extra_chart_data.extend(self.to_series(
+                    df2, classed=classed, title_suffix=label))
 
     def get_data(self, df):
         fd = self.form_data
