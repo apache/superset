@@ -6,14 +6,15 @@ import { recurseReactClone } from './utils';
 import Field from './Field';
 
 const propTypes = {
-  children: PropTypes.node,
-  onChange: PropTypes.func,
-  item: PropTypes.object,
+  children: PropTypes.node.isRequired,
+  onChange: PropTypes.func.isRequired,
+  item: PropTypes.object.isRequired,
   title: PropTypes.node,
   compact: PropTypes.bool,
 };
 const defaultProps = {
   compact: false,
+  title: null,
 };
 
 export default class Fieldset extends React.PureComponent {
