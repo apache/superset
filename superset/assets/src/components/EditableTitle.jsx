@@ -19,6 +19,7 @@ const defaultProps = {
   showTooltip: true,
   onSaveTitle: () => {},
   emptyText: '<empty>',
+  style: null,
 };
 
 export default class EditableTitle extends React.PureComponent {
