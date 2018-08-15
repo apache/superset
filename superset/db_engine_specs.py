@@ -102,6 +102,7 @@ class BaseEngineSpec(object):
     inner_joins = True
     allows_subquery = True
     consistent_case_sensitivity = True  # do results have same case as qry for col names?
+    arraysize = None
 
     @classmethod
     def get_time_grains(cls):
@@ -115,6 +116,8 @@ class BaseEngineSpec(object):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
         if cls.limit_method == LimitMethod.FETCH_MANY:
             return cursor.fetchmany(limit)
         return cursor.fetchall()
@@ -1366,6 +1369,18 @@ class BQEngineSpec(BaseEngineSpec):
 
     As contributed by @mxmzdlv on issue #945"""
     engine = 'bigquery'
+
+    """
+    https://www.python.org/dev/peps/pep-0249/#arraysize
+    raw_connections bypass the pybigquery query execution context and deal with
+    raw dbapi connection directly.
+    If this value is not set, the default value is set to 1, as described here,
+    https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
+
+    The default value of 5000 is derived from the pybigquery.
+    https://github.com/mxmzdlv/pybigquery/blob/d214bb089ca0807ca9aaa6ce4d5a01172d40264e/pybigquery/sqlalchemy_bigquery.py#L102
+    """
+    arraysize = 5000
 
     time_grain_functions = {
         None: '{col}',
