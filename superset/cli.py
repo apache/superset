@@ -20,6 +20,7 @@ import yaml
 from superset import (
     app, data, db, dict_import_export_util, security_manager, utils,
 )
+from tests.utils import get_main_database
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -365,3 +366,69 @@ def flower(port, address):
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + '-=' * 40)
     Popen(cmd, shell=True).wait()
+
+
+@app.cli.command()
+def load_test_users():
+    """
+    Loads admin, alpha, and gamma user for testing purposes
+
+    Syncs permissions for those users/roles
+    """
+    load_test_users_run()
+
+
+def load_test_users_run():
+    """
+    Loads admin, alpha, and gamma user for testing purposes
+
+    Syncs permissions for those users/roles
+    """
+    if config.get('TESTING'):
+        security_manager.sync_role_definitions()
+        gamma_sqllab_role = security_manager.add_role('gamma_sqllab')
+        for perm in security_manager.find_role('Gamma').permissions:
+            security_manager.add_permission_role(gamma_sqllab_role, perm)
+        utils.get_or_create_main_db()
+        db_perm = get_main_database(security_manager.get_session).perm
+        security_manager.merge_perm('database_access', db_perm)
+        db_pvm = security_manager.find_permission_view_menu(
+            view_menu_name=db_perm, permission_name='database_access')
+        gamma_sqllab_role.permissions.append(db_pvm)
+        for perm in security_manager.find_role('sql_lab').permissions:
+            security_manager.add_permission_role(gamma_sqllab_role, perm)
+
+        admin = security_manager.find_user('admin')
+        if not admin:
+            security_manager.add_user(
+                'admin', 'admin', ' user', 'admin@fab.org',
+                security_manager.find_role('Admin'),
+                password='general')
+
+        gamma = security_manager.find_user('gamma')
+        if not gamma:
+            security_manager.add_user(
+                'gamma', 'gamma', 'user', 'gamma@fab.org',
+                security_manager.find_role('Gamma'),
+                password='general')
+
+        gamma2 = security_manager.find_user('gamma2')
+        if not gamma2:
+            security_manager.add_user(
+                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
+                security_manager.find_role('Gamma'),
+                password='general')
+
+        gamma_sqllab_user = security_manager.find_user('gamma_sqllab')
+        if not gamma_sqllab_user:
+            security_manager.add_user(
+                'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
+                gamma_sqllab_role, password='general')
+
+        alpha = security_manager.find_user('alpha')
+        if not alpha:
+            security_manager.add_user(
+                'alpha', 'alpha', 'user', 'alpha@fab.org',
+                security_manager.find_role('Alpha'),
+                password='general')
+        security_manager.get_session.commit()

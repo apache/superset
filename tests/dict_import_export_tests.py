@@ -16,6 +16,7 @@ from superset.connectors.druid.models import (
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from .base_tests import SupersetTestCase
+from .utils import get_main_database
 
 DBREF = 'dict_import__export_test'
 NAME_PREFIX = 'dict_'
@@ -55,7 +56,7 @@ class DictImportExportTests(SupersetTestCase):
         params = {DBREF: id, 'database_name': database_name}
 
         dict_rep = {
-            'database_id': self.get_main_database(db.session).id,
+            'database_id': get_main_database(db.session).id,
             'table_name': name,
             'schema': schema,
             'id': id,
