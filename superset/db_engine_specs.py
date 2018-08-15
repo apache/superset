@@ -1397,7 +1397,7 @@ class BQEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
-        cursor.arraysize = 5000
+        cursor.arraysize = BQEngineSpec.arraysize
         data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
         if len(data) != 0 and type(data[0]).__name__ == 'Row':
             data = [r.values() for r in data]
