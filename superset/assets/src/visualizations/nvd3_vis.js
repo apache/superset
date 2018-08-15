@@ -15,7 +15,7 @@ import AnnotationTypes, {
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
+import { isTruthy } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -103,8 +103,11 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
+    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
     label = verboseLabels.join(', ');
+    if (input.length > verboseLabels.length) {
+      label += ' ---';
+    }
   } else {
     label = verboseLkp(input);
   }
@@ -307,14 +310,16 @@ export default function nvd3Vis(slice, payload) {
         chart.showDistY(true);
         chart.tooltip.contentGenerator(function (obj) {
           const p = obj.point;
+          const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+          const xAxisFormatter = d3FormatPreset(fd.x_axis_format);
           let s = '<table>';
           s += (
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, formatter(p.x));
-          s += row(fd.y, formatter(p.y));
-          s += row(fd.size, formatter(p.size));
+          s += row(fd.x.label || fd.x, xAxisFormatter(p.x));
+          s += row(fd.y.label || fd.y, yAxisFormatter(p.y));
+          s += row(fd.size.label || fd.size, formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -395,15 +400,13 @@ export default function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    let yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (fd.contribution || fd.comparison_type === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format
-        const percentageFormat = d3.format('.1%');
-        chart.yAxis.tickFormat(percentageFormat);
-      } else {
-        chart.yAxis.tickFormat(yAxisFormatter);
+        yAxisFormatter = d3.format('.1%');
       }
+      chart.yAxis.tickFormat(yAxisFormatter);
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
