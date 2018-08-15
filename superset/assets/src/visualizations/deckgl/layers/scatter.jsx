@@ -162,7 +162,7 @@ class DeckGLScatter extends React.PureComponent {
   }
   render() {
     return (
-      <div>
+      <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
           getLayers={this.getLayers}
           start={this.state.start}
