@@ -16,6 +16,9 @@ describe('DisplayQueryButton', () => {
     },
     chartStatus: 'success',
     queryEndpoint: 'localhost',
+    latestQueryFormData: {
+      datasource: '1__table',
+    },
   };
 
   it('is valid', () => {
