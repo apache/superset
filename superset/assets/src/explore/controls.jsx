@@ -191,8 +191,9 @@ export const controls = {
     label: t('Datasource'),
     default: null,
     description: null,
-    mapStateToProps: state => ({
+    mapStateToProps: (state, control, actions) => ({
       datasource: state.datasource,
+      onDatasourceSave: actions ? actions.setDatasource : () => {},
     }),
   },
 
@@ -324,6 +325,39 @@ export const controls = {
       ['red_yellow_blue', 'red/yellowish/blue'],
       ['brown_white_green', 'brown/white/green'],
       ['purple_white_green', 'purple/white/green'],
+      ['schemeBrBG', 'brown/green'],
+      ['schemePRGn', 'purple/green'],
+      ['schemePiYG', 'pink/green'],
+      ['schemePuOr', 'purple/orange'],
+      ['schemeRdBu', 'red/blue'],
+      ['schemeRdGy', 'red/gray/black'],
+      ['schemeRdYlBu', 'red/yellow/blue'],
+      ['schemeRdYlGn', 'red/yellow/green'],
+      ['schemeSpectral', 'rainbow'],
+      ['schemeBlues', 'd3/blues'],
+      ['schemeGreens', 'd3/greens'],
+      ['schemeGrays', 'd3/grays'],
+      ['schemeOranges', 'd3/oranges'],
+      ['schemePurples', 'd3/purples'],
+      ['schemeReds', 'd3/reds'],
+      ['schemeViridis', 'd3/purple/blue/green/yellow'],
+      ['schemeInferno', 'd3/purple/red/orange/yellow'],
+      ['schemeMagma', 'd3/purple/pink/peach'],
+      ['schemeWarm', 'd3/warm/purple/pink/yellow/green'],
+      ['schemeCool', 'd3/cool/blue/green'],
+      ['schemeCubehelixDefault', 'd3/black/green/brown/pink/blue'],
+      ['schemeBuGn', 'd3/blue/green'],
+      ['schemeBuPu', 'd3/blue/purple'],
+      ['schemeGnBu', 'd3/green/blue'],
+      ['schemeOrRd', 'd3/orange/red'],
+      ['schemePuBuGn', 'd3/purple/blue/green'],
+      ['schemePuBu', 'd3/purple/blue'],
+      ['schemePuRd', 'd3/purple/red'],
+      ['schemeRdPu', 'd3/red/purple'],
+      ['schemeYlGnBu', 'd3/yellow/green/blue'],
+      ['schemeYlGn', 'd3/yellow/green'],
+      ['schemeYlOrBr', 'd3/yellow/brown'],
+      ['schemeYlOrRd', 'd3/yellow/orange/red'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -512,6 +546,7 @@ export const controls = {
       'Egypt',
       'France',
       'Germany',
+      'India',
       'Italy',
       'Portugal',
       'Morocco',
@@ -519,9 +554,11 @@ export const controls = {
       'Russia',
       'Singapore',
       'Spain',
+      'Thailand',
       'Uk',
       'Ukraine',
       'Usa',
+      'Zambia',
     ].map(s => [s, s]),
     description: t('The name of country that Superset should display'),
   },
@@ -828,22 +865,23 @@ export const controls = {
     'column in the table. Also note that the ' +
     'filter below is applied against this column or ' +
     'expression'),
-    default: (c) => {
-      if (c.options && c.options.length > 0) {
-        return c.options[0].column_name;
-      }
-      return null;
-    },
+    default: control => control.default,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: (state) => {
-      const newState = {};
+      const props = {};
       if (state.datasource) {
-        newState.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.default = null;
+        if (state.datasource.main_dttm_col) {
+          props.default = state.datasource.main_dttm_col;
+        } else if (props.options && props.options.length > 0) {
+          props.default = props.options[0].column_name;
+        }
       }
-      return newState;
+      return props;
     },
   },
 
@@ -1477,6 +1515,14 @@ export const controls = {
     description: t('Whether to display the trend line'),
   },
 
+  start_y_axis_at_zero: {
+    type: 'CheckboxControl',
+    label: t('Start y-axis at 0'),
+    renderTrigger: true,
+    default: true,
+    description: t('Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
@@ -1559,6 +1605,7 @@ export const controls = {
       '1 week',
       '28 days',
       '30 days',
+      '52 weeks',
       '1 year',
     ]),
     description: t('Overlay one or more timeseries from a ' +

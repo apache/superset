@@ -89,6 +89,18 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function wrapTooltip(chart, container) {
+  const tooltipLayer = chart.useInteractiveGuideline && chart.useInteractiveGuideline() ?
+    chart.interactiveLayer : chart;
+  const tooltipGeneratorFunc = tooltipLayer.tooltip.contentGenerator();
+  tooltipLayer.tooltip.contentGenerator((d) => {
+    let tooltip = `<div style="max-width: ${container.width() * 0.5}px">`;
+    tooltip += tooltipGeneratorFunc(d);
+    tooltip += '</div>';
+    return tooltip;
+  });
+}
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -312,14 +324,16 @@ export default function nvd3Vis(slice, payload) {
         chart.showDistY(true);
         chart.tooltip.contentGenerator(function (obj) {
           const p = obj.point;
+          const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+          const xAxisFormatter = d3FormatPreset(fd.x_axis_format);
           let s = '<table>';
           s += (
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, formatter(p.x));
-          s += row(fd.y, formatter(p.y));
-          s += row(fd.size, formatter(p.size));
+          s += row(fd.x.label || fd.x, xAxisFormatter(p.x));
+          s += row(fd.y.label || fd.y, yAxisFormatter(p.y));
+          s += row(fd.size.label || fd.size, formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -400,15 +414,13 @@ export default function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    let yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (fd.contribution || fd.comparison_type === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format
-        const percentageFormat = d3.format('.1%');
-        chart.yAxis.tickFormat(percentageFormat);
-      } else {
-        chart.yAxis.tickFormat(yAxisFormatter);
+        yAxisFormatter = d3.format('.1%');
       }
+      chart.yAxis.tickFormat(yAxisFormatter);
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
@@ -611,7 +623,7 @@ export default function nvd3Vis(slice, payload) {
             key,
             color: a.color,
             strokeWidth: a.width,
-            classed: `${a.opacity} ${a.style}`,
+            classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
           };
         })), []);
         data.push(...timeSeriesAnnotations);
@@ -842,8 +854,17 @@ export default function nvd3Vis(slice, payload) {
           .attr('height', height)
           .attr('width', width)
           .call(chart);
+
+        // Display styles for Time Series Annotations
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+        d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
+          .style('stroke-width', 0);
       }
     }
+
+    wrapTooltip(chart, slice.container);
     return chart;
   };
 

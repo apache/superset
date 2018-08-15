@@ -12,6 +12,7 @@ import Loading from '../../components/Loading';
 import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../util/componentTypes';
 import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import { slicePropShape } from '../util/propShapes';
+import { t } from '../../locales';
 
 const propTypes = {
   fetchAllSlices: PropTypes.func.isRequired,
@@ -204,7 +205,7 @@ class SliceAdder extends React.Component {
       <div className="slice-adder-container">
         <div className="controls">
           <SearchInput
-            placeholder="Filter your charts"
+            placeholder={t('Filter your charts')}
             className="search-input"
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}

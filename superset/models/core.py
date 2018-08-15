@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
 import functools
@@ -16,9 +17,11 @@ import textwrap
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_appbuilder.security.sqla.models import User
 from future.standard_library import install_aliases
 import numpy
 import pandas as pd
+import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -26,7 +29,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import url
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
@@ -35,7 +38,10 @@ import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.user_attributes import UserAttribute
+from superset.utils import MediumText
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -54,6 +60,41 @@ def set_related_perm(mapper, connection, target):  # noqa
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+
+
+def copy_dashboard(mapper, connection, target):
+    dashboard_id = config.get('DASHBOARD_TEMPLATE_ID')
+    if dashboard_id is None:
+        return
+
+    Session = sessionmaker(autoflush=False)
+    session = Session(bind=connection)
+    new_user = session.query(User).filter_by(id=target.id).first()
+
+    # copy template dashboard to user
+    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    dashboard = Dashboard(
+        dashboard_title=template.dashboard_title,
+        position_json=template.position_json,
+        description=template.description,
+        css=template.css,
+        json_metadata=template.json_metadata,
+        slices=template.slices,
+        owners=[new_user],
+    )
+    session.add(dashboard)
+    session.commit()
+
+    # set dashboard as the welcome dashboard
+    extra_attributes = UserAttribute(
+        user_id=target.id,
+        welcome_dashboard_id=dashboard.id,
+    )
+    session.add(extra_attributes)
+    session.commit()
+
+
+sqla.event.listen(User, 'after_insert', copy_dashboard)
 
 
 class Url(Model, AuditMixinNullable):
@@ -211,8 +252,10 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'datasource': '{}__{}'.format(
                 self.datasource_id, self.datasource_type),
         })
+
         if self.cache_timeout:
             form_data['cache_timeout'] = self.cache_timeout
+        update_time_range(form_data)
         return form_data
 
     def get_explore_url(self, base_url='/superset/explore', overrides=None):
@@ -235,7 +278,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def edit_url(self):
-        return '/slicemodelview/edit/{}'.format(self.id)
+        return '/chart/edit/{}'.format(self.id)
 
     @property
     def slice_link(self):
@@ -322,7 +365,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(Text)
+    position_json = Column(MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -399,10 +442,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         self.json_metadata = value
 
     @property
-    def position_array(self):
+    def position(self):
         if self.position_json:
             return json.loads(self.position_json)
-        return []
+        return {}
 
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
@@ -418,16 +461,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         def alter_positions(dashboard, old_to_new_slc_id_dict):
             """ Updates slice_ids in the position json.
 
-            Sample position json v1:
-            [{
-                "col": 5,
-                "row": 10,
-                "size_x": 4,
-                "size_y": 2,
-                "slice_id": "3610"
-            }]
-
-            Sample position json v2:
+            Sample position_json data:
             {
                 "DASHBOARD_VERSION_KEY": "v2",
                 "DASHBOARD_ROOT_ID": {
@@ -453,32 +487,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             }
             """
             position_data = json.loads(dashboard.position_json)
-            is_v2_dash = (
-                isinstance(position_data, dict) and
-                position_data.get('DASHBOARD_VERSION_KEY') == 'v2'
-            )
-            if is_v2_dash:
-                position_json = position_data.values()
-                for value in position_json:
-                    if (isinstance(value, dict) and value.get('meta') and
-                            value.get('meta').get('chartId')):
-                        old_slice_id = value.get('meta').get('chartId')
+            position_json = position_data.values()
+            for value in position_json:
+                if (isinstance(value, dict) and value.get('meta') and
+                        value.get('meta').get('chartId')):
+                    old_slice_id = value.get('meta').get('chartId')
 
-                        if old_slice_id in old_to_new_slc_id_dict:
-                            value['meta']['chartId'] = (
-                                old_to_new_slc_id_dict[old_slice_id]
-                            )
-                dashboard.position_json = json.dumps(position_data)
-            else:
-                position_array = dashboard.position_array
-                for position in position_array:
-                    if 'slice_id' not in position:
-                        continue
-                    old_slice_id = int(position['slice_id'])
                     if old_slice_id in old_to_new_slc_id_dict:
-                        position['slice_id'] = '{}'.format(
-                            old_to_new_slc_id_dict[old_slice_id])
-                dashboard.position_json = json.dumps(position_array)
+                        value['meta']['chartId'] = (
+                            old_to_new_slc_id_dict[old_slice_id]
+                        )
+            dashboard.position_json = json.dumps(position_data)
 
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
@@ -646,6 +665,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.verbose_name if self.verbose_name else self.database_name
 
     @property
+    def allows_subquery(self):
+        return self.db_engine_spec.allows_subquery
+
+    @property
     def data(self):
         return {
             'id': self.id,
@@ -653,11 +676,16 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             'backend': self.backend,
             'allow_multi_schema_metadata_fetch':
                 self.allow_multi_schema_metadata_fetch,
+            'allows_subquery': self.allows_subquery,
         }
 
     @property
     def unique_name(self):
         return self.database_name
+
+    @property
+    def url_object(self):
+        return make_url(self.sqlalchemy_uri_decrypted)
 
     @property
     def backend(self):
@@ -748,13 +776,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        eng = self.get_sqla_engine(schema=schema)
-
-        for i in range(len(sqls) - 1):
-            eng.execute(sqls[i])
-
-        df = pd.read_sql_query(sqls[-1], eng)
+        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -763,15 +786,44 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
-        for k, v in df.dtypes.items():
-            if v.type == numpy.object_ and needs_conversion(df[k]):
-                df[k] = df[k].apply(utils.json_dumps_w_dates)
-        return df
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                for sql in sqls[:-1]:
+                    self.db_engine_spec.execute(cursor, sql)
+                    cursor.fetchall()
+
+                self.db_engine_spec.execute(cursor, sqls[-1])
+
+                if cursor.description is not None:
+                    columns = [col_desc[0] for col_desc in cursor.description]
+                else:
+                    columns = []
+
+                df = pd.DataFrame.from_records(
+                    data=list(cursor.fetchall()),
+                    columns=columns,
+                    coerce_float=True,
+                )
+
+                for k, v in df.dtypes.items():
+                    if v.type == numpy.object_ and needs_conversion(df[k]):
+                        df[k] = df[k].apply(utils.json_dumps_w_dates)
+                return df
 
     def compile_sqla_query(self, qry, schema=None):
-        eng = self.get_sqla_engine(schema=schema)
-        compiled = qry.compile(eng, compile_kwargs={'literal_binds': True})
-        return '{}'.format(compiled)
+        engine = self.get_sqla_engine(schema=schema)
+
+        sql = six.text_type(
+            qry.compile(
+                engine,
+                compile_kwargs={'literal_binds': True},
+            ),
+        )
+
+        if engine.dialect.identifier_preparer._double_percents:
+            sql = sql.replace('%%', '%')
+
+        return sql
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
@@ -839,7 +891,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        return self.db_engine_spec.time_grains
+        return self.db_engine_spec.get_time_grains()
 
     def grains_dict(self):
         """Allowing to lookup grain by either label or duration

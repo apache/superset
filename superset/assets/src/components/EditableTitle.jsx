@@ -10,14 +10,19 @@ const propTypes = {
   onSaveTitle: PropTypes.func,
   noPermitTooltip: PropTypes.string,
   showTooltip: PropTypes.bool,
+  emptyText: PropTypes.node,
+  style: PropTypes.object,
 };
 const defaultProps = {
   title: t('Title'),
   canEdit: false,
   showTooltip: true,
+  onSaveTitle: () => {},
+  emptyText: '<empty>',
+  style: null,
 };
 
-class EditableTitle extends React.PureComponent {
+export default class EditableTitle extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -45,10 +50,7 @@ class EditableTitle extends React.PureComponent {
     if (!this.props.canEdit || this.state.isEditing) {
       return;
     }
-
-    this.setState({
-      isEditing: true,
-    });
+    this.setState({ isEditing: true });
   }
 
   handleBlur() {
@@ -101,7 +103,6 @@ class EditableTitle extends React.PureComponent {
     if (!this.props.canEdit) {
       return;
     }
-
     this.setState({
       title: ev.target.value,
     });
@@ -110,17 +111,23 @@ class EditableTitle extends React.PureComponent {
   handleKeyPress(ev) {
     if (ev.key === 'Enter') {
       ev.preventDefault();
-
       this.handleBlur();
     }
   }
 
   render() {
-    let content = (
+    let value;
+    if (this.state.title) {
+      value = this.state.title;
+    } else if (!this.state.isEditing) {
+      value = this.props.emptyText;
+    }
+    let input = (
       <input
         required
         type={this.state.isEditing ? 'text' : 'button'}
-        value={this.state.title}
+        value={value}
+        className={!this.state.title ? 'text-muted' : null}
         onKeyUp={this.handleKeyUp}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
@@ -128,14 +135,14 @@ class EditableTitle extends React.PureComponent {
         onKeyPress={this.handleKeyPress}
       />
     );
-    if (this.props.showTooltip) {
-      content = (
+    if (this.props.showTooltip && !this.state.isEditing) {
+      input = (
         <TooltipWrapper
           label="title"
-          tooltip={this.props.canEdit ? t('click to edit title') :
+          tooltip={this.props.canEdit ? t('click to edit') :
               this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
         >
-          {content}
+          {input}
         </TooltipWrapper>
       );
     }
@@ -146,13 +153,12 @@ class EditableTitle extends React.PureComponent {
           this.props.canEdit && 'editable-title--editable',
           this.state.isEditing && 'editable-title--editing',
         )}
+        style={this.props.style}
       >
-        {content}
+        {input}
       </span>
     );
   }
 }
 EditableTitle.propTypes = propTypes;
 EditableTitle.defaultProps = defaultProps;
-
-export default EditableTitle;

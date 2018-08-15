@@ -33,6 +33,25 @@ class DashboardTests(SupersetTestCase):
     def tearDown(self):
         pass
 
+    def get_mock_positions(self, dash):
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2',
+        }
+        for i, slc in enumerate(dash.slices):
+            id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
+            d = {
+                'type': 'DASHBOARD_CHART_TYPE',
+                'id': id,
+                'children': [],
+                'meta': {
+                    'width': 4,
+                    'height': 50,
+                    'chartId': slc.id,
+                },
+            }
+            positions[id] = d
+        return positions
+
     def test_dashboard(self):
         self.login(username='admin')
         urls = {}
@@ -61,10 +80,11 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -76,12 +96,13 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
 
+        positions = self.get_mock_positions(dash)
         filters = {str(dash.slices[0].id): {'region': ['North America']}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
             'default_filters': default_filters,
         }
@@ -104,12 +125,13 @@ class DashboardTests(SupersetTestCase):
             slug='world_health').first()
 
         # add an invalid filter slice
+        positions = self.get_mock_positions(dash)
         filters = {str(99999): {'region': ['North America']}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': dash.dashboard_title,
             'default_filters': default_filters,
         }
@@ -131,10 +153,11 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         origin_title = dash.dashboard_title
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': 'new title',
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -153,11 +176,12 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
+        positions = self.get_mock_positions(dash)
         data = {
             'css': '',
             'duplicate_slices': False,
             'expanded_slices': {},
-            'positions': dash.position_array,
+            'positions': positions,
             'dashboard_title': 'Copy Of Births',
         }
 
@@ -216,8 +240,15 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = dash.position_array[:-1]
         origin_slices_length = len(dash.slices)
+
+        positions = self.get_mock_positions(dash)
+        # remove one chart
+        chart_keys = []
+        for key in positions.keys():
+            if key.startswith('DASHBOARD_CHART_TYPE'):
+                chart_keys.append(key)
+        positions.pop(chart_keys[0])
 
         data = {
             'css': '',
@@ -248,27 +279,27 @@ class DashboardTests(SupersetTestCase):
         self.revoke_public_access_to_table(table)
         self.logout()
 
-        resp = self.get_resp('/slicemodelview/list/')
+        resp = self.get_resp('/chart/list/')
         self.assertNotIn('birth_names</a>', resp)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/births/', resp)
 
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn('birth_names', self.get_resp('/slicemodelview/list/'))
+        self.assertIn('birth_names', self.get_resp('/chart/list/'))
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertIn('/superset/dashboard/births/', resp)
 
         self.assertIn('Births', self.get_resp('/superset/dashboard/births/'))
 
         # Confirm that public doesn't have access to other datasets.
-        resp = self.get_resp('/slicemodelview/list/')
+        resp = self.get_resp('/chart/list/')
         self.assertNotIn('wb_health_population</a>', resp)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/world_health/', resp)
 
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
@@ -339,7 +370,7 @@ class DashboardTests(SupersetTestCase):
         gamma_user = security_manager.find_user('gamma')
         self.login(gamma_user.username)
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/empty_dashboard/', resp)
 
         dash = (
@@ -352,7 +383,7 @@ class DashboardTests(SupersetTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        resp = self.get_resp('/dashboardmodelview/list/')
+        resp = self.get_resp('/dashboard/list/')
         self.assertIn('/superset/dashboard/empty_dashboard/', resp)
 
 

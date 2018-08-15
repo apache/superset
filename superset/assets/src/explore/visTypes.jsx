@@ -58,6 +58,7 @@ export const sections = {
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
         ['order_desc', 'contribution'],
+        ['row_limit', null],
       ],
     },
     {
@@ -66,11 +67,11 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results'),
       controlSetRows: [
-        [<h1 className="section-header">Moving Average</h1>],
+        [<h1 className="section-header">{t('Moving Average')}</h1>],
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        [<h1 className="section-header">Time Comparison</h1>],
+        [<h1 className="section-header">{t('Time Comparison')}</h1>],
         ['time_compare', 'comparison_type'],
-        [<h1 className="section-header">Python Functions</h1>],
+        [<h1 className="section-header">{t('Python Functions')}</h1>],
         [<h2 className="section-header">pandas.resample</h2>],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
@@ -273,21 +274,14 @@ export const visTypes = {
       },
     },
     sectionOverrides: {
-      datasourceAndVizType: {
-        label: t('Chart Type'),
-        controlSetRows: [
-          ['viz_type'],
-          ['slice_id', 'cache_timeout'],
-        ],
-      },
       sqlaTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
       druidTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
     },
@@ -912,6 +906,7 @@ export const visTypes = {
       {
         label: t('NOT GROUPED BY'),
         description: t('Use this section if you want to query atomic rows'),
+        expanded: true,
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
@@ -1249,7 +1244,7 @@ export const visTypes = {
         controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
-          ['show_trend_line', null],
+          ['show_trend_line', 'start_y_axis_at_zero'],
         ],
       },
     ],
@@ -1831,7 +1826,7 @@ export const visTypes = {
   },
 
   partition: {
-    label: 'Partition Diagram',
+    label: t('Partition Diagram'),
     showOnExplore: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],

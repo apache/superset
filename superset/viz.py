@@ -67,8 +67,6 @@ class BaseViz(object):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
 
-        utils.since_until_to_time_range(form_data)
-
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get('viz_type')
@@ -86,7 +84,7 @@ class BaseViz(object):
         self.force = force
 
         # Keeping track of whether some data came from cache
-        # this is useful to trigerr the <CachedLabel /> when
+        # this is useful to trigger the <CachedLabel /> when
         # in the cases where visualization have many queries
         # (FilterBox for instance)
         self._some_from_cache = False
@@ -125,11 +123,11 @@ class BaseViz(object):
                     # if an int is too big for Java Script to handle
                     # convert it to a string
                     if abs(v) > JS_MAX_INTEGER:
-                        d[k] = str(v)
+                        d[k] = text_type(v)
         return data
 
     def run_extra_queries(self):
-        """Lyfecycle method to use when more than one query is needed
+        """Lifecycle method to use when more than one query is needed
 
         In rare-ish cases, a visualization may need to execute multiple
         queries. That is the case for FilterBox or for time comparison
@@ -153,10 +151,10 @@ class BaseViz(object):
 
     def handle_nulls(self, df):
         fillna = self.get_fillna_for_columns(df.columns)
-        df = df.fillna(fillna)
+        return df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
-        """Returns the value for use as filler for a specific Column.type"""
+        """Returns the value to use as filler for a specific Column.type"""
         if col:
             if col.is_string:
                 return ' NULL'
@@ -181,7 +179,6 @@ class BaseViz(object):
             return None
 
         self.error_msg = ''
-        self.results = None
 
         timestamp_format = None
         if self.datasource.type == 'table':
@@ -217,7 +214,7 @@ class BaseViz(object):
                 self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            self.handle_nulls(df)
+            df = self.handle_nulls(df)
         return df
 
     @staticmethod
@@ -246,10 +243,9 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
 
-        utils.split_adhoc_filters_into_base_filters(form_data)
-
+        utils.convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
-
+        utils.split_adhoc_filters_into_base_filters(form_data)
         granularity = (
             form_data.get('granularity') or
             form_data.get('granularity_sqla')
@@ -323,7 +319,7 @@ class BaseViz(object):
 
         We remove datetime bounds that are hard values,
         and replace them with the use-provided inputs to bounds, which
-        may we time-relative (as in "5 days ago" or "now").
+        may be time-relative (as in "5 days ago" or "now").
         """
         cache_dict = copy.copy(query_obj)
 
@@ -383,6 +379,10 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
+                if hasattr(self.datasource, 'database') and \
+                        hasattr(self.datasource.database, 'db_engine_spec'):
+                    db_engine_spec = self.datasource.database.db_engine_spec
+                    df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
@@ -770,7 +770,7 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                text_type(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
                 for obj in records
             }
 
@@ -2063,7 +2063,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys = []
 
     def handle_nulls(self, df):
-        pass
+        return df
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
@@ -2144,7 +2144,6 @@ class BaseDeckGLViz(BaseViz):
             d['columns'] = []
         else:
             d['columns'] = gb
-
         return d
 
     def get_js_columns(self, d):

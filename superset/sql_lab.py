@@ -3,13 +3,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
-import json
 import logging
 from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
 from contextlib2 import contextmanager
+import simplejson as json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -130,7 +130,7 @@ def execute_sql(
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
     SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
-    if not superset_query.is_select() and not database.allow_dml:
+    if not superset_query.is_readonly() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
     if query.select_as_cta:
@@ -165,15 +165,14 @@ def execute_sql(
     try:
         engine = database.get_sqla_engine(
             schema=query.schema,
-            nullpool=not ctask.request.called_directly,
+            nullpool=True,
             user_name=user_name,
         )
         conn = engine.raw_connection()
         cursor = conn.cursor()
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
-        cursor.execute(query.executed_sql,
-                       **db_engine_spec.cursor_execute_kwargs)
+        db_engine_spec.execute(cursor, query.executed_sql, async=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
@@ -192,7 +191,7 @@ def execute_sql(
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info('Fetching cursor description')
-
+    cursor_description = cursor.description
     if conn is not None:
         conn.commit()
         conn.close()
@@ -200,7 +199,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = dataframe.SupersetDataFrame(data, cursor.description, db_engine_spec)
+    cdf = dataframe.SupersetDataFrame(data, cursor_description, db_engine_spec)
 
     query.rows = cdf.size
     query.progress = 100
@@ -226,7 +225,8 @@ def execute_sql(
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
-        json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+        json_payload = json.dumps(
+            payload, default=utils.json_iso_dttm_ser, ignore_nan=True)
         cache_timeout = database.cache_timeout
         if cache_timeout is None:
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)

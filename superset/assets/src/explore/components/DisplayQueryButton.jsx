@@ -39,13 +39,14 @@ const defaultProps = {
 export default class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
+    const { datasource } = props.latestQueryFormData;
     this.state = {
       language: null,
       query: null,
       data: null,
       isLoading: false,
       error: null,
-      sqlSupported: props.latestQueryFormData.datasource.split('__')[1] === 'table',
+      sqlSupported: datasource && datasource.split('__')[1] === 'table',
     };
     this.beforeOpen = this.beforeOpen.bind(this);
   }
@@ -142,7 +143,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         <ModalTrigger
           isMenuItem
           animation={this.props.animation}
-          triggerNode={<span>View query</span>}
+          triggerNode={<span>{t('View query')}</span>}
           modalTitle={t('View query')}
           bsSize="large"
           beforeOpen={this.beforeOpen}
@@ -152,7 +153,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         <ModalTrigger
           isMenuItem
           animation={this.props.animation}
-          triggerNode={<span>View results</span>}
+          triggerNode={<span>{t('View results')}</span>}
           modalTitle={t('View results')}
           bsSize="large"
           beforeOpen={this.beforeOpen}
@@ -163,7 +164,7 @@ export default class DisplayQueryButton extends React.PureComponent {
           eventKey="3"
           onClick={this.redirectSQLLab.bind(this)}
         >
-          Run in SQL Lab
+          {t('Run in SQL Lab')}
         </MenuItem>}
       </DropdownButton>
     );

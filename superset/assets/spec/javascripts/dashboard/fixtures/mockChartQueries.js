@@ -1,4 +1,4 @@
-import { datasourceId } from './mockDatasource';
+import { datasourceId } from '../../../fixtures/mockDatasource';
 
 export const sliceId = 18;
 
