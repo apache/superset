@@ -1417,7 +1417,7 @@ class BQEngineSpec(BaseEngineSpec):
     @staticmethod
     def mutate_expression_label(label):
         mutated_label = re.sub('[^\w]+', '_', label)
-        if not re.match("^[a-zA-Z_]+.*", mutated_label):
+        if not re.match('^[a-zA-Z_]+.*', mutated_label):
             raise SupersetTemplateException('BigQuery field_name used is invalid {}, '
                                             'should start with a letter or '
                                             'underscore'.format(mutated_label))
