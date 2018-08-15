@@ -180,15 +180,20 @@ class SupersetDataFrame(object):
                 self._type_dict.get(col) or
                 self.db_type(self.df.dtypes[col])
             )
+            is_date = False
+            if col_db_type:
+                is_date = self.is_date(self.df.dtypes[col]) or any([
+                    col_db_type.lower().startswith(s) for s in ('time', 'data')
+                ])
             column = {
                 'name': col,
                 'agg': self.agg_func(self.df.dtypes[col], col),
                 'type': col_db_type,
-                'is_date': self.is_date(self.df.dtypes[col]),
+                'is_date': is_date,
                 'is_dim': self.is_dimension(self.df.dtypes[col], col),
             }
 
-            if column['type'] in ('OBJECT', None):
+            if not col_db_type or col_db_type.upper() == 'OBJECT':
                 v = sample[col].iloc[0] if not sample[col].empty else None
                 if isinstance(v, basestring):
                     column['type'] = 'STRING'
