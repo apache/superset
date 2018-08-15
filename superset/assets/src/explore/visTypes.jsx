@@ -758,7 +758,8 @@ export const visTypes = {
       {
         label: t('Arc'),
         controlSetRows: [
-          ['color_picker', null],
+          ['color_picker', 'legend_position'],
+          ['dimension', 'color_scheme'],
           ['stroke_width', null],
         ],
       },
@@ -772,6 +773,16 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
+      },
+      size: {
+        validators: [],
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
+    },
   },
 
   deck_scatter: {
