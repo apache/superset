@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -42,12 +43,13 @@ ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
-SUPERSET_WORKERS = 2
-SUPERSET_CELERY_WORKERS = 32
+SUPERSET_WORKERS = 2  # deprecated
+SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
-SUPERSET_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_TIMEOUT = 60  # deprecated
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -164,7 +166,7 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
-    'pt-BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
 }
 # ---------------------------------------------------
@@ -357,6 +359,9 @@ SILENCE_FAB = True
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ''
 
+# CSRF token timeout, set to None for a token that never expires
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
+
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.
 PERMISSION_INSTRUCTIONS_LINK = ''
@@ -378,6 +383,9 @@ HIVE_POLL_INTERVAL = 5
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
+
+# The id of a template dashboard that should be copied to every new user
+DASHBOARD_TEMPLATE_ID = None
 
 # A callable that allows altering the database conneciton URL and params
 # on the fly, at runtime. This allows for things like impersonation or

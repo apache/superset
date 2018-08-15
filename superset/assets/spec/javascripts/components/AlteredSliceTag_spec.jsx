@@ -5,13 +5,21 @@ import { expect } from 'chai';
 
 import { Table, Thead, Td, Th, Tr } from 'reactable';
 
-import AlteredSliceTag from '../../../javascripts/components/AlteredSliceTag';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
-import TooltipWrapper from '../../../javascripts/components/TooltipWrapper';
+import AlteredSliceTag from '../../../src/components/AlteredSliceTag';
+import ModalTrigger from '../../../src/components/ModalTrigger';
+import TooltipWrapper from '../../../src/components/TooltipWrapper';
 
 const defaultProps = {
   origFormData: {
-    filters: [{ col: 'a', op: '==', val: 'hello' }],
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        comparator: 'hello',
+        expressionType: 'SIMPLE',
+        operator: '==',
+        subject: 'a',
+      },
+    ],
     y_axis_bounds: [10, 20],
     column_collection: [{ 1: 'a', b: ['6', 'g'] }],
     bool: false,
@@ -21,7 +29,15 @@ const defaultProps = {
     ever: { a: 'b', c: 'd' },
   },
   currentFormData: {
-    filters: [{ col: 'b', op: 'in', val: ['hello', 'my', 'name'] }],
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        comparator: ['hello', 'my', 'name'],
+        expressionType: 'SIMPLE',
+        operator: 'in',
+        subject: 'b',
+      },
+    ],
     y_axis_bounds: [15, 16],
     column_collection: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
     bool: true,
@@ -33,9 +49,25 @@ const defaultProps = {
 };
 
 const expectedDiffs = {
-  filters: {
-    before: [{ col: 'a', op: '==', val: 'hello' }],
-    after: [{ col: 'b', op: 'in', val: ['hello', 'my', 'name'] }],
+  adhoc_filters: {
+    before: [
+      {
+        clause: 'WHERE',
+        comparator: 'hello',
+        expressionType: 'SIMPLE',
+        operator: '==',
+        subject: 'a',
+      },
+    ],
+    after: [
+      {
+        clause: 'WHERE',
+        comparator: ['hello', 'my', 'name'],
+        expressionType: 'SIMPLE',
+        operator: 'in',
+        subject: 'b',
+      },
+    ],
   },
   y_axis_bounds: {
     before: [10, 20],
@@ -211,25 +243,49 @@ describe('AlteredSliceTag', () => {
     });
 
     it('returns "[]" for empty filters', () => {
-      expect(wrapper.instance().formatValue([], 'filters')).to.equal('[]');
+      expect(wrapper.instance().formatValue([], 'adhoc_filters')).to.equal('[]');
     });
 
     it('correctly formats filters with array values', () => {
       const filters = [
-        { col: 'a', op: 'in', val: ['1', 'g', '7', 'ho'] },
-        { col: 'b', op: 'not in', val: ['hu', 'ho', 'ha'] },
+        {
+          clause: 'WHERE',
+          comparator: ['1', 'g', '7', 'ho'],
+          expressionType: 'SIMPLE',
+          operator: 'in',
+          subject: 'a',
+        },
+        {
+          clause: 'WHERE',
+          comparator: ['hu', 'ho', 'ha'],
+          expressionType: 'SIMPLE',
+          operator: 'not in',
+          subject: 'b',
+        },
       ];
       const expected = 'a in [1, g, 7, ho], b not in [hu, ho, ha]';
-      expect(wrapper.instance().formatValue(filters, 'filters')).to.equal(expected);
+      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).to.equal(expected);
     });
 
     it('correctly formats filters with string values', () => {
       const filters = [
-        { col: 'a', op: '==', val: 'gucci' },
-        { col: 'b', op: 'LIKE', val: 'moshi moshi' },
+        {
+          clause: 'WHERE',
+          comparator: 'gucci',
+          expressionType: 'SIMPLE',
+          operator: '==',
+          subject: 'a',
+        },
+        {
+          clause: 'WHERE',
+          comparator: 'moshi moshi',
+          expressionType: 'SIMPLE',
+          operator: 'LIKE',
+          subject: 'b',
+        },
       ];
       const expected = 'a == gucci, b LIKE moshi moshi';
-      expect(wrapper.instance().formatValue(filters, 'filters')).to.equal(expected);
+      expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).to.equal(expected);
     });
   });
 });

@@ -3,8 +3,8 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
-import OptionDescription from '../../../javascripts/components/OptionDescription';
+import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
+import OptionDescription from '../../../src/components/OptionDescription';
 
 const defaultProps = {
   option: {

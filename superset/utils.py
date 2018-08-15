@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Utility functions used across Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,6 +13,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+import errno
 import functools
 import json
 import logging
@@ -25,15 +27,9 @@ import zlib
 import bleach
 import celery
 from dateutil.parser import parse
-from flask import flash, Markup, redirect, render_template, request, url_for
-from flask_appbuilder._compat import as_unicode
-from flask_appbuilder.const import (
-    FLAMSG_ERR_SEC_ACCESS_DENIED,
-    LOGMSG_ERR_SEC_ACCESS_DENIED,
-    PERMISSION_PREFIX,
-)
+from flask import flash, Markup, render_template
 from flask_babel import gettext as __
-from flask_cache import Cache
+from flask_caching import Cache
 import markdown as md
 import numpy
 import pandas as pd
@@ -42,7 +38,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -53,6 +50,12 @@ logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
+ADHOC_METRIC_EXPRESSION_TYPES = {
+    'SIMPLE': 'SIMPLE',
+    'SQL': 'SQL',
+}
+
+JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
 
 
 def flasher(msg, severity=None):
@@ -653,42 +656,6 @@ def get_email_address_list(address_string):
     return address_string
 
 
-def has_access(f):
-    """
-        Use this decorator to enable granular security permissions to your
-        methods. Permissions will be associated to a role, and roles are
-        associated to users.
-
-        By default the permission's name is the methods name.
-
-        Forked from the flask_appbuilder.security.decorators
-        TODO(bkyryliuk): contribute it back to FAB
-    """
-    if hasattr(f, '_permission_name'):
-        permission_str = f._permission_name
-    else:
-        permission_str = f.__name__
-
-    def wraps(self, *args, **kwargs):
-        permission_str = PERMISSION_PREFIX + f._permission_name
-        if self.appbuilder.sm.has_access(permission_str,
-                                         self.__class__.__name__):
-            return f(self, *args, **kwargs)
-        else:
-            logging.warning(
-                LOGMSG_ERR_SEC_ACCESS_DENIED.format(permission_str,
-                                                    self.__class__.__name__))
-            flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), 'danger')
-        # adds next arg to forward to the original path once user is logged in.
-        return redirect(
-            url_for(
-                self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
-                next=request.full_path))
-
-    f._permission_name = permission_str
-    return functools.update_wrapper(wraps, f)
-
-
 def choicify(values):
     """Takes an iterable and makes an iterable of tuples with it"""
     return [(v, v) for v in values]
@@ -742,17 +709,42 @@ def get_celery_app(config):
     return _celery_app
 
 
+def to_adhoc(filt, expressionType='SIMPLE', clause='where'):
+    result = {
+        'clause': clause.upper(),
+        'expressionType': expressionType,
+        'filterOptionName': str(uuid.uuid4()),
+    }
+
+    if expressionType == 'SIMPLE':
+        result.update({
+            'comparator': filt['val'],
+            'operator': filt['op'],
+            'subject': filt['col'],
+        })
+    elif expressionType == 'SQL':
+        result.update({
+            'sqlExpression': filt[clause],
+        })
+
+    return result
+
+
 def merge_extra_filters(form_data):
-    # extra_filters are temporary/contextual filters that are external
-    # to the slice definition. We use those for dynamic interactive
-    # filters like the ones emitted by the "Filter Box" visualization
+    # extra_filters are temporary/contextual filters (using the legacy constructs)
+    # that are external to the slice definition. We use those for dynamic
+    # interactive filters like the ones emitted by the "Filter Box" visualization.
+    # Note extra_filters only support simple filters.
     if 'extra_filters' in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
-        if 'filters' not in form_data:
-            form_data['filters'] = []
+        if (
+            'adhoc_filters' not in form_data or
+            not isinstance(form_data['adhoc_filters'], list)
+        ):
+            form_data['adhoc_filters'] = []
         date_options = {
             '__from': 'since',
             '__to': 'until',
@@ -764,11 +756,20 @@ def merge_extra_filters(form_data):
         # Grab list of existing filters 'keyed' on the column and operator
 
         def get_filter_key(f):
-            return f['col'] + '__' + f['op']
+            if 'expressionType' in f:
+                return '{}__{}'.format(f['subject'], f['operator'])
+            else:
+                return '{}__{}'.format(f['col'], f['op'])
+
         existing_filters = {}
-        for existing in form_data['filters']:
-            if existing['col'] is not None:
-                existing_filters[get_filter_key(existing)] = existing['val']
+        for existing in form_data['adhoc_filters']:
+            if (
+                existing['expressionType'] == 'SIMPLE' and
+                existing['comparator'] is not None and
+                existing['subject'] is not None
+            ):
+                existing_filters[get_filter_key(existing)] = existing['comparator']
+
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr['col']):
@@ -787,16 +788,16 @@ def merge_extra_filters(form_data):
                                 sorted(existing_filters[filter_key]) !=
                                 sorted(filtr['val'])
                             ):
-                                form_data['filters'] += [filtr]
+                                form_data['adhoc_filters'].append(to_adhoc(filtr))
                         else:
-                            form_data['filters'] += [filtr]
+                            form_data['adhoc_filters'].append(to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr['val'] != existing_filters[filter_key]:
-                            form_data['filters'] += [filtr]
+                            form_data['adhoc_filters'].append(to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    form_data['filters'] += [filtr]
+                    form_data['adhoc_filters'].append(to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']
 
@@ -844,11 +845,97 @@ def get_or_create_main_db():
 
 
 def is_adhoc_metric(metric):
-    return (isinstance(metric, dict) and
-            metric['column'] and
-            metric['aggregate'] and
-            metric['label'])
+    return (
+        isinstance(metric, dict) and
+        (
+            (
+                metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE'] and
+                metric['column'] and
+                metric['aggregate']
+            ) or
+            (
+                metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SQL'] and
+                metric['sqlExpression']
+            )
+        ) and
+        metric['label']
+    )
+
+
+def get_metric_name(metric):
+    return metric['label'] if is_adhoc_metric(metric) else metric
 
 
 def get_metric_names(metrics):
-    return [metric['label'] if is_adhoc_metric(metric) else metric for metric in metrics]
+    return [get_metric_name(metric) for metric in metrics]
+
+
+def ensure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
+            raise
+
+
+def convert_legacy_filters_into_adhoc(fd):
+    mapping = {'having': 'having_filters', 'where': 'filters'}
+
+    if not fd.get('adhoc_filters'):
+        fd['adhoc_filters'] = []
+
+        for clause, filters in mapping.items():
+            if clause in fd and fd[clause] != '':
+                fd['adhoc_filters'].append(to_adhoc(fd, 'SQL', clause))
+
+            if filters in fd:
+                for filt in fd[filters]:
+                    fd['adhoc_filters'].append(to_adhoc(filt, 'SIMPLE', clause))
+
+    for key in ('filters', 'having', 'having_filters', 'where'):
+        if key in fd:
+            del fd[key]
+
+
+def split_adhoc_filters_into_base_filters(fd):
+    """
+    Mutates form data to restructure the adhoc filters in the form of the four base
+    filters, `where`, `having`, `filters`, and `having_filters` which represent
+    free form where sql, free form having sql, structured where clauses and structured
+    having clauses.
+    """
+    adhoc_filters = fd.get('adhoc_filters')
+    if isinstance(adhoc_filters, list):
+        simple_where_filters = []
+        simple_having_filters = []
+        sql_where_filters = []
+        sql_having_filters = []
+        for adhoc_filter in adhoc_filters:
+            expression_type = adhoc_filter.get('expressionType')
+            clause = adhoc_filter.get('clause')
+            if expression_type == 'SIMPLE':
+                if clause == 'WHERE':
+                    simple_where_filters.append({
+                        'col': adhoc_filter.get('subject'),
+                        'op': adhoc_filter.get('operator'),
+                        'val': adhoc_filter.get('comparator'),
+                    })
+                elif clause == 'HAVING':
+                    simple_having_filters.append({
+                        'col': adhoc_filter.get('subject'),
+                        'op': adhoc_filter.get('operator'),
+                        'val': adhoc_filter.get('comparator'),
+                    })
+            elif expression_type == 'SQL':
+                if clause == 'WHERE':
+                    sql_where_filters.append(adhoc_filter.get('sqlExpression'))
+                elif clause == 'HAVING':
+                    sql_having_filters.append(adhoc_filter.get('sqlExpression'))
+        fd['where'] = ' AND '.join(['({})'.format(sql) for sql in sql_where_filters])
+        fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
+        fd['having_filters'] = simple_having_filters
+        fd['filters'] = simple_where_filters
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')

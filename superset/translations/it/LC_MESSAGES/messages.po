@@ -1598,7 +1598,6 @@ msgstr "Seleziona una colonna"
 msgid "Select operator"
 msgstr "Seleziona operatore"
 
-#: superset/assets/javascripts/explore/components/controls/FilterControl.jsx:145
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
 msgstr "Aggiungi filtro"

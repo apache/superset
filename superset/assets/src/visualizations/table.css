@@ -1,0 +1,39 @@
+.slice-grid .widget.table .slice_container {
+    overflow: auto !important;
+}
+
+.slice_container.table table.table {
+  margin: 0px !important;
+  background: transparent;
+  background-color: white;
+}
+
+.widget.table td.filtered {
+    background-color: #005a63;
+    color: white;
+}
+
+.widget.table tr>th {
+    padding: 1px 5px !important;
+    font-size: small !important;
+}
+
+.widget.table tr>td {
+    padding: 1px 5px !important;
+    font-size: small !important;
+}
+table.table thead th.sorting:after, table.table thead th.sorting_asc:after, table.table thead th.sorting_desc:after {
+    top: 0px;
+}
+
+.like-pre {
+  white-space: pre-wrap;
+}
+
+.widget.table {
+  width: auto;
+  max-width: unset;
+}
+.widget.table thead tr {
+  height: 25px;
+}

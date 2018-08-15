@@ -2636,7 +2636,250 @@ msgstr ""
 msgid "An unknown error occurred. (Status: %s )"
 msgstr ""
 
-#: superset/assets/javascripts/profile/components/App.jsx:24
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:228
+#: superset/assets/src/explore/components/AdhocMetricEditPopover.jsx:166
+#, python-format
+msgid "%s column(s)"
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:229
+msgid "To filter on a metric, use Custom SQL tab."
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:235
+#, python-format
+msgid "%s operators(s)"
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:275
+msgid "type a value here"
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:284
+#: superset/assets/src/explore/components/controls/Filter.jsx:120
+msgid "Filter value"
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:91
+msgid "choose WHERE or HAVING..."
+msgstr ""
+
+#: superset/assets/src/explore/components/AdhocMetricEditPopover.jsx:179
+#, python-format
+msgid "%s aggregates(s)"
+msgstr ""
+
+#: superset/assets/src/explore/components/ControlHeader.jsx:35
+msgid "description"
+msgstr ""
+
+#: superset/assets/src/explore/components/ControlHeader.jsx:46
+msgid "bolt"
+msgstr ""
+
+#: superset/assets/src/explore/components/ControlHeader.jsx:47
+msgid "Changing this control takes effect instantly"
+msgstr ""
+
+#: superset/assets/src/explore/components/DisplayQueryButton.jsx:75
+msgid "Error..."
+msgstr ""
+
+#: superset/assets/src/explore/components/EmbedCodeButton.jsx:91
+msgid "Width"
+msgstr "Largeur"
+
+#: superset/assets/src/explore/components/ExploreActionButtons.jsx:42
+msgid "Export to .json"
+msgstr ""
+
+#: superset/assets/src/explore/components/ExploreActionButtons.jsx:52
+msgid "Export to .csv format"
+msgstr ""
+
+#: superset/assets/src/explore/components/ExploreChartHeader.jsx:64
+#, python-format
+msgid "%s - untitled"
+msgstr ""
+
+#: superset/assets/src/explore/components/ExploreChartHeader.jsx:100
+msgid "Edit chart properties"
+msgstr ""
+
+#: superset/assets/src/explore/components/RowCountLabel.jsx:25
+msgid "Limit reached"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:74
+msgid "Please enter a chart name"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:89
+msgid "Please select a dashboard"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:97
+msgid "Please enter a dashboard name"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:133
+msgid "Save A Chart"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:154
+#, python-format
+msgid "Overwrite chart %s"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:167
+msgid "[chart name]"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:180
+msgid "Do not add to a dashboard"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:188
+msgid "Add chart to existing dashboard"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:204
+msgid "Add to new dashboard"
+msgstr ""
+
+#: superset/assets/src/explore/components/SaveModal.jsx:230
+msgid "Save & go to dashboard"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/AdhocFilterControl.jsx:241
+msgid "choose a column or metric"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/AnnotationLayerControl.jsx:147
+msgid "Add Annotation Layer"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/BoundsControl.jsx:50
+msgid "`Min` value should be numeric or empty"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/BoundsControl.jsx:53
+msgid "`Max` value should be numeric or empty"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/BoundsControl.jsx:70
+#: superset/connectors/druid/views.py:57
+msgid "Min"
+msgstr "Min"
+
+#: superset/assets/src/explore/components/controls/BoundsControl.jsx:78
+#: superset/connectors/druid/views.py:58
+msgid "Max"
+msgstr "Max"
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:79
+msgid "Something went wrong while fetching the datasource list"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:110
+msgid "Select a datasource"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:120
+#: superset/assets/src/explore/components/controls/VizTypeControl.jsx:120
+msgid "Search / Filter"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:180
+msgid "Click to point to another datasource"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:191
+msgid "Edit the datasource's configuration"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/DatasourceControl.jsx:203
+msgid "Show datasource configuration"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/Filter.jsx:149
+msgid "Select metric"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/Filter.jsx:149
+msgid "Select column"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/Filter.jsx:161
+msgid "Select operator"
+msgstr ""
+
+#: superset/templates/appbuilder/general/widgets/search.html:6
+msgid "Add Filter"
+msgstr "Ajouter un filtre"
+
+#: superset/assets/src/explore/components/controls/MetricsControl.jsx:239
+msgid "choose a column or aggregate function"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SelectAsyncControl.jsx:25
+msgid "Error while fetching data"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SelectControl.jsx:48
+msgid "No results found"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SelectControl.jsx:114
+#, python-format
+msgid "%s option(s)"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:62
+msgid "Invalid lat/long configuration."
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:128
+msgid "Longitude & Latitude columns"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:144
+msgid "Delimited long & lat single column"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:145
+msgid ""
+"Multiple formats accepted, look the geopy.points Python library for more "
+"details"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:157
+msgid "Reverse lat/long "
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/SpatialControl.jsx:163
+msgid "Geohash"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/TextAreaControl.jsx:70
+msgid "textarea"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/TextAreaControl.jsx:98
+msgid "Edit"
+msgstr "Éditer"
+
+#: superset/assets/src/explore/components/controls/TextAreaControl.jsx:98
+msgid "in modal"
+msgstr ""
+
+#: superset/assets/src/explore/components/controls/VizTypeControl.jsx:110
+msgid "Select a visualization type"
+msgstr ""
+
+#: superset/assets/src/profile/components/App.jsx:24
+#: superset/assets/src/welcome/App.jsx:56
+#: superset/assets/src/welcome/App.jsx:59
 msgid "Favorites"
 msgstr ""
 

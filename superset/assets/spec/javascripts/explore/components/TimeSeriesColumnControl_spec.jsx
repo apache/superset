@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
-import TimeSeriesColumnControl from '../../../../javascripts/explore/components/controls/TimeSeriesColumnControl';
+import TimeSeriesColumnControl from '../../../../src/explore/components/controls/TimeSeriesColumnControl';
 
 const defaultProps = {
   name: 'x_axis_label',

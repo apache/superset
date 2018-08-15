@@ -6,7 +6,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { user } from './fixtures';
-import UserInfo from '../../../javascripts/profile/components/UserInfo';
+import UserInfo from '../../../src/profile/components/UserInfo';
 
 
 describe('UserInfo', () => {

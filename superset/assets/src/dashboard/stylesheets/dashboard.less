@@ -1,0 +1,191 @@
+/* header has mysterious extra margin */
+header.top {
+  margin-bottom: -20px;
+}
+
+body {
+  h1 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 24px;
+    letter-spacing: -0.2px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 20px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+  p {
+    margin: 0 0 8px 0;
+  }
+}
+
+.dashboard .chart-header {
+  position: relative;
+  font-size: 16px;
+  font-weight: bold;
+
+  .dropdown.btn-group {
+    position: absolute;
+    right: 0;
+  }
+
+  .dropdown-toggle.btn.btn-default {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .dropdown-menu.dropdown-menu-right {
+    top: 20px;
+  }
+
+  .divider {
+    margin: 5px 0;
+  }
+
+  .fa-circle {
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    font-size: 4px;
+    color: @pink;
+  }
+
+  .refresh-tooltip {
+    display: block;
+    height: 16px;
+    margin: 3px 0;
+    color: @gray;
+  }
+}
+
+.dashboard .dashboard-header {
+  #save-dash-split-button {
+    border-radius: 0;
+    margin-left: -9px;
+    height: 30px;
+    width: 30px;
+    z-index: 10;
+
+    &.btn.btn-primary {
+      border-left-color: white;
+    }
+
+    .caret {
+      position: absolute;
+      top: 24px;
+      left: 3px;
+    }
+
+    & + .dropdown-menu.dropdown-menu-right {
+      min-width: unset;
+    }
+  }
+
+  .button-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    & > :not(:last-child) {
+      margin-right: 8px;
+    }
+  }
+}
+
+.dashboard .chart-header,
+.dashboard .dashboard-header {
+  .dropdown-menu {
+    padding: 9px 0;
+  }
+
+  .dropdown-menu li a {
+    padding: 3px 16px;
+    color: @almost-black;
+    line-height: 16px;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+
+    &:hover,
+    &:focus {
+      background: @menu-hover;
+      color: @almost-black;
+    }
+  }
+}
+
+.modal img.loading {
+  width: 50px;
+  margin: 0;
+  position: relative;
+}
+
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden,
+#pageDropDown {
+  display: none;
+}
+
+.separator .chart-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.dashboard .title {
+  margin: 0 20px;
+}
+
+.dashboard-header .dashboard-component-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .favstar {
+    font-size: 24px;
+    position: relative;
+    margin-left: 8px;
+  }
+}
+
+.ace_gutter {
+  z-index: 0;
+}
+.ace_content {
+  z-index: 0;
+}
+.ace_scrollbar {
+  z-index: 0;
+}
+.slice_container .alert {
+  margin: 10px;
+}
+
+i.danger {
+  color: red;
+}
+
+i.warning {
+  color: orange;
+}
