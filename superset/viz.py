@@ -2075,13 +2075,13 @@ class BaseDeckGLViz(BaseViz):
         return [self.metric] if self.metric else []
 
     def process_spatial_query_obj(self, key, group_by):
-        spatial = self.form_data.get(key)
-        if spatial is None:
-            raise ValueError(_('Bad spatial key'))
         group_by.extend(self.get_spatial_columns(key))
 
     def get_spatial_columns(self, key):
         spatial = self.form_data.get(key)
+        if spatial is None:
+            raise ValueError(_('Bad spatial key'))
+
         if spatial.get('type') == 'latlong':
             return [spatial.get('lonCol'), spatial.get('latCol')]
         elif spatial.get('type') == 'delimited':
@@ -2167,7 +2167,6 @@ class BaseDeckGLViz(BaseViz):
             d['columns'] = []
         else:
             d['columns'] = gb
-
         return d
 
     def get_js_columns(self, d):
