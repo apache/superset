@@ -7,6 +7,8 @@ import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './styles.css';
 
+import { t } from '../locales';
+
 const propTypes = {
   collection: PropTypes.arrayOf(PropTypes.object).isRequired,
   itemGenerator: PropTypes.func,
@@ -210,7 +212,7 @@ export default class CRUDCollection extends React.PureComponent {
         <div>
           {this.props.allowAddItem &&
             <Button bsStyle="primary" onClick={this.onAddItem}>
-              <i className="fa fa-plus" /> Add Item
+              <i className="fa fa-plus" /> {t('Add Item')}
             </Button>}
           {this.props.extraButtons}
         </div>

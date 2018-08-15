@@ -3,7 +3,6 @@ import React from 'react';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
 

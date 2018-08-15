@@ -24,6 +24,19 @@ intelligence web application
     the code, it does indicate that the project has yet to be fully
     endorsed by the ASF.
 
+Resources
+=========
+- `Superset's Github <https://github.com/apache/incubator-superset>`_, note
+  that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
+- Superset's
+  `contribution guidelines <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md>`_
+  and
+  `code of conduct <https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md>`_
+  on Github.
+- Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
+  To subscribe, send an email to ``dev-subscribe@superset.apache.org``
+- `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE>`_
+
 Overview
 ========
 

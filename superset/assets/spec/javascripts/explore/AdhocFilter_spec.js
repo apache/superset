@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../src/explore/AdhocFilter';
 

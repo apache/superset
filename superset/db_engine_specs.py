@@ -35,7 +35,7 @@ import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.sql import text
+from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 from tableschema import Table
@@ -101,7 +101,7 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
-    consistent_case_sensitivity = True  # do results have same case as qry for col names?
+    force_column_alias_quotes = False
     arraysize = None
 
     @classmethod
@@ -312,6 +312,10 @@ class BaseEngineSpec(object):
         return False
 
     @classmethod
+    def _get_fields(cls, cols):
+        return [sqla.column(c.get('name')) for c in cols]
+
+    @classmethod
     def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
                     show_cols=False, indent=True, latest_partition=True,
                     cols=None):
@@ -321,7 +325,7 @@ class BaseEngineSpec(object):
             cols = my_db.get_columns(table_name, schema)
 
         if show_cols:
-            fields = [sqla.column(c.get('name')) for c in cols]
+            fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + '.' + quote(table_name)
@@ -365,60 +369,26 @@ class BaseEngineSpec(object):
         """
         return {}
 
-    @staticmethod
-    def execute(cursor, query, async=False):
+    @classmethod
+    def execute(cls, cursor, query, **kwargs):
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
         cursor.execute(query)
 
     @classmethod
-    def adjust_df_column_names(cls, df, fd):
-        """Based of fields in form_data, return dataframe with new column names
-
-        Usually sqla engines return column names whose case matches that of the
-        original query. For example:
-            SELECT 1 as col1, 2 as COL2, 3 as Col_3
-        will usually result in the following df.columns:
-            ['col1', 'COL2', 'Col_3'].
-        For these engines there is no need to adjust the dataframe column names
-        (default behavior). However, some engines (at least Snowflake, Oracle and
-        Redshift) return column names with different case than in the original query,
-        usually all uppercase. For these the column names need to be adjusted to
-        correspond to the case of the fields specified in the form data for Viz
-        to work properly. This adjustment can be done here.
+    def make_label_compatible(cls, label):
         """
-        if cls.consistent_case_sensitivity:
-            return df
-        else:
-            return cls.align_df_col_names_with_form_data(df, fd)
+        Return a sqlalchemy.sql.elements.quoted_name if the engine requires
+        quoting of aliases to ensure that select query and query results
+        have same case.
+        """
+        if cls.force_column_alias_quotes is True:
+            return quoted_name(label, True)
+        return label
 
     @staticmethod
-    def align_df_col_names_with_form_data(df, fd):
-        """Helper function to rename columns that have changed case during query.
-
-        Returns a dataframe where column names have been adjusted to correspond with
-        column names in form data (case insensitive). Examples:
-        dataframe: 'col1', form_data: 'col1' -> no change
-        dataframe: 'COL1', form_data: 'col1' -> dataframe column renamed: 'col1'
-        dataframe: 'col1', form_data: 'Col1' -> dataframe column renamed: 'Col1'
-        """
-
-        columns = set()
-        lowercase_mapping = {}
-
-        metrics = utils.get_metric_names(fd.get('metrics', []))
-        groupby = fd.get('groupby', [])
-        other_cols = [utils.DTTM_ALIAS]
-        for col in metrics + groupby + other_cols:
-            columns.add(col)
-            lowercase_mapping[col.lower()] = col
-
-        rename_cols = {}
-        for col in df.columns:
-            if col not in columns:
-                orig_col = lowercase_mapping.get(col.lower())
-                if orig_col:
-                    rename_cols[col] = orig_col
-
-        return df.rename(index=str, columns=rename_cols)
+    def mutate_expression_label(label):
+        return label
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -468,7 +438,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
-    consistent_case_sensitivity = False
+    force_column_alias_quotes = True
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
@@ -505,13 +476,13 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    consistent_case_sensitivity = False
+    force_column_alias_quotes = True
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
-    consistent_case_sensitivity = False
+    force_column_alias_quotes = True
 
     time_grain_functions = {
         None: '{col}',
@@ -535,6 +506,7 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
+    force_column_alias_quotes = True
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as TIMESTAMP)'
@@ -1266,8 +1238,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query, async=False):
-        cursor.execute(query, async=async)
+    def execute(cursor, query, async_=False):
+        kwargs = {'async': async_}
+        cursor.execute(query, **kwargs)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
@@ -1408,6 +1381,31 @@ class BQEngineSpec(BaseEngineSpec):
             data = [r.values() for r in data]
         return data
 
+    @staticmethod
+    def mutate_expression_label(label):
+        mutated_label = re.sub('[^\w]+', '_', label)
+        if not re.match('^[a-zA-Z_]+.*', mutated_label):
+            raise SupersetTemplateException('BigQuery field_name used is invalid {}, '
+                                            'should start with a letter or '
+                                            'underscore'.format(mutated_label))
+        if len(mutated_label) > 128:
+            raise SupersetTemplateException('BigQuery field_name {}, should be atmost '
+                                            '128 characters'.format(mutated_label))
+        return mutated_label
+
+    @classmethod
+    def _get_fields(cls, cols):
+        """
+        BigQuery dialect requires us to not use backtick in the fieldname which are
+        nested.
+        Using literal_column handles that issue.
+        http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
+        Also explicility specifying column names so we don't encounter duplicate
+        column names in the result.
+        """
+        return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
+                for c in cols]
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
@@ -1490,6 +1488,23 @@ class KylinEngineSpec(BaseEngineSpec):
             return "CAST('{}' AS TIMESTAMP)".format(
                 dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class TeradataEngineSpec(BaseEngineSpec):
+    """Dialect for Teradata DB."""
+    engine = 'teradata'
+    limit_method = LimitMethod.WRAP_SQL
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('minute', _('minute'), "TRUNC(CAST({col} as DATE), 'MI')", 'PT1M'),
+        Grain('hour', _('hour'), "TRUNC(CAST({col} as DATE), 'HH')", 'PT1H'),
+        Grain('day', _('day'), "TRUNC(CAST({col} as DATE), 'DDD')", 'P1D'),
+        Grain('week', _('week'), "TRUNC(CAST({col} as DATE), 'WW')", 'P1W'),
+        Grain('month', _('month'), "TRUNC(CAST({col} as DATE), 'MONTH')", 'P1M'),
+        Grain('quarter', _('quarter'), "TRUNC(CAST({col} as DATE), 'Q')", 'P0.25Y'),
+        Grain('year', _('year'), "TRUNC(CAST({col} as DATE), 'YEAR')", 'P1Y'),
+    )
 
 
 engines = {

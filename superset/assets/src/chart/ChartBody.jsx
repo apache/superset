@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
 
 const propTypes = {
   containerId: PropTypes.string.isRequired,
@@ -11,26 +10,6 @@ const propTypes = {
 };
 
 class ChartBody extends React.PureComponent {
-  html(data) {
-    this.el.innerHTML = data;
-  }
-
-  css(property, value) {
-    this.el.style[property] = value;
-  }
-
-  get(n) {
-    return $(this.el).get(n);
-  }
-
-  find(classname) {
-    return $(this.el).find(classname);
-  }
-
-  show() {
-    return $(this.el).show();
-  }
-
   height() {
     return this.props.height();
   }

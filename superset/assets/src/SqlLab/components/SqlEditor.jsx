@@ -1,5 +1,3 @@
-/* global window */
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import throttle from 'lodash.throttle';
@@ -89,7 +87,7 @@ class SqlEditor extends React.PureComponent {
       height,
     });
 
-    if (this.refs.ace.clientHeight) {
+    if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
@@ -242,7 +240,7 @@ class SqlEditor extends React.PureComponent {
             {ctasControls}
             <span className="m-l-5">
               <Hotkeys
-                header="Hotkeys"
+                header="Keyboard shortcuts"
                 hotkeys={hotkeys}
               />
             </span>

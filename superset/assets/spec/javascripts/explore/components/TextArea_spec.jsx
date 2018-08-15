@@ -3,7 +3,6 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import AceEditor from 'react-ace';
 

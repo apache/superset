@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-expressions */
-import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
@@ -56,7 +55,7 @@ describe('async actions', () => {
     });
 
     it('calls querySuccess on ajax success', () => {
-      ajaxStub.yieldsTo('success', { data: '' });
+      ajaxStub.yieldsTo('success', '{ "data": "" }');
       makeRequest();
       expect(dispatch.callCount).to.equal(2);
       expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_SUCCESS);
@@ -84,13 +83,6 @@ describe('async actions', () => {
     it('calls startQuery', () => {
       makeRequest();
       expect(dispatch.args[0][0].type).to.equal(actions.START_QUERY);
-    });
-
-    it('calls querySuccess on ajax success', () => {
-      ajaxStub.yieldsTo('success', { data: '' });
-      makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_SUCCESS);
     });
 
     it('calls queryFailed on ajax error', () => {

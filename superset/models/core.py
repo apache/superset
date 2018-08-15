@@ -39,7 +39,7 @@ import sqlparse
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
 from superset.utils import MediumText
 from superset.viz import viz_types
@@ -373,6 +373,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    published = Column(Boolean, default=False)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
@@ -959,8 +960,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return sqla_url.get_dialect()()
 
 
-sqla.event.listen(Database, 'after_insert', set_perm)
-sqla.event.listen(Database, 'after_update', set_perm)
+sqla.event.listen(Database, 'after_insert', security_manager.set_perm)
+sqla.event.listen(Database, 'after_update', security_manager.set_perm)
 
 
 class Log(Model):

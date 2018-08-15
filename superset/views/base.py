@@ -45,7 +45,7 @@ def get_error_msg():
 
 def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
-        payload = {'error': str(msg)}
+        payload = {'error': '{}'.format(msg)}
         if stacktrace:
             payload['stacktrace'] = stacktrace
     if link:
@@ -256,15 +256,10 @@ class SupersetFilter(BaseFilter):
                 vm.add(vm_name)
         return vm
 
-    def has_all_datasource_access(self):
-        return (
-            self.has_role(['Admin', 'Alpha']) or
-            self.has_perm('all_datasource_access', 'all_datasource_access'))
-
 
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
@@ -312,7 +307,7 @@ def check_ownership(obj, raise_if_false=True):
     if hasattr(orig_obj, 'created_by'):
         owners += [orig_obj.created_by]
 
-    owner_names = [o.username for o in owners]
+    owner_names = [o.username for o in owners if o]
 
     if (
             g.user and hasattr(g.user, 'username') and

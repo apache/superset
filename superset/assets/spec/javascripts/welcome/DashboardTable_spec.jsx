@@ -1,7 +1,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
+import sinon from 'sinon';
 
 import DashboardTable from '../../../src/welcome/DashboardTable';
 

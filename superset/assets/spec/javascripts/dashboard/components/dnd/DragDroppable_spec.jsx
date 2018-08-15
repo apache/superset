@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 

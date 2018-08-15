@@ -6,6 +6,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
@@ -28,11 +29,14 @@ const propTypes = {
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
+  isPublished: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
+  fetchPublished: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
+  savePublished: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
@@ -207,6 +211,14 @@ class Header extends React.PureComponent {
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
+            />
+          </span>
+          <span className="favstar">
+            <PublishedStatus
+              dashboardId={dashboardInfo.id}
+              fetchPublished={this.props.fetchPublished}
+              savePublished={this.props.savePublished}
+              isPublished={this.props.isPublished}
             />
           </span>
         </div>

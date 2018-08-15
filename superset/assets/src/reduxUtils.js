@@ -54,19 +54,23 @@ export function getFromArr(arr, id) {
   return obj;
 }
 
-export function addToArr(state, arrKey, obj) {
+export function addToArr(state, arrKey, obj, prepend = false) {
   const newObj = Object.assign({}, obj);
   if (!newObj.id) {
     newObj.id = shortid.generate();
   }
   const newState = {};
-  newState[arrKey] = [...state[arrKey], newObj];
+  if (prepend) {
+    newState[arrKey] = [newObj, ...state[arrKey]];
+  } else {
+    newState[arrKey] = [...state[arrKey], newObj];
+  }
   return Object.assign({}, state, newState);
 }
 
 export function initEnhancer(persist = true) {
   let enhancer = persist ? compose(persistState()) : compose();
-  if (process.env.NODE_ENV === 'dev') {
+  if (process.env.WEBPACK_MODE === 'development') {
     /* eslint-disable-next-line no-underscore-dangle */
     const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
     enhancer = persist ? composeEnhancers(persistState()) : composeEnhancers();

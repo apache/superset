@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {
   Row, Col, Button, Label, OverlayTrigger, Popover,
 } from 'react-bootstrap';
-import 'react-datetime/css/react-datetime.css';
 
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
@@ -51,6 +50,7 @@ export default class SpatialControl extends React.Component {
     };
     this.toggleCheckbox = this.toggleCheckbox.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.renderReverseCheckbox = this.renderReverseCheckbox.bind(this);
   }
   componentDidMount() {
     this.onChange();
@@ -75,6 +75,7 @@ export default class SpatialControl extends React.Component {
       }
     } else if (type === spatialTypes.geohash) {
       value.geohashCol = this.state.geohashCol;
+      value.reverseCheckbox = this.state.reverseCheckbox;
       if (!value.geohashCol) {
         errors.push(errMsg);
       }
@@ -120,6 +121,13 @@ export default class SpatialControl extends React.Component {
       />
     );
   }
+  renderReverseCheckbox() {
+    return (
+      <span>
+        {t('Reverse lat/long ')}
+        <Checkbox checked={this.state.reverseCheckbox} onChange={this.toggleCheckbox} />
+      </span>);
+  }
   renderPopover() {
     return (
       <Popover id="filter-popover">
@@ -150,12 +158,11 @@ export default class SpatialControl extends React.Component {
           >
             <Row>
               <Col md={6}>
-                Column
+                {t('Column')}
                 {this.renderSelect('lonlatCol', spatialTypes.delimited)}
               </Col>
               <Col md={6}>
-                {t('Reverse lat/long ')}
-                <Checkbox checked={this.state.reverseCheckbox} onChange={this.toggleCheckbox} />
+                {this.renderReverseCheckbox()}
               </Col>
             </Row>
           </PopoverSection>
@@ -168,6 +175,9 @@ export default class SpatialControl extends React.Component {
               <Col md={6}>
                 Column
                 {this.renderSelect('geohashCol', spatialTypes.geohash)}
+              </Col>
+              <Col md={6}>
+                {this.renderReverseCheckbox()}
               </Col>
             </Row>
           </PopoverSection>

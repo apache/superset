@@ -1,7 +1,6 @@
 import React from 'react';
 import Select from 'react-select';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
@@ -63,7 +62,6 @@ describe('AsyncSelect', () => {
         <AsyncSelect {...mockedProps} autoSelect />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
-      wrapper.instance().fetchOptions();
       server.respond();
 
       expect(spy.callCount).to.equal(1);

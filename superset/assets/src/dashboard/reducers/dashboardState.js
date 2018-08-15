@@ -11,6 +11,7 @@ import {
   TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
+  TOGGLE_PUBLISHED,
   UPDATE_CSS,
 } from '../actions/dashboardState';
 
@@ -49,6 +50,9 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
+    },
+    [TOGGLE_PUBLISHED]() {
+      return { ...state, isPublished: action.isPublished };
     },
     [SET_EDIT_MODE]() {
       return {
@@ -95,46 +99,34 @@ export default function dashboardStateReducer(state = {}, action) {
       let filters = state.filters;
       const { chart, col, vals: nextVals, merge, refresh } = action;
       const sliceId = chart.id;
-      const filterKeys = [
-        '__time_range',
-        '__time_col',
-        '__time_grain',
-        '__time_origin',
-        '__granularity',
-      ];
-      if (
-        filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.groupby.indexOf(col) !== -1
-      ) {
-        let newFilter = {};
-        if (!(sliceId in filters)) {
-          // if no filters existed for the slice, set them
-          newFilter = { [col]: nextVals };
-        } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
-          // If no filters exist for this column, or we are overwriting them
-          newFilter = { ...filters[sliceId], [col]: nextVals };
-        } else if (filters[sliceId][col] instanceof Array) {
-          newFilter[col] = [...filters[sliceId][col], ...nextVals];
-        } else {
-          newFilter[col] = [filters[sliceId][col], ...nextVals];
-        }
-        filters = { ...filters, [sliceId]: newFilter };
+      let newFilter = {};
+      if (!(sliceId in filters)) {
+        // if no filters existed for the slice, set them
+        newFilter = { [col]: nextVals };
+      } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
+        // If no filters exist for this column, or we are overwriting them
+        newFilter = { ...filters[sliceId], [col]: nextVals };
+      } else if (filters[sliceId][col] instanceof Array) {
+        newFilter[col] = [...filters[sliceId][col], ...nextVals];
+      } else {
+        newFilter[col] = [filters[sliceId][col], ...nextVals];
+      }
+      filters = { ...filters, [sliceId]: newFilter };
 
-        // remove any empty filters so they don't pollute the logs
-        Object.keys(filters).forEach(chartId => {
-          Object.keys(filters[chartId]).forEach(column => {
-            if (
-              !filters[chartId][column] ||
-              filters[chartId][column].length === 0
-            ) {
-              delete filters[chartId][column];
-            }
-          });
-          if (Object.keys(filters[chartId]).length === 0) {
-            delete filters[chartId];
+      // remove any empty filters so they don't pollute the logs
+      Object.keys(filters).forEach(chartId => {
+        Object.keys(filters[chartId]).forEach(column => {
+          if (
+            !filters[chartId][column] ||
+            filters[chartId][column].length === 0
+          ) {
+            delete filters[chartId][column];
           }
         });
-      }
+        if (Object.keys(filters[chartId]).length === 0) {
+          delete filters[chartId];
+        }
+      });
       return { ...state, filters, refresh };
     },
     [SET_UNSAVED_CHANGES]() {

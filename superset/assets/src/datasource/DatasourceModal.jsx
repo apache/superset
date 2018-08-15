@@ -46,7 +46,7 @@ class DatasourceModal extends React.PureComponent {
   }
   onClickSave() {
     this.dialog.show({
-      title: 'Confirm save',
+      title: t('Confirm save'),
       bsSize: 'medium',
       actions: [
         Dialog.CancelAction(),

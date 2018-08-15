@@ -76,6 +76,41 @@ export function saveFaveStar(id, isStarred) {
   };
 }
 
+const PUBLISHED_BASE_URL = '/superset/dashboard';
+export const TOGGLE_PUBLISHED = 'TOGGLE_PUBLISHED';
+export function togglePublished(isPublished) {
+  return { type: TOGGLE_PUBLISHED, isPublished };
+}
+
+export const SAVE_PUBLISHED = 'SAVE_PUBLISHED';
+export function savePublished(id, isPublished) {
+  return function savePublishedThunk(dispatch) {
+    const urlSuffix = isPublished ? 'select' : 'unselect';
+    const url = `${PUBLISHED_BASE_URL}/${id}/published/${urlSuffix}/`;
+    $.get(url)
+      .fail(() => {
+        dispatch(
+          addDangerToast(
+            t('You do not have permissions to edit this dashboard.'),
+          ),
+        );
+      })
+      .done(() => {
+        const nowPublished = isPublished ? 'published' : 'hidden';
+        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(togglePublished(isPublished));
+      });
+  };
+}
+
+export const FETCH_PUBLISHED = 'FETCH_PUBLISHED';
+export function fetchPublished(id) {
+  return function fetchPublishedThunk(dispatch) {
+    const url = `${PUBLISHED_BASE_URL}/${id}/published/get`;
+    $.get(url).done(data => dispatch(togglePublished(data.published)));
+  };
+}
+
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
 export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
