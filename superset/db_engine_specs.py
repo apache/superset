@@ -365,8 +365,10 @@ class BaseEngineSpec(object):
         """
         return {}
 
-    @staticmethod
-    def execute(cursor, query, async=False):
+    @classmethod
+    def execute(cls, cursor, query, async=False):
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
         cursor.execute(query)
 
     @classmethod
