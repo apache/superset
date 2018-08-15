@@ -1527,11 +1527,9 @@ class DistributionBarViz(DistributionPieViz):
                 continue
             if isinstance(name, string_types):
                 series_title = name
-            elif len(metrics) > 1:
-                series_title = ', '.join(name)
             else:
-                l = [text_type(s) for s in name[1:]]  # noqa: E741
-                series_title = ', '.join(l)
+                offset = 0 if len(metrics) > 1 else 1
+                series_title = ', '.join([text_type(s) for s in name[offset:]])
             values = []
             for i, v in ys.items():
                 x = i
