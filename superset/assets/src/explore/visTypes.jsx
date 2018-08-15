@@ -23,7 +23,7 @@ export const sections = {
     controlSetRows: [
       ['datasource'],
       ['viz_type'],
-      ['slice_id', 'cache_timeout'],
+      ['slice_id', 'cache_timeout', 'url_params'],
     ],
   },
   colorScheme: {
