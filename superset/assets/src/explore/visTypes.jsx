@@ -24,6 +24,7 @@ export const sections = {
       ['datasource'],
       ['viz_type'],
       ['slice_id', 'cache_timeout'],
+      ['url_params'],
     ],
   },
   colorScheme: {

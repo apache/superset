@@ -41,11 +41,8 @@ const bootstrappedState = {
   isDatasourceMetaLoading: false,
   isStarred: false,
 };
-const slice = bootstrappedState.slice;
-const sliceFormData = slice
-  ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
-  : null;
 const chartKey = getChartKey(bootstrappedState);
+const formData = getFormDataFromControls(controls);
 const initState = {
   charts: {
     [chartKey]: {
@@ -54,8 +51,8 @@ const initState = {
       chartStatus: 'loading',
       chartUpdateEndTime: null,
       chartUpdateStartTime: now(),
-      latestQueryFormData: getFormDataFromControls(controls),
-      sliceFormData,
+      latestQueryFormData: formData,
+      sliceFormData: bootstrappedState.slice ? formData : null,
       queryRequest: null,
       queryResponse: null,
       triggerQuery: true,
