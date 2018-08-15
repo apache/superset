@@ -933,7 +933,7 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
-    def get_form_data(self, slice_id=None):
+    def get_form_data(self, slice_id=None, use_slice_data=False):
         form_data = {}
         post_data = request.form.get('form_data')
         request_args_data = request.args.get('form_data')
@@ -970,7 +970,12 @@ class Superset(BaseSupersetView):
         slice_id = form_data.get('slice_id') or slice_id
         slc = None
 
-        if slice_id:
+        # Check if form data only contains slice_id
+        contains_only_slc_id = not any(key != 'slice_id' for key in form_data)
+
+        # Include the slice_form_data if request from explore or slice calls
+        # or if form_data only contains slice_id
+        if slice_id and (use_slice_data or contains_only_slc_id):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             slice_form_data = slc.form_data.copy()
             # allow form_data in request override slice from_data
@@ -1010,7 +1015,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        form_data, slc = self.get_form_data(slice_id)
+        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
         endpoint = '/superset/explore/?form_data={}'.format(
             parse.quote(json.dumps(form_data)),
         )
@@ -1217,7 +1222,7 @@ class Superset(BaseSupersetView):
     @expose('/explore/', methods=['GET', 'POST'])
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
-        form_data, slc = self.get_form_data()
+        form_data, slc = self.get_form_data(use_slice_data=True)
 
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)

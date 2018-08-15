@@ -1888,6 +1888,13 @@ export const controls = {
     description: t('The number of seconds before expiring the cache'),
   },
 
+  url_params: {
+    type: 'HiddenControl',
+    label: t('URL Parameters'),
+    hidden: true,
+    description: t('Extra parameters for use in jinja templated queries'),
+  },
+
   order_by_entity: {
     type: 'CheckboxControl',
     label: t('Order by entity id'),
