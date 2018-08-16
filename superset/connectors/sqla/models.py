@@ -886,7 +886,7 @@ class SqlaTable(Model, BaseDatasource):
 
     @staticmethod
     def default_query(qry):
-        return qry.filter_by(is_sqllab_view=False)
+        return qry
 
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)
