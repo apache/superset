@@ -97,7 +97,7 @@ def is_owner(obj, user):
 
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
@@ -109,7 +109,7 @@ class DashboardFilter(SupersetFilter):
     """List dashboards for which users have access to at least one slice or are owners"""
 
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
