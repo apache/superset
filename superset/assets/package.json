@@ -46,7 +46,7 @@
     "@data-ui/event-flow": "^0.0.54",
     "@data-ui/sparkline": "^0.0.54",
     "@data-ui/xy-chart": "^0.0.61",
-    "@vx/responsive": "0.0.153",
+    "@vx/responsive": "0.0.172",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
