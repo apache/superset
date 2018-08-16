@@ -1105,7 +1105,7 @@ class Superset(BaseSupersetView):
     @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
         try:
-            form_data, slc = self.get_form_data(slice_id)
+            form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
             datasource_type = slc.datasource.type
             datasource_id = slc.datasource.id
 
