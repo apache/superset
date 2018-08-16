@@ -251,8 +251,7 @@ class SupersetFilter(BaseFilter):
 
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if (security_manager.all_datasource_access() or
-                security_manager.always_list_all_datasources()):
+        if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here

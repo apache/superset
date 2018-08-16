@@ -85,15 +85,6 @@ class SupersetSecurityManager(SecurityManager):
         if schema:
             return '[{}].[{}]'.format(database, schema)
 
-    def always_list_all_dashboards(self):
-        return False
-
-    def always_list_all_slices(self):
-        return False
-
-    def always_list_all_datasources(self):
-        return False
-
     def can_access(self, permission_name, view_name, user=None):
         """Protecting from has_access failing from missing perms/view"""
         if not user:
