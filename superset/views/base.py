@@ -256,15 +256,10 @@ class SupersetFilter(BaseFilter):
                 vm.add(vm_name)
         return vm
 
-    def has_all_datasource_access(self):
-        return (
-            self.has_role(['Admin', 'Alpha']) or
-            self.has_perm('all_datasource_access', 'all_datasource_access'))
-
 
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
