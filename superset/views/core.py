@@ -2250,10 +2250,9 @@ class Superset(BaseSupersetView):
         for col in columns:
             dtype = ''
             try:
-                dtype = '{}'.format(col['type'])
+                # sqla.types.JSON __str__ has a bug, so using __class__.
+                dtype = col['type'].__class__.__name__
             except Exception:
-                if isinstance(col['type'], sqla.types.JSON):
-                    dtype = 'JSON'
                 pass
             payload_columns.append({
                 'name': col['name'],
