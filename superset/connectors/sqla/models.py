@@ -884,10 +884,6 @@ class SqlaTable(Model, BaseDatasource):
             query = query.filter_by(schema=schema)
         return query.all()
 
-    @staticmethod
-    def default_query(qry):
-        return qry
-
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)
 sa.event.listen(SqlaTable, 'after_update', set_perm)

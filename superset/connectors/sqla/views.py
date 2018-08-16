@@ -323,7 +323,8 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         return redirect('/tablemodelview/list/')
 
 
-table_list_params = appbuilder.app.config.get('DEFAULT_TABLE_LIST_PARAMS', '')
+table_list_params = appbuilder.app.config.get(
+    'DEFAULT_TABLE_LIST_PARAMS', '?_flt_1_is_sqllab_view=y')
 
 appbuilder.add_view_no_menu(TableModelView)
 appbuilder.add_link(
