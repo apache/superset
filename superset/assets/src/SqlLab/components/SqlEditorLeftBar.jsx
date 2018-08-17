@@ -196,9 +196,7 @@ class SqlEditorLeftBar extends React.PureComponent {
             &nbsp;
             <small>
               ({this.state.tableOptions.length}
-              &nbsp;
-              {t('in')}
-              &nbsp;
+              &nbsp;{t('in')}&nbsp;
               <i>
                 {this.props.queryEditor.schema}
               </i>)
