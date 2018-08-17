@@ -2379,6 +2379,9 @@ class Superset(BaseSupersetView):
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
+        if not security_manager.database_access(mydb):
+            return json_error_response('database access denied')
+
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(

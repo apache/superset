@@ -62,6 +62,32 @@ class SqlLabTests(SupersetTestCase):
         self.assertLess(0, len(data['data']))
 
     def test_sql_json_has_access(self):
+        # A dummy user doesn't have right permission against main db
+        dummy_role = security_manager.add_role('dummy_role')
+        db.session.commit()
+        for perm in security_manager.find_role('Gamma').permissions:
+            security_manager.add_permission_role(dummy_role, perm)
+        for perm in security_manager.find_role('sql_lab').permissions:
+            security_manager.add_permission_role(dummy_role, perm)
+        dummy = security_manager.find_user('dummy')
+        if not dummy:
+            security_manager.add_user(
+                'dummy', 'user', 'name', 'dummy@email.com',
+                dummy_role,
+                password='general')
+
+        data = self.run_sql('SELECT * FROM ab_user', '0', 'dummy')
+        assert data['error'] == 'database access denied'
+
+        data = self.run_sql('CREATE TABLE dummy_table(a int)', '0', 'dummy')
+        assert data['error'] == 'database access denied'
+
+        data = self.run_sql('UPDATE dummy_table SET a=1', '0', 'dummy')
+        assert data['error'] == 'database access denied'
+
+        data = self.run_sql('DROP TABLE dummy_table', '0', 'dummy')
+        assert data['error'] == 'database access denied'
+
         main_db = self.get_main_database(db.session)
         security_manager.add_permission_view_menu('database_access', main_db.perm)
         db.session.commit()
