@@ -1424,9 +1424,8 @@ class BQEngineSpec(BaseEngineSpec):
         Also explicility specifying column names so we don't encounter duplicate
         column names in the result.
         """
-        return [sqla.literal_column(c.get('name')).label(
-                        c.get('name').replace('.','__')
-                    ) for c in cols]
+        return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
+                for c in cols]
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
