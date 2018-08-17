@@ -30,7 +30,7 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     const isMulti = MULTI_OPERATORS.indexOf(adhocMetric.operator) >= 0;
     const subject = adhocMetric.subject;
     const operator = OPERATORS_TO_SQL[adhocMetric.operator];
-    const comparator = isMulti ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
+    const comparator = Array.isArray(adhocMetric.comparator) ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
     return `${subject} ${operator} ${isMulti ? '(\'' : ''}${comparator}${isMulti ? '\')' : ''}`;
   } else if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
