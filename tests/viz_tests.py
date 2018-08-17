@@ -121,6 +121,20 @@ class BaseVizTestCase(unittest.TestCase):
 
 
 class TableVizTestCase(unittest.TestCase):
+
+    class DBEngineSpecMock:
+        @staticmethod
+        def mutate_expression_label(label):
+            return label
+
+    class DatabaseMock:
+        def __init__(self):
+            self.db_engine_spec = TableVizTestCase.DBEngineSpecMock()
+
+    class DatasourceMock:
+        def __init__(self):
+            self.database = TableVizTestCase.DatabaseMock()
+
     def test_get_data_applies_percentage(self):
         form_data = {
             'percent_metrics': [{
@@ -136,7 +150,7 @@ class TableVizTestCase(unittest.TestCase):
                 'column': {'column_name': 'value1', 'type': 'DOUBLE'},
             }, 'count', 'avg__C'],
         }
-        datasource = Mock()
+        datasource = TableVizTestCase.DatasourceMock()
         raw = {}
         raw['SUM(value1)'] = [15, 20, 25, 40]
         raw['avg__B'] = [10, 20, 5, 15]

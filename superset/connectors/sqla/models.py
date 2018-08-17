@@ -566,8 +566,6 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(_('Empty query?'))
         metrics_exprs = []
         for m in metrics:
-            if isinstance(m, dict) and 'label' in m:
-                m['label'] = db_engine_spec.mutate_expression_label(m['label'])
             if utils.is_adhoc_metric(m):
                 metrics_exprs.append(self.adhoc_metric_to_sa(m, cols))
             elif m in metrics_dict:
