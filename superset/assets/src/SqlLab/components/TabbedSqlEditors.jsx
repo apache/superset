@@ -126,12 +126,15 @@ class TabbedSqlEditors extends React.PureComponent {
     const activeQueryEditor = this.activeQueryEditor();
     const qe = {
       title: t('Untitled Query %s', queryCount),
-      dbId: (activeQueryEditor && activeQueryEditor.dbId) ?
-        activeQueryEditor.dbId :
-        this.props.defaultDbId,
-      schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
+      dbId:
+        activeQueryEditor && activeQueryEditor.dbId
+          ? activeQueryEditor.dbId
+          : this.props.defaultDbId,
+      schema: activeQueryEditor ? activeQueryEditor.schema : null,
       autorun: false,
-      sql: 'SELECT ...',
+      sql: `${t(
+        '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
+      )}\n\nSELECT ...`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -150,7 +153,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      const isSelected = (qe.id === this.activeQueryEditor().id);
+      const isSelected = qe.id === this.activeQueryEditor().id;
 
       let latestQuery;
       if (qe.latestQueryId) {
@@ -160,25 +163,20 @@ class TabbedSqlEditors extends React.PureComponent {
       if (qe.dbId) {
         database = this.props.databases[qe.dbId];
       }
-      const state = (latestQuery) ? latestQuery.state : '';
+      const state = latestQuery ? latestQuery.state : '';
 
       const tabTitle = (
         <div>
-          <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} /> {qe.title} {' '}
-          <DropdownButton
-            bsSize="small"
-            id={'ddbtn-tab-' + i}
-            title=""
-          >
+          <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} />{' '}
+          {qe.title}{' '}
+          <DropdownButton bsSize="small" id={'ddbtn-tab-' + i} title="">
             <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> {t('close tab')}
             </MenuItem>
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> {t('rename tab')}
             </MenuItem>
-            {qe &&
-              <CopyQueryTabUrl queryEditor={qe} />
-            }
+            {qe && <CopyQueryTabUrl queryEditor={qe} />}
             <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
               <i className="fa fa-cogs" />
               &nbsp;
@@ -188,17 +186,13 @@ class TabbedSqlEditors extends React.PureComponent {
         </div>
       );
       return (
-        <Tab
-          key={qe.id}
-          title={tabTitle}
-          eventKey={qe.id}
-        >
+        <Tab key={qe.id} title={tabTitle} eventKey={qe.id}>
           <div className="panel panel-default">
             <div className="panel-body">
-              {isSelected &&
+              {isSelected && (
                 <SqlEditor
                   getHeight={this.props.getHeight}
-                  tables={this.props.tables.filter(xt => (xt.queryEditorId === qe.id))}
+                  tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}
                   dataPreviewQueries={this.state.dataPreviewQueries}
@@ -207,10 +201,11 @@ class TabbedSqlEditors extends React.PureComponent {
                   actions={this.props.actions}
                   hideLeftBar={this.state.hideLeftBar}
                 />
-              }
+              )}
             </div>
           </div>
-        </Tab>);
+        </Tab>
+      );
     });
     return (
       <Tabs
@@ -224,7 +219,8 @@ class TabbedSqlEditors extends React.PureComponent {
           title={
             <div>
               <i className="fa fa-plus-circle" />&nbsp;
-            </div>}
+            </div>
+          }
           eventKey="add_tab"
         />
       </Tabs>
@@ -251,4 +247,8 @@ function mapDispatchToProps(dispatch) {
 }
 
 export { TabbedSqlEditors };
-export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(TabbedSqlEditors);
