@@ -194,7 +194,7 @@ class SqlEditorLeftBar extends React.PureComponent {
           <ControlLabel>
             {t('See table schema')}&nbsp;
             <small>
-              (from {this.state.tableOptions.length} tables in
+              ({t('from')} {this.state.tableOptions.length} {t('tables in')}
               <i>
                 {this.props.queryEditor.schema}
               </i>)
