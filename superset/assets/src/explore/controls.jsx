@@ -1519,7 +1519,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Start y-axis at 0'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.'),
   },
 
