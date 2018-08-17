@@ -179,7 +179,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme'],
-          ['show_brush', 'show_legend'],
+          ['show_brush', 'send_time_range', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation'],
         ],
