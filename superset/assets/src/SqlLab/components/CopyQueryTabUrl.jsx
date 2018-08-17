@@ -27,10 +27,13 @@ export default class CopyQueryTabUrl extends React.PureComponent {
         inMenu
         copyNode={(
           <div>
-            <i className="fa fa-clipboard" /> <span>{t('share query')}</span>
+            <div className="icon-container">
+              <i className="fa fa-clipboard" />
+            </div>
+            <span>{t('Share query')}</span>
           </div>
         )}
-        tooltipText={t('copy URL to clipboard')}
+        tooltipText={t('Copy URL to clipboard')}
         shouldShowText={false}
         getText={this.getUrl.bind(this)}
       />
