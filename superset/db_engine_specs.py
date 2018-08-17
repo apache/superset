@@ -1414,17 +1414,19 @@ class BQEngineSpec(BaseEngineSpec):
             data = [r.values() for r in data]
         return data
 
-    """
-    BigQuery dialect requires us to not use backtick in the fieldname which are
-    nested.
-    Using literal_column handles that issue.
-    http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
-    Also explicility specifying column names so we don't encounter duplicate
-    column names in the result.
-    """
     @classmethod
     def _get_fields(cls, cols):
-        return [sqla.literal_column(c.get('name') + ' as ' + c.get('name').replace('.','__')) for c in cols]
+        """
+        BigQuery dialect requires us to not use backtick in the fieldname which are
+        nested.
+        Using literal_column handles that issue.
+        http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
+        Also explicility specifying column names so we don't encounter duplicate
+        column names in the result.
+        """
+        return [sqla.literal_column(c.get('name')).label(
+                        c.get('name').replace('.','__')
+                    ) for c in cols]
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
