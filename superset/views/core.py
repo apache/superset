@@ -1449,10 +1449,8 @@ class Superset(BaseSupersetView):
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
         modelview_to_model = {
-            'TableColumnInlineView':
-                ConnectorRegistry.sources['table'].column_class,
-            'DruidColumnInlineView':
-                ConnectorRegistry.sources['druid'].column_class,
+            '{}ColumnInlineView'.format(name.capitalize()): source.column_class
+            for name, source in ConnectorRegistry.sources.items()
         }
         model = modelview_to_model[model_view]
         col = db.session.query(model).filter_by(id=id_).first()
@@ -2252,6 +2250,8 @@ class Superset(BaseSupersetView):
             try:
                 dtype = '{}'.format(col['type'])
             except Exception:
+                # sqla.types.JSON __str__ has a bug, so using __class__.
+                dtype = col['type'].__class__.__name__
                 pass
             payload_columns.append({
                 'name': col['name'],
