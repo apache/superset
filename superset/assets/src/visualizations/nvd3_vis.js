@@ -365,7 +365,11 @@ export default function nvd3Vis(slice, payload) {
 
     if (isTruthy(fd.show_brush) && isTruthy(fd.send_time_range)) {
       chart.focus.dispatch.on('brush', (event) => {
-        const timeRange = event.extent.map(d => d.toISOString().slice(0, -1)).join(' : ');
+        const extent = event.extent;
+        if (extent.some(d => d.toISOString === undefined)) {
+          return;
+        }
+        const timeRange = extent.map(d => d.toISOString().slice(0, -1)).join(' : ');
         slice.addFilter('__time_range', timeRange, false, true);
       });
     }
