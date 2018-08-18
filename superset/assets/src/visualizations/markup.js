@@ -1,6 +1,5 @@
+import srcdoc from 'srcdoc-polyfill';
 import './markup.css';
-
-const srcdoc = require('srcdoc-polyfill');
 
 function markupWidget(slice, payload) {
   const { selector } = slice;
@@ -8,11 +7,6 @@ function markupWidget(slice, payload) {
   const headerHeight = slice.headerHeight();
   const vizType = slice.props.vizType;
   const { data } = payload;
-
-  // Old code not working. There is no #code element.
-  // $('#code').attr('rows', '15');
-  // document.getElementById('brace-editor')
-  //   .setAttribute('rows', 15);
 
   const container = document.querySelector(selector);
   container.style.overflow = 'auto';
