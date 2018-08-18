@@ -2139,7 +2139,7 @@ class BaseDeckGLViz(BaseViz):
         if self.form_data.get('adhoc_filters') is None:
             self.form_data['adhoc_filters'] = []
 
-        for column in spatial_columns:
+        for column in sorted(spatial_columns):
             filter_ = to_adhoc({
                 'col': column,
                 'op': 'IS NOT NULL',
