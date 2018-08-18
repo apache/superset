@@ -1,21 +1,27 @@
 /* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define */
 import d3 from 'd3';
 import { getColorFromScheme } from '../modules/colors';
-
-require('./treemap.css');
+import './treemap.css';
 
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
-function treemap(slice, payload) {
-  const div = d3.select(slice.selector);
-  const _draw = function (data, eltWidth, eltHeight, formData) {
+function treemap(element, data, {
+  width,
+  height,
+  numberFormat,
+  colorScheme,
+  treemapRatio,
+}) {
+  const div = d3.select(element);
+  const formatNumber = d3.format(numberFormat);
+
+  const _draw = function (data, eltWidth, eltHeight) {
     const margin = { top: 0, right: 0, bottom: 0, left: 0 };
     const navBarHeight = 36;
     const navBarTitleSize = navBarHeight / 3;
     const navBarBuffer = 10;
     const width = eltWidth - margin.left - margin.right;
     const height = (eltHeight - navBarHeight - navBarBuffer -
-                 margin.top - margin.bottom);
-    const formatNumber = d3.format(formData.number_format);
+            margin.top - margin.bottom);
     let transitioning;
 
     const x = d3.scale.linear()
@@ -29,7 +35,7 @@ function treemap(slice, payload) {
     const treemap = d3.layout.treemap()
         .children(function (d, depth) { return depth ? null : d._children; })
         .sort(function (a, b) { return a.value - b.value; })
-        .ratio(formData.treemap_ratio)
+        .ratio(treemapRatio)
         .mode('squarify')
         .round(false);
 
@@ -40,7 +46,7 @@ function treemap(slice, payload) {
 
     const chartContainer = svg.append('g')
         .attr('transform', 'translate(' + margin.left + ',' +
-                           (margin.top + navBarHeight + navBarBuffer) + ')')
+                (margin.top + navBarHeight + navBarBuffer) + ')')
         .style('shape-rendering', 'crispEdges');
 
     const grandparent = svg.append('g')
@@ -58,11 +64,11 @@ function treemap(slice, payload) {
         .style('text-anchor', 'middle');
 
     const initialize = function (root) {
-      root.x = 0;
-      root.y = 0;
-      root.dx = width;
-      root.dy = height;
-      root.depth = 0;
+        root.x = 0;
+        root.y = 0;
+        root.dx = width;
+        root.dy = height;
+        root.depth = 0;
     };
 
     // Aggregate the values for internal nodes. This is normally done by the
@@ -70,11 +76,11 @@ function treemap(slice, payload) {
     // We also take a snapshot of the original children (_children) to avoid
     // the children being overwritten when when layout is computed.
     const accumulate = function (d) {
-      d._children = d.children;
-      if (d._children) {
+        d._children = d.children;
+        if (d._children) {
         d.value = d.children.reduce(function (p, v) { return p + accumulate(v); }, 0);
-      }
-      return d.value;
+        }
+        return d.value;
     };
 
     // Compute the treemap layout recursively such that each group of siblings
@@ -85,21 +91,21 @@ function treemap(slice, payload) {
     // of sibling was laid out in 1x1, we must rescale to fit using absolute
     // coordinates. This lets us use a viewport to zoom.
     const layout = function (d) {
-      if (d._children) {
+        if (d._children) {
         treemap.nodes({ _children: d._children });
         d._children.forEach(function (c) {
-          c.x = d.x + (c.x * d.dx);
-          c.y = d.y + (c.y * d.dy);
-          c.dx *= d.dx;
-          c.dy *= d.dy;
-          c.parent = d;
-          layout(c);
+        c.x = d.x + (c.x * d.dx);
+        c.y = d.y + (c.y * d.dy);
+        c.dx *= d.dx;
+        c.dy *= d.dy;
+        c.parent = d;
+        layout(c);
         });
-      }
+        }
     };
 
     const display = function (d) {
-      const transition = function (d) {
+        const transition = function (d) {
         if (transitioning || !d) { return; }
         transitioning = true;
 
@@ -130,96 +136,97 @@ function treemap(slice, payload) {
 
         // Remove the old node when the transition is finished.
         t1.remove().each('end', function () {
-          chartContainer.style('shape-rendering', 'crispEdges');
-          transitioning = false;
+        chartContainer.style('shape-rendering', 'crispEdges');
+        transitioning = false;
         });
-      };
+        };
 
-      grandparent
-          .datum(d.parent)
-          .on('click', transition)
+        grandparent
+        .datum(d.parent)
+        .on('click', transition)
         .select('text')
-          .text(name(d));
+        .text(name(d));
 
-      const g1 = chartContainer.append('g')
-          .datum(d)
-          .attr('class', 'depth');
+        const g1 = chartContainer.append('g')
+        .datum(d)
+        .attr('class', 'depth');
 
-      const g = g1.selectAll('g')
-          .data(d._children)
+        const g = g1.selectAll('g')
+        .data(d._children)
         .enter()
         .append('g');
 
-      g.filter(function (d) { return d._children; })
-          .classed('children', true)
-          .on('click', transition);
+        g.filter(function (d) { return d._children; })
+        .classed('children', true)
+        .on('click', transition);
 
-      const children = g.selectAll('.child')
-          .data(function (d) { return d._children || [d]; })
+        const children = g.selectAll('.child')
+        .data(function (d) { return d._children || [d]; })
         .enter()
         .append('g');
 
-      children.append('rect')
-          .attr('class', 'child')
-          .call(rect)
+        children.append('rect')
+        .attr('class', 'child')
+        .call(rect)
         .append('title')
-          .text(function (d) { return d.name + ' (' + formatNumber(d.value) + ')'; });
+        .text(function (d) { return d.name + ' (' + formatNumber(d.value) + ')'; });
 
-      children.append('text')
-          .attr('class', 'ctext')
-          .text(function (d) { return d.name; })
-          .call(text2);
+        children.append('text')
+        .attr('class', 'ctext')
+        .text(function (d) { return d.name; })
+        .call(text2);
 
-      g.append('rect')
-          .attr('class', 'parent')
-          .call(rect);
+        g.append('rect')
+        .attr('class', 'parent')
+        .call(rect);
 
-      const t = g.append('text')
-          .attr('class', 'ptext')
-          .attr('dy', '.75em');
+        const t = g.append('text')
+        .attr('class', 'ptext')
+        .attr('dy', '.75em');
 
-      t.append('tspan')
-          .text(function (d) { return d.name; });
-      t.append('tspan')
-          .attr('dy', '1.0em')
-          .text(function (d) { return formatNumber(d.value); });
-      t.call(text);
-      g.selectAll('rect')
-          .style('fill', function (d) { return getColorFromScheme(d.name, formData.color_scheme); });
+        t.append('tspan')
+        .text(function (d) { return d.name; });
+        t.append('tspan')
+        .attr('dy', '1.0em')
+        .text(function (d) { return formatNumber(d.value); });
+        t.call(text);
+        g.selectAll('rect')
+        .style('fill', function (d) { return getColorFromScheme(d.name, colorScheme); });
 
-      return g;
+        return g;
     };
 
     const text = function (selection) {
-      selection.selectAll('tspan')
-          .attr('x', function (d) { return x(d.x) + 6; });
-      selection.attr('x', function (d) { return x(d.x) + 6; })
-          .attr('y', function (d) { return y(d.y) + 6; })
-          .style('opacity', function (d) {
-            return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
-          });
+        selection.selectAll('tspan')
+        .attr('x', function (d) { return x(d.x) + 6; });
+        selection.attr('x', function (d) { return x(d.x) + 6; })
+        .attr('y', function (d) { return y(d.y) + 6; })
+        .style('opacity', function (d) {
+        return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
+        });
     };
 
     const text2 = function (selection) {
-      selection.attr('x', function (d) { return x(d.x + d.dx) - this.getComputedTextLength() - 6; })
-          .attr('y', function (d) { return y(d.y + d.dy) - 6; })
-          .style('opacity', function (d) {
-            return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
-          });
+        selection.attr('x', function (d) { return x(d.x + d.dx) - this.getComputedTextLength() - 6; })
+        .attr('y', function (d) { return y(d.y + d.dy) - 6; })
+        .style('opacity', function (d) {
+        return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
+        });
     };
 
     const rect = function (selection) {
-      selection.attr('x', function (d) { return x(d.x); })
-               .attr('y', function (d) { return y(d.y); })
-               .attr('width', function (d) { return x(d.x + d.dx) - x(d.x); })
-               .attr('height', function (d) { return y(d.y + d.dy) - y(d.y); });
+        selection.attr('x', function (d) { return x(d.x); })
+            .attr('y', function (d) { return y(d.y); })
+            .attr('width', function (d) { return x(d.x + d.dx) - x(d.x); })
+            .attr('height', function (d) { return y(d.y + d.dy) - y(d.y); });
     };
 
     const name = function (d) {
-      return d.parent
-          ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
-          : (slice.datasource.verbose_map[d.name] || d.name) + ' (' + formatNumber(d.value) + ')';
+        return d.parent
+        ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
+        : (d.name) + ' (' + formatNumber(d.value) + ')';
     };
+    // Wat? slice.datasource.verbose_map[d.name] ||
 
     initialize(data);
     accumulate(data);
@@ -227,13 +234,30 @@ function treemap(slice, payload) {
     display(data);
   };
 
-
   div.selectAll('*').remove();
-  const width = slice.width();
-  const height = slice.height() / payload.data.length;
-  for (let i = 0, l = payload.data.length; i < l; i += 1) {
-    _draw(payload.data[i], width, height, slice.formData);
+  const h = height / data.length;
+  for (let i = 0, l = data.length; i < l; i += 1) {
+    _draw(data[i], width, h);
   }
 }
 
-module.exports = treemap;
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    number_format: numberFormat,
+    color_scheme: colorScheme,
+    treemap_ratio: treemapRatio,
+  } = formData;
+  const element = document.querySelector(selector);
+  const { data } = payload;
+
+  treemap(element, data, {
+    width: slice.width(),
+    height: slice.height(),
+    numberFormat,
+    colorScheme,
+    treemapRatio,
+  });
+}
+
+module.exports = adaptor;
