@@ -21,6 +21,7 @@ const propTypes = {
   orientation: PropTypes.oneOf(['horizontal', 'vertical']),
   reversed: PropTypes.bool,
   disabled: PropTypes.bool,
+  range: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -30,6 +31,7 @@ const defaultProps = {
   orientation: 'horizontal',
   reversed: false,
   disabled: false,
+  range: true,
 };
 
 export default class PlaySlider extends React.PureComponent {
@@ -87,7 +89,11 @@ export default class PlaySlider extends React.PureComponent {
     if (this.props.disabled) {
       return;
     }
-    let values = this.props.values.map(value => value + this.increment);
+    let values = this.props.values;
+    if (!Array.isArray(values)) {
+      values = [values, values + this.props.step];
+    }
+    values = this.props.values.map(value => value + this.increment);
     if (values[1] > this.props.end) {
       const cr = values[0] - this.props.start;
       values = values.map(value => value - cr);
@@ -116,7 +122,8 @@ export default class PlaySlider extends React.PureComponent {
         </Col>
         <Col md={11} className="padded">
           <ReactBootstrapSlider
-            value={this.props.values}
+            value={this.props.range ? this.props.values : this.props.values[0]}
+            range={this.props.range}
             formatter={this.formatter}
             change={this.onChange}
             min={this.props.start}
