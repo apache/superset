@@ -2130,23 +2130,29 @@ class BaseDeckGLViz(BaseViz):
                                        please consider filtering those out'))
         return df
 
+    def add_null_filters(self):
+        spatial_columns = set()
+        for key in self.spatial_control_keys:
+            for column in self.get_spatial_columns(key):
+                spatial_columns.add(column)
+
+        if self.form_data.get('adhoc_filters') is None:
+            self.form_data['adhoc_filters'] = []
+
+        for column in spatial_columns:
+            filter_ = to_adhoc({
+                'col': column,
+                'op': 'IS NOT NULL',
+                'val': '',
+            })
+            self.form_data['adhoc_filters'].append(filter_)
+
     def query_obj(self):
         fd = self.form_data
 
         # add NULL filters
         if fd.get('filter_nulls'):
-            spatial_columns = set()
-            for key in self.spatial_control_keys:
-                for column in self.get_spatial_columns(key):
-                    spatial_columns.add(column)
-
-            for column in spatial_columns:
-                filter_ = to_adhoc({
-                    'col': column,
-                    'op': 'IS NOT NULL',
-                    'val': '',
-                })
-                fd['adhoc_filters'].append(filter_)
+            self.add_null_filters()
 
         d = super(BaseDeckGLViz, self).query_obj()
         gb = []
