@@ -3,7 +3,7 @@ import './markup.css';
 const srcdoc = require('srcdoc-polyfill');
 
 function markupWidget(slice, payload) {
-  const { selector, containerId } = slice;
+  const { selector } = slice;
   const height = slice.height();
   const headerHeight = slice.headerHeight();
   const vizType = slice.props.vizType;
@@ -32,7 +32,6 @@ function markupWidget(slice, payload) {
   //   iframeHeight = height + headerHeight;
   // }
 
-  const iframeId = `if__${containerId}`;
   const html = `
     <html>
       <head>
@@ -46,7 +45,6 @@ function markupWidget(slice, payload) {
     </html>`;
 
   const iframe = document.createElement('iframe');
-  iframe.setAttribute('id', iframeId);
   iframe.setAttribute('frameborder', 0);
   iframe.setAttribute('height', iframeHeight);
   iframe.setAttribute('sandbox', 'allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation');
@@ -59,8 +57,8 @@ function markupWidget(slice, payload) {
   //     sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation">
   //   </iframe>
   // `);
-  // const iframe = document.getElementById(iframeId);
 
+  // const iframe = document.getElementById(iframeId);
   srcdoc.set(iframe, html);
 }
 
