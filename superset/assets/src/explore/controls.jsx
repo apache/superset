@@ -680,6 +680,13 @@ export const controls = {
     }),
   },
 
+  filter_nulls: {
+    type: 'CheckboxControl',
+    label: t('Ignore null locations'),
+    default: true,
+    description: t('Whether to ignore locations that are null'),
+  },
+
   geojson: {
     type: 'SelectControl',
     label: t('GeoJson Column'),
