@@ -39,7 +39,12 @@ from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
-from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
+from superset.utils import (
+    DTTM_ALIAS,
+    JS_MAX_INTEGER,
+    merge_extra_filters,
+    to_adhoc,
+)
 
 
 config = app.config
@@ -2070,17 +2075,19 @@ class BaseDeckGLViz(BaseViz):
         return [self.metric] if self.metric else []
 
     def process_spatial_query_obj(self, key, group_by):
+        group_by.extend(self.get_spatial_columns(key))
+
+    def get_spatial_columns(self, key):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
 
         if spatial.get('type') == 'latlong':
-            group_by += [spatial.get('lonCol')]
-            group_by += [spatial.get('latCol')]
+            return [spatial.get('lonCol'), spatial.get('latCol')]
         elif spatial.get('type') == 'delimited':
-            group_by += [spatial.get('lonlatCol')]
+            return [spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
-            group_by += [spatial.get('geohashCol')]
+            return [spatial.get('geohashCol')]
 
     @staticmethod
     def parse_coordinates(s):
@@ -2123,9 +2130,31 @@ class BaseDeckGLViz(BaseViz):
                                        please consider filtering those out'))
         return df
 
+    def add_null_filters(self):
+        spatial_columns = set()
+        for key in self.spatial_control_keys:
+            for column in self.get_spatial_columns(key):
+                spatial_columns.add(column)
+
+        if self.form_data.get('adhoc_filters') is None:
+            self.form_data['adhoc_filters'] = []
+
+        for column in sorted(spatial_columns):
+            filter_ = to_adhoc({
+                'col': column,
+                'op': 'IS NOT NULL',
+                'val': '',
+            })
+            self.form_data['adhoc_filters'].append(filter_)
+
     def query_obj(self):
-        d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
+
+        # add NULL filters
+        if fd.get('filter_nulls'):
+            self.add_null_filters()
+
+        d = super(BaseDeckGLViz, self).query_obj()
         gb = []
 
         for key in self.spatial_control_keys:
