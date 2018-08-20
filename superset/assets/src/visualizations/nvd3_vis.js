@@ -370,7 +370,7 @@ export default function nvd3Vis(slice, payload) {
           return;
         }
         const timeRange = extent.map(d => d.toISOString().slice(0, -1)).join(' : ');
-        slice.addFilter('__time_range', timeRange, false, true);
+        event.brush.on('brushend', () => slice.addFilter('__time_range', timeRange, false, true));
       });
     }
 
