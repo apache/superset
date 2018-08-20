@@ -1,4 +1,5 @@
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
 import { getColorFromScheme } from '../modules/colors';
 
@@ -8,13 +9,27 @@ const ROTATION = {
   random: () => Math.floor(((Math.random() * 6) - 3)) * 30,
 };
 
-function wordCloud(element, data, {
-  width,
-  height,
-  rotation,
-  sizeRange,
-  colorScheme,
-}) {
+const propTypes = {
+  data: PropTypes.array,
+  width: PropTypes.number,
+  height: PropTypes.number,
+  rotation: PropTypes.string,
+  sizeRange: PropTypes.arrayOf(PropTypes.number),
+  colorScheme: PropTypes.string,
+};
+
+function wordCloud(element, props) {
+  const {
+    data,
+    width,
+    height,
+    rotation,
+    sizeRange,
+    colorScheme,
+  } = props;
+
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WordCloud');
+
   const chart = d3.select(element);
   const size = [width, height];
   const rotationFn = ROTATION[rotation] || ROTATION.random;
@@ -58,6 +73,8 @@ function wordCloud(element, data, {
   layout.on('end', draw).start();
 }
 
+wordCloud.propTypes = propTypes;
+
 function adaptor(slice, payload) {
   const { selector, formData } = slice;
   const {
@@ -67,9 +84,9 @@ function adaptor(slice, payload) {
     color_scheme: colorScheme,
   } = formData;
   const element = document.querySelector(selector);
-  const data = payload.data;
 
-  return wordCloud(element, data, {
+  return wordCloud(element, {
+    data: payload.data,
     width: slice.width(),
     height: slice.height(),
     rotation,
