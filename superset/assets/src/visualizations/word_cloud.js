@@ -19,6 +19,8 @@ const propTypes = {
 };
 
 function wordCloud(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WordCloud');
+
   const {
     data,
     width,
@@ -27,8 +29,6 @@ function wordCloud(element, props) {
     sizeRange,
     colorScheme,
   } = props;
-
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WordCloud');
 
   const chart = d3.select(element);
   const size = [width, height];
