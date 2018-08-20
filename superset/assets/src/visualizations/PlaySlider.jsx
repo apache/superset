@@ -93,7 +93,7 @@ export default class PlaySlider extends React.PureComponent {
     if (!Array.isArray(values)) {
       values = [values, values + this.props.step];
     }
-    values = this.props.values.map(value => value + this.increment);
+    values = values.map(value => value + this.increment);
     if (values[1] > this.props.end) {
       const cr = values[0] - this.props.start;
       values = values.map(value => value - cr);
@@ -114,6 +114,7 @@ export default class PlaySlider extends React.PureComponent {
     return parts.map(value => (new Date(value)).toUTCString()).join(' : ');
   }
   render() {
+    const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
     return (
       <Row className="play-slider">
         <Col md={1} className="padded">
@@ -122,16 +123,16 @@ export default class PlaySlider extends React.PureComponent {
         </Col>
         <Col md={11} className="padded">
           <ReactBootstrapSlider
-            value={this.props.range ? this.props.values : this.props.values[0]}
-            range={this.props.range}
+            value={range ? values : values[0]}
+            range={range}
             formatter={this.formatter}
             change={this.onChange}
-            min={this.props.start}
-            max={this.props.end}
-            step={this.props.step}
-            orientation={this.props.orientation}
-            reversed={this.props.reversed}
-            disabled={this.props.disabled ? 'disabled' : 'enabled'}
+            min={start}
+            max={end}
+            step={step}
+            orientation={orientation}
+            reversed={reversed}
+            disabled={disabled ? 'disabled' : 'enabled'}
           />
         </Col>
       </Row>

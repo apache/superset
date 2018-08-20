@@ -34,35 +34,35 @@ export default class AnimatableDeckGLContainer extends React.Component {
     this.setState({ values: nextProps.values, viewport: nextProps.viewport });
   }
   onChange(newValues) {
-    let values;
-    if (!Array.isArray(newValues)) {
-      values = [newValues, newValues + this.props.step];
-    } else {
-      values = newValues;
-    }
-    this.setState({ values });
+    this.setState({
+      values: Array.isArray(newValues)
+        ? newValues
+        : [newValues, newValues + this.props.step],
+    });
   }
   render() {
-    const layers = this.props.getLayers(this.state.values);
+    const { start, end, step, disabled, aggregation, children, getLayers } = this.props;
+    const { values, viewport } = this.state;
+    const layers = getLayers(values);
     return (
       <div>
         <DeckGLContainer
           {...this.other}
-          viewport={this.state.viewport}
+          viewport={viewport}
           layers={layers}
           onViewportChange={newViewport => this.setState({ viewport: newViewport })}
         />
-        {!this.props.disabled &&
+        {!disabled &&
         <PlaySlider
-          start={this.props.start}
-          end={this.props.end}
-          step={this.props.step}
-          values={this.state.values}
-          range={!this.props.aggregation}
+          start={start}
+          end={end}
+          step={step}
+          values={values}
+          range={!aggregation}
           onChange={this.onChange}
         />
         }
-        {this.props.children}
+        {children}
       </div>
     );
   }
