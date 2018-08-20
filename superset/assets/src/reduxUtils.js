@@ -54,13 +54,17 @@ export function getFromArr(arr, id) {
   return obj;
 }
 
-export function addToArr(state, arrKey, obj) {
+export function addToArr(state, arrKey, obj, prepend = false) {
   const newObj = Object.assign({}, obj);
   if (!newObj.id) {
     newObj.id = shortid.generate();
   }
   const newState = {};
-  newState[arrKey] = [...state[arrKey], newObj];
+  if (prepend) {
+    newState[arrKey] = [newObj, ...state[arrKey]];
+  } else {
+    newState[arrKey] = [...state[arrKey], newObj];
+  }
   return Object.assign({}, state, newState);
 }
 
