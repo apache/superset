@@ -21,6 +21,6 @@
     margin-right: 5px;
 }
 
-div.tooltip.tooltip-main.top.in {
+div.slider > div.tooltip.tooltip-main.top.in {
     margin-left: 0 !important;
 }
