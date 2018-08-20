@@ -1,19 +1,36 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
 import './chord.css';
 
-function chordViz(element, data, {
-  width,
-  height,
-  yAxisFormat,
-  colorScheme,
-}) {
+const propTypes = {
+  data: PropTypes.shape({
+    nodes: PropTypes.arrayOf(PropTypes.string),
+    matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
+  }),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  numberFormat: PropTypes.string,
+  colorScheme: PropTypes.string,
+};
+
+function chordVis(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ChordVis');
+
+  const {
+    data,
+    width,
+    height,
+    numberFormat,
+    colorScheme,
+  } = props;
+
   element.innerHTML = '';
 
   const div = d3.select(element);
-  const nodes = data.nodes;
-  const f = d3.format(yAxisFormat);
+  const { nodes, matrix } = data;
+  const f = d3.format(numberFormat);
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;
@@ -44,7 +61,7 @@ function chordViz(element, data, {
     .attr('r', outerRadius);
 
   // Compute the chord layout.
-  layout.matrix(data.matrix);
+  layout.matrix(matrix);
 
   const group = svg.selectAll('.group')
     .data(layout.groups)
@@ -99,16 +116,18 @@ function chordViz(element, data, {
   });
 }
 
+chordVis.propTypes = propTypes;
+
 function adaptor(slice, payload) {
   const { selector, formData } = slice;
-  const { y_axis_format: yAxisFormat, color_scheme: colorScheme } = formData;
+  const { y_axis_format: numberFormat, color_scheme: colorScheme } = formData;
   const element = document.querySelector(selector);
-  const { data } = payload;
 
-  return chordViz(element, data, {
+  return chordVis(element, {
+    data: payload.data,
     width: slice.width(),
     height: slice.height(),
-    yAxisFormat,
+    numberFormat,
     colorScheme,
   });
 }
