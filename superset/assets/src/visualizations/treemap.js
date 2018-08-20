@@ -1,16 +1,30 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
 import './treemap.css';
 
+const propTypes = {
+  data: PropTypes.array,
+  width: PropTypes.number,
+  height: PropTypes.number,
+  numberFormat: PropTypes.string,
+  colorScheme: PropTypes.string,
+  treemapRatio: PropTypes.number,
+};
+
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
-function treemap(element, data, {
-  width,
-  height,
-  numberFormat,
-  colorScheme,
-  treemapRatio,
-}) {
+function treemap(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Treemap');
+
+  const {
+    data,
+    width,
+    height,
+    numberFormat,
+    colorScheme,
+    treemapRatio,
+  } = props;
   const div = d3.select(element);
   const formatNumber = d3.format(numberFormat);
 
@@ -254,6 +268,8 @@ function treemap(element, data, {
   data.forEach(d => draw(d, width, eachHeight));
 }
 
+treemap.propTypes = propTypes;
+
 function adaptor(slice, payload) {
   const { selector, formData } = slice;
   const {
@@ -262,9 +278,9 @@ function adaptor(slice, payload) {
     treemap_ratio: treemapRatio,
   } = formData;
   const element = document.querySelector(selector);
-  const { data } = payload;
 
-  treemap(element, data, {
+  treemap(element, {
+    data: payload.data,
     width: slice.width(),
     height: slice.height(),
     numberFormat,
@@ -273,4 +289,4 @@ function adaptor(slice, payload) {
   });
 }
 
-module.exports = adaptor;
+export default adaptor;
