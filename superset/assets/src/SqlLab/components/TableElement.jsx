@@ -165,10 +165,10 @@ class TableElement extends React.PureComponent {
             className="table-name"
             onClick={(e) => { this.toggleTable(e); }}
           >
-            <strong>{table.name}</strong>
-            <small className="m-l-5">
+            <small className="m-r-5">
               <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
             </small>
+            <strong>`{table.name}`</strong>
           </a>
         </div>
         <div className="pull-right">
@@ -197,11 +197,10 @@ class TableElement extends React.PureComponent {
       >
         <div>
           {this.renderWell()}
-          <div className="table-columns">
+          <div className="table-columns m-t-5">
             {cols && cols.map(col => (
               <ColumnElement column={col} key={col.name} />
             ))}
-            <hr />
           </div>
         </div>
       </Collapse>
@@ -217,7 +216,7 @@ class TableElement extends React.PureComponent {
         transitionAppear
         onExited={this.removeFromStore.bind(this)}
       >
-        <div className="TableElement">
+        <div className="TableElement m-b-10">
           {this.renderHeader()}
           <div>
             {this.renderBody()}
