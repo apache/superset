@@ -169,18 +169,30 @@ class TabbedSqlEditors extends React.PureComponent {
         <div>
           <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} />{' '}
           {qe.title}{' '}
-          <DropdownButton bsSize="small" id={'ddbtn-tab-' + i} title="">
+          <DropdownButton
+            bsSize="small"
+            id={'ddbtn-tab-' + i}
+            className="ddbtn-tab"
+            title=""
+          >
             <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
-              <i className="fa fa-close" /> {t('close tab')}
+              <div className="icon-container">
+                <i className="fa fa-close" />
+              </div>
+              {t('Close tab')}
             </MenuItem>
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
-              <i className="fa fa-i-cursor" /> {t('rename tab')}
+              <div className="icon-container">
+                <i className="fa fa-i-cursor" />
+              </div>
+              {t('Rename tab')}
             </MenuItem>
             {qe && <CopyQueryTabUrl queryEditor={qe} />}
             <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
-              <i className="fa fa-cogs" />
-              &nbsp;
-              {this.state.hideLeftBar ? t('expand tool bar') : t('hide tool bar')}
+              <div className="icon-container">
+                <i className="fa fa-cogs" />
+              </div>
+              {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
             </MenuItem>
           </DropdownButton>
         </div>
