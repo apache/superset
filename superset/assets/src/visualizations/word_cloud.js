@@ -95,4 +95,4 @@ function adaptor(slice, payload) {
   });
 }
 
-module.exports = adaptor;
+export default adaptor;
