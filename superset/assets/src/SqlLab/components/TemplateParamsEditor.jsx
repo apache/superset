@@ -65,7 +65,7 @@ export default class TemplateParamsEditor extends React.Component {
         (example: <code>{'{"my_table": "foo"}'}</code>),
         and they become available
         in your SQL (example: <code>SELECT * FROM {'{{ my_table }}'} </code>)
-        by using
+        by using&nbsp;
         <a
           href="http://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
