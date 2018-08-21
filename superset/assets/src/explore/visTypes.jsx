@@ -1508,6 +1508,7 @@ export const visTypes = {
           ['country_fieldtype'],
           ['metric'],
           ['adhoc_filters'],
+          ['row_limit'],
         ],
       },
       {
@@ -1587,13 +1588,15 @@ export const visTypes = {
           ['metrics'],
           ['secondary_metric'],
           ['adhoc_filters'],
-          ['limit'],
+          ['limit', 'row_limit'],
         ],
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
           ['show_datatable', 'include_series'],
+          ['linear_color_scheme'],
         ],
       },
     ],
