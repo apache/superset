@@ -92,7 +92,7 @@ export default class VizTypeControl extends React.PureComponent {
         <OverlayTrigger
           placement="right"
           overlay={
-            <Tooltip id={'error-tooltip'}>Click to change visualization type</Tooltip>
+            <Tooltip id={'error-tooltip'}>{t('Click to change visualization type')}</Tooltip>
           }
         >
           <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
