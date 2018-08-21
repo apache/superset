@@ -9,6 +9,7 @@ import json
 
 from flask import request
 from flask_appbuilder import expose
+from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import gettext as __
 
 from superset import appbuilder, db
@@ -19,6 +20,7 @@ from .base import BaseSupersetView, check_ownership, json_error_response
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
     @expose('/save/', methods=['POST'])
+    @has_access_api
     def save(self):
         datasource = json.loads(request.form.get('data'))
         datasource_id = datasource.get('id')

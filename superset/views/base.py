@@ -307,7 +307,7 @@ def check_ownership(obj, raise_if_false=True):
     if hasattr(orig_obj, 'created_by'):
         owners += [orig_obj.created_by]
 
-    owner_names = [o.username for o in owners]
+    owner_names = [o.username for o in owners if o]
 
     if (
             g.user and hasattr(g.user, 'username') and
