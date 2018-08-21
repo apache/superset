@@ -20,6 +20,7 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
+import pandas
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
 from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
@@ -1346,7 +1347,10 @@ class DruidDatasource(Model, BaseDatasource):
         df = client.export_pandas()
 
         if df is None or df.size == 0:
-            raise Exception(_('No data was returned.'))
+            return QueryResult(
+                df=pandas.DataFrame([]),
+                query=query_str,
+                duration=datetime.now() - qry_start_dttm)
 
         df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [

@@ -39,7 +39,12 @@ from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
-from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
+from superset.utils import (
+    DTTM_ALIAS,
+    JS_MAX_INTEGER,
+    merge_extra_filters,
+    to_adhoc,
+)
 
 
 config = app.config
@@ -103,7 +108,10 @@ class BaseViz(object):
                 if not isinstance(val, list):
                     val = [val]
                 for o in val:
-                    self.metric_dict[self.get_metric_label(o)] = o
+                    label = self.get_metric_label(o)
+                    if isinstance(o, dict):
+                        o['label'] = label
+                    self.metric_dict[label] = o
 
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
@@ -113,7 +121,8 @@ class BaseViz(object):
         if isinstance(metric, string_types):
             return metric
         if isinstance(metric, dict):
-            return metric.get('label')
+            return self.datasource.database.db_engine_spec.mutate_expression_label(
+                metric.get('label'))
 
     @staticmethod
     def handle_js_int_overflow(data):
@@ -179,7 +188,6 @@ class BaseViz(object):
             return None
 
         self.error_msg = ''
-        self.results = None
 
         timestamp_format = None
         if self.datasource.type == 'table':
@@ -199,7 +207,7 @@ class BaseViz(object):
         # be considered as the default ISO date format
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
-        if not df.empty:
+        if df is not None and not df.empty:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
                     # Column has already been formatted as a timestamp.
@@ -327,9 +335,7 @@ class BaseViz(object):
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
 
-        for k in ['since', 'until']:
-            cache_dict[k] = self.form_data.get(k)
-
+        cache_dict['time_range'] = self.form_data.get('time_range')
         cache_dict['datasource'] = self.datasource.uid
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
@@ -380,7 +386,8 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                if hasattr(self.datasource.database, 'db_engine_spec'):
+                if hasattr(self.datasource, 'database') and \
+                        hasattr(self.datasource.database, 'db_engine_spec'):
                     db_engine_spec = self.datasource.database.db_engine_spec
                     df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
@@ -1527,11 +1534,9 @@ class DistributionBarViz(DistributionPieViz):
                 continue
             if isinstance(name, string_types):
                 series_title = name
-            elif len(metrics) > 1:
-                series_title = ', '.join(name)
             else:
-                l = [text_type(s) for s in name[1:]]  # noqa: E741
-                series_title = ', '.join(l)
+                offset = 0 if len(metrics) > 1 else 1
+                series_title = ', '.join([text_type(s) for s in name[offset:]])
             values = []
             for i, v in ys.items():
                 x = i
@@ -1726,8 +1731,6 @@ class WorldMapViz(BaseViz):
 
     def query_obj(self):
         qry = super(WorldMapViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
         qry['groupby'] = [self.form_data['entity']]
         return qry
 
@@ -1737,6 +1740,7 @@ class WorldMapViz(BaseViz):
         cols = [fd.get('entity')]
         metric = self.get_metric_label(fd.get('metric'))
         secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
+        columns = ['country', 'm1', 'm2']
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1744,10 +1748,14 @@ class WorldMapViz(BaseViz):
             ndf['m1'] = df[metric].iloc[:, 0]
             ndf['m2'] = ndf['m1']
         else:
-            cols += [metric, secondary_metric]
+            if secondary_metric:
+                cols += [metric, secondary_metric]
+            else:
+                cols += [metric]
+                columns = ['country', 'm1']
             ndf = df[cols]
         df = ndf
-        df.columns = ['country', 'm1', 'm2']
+        df.columns = columns
         d = df.to_dict(orient='records')
         for row in d:
             country = None
@@ -1845,10 +1853,6 @@ class ParallelCoordinatesViz(BaseViz):
     def query_obj(self):
         d = super(ParallelCoordinatesViz, self).query_obj()
         fd = self.form_data
-        d['metrics'] = copy.copy(fd.get('metrics'))
-        second = fd.get('secondary_metric')
-        if second not in d['metrics']:
-            d['metrics'] += [second]
         d['groupby'] = [fd.get('series')]
         return d
 
@@ -2072,17 +2076,19 @@ class BaseDeckGLViz(BaseViz):
         return [self.metric] if self.metric else []
 
     def process_spatial_query_obj(self, key, group_by):
+        group_by.extend(self.get_spatial_columns(key))
+
+    def get_spatial_columns(self, key):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
 
         if spatial.get('type') == 'latlong':
-            group_by += [spatial.get('lonCol')]
-            group_by += [spatial.get('latCol')]
+            return [spatial.get('lonCol'), spatial.get('latCol')]
         elif spatial.get('type') == 'delimited':
-            group_by += [spatial.get('lonlatCol')]
+            return [spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
-            group_by += [spatial.get('geohashCol')]
+            return [spatial.get('geohashCol')]
 
     @staticmethod
     def parse_coordinates(s):
@@ -2125,9 +2131,31 @@ class BaseDeckGLViz(BaseViz):
                                        please consider filtering those out'))
         return df
 
+    def add_null_filters(self):
+        spatial_columns = set()
+        for key in self.spatial_control_keys:
+            for column in self.get_spatial_columns(key):
+                spatial_columns.add(column)
+
+        if self.form_data.get('adhoc_filters') is None:
+            self.form_data['adhoc_filters'] = []
+
+        for column in sorted(spatial_columns):
+            filter_ = to_adhoc({
+                'col': column,
+                'op': 'IS NOT NULL',
+                'val': '',
+            })
+            self.form_data['adhoc_filters'].append(filter_)
+
     def query_obj(self):
-        d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
+
+        # add NULL filters
+        if fd.get('filter_nulls'):
+            self.add_null_filters()
+
+        d = super(BaseDeckGLViz, self).query_obj()
         gb = []
 
         for key in self.spatial_control_keys:
