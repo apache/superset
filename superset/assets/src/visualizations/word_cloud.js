@@ -10,7 +10,10 @@ const ROTATION = {
 };
 
 const propTypes = {
-  data: PropTypes.array,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    size: PropTypes.number,
+    text: PropTypes.string,
+  })),
   width: PropTypes.number,
   height: PropTypes.number,
   rotation: PropTypes.string,
@@ -29,6 +32,8 @@ function wordCloud(element, props) {
     sizeRange,
     colorScheme,
   } = props;
+
+  console.log('data', data);
 
   const chart = d3.select(element);
   const size = [width, height];
