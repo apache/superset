@@ -2,16 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
+import $ from 'jquery';
 
 import { t } from '../locales';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
-const $ = window.$ = require('jquery');
 
 const propTypes = {
   onChange: PropTypes.func,
-  datasource: PropTypes.object,
+  datasource: PropTypes.object.isRequired,
   show: PropTypes.bool.isRequired,
   onHide: PropTypes.func,
   onDatasourceSave: PropTypes.func,
@@ -22,6 +22,7 @@ const defaultProps = {
   onChange: () => {},
   onHide: () => {},
   onDatasourceSave: () => {},
+  show: false,
 };
 
 class DatasourceModal extends React.PureComponent {
@@ -41,6 +42,7 @@ class DatasourceModal extends React.PureComponent {
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
     this.onClickSave = this.onClickSave.bind(this);
     this.onConfirmSave = this.onConfirmSave.bind(this);
+    this.setDialogRef = this.setDialogRef.bind(this);
   }
   onClickSave() {
     this.dialog.show({
@@ -89,6 +91,9 @@ class DatasourceModal extends React.PureComponent {
   }
   setSearchRef(searchRef) {
     this.searchRef = searchRef;
+  }
+  setDialogRef(ref) {
+    this.dialog = ref;
   }
   toggleShowDatasource() {
     this.setState({ showDatasource: !this.state.showDatasource });
@@ -149,7 +154,7 @@ class DatasourceModal extends React.PureComponent {
               {t('Save')}
             </Button>
             <Button bsSize="sm" onClick={this.props.onHide}>{t('Cancel')}</Button>
-            <Dialog ref={(el) => { this.dialog = el; }} />
+            <Dialog ref={this.setDialogRef} />
           </span>
         </Modal.Footer>
       </Modal>);

@@ -4,6 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import numpy as np
+
 from superset.dataframe import dedup, SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from .base_tests import SupersetTestCase
@@ -117,6 +119,13 @@ class SupersetDataFrameTestCase(SupersetTestCase):
                 },
             ],
         )
+
+    def test_is_date(self):
+        f = SupersetDataFrame.is_date
+        self.assertEquals(f(np.dtype('M')), True)
+
+        self.assertEquals(f(None), False)
+        self.assertEquals(f(np.dtype(np.int32)), False)
 
     def test_dedup_with_data(self):
         data = [

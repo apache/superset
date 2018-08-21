@@ -200,7 +200,7 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     superset runserver -d
 
 
-### Logging to the browser console
+### Logging to the browser console (Python 3 only)
 
 When debugging your application, you can have the server logs sent directly to the browser console:
 

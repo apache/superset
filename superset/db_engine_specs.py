@@ -102,6 +102,7 @@ class BaseEngineSpec(object):
     inner_joins = True
     allows_subquery = True
     consistent_case_sensitivity = True  # do results have same case as qry for col names?
+    arraysize = None
 
     @classmethod
     def get_time_grains(cls):
@@ -115,6 +116,8 @@ class BaseEngineSpec(object):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
         if cls.limit_method == LimitMethod.FETCH_MANY:
             return cursor.fetchmany(limit)
         return cursor.fetchall()
@@ -309,6 +312,10 @@ class BaseEngineSpec(object):
         return False
 
     @classmethod
+    def _get_fields(cls, cols):
+        return [sqla.column(c.get('name')) for c in cols]
+
+    @classmethod
     def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
                     show_cols=False, indent=True, latest_partition=True,
                     cols=None):
@@ -318,7 +325,7 @@ class BaseEngineSpec(object):
             cols = my_db.get_columns(table_name, schema)
 
         if show_cols:
-            fields = [sqla.column(c.get('name')) for c in cols]
+            fields = cls._get_fields(cols)
         quote = engine.dialect.identifier_preparer.quote
         if schema:
             full_table_name = quote(schema) + '.' + quote(table_name)
@@ -362,8 +369,10 @@ class BaseEngineSpec(object):
         """
         return {}
 
-    @staticmethod
-    def execute(cursor, query, async=False):
+    @classmethod
+    def execute(cls, cursor, query, async=False):
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
         cursor.execute(query)
 
     @classmethod
@@ -1367,6 +1376,18 @@ class BQEngineSpec(BaseEngineSpec):
     As contributed by @mxmzdlv on issue #945"""
     engine = 'bigquery'
 
+    """
+    https://www.python.org/dev/peps/pep-0249/#arraysize
+    raw_connections bypass the pybigquery query execution context and deal with
+    raw dbapi connection directly.
+    If this value is not set, the default value is set to 1, as described here,
+    https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
+
+    The default value of 5000 is derived from the pybigquery.
+    https://github.com/mxmzdlv/pybigquery/blob/d214bb089ca0807ca9aaa6ce4d5a01172d40264e/pybigquery/sqlalchemy_bigquery.py#L102
+    """
+    arraysize = 5000
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'TIMESTAMP_TRUNC({col}, SECOND)',
@@ -1392,6 +1413,19 @@ class BQEngineSpec(BaseEngineSpec):
         if len(data) != 0 and type(data[0]).__name__ == 'Row':
             data = [r.values() for r in data]
         return data
+
+    @classmethod
+    def _get_fields(cls, cols):
+        """
+        BigQuery dialect requires us to not use backtick in the fieldname which are
+        nested.
+        Using literal_column handles that issue.
+        http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
+        Also explicility specifying column names so we don't encounter duplicate
+        column names in the result.
+        """
+        return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
+                for c in cols]
 
 
 class ImpalaEngineSpec(BaseEngineSpec):

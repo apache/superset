@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from datetime import datetime
 import unittest
+import uuid
 
 from mock import Mock, patch
 import pandas as pd
@@ -949,6 +950,67 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
 
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
+
+    @patch('superset.utils.uuid.uuid4')
+    def test_filter_nulls(self, mock_uuid4):
+        mock_uuid4.return_value = uuid.UUID('12345678123456781234567812345678')
+        test_form_data = {
+            'latlong_key': {
+                'type': 'latlong',
+                'lonCol': 'lon',
+                'latCol': 'lat',
+            },
+            'delimited_key': {
+                'type': 'delimited',
+                'lonlatCol': 'lonlat',
+            },
+            'geohash_key': {
+                'type': 'geohash',
+                'geohashCol': 'geo',
+            },
+        }
+
+        datasource = {'type': 'table'}
+        expected_results = {
+            'latlong_key': [{
+                'clause': 'WHERE',
+                'expressionType': 'SIMPLE',
+                'filterOptionName': '12345678-1234-5678-1234-567812345678',
+                'comparator': '',
+                'operator': 'IS NOT NULL',
+                'subject': 'lat',
+            }, {
+                'clause': 'WHERE',
+                'expressionType': 'SIMPLE',
+                'filterOptionName': '12345678-1234-5678-1234-567812345678',
+                'comparator': '',
+                'operator': 'IS NOT NULL',
+                'subject': 'lon',
+            }],
+            'delimited_key': [{
+                'clause': 'WHERE',
+                'expressionType': 'SIMPLE',
+                'filterOptionName': '12345678-1234-5678-1234-567812345678',
+                'comparator': '',
+                'operator': 'IS NOT NULL',
+                'subject': 'lonlat',
+            }],
+            'geohash_key': [{
+                'clause': 'WHERE',
+                'expressionType': 'SIMPLE',
+                'filterOptionName': '12345678-1234-5678-1234-567812345678',
+                'comparator': '',
+                'operator': 'IS NOT NULL',
+                'subject': 'geo',
+            }],
+        }
+        for mock_key in ['latlong_key', 'delimited_key', 'geohash_key']:
+            test_viz_deckgl = viz.BaseDeckGLViz(
+                datasource, test_form_data.copy())
+            test_viz_deckgl.spatial_control_keys = [mock_key]
+            test_viz_deckgl.add_null_filters()
+            adhoc_filters = test_viz_deckgl.form_data['adhoc_filters']
+            assert expected_results.get(mock_key) == adhoc_filters
 
 
 class TimeSeriesVizTestCase(unittest.TestCase):

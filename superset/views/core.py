@@ -97,7 +97,7 @@ def is_owner(obj, user):
 
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
@@ -109,7 +109,7 @@ class DashboardFilter(SupersetFilter):
     """List dashboards for which users have access to at least one slice or are owners"""
 
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
@@ -240,6 +240,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_run_sync': _('Allow Run Sync'),
         'allow_run_async': _('Allow Run Async'),
         'impersonate_user': _('Impersonate the logged on user'),
+        'allow_csv_upload': _('Allow Csv Upload'),
+        'modified': _('Modified'),
+        'allow_multi_schema_metadata_fetch': _('Allow Multi Schema Metadata Fetch'),
+        'backend': _('Backend'),
     }
 
     def pre_add(self, db):
@@ -624,6 +628,12 @@ appbuilder.add_view_no_menu(DashboardAddView)
 
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
+
+    list_title = _('List Log')
+    show_title = _('Show Log')
+    add_title = _('Add Log')
+    edit_title = _('Edit Log')
+
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
     base_order = ('dttm', 'desc')
@@ -923,7 +933,7 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
-    def get_form_data(self, slice_id=None):
+    def get_form_data(self, slice_id=None, use_slice_data=False):
         form_data = {}
         post_data = request.form.get('form_data')
         request_args_data = request.args.get('form_data')
@@ -960,7 +970,12 @@ class Superset(BaseSupersetView):
         slice_id = form_data.get('slice_id') or slice_id
         slc = None
 
-        if slice_id:
+        # Check if form data only contains slice_id
+        contains_only_slc_id = not any(key != 'slice_id' for key in form_data)
+
+        # Include the slice_form_data if request from explore or slice calls
+        # or if form_data only contains slice_id
+        if slice_id and (use_slice_data or contains_only_slc_id):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             slice_form_data = slc.form_data.copy()
             # allow form_data in request override slice from_data
@@ -1000,7 +1015,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        form_data, slc = self.get_form_data(slice_id)
+        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
         endpoint = '/superset/explore/?form_data={}'.format(
             parse.quote(json.dumps(form_data)),
         )
@@ -1090,7 +1105,7 @@ class Superset(BaseSupersetView):
     @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
         try:
-            form_data, slc = self.get_form_data(slice_id)
+            form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
             datasource_type = slc.datasource.type
             datasource_id = slc.datasource.id
 
@@ -1207,7 +1222,7 @@ class Superset(BaseSupersetView):
     @expose('/explore/', methods=['GET', 'POST'])
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
-        form_data, slc = self.get_form_data()
+        form_data, slc = self.get_form_data(use_slice_data=True)
 
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)
@@ -1295,7 +1310,7 @@ class Superset(BaseSupersetView):
         if slc:
             title = slc.slice_name
         else:
-            title = 'Explore - ' + table_name
+            title = _('Explore - %(table)s', table=table_name)
         return self.render_template(
             'superset/basic.html',
             bootstrap_data=json.dumps(bootstrap_data),
@@ -1434,10 +1449,8 @@ class Superset(BaseSupersetView):
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
         modelview_to_model = {
-            'TableColumnInlineView':
-                ConnectorRegistry.sources['table'].column_class,
-            'DruidColumnInlineView':
-                ConnectorRegistry.sources['druid'].column_class,
+            '{}ColumnInlineView'.format(name.capitalize()): source.column_class
+            for name, source in ConnectorRegistry.sources.items()
         }
         model = modelview_to_model[model_view]
         col = db.session.query(model).filter_by(id=id_).first()
@@ -1604,7 +1617,6 @@ class Superset(BaseSupersetView):
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
             positions, indent=None, separators=(',', ':'), sort_keys=True)
-        dashboard.position_json = json.dumps(positions, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
@@ -2238,6 +2250,8 @@ class Superset(BaseSupersetView):
             try:
                 dtype = '{}'.format(col['type'])
             except Exception:
+                # sqla.types.JSON __str__ has a bug, so using __class__.
+                dtype = col['type'].__class__.__name__
                 pass
             payload_columns.append({
                 'name': col['name'],
@@ -2684,7 +2698,7 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             'superset/basic.html',
-            title=username + "'s profile",
+            title=_("%(user)s's profile", user=username),
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
@@ -2725,6 +2739,12 @@ appbuilder.add_view_no_menu(Superset)
 
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
+
+    list_title = _('List Css Template')
+    show_title = _('Show Css Template')
+    add_title = _('Add Css Template')
+    edit_title = _('Edit Css Template')
+
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns

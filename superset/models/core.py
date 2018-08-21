@@ -41,6 +41,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 from superset.models.user_attributes import UserAttribute
+from superset.utils import MediumText
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -364,7 +365,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(Text)
+    position_json = Column(MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -793,9 +794,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
+                if cursor.description is not None:
+                    columns = [col_desc[0] for col_desc in cursor.description]
+                else:
+                    columns = []
+
                 df = pd.DataFrame.from_records(
                     data=list(cursor.fetchall()),
-                    columns=[col_desc[0] for col_desc in cursor.description],
+                    columns=columns,
                     coerce_float=True,
                 )
 

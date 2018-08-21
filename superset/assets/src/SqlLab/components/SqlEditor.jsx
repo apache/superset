@@ -99,8 +99,14 @@ class SqlEditor extends React.PureComponent {
   getHotkeyConfig() {
     return [
       {
-        name: 'runQuery',
+        name: 'runQuery1',
         key: 'ctrl+r',
+        descr: 'Run query',
+        func: this.runQuery,
+      },
+      {
+        name: 'runQuery2',
+        key: 'ctrl+enter',
         descr: 'Run query',
         func: this.runQuery,
       },

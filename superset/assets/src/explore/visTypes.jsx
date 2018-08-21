@@ -23,7 +23,7 @@ export const sections = {
     controlSetRows: [
       ['datasource'],
       ['viz_type'],
-      ['slice_id', 'cache_timeout'],
+      ['slice_id', 'cache_timeout', 'url_params'],
     ],
   },
   colorScheme: {
@@ -67,11 +67,11 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results'),
       controlSetRows: [
-        [<h1 className="section-header">Moving Average</h1>],
+        [<h1 className="section-header">{t('Moving Average')}</h1>],
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        [<h1 className="section-header">Time Comparison</h1>],
+        [<h1 className="section-header">{t('Time Comparison')}</h1>],
         ['time_compare', 'comparison_type'],
-        [<h1 className="section-header">Python Functions</h1>],
+        [<h1 className="section-header">{t('Python Functions')}</h1>],
         [<h2 className="section-header">pandas.resample</h2>],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
@@ -274,21 +274,14 @@ export const visTypes = {
       },
     },
     sectionOverrides: {
-      datasourceAndVizType: {
-        label: t('Chart Type'),
-        controlSetRows: [
-          ['viz_type'],
-          ['slice_id', 'cache_timeout'],
-        ],
-      },
       sqlaTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
       druidTimeSeries: {
         controlSetRows: [
-          ['since', 'until'],
+          ['time_range'],
         ],
       },
     },
@@ -510,7 +503,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -549,7 +542,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -589,7 +582,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['line_column', 'line_type'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -623,7 +616,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -669,7 +662,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['geojson', 'row_limit'],
+          ['geojson', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -710,7 +704,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['line_column', 'line_type'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -751,7 +745,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['start_spatial', 'end_spatial'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -800,7 +794,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['spatial', 'row_limit'],
+          ['spatial', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -1833,7 +1828,7 @@ export const visTypes = {
   },
 
   partition: {
-    label: 'Partition Diagram',
+    label: t('Partition Diagram'),
     showOnExplore: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
