@@ -4,8 +4,30 @@ import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
 import './treemap.css';
 
+// Declare PropTypes for recursive data structures
+// https://github.com/facebook/react/issues/5676
+const lazyFunction = f => (() => f().apply(this, arguments));
+
+const leafType = PropTypes.shape({
+  name: PropTypes.string,
+  value: PropTypes.number.isRequired,
+});
+
+const parentShape = {
+  name: PropTypes.string,
+  children: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.shape(lazyFunction(() => parentShape)),
+    leafType,
+  ])),
+};
+
+const nodeType = PropTypes.oneOfType([
+  PropTypes.shape(parentShape),
+  leafType,
+]);
+
 const propTypes = {
-  data: PropTypes.array,
+  data: PropTypes.arrayOf(nodeType),
   width: PropTypes.number,
   height: PropTypes.number,
   numberFormat: PropTypes.string,
@@ -279,7 +301,7 @@ function adaptor(slice, payload) {
   } = formData;
   const element = document.querySelector(selector);
 
-  treemap(element, {
+  return treemap(element, {
     data: payload.data,
     width: slice.width(),
     height: slice.height(),
