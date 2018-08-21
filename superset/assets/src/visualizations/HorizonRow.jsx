@@ -17,7 +17,9 @@ const propTypes = {
   className: PropTypes.string,
   width: PropTypes.number,
   height: PropTypes.number,
-  data: PropTypes.array.isRequired,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    y: PropTypes.number,
+  })).isRequired,
   bands: PropTypes.number,
   colors: PropTypes.arrayOf(PropTypes.string),
   colorScale: PropTypes.string,
@@ -73,15 +75,6 @@ class HorizonRow extends React.PureComponent {
 
       const context = this.canvas.getContext('2d');
       context.imageSmoothingEnabled = false;
-
-      // Create y-scale
-      const [min, max] = yDomain || d3.extent(data, d => d.y);
-      const y = d3.scale.linear()
-        .domain([0, Math.max(-min, max)])
-        .range([0, height]);
-
-      // x = d3.scaleTime().domain[];
-
       context.clearRect(0, 0, width, height);
       context.translate(0.5, 0.5);
 
@@ -90,12 +83,16 @@ class HorizonRow extends React.PureComponent {
       const startIndex = Math.floor(Math.max(0, -(offsetX / step)));
       const endIndex = Math.floor(Math.min(data.length, startIndex + (width / step)));
 
-      console.log('data', data);
-
       // skip drawing if there's no data to be drawn
       if (startIndex > data.length) {
         return;
       }
+
+      // Create y-scale
+      const [min, max] = yDomain || d3.extent(data, d => d.y);
+      const y = d3.scale.linear()
+        .domain([0, Math.max(-min, max)])
+        .range([0, height]);
 
       // we are drawing positive & negative bands separately to avoid mutating canvas state
       // http://www.html5rocks.com/en/tutorials/canvas/performance/

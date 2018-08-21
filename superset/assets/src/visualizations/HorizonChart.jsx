@@ -9,7 +9,12 @@ const propTypes = {
   className: PropTypes.string,
   width: PropTypes.number,
   seriesHeight: PropTypes.number,
-  data: PropTypes.array.isRequired,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.arrayOf(PropTypes.string),
+    values: PropTypes.arrayOf(PropTypes.shape({
+      y: PropTypes.number,
+    })),
+  })).isRequired,
   // number of bands in each direction (positive / negative)
   bands: PropTypes.number,
   colors: PropTypes.arrayOf(PropTypes.string),
