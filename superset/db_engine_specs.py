@@ -1442,7 +1442,7 @@ class BQEngineSpec(BaseEngineSpec):
         """
         return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
                 for c in cols]
-      
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
