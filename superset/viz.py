@@ -203,7 +203,7 @@ class BaseViz(object):
         # be considered as the default ISO date format
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
-        if not df.empty:
+        if df is not None and not df.empty:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
                     # Column has already been formatted as a timestamp.
