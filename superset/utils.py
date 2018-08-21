@@ -958,7 +958,7 @@ def convert_legacy_filters_into_adhoc(fd):
                 fd['adhoc_filters'].append(to_adhoc(fd, 'SQL', clause))
 
             if filters in fd:
-                for filt in fd[filters]:
+                for filt in filter(lambda x: x is not None, fd[filters]):
                     fd['adhoc_filters'].append(to_adhoc(filt, 'SIMPLE', clause))
 
     for key in ('filters', 'having', 'having_filters', 'where'):

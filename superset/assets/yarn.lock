@@ -516,11 +516,12 @@
   dependencies:
     lodash "^4.0.8"
 
-"@vx/responsive@0.0.153":
-  version "0.0.153"
-  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.153.tgz#2ce7e819341d2e59ff4151b40e5792aea460e202"
+"@vx/responsive@0.0.172":
+  version "0.0.172"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.172.tgz#26db0b946bcb0b1db2025c097c0b365f21ba033d"
   dependencies:
-    lodash "^4.0.8"
+    lodash "^4.17.10"
+    prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
 
 "@vx/responsive@^0.0.165":
