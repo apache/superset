@@ -70,12 +70,14 @@ class HorizonRow extends React.PureComponent {
       } = this.props;
 
       const data = colorScale === 'change'
-        ? rawData.map(d => ({ ...d, y: d.y - rawData[0] }))
+        ? rawData.map(d => ({ ...d, y: d.y - rawData[0].y }))
         : rawData;
 
       const context = this.canvas.getContext('2d');
       context.imageSmoothingEnabled = false;
       context.clearRect(0, 0, width, height);
+      // Reset transform
+      context.setTransform(1, 0, 0, 1, 0, 0);
       context.translate(0.5, 0.5);
 
       const step = width / data.length;
@@ -96,7 +98,7 @@ class HorizonRow extends React.PureComponent {
 
       // we are drawing positive & negative bands separately to avoid mutating canvas state
       // http://www.html5rocks.com/en/tutorials/canvas/performance/
-      let negative = false;
+      let hasNegative = false;
       // draw positive bands
       let value;
       let bExtents;
@@ -111,23 +113,22 @@ class HorizonRow extends React.PureComponent {
         for (let i = startIndex; i < endIndex; i++) {
           value = data[i].y;
           if (value <= 0) {
-            negative = true;
+            hasNegative = true;
             continue;
           }
-          if (value === undefined) {
-            continue;
+          if (value !== undefined) {
+            context.fillRect(
+              offsetX + i * step,
+              y(value),
+              step + 1,
+              y(0) - y(value),
+            );
           }
-          context.fillRect(
-            offsetX + i * step,
-            y(value),
-            step + 1,
-            y(0) - y(value),
-          );
         }
       }
 
       // draw negative bands
-      if (negative) {
+      if (hasNegative) {
         // mirror the negative bands, by flipping the canvas
         if (mode === 'offset') {
           context.translate(0, height);
