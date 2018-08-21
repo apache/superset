@@ -1310,7 +1310,7 @@ class Superset(BaseSupersetView):
         if slc:
             title = slc.slice_name
         else:
-            title = 'Explore - ' + table_name
+            title = _('Explore - %(table)s', table=table_name)
         return self.render_template(
             'superset/basic.html',
             bootstrap_data=json.dumps(bootstrap_data),
@@ -2698,7 +2698,7 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             'superset/basic.html',
-            title=username + "'s profile",
+            title=_("%(user)s's profile", user=username),
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
