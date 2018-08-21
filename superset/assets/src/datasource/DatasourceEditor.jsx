@@ -56,7 +56,7 @@ function ColumnCollectionTable({
             {showExpression &&
               <Field
                 fieldKey="expression"
-                label="SQL Expression"
+                label={t('SQL Expression')}
                 control={<TextControl />}
               />}
             <Field
@@ -72,7 +72,7 @@ function ColumnCollectionTable({
               />}
             <Field
               fieldKey="python_date_format"
-              label="Datetime Format"
+              label={t('Datetime Format')}
               descr={
                 <div>
                   {t('The pattern of the timestamp format, use ')}
@@ -89,7 +89,7 @@ function ColumnCollectionTable({
             />
             <Field
               fieldKey="database_expression"
-              label="Database Expression"
+              label={t('Database Expression')}
               descr={
                 <div>
                   {t(`
@@ -316,7 +316,7 @@ export class DatasourceEditor extends React.PureComponent {
   renderSettingsFieldset() {
     const datasource = this.state.datasource;
     return (
-      <Fieldset title="Basic" item={datasource} onChange={this.onDatasourceChange}>
+      <Fieldset title={t('Basic')} item={datasource} onChange={this.onDatasourceChange}>
         <Field
           fieldKey="description"
           label={t('Description')}
@@ -356,7 +356,7 @@ export class DatasourceEditor extends React.PureComponent {
   renderAdvancedFieldset() {
     const datasource = this.state.datasource;
     return (
-      <Fieldset title="Advanced" item={datasource} onChange={this.onDatasourceChange}>
+      <Fieldset title={t('Advanced')} item={datasource} onChange={this.onDatasourceChange}>
         { this.state.isSqla &&
           <Field
             fieldKey="sql"
