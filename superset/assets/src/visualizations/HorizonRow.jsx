@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import d3 from 'd3';
-import './horizon.css';
 
 export const DEFAULT_COLORS = [
   '#313695',

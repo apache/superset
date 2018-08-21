@@ -1,12 +1,9 @@
-/* eslint-disable prefer-rest-params, no-param-reassign */
-// Copied and modified from
-// https://github.com/kmandov/d3-horizon-chart
 import React from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import d3 from 'd3';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
-import './horizon.css';
+import './HorizonChart.css';
 
 const propTypes = {
   className: PropTypes.string,
