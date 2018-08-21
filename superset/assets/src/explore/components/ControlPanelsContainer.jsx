@@ -10,6 +10,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import controls from '../controls';
 import * as actions from '../actions/exploreActions';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -129,11 +130,11 @@ class ControlPanelsContainer extends React.Component {
             </Alert>
           }
           <Tabs id="controlSections">
-            <Tab eventKey="query" title="Data">
+            <Tab eventKey="query" title={t('Data')}>
               {querySectionsToRender.map(this.renderControlPanelSection)}
             </Tab>
             {displaySectionsToRender.length > 0 &&
-              <Tab eventKey="display" title="Style">
+              <Tab eventKey="display" title={t('Style')}>
                 {displaySectionsToRender.map(this.renderControlPanelSection)}
               </Tab>
             }
