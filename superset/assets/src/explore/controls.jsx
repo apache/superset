@@ -383,6 +383,7 @@ export const controls = {
 
   horizon_color_scale: {
     type: 'SelectControl',
+    renderTrigger: true,
     label: t('Horizon Color Scale'),
     choices: [
       ['series', 'series'],
@@ -1205,6 +1206,7 @@ export const controls = {
 
   series_height: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Series Height'),
     default: '25',
