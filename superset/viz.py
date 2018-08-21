@@ -108,7 +108,10 @@ class BaseViz(object):
                 if not isinstance(val, list):
                     val = [val]
                 for o in val:
-                    self.metric_dict[self.get_metric_label(o)] = o
+                    label = self.get_metric_label(o)
+                    if isinstance(o, dict):
+                        o['label'] = label
+                    self.metric_dict[label] = o
 
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
@@ -118,7 +121,8 @@ class BaseViz(object):
         if isinstance(metric, string_types):
             return metric
         if isinstance(metric, dict):
-            return metric.get('label')
+            return self.datasource.database.db_engine_spec.mutate_expression_label(
+                metric.get('label'))
 
     @staticmethod
     def handle_js_int_overflow(data):
