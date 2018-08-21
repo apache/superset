@@ -45,7 +45,7 @@ def get_error_msg():
 
 def json_error_response(msg=None, status=500, stacktrace=None, payload=None, link=None):
     if not payload:
-        payload = {'error': str(msg)}
+        payload = {'error': msg.encode('utf-8')}
         if stacktrace:
             payload['stacktrace'] = stacktrace
     if link:
