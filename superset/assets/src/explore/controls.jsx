@@ -533,6 +533,7 @@ export const controls = {
     ...metric,
     label: t('Color Metric'),
     default: null,
+    validators: [],
     description: t('A metric to use for color'),
   },
   select_country: {
@@ -1437,6 +1438,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Data Table'),
     default: false,
+    renderTrigger: true,
     description: t('Whether to display the interactive data table'),
   },
 

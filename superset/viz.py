@@ -1727,8 +1727,6 @@ class WorldMapViz(BaseViz):
 
     def query_obj(self):
         qry = super(WorldMapViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
         qry['groupby'] = [self.form_data['entity']]
         return qry
 
@@ -1738,6 +1736,7 @@ class WorldMapViz(BaseViz):
         cols = [fd.get('entity')]
         metric = self.get_metric_label(fd.get('metric'))
         secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
+        columns = ['country', 'm1', 'm2']
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1745,10 +1744,14 @@ class WorldMapViz(BaseViz):
             ndf['m1'] = df[metric].iloc[:, 0]
             ndf['m2'] = ndf['m1']
         else:
-            cols += [metric, secondary_metric]
+            if secondary_metric:
+                cols += [metric, secondary_metric]
+            else:
+                cols += [metric]
+                columns = ['country', 'm1']
             ndf = df[cols]
         df = ndf
-        df.columns = ['country', 'm1', 'm2']
+        df.columns = columns
         d = df.to_dict(orient='records')
         for row in d:
             country = None
@@ -1846,10 +1849,6 @@ class ParallelCoordinatesViz(BaseViz):
     def query_obj(self):
         d = super(ParallelCoordinatesViz, self).query_obj()
         fd = self.form_data
-        d['metrics'] = copy.copy(fd.get('metrics'))
-        second = fd.get('secondary_metric')
-        if second not in d['metrics']:
-            d['metrics'] += [second]
         d['groupby'] = [fd.get('series')]
         return d
 
