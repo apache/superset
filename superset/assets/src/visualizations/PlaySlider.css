@@ -1,7 +1,8 @@
 .play-slider {
-    position: absolute;
+    position: relative;
     height: 20px;
-    width: 90%;
+    width: 100%;
+    margin: 0;
 }
 
 .slider-selection {

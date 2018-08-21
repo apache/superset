@@ -86,19 +86,17 @@ export default class PlaySlider extends React.PureComponent {
     this.setState({ intervalId: null });
   }
   step() {
-    if (this.props.disabled) {
+    const { start, end, step, values, disabled } = this.props;
+
+    if (disabled) {
       return;
     }
-    let values = this.props.values;
-    if (!Array.isArray(values)) {
-      values = [values, values + this.props.step];
-    }
-    values = values.map(value => value + this.increment);
-    if (values[1] > this.props.end) {
-      const cr = values[0] - this.props.start;
-      values = values.map(value => value - cr);
-    }
-    this.props.onChange(values);
+
+    const currentValues = Array.isArray(values) ? values : [values, values + step];
+    const nextValues = currentValues.map(value => value + this.increment);
+    const carriageReturn = (nextValues[1] > end) ? (nextValues[0] - start) : 0;
+
+    this.props.onChange(nextValues.map(value => value - carriageReturn));
   }
   formatter(values) {
     if (this.props.disabled) {
