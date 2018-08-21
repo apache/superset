@@ -16,8 +16,8 @@ const propTypes = {
 };
 
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
-function Network(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Network');
+function ForceDirectedGraph(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ForceDirectedGraph');
 
   const {
     data,
@@ -184,7 +184,7 @@ function adaptor(slice, payload) {
   const { link_length: linkLength, charge } = formData;
   const element = document.querySelector(selector);
 
-  return Network(element, {
+  return ForceDirectedGraph(element, {
     data: payload.data,
     width: slice.width(),
     height: slice.height(),
