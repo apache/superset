@@ -21,7 +21,6 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset import security_manager
 from superset.utils import QueryStatus
 
 
@@ -312,53 +311,3 @@ class QueryResult(object):
         self.duration = duration
         self.status = status
         self.error_message = error_message
-
-
-def merge_perm(sm, permission_name, view_menu_name, connection):
-
-    permission = sm.find_permission(permission_name)
-    view_menu = sm.find_view_menu(view_menu_name)
-    pv = None
-
-    if not permission:
-        permission_table = sm.permission_model.__table__
-        connection.execute(
-            permission_table.insert()
-            .values(name=permission_name),
-        )
-    if not view_menu:
-        view_menu_table = sm.viewmenu_model.__table__
-        connection.execute(
-            view_menu_table.insert()
-            .values(name=view_menu_name),
-        )
-
-    permission = sm.find_permission(permission_name)
-    view_menu = sm.find_view_menu(view_menu_name)
-
-    if permission and view_menu:
-        pv = sm.get_session.query(sm.permissionview_model).filter_by(
-            permission=permission, view_menu=view_menu).first()
-    if not pv and permission and view_menu:
-        permission_view_table = sm.permissionview_model.__table__
-        connection.execute(
-            permission_view_table.insert()
-            .values(
-                permission_id=permission.id,
-                view_menu_id=view_menu.id,
-            ),
-        )
-
-
-def set_perm(mapper, connection, target):  # noqa
-
-    if target.perm != target.get_perm():
-        link_table = target.__table__
-        connection.execute(
-            link_table.update()
-            .where(link_table.c.id == target.id)
-            .values(perm=target.get_perm()),
-        )
-
-    # add to view menu if not already exists
-    merge_perm(security_manager, 'datasource_access', target.get_perm(), connection)
