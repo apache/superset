@@ -593,3 +593,12 @@ export function hexToRGB(hex, alpha = 255) {
   const b = parseInt(hex.slice(5, 7), 16);
   return [r, g, b, alpha];
 }
+
+
+export const rgbToHex = function (color) {
+    console.log(color);
+    return (color && Object.keys(color).length === 4) ?
+           '#' + ('0' + parseInt(color.r, 10).toString(16)).slice(-2) +
+          ('0' + parseInt(color.g, 10).toString(16)).slice(-2) +
+          ('0' + parseInt(color.b, 10).toString(16)).slice(-2) : '';
+};

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 
-import { brandColor, rgbToHex } from '../modules/colors';
+import { brandColor } from '../modules/colors';
 import { d3FormatPreset } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
 import { computeMaxFontSize } from '../modules/visUtils';
