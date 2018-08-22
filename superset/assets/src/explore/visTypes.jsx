@@ -1037,9 +1037,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
+          ['series'],
           ['metric'],
           ['adhoc_filters'],
-          ['series'],
           ['row_limit', null],
         ],
       },
@@ -1393,7 +1393,7 @@ export const visTypes = {
   },
 
   directed_force: {
-    label: t('Directed Force Layout'),
+    label: t('Force-directed Graph'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1508,6 +1508,7 @@ export const visTypes = {
           ['country_fieldtype'],
           ['metric'],
           ['adhoc_filters'],
+          ['row_limit'],
         ],
       },
       {
@@ -1587,13 +1588,15 @@ export const visTypes = {
           ['metrics'],
           ['secondary_metric'],
           ['adhoc_filters'],
-          ['limit'],
+          ['limit', 'row_limit'],
         ],
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
           ['show_datatable', 'include_series'],
+          ['linear_color_scheme'],
         ],
       },
     ],

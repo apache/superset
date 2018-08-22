@@ -236,7 +236,7 @@ class SqlEditor extends React.PureComponent {
             {ctasControls}
             <span className="m-l-5">
               <Hotkeys
-                header="Hotkeys"
+                header="Keyboard shortcuts"
                 hotkeys={hotkeys}
               />
             </span>

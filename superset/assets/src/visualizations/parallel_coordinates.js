@@ -1,6 +1,7 @@
 import d3 from 'd3';
 import '../../vendor/parallel_coordinates/d3.parcoords.css';
 import './parallel_coordinates.css';
+import { colorScalerFactory } from '../modules/colors';
 
 d3.parcoords = require('../../vendor/parallel_coordinates/d3.parcoords.js');
 d3.divgrid = require('../../vendor/parallel_coordinates/divgrid.js');
@@ -12,29 +13,24 @@ function parallelCoordVis(slice, payload) {
   const fd = slice.formData;
   const data = payload.data;
 
-  let cols = fd.metrics;
+  const metrics = fd.metrics.map(m => m.label || m);
+
+  let cols = metrics;
   if (fd.include_series) {
-    cols = [fd.series].concat(fd.metrics);
+    cols = [fd.series].concat(metrics);
   }
 
   const ttypes = {};
   ttypes[fd.series] = 'string';
-  fd.metrics.forEach(function (v) {
+  metrics.forEach(function (v) {
     ttypes[v] = 'number';
   });
 
-  let ext = d3.extent(data, function (d) {
-    return d[fd.secondary_metric];
-  });
-  ext = [ext[0], (ext[1] - ext[0]) / 2, ext[1]];
-  const cScale = d3.scale.linear()
-    .domain(ext)
-    .range(['red', 'grey', 'blue'])
-    .interpolate(d3.interpolateLab);
-
-  const color = function (d) {
-    return cScale(d[fd.secondary_metric]);
-  };
+  const secondaryMetric = fd.secondary_metric ? fd.secondary_metric.label : fd.secondary_metric;
+  const colorScaler = fd.secondary_metric ?
+    colorScalerFactory(fd.linear_color_scheme, data, d => d[secondaryMetric]) :
+    () => 'grey';
+  const color = d => colorScaler(d[secondaryMetric]);
   const container = d3.select(slice.selector);
   container.selectAll('*').remove();
   const effHeight = fd.show_datatable ? (slice.height() / 2) : slice.height();
