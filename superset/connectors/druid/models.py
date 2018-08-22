@@ -41,7 +41,7 @@ from superset import conf, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
-    AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+    AuditMixinNullable, ImportMixin, QueryResult,
 )
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher,
@@ -1601,5 +1601,5 @@ class DruidDatasource(Model, BaseDatasource):
         ]
 
 
-sa.event.listen(DruidDatasource, 'after_insert', set_perm)
-sa.event.listen(DruidDatasource, 'after_update', set_perm)
+sa.event.listen(DruidDatasource, 'after_insert', security_manager.set_perm)
+sa.event.listen(DruidDatasource, 'after_update', security_manager.set_perm)
