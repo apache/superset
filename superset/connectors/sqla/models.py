@@ -841,7 +841,7 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.type = datatype
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
-                any_date_col = col.name
+                any_date_col = db_engine_spec.mutate_column_label(col.name)
             metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
