@@ -2105,6 +2105,14 @@ class BaseDeckGLViz(BaseViz):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
+
+        def reverse_latlong():
+            df[key] = [
+                tuple(reversed(o))
+                for o in df[key]
+                if isinstance(o, (list, tuple))
+            ]
+
         if spatial.get('type') == 'latlong':
             df[key] = list(zip(
                 pd.to_numeric(df[spatial.get('lonCol')], errors='coerce'),
@@ -2113,17 +2121,13 @@ class BaseDeckGLViz(BaseViz):
         elif spatial.get('type') == 'delimited':
             lon_lat_col = spatial.get('lonlatCol')
             df[key] = df[lon_lat_col].apply(self.parse_coordinates)
-
             if spatial.get('reverseCheckbox'):
-                df[key] = [
-                    tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
-                    for o in df[key]
-                ]
+                reverse_latlong()
             del df[lon_lat_col]
         elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df[key] = list(zip(latlong.apply(lambda x: x[0]),
-                               latlong.apply(lambda x: x[1])))
+            df[key] = df[spatial.get('geohashCol')].map(geohash.decode)
+            if not spatial.get('reverseCheckbox'):
+                reverse_latlong()
             del df[spatial.get('geohashCol')]
 
         if df.get(key) is None:
