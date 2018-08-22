@@ -80,8 +80,7 @@ function Heatmap(element, props) {
     yAxisBounds,
   } = props;
 
-  const { records, extent } = data;
-  // const data = rawData.records;
+  const { records, extents } = data;
 
   const margin = {
     top: 10,
@@ -214,17 +213,17 @@ function Heatmap(element, props) {
 
   if (showLegend) {
     const colorLegend = d3.legend.color()
-    .labelFormat(valueFormatter)
-    .scale(colorScaler)
-    .shapePadding(0)
-    .cells(50)
-    .shapeWidth(10)
-    .shapeHeight(3)
-    .labelOffset(2);
+      .labelFormat(valueFormatter)
+      .scale(colorScaler)
+      .shapePadding(0)
+      .cells(50)
+      .shapeWidth(10)
+      .shapeHeight(3)
+      .labelOffset(2);
 
     svg.append('g')
-    .attr('transform', 'translate(10, 5)')
-    .call(colorLegend);
+      .attr('transform', 'translate(10, 5)')
+      .call(colorLegend);
   }
 
   const tip = d3tip()
@@ -258,15 +257,13 @@ function Heatmap(element, props) {
     });
 
   const rect = svg.append('g')
-    .attr('transform', `translate(${margin.left}, ${margin.top})`)
+      .attr('transform', `translate(${margin.left}, ${margin.top})`)
     .append('rect')
-    .attr('pointer-events', 'all')
-    .on('mousemove', tip.show)
-    .on('mouseout', tip.hide)
-    .style('fill-opacity', 0)
-    .attr('stroke', 'black')
-    .attr('width', hmWidth)
-    .attr('height', hmHeight);
+      .classed('background-rect', true)
+      .on('mousemove', tip.show)
+      .on('mouseout', tip.hide)
+      .attr('width', hmWidth)
+      .attr('height', hmHeight);
 
   rect.call(tip);
 
