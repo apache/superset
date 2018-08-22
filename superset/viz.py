@@ -2125,8 +2125,13 @@ class BaseDeckGLViz(BaseViz):
                 reverse_latlong()
             del df[lon_lat_col]
         elif spatial.get('type') == 'geohash':
-            df[key] = df[spatial.get('geohashCol')].map(geohash.decode)
-            if not spatial.get('reverseCheckbox'):
+
+            def reverse_geohash_decode(geohash_code):
+                lat, lng = geohash.decode(geohash_code)
+                return (lng, lat)
+
+            df[key] = df[spatial.get('geohashCol')].map(reverse_geohash_decode)
+            if spatial.get('reverseCheckbox'):
                 reverse_latlong()
             del df[spatial.get('geohashCol')]
 
