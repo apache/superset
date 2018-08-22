@@ -35,11 +35,11 @@ function PivotTable(element, props) {
   } = props;
 
   const { html, columns } = data;
-  const theContainer = element;
-  const $theContainer = $(element);
+  const container = element;
+  const $container = $(element);
 
   // payload data is a string of html with a single table element
-  theContainer.innerHTML = html;
+  container.innerHTML = html;
 
   const cols = Array.isArray(columns[0])
     ? columns.map(col => col[0])
@@ -50,11 +50,11 @@ function PivotTable(element, props) {
     const s = $(this)[0].textContent;
     $(this)[0].textContent = verboseMap[s] || s;
   };
-  $theContainer.find('thead tr:first th').each(replaceCell);
-  $theContainer.find('thead tr th:first-child').each(replaceCell);
+  $container.find('thead tr:first th').each(replaceCell);
+  $container.find('thead tr th:first-child').each(replaceCell);
 
   // jQuery hack to format number
-  $theContainer.find('tbody tr').each(function () {
+  $container.find('tbody tr').each(function () {
     $(this).find('td').each(function (i) {
       const metric = cols[i];
       const format = columnFormats[metric] || numberFormat || '.3s';
@@ -70,8 +70,8 @@ function PivotTable(element, props) {
     // we use the DataTable plugin to make the header fixed.
     // The plugin takes care of the scrolling so we don't need
     // overflow: 'auto' on the table.
-    theContainer.style.overflow = 'hidden';
-    const table = $theContainer.find('table').DataTable({
+    container.style.overflow = 'hidden';
+    const table = $container.find('table').DataTable({
       paging: false,
       searching: false,
       bInfo: false,
@@ -80,13 +80,13 @@ function PivotTable(element, props) {
       scrollX: true,
     });
     table.column('-1').order('desc').draw();
-    fixDataTableBodyHeight($theContainer.find('.dataTables_wrapper'), height);
+    fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
   } else {
     // When there is more than 1 group by column we just render the table, without using
     // the DataTable plugin, so we need to handle the scrolling ourselves.
     // In this case the header is not fixed.
-    theContainer.style.overflow = 'auto';
-    theContainer.style.height = `${height + 10}px`;
+    container.style.overflow = 'auto';
+    container.style.height = `${height + 10}px`;
   }
 }
 
