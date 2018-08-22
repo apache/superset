@@ -10,7 +10,14 @@ import './heatmap.css';
 
 const propTypes = {
   data: PropTypes.shape({
-    records: PropTypes.array,
+    records: PropTypes.arrayOf(PropTypes.shape({
+      x: PropTypes.string,
+      y: PropTypes.string,
+      v: PropTypes.number,
+      perc: PropTypes.number,
+      rank: PropTypes.number,
+    })),
+    extents: PropTypes.arrayOf(PropTypes.number),
   }),
   width: PropTypes.number,
   height: PropTypes.number,
@@ -51,7 +58,7 @@ function Heatmap(element, props) {
   PropTypes.checkPropTypes(propTypes, props, 'prop', 'Heatmap');
 
   const {
-    data: rawData,
+    data,
     width,
     height,
     bottomMargin,
@@ -73,7 +80,8 @@ function Heatmap(element, props) {
     yAxisBounds,
   } = props;
 
-  const data = rawData.records;
+  const { records, extent } = data;
+  // const data = rawData.records;
 
   const margin = {
     top: 10,
@@ -90,8 +98,8 @@ function Heatmap(element, props) {
     let longestX = 1;
     let longestY = 1;
 
-    for (let i = 0; i < data.length; i++) {
-      const datum = data[i];
+    for (let i = 0; i < records.length; i++) {
+      const datum = records[i];
       longestX = Math.max(longestX, datum.x.toString().length || 1);
       longestY = Math.max(longestY, datum.y.toString().length || 1);
     }
@@ -112,7 +120,7 @@ function Heatmap(element, props) {
   function ordScale(k, rangeBands, sortMethod) {
     let domain = {};
     const actualKeys = {};  // hack to preserve type of keys when number
-    data.forEach((d) => {
+    records.forEach((d) => {
       domain[d[k]] = (domain[d[k]] || 0) + d.v;
       actualKeys[d[k]] = d[k];
     });
@@ -188,7 +196,7 @@ function Heatmap(element, props) {
 
   if (showValues) {
     const cells = svg.selectAll('rect')
-      .data(data)
+      .data(records)
       .enter()
       .append('g')
       .attr('transform', `translate(${margin.left}, ${margin.top})`);
@@ -201,7 +209,7 @@ function Heatmap(element, props) {
       .attr('dy', '.35em')
       .text(d => valueFormatter(d.v))
       .attr('font-size', Math.min(yRbScale.rangeBand(), xRbScale.rangeBand()) / 3 + 'px')
-      .attr('fill', d => d.v >= payload.data.extents[1] / 2 ? 'white' : 'black');
+      .attr('fill', d => d.v >= extents[1] / 2 ? 'white' : 'black');
   }
 
   if (showLegend) {
@@ -300,7 +308,7 @@ function Heatmap(element, props) {
     const imageObj = new Image();
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
-    data.forEach((d) => {
+    records.forEach((d) => {
       const c = d3.rgb(colorScaler(normalized ? d.rank : d.perc));
       const x = xScale(d.x);
       const y = yScale(d.y);
@@ -356,9 +364,6 @@ function adaptor(slice, payload) {
     y_axis_format: numberFormat,
   } = formData;
   const element = document.querySelector(selector);
-
-  // console.log('formData', formData);
-  // return;
 
   return Heatmap(element, {
     data: payload.data,
