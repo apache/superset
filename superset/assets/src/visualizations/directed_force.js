@@ -1,18 +1,34 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
+import './directed_force.css';
 
-require('./directed_force.css');
+const propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    source: PropTypes.string,
+    target: PropTypes.string,
+    value: PropTypes.number,
+  })),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  linkLength: PropTypes.number,
+  charge: PropTypes.number,
+};
 
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
-const directedForceVis = function (slice, json) {
-  const div = d3.select(slice.selector);
-  const width = slice.width();
-  const height = slice.height();
-  const fd = slice.formData;
-  const linkLength = fd.link_length || 200;
-  const charge = fd.charge || -500;
+function ForceDirectedGraph(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ForceDirectedGraph');
 
-  const links = json.data;
+  const {
+    data,
+    width,
+    height,
+    linkLength = 200,
+    charge = -500,
+  } = props;
+  const div = d3.select(element);
+
+  const links = data;
   const nodes = {};
   // Compute the distinct nodes from the links.
   links.forEach(function (link) {
@@ -73,73 +89,73 @@ const directedForceVis = function (slice, json) {
   /* eslint-enable no-use-before-define */
 
   const force = d3.layout.force()
-  .nodes(d3.values(nodes))
-  .links(links)
-  .size([width, height])
-  .linkDistance(linkLength)
-  .charge(charge)
-  .on('tick', tick)
-  .start();
+    .nodes(d3.values(nodes))
+    .links(links)
+    .size([width, height])
+    .linkDistance(linkLength)
+    .charge(charge)
+    .on('tick', tick)
+    .start();
 
   div.selectAll('*').remove();
   const svg = div.append('svg')
-  .attr('width', width)
-  .attr('height', height);
+    .attr('width', width)
+    .attr('height', height);
 
   // build the arrow.
   svg.append('svg:defs').selectAll('marker')
-  .data(['end']) // Different link/path types can be defined here
+    .data(['end']) // Different link/path types can be defined here
   .enter()
   .append('svg:marker') // This section adds in the arrows
-  .attr('id', String)
-  .attr('viewBox', '0 -5 10 10')
-  .attr('refX', 15)
-  .attr('refY', -1.5)
-  .attr('markerWidth', 6)
-  .attr('markerHeight', 6)
-  .attr('orient', 'auto')
+    .attr('id', String)
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 15)
+    .attr('refY', -1.5)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
   .append('svg:path')
-  .attr('d', 'M0,-5L10,0L0,5');
+    .attr('d', 'M0,-5L10,0L0,5');
 
   const edgeScale = d3.scale.linear()
   .range([0.1, 0.5]);
   // add the links and the arrows
   const path = svg.append('svg:g').selectAll('path')
-  .data(force.links())
+    .data(force.links())
   .enter()
   .append('svg:path')
-  .attr('class', 'link')
-  .style('opacity', function (d) {
-    return edgeScale(d.value / d.target.max);
-  })
-  .attr('marker-end', 'url(#end)');
+    .attr('class', 'link')
+    .style('opacity', function (d) {
+      return edgeScale(d.value / d.target.max);
+    })
+    .attr('marker-end', 'url(#end)');
 
   // define the nodes
   const node = svg.selectAll('.node')
-  .data(force.nodes())
+    .data(force.nodes())
   .enter()
-  .append('g')
-  .attr('class', 'node')
+    .append('g')
+    .attr('class', 'node')
   .on('mouseenter', function () {
     d3.select(this)
-    .select('circle')
-    .transition()
-    .style('stroke-width', 5);
+      .select('circle')
+      .transition()
+      .style('stroke-width', 5);
 
     d3.select(this)
-    .select('text')
-    .transition()
-    .style('font-size', 25);
+      .select('text')
+      .transition()
+      .style('font-size', 25);
   })
   .on('mouseleave', function () {
     d3.select(this)
-    .select('circle')
-    .transition()
-    .style('stroke-width', 1.5);
+      .select('circle')
+      .transition()
+      .style('stroke-width', 1.5);
     d3.select(this)
-    .select('text')
-    .transition()
-    .style('font-size', 12);
+      .select('text')
+      .transition()
+      .style('font-size', 12);
   })
   .call(force.drag);
 
@@ -148,21 +164,33 @@ const directedForceVis = function (slice, json) {
     return Math.sqrt(d.total);
   });
   const circleScale = d3.scale.linear()
-  .domain(ext)
-  .range([3, 30]);
+    .domain(ext)
+    .range([3, 30]);
 
   node.append('circle')
-  .attr('r', function (d) {
-    return circleScale(Math.sqrt(d.total));
-  });
+    .attr('r', function (d) {
+      return circleScale(Math.sqrt(d.total));
+    });
 
   // add the text
   node.append('text')
-  .attr('x', 6)
-  .attr('dy', '.35em')
-  .text(function (d) {
-    return d.name;
-  });
-};
+    .attr('x', 6)
+    .attr('dy', '.35em')
+    .text(d => d.name);
+}
 
-module.exports = directedForceVis;
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const { link_length: linkLength, charge } = formData;
+  const element = document.querySelector(selector);
+
+  return ForceDirectedGraph(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    linkLength,
+    charge,
+  });
+}
+
+export default adaptor;
