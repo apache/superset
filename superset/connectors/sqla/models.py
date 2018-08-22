@@ -830,7 +830,7 @@ class SqlaTable(Model, BaseDatasource):
             if not dbcol:
                 dbcol = TableColumn(
                     column_name=db_engine_spec.mutate_column_label(col.name),
-                    type=datatype
+                    type=datatype,
                 )
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
