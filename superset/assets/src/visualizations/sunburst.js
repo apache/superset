@@ -1,18 +1,37 @@
 /* eslint-disable no-underscore-dangle, no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
 import { wrapSvgText } from '../modules/utils';
-
 import './sunburst.css';
 
+const propTypes = {
+  // Each row is an array of [hierarchy-lvl1, hierarchy-lvl2, metric1, metric2]
+  // hierarchy-lvls are string. metrics are number
+  data: PropTypes.arrayOf(PropTypes.array),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+  metrics: PropTypes.arrayOf(PropTypes.string),
+};
+
 // Modified from http://bl.ocks.org/kerryrodden/7090426
-function sunburstVis(slice, payload) {
-  const container = d3.select(slice.selector);
+function Sunburst(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Sunburst');
+
+  const container = d3.select(element);
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+    metrics,
+  } = props;
 
   // vars with shared scope within this function
   const margin = { top: 10, right: 5, bottom: 10, left: 5 };
-  const containerWidth = slice.width();
-  const containerHeight = slice.height();
+  const containerWidth = width;
+  const containerHeight = height;
   const breadcrumbHeight = containerHeight * 0.085;
   const visWidth = containerWidth - margin.left - margin.right;
   const visHeight = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
@@ -36,12 +55,8 @@ function sunburstVis(slice, payload) {
   const arc = d3.svg.arc()
     .startAngle(d => d.x)
     .endAngle(d => d.x + d.dx)
-    .innerRadius(function (d) {
-      return Math.sqrt(d.y);
-    })
-    .outerRadius(function (d) {
-      return Math.sqrt(d.y + d.dy);
-    });
+    .innerRadius(d => Math.sqrt(d.y))
+    .outerRadius(d => Math.sqrt(d.y + d.dy));
 
   const formatNum = d3.format('.1s');
   const formatPerc = d3.format('.1p');
@@ -52,8 +67,8 @@ function sunburstVis(slice, payload) {
     .attr('width', containerWidth)
     .attr('height', containerHeight);
 
-  function createBreadcrumbs(rawData) {
-    const firstRowData = rawData.data[0];
+  function createBreadcrumbs(data) {
+    const firstRowData = data[0];
     // -2 bc row contains 2x metrics, +extra for %label and buffer
     maxBreadcrumbs = (firstRowData.length - 2) + 1;
     breadcrumbDims = {
@@ -111,7 +126,7 @@ function sunburstVis(slice, payload) {
         .attr('points', breadcrumbPoints)
         .style('fill', function (d) {
           return colorByCategory ?
-            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            getColorFromScheme(d.name, colorScheme) :
             colorScale(d.m2 / d.m1);
         });
 
@@ -122,7 +137,7 @@ function sunburstVis(slice, payload) {
         .style('fill', function (d) {
           // Make text white or black based on the lightness of the background
           const col = d3.hsl(colorByCategory ?
-            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            getColorFromScheme(d.name, colorScheme) :
             colorScale(d.m2 / d.m1));
           return col.l < 0.5 ? 'white' : 'black';
         })
@@ -313,8 +328,8 @@ function sunburstVis(slice, payload) {
   }
 
   // Main function to draw and set up the visualization, once we have the data.
-  function createVisualization(rawData) {
-    const tree = buildHierarchy(rawData.data);
+  function createVisualization(data) {
+    const tree = buildHierarchy(data);
 
     vis = svg.append('svg:g')
       .attr('class', 'sunburst-vis')
@@ -345,9 +360,8 @@ function sunburstVis(slice, payload) {
       });
 
     let ext;
-    const fd = slice.formData;
 
-    if (fd.metric !== fd.secondary_metric && fd.secondary_metric) {
+    if (metrics[0] !== metrics[1] && metrics[1]) {
       colorByCategory = false;
       ext = d3.extent(nodes, d => d.m2 / d.m1);
       colorScale = d3.scale.linear()
@@ -365,7 +379,7 @@ function sunburstVis(slice, payload) {
       .attr('d', arc)
       .attr('fill-rule', 'evenodd')
       .style('fill', d => colorByCategory ?
-        getColorFromScheme(d.name, fd.color_scheme) :
+        getColorFromScheme(d.name, colorScheme) :
         colorScale(d.m2 / d.m1))
       .style('opacity', 1)
       .on('mouseenter', mouseenter);
@@ -373,8 +387,24 @@ function sunburstVis(slice, payload) {
     // Get total size of the tree = value of root node from partition.
     totalSize = path.node().__data__.value;
   }
-  createBreadcrumbs(payload);
-  createVisualization(payload);
+  createBreadcrumbs(data);
+  createVisualization(data);
 }
 
-module.exports = sunburstVis;
+Sunburst.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const { color_scheme: colorScheme, metric, secondary_metric: secondaryMetric } = formData;
+  const element = document.querySelector(selector);
+
+  return Sunburst(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+    metrics: [metric, secondaryMetric],
+  });
+}
+
+export default adaptor;
