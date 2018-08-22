@@ -898,7 +898,7 @@ export const controls = {
   time_grain_sqla: {
     type: 'SelectControl',
     label: t('Time Grain'),
-    default: control => control.choices && control.choices.length ? control.choices[0][0] : null,
+    default: 'P1D',
     description: t('The time granularity for the visualization. This ' +
     'applies a date transformation to alter ' +
     'your time column and defines a new time granularity. ' +
