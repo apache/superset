@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 
-import { brandColor } from '../modules/colors';
+import { brandColor, rgbToHex } from '../modules/colors';
 import { d3FormatPreset } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
 import { computeMaxFontSize } from '../modules/visUtils';
@@ -237,6 +237,11 @@ function adaptor(slice, payload) {
   const formatValue = d3FormatPreset(formData.y_axis_format);
   const bigNumber = supportTrendline ? data[data.length - 1][1] : data[0][0];
 
+  const { color } = formData;
+  const userColor = '#' + ('0' + parseInt(color.r, 10).toString(16)).slice(-2) +
+            ('0' + parseInt(color.g, 10).toString(16)).slice(-2) +
+            ('0' + parseInt(color.b, 10).toString(16)).slice(-2);
+
   let percentChange = 0;
   let formattedSubheader = subheader;
 
@@ -271,7 +276,7 @@ function adaptor(slice, payload) {
       showTrendline={showTrendline}
       startYAxisAtZero={startYAxisAtZero}
       trendlineData={trendlineData}
-      mainColor={brandColor}
+      mainColor={userColor}
       gradientId={`big_number_${containerId}`}
       renderTooltip={renderTooltipFactory(formatValue)}
     />,
