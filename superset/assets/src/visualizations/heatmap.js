@@ -104,12 +104,14 @@ function Heatmap(element, props) {
 
     if (leftMargin === 'auto') {
       margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
-      if (showLegend) {
-        margin.left += 40;
-      }
     } else {
       margin.left = leftMargin;
     }
+
+    if (showLegend) {
+      margin.right += 40;
+    }
+
     margin.bottom = (bottomMargin === 'auto')
       ? Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX))
       : bottomMargin;
@@ -215,13 +217,13 @@ function Heatmap(element, props) {
       .labelFormat(valueFormatter)
       .scale(colorScaler)
       .shapePadding(0)
-      .cells(50)
+      .cells(10)
       .shapeWidth(10)
-      .shapeHeight(3)
-      .labelOffset(2);
+      .shapeHeight(10)
+      .labelOffset(3);
 
     svg.append('g')
-      .attr('transform', 'translate(10, 5)')
+      .attr('transform', `translate(${width - 40}, ${margin.top})`)
       .call(colorLegend);
   }
 
@@ -268,6 +270,7 @@ function Heatmap(element, props) {
 
   const xAxis = d3.svg.axis()
     .scale(xRbScale)
+    .outerTickSize(0)
     .tickValues(xRbScale.domain().filter(
       function (d, i) {
         return !(i % (xScaleInterval));
@@ -276,6 +279,7 @@ function Heatmap(element, props) {
 
   const yAxis = d3.svg.axis()
     .scale(yRbScale)
+    .outerTickSize(0)
     .tickValues(yRbScale.domain().filter(
       function (d, i) {
         return !(i % (yScaleInterval));
@@ -285,10 +289,13 @@ function Heatmap(element, props) {
   svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', 'translate(' + margin.left + ',' + (margin.top + hmHeight) + ')')
-    .call(xAxis)
+      .call(xAxis)
     .selectAll('text')
-    .style('text-anchor', 'end')
-    .attr('transform', 'rotate(-45)');
+      .attr('x', -4)
+      .attr('y', 10)
+      .attr('dy', '0.3em')
+      .style('text-anchor', 'end')
+      .attr('transform', 'rotate(-45)');
 
   svg.append('g')
     .attr('class', 'y axis')

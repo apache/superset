@@ -45,3 +45,8 @@
 .heatmap .legendCells .cell:last-child text {
   opacity: 1;
 }
+
+.dashboard .heatmap .axis text {
+  font-size: 10px;
+  opacity: .75;
+}
