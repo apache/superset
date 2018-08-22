@@ -1495,6 +1495,14 @@ export const controls = {
     description: t('Whether to display the legend (toggles)'),
   },
 
+  send_time_range: {
+    type: 'CheckboxControl',
+    label: t('Propagate'),
+    renderTrigger: true,
+    default: false,
+    description: t('Send range filter events to other charts'),
+  },
+
   show_labels: {
     type: 'CheckboxControl',
     label: t('Show Labels'),
