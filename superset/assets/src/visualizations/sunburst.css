@@ -36,10 +36,11 @@
   font-size: 1em;
 }
 .dashboard .sunburst .path-abs-percent {
-  font-size: 2.5em;
+  font-size: 2em;
+  font-weight: 700;
 }
 .dashboard .sunburst .path-cond-percent {
-  font-size: 1.75em;
+  font-size: 1.5em;
 }
 .dashboard .sunburst .path-metrics {
   font-size: 1em;
