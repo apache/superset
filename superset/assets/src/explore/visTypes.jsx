@@ -1042,9 +1042,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
+          ['series'],
           ['metric'],
           ['adhoc_filters'],
-          ['series'],
           ['row_limit', null],
         ],
       },
