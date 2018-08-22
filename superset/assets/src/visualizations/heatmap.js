@@ -170,11 +170,11 @@ function Heatmap(element, props) {
 
   const scale = [
     d3.scale.linear()
-    .domain([0, heatmapDim[X]])
-    .range([0, hmWidth]),
+      .domain([0, heatmapDim[X]])
+      .range([0, hmWidth]),
     d3.scale.linear()
-    .domain([0, heatmapDim[Y]])
-    .range([0, hmHeight]),
+      .domain([0, heatmapDim[Y]])
+      .range([0, hmHeight]),
   ];
 
   const container = d3.select(element);
@@ -301,7 +301,6 @@ function Heatmap(element, props) {
     .attr('class', 'y axis')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
     .call(yAxis);
-
 
   const context = canvas.node().getContext('2d');
   context.imageSmoothingEnabled = false;
