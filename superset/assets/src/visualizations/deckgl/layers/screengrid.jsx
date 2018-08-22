@@ -110,6 +110,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
+          aggregation
         />
       </div>
     );
