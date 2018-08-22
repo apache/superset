@@ -816,6 +816,7 @@ class SqlaTable(Model, BaseDatasource):
             .filter(or_(TableColumn.column_name == col.name
                         for col in table.columns)))
         dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+        db_engine_spec = self.database.db_engine_spec
 
         for col in table.columns:
             try:
@@ -827,7 +828,10 @@ class SqlaTable(Model, BaseDatasource):
                 logging.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
-                dbcol = TableColumn(column_name=col.name, type=datatype)
+                dbcol = TableColumn(
+                    column_name=db_engine_spec.mutate_column_label(col.name),
+                    type=datatype
+                )
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.is_num
@@ -848,6 +852,8 @@ class SqlaTable(Model, BaseDatasource):
         ))
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
+        for metric in metrics:
+            metric.metric_name = db_engine_spec.mutate_column_label(metric.metric_name)
         self.add_missing_metrics(metrics)
         db.session.merge(self)
         db.session.commit()
