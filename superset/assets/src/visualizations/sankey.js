@@ -136,13 +136,9 @@ function Sankey(element, props) {
     .enter()
     .append('g')
     .attr('class', 'node')
-    .attr('transform', function (d) {
-      return 'translate(' + d.x + ',' + d.y + ')';
-    })
+    .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     .call(d3.behavior.drag()
-      .origin(function (d) {
-        return d;
-      })
+      .origin(d => d)
       .on('dragstart', function () {
         this.parentNode.appendChild(this);
       })
@@ -157,26 +153,18 @@ function Sankey(element, props) {
       d.color = getColorFromScheme(name.replace(/ .*/, ''), colorScheme);
       return d.color;
     })
-    .style('stroke', function (d) {
-      return d3.rgb(d.color).darker(2);
-    })
+    .style('stroke', d => d3.rgb(d.color).darker(2))
     .on('mouseover', onmouseover)
     .on('mouseout', onmouseout);
 
   node.append('text')
     .attr('x', -6)
-    .attr('y', function (d) {
-      return d.dy / 2;
-    })
+    .attr('y', d => d.dy / 2)
     .attr('dy', '.35em')
     .attr('text-anchor', 'end')
     .attr('transform', null)
-    .text(function (d) {
-      return d.name;
-    })
-    .filter(function (d) {
-      return d.x < innerWidth / 2;
-    })
+    .text(d => d.name)
+    .filter(d => d.x < innerWidth / 2)
     .attr('x', 6 + sankey.nodeWidth())
     .attr('text-anchor', 'start');
 }
