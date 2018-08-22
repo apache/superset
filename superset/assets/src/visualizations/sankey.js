@@ -1,13 +1,16 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
+import { sankey as d3Sankey } from 'd3-sankey';
 import { getColorFromScheme } from '../modules/colors';
 import './sankey.css';
 
-d3.sankey = require('d3-sankey').sankey;
-
 const propTypes = {
-  data: PropTypes.array,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    source: PropTypes.string,
+    target: PropTypes.string,
+    value: PropTypes.number,
+  })),
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
@@ -46,7 +49,7 @@ function Sankey(element, props) {
     .attr('class', 'sankey-tooltip')
     .style('opacity', 0);
 
-  const sankey = d3.sankey()
+  const sankey = d3Sankey()
     .nodeWidth(15)
     .nodePadding(10)
     .size([innerWidth, innerHeight]);
