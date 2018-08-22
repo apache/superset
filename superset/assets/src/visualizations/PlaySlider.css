@@ -1,8 +1,8 @@
 .play-slider {
-    position: absolute;
-    bottom: -16px;
+    position: relative;
     height: 20px;
     width: 100%;
+    margin: 0;
 }
 
 .slider-selection {
@@ -20,4 +20,8 @@
 .slider-button {
     color: #b3b3b3;
     margin-right: 5px;
+}
+
+div.slider > div.tooltip.tooltip-main.top.in {
+    margin-left: 0 !important;
 }
