@@ -1,7 +1,6 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-// eslint-disable-next-line no-unused-vars
-import d3legend from 'd3-svg-legend';
+import 'd3-svg-legend';
 import d3tip from 'd3-tip';
 
 import { colorScalerFactory } from '../modules/colors';
