@@ -1393,7 +1393,7 @@ export const visTypes = {
   },
 
   directed_force: {
-    label: t('Directed Force Layout'),
+    label: t('Force-directed Graph'),
     controlPanelSections: [
       {
         label: t('Query'),

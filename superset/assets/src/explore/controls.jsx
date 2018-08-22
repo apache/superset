@@ -788,6 +788,7 @@ export const controls = {
 
   link_length: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Link Length'),
     default: '200',
@@ -797,6 +798,7 @@ export const controls = {
 
   charge: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Charge'),
     default: '-500',
