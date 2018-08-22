@@ -1,4 +1,4 @@
-/* eslint-disable no-underscore-dangle, no-param-reassign */
+/* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
@@ -67,8 +67,7 @@ function Sunburst(element, props) {
     .attr('width', containerWidth)
     .attr('height', containerHeight);
 
-  function createBreadcrumbs(data) {
-    const firstRowData = data[0];
+  function createBreadcrumbs(firstRowData) {
     // -2 bc row contains 2x metrics, +extra for %label and buffer
     maxBreadcrumbs = (firstRowData.length - 2) + 1;
     breadcrumbDims = {
@@ -115,9 +114,7 @@ function Sunburst(element, props) {
 
   function updateBreadcrumbs(sequenceArray, percentageString) {
     const g = breadcrumbs.selectAll('g')
-      .data(sequenceArray, function (d) {
-        return d.name + d.depth;
-      });
+      .data(sequenceArray, d => d.name + d.depth);
 
     // Add breadcrumb and label for entering nodes.
     const entering = g.enter().append('svg:g');
@@ -199,12 +196,12 @@ function Sunburst(element, props) {
     gMiddleText.append('text')
       .attr('class', 'path-metrics')
       .attr('y', yOffsets[offsetIndex++])
-      .text('m1: ' + formatNum(d.m1) + (metricsMatch ? '' : ', m2: ' + formatNum(d.m2)));
+      .text('Metric1: ' + formatNum(d.m1) + (metricsMatch ? '' : ', Metric2: ' + formatNum(d.m2)));
 
     gMiddleText.append('text')
       .attr('class', 'path-ratio')
       .attr('y', yOffsets[offsetIndex++])
-      .text((metricsMatch ? '' : ('m2/m1: ' + formatPerc(d.m2 / d.m1))));
+      .text((metricsMatch ? '' : ('Metric2/Metric1: ' + formatPerc(d.m2 / d.m1))));
 
     // Reset and fade all the segments.
     arcs.selectAll('path')
@@ -214,9 +211,7 @@ function Sunburst(element, props) {
 
     // Then highlight only those that are an ancestor of the current segment.
     arcs.selectAll('path')
-      .filter(function (node) {
-        return (sequenceArray.indexOf(node) >= 0);
-      })
+      .filter(node => (sequenceArray.indexOf(node) >= 0))
       .style('opacity', 1)
       .style('stroke-width', '2px')
       .style('stroke', '#000');
@@ -259,7 +254,7 @@ function Sunburst(element, props) {
       const m1 = Number(row[row.length - 2]);
       const m2 = Number(row[row.length - 1]);
       const levels = row.slice(0, row.length - 2);
-      if (isNaN(m1)) { // e.g. if this is a header row
+      if (Number.isNaN(m1)) { // e.g. if this is a header row
         continue;
       }
       let currentNode = root;
@@ -278,8 +273,7 @@ function Sunburst(element, props) {
             currChild = children[k];
             if (currChild.name === nodeName &&
                 currChild.level === level) {
-// must match name AND level
-
+            // must match name AND level
               childNode = currChild;
               foundChild = true;
               break;
@@ -328,8 +322,8 @@ function Sunburst(element, props) {
   }
 
   // Main function to draw and set up the visualization, once we have the data.
-  function createVisualization(data) {
-    const tree = buildHierarchy(data);
+  function createVisualization(rows) {
+    const root = buildHierarchy(rows);
 
     vis = svg.append('svg:g')
       .attr('class', 'sunburst-vis')
@@ -354,10 +348,8 @@ function Sunburst(element, props) {
       .style('opacity', 0);
 
     // For efficiency, filter nodes to keep only those large enough to see.
-    const nodes = partition.nodes(tree)
-      .filter(function (d) {
-        return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
-      });
+    const nodes = partition.nodes(root)
+      .filter(d => d.dx > 0.005); // 0.005 radians = 0.29 degrees
 
     let ext;
 
@@ -369,25 +361,23 @@ function Sunburst(element, props) {
         .range(['#00D1C1', 'white', '#FFB400']);
     }
 
-    const path = arcs.data([tree]).selectAll('path')
-      .data(nodes)
+    arcs.selectAll('path')
+        .data(nodes)
       .enter()
-      .append('svg:path')
-      .attr('display', function (d) {
-        return d.depth ? null : 'none';
-      })
-      .attr('d', arc)
-      .attr('fill-rule', 'evenodd')
-      .style('fill', d => colorByCategory ?
-        getColorFromScheme(d.name, colorScheme) :
-        colorScale(d.m2 / d.m1))
-      .style('opacity', 1)
-      .on('mouseenter', mouseenter);
+        .append('svg:path')
+        .attr('display', d => d.depth ? null : 'none')
+        .attr('d', arc)
+        .attr('fill-rule', 'evenodd')
+        .style('fill', d => colorByCategory
+          ? getColorFromScheme(d.name, colorScheme)
+          : colorScale(d.m2 / d.m1))
+        .style('opacity', 1)
+        .on('mouseenter', mouseenter);
 
     // Get total size of the tree = value of root node from partition.
-    totalSize = path.node().__data__.value;
+    totalSize = root.value;
   }
-  createBreadcrumbs(data);
+  createBreadcrumbs(data[0]);
   createVisualization(data);
 }
 
