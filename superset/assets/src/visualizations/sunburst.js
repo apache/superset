@@ -12,8 +12,29 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
-  metrics: PropTypes.arrayOf(PropTypes.string),
+  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object, // The metric object
+  ])),
 };
+
+function metricLabel(metric) {
+  return ((typeof metric) === 'string' || metric instanceof String)
+    ? metric
+    : metric.label;
+}
+
+// Given a node in a partition layout, return an array of all of its ancestor
+// nodes, highest first, but excluding the root.
+function getAncestors(node) {
+  const path = [];
+  let current = node;
+  while (current.parent) {
+    path.unshift(current);
+    current = current.parent;
+  }
+  return path;
+}
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
 function Sunburst(element, props) {
@@ -83,18 +104,6 @@ function Sunburst(element, props) {
 
     breadcrumbs.append('svg:text')
       .attr('class', 'end-label');
-  }
-
-  // Given a node in a partition layout, return an array of all of its ancestor
-  // nodes, highest first, but excluding the root.
-  function getAncestors(node) {
-    const path = [];
-    let current = node;
-    while (current.parent) {
-      path.unshift(current);
-      current = current.parent;
-    }
-    return path;
   }
 
   // Generate a string that describes the points of a breadcrumb polygon.
@@ -178,6 +187,7 @@ function Sunburst(element, props) {
 
     // If metrics match, assume we are coloring by category
     const metricsMatch = Math.abs(d.m1 - d.m2) < 0.00001;
+    console.log('metrics', metrics);
 
     gMiddleText.selectAll('*').remove();
 
@@ -196,25 +206,24 @@ function Sunburst(element, props) {
     gMiddleText.append('text')
       .attr('class', 'path-metrics')
       .attr('y', yOffsets[offsetIndex++])
-      .text('Metric1: ' + formatNum(d.m1) + (metricsMatch ? '' : ', Metric2: ' + formatNum(d.m2)));
+      .text(`${metricLabel(metrics[0])}: ${formatNum(d.m1)}` + (metricsMatch ? '' : `, ${metricLabel(metrics[1])}: ${formatNum(d.m2)}`));
 
     gMiddleText.append('text')
       .attr('class', 'path-ratio')
       .attr('y', yOffsets[offsetIndex++])
-      .text((metricsMatch ? '' : ('Metric2/Metric1: ' + formatPerc(d.m2 / d.m1))));
+      .text((metricsMatch ? '' : (`${metricLabel(metrics[1])}/${metricLabel(metrics[0])}: ${formatPerc(d.m2 / d.m1)}`)));
 
     // Reset and fade all the segments.
     arcs.selectAll('path')
       .style('stroke-width', null)
       .style('stroke', null)
-      .style('opacity', 0.7);
+      .style('opacity', 0.3);
 
     // Then highlight only those that are an ancestor of the current segment.
     arcs.selectAll('path')
       .filter(node => (sequenceArray.indexOf(node) >= 0))
       .style('opacity', 1)
-      .style('stroke-width', '2px')
-      .style('stroke', '#000');
+      .style('stroke', '#aaa');
 
     updateBreadcrumbs(sequenceArray, absolutePercString);
   }
