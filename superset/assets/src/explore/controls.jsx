@@ -495,6 +495,7 @@ export const controls = {
     ...metric,
     label: t('Color Metric'),
     default: null,
+    validators: [],
     description: t('A metric to use for color'),
   },
   select_country: {
@@ -787,6 +788,7 @@ export const controls = {
 
   link_length: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Link Length'),
     default: '200',
@@ -796,6 +798,7 @@ export const controls = {
 
   charge: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Charge'),
     default: '-500',
@@ -1249,7 +1252,8 @@ export const controls = {
     type: 'SelectControl',
     label: t('Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
-    default: 'random',
+    renderTrigger: true,
+    default: 'square',
     description: t('Rotation to apply to words in the cloud'),
   },
 
@@ -1310,6 +1314,7 @@ export const controls = {
     type: 'TextControl',
     isInt: true,
     label: t('Font Size From'),
+    renderTrigger: true,
     default: '20',
     description: t('Font size for the smallest value in the list'),
   },
@@ -1318,6 +1323,7 @@ export const controls = {
     type: 'TextControl',
     isInt: true,
     label: t('Font Size To'),
+    renderTrigger: true,
     default: '150',
     description: t('Font size for the biggest value in the list'),
   },
@@ -1394,6 +1400,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Data Table'),
     default: false,
+    renderTrigger: true,
     description: t('Whether to display the interactive data table'),
   },
 
