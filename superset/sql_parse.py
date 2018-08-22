@@ -12,6 +12,7 @@ from sqlparse.sql import Identifier, IdentifierList
 from sqlparse.tokens import Keyword, Name
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
+ON_KEYWORD = 'ON'
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
@@ -128,7 +129,8 @@ class SupersetQuery(object):
                 continue
 
             if item.ttype in Keyword:
-                if self.__is_result_operation(item.value):
+                if (self.__is_result_operation(item.value) or
+                        item.value.upper() == ON_KEYWORD):
                     table_name_preceding_token = False
                     continue
                 # FROM clause is over
