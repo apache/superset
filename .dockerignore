@@ -1,0 +1,7 @@
+**/venv
+**/venv2
+**/install
+**/scripts
+**/superset.egg-info
+**/build
+**/dist
