@@ -476,6 +476,14 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
     consistent_case_sensitivity = False
 
+    @staticmethod
+    def mutate_column_label(label):
+        return label.upper()
+
+    @staticmethod
+    def mutate_expression_label(label):
+        return label.upper()
+
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
@@ -499,6 +507,14 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
+
+    @staticmethod
+    def mutate_column_label(label):
+        return label.upper()
+
+    @staticmethod
+    def mutate_expression_label(label):
+        return label.upper()
 
 
 class Db2EngineSpec(BaseEngineSpec):
