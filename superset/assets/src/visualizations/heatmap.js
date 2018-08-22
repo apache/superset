@@ -1,4 +1,5 @@
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 // eslint-disable-next-line no-unused-vars
 import d3legend from 'd3-svg-legend';
 import d3tip from 'd3-tip';
@@ -7,15 +8,72 @@ import { colorScalerFactory } from '../modules/colors';
 import '../../stylesheets/d3tip.css';
 import './heatmap.css';
 
+const propTypes = {
+  data: PropTypes.shape({
+    records: PropTypes.array,
+  }),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  bottomMargin: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+  ]),
+  colorScheme: PropTypes.string,
+  columnX: PropTypes.string,
+  columnY: PropTypes.string,
+  leftMargin: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+  ]),
+  metric: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ]),
+  normalized: PropTypes.bool,
+  numberFormat: PropTypes.string,
+  showLegend: PropTypes.bool,
+  showPercentage: PropTypes.bool,
+  showValues: PropTypes.bool,
+  sortXAxis: PropTypes.string,
+  sortYAxis: PropTypes.string,
+  xScaleInterval: PropTypes.number,
+  yScaleInterval: PropTypes.number,
+  yAxisBounds: PropTypes.arrayOf(PropTypes.number),
+};
+
 function cmp(a, b) {
   return a > b ? 1 : -1;
 }
 
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
-function heatmapVis(slice, payload) {
-  const data = payload.data.records;
-  const fd = slice.formData;
+function Heatmap(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Heatmap');
+
+  const {
+    data: rawData,
+    width,
+    height,
+    bottomMargin,
+    canvasImageRendering,
+    colorScheme,
+    columnX,
+    columnY,
+    leftMargin,
+    metric,
+    normalized,
+    numberFormat,
+    showLegend,
+    showPercentage,
+    showValues,
+    sortXAxis,
+    sortYAxis,
+    xScaleInterval,
+    yScaleInterval,
+    yAxisBounds,
+  } = props;
+
+  const data = rawData.records;
 
   const margin = {
     top: 10,
@@ -23,7 +81,7 @@ function heatmapVis(slice, payload) {
     bottom: 35,
     left: 35,
   };
-  const valueFormatter = d3.format(fd.y_axis_format);
+  const valueFormatter = d3.format(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
@@ -31,27 +89,24 @@ function heatmapVis(slice, payload) {
     const pixelsPerCharY = 6; // approx, depends on font size
     let longestX = 1;
     let longestY = 1;
-    let datum;
 
     for (let i = 0; i < data.length; i++) {
-      datum = data[i];
+      const datum = data[i];
       longestX = Math.max(longestX, datum.x.toString().length || 1);
       longestY = Math.max(longestY, datum.y.toString().length || 1);
     }
 
-    if (fd.left_margin === 'auto') {
+    if (leftMargin === 'auto') {
       margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
-      if (fd.show_legend) {
+      if (showLegend) {
         margin.left += 40;
       }
     } else {
-      margin.left = fd.left_margin;
+      margin.left = leftMargin;
     }
-    if (fd.bottom_margin === 'auto') {
-      margin.bottom = Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX));
-    } else {
-      margin.bottom = fd.bottom_margin;
-    }
+    margin.bottom = (bottomMargin === 'auto')
+      ? Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX))
+      : bottomMargin;
   }
 
   function ordScale(k, rangeBands, sortMethod) {
@@ -83,28 +138,27 @@ function heatmapVis(slice, payload) {
     return d3.scale.ordinal().domain(domain).range(d3.range(domain.length));
   }
 
-  slice.container.html('');
+  // eslint-disable-next-line no-param-reassign
+  element.innerHTML = '';
   const matrix = {};
 
   adjustMargins();
 
-  const width = slice.width();
-  const height = slice.height();
   const hmWidth = width - (margin.left + margin.right);
   const hmHeight = height - (margin.bottom + margin.top);
   const fp = d3.format('.2%');
 
-  const xScale = ordScale('x', null, fd.sort_x_axis);
-  const yScale = ordScale('y', null, fd.sort_y_axis);
-  const xRbScale = ordScale('x', [0, hmWidth], fd.sort_x_axis);
-  const yRbScale = ordScale('y', [hmHeight, 0], fd.sort_y_axis);
+  const xScale = ordScale('x', null, sortXAxis);
+  const yScale = ordScale('y', null, sortYAxis);
+  const xRbScale = ordScale('x', [0, hmWidth], sortXAxis);
+  const yRbScale = ordScale('y', [hmHeight, 0], sortYAxis);
   const X = 0;
   const Y = 1;
   const heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-  const minBound = fd.y_axis_bounds[0] || 0;
-  const maxBound = fd.y_axis_bounds[1] || 1;
-  const colorScaler = colorScalerFactory(fd.linear_color_scheme, null, null, [minBound, maxBound]);
+  const minBound = yAxisBounds[0] || 0;
+  const maxBound = yAxisBounds[1] || 1;
+  const colorScaler = colorScalerFactory(colorScheme, null, null, [minBound, maxBound]);
 
   const scale = [
     d3.scale.linear()
@@ -115,14 +169,14 @@ function heatmapVis(slice, payload) {
     .range([0, hmHeight]),
   ];
 
-  const container = d3.select(slice.selector);
+  const container = d3.select(element);
 
   const canvas = container.append('canvas')
     .attr('width', heatmapDim[X])
     .attr('height', heatmapDim[Y])
     .style('width', hmWidth + 'px')
     .style('height', hmHeight + 'px')
-    .style('image-rendering', fd.canvas_image_rendering)
+    .style('image-rendering', canvasImageRendering)
     .style('left', margin.left + 'px')
     .style('top', margin.top + 'px')
     .style('position', 'absolute');
@@ -132,7 +186,7 @@ function heatmapVis(slice, payload) {
     .attr('height', height)
     .style('position', 'relative');
 
-  if (fd.show_values) {
+  if (showValues) {
     const cells = svg.selectAll('rect')
       .data(data)
       .enter()
@@ -150,7 +204,7 @@ function heatmapVis(slice, payload) {
       .attr('fill', d => d.v >= payload.data.extents[1] / 2 ? 'white' : 'black');
   }
 
-  if (fd.show_legend) {
+  if (showLegend) {
     const colorLegend = d3.legend.color()
     .labelFormat(valueFormatter)
     .scale(colorScaler)
@@ -177,14 +231,14 @@ function heatmapVis(slice, payload) {
       const k = d3.mouse(this);
       const m = Math.floor(scale[0].invert(k[0]));
       const n = Math.floor(scale[1].invert(k[1]));
-      const metric = typeof fd.metric === 'object' ? fd.metric.label : fd.metric;
+      const metricLabel = typeof metric === 'object' ? metric.label : metric;
       if (m in matrix && n in matrix[m]) {
         const obj = matrix[m][n];
-        s += '<div><b>' + fd.all_columns_x + ': </b>' + obj.x + '<div>';
-        s += '<div><b>' + fd.all_columns_y + ': </b>' + obj.y + '<div>';
-        s += '<div><b>' + metric + ': </b>' + valueFormatter(obj.v) + '<div>';
-        if (fd.show_perc) {
-          s += '<div><b>%: </b>' + fp(fd.normalized ? obj.rank : obj.perc) + '<div>';
+        s += '<div><b>' + columnX + ': </b>' + obj.x + '<div>';
+        s += '<div><b>' + columnY + ': </b>' + obj.y + '<div>';
+        s += '<div><b>' + metricLabel + ': </b>' + valueFormatter(obj.v) + '<div>';
+        if (showPercentage) {
+          s += '<div><b>%: </b>' + fp(normalized ? obj.rank : obj.perc) + '<div>';
         }
         tip.style('display', null);
       } else {
@@ -212,7 +266,7 @@ function heatmapVis(slice, payload) {
     .scale(xRbScale)
     .tickValues(xRbScale.domain().filter(
       function (d, i) {
-        return !(i % (parseInt(fd.xscale_interval, 10)));
+        return !(i % (xScaleInterval));
       }))
     .orient('bottom');
 
@@ -220,7 +274,7 @@ function heatmapVis(slice, payload) {
     .scale(yRbScale)
     .tickValues(yRbScale.domain().filter(
       function (d, i) {
-        return !(i % (parseInt(fd.yscale_interval, 10)));
+        return !(i % (yScaleInterval));
       }))
     .orient('left');
 
@@ -247,7 +301,7 @@ function heatmapVis(slice, payload) {
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
     data.forEach((d) => {
-      const c = d3.rgb(colorScaler(fd.normalized ? d.rank : d.perc));
+      const c = d3.rgb(colorScaler(normalized ? d.rank : d.perc));
       const x = xScale(d.x);
       const y = yScale(d.y);
       pixs[x + (y * xScale.domain().length)] = c;
@@ -278,4 +332,56 @@ function heatmapVis(slice, payload) {
   createImageObj();
 }
 
-module.exports = heatmapVis;
+Heatmap.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    bottom_margin: bottomMargin,
+    canvas_image_rendering: canvasImageRendering,
+    all_columns_x: columnX,
+    all_columns_y: columnY,
+    linear_color_scheme: colorScheme,
+    left_margin: leftMargin,
+    metric,
+    normalized,
+    show_legend: showLegend,
+    show_perc: showPercentage,
+    show_values: showValues,
+    sort_x_axis: sortXAxis,
+    sort_y_axis: sortYAxis,
+    xscale_interval: xScaleInterval,
+    yscale_interval: yScaleInterval,
+    y_axis_bounds: yAxisBounds,
+    y_axis_format: numberFormat,
+  } = formData;
+  const element = document.querySelector(selector);
+
+  // console.log('formData', formData);
+  // return;
+
+  return Heatmap(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    bottomMargin,
+    canvasImageRendering,
+    colorScheme,
+    columnX,
+    columnY,
+    leftMargin,
+    metric,
+    normalized,
+    numberFormat,
+    showLegend,
+    showPercentage,
+    showValues,
+    sortXAxis,
+    sortYAxis,
+    xScaleInterval: parseInt(xScaleInterval, 10),
+    yScaleInterval: parseInt(yScaleInterval, 10),
+    yAxisBounds,
+  });
+}
+
+export default adaptor;
