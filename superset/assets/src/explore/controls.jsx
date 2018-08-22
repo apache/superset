@@ -1766,6 +1766,15 @@ export const controls = {
     'Between 0 and 1.'),
   },
 
+  opacity: {
+    type: 'SliderControl',
+    label: t('Opacity'),
+    default: 80,
+    isInt: true,
+    renderTrigger: true,
+    description: t('Opacity, expects values between 1 and 100'),
+  },
+
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
@@ -2110,6 +2119,7 @@ export const controls = {
     choices: [
       ['polyline', 'Polyline'],
       ['json', 'JSON'],
+      ['geohash', 'geohash (square)'],
     ],
   },
 
@@ -2231,7 +2241,7 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
-    default: false,
+    default: true,
   },
 
   normalized: {
