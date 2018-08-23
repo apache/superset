@@ -1,39 +1,82 @@
 import d3 from 'd3';
+import PropTypes from 'prop-types';
+import $ from 'jquery';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
-
 import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
 import './table.css';
 
-const $ = require('jquery');
-
 dt(window, $);
 
-function tableVis(slice, payload) {
-  const container = $(slice.selector);
-  const fC = d3.format('0,000');
+const propTypes = {
+  data: PropTypes.shape({
+    records: PropTypes.arrayOf(PropTypes.object),
+    columns: PropTypes.arrayOf(PropTypes.string),
+  }),
+  height: PropTypes.number,
+  alignPn: PropTypes.bool,
+  colorPn: PropTypes.bool,
+  columnFormats: PropTypes.object,
+  includeSearch: PropTypes.bool,
+  metrics: PropTypes.arrayOf(PropTypes.string),
+  orderDesc: PropTypes.bool,
+  pageLength: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.string,
+  ]),
+  percentMetrics: PropTypes.array,
+  tableFilter: PropTypes.bool,
+  tableTimestampFormat: PropTypes.string,
+  timeseriesLimitMetric: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ]),
+  verboseMap: PropTypes.object,
+};
 
-  const data = payload.data;
-  const fd = slice.formData;
+const fC = d3.format('0,000');
 
-  let metrics = (fd.metrics || []).map(m => m.label || m);
-  // Add percent metrics
-  metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
-  // Removing metrics (aggregates) that are strings
-  metrics = metrics.filter(m => !isNaN(data.records[0][m]));
+function TableVis(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'TableVis');
+
+  const {
+    data,
+    height,
+    alignPn,
+    colorPn,
+    includeSearch,
+    metrics: rawMetrics,
+    orderDesc,
+    pageLength,
+    percentMetrics,
+    tableFilter,
+    tableTimestampFormat,
+    timeseriesLimitMetric,
+    verboseMap,
+  } = props;
+
+  const { columns, records } = data;
+
+  const $container = $(element);
+
+  const metrics = (rawMetrics || []).map(m => m.label || m)
+    // Add percent metrics
+    .concat((percentMetrics || []).map(m => '%' + m))
+    // Removing metrics (aggregates) that are strings
+    .filter(m => !Number.isNaN(records[0][m]));
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < data.records.length; i += 1) {
-      arr.push(data.records[i][c]);
+    for (let i = 0; i < records.length; i += 1) {
+      arr.push(records[i][c]);
     }
     return arr;
   }
   const maxes = {};
   const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    if (fd.align_pn) {
+    if (alignPn) {
       maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
     } else {
       maxes[metrics[i]] = d3.max(col(metrics[i]));
@@ -41,9 +84,9 @@ function tableVis(slice, payload) {
     }
   }
 
-  const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
+  const tsFormatter = d3TimeFormatPreset(tableTimestampFormat);
 
-  const div = d3.select(slice.selector);
+  const div = d3.select(element);
   div.html('');
   const table = div.append('table')
     .classed(
@@ -51,8 +94,7 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
-  const verboseMap = slice.datasource.verbose_map;
-  const cols = data.columns.map((c) => {
+  const cols = columns.map((c) => {
     if (verboseMap[c]) {
       return verboseMap[c];
     }
@@ -76,11 +118,11 @@ function tableVis(slice, payload) {
   const filters = slice.getFilters();
   table.append('tbody')
     .selectAll('tr')
-    .data(data.records)
+    .data(records)
     .enter()
     .append('tr')
     .selectAll('td')
-    .data(row => data.columns.map((c) => {
+    .data(row => columns.map((c) => {
       const val = row[c];
       let html;
       const isMetric = metrics.indexOf(c) >= 0;
@@ -91,7 +133,8 @@ function tableVis(slice, payload) {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        html = slice.d3format(c, val);
+        const format = (columnFormats && columnFormats[c]) || '0.3s';
+        html = format(val);
       }
       if (c[0] === '%') {
         html = d3.format('.3p')(val);
@@ -107,8 +150,8 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const r = (fd.color_pn && d.val < 0) ? 150 : 0;
-        if (fd.align_pn) {
+        const r = (colorPn && d.val < 0) ? 150 : 0;
+        if (alignPn) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
           // The 0.01 to 0.001 is a workaround for what appears to be a
           // CSS rendering bug on flat, transparent colors
@@ -149,7 +192,7 @@ function tableVis(slice, payload) {
       filters[d.col].indexOf(d.val) >= 0,
     )
     .on('click', function (d) {
-      if (!d.isMetric && fd.table_filter) {
+      if (!d.isMetric && tableFilter) {
         const td = d3.select(this);
         if (td.classed('filtered')) {
           slice.removeFilter(d.col, [d.val]);
@@ -164,43 +207,81 @@ function tableVis(slice, payload) {
       return (!d.isMetric) ? 'pointer' : '';
     })
     .html(d => d.html ? d.html : d.val);
-  const height = slice.height();
-  let paging = false;
-  let pageLength;
-  if (fd.page_length && fd.page_length > 0) {
-    paging = true;
-    pageLength = parseInt(fd.page_length, 10);
-  }
-  const datatable = container.find('.dataTable').DataTable({
+
+  const paging = pageLength && pageLength > 0;
+
+  const datatable = $container.find('.dataTable').DataTable({
     paging,
-    pageLength,
+    pageLength: paging ? parseInt(pageLength, 10) : undefined,
     aaSorting: [],
-    searching: fd.include_search,
+    searching: includeSearch,
     bInfo: false,
     scrollY: height + 'px',
     scrollCollapse: true,
     scrollX: true,
   });
-  fixDataTableBodyHeight(
-      container.find('.dataTables_wrapper'), height);
+
+  fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
   let sortBy;
-  if (fd.timeseries_limit_metric) {
+  if (timeseriesLimitMetric) {
     // Sort by as specified
-    sortBy = fd.timeseries_limit_metric.label || fd.timeseries_limit_metric;
+    sortBy = timeseriesLimitMetric.label || timeseriesLimitMetric;
   } else if (metrics.length > 0) {
     // If not specified, use the first metric from the list
     sortBy = metrics[0];
   }
   if (sortBy) {
-    datatable.column(data.columns.indexOf(sortBy)).order(fd.order_desc ? 'desc' : 'asc');
+    datatable.column(columns.indexOf(sortBy)).order(orderDesc ? 'desc' : 'asc');
   }
   if (sortBy && metrics.indexOf(sortBy) < 0) {
     // Hiding the sortBy column if not in the metrics list
-    datatable.column(data.columns.indexOf(sortBy)).visible(false);
+    datatable.column(columns.indexOf(sortBy)).visible(false);
   }
   datatable.draw();
-  container.parents('.widget').find('.tooltip').remove();
+  $container.parents('.widget').find('.tooltip').remove();
 }
 
-module.exports = tableVis;
+TableVis.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData, datasource } = slice;
+  const {
+    align_pn: alignPn,
+    color_pn: colorPn,
+    include_search: includeSearch,
+    metrics,
+    order_desc: orderDesc,
+    page_length: pageLength,
+    percent_metrics: percentMetrics,
+    table_filter: tableFilter,
+    table_timestamp_format: tableTimestampFormat,
+    timeseries_limit_metric: timeseriesLimitMetric,
+  } = formData;
+  const {
+    verbose_map: verboseMap,
+    column_formats: columnFormats,
+  } = datasource;
+  const element = document.querySelector(selector);
+
+  console.log('slice.getFilters', slice.getFilters());
+
+  return TableVis(element, {
+    data: payload.data,
+    height: slice.height(),
+    alignPn,
+    colorPn,
+    columnFormats,
+    includeSearch,
+    metrics,
+    orderDesc,
+    pageLength,
+    percentMetrics,
+    tableFilter,
+    tableTimestampFormat,
+    timeseriesLimitMetric,
+    verboseMap,
+  });
+}
+
+export default adaptor;

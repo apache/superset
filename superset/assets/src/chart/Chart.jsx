@@ -168,13 +168,6 @@ class Chart extends React.PureComponent {
     );
   }
 
-  d3format(col, number) {
-    const { datasource } = this.props;
-    const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
-
-    return d3format(format, number);
-  }
-
   error(e) {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
   }
