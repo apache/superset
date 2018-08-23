@@ -30,9 +30,22 @@ const propTypes = {
   data: PropTypes.arrayOf(nodeType),
   width: PropTypes.number,
   height: PropTypes.number,
-  numberFormat: PropTypes.string,
   colorScheme: PropTypes.string,
+  margin: PropTypes.shape({
+    top: PropTypes.number,
+    right: PropTypes.number,
+    bottom: PropTypes.number,
+    left: PropTypes.number,
+  }),
+  numberFormat: PropTypes.string,
   treemapRatio: PropTypes.number,
+};
+
+const DEFAULT_MARGIN = {
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
 };
 
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
@@ -43,6 +56,7 @@ function treemap(element, props) {
     data,
     width,
     height,
+    margin = DEFAULT_MARGIN,
     numberFormat,
     colorScheme,
     treemapRatio,
@@ -51,12 +65,6 @@ function treemap(element, props) {
   const formatNumber = d3.format(numberFormat);
 
   function draw(data, eltWidth, eltHeight) {
-    const margin = {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
-    };
     const navBarHeight = 36;
     const navBarTitleSize = navBarHeight / 3;
     const navBarBuffer = 10;
