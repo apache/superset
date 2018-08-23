@@ -108,7 +108,10 @@ class BaseViz(object):
                 if not isinstance(val, list):
                     val = [val]
                 for o in val:
-                    self.metric_dict[self.get_metric_label(o)] = o
+                    label = self.get_metric_label(o)
+                    if isinstance(o, dict):
+                        o['label'] = label
+                    self.metric_dict[label] = o
 
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
@@ -118,7 +121,8 @@ class BaseViz(object):
         if isinstance(metric, string_types):
             return metric
         if isinstance(metric, dict):
-            return metric.get('label')
+            return self.datasource.database.db_engine_spec.mutate_expression_label(
+                metric.get('label'))
 
     @staticmethod
     def handle_js_int_overflow(data):
@@ -1727,8 +1731,6 @@ class WorldMapViz(BaseViz):
 
     def query_obj(self):
         qry = super(WorldMapViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
         qry['groupby'] = [self.form_data['entity']]
         return qry
 
@@ -1738,6 +1740,7 @@ class WorldMapViz(BaseViz):
         cols = [fd.get('entity')]
         metric = self.get_metric_label(fd.get('metric'))
         secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
+        columns = ['country', 'm1', 'm2']
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1745,10 +1748,14 @@ class WorldMapViz(BaseViz):
             ndf['m1'] = df[metric].iloc[:, 0]
             ndf['m2'] = ndf['m1']
         else:
-            cols += [metric, secondary_metric]
+            if secondary_metric:
+                cols += [metric, secondary_metric]
+            else:
+                cols += [metric]
+                columns = ['country', 'm1']
             ndf = df[cols]
         df = ndf
-        df.columns = ['country', 'm1', 'm2']
+        df.columns = columns
         d = df.to_dict(orient='records')
         for row in d:
             country = None
@@ -1846,10 +1853,6 @@ class ParallelCoordinatesViz(BaseViz):
     def query_obj(self):
         d = super(ParallelCoordinatesViz, self).query_obj()
         fd = self.form_data
-        d['metrics'] = copy.copy(fd.get('metrics'))
-        second = fd.get('secondary_metric')
-        if second not in d['metrics']:
-            d['metrics'] += [second]
         d['groupby'] = [fd.get('series')]
         return d
 
@@ -2098,10 +2101,24 @@ class BaseDeckGLViz(BaseViz):
                 _('Invalid spatial point encountered: %s' % s))
         return (p.latitude, p.longitude)
 
+    @staticmethod
+    def reverse_geohash_decode(geohash_code):
+        lat, lng = geohash.decode(geohash_code)
+        return (lng, lat)
+
+    @staticmethod
+    def reverse_latlong(df, key):
+        df[key] = [
+            tuple(reversed(o))
+            for o in df[key]
+            if isinstance(o, (list, tuple))
+        ]
+
     def process_spatial_data_obj(self, key, df):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
+
         if spatial.get('type') == 'latlong':
             df[key] = list(zip(
                 pd.to_numeric(df[spatial.get('lonCol')], errors='coerce'),
@@ -2110,18 +2127,13 @@ class BaseDeckGLViz(BaseViz):
         elif spatial.get('type') == 'delimited':
             lon_lat_col = spatial.get('lonlatCol')
             df[key] = df[lon_lat_col].apply(self.parse_coordinates)
-
-            if spatial.get('reverseCheckbox'):
-                df[key] = [
-                    tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
-                    for o in df[key]
-                ]
             del df[lon_lat_col]
         elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df[key] = list(zip(latlong.apply(lambda x: x[0]),
-                               latlong.apply(lambda x: x[1])))
+            df[key] = df[spatial.get('geohashCol')].map(self.reverse_geohash_decode)
             del df[spatial.get('geohashCol')]
+
+        if spatial.get('reverseCheckbox'):
+            self.reverse_latlong(df, key)
 
         if df.get(key) is None:
             raise NullValueException(_('Encountered invalid NULL spatial entry, \
@@ -2378,11 +2390,21 @@ class DeckArc(BaseDeckGLViz):
     viz_type = 'deck_arc'
     verbose_name = _('Deck.gl - Arc')
     spatial_control_keys = ['start_spatial', 'end_spatial']
+    is_timeseries = True
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = bool(
+            fd.get('time_grain_sqla') or fd.get('granularity'))
+        return super(DeckArc, self).query_obj()
 
     def get_properties(self, d):
+        dim = self.form_data.get('dimension')
         return {
             'sourcePosition': d.get('start_spatial'),
             'targetPosition': d.get('end_spatial'),
+            'cat_color': d.get(dim) if dim else None,
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
         }
 
     def get_data(self, df):

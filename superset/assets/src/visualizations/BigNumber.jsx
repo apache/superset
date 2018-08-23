@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
+import * as color from 'd3-color';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 
 import { brandColor } from '../modules/colors';
@@ -230,12 +231,14 @@ BigNumberVis.defaultProps = defaultProps;
 function adaptor(slice, payload) {
   const { formData, containerId } = slice;
   const { data, subheader, compare_suffix: compareSuffix } = payload.data;
+  const { r, g, b } = formData.color_picker;
   const compareLag = Number(payload.data.compare_lag);
   const supportTrendline = formData.viz_type === 'big_number';
   const showTrendline = supportTrendline && formData.show_trend_line;
   const startYAxisAtZero = formData.start_y_axis_at_zero;
   const formatValue = d3FormatPreset(formData.y_axis_format);
   const bigNumber = supportTrendline ? data[data.length - 1][1] : data[0][0];
+  const userColor = color.rgb(r, g, b).hex();
 
   let percentChange = 0;
   let formattedSubheader = subheader;
@@ -271,7 +274,7 @@ function adaptor(slice, payload) {
       showTrendline={showTrendline}
       startYAxisAtZero={startYAxisAtZero}
       trendlineData={trendlineData}
-      mainColor={brandColor}
+      mainColor={userColor}
       gradientId={`big_number_${containerId}`}
       renderTooltip={renderTooltipFactory(formatValue)}
     />,

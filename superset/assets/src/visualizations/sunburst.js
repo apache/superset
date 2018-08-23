@@ -3,7 +3,7 @@ import d3 from 'd3';
 import { getColorFromScheme } from '../modules/colors';
 import { wrapSvgText } from '../modules/utils';
 
-require('./sunburst.css');
+import './sunburst.css';
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
 function sunburstVis(slice, payload) {
@@ -250,7 +250,7 @@ function sunburstVis(slice, payload) {
       let currentNode = root;
       for (let level = 0; level < levels.length; level++) {
         const children = currentNode.children || [];
-        const nodeName = levels[level];
+        const nodeName = levels[level].toString();
         // If the next node has the name '0', it will
         const isLeafNode = (level >= levels.length - 1) || levels[level + 1] === 0;
         let childNode;
