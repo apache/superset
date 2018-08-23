@@ -282,8 +282,9 @@ function adaptor(slice, payload) {
     pageLength,
     percentMetrics,
     // Aug 22, 2018
-    // Perhaps this field can be removed as there is
+    // Perhaps this `tableFilter` field can be removed as there is
     // no code left in repo to set tableFilter to true.
+    // which make `onAddFilter` will never be called as well.
     tableFilter,
     tableTimestampFormat,
     timeseriesLimitMetric,
