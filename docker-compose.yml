@@ -19,7 +19,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
   superset:
-    image: apache/incubator-superset
+    image: guavus-superset
     restart: always
     environment:
       POSTGRES_DB: superset

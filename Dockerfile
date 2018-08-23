@@ -5,7 +5,7 @@ MAINTAINER Arpit Agarwal <arpit.agarwal@guavus.com>
 # Configure environment
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    HOME=/home/workexit
+    HOME=/home/work
 
 RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
     libffi-dev python3-dev libsasl2-dev libldap2-dev \
