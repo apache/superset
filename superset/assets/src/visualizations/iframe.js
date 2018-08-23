@@ -1,12 +1,20 @@
-const $ = require('jquery');
+import Mustache from 'mustache';
 
-function iframeWidget(slice) {
-  $('#code').attr('rows', '15');
-  const url = slice.render_template(slice.formData.url);
-  slice.container.html('<iframe style="width:100%;"></iframe>');
-  const iframe = slice.container.find('iframe');
-  iframe.css('height', slice.height());
-  iframe.attr('src', url);
+export default function iframeWidget(slice) {
+  const { selector, formData } = slice;
+  const { url } = formData;
+  const width = slice.width();
+  const height = slice.height();
+  const container = document.querySelector(selector);
+
+  const completedUrl = Mustache.render(url, {
+    width,
+    height,
+  });
+
+  const iframe = document.createElement('iframe');
+  iframe.style.width = '100%';
+  iframe.style.height = height;
+  iframe.setAttribute('src', completedUrl);
+  container.appendChild(iframe);
 }
-
-module.exports = iframeWidget;
