@@ -21,6 +21,8 @@ const propTypes = {
   filters: PropTypes.object,
   includeSearch: PropTypes.bool,
   metrics: PropTypes.arrayOf(PropTypes.string),
+  onAddFilter: PropTypes.func,
+  onRemoveFilter: PropTypes.func,
   orderDesc: PropTypes.bool,
   pageLength: PropTypes.oneOfType([
     PropTypes.number,
@@ -37,6 +39,7 @@ const propTypes = {
 };
 
 const fC = d3.format('0,000');
+function NOOP() {}
 
 function TableVis(element, props) {
   PropTypes.checkPropTypes(propTypes, props, 'prop', 'TableVis');
@@ -50,6 +53,8 @@ function TableVis(element, props) {
     filters,
     includeSearch,
     metrics: rawMetrics,
+    onAddFilter = NOOP,
+    onRemoveFilter = NOOP,
     orderDesc,
     pageLength,
     percentMetrics,
@@ -194,11 +199,11 @@ function TableVis(element, props) {
       if (!d.isMetric && tableFilter) {
         const td = d3.select(this);
         if (td.classed('filtered')) {
-          slice.removeFilter(d.col, [d.val]);
+          onRemoveFilter(d.col, [d.val]);
           d3.select(this).classed('filtered', false);
         } else {
           d3.select(this).classed('filtered', true);
-          slice.addFilter(d.col, [d.val]);
+          onAddFilter(d.col, [d.val]);
         }
       }
     })
@@ -263,8 +268,6 @@ function adaptor(slice, payload) {
   } = datasource;
   const element = document.querySelector(selector);
 
-  console.log('tableFilter', tableFilter);
-
   return TableVis(element, {
     data: payload.data,
     height: slice.height(),
@@ -274,9 +277,13 @@ function adaptor(slice, payload) {
     filters: slice.getFilters(),
     includeSearch,
     metrics,
+    onAddFilter(...args) { slice.addFilter(...args); },
     orderDesc,
     pageLength,
     percentMetrics,
+    // Aug 22, 2018
+    // Perhaps this field can be removed as there is
+    // no code left in repo to set tableFilter to true.
     tableFilter,
     tableTimestampFormat,
     timeseriesLimitMetric,
