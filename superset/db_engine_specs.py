@@ -463,10 +463,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def mutate_column_label(label):
         return label.upper()
 
-    @staticmethod
-    def mutate_expression_label(label):
-        return label.upper()
-
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -478,10 +474,6 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
 
     @staticmethod
     def mutate_column_label(label):
-        return label.upper()
-
-    @staticmethod
-    def mutate_expression_label(label):
         return label.upper()
 
 
@@ -510,10 +502,6 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
 
     @staticmethod
     def mutate_column_label(label):
-        return label.upper()
-
-    @staticmethod
-    def mutate_expression_label(label):
         return label.upper()
 
 

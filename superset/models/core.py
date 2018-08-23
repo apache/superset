@@ -795,8 +795,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
                 if cursor.description is not None:
-                    columns = [self.db_engine_spec.mutate_column_label(col_desc[0])
-                               for col_desc in cursor.description]
+                    columns = [col_desc[0] for col_desc in cursor.description]
                 else:
                     columns = []
 

@@ -853,7 +853,8 @@ class SqlaTable(Model, BaseDatasource):
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         for metric in metrics:
-            metric.metric_name = db_engine_spec.mutate_column_label(metric.metric_name)
+            metric.metric_name = db_engine_spec.mutate_expression_label(
+                metric.metric_name)
         self.add_missing_metrics(metrics)
         db.session.merge(self)
         db.session.commit()
