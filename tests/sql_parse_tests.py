@@ -330,3 +330,11 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {'my_l_table', 'my_b_table', 'my_t_table', 'inner_table'},
             self.extract_tables(query))
+
+    def test_complex_extract_tables2(self):
+        query = """SELECT *
+            FROM table_a AS a, table_b AS b, table_c as c
+            WHERE a.id = b.id and b.id = c.id"""
+        self.assertEquals(
+            {'table_a', 'table_b', 'table_c'},
+            self.extract_tables(query))
