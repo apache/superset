@@ -1459,10 +1459,10 @@ export const controls = {
 
   table_filter: {
     type: 'CheckboxControl',
-    label: t('Table Filter'),
+    label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to apply filter when table cell is clicked'),
+    description: t('Whether to apply filter when items are clicked'),
   },
 
   align_pn: {
@@ -1770,7 +1770,9 @@ export const controls = {
     type: 'SliderControl',
     label: t('Opacity'),
     default: 80,
-    isInt: true,
+    step: 1,
+    min: 0,
+    max: 100,
     renderTrigger: true,
     description: t('Opacity, expects values between 1 and 100'),
   },

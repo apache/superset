@@ -605,6 +605,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -727,6 +735,7 @@ export const visTypes = {
           ['extruded', null],
           ['line_width', null],
           ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
         ],
       },
       {
@@ -742,6 +751,12 @@ export const visTypes = {
     controlOverrides: {
       metric: {
         validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
       },
     },
   },

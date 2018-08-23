@@ -2342,13 +2342,15 @@ class DeckPathViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         fd = self.form_data
-        deser = self.deser_map[fd.get('line_type')]
+        line_type = fd.get('line_type')
+        deser = self.deser_map[line_type]
         line_column = fd.get('line_column')
         path = deser(d[line_column])
         if fd.get('reverse_long_lat'):
             path = [(o[1], o[0]) for o in path]
         d[self.deck_viz_key] = path
-        del d[line_column]
+        if line_type != 'geohash':
+            del d[line_column]
         return d
 
 
