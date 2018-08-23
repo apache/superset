@@ -18,6 +18,7 @@ const propTypes = {
   alignPn: PropTypes.bool,
   colorPn: PropTypes.bool,
   columnFormats: PropTypes.object,
+  filters: PropTypes.object,
   includeSearch: PropTypes.bool,
   metrics: PropTypes.arrayOf(PropTypes.string),
   orderDesc: PropTypes.bool,
@@ -45,6 +46,8 @@ function TableVis(element, props) {
     height,
     alignPn,
     colorPn,
+    columnFormats,
+    filters,
     includeSearch,
     metrics: rawMetrics,
     orderDesc,
@@ -115,7 +118,6 @@ function TableVis(element, props) {
       return d;
     });
 
-  const filters = slice.getFilters();
   table.append('tbody')
     .selectAll('tr')
     .data(records)
@@ -134,9 +136,8 @@ function TableVis(element, props) {
       }
       if (isMetric) {
         const format = (columnFormats && columnFormats[c]) || '0.3s';
-        html = format(val);
-      }
-      if (c[0] === '%') {
+        html = d3.format(format)(val);
+      } else if (c[0] === '%') {
         html = d3.format('.3p')(val);
       }
       return {
@@ -264,14 +265,13 @@ function adaptor(slice, payload) {
   } = datasource;
   const element = document.querySelector(selector);
 
-  console.log('slice.getFilters', slice.getFilters());
-
   return TableVis(element, {
     data: payload.data,
     height: slice.height(),
     alignPn,
     colorPn,
     columnFormats,
+    filters: slice.getFilters(),
     includeSearch,
     metrics,
     orderDesc,
