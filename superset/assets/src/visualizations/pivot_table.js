@@ -35,7 +35,7 @@ module.exports = function (slice, payload) {
       const tdText = $(this)[0].textContent;
       if (!isNaN(tdText) && tdText !== '') {
         $(this)[0].textContent = d3format(format, tdText);
-        $(this).attr('data-sort', tdText );
+        $(this).attr('data-sort', tdText);
       }
     });
   });
