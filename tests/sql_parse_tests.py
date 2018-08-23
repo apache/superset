@@ -310,3 +310,31 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(True, sql.is_explain())
         self.assertEquals(False, sql.is_select())
         self.assertEquals(True, sql.is_readonly())
+
+    def test_complex_extract_tables(self):
+        query = """SELECT sum(m_examples) AS "sum__m_example"
+            FROM
+              (SELECT COUNT(DISTINCT id_userid) AS m_examples,
+                      some_more_info
+               FROM my_b_table b
+               JOIN my_t_table t ON b.ds=t.ds
+               JOIN my_l_table l ON b.uid=l.uid
+               WHERE b.rid IN
+                   (SELECT other_col
+                    FROM inner_table)
+                 AND l.bla IN ('x', 'y')
+               GROUP BY 2
+               ORDER BY 2 ASC) AS "meh"
+            ORDER BY "sum__m_example" DESC
+            LIMIT 10;"""
+        self.assertEquals(
+            {'my_l_table', 'my_b_table', 'my_t_table', 'inner_table'},
+            self.extract_tables(query))
+
+    def test_complex_extract_tables2(self):
+        query = """SELECT *
+            FROM table_a AS a, table_b AS b, table_c as c
+            WHERE a.id = b.id and b.id = c.id"""
+        self.assertEquals(
+            {'table_a', 'table_b', 'table_c'},
+            self.extract_tables(query))
