@@ -26,7 +26,7 @@ const defaultProps = {
   className: '',
   width: 800,
   seriesHeight: 20,
-  bands: DEFAULT_COLORS.length >> 1,
+  bands: Math.floor(DEFAULT_COLORS.length / 2),
   colors: DEFAULT_COLORS,
   colorScale: 'series',
   mode: 'offset',
