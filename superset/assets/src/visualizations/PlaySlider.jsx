@@ -21,6 +21,7 @@ const propTypes = {
   orientation: PropTypes.oneOf(['horizontal', 'vertical']),
   reversed: PropTypes.bool,
   disabled: PropTypes.bool,
+  range: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -30,6 +31,7 @@ const defaultProps = {
   orientation: 'horizontal',
   reversed: false,
   disabled: false,
+  range: true,
 };
 
 export default class PlaySlider extends React.PureComponent {
@@ -84,15 +86,17 @@ export default class PlaySlider extends React.PureComponent {
     this.setState({ intervalId: null });
   }
   step() {
-    if (this.props.disabled) {
+    const { start, end, step, values, disabled } = this.props;
+
+    if (disabled) {
       return;
     }
-    let values = this.props.values.map(value => value + this.increment);
-    if (values[1] > this.props.end) {
-      const cr = values[0] - this.props.start;
-      values = values.map(value => value - cr);
-    }
-    this.props.onChange(values);
+
+    const currentValues = Array.isArray(values) ? values : [values, values + step];
+    const nextValues = currentValues.map(value => value + this.increment);
+    const carriageReturn = (nextValues[1] > end) ? (nextValues[0] - start) : 0;
+
+    this.props.onChange(nextValues.map(value => value - carriageReturn));
   }
   formatter(values) {
     if (this.props.disabled) {
@@ -108,6 +112,7 @@ export default class PlaySlider extends React.PureComponent {
     return parts.map(value => (new Date(value)).toUTCString()).join(' : ');
   }
   render() {
+    const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
     return (
       <Row className="play-slider">
         <Col md={1} className="padded">
@@ -116,15 +121,16 @@ export default class PlaySlider extends React.PureComponent {
         </Col>
         <Col md={11} className="padded">
           <ReactBootstrapSlider
-            value={this.props.values}
+            value={range ? values : values[0]}
+            range={range}
             formatter={this.formatter}
             change={this.onChange}
-            min={this.props.start}
-            max={this.props.end}
-            step={this.props.step}
-            orientation={this.props.orientation}
-            reversed={this.props.reversed}
-            disabled={this.props.disabled ? 'disabled' : 'enabled'}
+            min={start}
+            max={end}
+            step={step}
+            orientation={orientation}
+            reversed={reversed}
+            disabled={disabled ? 'disabled' : 'enabled'}
           />
         </Col>
       </Row>
