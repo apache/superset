@@ -114,9 +114,7 @@ function TableVis(element, props) {
     .data(cols)
     .enter()
     .append('th')
-    .text(function (d) {
-      return d;
-    });
+    .text(d => d);
 
   table.append('tbody')
     .selectAll('tr')
@@ -178,7 +176,7 @@ function TableVis(element, props) {
     })
     .classed('text-right', d => d.isMetric)
     .attr('title', (d) => {
-      if (!isNaN(d.val)) {
+      if (!Number.isNaN(d.val)) {
         return fC(d.val);
       }
       return null;
@@ -264,6 +262,8 @@ function adaptor(slice, payload) {
     column_formats: columnFormats,
   } = datasource;
   const element = document.querySelector(selector);
+
+  console.log('tableFilter', tableFilter);
 
   return TableVis(element, {
     data: payload.data,

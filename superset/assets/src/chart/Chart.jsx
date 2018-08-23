@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { Tooltip } from 'react-bootstrap';
 
-import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
