@@ -22,7 +22,6 @@
 
 .partition g text {
   font-weight: bold;
-  /* pointer-events: none; */
   fill: rgba(0, 0, 0, 0.8);
 }
 
