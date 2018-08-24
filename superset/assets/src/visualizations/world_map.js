@@ -4,7 +4,14 @@ import Datamap from 'datamaps';
 import './world_map.css';
 
 const propTypes = {
-  data: PropTypes.array,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    country: PropTypes.string,
+    latitude: PropTypes.number,
+    longitude: PropTypes.number,
+    name: PropTypes.string,
+    m1: PropTypes.number,
+    m2: PropTypes.number,
+  })),
   height: PropTypes.number,
   maxBubbleSize: PropTypes.number,
   showBubbles: PropTypes.bool,
