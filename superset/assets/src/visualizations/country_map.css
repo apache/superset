@@ -20,15 +20,20 @@
   pointer-events: none;
 }
 
-.country_map text {
-  font-weight: 300;
+.country_map .text-layer {
   color: #333333;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.country_map text.result-text {
+  font-weight: 300;
+  font-size: 30px;
 }
 
 .country_map text.big-text {
-  font-size: 30px;
   font-weight: 400;
-  color: #333333;
+  font-size: 16px;
 }
 
 .country_map path.region {

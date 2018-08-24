@@ -28,9 +28,6 @@ function CountryMap(element, props) {
   } = props;
 
   let path;
-  let g;
-  let bigText;
-  let resultText;
 
   const container = element;
   const format = d3.format(numberFormat);
@@ -44,44 +41,45 @@ function CountryMap(element, props) {
   path = d3.geo.path();
   const div = d3.select(container);
   div.selectAll('*').remove();
+  container.style.height = `${height}px`;
+  container.style.width = `${width}px`;
   const svg = div.append('svg:svg')
     .attr('width', width)
     .attr('height', height)
     .attr('preserveAspectRatio', 'xMidYMid meet');
-  container.style.height = `${height}px`;
-  container.style.width = `${width}px`;
+  const backgroundRect = svg.append('rect')
+    .attr('class', 'background')
+    .attr('width', width)
+    .attr('height', height);
+  const g = svg.append('g');
+  const mapLayer = g.append('g')
+    .classed('map-layer', true);
+  const textLayer = g.append('g')
+    .classed('text-layer', true)
+    .attr('transform', `translate(${width / 2}, 45)`);
+  const bigText = textLayer.append('text')
+    .classed('big-text', true);
+  const resultText = textLayer.append('text')
+    .classed('result-text', true)
+    .attr('dy', '1em');
 
   let centered;
 
   const clicked = function (d) {
+    const hasCenter = d && centered !== d;
     let x;
     let y;
     let k;
-    let bigTextX;
-    let bigTextY;
-    let bigTextSize;
-    let resultTextX;
-    let resultTextY;
 
-    if (d && centered !== d) {
+    if (hasCenter) {
       const centroid = path.centroid(d);
       x = centroid[0];
       y = centroid[1];
-      bigTextX = centroid[0];
-      bigTextY = centroid[1] - 40;
-      resultTextX = centroid[0];
-      resultTextY = centroid[1] - 40;
-      bigTextSize = '6px';
       k = 4;
       centered = d;
     } else {
       x = width / 2;
       y = height / 2;
-      bigTextX = 0;
-      bigTextY = 0;
-      resultTextX = 0;
-      resultTextY = 0;
-      bigTextSize = '30px';
       k = 1;
       centered = null;
     }
@@ -89,14 +87,21 @@ function CountryMap(element, props) {
     g.transition()
       .duration(750)
       .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')scale(' + k + ')translate(' + -x + ',' + -y + ')');
+    textLayer
+        .style('opacity', 0)
+        .attr('transform', `translate(0,0)translate(${x},${hasCenter ? (y - 5) : 45})`)
+      .transition()
+        .duration(750)
+        .style('opacity', 1);
     bigText.transition()
       .duration(750)
-      .attr('transform', 'translate(0,0)translate(' + bigTextX + ',' + bigTextY + ')')
-      .style('font-size', bigTextSize);
+      .style('font-size', hasCenter ? 6 : 16);
     resultText.transition()
       .duration(750)
-      .attr('transform', 'translate(0,0)translate(' + resultTextX + ',' + resultTextY + ')');
+      .style('font-size', hasCenter ? 16 : 30);
   };
+
+  backgroundRect.on('click', clicked);
 
   const selectAndDisplayNameOfRegion = function (feature) {
     let name = '';
@@ -133,24 +138,6 @@ function CountryMap(element, props) {
     bigText.text('');
     resultText.text('');
   };
-
-  svg.append('rect')
-    .attr('class', 'background')
-    .attr('width', width)
-    .attr('height', height)
-    .on('click', clicked);
-
-  g = svg.append('g');
-  const mapLayer = g.append('g')
-    .classed('map-layer', true);
-  bigText = g.append('text')
-    .classed('big-text', true)
-    .attr('x', 20)
-    .attr('y', 45);
-  resultText = g.append('text')
-    .classed('result-text', true)
-    .attr('x', 20)
-    .attr('y', 60);
 
   const url = `/static/assets/src/visualizations/countries/${country.toLowerCase()}.geojson`;
   d3.json(url, function (error, mapData) {
