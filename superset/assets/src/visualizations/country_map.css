@@ -28,7 +28,7 @@
 
 .country_map text.result-text {
   font-weight: 300;
-  font-size: 30px;
+  font-size: 24px;
 }
 
 .country_map text.big-text {
@@ -38,4 +38,5 @@
 
 .country_map path.region {
   cursor: pointer;
+  stroke: #eee;
 }

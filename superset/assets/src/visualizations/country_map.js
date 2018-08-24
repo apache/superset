@@ -98,7 +98,7 @@ function CountryMap(element, props) {
       .style('font-size', hasCenter ? 6 : 16);
     resultText.transition()
       .duration(750)
-      .style('font-size', hasCenter ? 16 : 30);
+      .style('font-size', hasCenter ? 16 : 24);
   };
 
   backgroundRect.on('click', clicked);
