@@ -188,7 +188,6 @@ function CountryMap(element, props) {
       .on('mouseout', mouseout)
       .on('click', clicked);
   });
-  // container.show();
 }
 
 CountryMap.propTypes = propTypes;
