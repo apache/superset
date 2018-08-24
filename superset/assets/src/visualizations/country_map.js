@@ -12,8 +12,11 @@ const propTypes = {
   height: PropTypes.number,
   country: PropTypes.string,
   linearColorScheme: PropTypes.string,
+  mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
 };
+
+const maps = {};
 
 function CountryMap(element, props) {
   PropTypes.checkPropTypes(propTypes, props, 'prop', 'CountryMap');
@@ -24,6 +27,7 @@ function CountryMap(element, props) {
     height,
     country,
     linearColorScheme,
+    mapBaseUrl = '/static/assets/src/visualizations/countries',
     numberFormat,
   } = props;
 
@@ -139,29 +143,29 @@ function CountryMap(element, props) {
     resultText.text('');
   };
 
-  const url = `/static/assets/src/visualizations/countries/${country.toLowerCase()}.geojson`;
-  d3.json(url, function (error, mapData) {
+  function drawMap(mapData) {
     const features = mapData.features;
     const center = d3.geo.centroid(mapData);
-    let scale = 150;
-    let offset = [width / 2, height / 2];
-    let projection = d3.geo.mercator().scale(scale).center(center)
-      .translate(offset);
-
+    const scale = 100;
+    const projection = d3.geo.mercator()
+      .scale(scale)
+      .center(center)
+      .translate([width / 2, height / 2]);
     path = path.projection(projection);
 
+    // Compute scale that fits container.
     const bounds = path.bounds(mapData);
     const hscale = scale * width / (bounds[1][0] - bounds[0][0]);
     const vscale = scale * height / (bounds[1][1] - bounds[0][1]);
-    scale = (hscale < vscale) ? hscale : vscale;
-    const offsetWidth = width - (bounds[0][0] + bounds[1][0]) / 2;
-    const offsetHeigth = height - (bounds[0][1] + bounds[1][1]) / 2;
-    offset = [offsetWidth, offsetHeigth];
-    projection = d3.geo.mercator()
-      .center(center)
-      .scale(scale)
-      .translate(offset);
-    path = path.projection(projection);
+    const newScale = (hscale < vscale) ? hscale : vscale;
+
+    // Compute bounds and offset using the updated scale.
+    projection.scale(newScale);
+    const newBounds = path.bounds(mapData);
+    projection.translate([
+      width - (newBounds[0][0] + newBounds[1][0]) / 2,
+      height - (newBounds[0][1] + newBounds[1][1]) / 2,
+    ]);
 
     // Draw each province as a path
     mapLayer.selectAll('path')
@@ -174,7 +178,22 @@ function CountryMap(element, props) {
       .on('mouseenter', mouseenter)
       .on('mouseout', mouseout)
       .on('click', clicked);
-  });
+  }
+
+  const countryKey = country.toLowerCase();
+  const map = maps[countryKey];
+  if (map) {
+    drawMap(map);
+  } else {
+    const url = `${mapBaseUrl}/${countryKey}.geojson`;
+    d3.json(url, function (error, mapData) {
+      if (!error) {
+        maps[countryKey] = mapData;
+        drawMap(mapData);
+      }
+    });
+  }
+
 }
 
 CountryMap.propTypes = propTypes;
