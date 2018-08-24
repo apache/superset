@@ -1,61 +1,115 @@
-/* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define */
+/* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
+import './treemap.css';
 
-require('./treemap.css');
+// Declare PropTypes for recursive data structures
+// https://github.com/facebook/react/issues/5676
+const lazyFunction = f => (() => f().apply(this, arguments));
+
+const leafType = PropTypes.shape({
+  name: PropTypes.string,
+  value: PropTypes.number.isRequired,
+});
+
+const parentShape = {
+  name: PropTypes.string,
+  children: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.shape(lazyFunction(() => parentShape)),
+    leafType,
+  ])),
+};
+
+const nodeType = PropTypes.oneOfType([
+  PropTypes.shape(parentShape),
+  leafType,
+]);
+
+const propTypes = {
+  data: PropTypes.arrayOf(nodeType),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+  margin: PropTypes.shape({
+    top: PropTypes.number,
+    right: PropTypes.number,
+    bottom: PropTypes.number,
+    left: PropTypes.number,
+  }),
+  numberFormat: PropTypes.string,
+  treemapRatio: PropTypes.number,
+};
+
+const DEFAULT_MARGIN = {
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};
 
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
-function treemap(slice, payload) {
-  const div = d3.select(slice.selector);
-  const _draw = function (data, eltWidth, eltHeight, formData) {
-    const margin = { top: 0, right: 0, bottom: 0, left: 0 };
+function treemap(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Treemap');
+
+  const {
+    data,
+    width,
+    height,
+    margin = DEFAULT_MARGIN,
+    numberFormat,
+    colorScheme,
+    treemapRatio,
+  } = props;
+  const div = d3.select(element);
+  const formatNumber = d3.format(numberFormat);
+
+  function draw(data, eltWidth, eltHeight) {
     const navBarHeight = 36;
     const navBarTitleSize = navBarHeight / 3;
     const navBarBuffer = 10;
     const width = eltWidth - margin.left - margin.right;
-    const height = (eltHeight - navBarHeight - navBarBuffer -
-                 margin.top - margin.bottom);
-    const formatNumber = d3.format(formData.number_format);
+    const height = (eltHeight - navBarHeight - navBarBuffer - margin.top - margin.bottom);
     let transitioning;
 
     const x = d3.scale.linear()
-        .domain([0, width])
-        .range([0, width]);
+      .domain([0, width])
+      .range([0, width]);
 
     const y = d3.scale.linear()
-        .domain([0, height])
-        .range([0, height]);
+      .domain([0, height])
+      .range([0, height]);
 
     const treemap = d3.layout.treemap()
-        .children(function (d, depth) { return depth ? null : d._children; })
-        .sort(function (a, b) { return a.value - b.value; })
-        .ratio(formData.treemap_ratio)
-        .mode('squarify')
-        .round(false);
+      .children((d, depth) => depth ? null : d.originalChildren)
+      .sort((a, b) => a.value - b.value)
+      .ratio(treemapRatio)
+      .mode('squarify')
+      .round(false);
 
     const svg = div.append('svg')
-        .attr('class', 'treemap')
-        .attr('width', eltWidth)
-        .attr('height', eltHeight);
+      .attr('class', 'treemap')
+      .attr('width', eltWidth)
+      .attr('height', eltHeight);
 
     const chartContainer = svg.append('g')
-        .attr('transform', 'translate(' + margin.left + ',' +
-                           (margin.top + navBarHeight + navBarBuffer) + ')')
-        .style('shape-rendering', 'crispEdges');
+      .attr('transform', 'translate(' + margin.left + ',' +
+        (margin.top + navBarHeight + navBarBuffer) + ')')
+      .style('shape-rendering', 'crispEdges');
 
     const grandparent = svg.append('g')
-        .attr('class', 'grandparent')
-        .attr('transform', 'translate(0,' + (margin.top + (navBarBuffer / 2)) + ')');
+      .attr('class', 'grandparent')
+      .attr('transform', 'translate(0,' + (margin.top + (navBarBuffer / 2)) + ')');
 
     grandparent.append('rect')
-        .attr('width', width)
-        .attr('height', navBarHeight);
+      .attr('width', width)
+      .attr('height', navBarHeight);
 
     grandparent.append('text')
-        .attr('x', width / 2)
-        .attr('y', (navBarHeight / 2) + (navBarTitleSize / 2))
-        .style('font-size', navBarTitleSize + 'px')
-        .style('text-anchor', 'middle');
+      .attr('x', width / 2)
+      .attr('y', (navBarHeight / 2) + (navBarTitleSize / 2))
+      .style('font-size', navBarTitleSize + 'px')
+      .style('text-anchor', 'middle');
 
     const initialize = function (root) {
       root.x = 0;
@@ -65,14 +119,51 @@ function treemap(slice, payload) {
       root.depth = 0;
     };
 
+    const text = function (selection) {
+      selection.selectAll('tspan')
+        .attr('x', d => x(d.x) + 6);
+      selection
+        .attr('x', d => x(d.x) + 6)
+        .attr('y', d => y(d.y) + 6)
+        .style('opacity', function (d) {
+          return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
+        });
+    };
+
+    const text2 = (selection) => {
+      selection
+        .attr('x', function (d) {
+          return x(d.x + d.dx) - this.getComputedTextLength() - 6;
+        })
+        .attr('y', d => y(d.y + d.dy) - 6)
+        .style('opacity', function (d) {
+          return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
+        });
+    };
+
+    const rect = (selection) => {
+      selection
+        .attr('x', d => x(d.x))
+        .attr('y', d => y(d.y))
+        .attr('width', d => x(d.x + d.dx) - x(d.x))
+        .attr('height', d => y(d.y + d.dy) - y(d.y));
+    };
+
+    const name = function (d) {
+      const value = formatNumber(d.value);
+      return d.parent ?
+        name(d.parent) + ' / ' + d.name + ' (' + value + ')' :
+        (d.name) + ' (' + value + ')';
+    };
+
     // Aggregate the values for internal nodes. This is normally done by the
     // treemap layout, but not here because of our custom implementation.
-    // We also take a snapshot of the original children (_children) to avoid
+    // We also take a snapshot of the original children (originalChildren) to avoid
     // the children being overwritten when when layout is computed.
     const accumulate = function (d) {
-      d._children = d.children;
-      if (d._children) {
-        d.value = d.children.reduce(function (p, v) { return p + accumulate(v); }, 0);
+      d.originalChildren = d.children;
+      if (d.originalChildren) {
+        d.value = d.children.reduce((p, v) => p + accumulate(v), 0);
       }
       return d.value;
     };
@@ -85,9 +176,11 @@ function treemap(slice, payload) {
     // of sibling was laid out in 1x1, we must rescale to fit using absolute
     // coordinates. This lets us use a viewport to zoom.
     const layout = function (d) {
-      if (d._children) {
-        treemap.nodes({ _children: d._children });
-        d._children.forEach(function (c) {
+      if (d.originalChildren) {
+        treemap.nodes({
+          originalChildren: d.originalChildren,
+        });
+        d.originalChildren.forEach(function (c) {
           c.x = d.x + (c.x * d.dx);
           c.y = d.y + (c.y * d.dy);
           c.dx *= d.dx;
@@ -99,8 +192,14 @@ function treemap(slice, payload) {
     };
 
     const display = function (d) {
+      const g1 = chartContainer.append('g')
+        .datum(d)
+        .attr('class', 'depth');
+
       const transition = function (d) {
-        if (transitioning || !d) { return; }
+        if (transitioning || !d) {
+          return;
+        }
         transitioning = true;
 
         const g2 = display(d);
@@ -115,7 +214,8 @@ function treemap(slice, payload) {
         chartContainer.style('shape-rendering', null);
 
         // Draw child nodes on top of parent nodes.
-        chartContainer.selectAll('.depth').sort(function (a, b) { return a.depth - b.depth; });
+        chartContainer.selectAll('.depth')
+          .sort((a, b) => a.depth - b.depth);
 
         // Fade-in entering text.
         g2.selectAll('text').style('fill-opacity', 0);
@@ -136,104 +236,87 @@ function treemap(slice, payload) {
       };
 
       grandparent
-          .datum(d.parent)
-          .on('click', transition)
+        .datum(d.parent)
+        .on('click', transition)
         .select('text')
-          .text(name(d));
-
-      const g1 = chartContainer.append('g')
-          .datum(d)
-          .attr('class', 'depth');
+        .text(name(d));
 
       const g = g1.selectAll('g')
-          .data(d._children)
+        .data(d.originalChildren)
         .enter()
         .append('g');
 
-      g.filter(function (d) { return d._children; })
-          .classed('children', true)
-          .on('click', transition);
+      g.filter(d => d.originalChildren)
+        .classed('children', true)
+        .on('click', transition);
 
       const children = g.selectAll('.child')
-          .data(function (d) { return d._children || [d]; })
+        .data(d => d.originalChildren || [d])
         .enter()
         .append('g');
 
       children.append('rect')
-          .attr('class', 'child')
-          .call(rect)
+        .attr('class', 'child')
+        .call(rect)
         .append('title')
-          .text(function (d) { return d.name + ' (' + formatNumber(d.value) + ')'; });
+        .text(d => d.name + ' (' + formatNumber(d.value) + ')');
 
       children.append('text')
-          .attr('class', 'ctext')
-          .text(function (d) { return d.name; })
-          .call(text2);
+        .attr('class', 'ctext')
+        .text(d => d.name)
+        .call(text2);
 
       g.append('rect')
-          .attr('class', 'parent')
-          .call(rect);
+        .attr('class', 'parent')
+        .call(rect);
 
       const t = g.append('text')
-          .attr('class', 'ptext')
-          .attr('dy', '.75em');
+        .attr('class', 'ptext')
+        .attr('dy', '.75em');
 
       t.append('tspan')
-          .text(function (d) { return d.name; });
+        .text(d => d.name);
+
       t.append('tspan')
-          .attr('dy', '1.0em')
-          .text(function (d) { return formatNumber(d.value); });
+        .attr('dy', '1.0em')
+        .text(d => formatNumber(d.value));
       t.call(text);
       g.selectAll('rect')
-          .style('fill', function (d) { return getColorFromScheme(d.name, formData.color_scheme); });
+        .style('fill', d => getColorFromScheme(d.name, colorScheme));
 
       return g;
-    };
-
-    const text = function (selection) {
-      selection.selectAll('tspan')
-          .attr('x', function (d) { return x(d.x) + 6; });
-      selection.attr('x', function (d) { return x(d.x) + 6; })
-          .attr('y', function (d) { return y(d.y) + 6; })
-          .style('opacity', function (d) {
-            return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
-          });
-    };
-
-    const text2 = function (selection) {
-      selection.attr('x', function (d) { return x(d.x + d.dx) - this.getComputedTextLength() - 6; })
-          .attr('y', function (d) { return y(d.y + d.dy) - 6; })
-          .style('opacity', function (d) {
-            return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0;
-          });
-    };
-
-    const rect = function (selection) {
-      selection.attr('x', function (d) { return x(d.x); })
-               .attr('y', function (d) { return y(d.y); })
-               .attr('width', function (d) { return x(d.x + d.dx) - x(d.x); })
-               .attr('height', function (d) { return y(d.y + d.dy) - y(d.y); });
-    };
-
-    const name = function (d) {
-      return d.parent
-          ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
-          : (slice.datasource.verbose_map[d.name] || d.name) + ' (' + formatNumber(d.value) + ')';
     };
 
     initialize(data);
     accumulate(data);
     layout(data);
     display(data);
-  };
-
+  }
 
   div.selectAll('*').remove();
-  const width = slice.width();
-  const height = slice.height() / payload.data.length;
-  for (let i = 0, l = payload.data.length; i < l; i += 1) {
-    _draw(payload.data[i], width, height, slice.formData);
-  }
+  const eachHeight = height / data.length;
+  data.forEach(d => draw(d, width, eachHeight));
 }
 
-module.exports = treemap;
+treemap.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    number_format: numberFormat,
+    color_scheme: colorScheme,
+    treemap_ratio: treemapRatio,
+  } = formData;
+  const element = document.querySelector(selector);
+
+  return treemap(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    numberFormat,
+    colorScheme,
+    treemapRatio,
+  });
+}
+
+export default adaptor;
