@@ -2340,7 +2340,7 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema)
         if rejected_tables:
             return json_error_response(security_manager.get_table_access_error_msg(
-                '{}'.format(rejected_tables)))
+                '{}'.format(rejected_tables)), status=403)
 
         return json_success(utils.zlib_decompress_to_string(blob))
 
@@ -2383,7 +2383,8 @@ class Superset(BaseSupersetView):
         if rejected_tables:
             return json_error_response(
                 security_manager.get_table_access_error_msg(rejected_tables),
-                link=security_manager.get_table_access_link(rejected_tables))
+                link=security_manager.get_table_access_link(rejected_tables),
+                status=403)
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
