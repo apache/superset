@@ -101,15 +101,9 @@ function Icicle(element, props) {
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
 
   div.selectAll('*').remove();
-  d3.selectAll('.nvtooltip').remove();
-  const tooltip = d3
-    .select('body')
+  const tooltip = div
     .append('div')
-    .attr('class', 'nvtooltip')
-    .style('opacity', 0)
-    .style('top', 0)
-    .style('left', 0)
-    .style('position', 'fixed');
+    .classed('partition-tooltip', true);
 
   function drawVis(i, dat) {
     const datum = dat[i];
@@ -243,7 +237,26 @@ function Icicle(element, props) {
 
     function positionAndPopulate(tip, d) {
       let t = '<table>';
-      if (!richTooltip) {
+      if (richTooltip) {
+        const nodes = getAncestors(d);
+        nodes.reverse().forEach((n) => {
+          const atNode = n.depth === d.depth;
+          t += '<tbody>';
+          t += (
+            `<tr class='${atNode ? 'emph' : ''}'>` +
+              `<td class='legend-color-guide' style='opacity: ${atNode ? '1' : '0.75'}'>` +
+                '<div ' +
+                  `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
+                    `background-color: ${n.color};'` +
+                '></div>' +
+              '</td>' +
+              `<td>${getCategory(n.depth)}</td>` +
+              `<td>${n.name}</td>` +
+              `<td>${n.disp}</td>` +
+            '</tr>'
+          );
+        });
+      } else {
         t += (
           '<thead><tr><td colspan="3">' +
             `<strong class='x-value'>${getCategory(d.depth)}</strong>` +
@@ -259,30 +272,12 @@ function Icicle(element, props) {
             `<td>${d.disp}</td>` +
           '</tr>'
         );
-      } else {
-        const nodes = getAncestors(d);
-        nodes.forEach((n) => {
-          const atNode = n.depth === d.depth;
-          t += '<tbody>';
-          t += (
-            `<tr class='${atNode ? 'emph' : ''}'>` +
-              `<td class='legend-color-guide' style='opacity: ${atNode ? '1' : '0.75'}'>` +
-                '<div ' +
-                  `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
-                    `background-color: ${n.color};'` +
-                '></div>' +
-              '</td>' +
-              `<td>${n.name}</td>` +
-              `<td>${n.disp}</td>` +
-              `<td>${getCategory(n.depth)}</td>` +
-            '</tr>'
-          );
-        });
       }
       t += '</tbody></table>';
+      const [tipX, tipY] = d3.mouse(element);
       tip.html(t)
-        .style('left', (d3.event.pageX + 13) + 'px')
-        .style('top', (d3.event.pageY - 10) + 'px');
+        .style('left', (tipX + 15) + 'px')
+        .style('top', (tipY) + 'px');
     }
 
     const nodes = init(root);
