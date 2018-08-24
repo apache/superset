@@ -1,5 +1,4 @@
 /* eslint no-param-reassign: [2, {"props": false}] */
-/* eslint no-use-before-define: ["error", { "functions": false }] */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
@@ -286,13 +285,22 @@ function Icicle(element, props) {
         .style('top', (d3.event.pageY - 10) + 'px');
     }
 
+    const nodes = init(root);
+
+    let kx = w / root.dx;
+    let ky = h / 1;
+
+    // Keep text centered in its division
+    function transform(d) {
+      return `translate(8,${d.dx * ky / 2})`;
+    }
+
     const g = viz
       .selectAll('g')
-      .data(init(root))
-      .enter()
+    .data(nodes)
+    .enter()
       .append('svg:g')
       .attr('transform', d => `translate(${x(d.y)},${y(d.x)})`)
-      .on('click', click)
       .on('mouseover', (d) => {
         tooltip
           .interrupt()
@@ -311,40 +319,6 @@ function Icicle(element, props) {
           .duration(250)
           .style('opacity', 0);
       });
-
-    let kx = w / root.dx;
-    let ky = h / 1;
-
-    g.append('svg:rect')
-      .attr('width', root.dy * kx)
-      .attr('height', d => d.dx * ky);
-
-    g.append('svg:text')
-      .attr('transform', transform)
-      .attr('dy', '0.35em')
-      .style('opacity', d => d.dx * ky > 12 ? 1 : 0)
-      .text((d) => {
-        if (!d.disp) {
-          return d.name;
-        }
-        return `${d.name}: ${d.disp}`;
-      });
-
-    // Apply color scheme
-    g.selectAll('rect')
-      .style('fill', (d) => {
-        d.color = getColorFromScheme(d.name, colorScheme);
-        return d.color;
-      });
-
-    // Zoom out when clicking outside vis
-    // d3.select(window)
-    // .on('click', () => click(root));
-
-    // Keep text centered in its division
-    function transform(d) {
-      return `translate(8,${d.dx * ky / 2})`;
-    }
 
     // When clicking a subdivision, the vis will zoom in to it
     function click(d) {
@@ -376,7 +350,36 @@ function Icicle(element, props) {
       d3.event.stopPropagation();
       return true;
     }
+
+    g.on('click', click);
+
+    g.append('svg:rect')
+      .attr('width', root.dy * kx)
+      .attr('height', d => d.dx * ky);
+
+    g.append('svg:text')
+      .attr('transform', transform)
+      .attr('dy', '0.35em')
+      .style('opacity', d => d.dx * ky > 12 ? 1 : 0)
+      .text((d) => {
+        if (!d.disp) {
+          return d.name;
+        }
+        return `${d.name}: ${d.disp}`;
+      });
+
+    // Apply color scheme
+    g.selectAll('rect')
+      .style('fill', (d) => {
+        d.color = getColorFromScheme(d.name, colorScheme);
+        return d.color;
+      });
+
+    // Zoom out when clicking outside vis
+    // d3.select(window)
+    // .on('click', () => click(root));
   }
+
   for (let i = 0; i < data.length; i++) {
     drawVis(i, data);
   }
@@ -401,9 +404,6 @@ function adaptor(slice, payload) {
   } = formData;
   const { verbose_map: verboseMap } = datasource;
   const element = document.querySelector(selector);
-
-  // console.log('payload.data', payload.data, formData);
-  // return;
 
   return Icicle(element, {
     data: payload.data,
