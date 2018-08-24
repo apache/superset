@@ -256,6 +256,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             bsSize="small"
             className="m-r-5"
             onClick={this.onSave}
+            autoFocus
           >
             Save
           </Button>
