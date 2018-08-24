@@ -456,6 +456,7 @@ export class DatasourceEditor extends React.PureComponent {
           </FormContainer>
         }
         collection={this.state.datasource.metrics}
+        allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
           metric_name: '<new metric>',
