@@ -1,17 +1,40 @@
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import nv from 'nvd3';
 import { getColorFromScheme } from '../modules/colors';
+import './histogram.css';
 
-require('./histogram.css');
+const propTypes = {
+  data: PropTypes.shape({
+    nodes: PropTypes.arrayOf(PropTypes.string),
+    matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
+  }),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+  normalized: PropTypes.bool,
+  numBins: PropTypes.number,
+  opacity: PropTypes.number,
+  xAxisLabel: PropTypes.string,
+  yAxisLabel: PropTypes.string,
+};
 
-function histogram(slice, payload) {
-  const data = payload.data;
-  const div = d3.select(slice.selector);
-  const numBins = Number(slice.formData.link_length) || 10;
-  const normalized = slice.formData.normalized;
-  const xAxisLabel = slice.formData.x_axis_label;
-  const yAxisLabel = slice.formData.y_axis_label;
-  const opacity = slice.formData.global_opacity;
+function Histogram(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Histogram');
+
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+    normalized,
+    numBins = 10,
+    opacity,
+    xAxisLabel,
+    yAxisLabel,
+  } = props;
+
+  const div = d3.select(element);
 
   const draw = function () {
     // Set Margins
@@ -23,8 +46,8 @@ function histogram(slice, payload) {
     };
     const navBarHeight = 36;
     const navBarBuffer = 10;
-    const width = slice.width() - margin.left - margin.right;
-    const height = slice.height() - margin.top - margin.bottom - navBarHeight - navBarBuffer;
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom - navBarHeight - navBarBuffer;
 
     // set number of ticks
     const maxTicks = 20;
@@ -46,13 +69,13 @@ function histogram(slice, payload) {
     const max = d3.max(data, d => d3.max(d.values));
     const min = d3.min(data, d => d3.min(d.values));
     x.domain([min, max])
-    .range([0, width], 0.1);
+    .range([0, innerWidth], 0.1);
 
     // Calculate bins for the data
     let bins = [];
     data.forEach((d) => {
       let b = d3.layout.histogram().bins(numBins)(d.values);
-      const color = getColorFromScheme(d.key, slice.formData.color_scheme);
+      const color = getColorFromScheme(d.key, colorScheme);
       const w = d3.max([(x(b[0].dx) - x(0)) - 1, 0]);
       const key = d.key;
       // normalize if necessary
@@ -65,7 +88,7 @@ function histogram(slice, payload) {
 
     // Set the y-values
     y.domain([0, d3.max(bins, d => d.y)])
-    .range([height, 0]);
+    .range([innerHeight, 0]);
 
     // Create the svg value with the bins
     const svg = div.selectAll('svg')
@@ -89,13 +112,13 @@ function histogram(slice, payload) {
     gEnter.append('g').attr('class', 'x axis');
 
     // Add width and height to the svg
-    svg.attr('width', slice.width())
-    .attr('height', slice.height());
+    svg.attr('width', width)
+    .attr('height', height);
 
     // make legend
     const legend = nv.models.legend()
-      .color(d => getColorFromScheme(d.key, slice.formData.color_scheme))
-      .width(width);
+      .color(d => getColorFromScheme(d.key, colorScheme))
+      .width(innerWidth);
     const gLegend = gEnter.append('g').attr('class', 'nv-legendWrap')
     .attr('transform', 'translate(0,' + (-margin.top) + ')')
     .datum(data.map(d => ({ ...d, disabled: false })));
@@ -128,7 +151,7 @@ function histogram(slice, payload) {
     // Update the x-axis
     svg.append('g')
     .attr('class', 'axis')
-    .attr('transform', 'translate(' + margin.left + ',' + (height + margin.top) + ')')
+    .attr('transform', 'translate(' + margin.left + ',' + (innerHeight + margin.top) + ')')
     .text('values')
     .call(xAxis);
 
@@ -154,8 +177,8 @@ function histogram(slice, payload) {
     if (xAxisLabel) {
       svg.append('text')
         .attr('transform',
-              'translate(' + ((width + margin.left) / 2) + ' ,' +
-                             (height + margin.top + 50) + ')')
+              'translate(' + ((innerWidth + margin.left) / 2) + ' ,' +
+                             (innerHeight + margin.top + 50) + ')')
         .style('text-anchor', 'middle')
         .text(xAxisLabel);
     }
@@ -163,7 +186,7 @@ function histogram(slice, payload) {
       svg.append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', '1em')
-        .attr('x', 0 - (height / 2))
+        .attr('x', 0 - (innerHeight / 2))
         .attr('dy', '1em')
         .style('text-anchor', 'middle')
         .text(yAxisLabel);
@@ -174,4 +197,31 @@ function histogram(slice, payload) {
   draw();
 }
 
-module.exports = histogram;
+Histogram.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    color_scheme: colorScheme,
+    link_length: numBins,
+    normalized,
+    global_opacity: opacity,
+    x_axis_label: xAxisLabel,
+    y_axis_label: yAxisLabel,
+  } = formData;
+  const element = document.querySelector(selector);
+
+  return Histogram(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+    normalized,
+    numBins: Number(numBins),
+    opacity,
+    xAxisLabel,
+    yAxisLabel,
+  });
+}
+
+export default adaptor;
