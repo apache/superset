@@ -433,6 +433,11 @@ export class DatasourceEditor extends React.PureComponent {
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
+        columnLabels={{
+          metric_name: t('Metric'),
+          verbose_name: t('Label'),
+          expression: t('SQL Expression'),
+        }}
         expandFieldset={
           <FormContainer>
             <Fieldset>
