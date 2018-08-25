@@ -38,6 +38,9 @@ whether as part of the official Superset docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
+To build the docs, simply run ``./build.sh`` from the ``docs/`` folder.
+The rendered docs are accessible at `http://localhost:{PORT}/static/assets/docs/faq.html`.
+
 ### Submit Feedback
 
 The best way to send feedback is to file an issue on GitHub.
