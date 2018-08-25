@@ -101,16 +101,24 @@ def upgrade():
 
             batch_op.drop_column('datasource_name')
 
-    # Drop the old more restrictive uniqueness constraint.
-    with op.batch_alter_table('datasources', naming_convention=conv) as batch_op:
-        batch_op.drop_constraint(
-            generic_find_uq_constraint_name(
-                'datasources',
-                {'datasource_name'},
-                insp,
-            ) or 'uq_datasources_datasource_name',
-            type_='unique',
-        )
+    try:
+        # Drop the old more restrictive uniqueness constraint.
+        with op.batch_alter_table('datasources', naming_convention=conv) as batch_op:
+            batch_op.drop_constraint(
+                generic_find_uq_constraint_name(
+                    'datasources',
+                    {'datasource_name'},
+                    insp,
+                ) or 'uq_datasources_datasource_name',
+                type_='unique',
+            )
+    except Exception as e:
+        logging.warning(
+            "Constraint drop failed, you may want to do this "
+            "manually on your database. For context, this is a known "
+            "issue around undeterministic contraint names on Postgres "
+            "and perhaps more databases through SQLAlchemy.")
+        logging.exception(e)
 
 
 def downgrade():
