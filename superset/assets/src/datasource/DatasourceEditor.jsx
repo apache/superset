@@ -329,7 +329,7 @@ export class DatasourceEditor extends React.PureComponent {
           control={<TextControl />}
         />
         <Field
-          fieldKey="filter_select"
+          fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
           descr={t('Whether to populate autocomplete filters options')}
           control={<CheckboxControl />}
