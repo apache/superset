@@ -101,8 +101,8 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
-    arraysize = None
     force_column_alias_quotes = False
+    arraysize = None
 
     @classmethod
     def get_time_grains(cls):
