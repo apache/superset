@@ -99,21 +99,22 @@ class TableColumn(Model, BaseColumn):
         s for s in export_fields if s not in ('table_id',)]
     export_parent = 'table'
 
-    @property
-    def sqla_col(self):
-        name = self.column_name
+    def sqla_col(self, db_engine_spec=None, label=None):
+        if db_engine_spec is None or label is None:
+            label = self.column_name
+        col_label = db_engine_spec.get_column_label(label)
         if not self.expression:
-            col = column(self.column_name).label(name)
+            col = column(self.column_name).label(col_label)
         else:
-            col = literal_column(self.expression).label(name)
+            col = literal_column(self.expression).label(col_label)
         return col
 
     @property
     def datasource(self):
         return self.table
 
-    def get_time_filter(self, start_dttm, end_dttm):
-        col = self.sqla_col.label('__time')
+    def get_time_filter(self, start_dttm, end_dttm, db_engine_spec):
+        col = self.sqla_col(db_engine_spec, '__time')
         l = []  # noqa: E741
         if start_dttm:
             l.append(col >= text(self.dttm_sql_literal(start_dttm)))
@@ -231,10 +232,14 @@ class SqlMetric(Model, BaseMetric):
         s for s in export_fields if s not in ('table_id', )])
     export_parent = 'table'
 
-    @property
-    def sqla_col(self):
-        name = self.metric_name
-        return literal_column(self.expression).label(name)
+    def sqla_col(self, db_engine_spec=None, label=None):
+        if label is None:
+            label = self.metric_name
+        if db_engine_spec:
+            col_label = db_engine_spec.get_column_label(label)
+        else:
+            col_label = self.metric_name
+        return literal_column(self.expression).label(col_label)
 
     @property
     def perm(self):
@@ -424,7 +429,7 @@ class SqlaTable(Model, BaseDatasource):
         db_engine_spec = self.database.db_engine_spec
 
         qry = (
-            select([target_col.sqla_col])
+            select([target_col.sqla_col(db_engine_spec)])
             .select_from(self.get_from_clause(tp, db_engine_spec))
             .distinct()
         )
@@ -437,7 +442,7 @@ class SqlaTable(Model, BaseDatasource):
 
         engine = self.database.get_sqla_engine()
         sql = '{}'.format(
-            qry.compile(engine, compile_kwargs={'literal_binds': True}),
+            qry.compile(postgresql.dialect, compile_kwargs={'literal_binds': True}),
         )
         sql = self.mutate_query_from_config(sql)
 
@@ -484,30 +489,37 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sa(self, metric, cols):
+    def adhoc_metric_to_sa(self, metric, cols, db_engine_spec=None):
         """
         Turn an adhoc metric into a sqlalchemy column.
 
         :param dict metric: Adhoc metric definition
         :param dict cols: Columns for the current table
+        :param BaseEngineSpec db_engine_spec: Db engine specs for
+        database specific handling of column labels
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
         expressionType = metric.get('expressionType')
+        if db_engine_spec and 'label' in metric:
+            label = db_engine_spec.get_column_label(metric['label'])
+        else:
+            label = metric.get('label')
+
         if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
             sa_column = column(column_name)
             table_column = cols.get(column_name)
 
             if table_column:
-                sa_column = table_column.sqla_col
+                sa_column = table_column.sqla_col(db_engine_spec)
 
             sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
-            sa_metric = sa_metric.label(metric.get('label'))
+            sa_metric = sa_metric.label(label)
             return sa_metric
         elif expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
             sa_metric = literal_column(metric.get('sqlExpression'))
-            sa_metric = sa_metric.label(metric.get('label'))
+            sa_metric = sa_metric.label(label)
             return sa_metric
         else:
             return None
@@ -566,15 +578,16 @@ class SqlaTable(Model, BaseDatasource):
         metrics_exprs = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
-                metrics_exprs.append(self.adhoc_metric_to_sa(m, cols))
+                metrics_exprs.append(self.adhoc_metric_to_sa(m, cols, db_engine_spec))
             elif m in metrics_dict:
-                metrics_exprs.append(metrics_dict.get(m).sqla_col)
+                metrics_exprs.append(metrics_dict.get(m).sqla_col(db_engine_spec))
             else:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr = literal_column('COUNT(*)').label('ccount')
+            main_metric_expr = literal_column('COUNT(*)').label(
+                db_engine_spec.get_column_label('count'))
 
         select_exprs = []
         groupby_exprs = []
@@ -585,8 +598,8 @@ class SqlaTable(Model, BaseDatasource):
             inner_groupby_exprs = []
             for s in groupby:
                 col = cols[s]
-                outer = col.sqla_col
-                inner = col.sqla_col.label(col.column_name + '__')
+                outer = col.sqla_col(db_engine_spec)
+                inner = col.sqla_col(db_engine_spec, col.column_name + '__')
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -594,7 +607,7 @@ class SqlaTable(Model, BaseDatasource):
                 inner_select_exprs.append(inner)
         elif columns:
             for s in columns:
-                select_exprs.append(cols[s].sqla_col)
+                select_exprs.append(cols[s].sqla_col(db_engine_spec))
             metrics_exprs = []
 
         if granularity:
@@ -612,8 +625,9 @@ class SqlaTable(Model, BaseDatasource):
                     self.main_dttm_col in self.dttm_cols and \
                     self.main_dttm_col != dttm_col.column_name:
                 time_filters.append(cols[self.main_dttm_col].
-                                    get_time_filter(from_dttm, to_dttm))
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+                                    get_time_filter(from_dttm, to_dttm, db_engine_spec))
+            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm,
+                                                         db_engine_spec))
 
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)

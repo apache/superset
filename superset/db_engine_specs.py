@@ -35,7 +35,7 @@ import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.sql import text
+from sqlalchemy.sql import text, quoted_name
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 from tableschema import Table
@@ -102,6 +102,7 @@ class BaseEngineSpec(object):
     inner_joins = True
     allows_subquery = True
     arraysize = None
+    force_column_alias_quotes = False
 
     @classmethod
     def get_time_grains(cls):
@@ -374,9 +375,11 @@ class BaseEngineSpec(object):
             cursor.arraysize = cls.arraysize
         cursor.execute(query)
 
-    @staticmethod
-    def mutate_column_label(label):
-        return label
+    @classmethod
+    def get_column_label(cls, label_name):
+        if cls.force_column_alias_quotes is True:
+            return quoted_name(label_name, True)
+        return label_name
 
     @staticmethod
     def mutate_expression_label(label):
@@ -430,6 +433,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
+    force_column_alias_quotes = True
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': "DATE_TRUNC('SECOND', {col})",
@@ -459,10 +464,6 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             uri.database = database + '/' + selected_schema
         return uri
 
-    @staticmethod
-    def mutate_column_label(label):
-        return label.upper()
-
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -470,17 +471,13 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    consistent_case_sensitivity = False
-
-    @staticmethod
-    def mutate_column_label(label):
-        return label.upper()
+    force_column_alias_quotes = True
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
-    consistent_case_sensitivity = False
+    force_column_alias_quotes = True
 
     time_grain_functions = {
         None: '{col}',
@@ -500,14 +497,11 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
-    @staticmethod
-    def mutate_column_label(label):
-        return label.upper()
-
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
+    force_column_alias_quotes = True
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as TIMESTAMP)'
