@@ -449,7 +449,7 @@ class SqlaTable(Model, BaseDatasource):
 
         engine = self.database.get_sqla_engine()
         sql = '{}'.format(
-            qry.compile(postgresql.dialect, compile_kwargs={'literal_binds': True}),
+            qry.compile(engine, compile_kwargs={'literal_binds': True}),
         )
         sql = self.mutate_query_from_config(sql)
 
@@ -502,7 +502,7 @@ class SqlaTable(Model, BaseDatasource):
 
         :param dict metric: Adhoc metric definition
         :param dict cols: Columns for the current table
-        :param BaseEngineSpec db_engine_spec: Db engine specs for
+        :param BaseEngineSpec db_engine_spec: Db engine spec for
         database specific handling of column labels
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
@@ -850,8 +850,7 @@ class SqlaTable(Model, BaseDatasource):
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(
-                    column_name=db_engine_spec.mutate_column_label(col.name),
-                    type=datatype,
+                    column_name=col.name, type=datatype,
                 )
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
@@ -862,7 +861,7 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.type = datatype
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
-                any_date_col = db_engine_spec.mutate_column_label(col.name)
+                any_date_col = col.name
             metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
