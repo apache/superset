@@ -659,9 +659,9 @@ class SqlaTable(Model, BaseDatasource):
                     target_column_is_numeric=col_obj.is_num,
                     is_list_target=is_list_target)
                 if op in ('in', 'not in'):
-                    cond = col_obj.sqla_col.in_(eq)
+                    cond = col_obj.sqla_col().in_(eq)
                     if '<NULL>' in eq:
-                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
+                        cond = or_(cond, col_obj.sqla_col() == None)  # noqa
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -669,23 +669,23 @@ class SqlaTable(Model, BaseDatasource):
                     if col_obj.is_num:
                         eq = utils.string_to_num(flt['val'])
                     if op == '==':
-                        where_clause_and.append(col_obj.sqla_col == eq)
+                        where_clause_and.append(col_obj.sqla_col() == eq)
                     elif op == '!=':
-                        where_clause_and.append(col_obj.sqla_col != eq)
+                        where_clause_and.append(col_obj.sqla_col() != eq)
                     elif op == '>':
-                        where_clause_and.append(col_obj.sqla_col > eq)
+                        where_clause_and.append(col_obj.sqla_col() > eq)
                     elif op == '<':
-                        where_clause_and.append(col_obj.sqla_col < eq)
+                        where_clause_and.append(col_obj.sqla_col() < eq)
                     elif op == '>=':
-                        where_clause_and.append(col_obj.sqla_col >= eq)
+                        where_clause_and.append(col_obj.sqla_col() >= eq)
                     elif op == '<=':
-                        where_clause_and.append(col_obj.sqla_col <= eq)
+                        where_clause_and.append(col_obj.sqla_col() <= eq)
                     elif op == 'LIKE':
-                        where_clause_and.append(col_obj.sqla_col.like(eq))
+                        where_clause_and.append(col_obj.sqla_col().like(eq))
                     elif op == 'IS NULL':
-                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
+                        where_clause_and.append(col_obj.sqla_col() == None)  # noqa
                     elif op == 'IS NOT NULL':
-                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
+                        where_clause_and.append(col_obj.sqla_col() != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:
@@ -738,7 +738,7 @@ class SqlaTable(Model, BaseDatasource):
                         timeseries_limit_metric = metrics_dict.get(
                             timeseries_limit_metric,
                         )
-                        ob = timeseries_limit_metric.sqla_col
+                        ob = timeseries_limit_metric.sqla_col()
                     else:
                         raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
@@ -783,7 +783,7 @@ class SqlaTable(Model, BaseDatasource):
             group = []
             for dimension in dimensions:
                 col_obj = cols.get(dimension)
-                group.append(col_obj.sqla_col == row[dimension])
+                group.append(col_obj.sqla_col() == row[dimension])
             groups.append(and_(*group))
 
         return or_(*groups)
