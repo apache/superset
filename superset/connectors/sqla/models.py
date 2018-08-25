@@ -100,9 +100,14 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def sqla_col(self, db_engine_spec=None, label=None):
-        if db_engine_spec is None or label is None:
+        if label is None:
             label = self.column_name
-        col_label = db_engine_spec.get_column_label(label)
+
+        if db_engine_spec:
+            col_label = db_engine_spec.get_column_label(label)
+        else:
+            col_label = label
+
         if not self.expression:
             col = column(self.column_name).label(col_label)
         else:
@@ -235,10 +240,12 @@ class SqlMetric(Model, BaseMetric):
     def sqla_col(self, db_engine_spec=None, label=None):
         if label is None:
             label = self.metric_name
+
         if db_engine_spec:
             col_label = db_engine_spec.get_column_label(label)
         else:
             col_label = self.metric_name
+
         return literal_column(self.expression).label(col_label)
 
     @property
