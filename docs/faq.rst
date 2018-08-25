@@ -114,8 +114,8 @@ never be affected by any dashboard level filtering.
         "filter_immune_slices": [324, 65, 92],
         "expanded_slices": {},
         "filter_immune_slice_fields": {
-            "177": ["country_name", "__from", "__to"],
-            "32": ["__from", "__to"]
+            "177": ["country_name", "__time_range"],
+            "32": ["__time_range"]
         },
         "timed_refresh_immune_slices": [324]
     }
@@ -127,8 +127,8 @@ Now note the ``filter_immune_slice_fields`` key. This one allows you to
 be more specific and define for a specific slice_id, which filter fields
 should be disregarded.
 
-Note the use of the ``__from`` and ``__to`` keywords, those are reserved
-for dealing with the time boundary filtering mentioned above.
+Note the use of the ``__time_range`` keyword, which is reserved for dealing
+with the time boundary filtering mentioned above.
 
 But what happens with filtering when dealing with slices coming from
 different tables or databases? If the column name is shared, the filter will
