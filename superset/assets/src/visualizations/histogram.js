@@ -40,7 +40,7 @@ function Histogram(element, props) {
     // Set Margins
     const margin = {
       top: 50,
-      right: 10,
+      right: 20,
       bottom: 20,
       left: yAxisLabel ? 70 : 50,
     };
@@ -57,19 +57,19 @@ function Histogram(element, props) {
     const x = d3.scale.linear();
     const y = d3.scale.linear();
     const xAxis = d3.svg.axis()
-    .scale(x)
-    .orient('bottom')
-    .ticks(numTicks, 's');
+      .scale(x)
+      .orient('bottom')
+      .ticks(numTicks, 's');
     const yAxis = d3.svg.axis()
-    .scale(y)
-    .orient('left')
-    .ticks(numTicks, 's');
+      .scale(y)
+      .orient('left')
+      .ticks(numTicks, 's');
 
     // Set the x-values
     const max = d3.max(data, d => d3.max(d.values));
     const min = d3.min(data, d => d3.min(d.values));
     x.domain([min, max])
-    .range([0, innerWidth], 0.1);
+      .range([0, innerWidth], 0.1);
 
     // Calculate bins for the data
     let bins = [];
@@ -88,24 +88,24 @@ function Histogram(element, props) {
 
     // Set the y-values
     y.domain([0, d3.max(bins, d => d.y)])
-    .range([innerHeight, 0]);
+      .range([innerHeight, 0]);
 
     // Create the svg value with the bins
     const svg = div.selectAll('svg')
-    .data([bins])
-    .enter()
-    .append('svg');
+      .data([bins])
+      .enter()
+      .append('svg');
 
     // Make a rectangular background fill
     svg.append('rect')
-    .attr('width', '100%')
-    .attr('height', '100%')
-    .attr('fill', '#f6f6f6');
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('fill', '#f6f6f6');
 
     // Transform the svg to make space for the margins
     const gEnter = svg
-    .append('g')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+      .append('g')
+      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
     // Add the bars and the x axis
     gEnter.append('g').attr('class', 'bars');
@@ -113,15 +113,16 @@ function Histogram(element, props) {
 
     // Add width and height to the svg
     svg.attr('width', width)
-    .attr('height', height);
+      .attr('height', height);
 
     // make legend
     const legend = nv.models.legend()
       .color(d => getColorFromScheme(d.key, colorScheme))
       .width(innerWidth);
-    const gLegend = gEnter.append('g').attr('class', 'nv-legendWrap')
-    .attr('transform', 'translate(0,' + (-margin.top) + ')')
-    .datum(data.map(d => ({ ...d, disabled: false })));
+    const gLegend = gEnter.append('g')
+      .attr('class', 'nv-legendWrap')
+      .attr('transform', 'translate(0,' + (-margin.top) + ')')
+      .datum(data.map(d => ({ ...d, disabled: false })));
 
     // function to draw bars and legends
     function update(selectedBins) {
@@ -150,20 +151,20 @@ function Histogram(element, props) {
 
     // Update the x-axis
     svg.append('g')
-    .attr('class', 'axis')
-    .attr('transform', 'translate(' + margin.left + ',' + (innerHeight + margin.top) + ')')
-    .text('values')
-    .call(xAxis);
+      .attr('class', 'axis')
+      .attr('transform', 'translate(' + margin.left + ',' + (innerHeight + margin.top) + ')')
+      .text('values')
+      .call(xAxis);
 
     // Update the Y Axis and add minor lines
     svg.append('g')
-    .attr('class', 'axis')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .text('count')
-    .call(yAxis)
-    .selectAll('g')
-    .filter(function (d) { return d; })
-    .classed('minor', true);
+      .attr('class', 'axis')
+      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+      .text('count')
+      .call(yAxis)
+      .selectAll('g')
+      .filter(function (d) { return d; })
+      .classed('minor', true);
 
     // set callback on legend toggle
     legend.dispatch.on('stateChange', function (newState) {
