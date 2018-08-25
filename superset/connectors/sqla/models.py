@@ -287,7 +287,7 @@ class SqlaTable(Model, BaseDatasource):
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params', 'template_params')
+        'sql', 'params', 'template_params', 'filter_select_enabled')
     update_from_object_fields = [
         f for f in export_fields if f not in ('table_name', 'database_id')]
     export_parent = 'database'
