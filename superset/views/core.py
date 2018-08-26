@@ -2191,6 +2191,7 @@ class Superset(BaseSupersetView):
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
+        mydb = db.session.query(models.Database).filter_by(id=table.database_id).first()
         cols = []
         for config in data.get('columns'):
             column_name = config.get('name')
