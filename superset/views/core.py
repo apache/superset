@@ -1431,7 +1431,7 @@ class Superset(BaseSupersetView):
 
     def save_slice(self, slc):
         session = db.session()
-        msg = 'Slice [{}] has been saved'.format(slc.slice_name)
+        msg = _('Chart [{}] has been saved').format(slc.slice_name)
         session.add(slc)
         session.commit()
         flash(msg, 'info')
@@ -1440,7 +1440,7 @@ class Superset(BaseSupersetView):
         session = db.session()
         session.merge(slc)
         session.commit()
-        msg = 'Slice [{}] has been overwritten'.format(slc.slice_name)
+        msg = _('Chart [{}] has been overwritten').format(slc.slice_name)
         flash(msg, 'info')
 
     @api
