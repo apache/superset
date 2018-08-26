@@ -487,7 +487,7 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sa(self, metric, cols, db_engine_spec=None):
+    def adhoc_metric_to_sa(self, metric, cols, db_engine_spec):
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -498,13 +498,10 @@ class SqlaTable(Model, BaseDatasource):
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
-        expressionType = metric.get('expressionType')
-        if db_engine_spec and 'label' in metric:
-            label = db_engine_spec.get_column_label(metric['label'])
-        else:
-            label = metric.get('label')
+        expression_type = metric.get('expressionType')
+        label = db_engine_spec.get_column_label(metric.get('label'))
 
-        if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
+        if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
             sa_column = column(column_name)
             table_column = cols.get(column_name)
@@ -515,7 +512,7 @@ class SqlaTable(Model, BaseDatasource):
             sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
             sa_metric = sa_metric.label(label)
             return sa_metric
-        elif expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
+        elif expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
             sa_metric = literal_column(metric.get('sqlExpression'))
             sa_metric = sa_metric.label(label)
             return sa_metric
