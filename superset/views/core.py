@@ -2191,7 +2191,6 @@ class Superset(BaseSupersetView):
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
-        mydb = db.session.query(models.Database).filter_by(id=table.database_id).first()
         cols = []
         for config in data.get('columns'):
             column_name = config.get('name')
@@ -2199,7 +2198,7 @@ class Superset(BaseSupersetView):
             TableColumn = SqlaTable.column_class
             SqlMetric = SqlaTable.metric_class
             col = TableColumn(
-                column_name=mydb.db_engine_spec.mutate_column_label(column_name),
+                column_name=column_name,
                 filterable=True,
                 groupby=True,
                 is_dttm=config.get('is_date', False),
@@ -2256,7 +2255,7 @@ class Superset(BaseSupersetView):
                 dtype = col['type'].__class__.__name__
                 pass
             payload_columns.append({
-                'name': mydb.db_engine_spec.mutate_column_label(col['name']),
+                'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
                 'keys': [
