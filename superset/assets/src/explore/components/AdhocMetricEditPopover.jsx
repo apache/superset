@@ -221,7 +221,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             </FormGroup>
             <FormGroup>
               <ControlLabel><strong>aggregate</strong></ControlLabel>
-              <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
+              <OnPasteSelect autoFocus {...this.selectProps} {...aggregateSelectProps} />
             </FormGroup>
           </Tab>
           <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
