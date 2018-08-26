@@ -34,6 +34,16 @@ from superset.utils import DTTM_ALIAS, QueryStatus
 config = app.config
 
 
+def get_column_label(db_engine_spec, name, label):
+    if label is None:
+        label = name
+
+    if db_engine_spec:
+        return db_engine_spec.get_column_label(label)
+
+    return label
+
+
 class AnnotationDatasource(BaseDatasource):
     """ Dummy object so we can query annotations using 'Viz' objects just like
         regular datasources.
@@ -100,14 +110,7 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def sqla_col(self, db_engine_spec=None, label=None):
-        if label is None:
-            label = self.column_name
-
-        if db_engine_spec:
-            col_label = db_engine_spec.get_column_label(label)
-        else:
-            col_label = label
-
+        col_label = get_column_label(db_engine_spec, self.column_name, label)
         if not self.expression:
             col = column(self.column_name).label(col_label)
         else:
@@ -238,14 +241,7 @@ class SqlMetric(Model, BaseMetric):
     export_parent = 'table'
 
     def sqla_col(self, db_engine_spec=None, label=None):
-        if label is None:
-            label = self.metric_name
-
-        if db_engine_spec:
-            col_label = db_engine_spec.get_column_label(label)
-        else:
-            col_label = self.metric_name
-
+        col_label = get_column_label(db_engine_spec, self.metric_name, label)
         return literal_column(self.expression).label(col_label)
 
     @property
