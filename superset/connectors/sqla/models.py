@@ -769,7 +769,7 @@ class SqlaTable(Model, BaseDatasource):
 
         return qry.select_from(tbl)
 
-    def _get_top_groups(self, df, dimensions, db_engine_spec=None):
+    def _get_top_groups(self, df, dimensions, db_engine_spec):
         cols = {col.column_name: col for col in self.columns}
         groups = []
         for unused, row in df.iterrows():
@@ -842,9 +842,7 @@ class SqlaTable(Model, BaseDatasource):
                 logging.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
-                dbcol = TableColumn(
-                    column_name=col.name, type=datatype,
-                )
+                dbcol = TableColumn(column_name=col.name, type=datatype)
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.is_num
