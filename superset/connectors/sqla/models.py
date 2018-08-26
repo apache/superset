@@ -34,14 +34,9 @@ from superset.utils import DTTM_ALIAS, QueryStatus
 config = app.config
 
 
-def get_column_label(db_engine_spec, name, label):
-    if label is None:
-        label = name
-
-    if db_engine_spec:
-        return db_engine_spec.get_column_label(label)
-
-    return label
+def get_column_label(db_engine_spec, column_name, label):
+    label = label if label is not None else column_name
+    return db_engine_spec.get_column_label(label)
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -109,7 +104,7 @@ class TableColumn(Model, BaseColumn):
         s for s in export_fields if s not in ('table_id',)]
     export_parent = 'table'
 
-    def sqla_col(self, db_engine_spec=None, label=None):
+    def sqla_col(self, db_engine_spec, label=None):
         col_label = get_column_label(db_engine_spec, self.column_name, label)
         if not self.expression:
             col = column(self.column_name).label(col_label)
@@ -121,7 +116,7 @@ class TableColumn(Model, BaseColumn):
     def datasource(self):
         return self.table
 
-    def get_time_filter(self, start_dttm, end_dttm, db_engine_spec):
+    def get_time_filter(self, db_engine_spec, start_dttm, end_dttm):
         col = self.sqla_col(db_engine_spec, '__time')
         l = []  # noqa: E741
         if start_dttm:
@@ -240,7 +235,7 @@ class SqlMetric(Model, BaseMetric):
         s for s in export_fields if s not in ('table_id', )])
     export_parent = 'table'
 
-    def sqla_col(self, db_engine_spec=None, label=None):
+    def sqla_col(self, db_engine_spec, label=None):
         col_label = get_column_label(db_engine_spec, self.metric_name, label)
         return literal_column(self.expression).label(col_label)
 
@@ -482,7 +477,7 @@ class SqlaTable(Model, BaseDatasource):
             tbl.schema = self.schema
         return tbl
 
-    def get_from_clause(self, template_processor=None, db_engine_spec=None):
+    def get_from_clause(self, template_processor=None):
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
             from_sql = self.sql
@@ -628,14 +623,14 @@ class SqlaTable(Model, BaseDatasource):
                     self.main_dttm_col in self.dttm_cols and \
                     self.main_dttm_col != dttm_col.column_name:
                 time_filters.append(cols[self.main_dttm_col].
-                                    get_time_filter(from_dttm, to_dttm, db_engine_spec))
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm,
-                                                         db_engine_spec))
+                                    get_time_filter(db_engine_spec, from_dttm, to_dttm))
+            time_filters.append(dttm_col.get_time_filter(db_engine_spec,
+                                                         from_dttm, to_dttm))
 
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
 
-        tbl = self.get_from_clause(template_processor, db_engine_spec)
+        tbl = self.get_from_clause(template_processor)
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
