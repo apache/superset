@@ -43,26 +43,6 @@ class BaseVizTestCase(SupersetTestCase):
             'metrics': [
                 'sum__SP_POP_TOTL',
                 'SUM(SE_PRM_NENR_MA)',
-                {
-                    'hasCustomLabel': False,
-                    'expressionType': 'SIMPLE',
-                    'fromFormData': True,
-                    'label': 'SUM(SH_DTH_IMRT)',
-                    'column': {
-                        'optionName': '_col_SH_DTH_IMRT',
-                        'description': None,
-                        'filterable': False,
-                        'expression': '',
-                        'is_dttm': False,
-                        'verbose_name': None,
-                        'type': 'FLOAT',
-                        'groupby': False,
-                        'column_name': 'SH_DTH_IMRT',
-                    },
-                    'sqlExpression': None,
-                    'aggregate': 'SUM',
-                    'optionName': 'metric_hww53ilkph_jo8b2fyt8rs',
-                },
                 'SUM(SP_URB_TOTL)',
             ],
             'country_fieldtype': 'cca3',
@@ -83,36 +63,16 @@ class BaseVizTestCase(SupersetTestCase):
             'where': '',
             'compare_suffix': 'o10Y',
         }
-        datasource = {'type': 'table'}
+        datasource = Mock()
+        datasource.type = 'table'
         test_viz = viz.BaseViz(datasource, form_data)
         expect_metric_labels = [u'sum__SP_POP_TOTL',
                                 u'SUM(SE_PRM_NENR_MA)',
-                                u'SUM(SH_DTH_IMRT)',
                                 u'SUM(SP_URB_TOTL)',
-                                u'count']
+                                u'count',
+                                ]
         self.assertEqual(test_viz.metric_labels, expect_metric_labels)
-        expect_all_metrics = [u'sum__SP_POP_TOTL',
-                              u'SUM(SE_PRM_NENR_MA)',
-                              {u'label': u'SUM(SH_DTH_IMRT)',
-                               u'column':
-                                   {u'filterable': False,
-                                    u'description': None,
-                                    u'type': u'FLOAT',
-                                    u'expression': u'',
-                                    u'optionName': u'_col_SH_DTH_IMRT',
-                                    u'is_dttm': False,
-                                    u'verbose_name': None,
-                                    u'column_name': u'SH_DTH_IMRT',
-                                    u'groupby': False},
-                               u'aggregate': u'SUM',
-                               u'fromFormData': True,
-                               u'hasCustomLabel': False,
-                               u'expressionType': u'SIMPLE',
-                               u'sqlExpression': None,
-                               u'optionName': u'metric_hww53ilkph_jo8b2fyt8rs'},
-                              u'SUM(SP_URB_TOTL)',
-                              u'count']
-        self.assertEqual(test_viz.all_metrics, expect_all_metrics)
+        self.assertEqual(test_viz.all_metrics, expect_metric_labels)
 
     def test_get_fillna_returns_default_on_null_columns(self):
         form_data = {
