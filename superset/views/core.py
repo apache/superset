@@ -2191,7 +2191,6 @@ class Superset(BaseSupersetView):
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
-        mydb = db.session.query(models.Database).filter_by(id=table.database_id).first()
         cols = []
         for config in data.get('columns'):
             column_name = config.get('name')
@@ -2209,8 +2208,7 @@ class Superset(BaseSupersetView):
 
         table.columns = cols
         table.metrics = [
-            SqlMetric(metric_name=mydb.db_engine_spec.mutate_expression_label('count'),
-                      expression='count(*)'),
+            SqlMetric(metric_name='count', expression='count(*)'),
         ]
         db.session.commit()
         return self.json_response(json.dumps({
