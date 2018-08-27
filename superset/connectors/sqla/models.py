@@ -113,7 +113,7 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(self, start_dttm, end_dttm):
-        col = self.get_sqla_col('__time')
+        col = self.get_sqla_col(label='__time')
         l = []  # noqa: E741
         if start_dttm:
             l.append(col >= text(self.dttm_sql_literal(start_dttm)))
@@ -498,19 +498,19 @@ class SqlaTable(Model, BaseDatasource):
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
-            sa_column = column(column_name)
+            sqla_column = column(column_name)
             table_column = cols.get(column_name)
 
             if table_column:
-                sa_column = table_column.get_sqla_col()
+                sqla_column = table_column.get_sqla_col()
 
-            sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
-            sa_metric = sa_metric.label(label)
-            return sa_metric
+            sqla_metric = self.sqla_aggregations[metric.get('aggregate')](sqla_column)
+            sqla_metric = sqla_metric.label(label)
+            return sqla_metric
         elif expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
-            sa_metric = literal_column(metric.get('sqlExpression'))
-            sa_metric = sa_metric.label(label)
-            return sa_metric
+            sqla_metric = literal_column(metric.get('sqlExpression'))
+            sqla_metric = sqla_metric.label(label)
+            return sqla_metric
         else:
             return None
 
