@@ -41,6 +41,7 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
 };
 
 const defaultProps = {

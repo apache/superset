@@ -77,6 +77,8 @@ const propTypes = {
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
+  setRefreshFrequency: PropTypes.func.isRequired,
 };
 
 class Header extends React.PureComponent {

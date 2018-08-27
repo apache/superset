@@ -41,6 +41,7 @@ const propTypes = {
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
+  setRefreshFrequency: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
@@ -165,9 +166,9 @@ class HeaderActionsDropdown extends React.PureComponent {
         </MenuItem>
         <RefreshIntervalModal
           refreshFrequency={refreshFrequency}
-          onChange={refreshFrequency => {
-            setRefreshFrequency(refreshFrequency);
-            startPeriodicRender(refreshFrequency * 1000)
+          onChange={refreshInterval => {
+            setRefreshFrequency(refreshInterval);
+            startPeriodicRender(refreshInterval * 1000);
           }}
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
