@@ -40,7 +40,8 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     description_columns = {
-        'annotation_metadata': 'This JSON represents any additional metadata this annotation needs to add more context.'
+        'annotation_metadata': 'This JSON represents any additional metadata this \
+         annotation needs to add more context.'
     }
 
     def pre_add(self, obj):
