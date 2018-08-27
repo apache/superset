@@ -2,33 +2,33 @@
   text-rendering: optimizeLegibility;
 }
 .sunburst path {
-  stroke: #333;
+  stroke: #ddd;
   stroke-width: 0.5px;
 }
 .sunburst .center-label {
   text-anchor: middle;
-  fill: #000;
+  fill: #333;
   pointer-events: none;
 }
 .sunburst .path-abs-percent {
-  font-size: 3.5em;
-  font-weight: 400;
+  font-size: 3em;
+  font-weight: 700;
 }
 .sunburst .path-cond-percent {
   font-size: 2em;
 }
 .sunburst .path-metrics {
-  font-size: 1.5em;
+  color: #777;
 }
 .sunburst .path-ratio {
-  font-size: 1.2em;
+  color: #777;
 }
 
 .sunburst .breadcrumbs text {
   font-weight: 600;
   font-size: 1.2em;
   text-anchor: middle;
-  fill: #000;
+  fill: #333;
 }
 
 /* dashboard specific */
@@ -36,10 +36,11 @@
   font-size: 1em;
 }
 .dashboard .sunburst .path-abs-percent {
-  font-size: 2.5em;
+  font-size: 2em;
+  font-weight: 700;
 }
 .dashboard .sunburst .path-cond-percent {
-  font-size: 1.75em;
+  font-size: 1.5em;
 }
 .dashboard .sunburst .path-metrics {
   font-size: 1em;
