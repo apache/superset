@@ -1,7 +1,9 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
 import _ from 'underscore';
-import * as color from 'd3-color';
+import * as color from 'd3-color';    // d3 color pkg https://github.com/d3/d3-color
+import geohash from 'latlon-geohash'; // latlng -> geohash lib https://github.com/chrisveness/latlon-geohash
+
 
 // Objects exposed here should be treated like a public API
 // if `underscore` had backwards incompatible changes in a future release, we'd
