@@ -42,7 +42,7 @@ class Annotation(Model, AuditMixinNullable):
     layer = relationship(
         AnnotationLayer,
         backref='annotation')
-    annotation_metadata = Column(JSON)
+    annotation_metadata = Column(Text)
 
     __table_args__ = (
         Index('ti_dag_state', layer_id, start_dttm, end_dttm),
