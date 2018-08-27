@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import isReact from 'is-react';
+import React from 'react';
 import controls from './controls';
 import visTypes, { sectionsToRender } from './visTypes';
 
@@ -51,7 +51,7 @@ export function getControlsState(state, form_data) {
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
   controlNames.forEach((k) => {
-    if (isReact.element(k)) {
+    if (React.isValidElement(k)) {
       // no state
       return;
     }

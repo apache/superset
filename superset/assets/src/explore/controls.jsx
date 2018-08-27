@@ -345,14 +345,15 @@ export const controls = {
 
   horizon_color_scale: {
     type: 'SelectControl',
-    label: t('Horizon Color Scale'),
+    renderTrigger: true,
+    label: t('Value Domain'),
     choices: [
       ['series', 'series'],
       ['overall', 'overall'],
       ['change', 'change'],
     ],
     default: 'series',
-    description: t('Defines how the color are attributed.'),
+    description: t('series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series'),
   },
 
   canvas_image_rendering: {
@@ -512,10 +513,13 @@ export const controls = {
       'Italy',
       'Portugal',
       'Morocco',
+      'Myanmar',
       'Netherlands',
       'Russia',
       'Singapore',
       'Spain',
+      'Thailand',
+      'Timorleste',
       'Uk',
       'Ukraine',
       'Usa',
@@ -1160,6 +1164,7 @@ export const controls = {
 
   series_height: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Series Height'),
     default: '25',

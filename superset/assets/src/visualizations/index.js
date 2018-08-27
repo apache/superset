@@ -83,7 +83,7 @@ const vizMap = {
   [VIZ_TYPES.heatmap]: () => loadVis(import(/* webpackChunkName: "heatmap" */ './heatmap.js')),
   [VIZ_TYPES.histogram]: () =>
     loadVis(import(/* webpackChunkName: "histogram" */ './histogram.js')),
-  [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './horizon.js')),
+  [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './HorizonChart.jsx')),
   [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
   [VIZ_TYPES.line]: loadNvd3,
   [VIZ_TYPES.line_multi]: () =>

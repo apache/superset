@@ -1,7 +1,6 @@
 /* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Mustache from 'mustache';
 import { Tooltip } from 'react-bootstrap';
 
 import { d3format } from '../modules/utils';
@@ -181,15 +180,6 @@ class Chart extends React.PureComponent {
 
   verboseMetricName(metric) {
     return this.props.datasource.verbose_map[metric] || metric;
-  }
-
-  // eslint-disable-next-line camelcase
-  render_template(s) {
-    const context = {
-      width: this.width(),
-      height: this.height(),
-    };
-    return Mustache.render(s, context);
   }
 
   renderTooltip() {

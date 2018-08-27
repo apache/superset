@@ -1,18 +1,58 @@
-/* eslint-disable no-underscore-dangle, no-param-reassign */
+/* eslint-disable no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import { getColorFromScheme } from '../modules/colors';
 import { wrapSvgText } from '../modules/utils';
-
 import './sunburst.css';
 
+const propTypes = {
+  // Each row is an array of [hierarchy-lvl1, hierarchy-lvl2, metric1, metric2]
+  // hierarchy-lvls are string. metrics are number
+  data: PropTypes.arrayOf(PropTypes.array),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object, // The metric object
+  ])),
+};
+
+function metricLabel(metric) {
+  return ((typeof metric) === 'string' || metric instanceof String)
+    ? metric
+    : metric.label;
+}
+
+// Given a node in a partition layout, return an array of all of its ancestor
+// nodes, highest first, but excluding the root.
+function getAncestors(node) {
+  const path = [];
+  let current = node;
+  while (current.parent) {
+    path.unshift(current);
+    current = current.parent;
+  }
+  return path;
+}
+
 // Modified from http://bl.ocks.org/kerryrodden/7090426
-function sunburstVis(slice, payload) {
-  const container = d3.select(slice.selector);
+function Sunburst(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Sunburst');
+
+  const container = d3.select(element);
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+    metrics,
+  } = props;
 
   // vars with shared scope within this function
   const margin = { top: 10, right: 5, bottom: 10, left: 5 };
-  const containerWidth = slice.width();
-  const containerHeight = slice.height();
+  const containerWidth = width;
+  const containerHeight = height;
   const breadcrumbHeight = containerHeight * 0.085;
   const visWidth = containerWidth - margin.left - margin.right;
   const visHeight = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
@@ -36,12 +76,8 @@ function sunburstVis(slice, payload) {
   const arc = d3.svg.arc()
     .startAngle(d => d.x)
     .endAngle(d => d.x + d.dx)
-    .innerRadius(function (d) {
-      return Math.sqrt(d.y);
-    })
-    .outerRadius(function (d) {
-      return Math.sqrt(d.y + d.dy);
-    });
+    .innerRadius(d => Math.sqrt(d.y))
+    .outerRadius(d => Math.sqrt(d.y + d.dy));
 
   const formatNum = d3.format('.1s');
   const formatPerc = d3.format('.1p');
@@ -52,8 +88,7 @@ function sunburstVis(slice, payload) {
     .attr('width', containerWidth)
     .attr('height', containerHeight);
 
-  function createBreadcrumbs(rawData) {
-    const firstRowData = rawData.data[0];
+  function createBreadcrumbs(firstRowData) {
     // -2 bc row contains 2x metrics, +extra for %label and buffer
     maxBreadcrumbs = (firstRowData.length - 2) + 1;
     breadcrumbDims = {
@@ -69,18 +104,6 @@ function sunburstVis(slice, payload) {
 
     breadcrumbs.append('svg:text')
       .attr('class', 'end-label');
-  }
-
-  // Given a node in a partition layout, return an array of all of its ancestor
-  // nodes, highest first, but excluding the root.
-  function getAncestors(node) {
-    const path = [];
-    let current = node;
-    while (current.parent) {
-      path.unshift(current);
-      current = current.parent;
-    }
-    return path;
   }
 
   // Generate a string that describes the points of a breadcrumb polygon.
@@ -100,9 +123,7 @@ function sunburstVis(slice, payload) {
 
   function updateBreadcrumbs(sequenceArray, percentageString) {
     const g = breadcrumbs.selectAll('g')
-      .data(sequenceArray, function (d) {
-        return d.name + d.depth;
-      });
+      .data(sequenceArray, d => d.name + d.depth);
 
     // Add breadcrumb and label for entering nodes.
     const entering = g.enter().append('svg:g');
@@ -111,7 +132,7 @@ function sunburstVis(slice, payload) {
         .attr('points', breadcrumbPoints)
         .style('fill', function (d) {
           return colorByCategory ?
-            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            getColorFromScheme(d.name, colorScheme) :
             colorScale(d.m2 / d.m1);
         });
 
@@ -122,7 +143,7 @@ function sunburstVis(slice, payload) {
         .style('fill', function (d) {
           // Make text white or black based on the lightness of the background
           const col = d3.hsl(colorByCategory ?
-            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            getColorFromScheme(d.name, colorScheme) :
             colorScale(d.m2 / d.m1));
           return col.l < 0.5 ? 'white' : 'black';
         })
@@ -166,6 +187,7 @@ function sunburstVis(slice, payload) {
 
     // If metrics match, assume we are coloring by category
     const metricsMatch = Math.abs(d.m1 - d.m2) < 0.00001;
+    console.log('metrics', metrics);
 
     gMiddleText.selectAll('*').remove();
 
@@ -184,27 +206,24 @@ function sunburstVis(slice, payload) {
     gMiddleText.append('text')
       .attr('class', 'path-metrics')
       .attr('y', yOffsets[offsetIndex++])
-      .text('m1: ' + formatNum(d.m1) + (metricsMatch ? '' : ', m2: ' + formatNum(d.m2)));
+      .text(`${metricLabel(metrics[0])}: ${formatNum(d.m1)}` + (metricsMatch ? '' : `, ${metricLabel(metrics[1])}: ${formatNum(d.m2)}`));
 
     gMiddleText.append('text')
       .attr('class', 'path-ratio')
       .attr('y', yOffsets[offsetIndex++])
-      .text((metricsMatch ? '' : ('m2/m1: ' + formatPerc(d.m2 / d.m1))));
+      .text((metricsMatch ? '' : (`${metricLabel(metrics[1])}/${metricLabel(metrics[0])}: ${formatPerc(d.m2 / d.m1)}`)));
 
     // Reset and fade all the segments.
     arcs.selectAll('path')
       .style('stroke-width', null)
       .style('stroke', null)
-      .style('opacity', 0.7);
+      .style('opacity', 0.3);
 
     // Then highlight only those that are an ancestor of the current segment.
     arcs.selectAll('path')
-      .filter(function (node) {
-        return (sequenceArray.indexOf(node) >= 0);
-      })
+      .filter(node => (sequenceArray.indexOf(node) >= 0))
       .style('opacity', 1)
-      .style('stroke-width', '2px')
-      .style('stroke', '#000');
+      .style('stroke', '#aaa');
 
     updateBreadcrumbs(sequenceArray, absolutePercString);
   }
@@ -244,7 +263,7 @@ function sunburstVis(slice, payload) {
       const m1 = Number(row[row.length - 2]);
       const m2 = Number(row[row.length - 1]);
       const levels = row.slice(0, row.length - 2);
-      if (isNaN(m1)) { // e.g. if this is a header row
+      if (Number.isNaN(m1)) { // e.g. if this is a header row
         continue;
       }
       let currentNode = root;
@@ -263,8 +282,7 @@ function sunburstVis(slice, payload) {
             currChild = children[k];
             if (currChild.name === nodeName &&
                 currChild.level === level) {
-// must match name AND level
-
+            // must match name AND level
               childNode = currChild;
               foundChild = true;
               break;
@@ -313,8 +331,8 @@ function sunburstVis(slice, payload) {
   }
 
   // Main function to draw and set up the visualization, once we have the data.
-  function createVisualization(rawData) {
-    const tree = buildHierarchy(rawData.data);
+  function createVisualization(rows) {
+    const root = buildHierarchy(rows);
 
     vis = svg.append('svg:g')
       .attr('class', 'sunburst-vis')
@@ -339,15 +357,12 @@ function sunburstVis(slice, payload) {
       .style('opacity', 0);
 
     // For efficiency, filter nodes to keep only those large enough to see.
-    const nodes = partition.nodes(tree)
-      .filter(function (d) {
-        return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
-      });
+    const nodes = partition.nodes(root)
+      .filter(d => d.dx > 0.005); // 0.005 radians = 0.29 degrees
 
     let ext;
-    const fd = slice.formData;
 
-    if (fd.metric !== fd.secondary_metric && fd.secondary_metric) {
+    if (metrics[0] !== metrics[1] && metrics[1]) {
       colorByCategory = false;
       ext = d3.extent(nodes, d => d.m2 / d.m1);
       colorScale = d3.scale.linear()
@@ -355,26 +370,40 @@ function sunburstVis(slice, payload) {
         .range(['#00D1C1', 'white', '#FFB400']);
     }
 
-    const path = arcs.data([tree]).selectAll('path')
-      .data(nodes)
+    arcs.selectAll('path')
+        .data(nodes)
       .enter()
-      .append('svg:path')
-      .attr('display', function (d) {
-        return d.depth ? null : 'none';
-      })
-      .attr('d', arc)
-      .attr('fill-rule', 'evenodd')
-      .style('fill', d => colorByCategory ?
-        getColorFromScheme(d.name, fd.color_scheme) :
-        colorScale(d.m2 / d.m1))
-      .style('opacity', 1)
-      .on('mouseenter', mouseenter);
+        .append('svg:path')
+        .attr('display', d => d.depth ? null : 'none')
+        .attr('d', arc)
+        .attr('fill-rule', 'evenodd')
+        .style('fill', d => colorByCategory
+          ? getColorFromScheme(d.name, colorScheme)
+          : colorScale(d.m2 / d.m1))
+        .style('opacity', 1)
+        .on('mouseenter', mouseenter);
 
     // Get total size of the tree = value of root node from partition.
-    totalSize = path.node().__data__.value;
+    totalSize = root.value;
   }
-  createBreadcrumbs(payload);
-  createVisualization(payload);
+  createBreadcrumbs(data[0]);
+  createVisualization(data);
 }
 
-module.exports = sunburstVis;
+Sunburst.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const { color_scheme: colorScheme, metric, secondary_metric: secondaryMetric } = formData;
+  const element = document.querySelector(selector);
+
+  return Sunburst(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+    metrics: [metric, secondaryMetric],
+  });
+}
+
+export default adaptor;
