@@ -490,18 +490,17 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sqla(self, metric, cols, db_engine_spec):
+    def adhoc_metric_to_sqla(self, metric, cols):
         """
         Turn an adhoc metric into a sqlalchemy column.
 
         :param dict metric: Adhoc metric definition
         :param dict cols: Columns for the current table
-        :param BaseEngineSpec db_engine_spec: Db engine spec for
-        database specific handling of column labels
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get('expressionType')
+        db_engine_spec = self.database.db_engine_spec
         label = db_engine_spec.make_label_compatible(metric.get('label'))
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
@@ -576,7 +575,7 @@ class SqlaTable(Model, BaseDatasource):
         metrics_exprs = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
-                metrics_exprs.append(self.adhoc_metric_to_sqla(m, cols, db_engine_spec))
+                metrics_exprs.append(self.adhoc_metric_to_sqla(m, cols))
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).get_sqla_col())
             else:
@@ -698,7 +697,7 @@ class SqlaTable(Model, BaseDatasource):
         for col, ascending in orderby:
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):
-                col = self.adhoc_metric_to_sqla(col, cols, db_engine_spec)
+                col = self.adhoc_metric_to_sqla(col, cols)
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -724,8 +723,7 @@ class SqlaTable(Model, BaseDatasource):
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
                     if utils.is_adhoc_metric(timeseries_limit_metric):
-                        ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols,
-                                                       db_engine_spec)
+                        ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
                     elif timeseries_limit_metric in metrics_dict:
                         timeseries_limit_metric = metrics_dict.get(
                             timeseries_limit_metric,
