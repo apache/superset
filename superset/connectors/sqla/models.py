@@ -113,7 +113,6 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(self, start_dttm, end_dttm):
-        db_engine_spec = self.table.database.db_engine_spec
         col = self.get_sqla_col('__time')
         l = []  # noqa: E741
         if start_dttm:
@@ -422,7 +421,6 @@ class SqlaTable(Model, BaseDatasource):
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
         tp = self.get_template_processor()
-        db_engine_spec = self.database.db_engine_spec
 
         qry = (
             select([target_col.get_sqla_col()])
