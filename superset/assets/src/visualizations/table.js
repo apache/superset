@@ -91,7 +91,6 @@ function tableVis(slice, payload) {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        console.log(slice.d3format);
         html = slice.d3format(c, val);
       }
       if (c[0] === '%') {
