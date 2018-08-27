@@ -1,7 +1,7 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
 import _ from 'underscore';
-import * as colors from './colors';
+import * as color from 'd3-color';
 
 // Objects exposed here should be treated like a public API
 // if `underscore` had backwards incompatible changes in a future release, we'd
