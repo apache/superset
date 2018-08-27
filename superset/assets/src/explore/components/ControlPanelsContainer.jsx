@@ -10,6 +10,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import controls from '../controls';
 import * as actions from '../actions/exploreActions';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
