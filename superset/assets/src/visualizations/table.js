@@ -12,8 +12,6 @@ dt(window, $);
 
 function tableVis(slice, payload) {
   const container = $(slice.selector);
-  console.log(slice);
-  console.log(payload);
   const fC = d3.format('0,000');
 
   const data = payload.data;
