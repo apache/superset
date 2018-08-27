@@ -376,7 +376,12 @@ class BaseEngineSpec(object):
         cursor.execute(query)
 
     @classmethod
-    def get_column_label(cls, label):
+    def make_label_compatible(cls, label):
+        """
+        Return a sqlalchemy.sql.elements.quoted_name if the engine requires
+        quoting of aliases to ensure that select query and query results
+        have same case.
+        """
         if cls.force_column_alias_quotes is True:
             return quoted_name(label, True)
         return label
