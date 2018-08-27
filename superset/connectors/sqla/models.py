@@ -106,11 +106,11 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label=None):
         db_engine_spec = self.table.database.db_engine_spec
-        col_label = get_column_label(db_engine_spec, self.column_name, label)
+        label = get_column_label(db_engine_spec, self.column_name, label)
         if not self.expression:
-            col = column(self.column_name).label(col_label)
+            col = column(self.column_name).label(label)
         else:
-            col = literal_column(self.expression).label(col_label)
+            col = literal_column(self.expression).label(label)
         return col
 
     @property
@@ -239,8 +239,8 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label=None):
         db_engine_spec = self.table.database.db_engine_spec
-        col_label = get_column_label(db_engine_spec, self.metric_name, label)
-        return literal_column(self.expression).label(col_label)
+        label = get_column_label(db_engine_spec, self.metric_name, label)
+        return literal_column(self.expression).label(label)
 
     @property
     def perm(self):
