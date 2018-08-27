@@ -234,6 +234,8 @@ class Header extends React.PureComponent {
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
+      refreshFrequency,
+      setRefreshFrequency,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -346,6 +348,8 @@ class Header extends React.PureComponent {
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.startPeriodicRender}
+            refreshFrequency={refreshFrequency}
+            setRefreshFrequency={setRefreshFrequency}
             updateCss={updateCss}
             editMode={editMode}
             hasUnsavedChanges={hasUnsavedChanges}
