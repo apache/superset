@@ -376,10 +376,10 @@ class BaseEngineSpec(object):
         cursor.execute(query)
 
     @classmethod
-    def get_column_label(cls, label_name):
+    def get_column_label(cls, label):
         if cls.force_column_alias_quotes is True:
-            return quoted_name(label_name, True)
-        return label_name
+            return quoted_name(label, True)
+        return label
 
     @staticmethod
     def mutate_expression_label(label):
