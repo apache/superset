@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 from flask_appbuilder import Model
 from sqlalchemy import (
-    Column, DateTime, ForeignKey, Index, Integer, String, Text,
+    Column, DateTime, ForeignKey, Index, Integer, String, Text, JSON
 )
 from sqlalchemy.orm import relationship
 
@@ -42,6 +42,7 @@ class Annotation(Model, AuditMixinNullable):
     layer = relationship(
         AnnotationLayer,
         backref='annotation')
+    annotation_metadata = Column(JSON)
 
     __table_args__ = (
         Index('ti_dag_state', layer_id, start_dttm, end_dttm),
