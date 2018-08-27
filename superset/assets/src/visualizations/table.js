@@ -12,6 +12,8 @@ dt(window, $);
 
 function tableVis(slice, payload) {
   const container = $(slice.selector);
+  console.log(slice);
+  console.log(payload);
   const fC = d3.format('0,000');
 
   const data = payload.data;
@@ -91,6 +93,7 @@ function tableVis(slice, payload) {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
+        console.log(slice.d3format);
         html = slice.d3format(c, val);
       }
       if (c[0] === '%') {
