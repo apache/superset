@@ -1,7 +1,7 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
 import _ from 'underscore';
-import * as color from 'd3-color';    // d3 color pkg https://github.com/d3/d3-color
+import * as colors from 'd3-color';    // d3 color pkg https://github.com/d3/d3-color
 import geohash from 'latlon-geohash'; // latlng -> geohash lib https://github.com/chrisveness/latlon-geohash
 
 
@@ -12,6 +12,7 @@ const GLOBAL_CONTEXT = {
   console,
   _,
   colors,
+  geohash,
 };
 
 // Copied/modified from https://github.com/hacksparrow/safe-eval/blob/master/index.js
