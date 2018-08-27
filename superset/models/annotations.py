@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 from flask_appbuilder import Model
 from sqlalchemy import (
-    Column, DateTime, ForeignKey, Index, Integer, String, Text, JSON
+    Column, DateTime, ForeignKey, Index, Integer, String, Text
 )
 from sqlalchemy.orm import relationship
 
