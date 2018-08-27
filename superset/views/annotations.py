@@ -22,9 +22,12 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
     add_title = _('Add Annotation')
     edit_title = _('Edit Annotation')
 
-    list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm', 'annotation_metadata']
+    list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm',
+                    'annotation_metadata']
     edit_columns = [
-        'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm', 'annotation_metadata']
+        'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm',
+        'annotation_metadata']
+
     add_columns = edit_columns
 
     label_columns = {
