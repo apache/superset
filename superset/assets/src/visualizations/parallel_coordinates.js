@@ -1,11 +1,10 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { colorScalerFactory } from '../modules/colors';
+import parcoords from '../../vendor/parallel_coordinates/d3.parcoords';
+import divgrid from '../../vendor/parallel_coordinates/divgrid';
 import '../../vendor/parallel_coordinates/d3.parcoords.css';
 import './parallel_coordinates.css';
-
-d3.parcoords = require('../../vendor/parallel_coordinates/d3.parcoords.js');
-d3.divgrid = require('../../vendor/parallel_coordinates/divgrid.js');
 
 const propTypes = {
   // Standard tabular data [{ fieldName1: value1, fieldName2: value2 }]
@@ -39,9 +38,7 @@ function ParallelCoordinates(element, props) {
 
   const ttypes = {};
   ttypes[series] = 'string';
-  metrics.forEach(function (v) {
-    ttypes[v] = 'number';
-  });
+  metrics.forEach((v) => { ttypes[v] = 'number'; });
 
   const colorScaler = colorMetric
     ? colorScalerFactory(linearColorScheme, data, d => d[colorMetric])
@@ -52,11 +49,10 @@ function ParallelCoordinates(element, props) {
   const effHeight = showDatatable ? (height / 2) : height;
 
   const div = container.append('div')
-    // .attr('id', 'parcoords_' + slice.container_id)
     .style('height', effHeight + 'px')
     .classed('parcoords', true);
 
-  const parcoords = d3.parcoords()(div.node())
+  const chart = parcoords()(div.node())
     .width(width)
     .color(color)
     .alpha(0.5)
@@ -73,7 +69,7 @@ function ParallelCoordinates(element, props) {
 
   if (showDatatable) {
       // create data table, row hover highlighting
-    const grid = d3.divgrid();
+    const grid = divgrid();
     container.append('div')
       .style('height', effHeight + 'px')
       .datum(data)
@@ -82,21 +78,21 @@ function ParallelCoordinates(element, props) {
       .selectAll('.row')
       .on({
         mouseover(d) {
-          parcoords.highlight([d]);
+          chart.highlight([d]);
         },
-        mouseout: parcoords.unhighlight,
+        mouseout: chart.unhighlight,
       });
       // update data table on brush event
-    parcoords.on('brush', function (d) {
+    chart.on('brush', function (d) {
       d3.select('.grid')
         .datum(d)
         .call(grid)
         .selectAll('.row')
         .on({
           mouseover(dd) {
-            parcoords.highlight([dd]);
+            chart.highlight([dd]);
           },
-          mouseout: parcoords.unhighlight,
+          mouseout: chart.unhighlight,
         });
     });
   }
