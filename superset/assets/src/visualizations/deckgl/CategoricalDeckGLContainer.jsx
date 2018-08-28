@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
-
+import { GeoJsonLayer } from 'deck.gl';
 import { getColorFromScheme, hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
@@ -27,6 +27,43 @@ function getCategories(fd, data) {
   });
   return categories;
 }
+
+
+function getBgLayers(conf){
+   var layers = []
+   for(var key in conf){
+        var request = new XMLHttpRequest();
+             // Open a new connection, using the GET request on the URL endpoint
+       request.open('GET', '/geo_assets/'+conf[key].path, false);
+       var data = {}
+       request.onload = function () {
+            data = JSON.parse(this.response);
+       };
+       request.send()
+
+       console.log(data)
+       const layer = new GeoJsonLayer({
+           id: 'geojson-layer-' + key,
+           data: data,
+           pickable: true,
+           stroked: false,
+           filled: true,
+           extruded: true,
+           lineWidthScale: 20,
+           lineWidthMinPixels: 2,
+           getFillColor: conf[key].color,
+           getLineColor: conf[key].color,
+           getRadius: 100,
+           getLineWidth: 1,
+           getElevation: 30,
+       });
+       layers.push(layer)
+   }
+  return layers;
+
+}
+
+
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -64,6 +101,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
+
   componentWillReceiveProps(nextProps) {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
   }
@@ -105,8 +143,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     if (fd.dimension) {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
-
-    return [this.props.getLayer(fd, data, this.props.slice)];
+    console.log(this)
+    return [this.props.getLayer(fd, data,
+            this.props.slice)].concat(getBgLayers(this.props.deckGeoJSONLayers))
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];

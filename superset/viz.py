@@ -2208,6 +2208,7 @@ class BaseDeckGLViz(BaseViz):
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'deckGeoJSONLayers': config.get('DECKGL_GEOJSON_LAYERS'),
         }
 
     def get_properties(self, d):

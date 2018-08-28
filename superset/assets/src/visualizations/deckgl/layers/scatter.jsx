@@ -45,12 +45,12 @@ function deckScatter(slice, payload, setControlValue) {
   if (fd.autozoom) {
     viewport = common.fitViewport(viewport, getPoints(payload.data.features));
   }
-
   ReactDOM.render(
     <CategoricalDeckGLContainer
       slice={slice}
       data={payload.data.features}
       mapboxApiKey={payload.data.mapboxApiKey}
+      deckGeoJSONLayers={payload.data.deckGeoJSONLayers}
       setControlValue={setControlValue}
       viewport={viewport}
       getLayer={getLayer}
