@@ -36,7 +36,8 @@ export function commonLayerProps(formData, slice) {
   let onHover;
   let tooltipContentGenerator;
   if (fd.js_tooltip) {
-    tooltipContentGenerator = o => dompurify.sanitize(sandboxedEval(fd.js_tooltip)(o));
+    const unsanitizedTooltipGenerator = sandboxedEval(fd.js_tooltip);
+    tooltipContentGenerator = o => dompurify.sanitize(unsanitizedTooltipGenerator(o));
   } else if (fd.line_column && fd.line_type === 'geohash') {
     tooltipContentGenerator = o => `${fd.line_column}: ${o.object[fd.line_column]}`;
   }

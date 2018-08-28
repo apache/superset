@@ -5,6 +5,7 @@ import { Row, Col } from 'react-bootstrap';
 import Mousetrap from 'mousetrap';
 
 import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
+import './PlaySlider.css';
 
 import { t } from '../locales';
 

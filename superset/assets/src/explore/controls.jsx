@@ -1774,7 +1774,7 @@ export const controls = {
     min: 0,
     max: 100,
     renderTrigger: true,
-    description: t('Opacity, expects values between 1 and 100'),
+    description: t('Opacity, expects values between 0 and 100'),
   },
 
   viewport: {
