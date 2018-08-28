@@ -26,7 +26,7 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
                     'annotation_metadata']
     edit_columns = [
         'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm',
-        'annotation_metadata']
+        'json_metadata']
 
     add_columns = edit_columns
 
@@ -36,11 +36,11 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
         'start_dttm': _('Start Dttm'),
         'end_dttm': _('End Dttm'),
         'long_descr': _('Long Descr'),
-        'annotation_metadata': _('JSON Metadata'),
+        'json_metadata': _('JSON Metadata'),
     }
 
     description_columns = {
-        'annotation_metadata': 'This JSON represents any additional metadata this \
+        'json_metadata': 'This JSON represents any additional metadata this \
          annotation needs to add more context.',
     }
 
