@@ -133,6 +133,29 @@
     prop-types "^15.5.10"
     react-select "^1.0.0-rc.5"
 
+"@data-ui/histogram@^0.0.64":
+  version "0.0.64"
+  resolved "https://registry.yarnpkg.com/@data-ui/histogram/-/histogram-0.0.64.tgz#c04ca4acbac42b7d3d6394ce57e41b7d1b5bb00e"
+  dependencies:
+    "@data-ui/shared" "^0.0.63"
+    "@data-ui/theme" "^0.0.62"
+    "@vx/axis" "0.0.140"
+    "@vx/curve" "0.0.140"
+    "@vx/event" "0.0.140"
+    "@vx/glyph" "0.0.140"
+    "@vx/gradient" "0.0.140"
+    "@vx/group" "0.0.140"
+    "@vx/pattern" "0.0.140"
+    "@vx/responsive" "0.0.147"
+    "@vx/scale" "0.0.140"
+    "@vx/shape" "0.0.140"
+    "@vx/tooltip" "0.0.140"
+    babel-runtime "^6.26.0"
+    d3-array "^1.2.0"
+    d3-scale "^1.0.6"
+    prop-types "^15.5.10"
+    react-move "^2.1.0"
+
 "@data-ui/radial-chart@0.0.54":
   version "0.0.54"
   resolved "https://registry.yarnpkg.com/@data-ui/radial-chart/-/radial-chart-0.0.54.tgz#0d28b07681d9b6027d9ac23b729241827d513001"
@@ -163,6 +186,19 @@
   resolved "https://registry.yarnpkg.com/@data-ui/shared/-/shared-0.0.61.tgz#717a1a1f7bd606c0f51573e65b6acdda51a1252b"
   dependencies:
     "@data-ui/theme" "^0.0.61"
+    "@vx/event" "^0.0.165"
+    "@vx/group" "^0.0.165"
+    "@vx/shape" "^0.0.168"
+    "@vx/tooltip" "0.0.165"
+    babel-runtime "^6.26.0"
+    d3-array "^1.2.1"
+    prop-types "^15.5.10"
+
+"@data-ui/shared@^0.0.63":
+  version "0.0.63"
+  resolved "https://registry.yarnpkg.com/@data-ui/shared/-/shared-0.0.63.tgz#870e84adaa0600b18679b291874cf01c5325829a"
+  dependencies:
+    "@data-ui/theme" "^0.0.62"
     "@vx/event" "^0.0.165"
     "@vx/group" "^0.0.165"
     "@vx/shape" "^0.0.168"
@@ -202,6 +238,12 @@
 "@data-ui/theme@^0.0.61":
   version "0.0.61"
   resolved "https://registry.yarnpkg.com/@data-ui/theme/-/theme-0.0.61.tgz#2a792da6c384d08553d1794bdb16ce633bc02cbd"
+  dependencies:
+    babel-runtime "^6.26.0"
+
+"@data-ui/theme@^0.0.62":
+  version "0.0.62"
+  resolved "https://registry.yarnpkg.com/@data-ui/theme/-/theme-0.0.62.tgz#a7f50bb796fd6ea90171cb2c7f958f3bb24fe6d9"
   dependencies:
     babel-runtime "^6.26.0"
 
@@ -476,11 +518,25 @@
   dependencies:
     classnames "^2.2.5"
 
+"@vx/group@0.0.170":
+  version "0.0.170"
+  resolved "https://registry.yarnpkg.com/@vx/group/-/group-0.0.170.tgz#8b30b3ea07c348fe22253812fe7cb6d4200d725d"
+  dependencies:
+    classnames "^2.2.5"
+
 "@vx/legend@0.0.140":
   version "0.0.140"
   resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.140.tgz#4062c27d6bc9c4d607309d77eff12b844727ae99"
   dependencies:
     "@vx/group" "0.0.140"
+    classnames "^2.2.5"
+    prop-types "^15.5.10"
+
+"@vx/legend@^0.0.170":
+  version "0.0.170"
+  resolved "https://registry.yarnpkg.com/@vx/legend/-/legend-0.0.170.tgz#06bce2c4eff7b20bf1fff55737a831144c502f28"
+  dependencies:
+    "@vx/group" "0.0.170"
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
@@ -515,6 +571,13 @@
   resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.140.tgz#c73ec68b9e89a181605f1ac9ecc09f35216779a8"
   dependencies:
     lodash "^4.0.8"
+
+"@vx/responsive@0.0.147":
+  version "0.0.147"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.147.tgz#c94adbb41ad1e21b5d1ebde241b00463903fc79c"
+  dependencies:
+    lodash "^4.0.8"
+    resize-observer-polyfill "1.4.2"
 
 "@vx/responsive@0.0.172":
   version "0.0.172"
@@ -3481,6 +3544,12 @@ d3-interpolate@1:
   dependencies:
     d3-color "1"
 
+d3-interpolate@^1.2.0:
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/d3-interpolate/-/d3-interpolate-1.3.2.tgz#417d3ebdeb4bc4efcc8fd4361c55e4040211fd68"
+  dependencies:
+    d3-color "1"
+
 d3-path@1, d3-path@^1.0.5:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/d3-path/-/d3-path-1.0.5.tgz#241eb1849bd9e9e8021c0d0a799f8a0e8e441764"
@@ -3501,7 +3570,7 @@ d3-sankey@^0.4.2:
     d3-collection "1"
     d3-interpolate "1"
 
-d3-scale@^1.0.5:
+d3-scale@^1.0.5, d3-scale@^1.0.6:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/d3-scale/-/d3-scale-1.0.7.tgz#fa90324b3ea8a776422bd0472afab0b252a0945d"
   dependencies:
@@ -3551,6 +3620,10 @@ d3-time@1:
 d3-timer@1:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/d3-timer/-/d3-timer-1.0.7.tgz#df9650ca587f6c96607ff4e60cc38229e8dd8531"
+
+d3-timer@^1.0.4:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/d3-timer/-/d3-timer-1.0.9.tgz#f7bb8c0d597d792ff7131e1c24a36dd471a471ba"
 
 d3-tip@^0.9.1:
   version "0.9.1"
@@ -9545,6 +9618,13 @@ react-modal@^3.1.7:
     react-lifecycles-compat "^3.0.0"
     warning "^3.0.0"
 
+react-move@^2.1.0:
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/react-move/-/react-move-2.8.0.tgz#63deaf6a0e58ca6769357abfcd91dde44d83a596"
+  dependencies:
+    d3-interpolate "^1.2.0"
+    d3-timer "^1.0.4"
+
 react-onclickoutside@^6.5.0:
   version "6.7.1"
   resolved "https://registry.yarnpkg.com/react-onclickoutside/-/react-onclickoutside-6.7.1.tgz#6a5b5b8b4eae6b776259712c89c8a2b36b17be93"
@@ -10224,6 +10304,10 @@ require-uncached@^1.0.3:
 requires-port@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/requires-port/-/requires-port-1.0.0.tgz#925d2601d39ac485e091cf0da5c6e694dc3dcaff"
+
+resize-observer-polyfill@1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/resize-observer-polyfill/-/resize-observer-polyfill-1.4.2.tgz#a37198e6209e888acb1532a9968e06d38b6788e5"
 
 resize-observer-polyfill@1.5.0:
   version "1.5.0"
