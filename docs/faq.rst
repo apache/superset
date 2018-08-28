@@ -286,7 +286,7 @@ that go beyond the SQLAlchemy and DBAPI scope. This includes features like:
 Beyond the SQLAlchemy connector, it's also possible, though much more
 involved, to extend Superset and write
 your own connector. The only example of this at the moment is the Druid
-connector, which is getting super seeded by Druid's growing SQL support and
+connector, which is getting superseded by Druid's growing SQL support and
 the recent availability of a DBAPI and SQLAlchemy driver. If the database
 you are considering integrating has any kind of of SQL support, it's probably
 preferable to go the SQLAlchemy route. Note that for a native connector to
