@@ -3,8 +3,6 @@ import React from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 import PropTypes from 'prop-types';
 
-import './paired_ttest.css';
-
 const propTypes = {
   metric: PropTypes.string.isRequired,
   groups: PropTypes.array.isRequired,

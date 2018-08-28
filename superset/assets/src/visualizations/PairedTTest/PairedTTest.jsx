@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import React from 'react';
 import TTestTable from './TTestTable';
+import './PairedTTest.css';
 
 const propTypes = {
   className: PropTypes.string,
