@@ -3,8 +3,11 @@ import PropTypes from 'prop-types';
 import { colorScalerFactory } from '../modules/colors';
 import CalHeatMap from '../../vendor/cal-heatmap/cal-heatmap';
 import { d3TimeFormatPreset, d3FormatPreset } from '../modules/utils';
+import { UTC } from '../modules/dates';
 import '../../vendor/cal-heatmap/cal-heatmap.css';
 import './cal_heatmap.css';
+
+const UTCTS = uts => UTC(new Date(uts)).getTime();
 
 const propTypes = {
   data: PropTypes.shape({
@@ -66,7 +69,7 @@ function Calendar(element, props) {
   Object.keys(data.data).forEach((metric) => {
     metricsData[metric] = {};
     Object.keys(data.data[metric]).forEach((ts) => {
-      metricsData[metric][ts] = data.data[metric][ts];
+      metricsData[metric][UTCTS(ts * 1000) / 1000] = data.data[metric][ts];
     });
   });
 
@@ -87,7 +90,7 @@ function Calendar(element, props) {
     const cal = new CalHeatMap();
 
     cal.init({
-      start: data.start,
+      start: UTCTS(data.start),
       data: timestamps,
       itemSelector: calContainer[0][0],
       legendVerticalPosition: 'top',
