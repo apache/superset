@@ -30,7 +30,7 @@ const defaultProps = {
   yAxisLabel: '',
 };
 
-class SupersetHistogram extends React.PureComponent {
+class CustomHistogram extends React.PureComponent {
   render() {
     const {
       className,
@@ -55,7 +55,7 @@ class SupersetHistogram extends React.PureComponent {
         normalized={normalized}
         binCount={binCount}
         binType="numeric"
-        renderTooltip={({ event, datum, data, color }) => (
+        renderTooltip={({ datum, color }) => (
           <div>
             <strong style={{ color }}>{datum.bin0} to {datum.bin1}</strong>
             <div><strong>count </strong>{datum.count}</div>
@@ -81,8 +81,8 @@ class SupersetHistogram extends React.PureComponent {
   }
 }
 
-SupersetHistogram.propTypes = propTypes;
-SupersetHistogram.defaultProps = defaultProps;
+CustomHistogram.propTypes = propTypes;
+CustomHistogram.defaultProps = defaultProps;
 
 //     // make legend
 //     const legend = nv.models.legend()
@@ -105,7 +105,7 @@ function adaptor(slice, payload) {
   } = formData;
 
   ReactDOM.render(
-    <SupersetHistogram
+    <CustomHistogram
       data={payload.data}
       width={slice.width()}
       height={slice.height()}
