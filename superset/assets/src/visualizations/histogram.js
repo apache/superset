@@ -5,10 +5,10 @@ import { getColorFromScheme } from '../modules/colors';
 import './histogram.css';
 
 const propTypes = {
-  data: PropTypes.shape({
-    nodes: PropTypes.arrayOf(PropTypes.string),
-    matrix: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
-  }),
+  data: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string,
+    values: PropTypes.arrayOf(PropTypes.number),
+  })),
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
