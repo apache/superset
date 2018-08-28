@@ -120,9 +120,14 @@ class BaseViz(object):
     def get_metric_label(self, metric):
         if isinstance(metric, string_types):
             return metric
+
         if isinstance(metric, dict):
-            return self.datasource.database.db_engine_spec.mutate_expression_label(
-                metric.get('label'))
+            metric = metric.get('label')
+
+        if self.datasource.type == 'table':
+            db_engine_spec = self.datasource.database.db_engine_spec
+            metric = db_engine_spec.mutate_expression_label(metric)
+        return metric
 
     @staticmethod
     def handle_js_int_overflow(data):
