@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../../packages/core/src';
 
 import * as Actions from '../actions';
 

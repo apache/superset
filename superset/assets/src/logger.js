@@ -1,6 +1,5 @@
-/* global window */
-/* eslint no-undef: 'error', no-console: 0 */
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+/* eslint no-console: 0 */
+import { SupersetClient } from './packages/core/src';
 
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance

@@ -8,6 +8,7 @@
   },
   "globals": {
     "document": true,
+    "window": true,
   },
   "rules": {
     "prefer-template": 0,
@@ -26,7 +27,7 @@
     "no-mixed-operators": 0,
     "no-continue": 0,
     "no-bitwise": 0,
-    "no-undef": 0,
+    "no-undef": 1,
     "no-multi-assign": 0,
     "react/no-array-index-key": 0,
     "no-restricted-properties": 0,
@@ -42,8 +43,5 @@
     "indent": 0,
     "no-multi-spaces": 0,
     "padded-blocks": 0,
-  },
-  "settings": {
-    "import/resolver": "webpack"
   }
 }

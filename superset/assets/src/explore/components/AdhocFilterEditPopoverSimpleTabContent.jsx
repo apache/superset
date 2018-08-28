@@ -1,10 +1,9 @@
 /* global AbortController */
-/* eslint no-undef: 'error' */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 import VirtualizedSelect from 'react-virtualized-select';
+import { SupersetClient } from '../../packages/core/src';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';

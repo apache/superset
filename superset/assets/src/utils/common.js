@@ -1,7 +1,5 @@
-/* global window */
-
-/* eslint global-require: 0, no-undef: 'error' */
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+/* eslint global-require: 0 */
+import { SupersetClient } from '../packages/core/src';
 
 const d3 = require('d3');
 

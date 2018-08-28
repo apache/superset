@@ -1,4 +1,4 @@
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../../packages/core/src';
 import { getAjaxErrorMsg } from '../../modules/utils';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
@@ -25,9 +25,7 @@ export function fetchDatasourceMetadata(key) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    const client = SupersetClient.getInstance();
-
-    return client
+    return SupersetClient.getInstance()
       .get({
         endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
       })

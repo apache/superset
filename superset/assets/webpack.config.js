@@ -39,9 +39,6 @@ const config = {
   },
   resolve: {
     extensions: ['.js', '.jsx'],
-    alias: {
-      '@superset/core': path.resolve(__dirname, './src/packages/core/src'),
-    },
   },
   module: {
     // uglyfying mapbox-gl results in undefined errors, see

@@ -1,8 +1,7 @@
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Collapse, Label, OverlayTrigger, Row, Tooltip, Well } from 'react-bootstrap';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../../../packages/core/src';
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';

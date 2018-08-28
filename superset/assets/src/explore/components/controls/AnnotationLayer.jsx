@@ -1,12 +1,10 @@
-/* eslint no-undef: 'error' */
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import { Button } from 'react-bootstrap';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 import mathjs from 'mathjs';
 
+import { SupersetClient } from '../../../packages/core/src';
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';

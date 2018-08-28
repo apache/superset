@@ -1,8 +1,7 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
-
+import { SupersetClient } from './packages/core/src';
 import { t } from './locales';
 
 const utils = require('./modules/utils');
@@ -22,12 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     elem.addEventListener('click', (event) => {
       event.preventDefault();
       const client = SupersetClient.getInstance();
-      const currLocation = location.href;
+      const currLocation = window.location.href;
 
       // this seems to be called twice (jQuery thing? the second time it's not authenticated)
       if (client.authorized()) {
         client.get({ url: event.currentTarget.href }).then(() => {
-          location = currLocation;
+          window.location = currLocation;
         });
       }
     });

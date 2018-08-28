@@ -1,5 +1,4 @@
-/* eslint no-undef: 'error' */
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../../packages/core/src';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';

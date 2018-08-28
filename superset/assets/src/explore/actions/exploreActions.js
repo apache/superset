@@ -1,5 +1,5 @@
-/* eslint no-undef: 'error', camelcase: 0 */
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+/* eslint camelcase: 0 */
+import { SupersetClient } from '../../packages/core/src';
 import { addDangerToast } from '../../messageToasts/actions';
 import { t } from '../../locales';
 

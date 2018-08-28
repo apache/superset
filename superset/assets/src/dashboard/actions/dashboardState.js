@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../../packages/core/src';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';

@@ -1,7 +1,5 @@
-/* global window */
-/* eslint no-undef: 2 */
 import shortid from 'shortid';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { SupersetClient } from '../packages/core/src';
 
 import { now } from '../modules/dates';
 import { t } from '../locales';

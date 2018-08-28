@@ -1,7 +1,5 @@
-/* eslint no-undef: 'error' */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
 import htmlSyntax from 'react-syntax-highlighter/languages/hljs/htmlbars';
 import markdownSyntax from 'react-syntax-highlighter/languages/hljs/markdown';
@@ -11,6 +9,7 @@ import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 import 'react-bootstrap-table/css/react-bootstrap-table.css';
+import { SupersetClient } from '../../packages/core/src';
 
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
