@@ -605,6 +605,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -703,25 +711,31 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['line_column', 'line_type'],
-          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
+          ['metric'],
+          ['row_limit', null],
+          ['line_column', 'line_type'],
+          ['reverse_long_lat', 'filter_nulls'],
         ],
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['reverse_long_lat', null],
+          ['autozoom', null],
         ],
       },
       {
         label: t('Polygon Settings'),
+        expanded: true,
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
           ['extruded', null],
-          ['point_radius_scale', null],
+          ['line_width', null],
+          ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
         ],
       },
       {
@@ -734,6 +748,17 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metric: {
+        validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
+      },
+    },
   },
 
   deck_arc: {

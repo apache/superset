@@ -189,7 +189,7 @@ class Chart extends React.PureComponent {
           className="chart-tooltip"
           id="chart-tooltip"
           placement="right"
-          positionTop={this.state.tooltip.y - 10}
+          positionTop={this.state.tooltip.y + 30}
           positionLeft={this.state.tooltip.x + 30}
           arrowOffsetTop={10}
         >
