@@ -4,8 +4,7 @@ import { Row, Col } from 'react-bootstrap';
 
 import Mousetrap from 'mousetrap';
 
-import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
+import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
 import './PlaySlider.css';
 
 import { t } from '../locales';
@@ -120,7 +119,7 @@ export default class PlaySlider extends React.PureComponent {
           <i className="fa fa-step-forward fa-lg slider-button " onClick={this.step} />
         </Col>
         <Col md={11} className="padded">
-          <ReactBootstrapSlider
+          <BootrapSliderWrapper
             value={range ? values : values[0]}
             range={range}
             formatter={this.formatter}
