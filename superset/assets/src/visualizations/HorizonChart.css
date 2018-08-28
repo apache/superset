@@ -9,9 +9,10 @@
   margin: 0px;
 }
 
-.horizon-row span {
+.horizon-row span.title {
   position: absolute;
   color: #333;
   font-size: 0.8em;
+  margin: 0;
   text-shadow: 1px 1px rgba(255, 255, 255, 0.75);
 }
