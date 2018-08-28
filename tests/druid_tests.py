@@ -445,6 +445,61 @@ class DruidTests(SupersetTestCase):
         for metric in metrics:
             self.assertEqual(metric.verbose_name, metric.metric_name)
 
+    @patch('superset.connectors.druid.models.PyDruid')
+    def get_druid_datasource(self, py_druid):
+        cluster = self.get_cluster(py_druid)
+
+        datasource = self.get_or_create(
+            DruidDatasource, {'datasource_name': 'test_datasource'},
+            db.session)
+        datasource.cluster = cluster
+        druid = py_druid()
+        datasource.cluster.get_pydruid_client = Mock(return_value=druid)
+
+        return datasource, druid
+
+    def test_values_for_column(self):
+        datasource, druid = self.get_druid_datasource()
+        column = 'test_column'
+
+        datasource.values_for_column(column_name=column)
+
+        assert druid.topn.call_args[1]['datasource'] == datasource.name
+        assert druid.topn.call_args[1]['granularity'] == 'all'
+        assert druid.topn.call_args[1]['metric'] == 'count'
+        assert druid.topn.call_args[1]['dimension'] == column
+        assert not druid.topn.call_args[1].get('filter')
+
+    def test_values_for_column_with_limit(self):
+        datasource, druid = self.get_druid_datasource()
+        column = 'test_column'
+        limit = 7
+
+        datasource.values_for_column(column_name=column, limit=limit)
+
+        assert druid.topn.call_args[1]['datasource'] == datasource.name
+        assert druid.topn.call_args[1]['granularity'] == 'all'
+        assert druid.topn.call_args[1]['metric'] == 'count'
+        assert druid.topn.call_args[1]['dimension'] == column
+        assert druid.topn.call_args[1]['threshold'] == limit
+        assert not druid.topn.call_args[1].get('filter')
+
+    def test_values_for_column_with_filters(self):
+        datasource, druid = self.get_druid_datasource()
+        column = 'test_column'
+        filters = [{'col': 'gender', 'op': 'in', 'val': ['girl']}]
+
+        datasource.values_for_column(column_name=column, filters=filters)
+
+        assert druid.topn.call_args[1]['datasource'] == datasource.name
+        assert druid.topn.call_args[1]['granularity'] == 'all'
+        assert druid.topn.call_args[1]['metric'] == 'count'
+        assert druid.topn.call_args[1]['dimension'] == column
+        druid_filter = druid.topn.call_args[1]['filter'].filter['filter']
+        assert druid_filter['type'] == 'selector'
+        assert druid_filter['dimension'] == filters[0]['col']
+        assert druid_filter['value'] == filters[0]['val'][0]
+
     def test_urls(self):
         cluster = self.get_test_cluster_obj()
         self.assertEquals(

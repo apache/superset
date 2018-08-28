@@ -25,6 +25,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 from six import text_type
+from six.moves import cPickle as pkl
 import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, or_, update
 from sqlalchemy.engine.url import make_url
@@ -1328,9 +1329,15 @@ class Superset(BaseSupersetView):
         :param datasource_type: Type of datasource e.g. table
         :param datasource_id: Datasource id
         :param column: Column name to retrieve values for
-        :return:
+
+        Optional query parameter form_data accepts filters as conditions in the query
+        WHERE clause so that only column values matching those conditions are returned
+        ex: /filter/table/3/name?form_data=
+                {"filters":[{"col":"gender","op":"in","val":["boy"]}]}
+            returns ['Aaron', 'Andrew', 'Anthony', ...]
+
+        :return: distinct values for column
         """
-        # TODO: Cache endpoint by user, datasource and column
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
         if not datasource:
@@ -1339,13 +1346,21 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(datasource))
 
-        payload = json.dumps(
-            datasource.values_for_column(
-                column,
-                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
-            ),
-            default=utils.json_int_dttm_ser)
-        return json_success(payload)
+        filters = self.get_form_data()[0].get('filters')
+
+        @cache.cached(timeout=config.get('FLASK_CACHE_DEFAULT_TIMEOUT'),
+                      key_prefix=lambda: request.url)
+        def get_values_for_column():
+            payload = datasource.values_for_column(
+                column_name=column,
+                limit=config.get('FILTER_SELECT_ROW_LIMIT', 10000),
+                filters=filters)
+            return pkl.dumps(payload, protocol=pkl.HIGHEST_PROTOCOL)
+
+        payload = pkl.loads(get_values_for_column())
+
+        json_data = json.dumps(payload, default=utils.json_int_dttm_ser)
+        return json_success(json_data)
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_overwrite_perm, slice_download_perm,

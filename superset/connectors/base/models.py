@@ -264,7 +264,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         """
         raise NotImplementedError()
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name, limit=10000, filters=None):
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
