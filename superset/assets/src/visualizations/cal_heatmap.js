@@ -7,11 +7,18 @@ import '../../vendor/cal-heatmap/cal-heatmap.css';
 import './cal_heatmap.css';
 
 const propTypes = {
-  // Object hashed by metric name,
-  // then hashed by timestamp (in seconds, not milliseconds) as float
-  // the innermost value is count
-  // e.g. { count_distinct_something: { 1535034236.0: 3 } }
-  data: PropTypes.object,
+  data: PropTypes.shape({
+    // Object hashed by metric name,
+    // then hashed by timestamp (in seconds, not milliseconds) as float
+    // the innermost value is count
+    // e.g. { count_distinct_something: { 1535034236.0: 3 } }
+    data: PropTypes.object,
+    domain: PropTypes.string,
+    range: PropTypes.number,
+    // timestamp in milliseconds
+    start: PropTypes.number,
+    subdomain: PropTypes.string,
+  }),
   height: PropTypes.number,
   cellPadding: PropTypes.number,
   cellRadius: PropTypes.number,
@@ -55,7 +62,6 @@ function Calendar(element, props) {
 
   const subDomainTextFormat = showValues ? (date, value) => valueFormatter(value) : null;
 
-  // Trick to convert all timestamps to UTC
   const metricsData = {};
   Object.keys(data.data).forEach((metric) => {
     metricsData[metric] = {};
@@ -81,7 +87,7 @@ function Calendar(element, props) {
     const cal = new CalHeatMap();
 
     cal.init({
-      start: UTCTS(data.start),
+      start: data.start,
       data: timestamps,
       itemSelector: calContainer[0][0],
       legendVerticalPosition: 'top',
