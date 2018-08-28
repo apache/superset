@@ -56,7 +56,7 @@ const initState = {
       chartUpdateStartTime: now(),
       latestQueryFormData: getFormDataFromControls(controls),
       sliceFormData,
-      queryRequest: null,
+      queryController: null,
       queryResponse: null,
       triggerQuery: true,
       lastRendered: 0,

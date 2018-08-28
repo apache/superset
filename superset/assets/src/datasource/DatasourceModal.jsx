@@ -2,12 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import $ from 'jquery';
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 
 import { t } from '../locales';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
-
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -48,43 +47,32 @@ class DatasourceModal extends React.PureComponent {
     this.dialog.show({
       title: 'Confirm save',
       bsSize: 'medium',
-      actions: [
-        Dialog.CancelAction(),
-        Dialog.OKAction(this.onConfirmSave),
-      ],
+      actions: [Dialog.CancelAction(), Dialog.OKAction(this.onConfirmSave)],
       body: this.renderSaveDialog(),
     });
   }
   onConfirmSave() {
-    const url = '/datasource/save/';
-    const that = this;
-    $.ajax({
-      url,
-      type: 'POST',
-      data: {
-        data: JSON.stringify(this.state.datasource),
-      },
-      success: (data) => {
+    SupersetClient.getInstance()
+      .post({
+        endpoint: '/datasource/save/',
+        postPayload: {
+          data: this.state.datasource,
+        },
+      })
+      .then(({ json }) => {
         this.props.addSuccessToast(t('The datasource has been saved'));
-        this.props.onDatasourceSave(data);
+        this.props.onDatasourceSave(json);
         this.props.onHide();
-      },
-      error(err) {
-        let msg = t('An error has occurred');
-        if (err.responseJSON && err.responseJSON.error) {
-          msg = err.responseJSON.error;
-        }
-        that.dialog.show({
+      })
+      .catch((error) => {
+        this.dialog.show({
           title: 'Error',
           bsSize: 'medium',
           bsStyle: 'danger',
-          actions: [
-            Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
-          ],
-          body: msg,
+          actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
+          body: error.error || error.statusText || t('An error has occurred'),
         });
-      },
-    });
+      });
   }
   onDatasourceChange(datasource, errors) {
     this.setState({ datasource, errors });
@@ -120,11 +108,7 @@ class DatasourceModal extends React.PureComponent {
   }
   render() {
     return (
-      <Modal
-        show={this.props.show}
-        onHide={this.props.onHide}
-        bsSize="lg"
-      >
+      <Modal show={this.props.show} onHide={this.props.onHide} bsSize="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <div>
@@ -136,11 +120,12 @@ class DatasourceModal extends React.PureComponent {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {this.props.show &&
+          {this.props.show && (
             <DatasourceEditor
               datasource={this.props.datasource}
               onChange={this.onDatasourceChange}
-            />}
+            />
+          )}
         </Modal.Body>
         <Modal.Footer>
           <span className="float-right">
@@ -153,11 +138,14 @@ class DatasourceModal extends React.PureComponent {
             >
               {t('Save')}
             </Button>
-            <Button bsSize="sm" onClick={this.props.onHide}>{t('Cancel')}</Button>
+            <Button bsSize="sm" onClick={this.props.onHide}>
+              {t('Cancel')}
+            </Button>
             <Dialog ref={this.setDialogRef} />
           </span>
         </Modal.Footer>
-      </Modal>);
+      </Modal>
+    );
   }
 }
 

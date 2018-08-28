@@ -710,15 +710,22 @@ class R(BaseSupersetView):
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
+            # return redirect(
+            #     '{scheme}://{request.headers[Host]}/{url}'.format(
+            #         scheme=request.scheme,
+            #         request=request,
+            #         url=url.url
+            #     )
+            # )
             return redirect('/' + url.url)
         else:
             flash('URL to nowhere...', 'danger')
             return redirect('/')
 
     @log_this
-    @expose('/shortner/', methods=['POST', 'GET'])
+    @expose('/shortner/', methods=['POST'])
     def shortner(self):
-        url = request.form.get('data')
+        url = json.loads(request.form.get('data'))
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
@@ -2370,13 +2377,13 @@ class Superset(BaseSupersetView):
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
         template_params = json.loads(
-            request.form.get('templateParams') or '{}')
+            request.form.get('templateParams', '{}'))
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not mydb:
-            json_error_response(
+            return json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)

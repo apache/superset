@@ -42,5 +42,8 @@
     "indent": 0,
     "no-multi-spaces": 0,
     "padded-blocks": 0,
+  },
+  "settings": {
+    "import/resolver": "webpack"
   }
 }

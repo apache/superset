@@ -56,10 +56,12 @@ export function wrapSvgText(text, width, adjustedY) {
     const x = d3Text.attr('x');
     const y = d3Text.attr('y');
     const dy = parseFloat(d3Text.attr('dy'));
-    let tspan =
-      d3Text.text(null).append('tspan').attr('x', x)
-            .attr('y', y)
-            .attr('dy', dy + 'em');
+    let tspan = d3Text
+      .text(null)
+      .append('tspan')
+      .attr('x', x)
+      .attr('y', y)
+      .attr('dy', dy + 'em');
 
     let didWrap = false;
     for (let i = 0; i < words.length; i++) {
@@ -71,10 +73,12 @@ export function wrapSvgText(text, width, adjustedY) {
         // remove word that pushes over the limit
         tspan.text(line.join(' '));
         line = [word];
-        tspan =
-          d3Text.append('tspan').attr('x', x).attr('y', y)
-                .attr('dy', ++lineNumber * lineHeight + dy + 'em')
-                .text(word);
+        tspan = d3Text
+          .append('tspan')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('dy', ++lineNumber * lineHeight + dy + 'em')
+          .text(word);
         didWrap = true;
       }
     }
@@ -107,16 +111,16 @@ export function showModal(options) {
   $(options.modalSelector).modal('show');
 }
 
-
 function showApiMessage(resp) {
   const template =
     '<div class="alert"> ' +
     '<button type="button" class="close" ' +
     'data-dismiss="alert">\xD7</button> </div>';
   const severity = resp.severity || 'info';
-  $(template).addClass('alert-' + severity)
-             .append(resp.message)
-             .appendTo($('#alert-container'));
+  $(template)
+    .addClass('alert-' + severity)
+    .append(resp.message)
+    .appendTo($('#alert-container'));
 }
 
 export function toggleCheckbox(apiUrlPrefix, selector) {
@@ -137,8 +141,10 @@ export const fixDataTableBodyHeight = function ($tableDom, height) {
   const filterHeight = $tableDom.find('.dataTables_filter').height() || 0;
   const pageLengthHeight = $tableDom.find('.dataTables_length').height() || 0;
   const paginationHeight = $tableDom.find('.dataTables_paginate').height() || 0;
-  const controlsHeight = (pageLengthHeight > filterHeight) ? pageLengthHeight : filterHeight;
-  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
+  const controlsHeight = pageLengthHeight > filterHeight ? pageLengthHeight : filterHeight;
+  $tableDom
+    .find('.dataTables_scrollBody')
+    .css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
 
 export function d3format(format, number) {
@@ -181,25 +187,25 @@ export function formatSelectOptionsForRange(start, end) {
 }
 
 export function formatSelectOptions(options) {
-  return options.map(opt =>
-     [opt, opt.toString()],
-  );
+  return options.map(opt => [opt, opt.toString()]);
 }
 
 export function slugify(string) {
   // slugify('My Neat Label! '); returns 'my-neat-label'
   return string
-          .toString()
-          .toLowerCase()
-          .trim()
-          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
-          .replace(/-$/, ''); // remove last floating dash
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
+    .replace(/-$/, ''); // remove last floating dash
 }
 
 export function getAjaxErrorMsg(error) {
-  const respJSON = error.responseJSON;
-  return (respJSON && respJSON.error) ? respJSON.error :
-          error.responseText;
+  if (error && error.responseJSON) {
+    return respJSON && respJSON.error ? respJSON.error : error.responseText;
+  }
+
+  return error && error.error ? error.error : error;
 }
 
 export function getDatasourceParameter(datasourceId, datasourceType) {
@@ -212,17 +218,19 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
     const tooltipTitle = xAxisFormatter(d.value);
     let tooltip = '';
 
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
+    tooltip +=
+      "<table><thead><tr><td colspan='3'>" +
+      `<strong class='x-value'>${tooltipTitle}</strong>` +
+      '</td></tr></thead><tbody>';
 
     d.series.forEach((series, i) => {
       const yAxisFormatter = yAxisFormatters[i];
       const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
+      tooltip +=
+        "<tr><td class='legend-color-guide'>" +
+        `<div style="background-color: ${series.color};"></div></td>` +
+        `<td class='key'>${series.key}</td>` +
+        `<td class='value'>${value}</td></tr>`;
     });
 
     tooltip += '</tbody></table>';

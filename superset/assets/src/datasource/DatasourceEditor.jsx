@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import $ from 'jquery';
-
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 import { t } from '../locales';
 
 import Button from '../components/Button';
@@ -40,8 +39,13 @@ CollectionTabTitle.propTypes = {
 };
 
 function ColumnCollectionTable({
-  columns, onChange, editableColumnName, showExpression, allowAddItem,
-  allowEditDataType, itemGenerator,
+  columns,
+  onChange,
+  editableColumnName,
+  showExpression,
+  allowAddItem,
+  allowEditDataType,
+  itemGenerator,
 }) {
   return (
     <CollectionTable
@@ -53,23 +57,17 @@ function ColumnCollectionTable({
       expandFieldset={
         <FormContainer>
           <Fieldset compact>
-            {showExpression &&
-              <Field
-                fieldKey="expression"
-                label="SQL Expression"
-                control={<TextControl />}
-              />}
-            <Field
-              fieldKey="verbose_name"
-              label={t('Label')}
-              control={<TextControl />}
-            />
-            {allowEditDataType &&
+            {showExpression && (
+              <Field fieldKey="expression" label="SQL Expression" control={<TextControl />} />
+            )}
+            <Field fieldKey="verbose_name" label={t('Label')} control={<TextControl />} />
+            {allowEditDataType && (
               <Field
                 fieldKey="type"
                 label={t('Data Type')}
                 control={<SelectControl choices={DATA_TYPES} name="type" />}
-              />}
+              />
+            )}
             <Field
               fieldKey="python_date_format"
               label="Datetime Format"
@@ -118,17 +116,15 @@ function ColumnCollectionTable({
       }}
       onChange={onChange}
       itemRenderers={{
-        column_name: (v, onItemChange) => (
-          editableColumnName ?
-            <EditableTitle canEdit title={v} onSaveTitle={onItemChange} /> :
-            v
-        ),
+        column_name: (v, onItemChange) =>
+          editableColumnName ? <EditableTitle canEdit title={v} onSaveTitle={onItemChange} /> : v,
         type: d => <Label style={{ fontSize: '75%' }}>{d}</Label>,
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
       }}
-    />);
+    />
+  );
 }
 ColumnCollectionTable.propTypes = {
   columns: PropTypes.array.isRequired,
@@ -154,7 +150,9 @@ ColumnCollectionTable.defaultProps = {
 function StackedField({ label, formElement }) {
   return (
     <div>
-      <div><strong>{label}</strong></div>
+      <div>
+        <strong>{label}</strong>
+      </div>
       <div>{formElement}</div>
     </div>
   );
@@ -165,11 +163,7 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return (
-    <Well style={{ marginTop: 20 }}>
-      {children}
-    </Well>
-  );
+  return <Well style={{ marginTop: 20 }}>{children}</Well>;
 }
 FormContainer.propTypes = {
   children: PropTypes.node,
@@ -235,13 +229,15 @@ export class DatasourceEditor extends React.PureComponent {
     cols.forEach((col) => {
       if (currentColNames.indexOf(col.name) < 0) {
         // Adding columns
-        databaseColumns = databaseColumns.concat([{
-          id: shortid.generate(),
-          column_name: col.name,
-          type: col.type,
-          groupby: true,
-          filterable: true,
-        }]);
+        databaseColumns = databaseColumns.concat([
+          {
+            id: shortid.generate(),
+            column_name: col.name,
+            type: col.type,
+            groupby: true,
+            filterable: true,
+          },
+        ]);
         hasChanged = true;
       }
     });
@@ -250,28 +246,22 @@ export class DatasourceEditor extends React.PureComponent {
     }
   }
   syncMetadata() {
-    const datasource = this.state.datasource;
-    const url = `/datasource/external_metadata/${datasource.type}/${datasource.id}/`;
+    const { datasource } = this.state;
     this.setState({ metadataLoading: true });
-    const success = (data) => {
-      this.mergeColumns(data);
-      this.props.addSuccessToast(t('Metadata has been synced'));
-      this.setState({ metadataLoading: false });
-    };
-    const error = (err) => {
-      let msg = t('An error has occurred');
-      if (err.responseJSON && err.responseJSON.error) {
-        msg = err.responseJSON.error;
-      }
-      this.props.addDangerToast(msg);
-      this.setState({ metadataLoading: false });
-    };
-    $.ajax({
-      url,
-      type: 'GET',
-      success,
-      error,
-    });
+    SupersetClient.getInstance()
+      .get({
+        endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
+      })
+      .then(({ json }) => {
+        this.mergeColumns(json);
+        this.props.addSuccessToast(t('Metadata has been synced'));
+        this.setState({ metadataLoading: false });
+      })
+      .catch((err) => {
+        const msg = err.error || err.statusText || t('An error has occurred');
+        this.props.addDangerToast(msg);
+        this.setState({ metadataLoading: false });
+      });
   }
   findDuplicates(arr, accessor) {
     const seen = {};
@@ -301,9 +291,13 @@ export class DatasourceEditor extends React.PureComponent {
 
     // Making sure calculatedColumns have an expression defined
     const noFilterCalcCols = this.state.calculatedColumns.filter(
-      col => !col.expression && !col.json);
-    errors = errors.concat(noFilterCalcCols.map(
-      col => t('Calculated column [%s] requires an expression', col.column_name)));
+      col => !col.expression && !col.json,
+    );
+    errors = errors.concat(
+      noFilterCalcCols.map(col =>
+        t('Calculated column [%s] requires an expression', col.column_name),
+      ),
+    );
 
     this.setState({ errors }, callback);
   }
@@ -342,13 +336,15 @@ export class DatasourceEditor extends React.PureComponent {
             <SelectAsyncControl
               dataEndpoint="/users/api/read"
               multi={false}
-              mutator={data => data.pks.map((pk, i) => ({
-                value: pk,
-                label: `${data.result[i].first_name} ${data.result[i].last_name}`,
-              }))}
-            />}
-          controlProps={{
-          }}
+              mutator={data =>
+                data.pks.map((pk, i) => ({
+                  value: pk,
+                  label: `${data.result[i].first_name} ${data.result[i].last_name}`,
+                }))
+              }
+            />
+          }
+          controlProps={{}}
         />
       </Fieldset>
     );
@@ -357,49 +353,40 @@ export class DatasourceEditor extends React.PureComponent {
     const datasource = this.state.datasource;
     return (
       <Fieldset title="Advanced" item={datasource} onChange={this.onDatasourceChange}>
-        { this.state.isSqla &&
+        {this.state.isSqla && (
           <Field
             fieldKey="sql"
             label={t('SQL')}
             descr={t(
               'When specifying SQL, the datasource acts as a view. ' +
-              'Superset will use this statement as a subquery while grouping and filtering ' +
-              'on the generated parent queries.')}
+                'Superset will use this statement as a subquery while grouping and filtering ' +
+                'on the generated parent queries.',
+            )}
             control={<TextAreaControl language="sql" offerEditInModal={false} />}
           />
-        }
-        { this.state.isDruid &&
+        )}
+        {this.state.isDruid && (
           <Field
             fieldKey="json"
             label={t('JSON')}
-            descr={
-              <div>
-                {t('The JSON metric or post aggregation definition.')}
-              </div>
-            }
+            descr={<div>{t('The JSON metric or post aggregation definition.')}</div>}
             control={<TextAreaControl language="json" offerEditInModal={false} />}
           />
-        }
+        )}
         <Field
           fieldKey="cache_timeout"
           label={t('Cache Timeout')}
           descr={t('The duration of time in seconds before the cache is invalidated')}
           control={<TextControl />}
         />
-        <Field
-          fieldKey="offset"
-          label={t('Hours offset')}
-          control={<TextControl />}
-        />
-      </Fieldset>);
+        <Field fieldKey="offset" label={t('Hours offset')} control={<TextControl />} />
+      </Fieldset>
+    );
   }
   renderSpatialTab() {
     const spatials = this.state.datasource.spatials;
     return (
-      <Tab
-        title={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        eventKey={4}
-      >
+      <Tab title={<CollectionTabTitle collection={spatials} title={t('Spatial')} />} eventKey={4}>
         <CollectionTable
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
@@ -411,21 +398,20 @@ export class DatasourceEditor extends React.PureComponent {
           collection={spatials}
           allowDeletes
           itemRenderers={{
-            name: (d, onChange) => (
-              <EditableTitle canEdit title={d} onSaveTitle={onChange} />),
+            name: (d, onChange) => <EditableTitle canEdit title={d} onSaveTitle={onChange} />,
             config: (v, onChange) => (
               <SpatialControl value={v} onChange={onChange} choices={datasource.all_cols} />
             ),
           }}
         />
-      </Tab>);
+      </Tab>
+    );
   }
   renderErrors() {
     if (this.state.errors.length > 0) {
       return (
-        <Alert bsStyle="danger">
-          {this.state.errors.map(err => <div key={err}>{err}</div>)}
-        </Alert>);
+        <Alert bsStyle="danger">{this.state.errors.map(err => <div key={err}>{err}</div>)}</Alert>
+      );
     }
     return null;
   }
@@ -436,16 +422,8 @@ export class DatasourceEditor extends React.PureComponent {
         expandFieldset={
           <FormContainer>
             <Fieldset>
-              <Field
-                fieldKey="description"
-                label={t('Description')}
-                control={<TextControl />}
-              />
-              <Field
-                fieldKey="d3format"
-                label={t('D3 Format')}
-                control={<TextControl />}
-              />
+              <Field fieldKey="description" label={t('Description')} control={<TextControl />} />
+              <Field fieldKey="d3format" label={t('D3 Format')} control={<TextControl />} />
               <Field
                 label={t('Warning Message')}
                 fieldKey="warning_text"
@@ -463,56 +441,45 @@ export class DatasourceEditor extends React.PureComponent {
           expression: '',
         })}
         itemRenderers={{
-          metric_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />),
-          verbose_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />),
+          metric_name: (v, onChange) => <EditableTitle canEdit title={v} onSaveTitle={onChange} />,
+          verbose_name: (v, onChange) => <EditableTitle canEdit title={v} onSaveTitle={onChange} />,
           expression: (v, onChange) => (
-            <EditableTitle
-              canEdit
-              title={v}
-              onSaveTitle={onChange}
-              style={styleMonospace}
-            />),
+            <EditableTitle canEdit title={v} onSaveTitle={onChange} style={styleMonospace} />
+          ),
           description: (v, onChange, label) => (
             <StackedField
               label={label}
               formElement={<TextControl value={v} onChange={onChange} />}
-            />),
+            />
+          ),
           d3format: (v, onChange, label) => (
             <StackedField
               label={label}
               formElement={<TextControl value={v} onChange={onChange} />}
-            />),
+            />
+          ),
         }}
         allowDeletes
-      />);
+      />
+    );
   }
   render() {
     const datasource = this.state.datasource;
     return (
       <div className="Datasource">
         {this.renderErrors()}
-        <Tabs
-          id="table-tabs"
-          onSelect={this.handleTabSelect}
-          defaultActiveKey={1}
-        >
+        <Tabs id="table-tabs" onSelect={this.handleTabSelect} defaultActiveKey={1}>
           <Tab eventKey={1} title={t('Settings')}>
-            {this.state.activeTabKey === 1 &&
+            {this.state.activeTabKey === 1 && (
               <div>
                 <Col md={6}>
-                  <FormContainer>
-                    {this.renderSettingsFieldset()}
-                  </FormContainer>
+                  <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
                 </Col>
                 <Col md={6}>
-                  <FormContainer>
-                    {this.renderAdvancedFieldset()}
-                  </FormContainer>
+                  <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
                 </Col>
               </div>
-            }
+            )}
           </Tab>
           <Tab
             title={
@@ -520,7 +487,7 @@ export class DatasourceEditor extends React.PureComponent {
             }
             eventKey={2}
           >
-            {this.state.activeTabKey === 2 &&
+            {this.state.activeTabKey === 2 && (
               <div>
                 <ColumnCollectionTable
                   columns={this.state.databaseColumns}
@@ -537,17 +504,18 @@ export class DatasourceEditor extends React.PureComponent {
                 </Button>
                 {this.state.metadataLoading && <Loading />}
               </div>
-            }
+            )}
           </Tab>
           <Tab
             title={
               <CollectionTabTitle
                 collection={this.state.calculatedColumns}
                 title={t('Calculated Columns')}
-              />}
+              />
+            }
             eventKey={3}
           >
-            {this.state.activeTabKey === 3 &&
+            {this.state.activeTabKey === 3 && (
               <ColumnCollectionTable
                 columns={this.state.calculatedColumns}
                 onChange={calculatedColumns => this.setColumns({ calculatedColumns })}
@@ -563,7 +531,7 @@ export class DatasourceEditor extends React.PureComponent {
                   __expanded: true,
                 })}
               />
-            }
+            )}
           </Tab>
           <Tab
             title={<CollectionTabTitle collection={datasource.metrics} title={t('Metrics')} />}

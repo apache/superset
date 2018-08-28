@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
+
 import { t } from '../locales';
 
 const propTypes = {
@@ -28,7 +29,6 @@ export default class CopyToClipboard extends React.Component {
       hasCopied: false,
     };
 
-    // bindings
     this.copyToClipboard = this.copyToClipboard.bind(this);
     this.resetTooltipText = this.resetTooltipText.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
@@ -41,7 +41,9 @@ export default class CopyToClipboard extends React.Component {
 
   onClick() {
     if (this.props.getText) {
-      this.props.getText((d) => { this.copyToClipboard(d); });
+      this.props.getText((d) => {
+        this.copyToClipboard(d);
+      });
     } else {
       this.copyToClipboard(this.props.text);
     }
@@ -72,7 +74,11 @@ export default class CopyToClipboard extends React.Component {
         throw new Error(t('Not successful'));
       }
     } catch (err) {
-      window.alert(t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!')); // eslint-disable-line
+      // eslint-disable-next-line no-alert
+      window.prompt(
+        t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'),
+        textToCopy,
+      );
     }
 
     document.body.removeChild(span);
@@ -96,12 +102,12 @@ export default class CopyToClipboard extends React.Component {
   renderLink() {
     return (
       <span>
-        {this.props.shouldShowText &&
+        {this.props.shouldShowText && (
           <span>
             {this.props.text}
             &nbsp;&nbsp;&nbsp;&nbsp;
           </span>
-        }
+        )}
         <OverlayTrigger
           placement="top"
           style={{ cursor: 'pointer' }}
@@ -121,10 +127,7 @@ export default class CopyToClipboard extends React.Component {
     return (
       <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
         <MenuItem>
-          <span
-            onClick={this.onClick.bind(this)}
-            onMouseOut={this.onMouseOut}
-          >
+          <span onClick={this.onClick.bind(this)} onMouseOut={this.onMouseOut}>
             {this.props.copyNode}
           </span>
         </MenuItem>
@@ -133,11 +136,7 @@ export default class CopyToClipboard extends React.Component {
   }
 
   renderTooltip() {
-    return (
-      <Tooltip id="copy-to-clipboard-tooltip">
-        {this.tooltipText()}
-      </Tooltip>
-    );
+    return <Tooltip id="copy-to-clipboard-tooltip">{this.tooltipText()}</Tooltip>;
   }
 
   render() {

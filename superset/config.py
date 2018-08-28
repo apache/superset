@@ -189,8 +189,8 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 # CORS Options
-ENABLE_CORS = False
-CORS_OPTIONS = {}
+ENABLE_CORS = True
+CORS_OPTIONS = { "resources": { "*": {"origins": "http://localhost:9001", "supports_credentials": True } }}
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)

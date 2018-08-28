@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
@@ -14,7 +15,6 @@ import {
 } from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import { t } from '../../locales';
-
 import {
   addSuccessToast,
   addWarningToast,
@@ -111,28 +111,31 @@ export function saveDashboardRequestSuccess() {
 
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-  const url = `/superset/${path}/${id}/`;
+  const client = SupersetClient.getInstance();
+
   return dispatch =>
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        data: JSON.stringify(data),
-      },
-      success: () => {
-        dispatch(saveDashboardRequestSuccess());
-        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
-      },
-      error: error => {
-        const errorMsg = getAjaxErrorMsg(error);
+    client
+      .post({
+        endpoint: `/superset/${path}/${id}/`,
+        postPayload: { data },
+      })
+      .then(response =>
+        Promise.all([
+          Promise.resolve(response),
+          dispatch(saveDashboardRequestSuccess()),
+          dispatch(
+            addSuccessToast(t('This dashboard was saved successfully.')),
+          ),
+        ]),
+      )
+      .catch(error =>
         dispatch(
           addDangerToast(
             `${t('Sorry, there was an error saving this dashboard: ')}
-          ${errorMsg}`,
+          ${getAjaxErrorMsg(error)}`,
           ),
-        );
-      },
-    });
+        ),
+      );
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {

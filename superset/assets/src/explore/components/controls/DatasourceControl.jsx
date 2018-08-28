@@ -1,16 +1,8 @@
 /* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  Col,
-  Collapse,
-  Label,
-  OverlayTrigger,
-  Row,
-  Tooltip,
-  Well,
-} from 'react-bootstrap';
-import $ from 'jquery';
+import { Col, Collapse, Label, OverlayTrigger, Row, Tooltip, Well } from 'react-bootstrap';
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
@@ -18,7 +10,6 @@ import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
 import withToasts from '../../../messageToasts/enhancers/withToasts';
-
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -41,6 +32,7 @@ class DatasourceControl extends React.PureComponent {
       filter: '',
       loading: true,
       showDatasource: false,
+      datasources: null,
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
@@ -55,14 +47,11 @@ class DatasourceControl extends React.PureComponent {
     if (this.searchRef) {
       this.searchRef.focus();
     }
-    const url = '/superset/datasources/';
-    const that = this;
     if (!this.state.datasources) {
-      $.ajax({
-        type: 'GET',
-        url,
-        success: (data) => {
-          const datasources = data.map(ds => ({
+      SupersetClient.getInstance()
+        .get({ endpoint: '/superset/datasources/' })
+        .then(({ json }) => {
+          const datasources = json.map(ds => ({
             rawName: ds.name,
             connection: ds.connection,
             schema: ds.schema,
@@ -78,13 +67,12 @@ class DatasourceControl extends React.PureComponent {
             type: ds.type,
           }));
 
-          that.setState({ loading: false, datasources });
-        },
-        error() {
-          that.setState({ loading: false });
+          this.setState({ loading: false, datasources });
+        })
+        .catch(() => {
+          this.setState({ loading: false });
           this.props.addDangerToast(t('Something went wrong while fetching the datasource list'));
-        },
-      });
+        });
     }
   }
   setSearchRef(searchRef) {
@@ -106,8 +94,7 @@ class DatasourceControl extends React.PureComponent {
   toggleEditDatasourceModal() {
     this.setState({ showEditDatasourceModal: !this.state.showEditDatasourceModal });
   }
-  renderModal() {
-  }
+  renderModal() {}
   renderDatasource() {
     const datasource = this.props.datasource;
     return (
@@ -151,7 +138,11 @@ class DatasourceControl extends React.PureComponent {
             <Tooltip id={'error-tooltip'}>{t('Click to point to another datasource')}</Tooltip>
           }
         >
-          <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }} className="m-r-5">
+          <Label
+            onClick={this.toggleEditDatasourceModal}
+            style={{ cursor: 'pointer' }}
+            className="m-r-5"
+          >
             {this.props.datasource.name}
           </Label>
         </OverlayTrigger>
@@ -170,7 +161,7 @@ class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
-        {this.props.datasource.type === 'table' &&
+        {this.props.datasource.type === 'table' && (
           <OverlayTrigger
             placement="right"
             overlay={
@@ -182,7 +173,8 @@ class DatasourceControl extends React.PureComponent {
             <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
               <i className="fa fa-flask m-r-5" />
             </a>
-          </OverlayTrigger>}
+          </OverlayTrigger>
+        )}
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
           datasource={this.props.datasource}

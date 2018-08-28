@@ -1,10 +1,13 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
+
 import { t } from './locales';
 
 const utils = require('./modules/utils');
 
-$(document).ready(function () {
+document.addEventListener('DOMContentLoaded', () => {
   $(':checkbox[data-checkbox-api-prefix]').change(function () {
     const $this = $(this);
     const prefix = $this.data('checkbox-api-prefix');
@@ -13,14 +16,21 @@ $(document).ready(function () {
   });
 
   // for language picker dropdown
-  $('#language-picker a').click(function (ev) {
-    ev.preventDefault();
+  const languagePickerLinks = document.querySelectorAll('#language-picker a');
 
-    const targetUrl = ev.currentTarget.href;
-    $.ajax(targetUrl)
-      .then(() => {
-        location.reload();
-      });
+  languagePickerLinks.forEach((elem) => {
+    elem.addEventListener('click', (event) => {
+      event.preventDefault();
+      const client = SupersetClient.getInstance();
+      const currLocation = location.href;
+
+      // this seems to be called twice (jQuery thing? the second time it's not authenticated)
+      if (client.authorized()) {
+        client.get({ url: event.currentTarget.href }).then(() => {
+          location = currLocation;
+        });
+      }
+    });
   });
 });
 
@@ -30,6 +40,13 @@ export function appSetup() {
   window.$ = $;
   window.jQuery = $;
   require('bootstrap');
+
+  // configure and initialize the JS client which makes all requests, handles auth, etc.
+  const client = SupersetClient.getInstance({
+    host: window.location && window.location.host,
+  });
+
+  client.init();
 }
 
 // Error messages used in many places across applications

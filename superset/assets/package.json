@@ -43,10 +43,12 @@
   },
   "homepage": "http://superset.apache.org/",
   "dependencies": {
-    "@data-ui/event-flow": "^0.0.54",
+    "@data-ui/event-flow": "^0.0.62",
     "@data-ui/sparkline": "^0.0.54",
     "@data-ui/xy-chart": "^0.0.61",
     "@vx/responsive": "0.0.153",
+    "abortcontroller-polyfill": "^1.1.9",
+    "aphrodite": "^1.2.0",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
@@ -120,7 +122,8 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^5.0.0"
+    "viewport-mercator-project": "^5.0.0",
+    "whatwg-fetch": "^2.0.4"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
@@ -140,6 +143,7 @@
     "eslint": "^4.19.0",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-config-prettier": "^2.9.0",
+    "eslint-import-resolver-webpack": "^0.10.1",
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-prettier": "^2.6.0",

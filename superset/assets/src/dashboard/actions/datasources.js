@@ -1,4 +1,5 @@
-import $ from 'jquery';
+import { SupersetClient } from '@superset/core'; // eslint-disable-line import/no-extraneous-dependencies
+import { getAjaxErrorMsg } from '../../modules/utils';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export function setDatasource(datasource, key) {
@@ -24,13 +25,15 @@ export function fetchDatasourceMetadata(key) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    const url = `/superset/fetch_datasource_metadata?datasourceKey=${key}`;
-    return $.ajax({
-      type: 'GET',
-      url,
-      success: data => dispatch(setDatasource(data, key)),
-      error: error =>
-        dispatch(fetchDatasourceFailed(error.responseJSON.error, key)),
-    });
+    const client = SupersetClient.getInstance();
+
+    return client
+      .get({
+        endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
+      })
+      .then(data => dispatch(data, key))
+      .catch(error =>
+        dispatch(fetchDatasourceFailed(getAjaxErrorMsg(error), key)),
+      );
   };
 }

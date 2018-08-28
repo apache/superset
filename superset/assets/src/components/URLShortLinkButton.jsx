@@ -30,7 +30,12 @@ class URLShortLinkButton extends React.Component {
   }
 
   getCopyUrl() {
-    getShortUrl(this.props.url, this.onShortUrlSuccess, this.props.addDangerToast);
+    getShortUrl(this.props.url)
+      .then(this.onShortUrlSuccess)
+      .catch((response) => {
+        this.props.addDangerToast(response.error);
+        this.onShortUrlSuccess(this.props.url); // fallback to long url
+      });
   }
 
   renderPopover() {

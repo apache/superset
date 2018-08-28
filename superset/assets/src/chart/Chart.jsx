@@ -33,7 +33,6 @@ const propTypes = {
   chartUpdateEndTime: PropTypes.number,
   chartUpdateStartTime: PropTypes.number,
   latestQueryFormData: PropTypes.object,
-  queryRequest: PropTypes.object,
   queryResponse: PropTypes.object,
   lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,

@@ -21,14 +21,16 @@ class QueryAutoRefresh extends React.PureComponent {
     // if there are started or running queries, this method should return true
     const { queries } = this.props;
     const now = new Date().getTime();
-    return Object.values(queries)
-      .some(
-        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
-        now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
-      );
+    return Object.values(queries).some(
+      q =>
+        (['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+          now - q.startDttm < MAX_QUERY_AGE_TO_POLL &&
+          console.log(q)) ||
+        now - q.startDttm,
+    );
   }
   startTimer() {
-    if (!(this.timer)) {
+    if (!this.timer) {
       this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
     }
   }
@@ -70,4 +72,7 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(QueryAutoRefresh);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(QueryAutoRefresh);
