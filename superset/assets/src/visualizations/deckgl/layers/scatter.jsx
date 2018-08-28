@@ -22,11 +22,10 @@ function getLayer(fd, payload, slice) {
     }
     if (d.color) {
       return { ...d, radius };
-    } else {
-      const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-      let color = [c.r, c.g, c.b, c.a * 255];
-      return { ...d, radius, color };
     }
+    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const color = [c.r, c.g, c.b, c.a * 255];
+    return { ...d, radius, color };
   });
 
   return new ScatterplotLayer({

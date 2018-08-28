@@ -104,7 +104,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    let payload = this.props.payload;
+    const payload = this.props.payload;
     payload.data.features = data;
     return [this.props.getLayer(fd, payload, this.props.slice)];
   }

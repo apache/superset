@@ -19,7 +19,7 @@ function getPoints(data) {
 }
 
 function getLayer(fd, payload, slice) {
-  let data = payload.data.features;
+  const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
   return new ArcLayer({
