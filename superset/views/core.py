@@ -256,6 +256,13 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    def pre_delete(self, obj):
+        if obj.tables:
+            raise SupersetException(Markup(
+                'Cannot delete a database that has tables attached. '
+                "Here's the list of associated tables: " +
+                ', '.join('{}'.format(o) for o in obj.tables)))
+
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
