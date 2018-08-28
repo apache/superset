@@ -65,6 +65,9 @@ function Calendar(element, props) {
 
   const subDomainTextFormat = showValues ? (date, value) => valueFormatter(value) : null;
 
+  // Trick to convert all timestamps to UTC
+  // TODO: Verify if this conversion is really necessary
+  // since all timestamps should always be in UTC.
   const metricsData = {};
   Object.keys(data.data).forEach((metric) => {
     metricsData[metric] = {};
