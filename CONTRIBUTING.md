@@ -532,7 +532,7 @@ checkpoint.
 https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104
 
 
-2. superset db migrate -m "this_will_be_in_the_magration_filename"
+2. superset db migrate -m "this_will_be_in_the_migration_filename"
 
 For our example we'll be running this command:
 ```
