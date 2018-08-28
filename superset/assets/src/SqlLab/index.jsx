@@ -27,7 +27,7 @@ const store = createStore(
   state,
   compose(
     applyMiddleware(thunkMiddleware),
-    initEnhancer(false),
+    initEnhancer(),
   ),
 );
 

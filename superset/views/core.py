@@ -2377,7 +2377,7 @@ class Superset(BaseSupersetView):
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
         template_params = json.loads(
-            request.form.get('templateParams', '{}'))
+            request.form.get('templateParams') or '{}')
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()

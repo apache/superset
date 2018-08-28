@@ -105,14 +105,6 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-function getErrorLink(err) {
-  let link = '';
-  if (err.responseJSON && err.responseJSON.link) {
-    link = err.responseJSON.link;
-  }
-  return link;
-}
-
 export function fetchQueryResults(query) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));

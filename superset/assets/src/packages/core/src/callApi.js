@@ -23,7 +23,10 @@ export function callApi({
   if (method === 'POST' && typeof postPayload === 'object') {
     const formData = new FormData();
     Object.keys(postPayload).forEach((key) => {
-      formData.append(key, stringify ? JSON.stringify(postPayload[key]) : postPayload[key]);
+      const value = postPayload[key];
+      if (typeof value !== 'undefined') {
+        formData.append(key, stringify ? JSON.stringify(postPayload[key]) : postPayload[key]);
+      }
     });
 
     request = {
