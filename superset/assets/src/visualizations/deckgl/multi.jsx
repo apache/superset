@@ -33,7 +33,13 @@ function deckMulti(slice, payload, setControlValue) {
     // Filters applied to multi_deck are passed down to underlying charts
     // note that dashboard contextual information (filter_immune_slices and such) aren't
     // taken into consideration here
-    let filters = subslice.form_data.filters.concat(fd.filters);
+    let filters = [];
+    if (subslice.form_data.filters) {
+      filters = filters.concat(subslice.form_data.filters);
+    }
+    if (fd.filters) {
+      filters = filters.concat(fd.filters);
+    }
     if (fd.extra_filters) {
       filters = filters.concat(fd.extra_filters);
     }

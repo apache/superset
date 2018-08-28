@@ -35,6 +35,7 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
+  payload: PropTypes.object.isRequired,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -103,7 +104,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    return [this.props.getLayer(fd, data, this.props.slice)];
+    let payload = this.props.payload;
+    payload.data.features = data;
+    return [this.props.getLayer(fd, payload, this.props.slice)];
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
