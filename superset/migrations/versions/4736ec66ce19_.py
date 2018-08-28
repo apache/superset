@@ -7,13 +7,10 @@ Create Date: 2017-10-03 14:37:01.376578
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '4736ec66ce19'
-down_revision = 'f959a6652acd'
+import logging
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.exc import OperationalError
 
 from superset.utils import (
     generic_find_fk_constraint_name,
@@ -21,6 +18,9 @@ from superset.utils import (
     generic_find_uq_constraint_name,
 )
 
+# revision identifiers, used by Alembic.
+revision = '4736ec66ce19'
+down_revision = 'f959a6652acd'
 
 conv = {
     'fk': 'fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s',
@@ -114,10 +114,10 @@ def upgrade():
             )
     except Exception as e:
         logging.warning(
-            "Constraint drop failed, you may want to do this "
-            "manually on your database. For context, this is a known "
-            "issue around undeterministic contraint names on Postgres "
-            "and perhaps more databases through SQLAlchemy.")
+            'Constraint drop failed, you may want to do this '
+            'manually on your database. For context, this is a known '
+            'issue around undeterministic contraint names on Postgres '
+            'and perhaps more databases through SQLAlchemy.')
         logging.exception(e)
 
 
