@@ -3,7 +3,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
+import { LegendOrdinal } from '@vx/legend';
+import { scaleOrdinal } from '@vx/scale';
 import { getColorFromScheme } from '../modules/colors';
+import './histogram.css';
 
 const propTypes = {
   className: PropTypes.string,
@@ -45,53 +48,58 @@ class CustomHistogram extends React.PureComponent {
       yAxisLabel,
     } = this.props;
 
-    const colorFn = value => getColorFromScheme(value, colorScheme);
+    const keys = data.map(d => d.key);
+    const colorScale = scaleOrdinal({
+      domain: keys,
+      range: keys.map(key => getColorFromScheme(key, colorScheme)),
+    });
 
     return (
-      <Histogram
-        width={width}
-        height={height}
-        ariaLabel="Histogram"
-        normalized={normalized}
-        binCount={binCount}
-        binType="numeric"
-        renderTooltip={({ datum, color }) => (
-          <div>
-            <strong style={{ color }}>{datum.bin0} to {datum.bin1}</strong>
-            <div><strong>count </strong>{datum.count}</div>
-            <div><strong>cumulative </strong>{datum.cumulative}</div>
-          </div>
-        )}
-        valueAccessor={datum => datum}
-        theme={chartTheme}
-      >
-        {data.map(series => (
-          <BarSeries
-            key={series.key}
-            animated
-            rawData={series.values}
-            fill={colorFn(series.key)}
-            fillOpacity={opacity}
+      <div className={`histogram-chart ${className}`}>
+        <div className="legend-container">
+          <LegendOrdinal
+            scale={colorScale}
+            direction="row"
+            shape="rect"
+            labelMargin="0 15px 0 0"
           />
-        ))}
-        <XAxis label={xAxisLabel} />
-        <YAxis label={yAxisLabel} />
-      </Histogram>
+        </div>
+        <Histogram
+          width={width}
+          height={height}
+          ariaLabel="Histogram"
+          normalized={normalized}
+          binCount={binCount}
+          binType="numeric"
+          renderTooltip={({ datum, color }) => (
+            <div>
+              <strong style={{ color }}>{datum.bin0} to {datum.bin1}</strong>
+              <div><strong>count </strong>{datum.count}</div>
+              <div><strong>cumulative </strong>{datum.cumulative}</div>
+            </div>
+          )}
+          valueAccessor={datum => datum}
+          theme={chartTheme}
+        >
+          {data.map(series => (
+            <BarSeries
+              key={series.key}
+              animated
+              rawData={series.values}
+              fill={colorScale(series.key)}
+              fillOpacity={opacity}
+            />
+          ))}
+          <XAxis label={xAxisLabel} />
+          <YAxis label={yAxisLabel} />
+        </Histogram>
+      </div>
     );
   }
 }
 
 CustomHistogram.propTypes = propTypes;
 CustomHistogram.defaultProps = defaultProps;
-
-//     // make legend
-//     const legend = nv.models.legend()
-//       .color(d => getColorFromScheme(d.key, colorScheme))
-//       .width(innerWidth);
-//     const gLegend = gEnter.append('g')
-//       .attr('class', 'nv-legendWrap')
-//       .attr('transform', 'translate(0,' + (-margin.top) + ')')
-//       .datum(data.map(d => ({ ...d, disabled: false })));
 
 function adaptor(slice, payload) {
   const { selector, formData } = slice;

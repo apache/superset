@@ -1,0 +1,6 @@
+.histogram-chart .legend-container {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  margin-top: 5px;
+}
