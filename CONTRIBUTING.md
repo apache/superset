@@ -539,7 +539,7 @@ For our example we'll be running this command:
 superset db migrate -m "add_metadata_column_to_annotation_model.py"
 ```
 
-This will generate a file in `superset/migrations/version/{SHA}_this_will_be_in_the_magration_filename.py`
+This will generate a file in `superset/migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`
 
 https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262
 
