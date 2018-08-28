@@ -10,31 +10,33 @@
         {% include 'appbuilder/navbar.html' %}
         </header>
     {% endblock %}
+    <div class='page-content'>
+      {% block uncontained %}{% endblock %}
 
-    {% block uncontained %}{% endblock %}
-
-    <div class="container">
-      <div class="row">
-          {% block messages %}
-            {% include 'superset/flash_wrapper.html' %}
-          {% endblock %}
-          {% block content %}
+      <div class="container">
+        <div class="row">
+            {% block messages %}
+              {% include 'superset/flash_wrapper.html' %}
+            {% endblock %}
+            {% block content %}
+            {% endblock %}
+        </div>
+      </div>
+      <div class="container-fluid">
+          {% block content_fluid %}
           {% endblock %}
       </div>
-    </div>
-    <div class="container-fluid">
-        {% block content_fluid %}
-        {% endblock %}
-    </div>
 
+    </div>
     {% block footer %}
         <footer>
           <div class="img-rounded nav-fixed-bottom">
               <div class="container-fluid">
-                  {% include 'appbuilder/footer.html' %}
+                  <div class='pull-right'>
+                      {{config['APP_FOOTER']|safe}}
+                  </div>
               </div>
           </div>
         </footer>
     {% endblock %}
 {% endblock %}
-
