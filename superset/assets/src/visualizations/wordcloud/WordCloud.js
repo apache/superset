@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
-import { getColorFromScheme } from '../modules/colors';
+import { getColorFromScheme } from '../../modules/colors';
 
 const ROTATION = {
   square: () => Math.floor((Math.random() * 2)) * 90,
@@ -78,8 +78,23 @@ function wordCloud(element, props) {
 
 wordCloud.propTypes = propTypes;
 
+function transform(data, formData) {
+  const {
+    metric,
+    series,
+  } = formData;
+
+  const transformedData = data.map(datum => ({
+    text: datum[series],
+    size: datum[metric],
+  }));
+
+  return transformedData;
+}
+
 function adaptor(slice, payload) {
   const { selector, formData } = slice;
+
   const {
     rotation,
     size_to: sizeTo,
@@ -88,8 +103,10 @@ function adaptor(slice, payload) {
   } = formData;
   const element = document.querySelector(selector);
 
+  const data = transform(payload.data, formData);
+
   return wordCloud(element, {
-    data: payload.data,
+    data,
     width: slice.width(),
     height: slice.height(),
     rotation,
