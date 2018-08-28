@@ -130,7 +130,7 @@ class CeleryTestCase(SupersetTestCase):
             data=dict(
                 database_id=db_id,
                 sql=sql,
-                async_=async_,
+                runAsync=async_,
                 select_as_cta=cta,
                 tmp_table_name=tmp_table,
                 client_id=client_id,

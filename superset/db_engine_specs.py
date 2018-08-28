@@ -370,10 +370,10 @@ class BaseEngineSpec(object):
         return {}
 
     @classmethod
-    def execute(cls, cursor, query, async_=False):
+    def execute(cls, cursor, query, **kwargs):
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        cursor.execute(query)
+        cursor.execute(query, **kwargs)
 
     @classmethod
     def adjust_df_column_names(cls, df, fd):
@@ -1276,8 +1276,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         return configuration
 
     @staticmethod
-    def execute(cursor, query, async_=False):
-        cursor.execute(query, async_=async_)
+    def execute(cursor, query, **kwargs):
+        cursor.execute(query, **kwargs)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
