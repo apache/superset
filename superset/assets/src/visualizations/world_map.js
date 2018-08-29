@@ -1,51 +1,67 @@
-// JS
-const d3 = require('d3');
-const Datamap = require('datamaps');
+import d3 from 'd3';
+import PropTypes from 'prop-types';
+import Datamap from 'datamaps';
+import './world_map.css';
 
-// CSS
-require('./world_map.css');
+const propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    country: PropTypes.string,
+    latitude: PropTypes.number,
+    longitude: PropTypes.number,
+    name: PropTypes.string,
+    m1: PropTypes.number,
+    m2: PropTypes.number,
+  })),
+  height: PropTypes.number,
+  maxBubbleSize: PropTypes.number,
+  showBubbles: PropTypes.bool,
+};
 
-function worldMapChart(slice, payload) {
-  const container = slice.container;
-  const div = d3.select(slice.selector);
+const formatter = d3.format('.3s');
 
-  container.css('height', slice.height());
+function WorldMap(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WorldMap');
+
+  const {
+    data,
+    height,
+    maxBubbleSize,
+    showBubbles,
+  } = props;
+
+  const div = d3.select(element);
+
+  const container = element;
+  container.style.height = `${height}px`;
   div.selectAll('*').remove();
-  const fd = slice.formData;
-  // Ignore XXX's to get better normalization
-  let data = payload.data.filter(d => (d.country && d.country !== 'XXX'));
 
-  const ext = d3.extent(data, function (d) {
-    return d.m1;
-  });
-  const extRadius = d3.extent(data, function (d) {
-    return d.m2;
-  });
+  // Ignore XXX's to get better normalization
+  const filteredData = data.filter(d => (d.country && d.country !== 'XXX'));
+
+  const ext = d3.extent(filteredData, d => d.m1);
+  const extRadius = d3.extent(filteredData, d => d.m2);
   const radiusScale = d3.scale.linear()
     .domain([extRadius[0], extRadius[1]])
-    .range([1, fd.max_bubble_size]);
+    .range([1, maxBubbleSize]);
 
   const colorScale = d3.scale.linear()
     .domain([ext[0], ext[1]])
     .range(['#FFF', 'black']);
 
-  data = data.map(d => Object.assign({}, d, {
+  const processedData = filteredData.map(d => ({
+    ...d,
     radius: radiusScale(d.m2),
     fillColor: colorScale(d.m1),
   }));
 
   const mapData = {};
-  data.forEach((d) => {
+  processedData.forEach((d) => {
     mapData[d.country] = d;
   });
 
-  const formatter = d3.format('.3s');
-
-  container.show();
-
   const map = new Datamap({
-    element: slice.container.get(0),
-    data,
+    element,
+    data: processedData,
     fills: {
       defaultFill: '#ddd',
     },
@@ -85,10 +101,28 @@ function worldMapChart(slice, payload) {
 
   map.updateChoropleth(mapData);
 
-  if (fd.show_bubbles) {
-    map.bubbles(data);
+  if (showBubbles) {
+    map.bubbles(processedData);
     div.selectAll('circle.datamaps-bubble').style('fill', '#005a63');
   }
 }
 
-module.exports = worldMapChart;
+WorldMap.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    max_bubble_size: maxBubbleSize,
+    show_bubbles: showBubbles,
+  } = formData;
+  const element = document.querySelector(selector);
+
+  return WorldMap(element, {
+    data: payload.data,
+    height: slice.height(),
+    maxBubbleSize: parseInt(maxBubbleSize, 10),
+    showBubbles,
+  });
+}
+
+export default adaptor;
