@@ -8,14 +8,12 @@ import './rose.css';
 
 const propTypes = {
   // Data is an object hashed by numeric value, perhaps timestamp
-  // Each entry is
-  // PropTypes.arrayOf(PropTypes.shape({
-  //   key: PropTypes.arrayOf(PropTypes.string),
-  //   name: PropTypes.arrayOf(PropTypes.string),
-  //   time: PropTypes.number,
-  //   value: PropTypes.number,
-  // })),
-  data: PropTypes.object,
+  data: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.arrayOf(PropTypes.string),
+    name: PropTypes.arrayOf(PropTypes.string),
+    time: PropTypes.number,
+    value: PropTypes.number,
+  }))),
   width: PropTypes.number,
   height: PropTypes.number,
   dateTimeFormat: PropTypes.string,
