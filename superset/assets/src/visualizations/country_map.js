@@ -74,6 +74,8 @@ function CountryMap(element, props) {
     let x;
     let y;
     let k;
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
 
     if (hasCenter) {
       const centroid = path.centroid(d);
@@ -82,15 +84,15 @@ function CountryMap(element, props) {
       k = 4;
       centered = d;
     } else {
-      x = width / 2;
-      y = height / 2;
+      x = halfWidth;
+      y = halfHeight;
       k = 1;
       centered = null;
     }
 
     g.transition()
       .duration(750)
-      .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')scale(' + k + ')translate(' + -x + ',' + -y + ')');
+      .attr('transform', `translate(${halfWidth},${halfHeight})scale(${k})translate(${-x},${-y})`);
     textLayer
         .style('opacity', 0)
         .attr('transform', `translate(0,0)translate(${x},${hasCenter ? (y - 5) : 45})`)
