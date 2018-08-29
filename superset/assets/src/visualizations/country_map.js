@@ -31,8 +31,6 @@ function CountryMap(element, props) {
     numberFormat,
   } = props;
 
-  let path;
-
   const container = element;
   const format = d3.format(numberFormat);
   const colorScaler = colorScalerFactory(linearColorScheme, data, v => v.metric);
@@ -42,7 +40,7 @@ function CountryMap(element, props) {
   });
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
-  path = d3.geo.path();
+  const path = d3.geo.path();
   const div = d3.select(container);
   div.selectAll('*').remove();
   container.style.height = `${height}px`;
@@ -153,7 +151,7 @@ function CountryMap(element, props) {
       .scale(scale)
       .center(center)
       .translate([width / 2, height / 2]);
-    path = path.projection(projection);
+    path.projection(projection);
 
     // Compute scale that fits container.
     const bounds = path.bounds(mapData);
