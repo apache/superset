@@ -17,7 +17,7 @@ const defaultProps = {
   suffix: t('rows'),
 };
 
-export default function RowCountLabel({ rowcount, limit }) {
+export default function RowCountLabel({ rowcount, limit, suffix }) {
   const limitReached = rowcount === limit;
   const bsStyle = (limitReached || rowcount === 0) ? 'warning' : 'default';
   const formattedRowCount = defaultNumberFormatter(rowcount);
