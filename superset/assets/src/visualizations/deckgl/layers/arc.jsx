@@ -47,7 +47,6 @@ function deckArc(slice, payload, setControlValue) {
   ReactDOM.render(
     <CategoricalDeckGLContainer
       slice={slice}
-      data={payload.data.features}
       mapboxApiKey={payload.data.mapboxApiKey}
       setControlValue={setControlValue}
       viewport={viewport}

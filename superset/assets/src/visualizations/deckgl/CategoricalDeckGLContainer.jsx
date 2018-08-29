@@ -30,7 +30,6 @@ function getCategories(fd, data) {
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  data: PropTypes.array.isRequired,
   mapboxApiKey: PropTypes.string.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
@@ -51,9 +50,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     const fd = nextProps.slice.formData;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.data.map(f => f.__timestamp);
+    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
     const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.data);
+    const categories = getCategories(fd, nextProps.payload.data.features);
 
     return { start, end, step, values, disabled, categories };
   }
@@ -81,7 +80,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   getLayers(values) {
     const fd = this.props.slice.formData;
-    let data = [...this.props.data];
+    let data = [...this.props.payload.data.features];
 
     // Add colors from categories or fixed color
     data = this.addColor(data, fd);
