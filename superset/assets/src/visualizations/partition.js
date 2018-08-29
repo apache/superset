@@ -1,19 +1,14 @@
 /* eslint no-param-reassign: [2, {"props": false}] */
-/* eslint no-use-before-define: ["error", { "functions": false }] */
 import d3 from 'd3';
-import {
-  d3TimeFormatPreset,
-} from '../modules/utils';
+import PropTypes from 'prop-types';
+import { hierarchy } from 'd3-hierarchy';
+import { d3TimeFormatPreset } from '../modules/utils';
 import { getColorFromScheme } from '../modules/colors';
-
 import './partition.css';
 
-d3.hierarchy = require('d3-hierarchy').hierarchy;
-d3.partition = require('d3-hierarchy').partition;
-
+// Compute dx, dy, x, y for each node and
+// return an array of nodes in breadth-first order
 function init(root) {
-  // Compute dx, dy, x, y for each node and
-  // return an array of nodes in breadth-first order
   const flat = [];
   const dy = 1.0 / (root.height + 1);
   let prev = null;
@@ -33,36 +28,85 @@ function init(root) {
   return flat;
 }
 
+// Declare PropTypes for recursive data structures
+// https://github.com/facebook/react/issues/5676
+const lazyFunction = f => (() => f().apply(this, arguments));
+ const leafType = PropTypes.shape({
+  name: PropTypes.string,
+  val: PropTypes.number.isRequired,
+});
+ const parentShape = {
+  name: PropTypes.string,
+  val: PropTypes.number.isRequired,
+  children: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.shape(lazyFunction(() => parentShape)),
+    leafType,
+  ])),
+};
+ const nodeType = PropTypes.oneOfType([
+  PropTypes.shape(parentShape),
+  leafType,
+]);
+
+const propTypes = {
+  data: PropTypes.arrayOf(nodeType), // array of rootNode
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+  dateTimeFormat: PropTypes.string,
+  equalDateSize: PropTypes.bool,
+  groupBy: PropTypes.arrayOf(PropTypes.string),
+  useLogScale: PropTypes.bool,
+  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ])),
+  numberFormat: PropTypes.string,
+  partitionLimit: PropTypes.number,
+  partitionThreshold: PropTypes.number,
+  useRichTooltip: PropTypes.bool,
+  timeSeriesOption: PropTypes.string,
+};
+
 // This vis is based on
 // http://mbostock.github.io/d3/talk/20111018/partition.html
-function partitionVis(slice, payload) {
-  const data = payload.data;
-  const fd = slice.formData;
-  const div = d3.select(slice.selector);
-  const metrics = fd.metrics || [];
+function Icicle(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Icicle');
+
+  const {
+    width,
+    height,
+    data,
+    colorScheme,
+    dateTimeFormat,
+    equalDateSize,
+    groupBy,
+    useLogScale = false,
+    metrics = [],
+    numberFormat,
+    partitionLimit,
+    partitionThreshold,
+    useRichTooltip,
+    timeSeriesOption = 'not_time',
+  } = props;
+
+  const div = d3.select(element);
 
   // Chart options
-  const logScale = fd.log_scale || false;
-  const chartType = fd.time_series_option || 'not_time';
+  const chartType = timeSeriesOption;
   const hasTime = ['adv_anal', 'time_series'].indexOf(chartType) >= 0;
-  const format = d3.format(fd.number_format);
-  const timeFormat = d3TimeFormatPreset(fd.date_time_format);
+  const format = d3.format(numberFormat);
+  const timeFormat = d3TimeFormatPreset(dateTimeFormat);
 
   div.selectAll('*').remove();
-  d3.selectAll('.nvtooltip').remove();
-  const tooltip = d3
-    .select('body')
+  const tooltip = div
     .append('div')
-    .attr('class', 'nvtooltip')
-    .style('opacity', 0)
-    .style('top', 0)
-    .style('left', 0)
-    .style('position', 'fixed');
+    .classed('partition-tooltip', true);
 
   function drawVis(i, dat) {
     const datum = dat[i];
-    const w = slice.width();
-    const h = slice.height() / data.length;
+    const w = width;
+    const h = height / data.length;
     const x = d3.scale.linear().range([0, w]);
     const y = d3.scale.linear().range([0, h]);
 
@@ -83,7 +127,7 @@ function partitionVis(slice, payload) {
       viz.style('padding-top', '3px');
     }
 
-    const root = d3.hierarchy(datum);
+    const root = hierarchy(datum);
 
     function hasDateNode(n) {
       return metrics.indexOf(n.data.name) >= 0 && hasTime;
@@ -103,12 +147,12 @@ function partitionVis(slice, payload) {
       // the time column, perform a date-time format
       if (n.parent && hasDateNode(n.parent)) {
         // Format timestamp values
-        n.weight = fd.equal_date_size ? 1 : n.value;
+        n.weight = equalDateSize ? 1 : n.value;
         n.value = n.name;
         n.name = timeFormat(n.name);
       }
-      if (logScale) n.weight = Math.log(n.weight + 1);
-      n.disp = n.disp && !isNaN(n.disp) && isFinite(n.disp) ? format(n.disp) : '';
+      if (useLogScale) n.weight = Math.log(n.weight + 1);
+      n.disp = n.disp && !Number.isNaN(n.disp) && isFinite(n.disp) ? format(n.disp) : '';
     });
     // Perform sort by weight
     root.sort((a, b) => {
@@ -121,20 +165,20 @@ function partitionVis(slice, payload) {
 
     // Prune data based on partition limit and threshold
     // both are applied at the same time
-    if (fd.partition_threshold && fd.partition_threshold >= 0) {
+    if (partitionThreshold && partitionThreshold >= 0) {
       // Compute weight sums as we go
       root.each((n) => {
         n.sum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
         if (n.children) {
           // Dates are not ordered by weight
           if (hasDateNode(n)) {
-            if (fd.equal_date_size) {
+            if (equalDateSize) {
               return;
             }
             const removeIndices = [];
             // Keep at least one child
             for (let j = 1; j < n.children.length; j++) {
-              if (n.children[j].weight / n.sum < fd.partition_threshold) {
+              if (n.children[j].weight / n.sum < partitionThreshold) {
                 removeIndices.push(j);
               }
             }
@@ -145,7 +189,7 @@ function partitionVis(slice, payload) {
             // Find first child that falls below the threshold
             let j;
             for (j = 1; j < n.children.length; j++) {
-              if (n.children[j].weight / n.sum < fd.partition_threshold) {
+              if (n.children[j].weight / n.sum < partitionThreshold) {
                 break;
               }
             }
@@ -154,11 +198,11 @@ function partitionVis(slice, payload) {
         }
       });
     }
-    if (fd.partition_limit && fd.partition_limit >= 0) {
+    if (partitionLimit && partitionLimit >= 0) {
       root.each((n) => {
-        if (n.children && n.children.length > fd.partition_limit) {
+        if (n.children && n.children.length > partitionLimit) {
           if (!hasDateNode(n)) {
-            n.children = n.children.slice(0, fd.partition_limit);
+            n.children = n.children.slice(0, partitionLimit);
           }
         }
       });
@@ -168,7 +212,6 @@ function partitionVis(slice, payload) {
       n.sum = n.children ? n.children.reduce((a, v) => a + v.weight, 0) || 1 : 1;
     });
 
-    const verboseMap = slice.datasource.verbose_map;
     function getCategory(depth) {
       if (!depth) {
         return 'Metric';
@@ -176,8 +219,7 @@ function partitionVis(slice, payload) {
       if (hasTime && depth === 1) {
         return 'Date';
       }
-      const col = fd.groupby[depth - (hasTime ? 2 : 1)];
-      return verboseMap[col] || col;
+      return groupBy[depth - (hasTime ? 2 : 1)];
     }
 
     function getAncestors(d) {
@@ -192,15 +234,34 @@ function partitionVis(slice, payload) {
 
     function positionAndPopulate(tip, d) {
       let t = '<table>';
-      if (!fd.rich_tooltip) {
+      if (useRichTooltip) {
+        const nodes = getAncestors(d);
+        nodes.reverse().forEach((n) => {
+          const atNode = n.depth === d.depth;
+          t += '<tbody>';
+          t += (
+            '<tr>' +
+              '<td>' +
+                '<div ' +
+                  `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
+                    `background-color: ${n.color};'` +
+                '></div>' +
+              '</td>' +
+              `<td>${getCategory(n.depth)}</td>` +
+              `<td>${n.name}</td>` +
+              `<td>${n.disp}</td>` +
+            '</tr>'
+          );
+        });
+      } else {
         t += (
           '<thead><tr><td colspan="3">' +
-            `<strong class='x-value'>${getCategory(d.depth)}</strong>` +
+            `<strong>${getCategory(d.depth)}</strong>` +
             '</td></tr></thead><tbody>'
         );
         t += (
-          '<tr class="emph">' +
-            '<td class="legend-color-guide" style="opacity: 0.75">' +
+          '<tr>' +
+            '<td>' +
               `<div style='border: thin solid grey; background-color: ${d.color};'` +
               '></div>' +
             '</td>' +
@@ -208,39 +269,30 @@ function partitionVis(slice, payload) {
             `<td>${d.disp}</td>` +
           '</tr>'
         );
-      } else {
-        const nodes = getAncestors(d);
-        nodes.forEach((n) => {
-          const atNode = n.depth === d.depth;
-          t += '<tbody>';
-          t += (
-            `<tr class='${atNode ? 'emph' : ''}'>` +
-              `<td class='legend-color-guide' style='opacity: ${atNode ? '1' : '0.75'}'>` +
-                '<div ' +
-                  `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
-                    `background-color: ${n.color};'` +
-                '></div>' +
-              '</td>' +
-              `<td>${n.name}</td>` +
-              `<td>${n.disp}</td>` +
-              `<td>${getCategory(n.depth)}</td>` +
-            '</tr>'
-          );
-        });
       }
       t += '</tbody></table>';
+      const [tipX, tipY] = d3.mouse(element);
       tip.html(t)
-        .style('left', (d3.event.pageX + 13) + 'px')
-        .style('top', (d3.event.pageY - 10) + 'px');
+        .style('left', (tipX + 15) + 'px')
+        .style('top', (tipY) + 'px');
+    }
+
+    const nodes = init(root);
+
+    let zoomX = w / root.dx;
+    let zoomY = h / 1;
+
+    // Keep text centered in its division
+    function transform(d) {
+      return `translate(8,${d.dx * zoomY / 2})`;
     }
 
     const g = viz
       .selectAll('g')
-      .data(init(root))
-      .enter()
+    .data(nodes)
+    .enter()
       .append('svg:g')
       .attr('transform', d => `translate(${x(d.y)},${y(d.x)})`)
-      .on('click', click)
       .on('mouseover', (d) => {
         tooltip
           .interrupt()
@@ -260,17 +312,47 @@ function partitionVis(slice, payload) {
           .style('opacity', 0);
       });
 
-    let kx = w / root.dx;
-    let ky = h / 1;
+    // When clicking a subdivision, the vis will zoom in to it
+    function click(d) {
+      if (!d.children) {
+        if (d.parent) {
+          // Clicking on the rightmost level should zoom in
+          return click(d.parent);
+        }
+        return false;
+      }
+      zoomX = (d.y ? w - 40 : w) / (1 - d.y);
+      zoomY = h / d.dx;
+      x.domain([d.y, 1]).range([d.y ? 40 : 0, w]);
+      y.domain([d.x, d.x + d.dx]);
+
+      const t = g
+        .transition()
+        .duration(d3.event.altKey ? 7500 : 750)
+        .attr('transform', nd => `translate(${x(nd.y)},${y(nd.x)})`);
+
+      t.select('rect')
+        .attr('width', d.dy * zoomX)
+        .attr('height', nd => nd.dx * zoomY);
+
+      t.select('text')
+      .attr('transform', transform)
+      .style('opacity', nd => nd.dx * zoomY > 12 ? 1 : 0);
+
+      d3.event.stopPropagation();
+      return true;
+    }
+
+    g.on('click', click);
 
     g.append('svg:rect')
-      .attr('width', root.dy * kx)
-      .attr('height', d => d.dx * ky);
+      .attr('width', root.dy * zoomX)
+      .attr('height', d => d.dx * zoomY);
 
     g.append('svg:text')
       .attr('transform', transform)
       .attr('dy', '0.35em')
-      .style('opacity', d => d.dx * ky > 12 ? 1 : 0)
+      .style('opacity', d => d.dx * zoomY > 12 ? 1 : 0)
       .text((d) => {
         if (!d.disp) {
           return d.name;
@@ -281,53 +363,52 @@ function partitionVis(slice, payload) {
     // Apply color scheme
     g.selectAll('rect')
       .style('fill', (d) => {
-        d.color = getColorFromScheme(d.name, fd.color_scheme);
+        d.color = getColorFromScheme(d.name, colorScheme);
         return d.color;
       });
-
-    // Zoom out when clicking outside vis
-    // d3.select(window)
-    // .on('click', () => click(root));
-
-    // Keep text centered in its division
-    function transform(d) {
-      return `translate(8,${d.dx * ky / 2})`;
-    }
-
-    // When clicking a subdivision, the vis will zoom in to it
-    function click(d) {
-      if (!d.children) {
-        if (d.parent) {
-          // Clicking on the rightmost level should zoom in
-          return click(d.parent);
-        }
-        return false;
-      }
-      kx = (d.y ? w - 40 : w) / (1 - d.y);
-      ky = h / d.dx;
-      x.domain([d.y, 1]).range([d.y ? 40 : 0, w]);
-      y.domain([d.x, d.x + d.dx]);
-
-      const t = g
-        .transition()
-        .duration(d3.event.altKey ? 7500 : 750)
-        .attr('transform', nd => `translate(${x(nd.y)},${y(nd.x)})`);
-
-      t.select('rect')
-        .attr('width', d.dy * kx)
-        .attr('height', nd => nd.dx * ky);
-
-      t.select('text')
-      .attr('transform', transform)
-      .style('opacity', nd => nd.dx * ky > 12 ? 1 : 0);
-
-      d3.event.stopPropagation();
-      return true;
-    }
   }
+
   for (let i = 0; i < data.length; i++) {
     drawVis(i, data);
   }
 }
 
-module.exports = partitionVis;
+Icicle.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData, datasource } = slice;
+  const {
+    color_scheme: colorScheme,
+    date_time_format: dateTimeFormat,
+    equal_date_size: equalDateSize,
+    groupby: groupBy,
+    log_scale: useLogScale,
+    metrics,
+    number_format: numberFormat,
+    partition_limit: partitionLimit,
+    partition_threshold: partitionThreshold,
+    rich_tooltip: useRichTooltip,
+    time_series_option: timeSeriesOption,
+  } = formData;
+  const { verbose_map: verboseMap } = datasource;
+  const element = document.querySelector(selector);
+
+  return Icicle(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+    dateTimeFormat,
+    equalDateSize,
+    groupBy: groupBy.map(g => verboseMap[g] || g),
+    useLogScale,
+    metrics,
+    numberFormat,
+    partitionLimit: partitionLimit && parseInt(partitionLimit, 10),
+    partitionThreshold: partitionThreshold && parseInt(partitionThreshold, 10),
+    useRichTooltip,
+    timeSeriesOption,
+  });
+}
+
+export default adaptor;
