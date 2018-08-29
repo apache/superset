@@ -43,12 +43,11 @@
   },
   "homepage": "http://superset.apache.org/",
   "dependencies": {
-    "@data-ui/event-flow": "^0.0.62",
+    "@data-ui/event-flow": "^0.0.54",
     "@data-ui/sparkline": "^0.0.54",
     "@data-ui/xy-chart": "^0.0.61",
     "@vx/responsive": "0.0.153",
     "abortcontroller-polyfill": "^1.1.9",
-    "aphrodite": "^1.2.0",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
