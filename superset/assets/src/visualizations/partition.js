@@ -66,7 +66,6 @@ const propTypes = {
   partitionThreshold: PropTypes.number,
   useRichTooltip: PropTypes.bool,
   timeSeriesOption: PropTypes.string,
-  verboseMap: PropTypes.object,
 };
 
 // This vis is based on
@@ -89,7 +88,6 @@ function Icicle(element, props) {
     partitionThreshold,
     useRichTooltip,
     timeSeriesOption = 'not_time',
-    verboseMap,
   } = props;
 
   const div = d3.select(element);
@@ -221,8 +219,7 @@ function Icicle(element, props) {
       if (hasTime && depth === 1) {
         return 'Date';
       }
-      const col = groupBy[depth - (hasTime ? 2 : 1)];
-      return verboseMap[col] || col;
+      return groupBy[depth - (hasTime ? 2 : 1)];
     }
 
     function getAncestors(d) {
@@ -403,7 +400,7 @@ function adaptor(slice, payload) {
     colorScheme,
     dateTimeFormat,
     equalDateSize,
-    groupBy,
+    groupBy: groupBy.map(g => verboseMap[g] || g),
     useLogScale,
     metrics,
     numberFormat,
@@ -411,7 +408,6 @@ function adaptor(slice, payload) {
     partitionThreshold: partitionThreshold && parseInt(partitionThreshold, 10),
     useRichTooltip,
     timeSeriesOption,
-    verboseMap,
   });
 }
 
