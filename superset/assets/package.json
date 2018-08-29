@@ -155,7 +155,7 @@
     "less": "^2.6.1",
     "less-loader": "^4.1.0",
     "mini-css-extract-plugin": "^0.4.0",
-    "mocha": "^3.2.0",
+    "mocha": "^3.5.3",
     "npm-check-updates": "^2.14.0",
     "po2json": "^0.4.5",
     "prettier": "^1.12.1",
