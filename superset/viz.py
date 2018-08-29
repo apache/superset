@@ -2166,7 +2166,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
 
         # add NULL filters
-        if fd.get('filter_nulls'):
+        if fd.get('filter_nulls', True):
             self.add_null_filters()
 
         d = super(BaseDeckGLViz, self).query_obj()
@@ -2432,10 +2432,9 @@ class DeckArc(BaseDeckGLViz):
 
     def get_data(self, df):
         d = super(DeckArc, self).get_data(df)
-        arcs = d['features']
 
         return {
-            'arcs': arcs,
+            'features': d['features'],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
