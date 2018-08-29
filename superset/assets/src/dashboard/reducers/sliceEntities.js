@@ -37,7 +37,7 @@ export default function sliceEntitiesReducer(
         ...state,
         isLoading: false,
         lastUpdated: new Date().getTime(),
-        errorMessage: t('Could not fetch all saved charts'),
+        errorMessage: action.error || t('Could not fetch all saved charts'),
       };
     },
   };

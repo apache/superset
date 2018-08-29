@@ -2,6 +2,8 @@
 import 'babel-polyfill';
 import chai from 'chai';
 import jsdom from 'jsdom';
+import { SupersetClient } from '../../src/packages/core/src';
+import fetchMock from 'fetch-mock'; // eslint-disable-line import/first
 
 require('babel-register')({
   // NOTE: If `dynamic-import-node` is in .babelrc alongside
@@ -47,3 +49,11 @@ global.window.XMLHttpRequest = global.XMLHttpRequest;
 global.window.location = { href: 'about:blank' };
 global.window.performance = { now: () => new Date().getTime() };
 global.$ = require('jquery')(global.window);
+
+// The following are needed to mock out SupersetClient requests
+// including CSRF authentication and initialization
+global.FormData = window.FormData;
+fetchMock.get(/superset\/csrf_token/, { csrf_token: '1234' });
+SupersetClient.getInstance({ protocol: 'http', host: 'localhost' })
+  .init()
+  .then(() => fetchMock.reset()); // remove this call from mocks

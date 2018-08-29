@@ -44,14 +44,14 @@ export default class SupersetClient {
         }
 
         if (!this.csrfToken) {
-          return this.ensureAuth();
+          return Promise.reject({ error: 'Failed to fetch CSRF token' });
         }
 
         this.requestingCsrf = false;
 
         return response;
       })
-      .catch(error => Promise.reject(new Error(error)));
+      .catch(error => Promise.reject(error));
   }
 
   getUrlFromEndpoint(endpoint) {
@@ -113,36 +113,6 @@ export default class SupersetClient {
         timeout: timeout || this.timeout,
         signal,
         stringify,
-      }),
-    );
-  }
-
-  put({ url, endpoint, headers, body, postPayload, timeout, signal, stringify }) {
-    return this.ensureAuth().then(() =>
-      callApi({
-        method: 'PUT',
-        url: url || this.getUrlFromEndpoint(endpoint),
-        headers: { ...this.headers, ...headers },
-        body,
-        postPayload,
-        stringify,
-        mode: this.mode,
-        timeout: timeout || this.timeout,
-        signal,
-      }),
-    );
-  }
-
-  destroy({ url, endpoint, headers, body, timeout, signal }) {
-    return this.ensureAuth().then(() =>
-      callApi({
-        method: 'DELETE',
-        url: url || this.getUrlFromEndpoint(endpoint),
-        headers: { ...this.headers, ...headers },
-        body,
-        mode: this.mode,
-        timeout: timeout || this.timeout,
-        signal,
       }),
     );
   }

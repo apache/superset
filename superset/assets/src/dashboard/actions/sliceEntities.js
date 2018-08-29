@@ -67,7 +67,13 @@ export function fetchAllSlices(userId) {
         })
         .catch(error =>
           Promise.all([
-            dispatch(fetchAllSlicesFailed(error)),
+            dispatch(
+              fetchAllSlicesFailed(
+                error.error ||
+                  error.statusText ||
+                  t('Could not fetch all saved charts'),
+              ),
+            ),
             dispatch(
               addDangerToast(
                 t('Sorry there was an error fetching saved charts: ') +

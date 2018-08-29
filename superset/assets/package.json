@@ -67,6 +67,7 @@
     "dnd-core": "^2.6.0",
     "dompurify": "^1.0.3",
     "fastdom": "^1.0.6",
+    "formdata-polyfill": "^3.0.11",
     "geojson-extent": "^0.3.2",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
@@ -122,6 +123,7 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
+    "url-search-params-polyfill": "^4.0.1",
     "viewport-mercator-project": "^5.0.0",
     "whatwg-fetch": "^2.0.4"
   },
@@ -148,6 +150,7 @@
     "eslint-plugin-prettier": "^2.6.0",
     "eslint-plugin-react": "^7.0.1",
     "exports-loader": "^0.7.0",
+    "fetch-mock": "^6.5.2",
     "file-loader": "^1.1.11",
     "github-changes": "^1.0.4",
     "ignore-styles": "^5.0.1",

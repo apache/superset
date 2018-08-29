@@ -168,6 +168,7 @@ export function postStopQuery(query) {
         postPayload: { client_id: query.id },
         stringify: false,
       })
+      .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
       .catch(() => dispatch(addDangerToast(t('Failed at stopping query. ') + `'${query.id}'`)));
   };

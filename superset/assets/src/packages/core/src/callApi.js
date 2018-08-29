@@ -1,6 +1,9 @@
+/* global FormData, fetch */
 import 'whatwg-fetch';
+import 'abortcontroller-polyfill';
+import 'url-search-params-polyfill';
 
-const DEFAULT_HEADERS = {}; // { 'Content-Type': 'application/json' };
+const DEFAULT_HEADERS = {};
 
 // This function fetches an API response and returns the corresponding json
 export function callApi({
@@ -29,9 +32,11 @@ export function callApi({
       }
     });
 
+    // console.log(formData);
+
     request = {
       ...request,
-      body: new URLSearchParams(formData), // @TODO polyfill
+      body: formData, // new URLSearchParams(formData),
     };
   }
 
@@ -58,7 +63,7 @@ export function callApi({
         }
 
         return Promise.reject({
-          error: error.error || error.message || 'An error occurred', // @TODO how to use t()?
+          error: error.error || error.message || 'An error occurred',
           status: error.status || error.code,
           statusText: error.statusText || error.name,
           link: error.link,
@@ -68,7 +73,7 @@ export function callApi({
     .then(({ response, json, text }) => {
       if (!response.ok) {
         return Promise.reject({
-          error: (json && json.error) || text || 'An error occurred', // @TODO how to use t()?
+          error: (json && json.error) || text || 'An error occurred',
           status: response.status,
           statusText: response.statusText,
         });
@@ -86,7 +91,7 @@ export function callApi({
 // We pass the timeoutId to callApi so that it can clear it
 export default function callApiWithTimeout({ timeout, ...rest }) {
   let timeoutId;
-
+  console.log('callapi', rest.url);
   return Promise.race([
     callApi({ ...rest, timeoutId }),
     new Promise((_, reject) => {
