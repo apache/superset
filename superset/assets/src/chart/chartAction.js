@@ -1,3 +1,5 @@
+import URI from 'urijs';
+
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
@@ -201,23 +203,28 @@ export function runQuery(formData, force = false, timeout = 60, key) {
   };
 }
 
+export const SQLLAB_REDIRECT_FAILED = 'SQLLAB_REDIRECT_FAILED';
+export function sqllabRedirectFailed(error, key) {
+  return { type: SQLLAB_REDIRECT_FAILED, error, key };
+}
+
 export function redirectSQLLab(formData) {
-  return function () {
-    const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
+  return function (dispatch) {
+    const { url, payload } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
     $.ajax({
-      type: 'GET',
+      type: 'POST',
       url,
-      success: (response) => {
-        const redirectUrl = new URL(window.location);
-        redirectUrl.pathname = '/superset/sqllab';
-        for (const k of redirectUrl.searchParams.keys()) {
-          redirectUrl.searchParams.delete(k);
-        }
-        redirectUrl.searchParams.set('datasourceKey', formData.datasource);
-        redirectUrl.searchParams.set('sql', response.query);
-        window.open(redirectUrl.href, '_blank');
+      data: {
+        form_data: JSON.stringify(payload),
       },
-      error: () => notify.error(t("The SQL couldn't be loaded")),
+      success: (response) => {
+        const redirectUrl = new URI(window.location);
+        redirectUrl
+          .pathname('/superset/sqllab')
+          .search({ datasourceKey: formData.datasource, sql: response.query });
+        window.open(redirectUrl.href(), '_blank');
+      },
+      error: (xhr, status, error) => dispatch(sqllabRedirectFailed(error, formData.slice_id)),
     });
   };
 }
