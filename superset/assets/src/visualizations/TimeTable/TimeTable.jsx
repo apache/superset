@@ -40,8 +40,8 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
 const propTypes = {
   className: PropTypes.string,
   height: PropTypes.number,
-  data: PropTypes.object,
-  columnCollection: PropTypes.arrayOf(PropTypes.object),
+  data: PropTypes.object.isRequired,
+  columnCollection: PropTypes.arrayOf(PropTypes.object).isRequired,
   rows: PropTypes.arrayOf(PropTypes.oneOfType([
     PropTypes.shape({
       label: PropTypes.string,
@@ -49,12 +49,14 @@ const propTypes = {
     PropTypes.shape({
       metric_name: PropTypes.string,
     }),
-  ])),
-  rowType: PropTypes.oneOf(['column', 'metric']),
+  ])).isRequired,
+  rowType: PropTypes.oneOf(['column', 'metric']).isRequired,
   url: PropTypes.string,
 };
 const defaultProps = {
   className: '',
+  height: undefined,
+  url: '',
 };
 
 class TimeTable extends React.PureComponent {
