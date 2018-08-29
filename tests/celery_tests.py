@@ -123,14 +123,14 @@ class CeleryTestCase(SupersetTestCase):
         )
 
     def run_sql(self, db_id, sql, client_id, cta='false', tmp_table='tmp',
-                async='false'):
+                async_='false'):
         self.login()
         resp = self.client.post(
             '/superset/sql_json/',
             data=dict(
                 database_id=db_id,
                 sql=sql,
-                async=async,
+                runAsync=async_,
                 select_as_cta=cta,
                 tmp_table_name=tmp_table,
                 client_id=client_id,
@@ -183,7 +183,7 @@ class CeleryTestCase(SupersetTestCase):
         eng = main_db.get_sqla_engine()
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result = self.run_sql(
-            main_db.id, sql_where, '4', async='true', tmp_table='tmp_async_1',
+            main_db.id, sql_where, '4', async_='true', tmp_table='tmp_async_1',
             cta='true')
         assert result['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
@@ -211,7 +211,7 @@ class CeleryTestCase(SupersetTestCase):
         eng = main_db.get_sqla_engine()
         sql_where = "SELECT name FROM ab_role WHERE name='Alpha' LIMIT 1"
         result = self.run_sql(
-            main_db.id, sql_where, '5', async='true', tmp_table='tmp_async_2',
+            main_db.id, sql_where, '5', async_='true', tmp_table='tmp_async_2',
             cta='true')
         assert result['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)

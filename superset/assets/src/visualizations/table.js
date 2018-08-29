@@ -228,9 +228,12 @@ function TableVis(element, props) {
   fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
   let sortBy;
-  if (timeseriesLimitMetric) {
+  const limitMetric = Array.isArray(timeseriesLimitMetric)
+    ? timeseriesLimitMetric[0]
+    : timeseriesLimitMetric;
+  if (limitMetric) {
     // Sort by as specified
-    sortBy = timeseriesLimitMetric.label || timeseriesLimitMetric;
+    sortBy = limitMetric.label || limitMetric;
   } else if (metrics.length > 0) {
     // If not specified, use the first metric from the list
     sortBy = metrics[0];

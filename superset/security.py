@@ -383,3 +383,47 @@ class SupersetSecurityManager(SecurityManager):
         return pvm.permission.name in {
             'can_override_role_permissions', 'can_approve',
         }
+
+    def set_perm(self, mapper, connection, target):  # noqa
+        if target.perm != target.get_perm():
+            link_table = target.__table__
+            connection.execute(
+                link_table.update()
+                .where(link_table.c.id == target.id)
+                .values(perm=target.get_perm()),
+            )
+
+        # add to view menu if not already exists
+        permission_name = 'datasource_access'
+        view_menu_name = target.get_perm()
+        permission = self.find_permission(permission_name)
+        view_menu = self.find_view_menu(view_menu_name)
+        pv = None
+
+        if not permission:
+            permission_table = self.permission_model.__table__  # noqa: E501 pylint: disable=no-member
+            connection.execute(
+                permission_table.insert()
+                .values(name=permission_name),
+            )
+            permission = self.find_permission(permission_name)
+        if not view_menu:
+            view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+            connection.execute(
+                view_menu_table.insert()
+                .values(name=view_menu_name),
+            )
+            view_menu = self.find_view_menu(view_menu_name)
+
+        if permission and view_menu:
+            pv = self.get_session.query(self.permissionview_model).filter_by(
+                permission=permission, view_menu=view_menu).first()
+        if not pv and permission and view_menu:
+            permission_view_table = self.permissionview_model.__table__  # noqa: E501 pylint: disable=no-member
+            connection.execute(
+                permission_view_table.insert()
+                .values(
+                    permission_id=permission.id,
+                    view_menu_id=view_menu.id,
+                ),
+            )

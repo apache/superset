@@ -525,6 +525,16 @@ export const spectrums = {
   ],
 };
 
+export function hexToRGB(hex, alpha = 255) {
+  if (!hex) {
+    return [0, 0, 0, alpha];
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b, alpha];
+}
+
 /**
  * Get a color from a scheme specific palette (scheme)
  * The function cycles through the palette while memoizing labels
@@ -566,7 +576,7 @@ export const getColorFromScheme = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor, extents) {
+export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
@@ -581,15 +591,9 @@ export const colorScalerFactory = function (colors, data, accessor, extents) {
   }
   const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
   const points = colors.map((col, i) => ext[0] + (i * chunkSize));
-  return d3.scale.linear().domain(points).range(colors).clamp(true);
-};
-
-export function hexToRGB(hex, alpha = 255) {
-  if (!hex) {
-    return [0, 0, 0, alpha];
+  const scaler = d3.scale.linear().domain(points).range(colors).clamp(true);
+  if (outputRGBA) {
+    return v => hexToRGB(scaler(v));
   }
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b, alpha];
-}
+  return scaler;
+};
