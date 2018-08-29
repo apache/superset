@@ -240,8 +240,8 @@ function Icicle(element, props) {
           const atNode = n.depth === d.depth;
           t += '<tbody>';
           t += (
-            `<tr class='${atNode ? 'emph' : ''}'>` +
-              `<td class='legend-color-guide' style='opacity: ${atNode ? '1' : '0.75'}'>` +
+            '<tr>' +
+              '<td>' +
                 '<div ' +
                   `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
                     `background-color: ${n.color};'` +
@@ -256,12 +256,12 @@ function Icicle(element, props) {
       } else {
         t += (
           '<thead><tr><td colspan="3">' +
-            `<strong class='x-value'>${getCategory(d.depth)}</strong>` +
+            `<strong>${getCategory(d.depth)}</strong>` +
             '</td></tr></thead><tbody>'
         );
         t += (
-          '<tr class="emph">' +
-            '<td class="legend-color-guide" style="opacity: 0.75">' +
+          '<tr>' +
+            '<td>' +
               `<div style='border: thin solid grey; background-color: ${d.color};'` +
               '></div>' +
             '</td>' +
@@ -279,12 +279,12 @@ function Icicle(element, props) {
 
     const nodes = init(root);
 
-    let kx = w / root.dx;
-    let ky = h / 1;
+    let zoomX = w / root.dx;
+    let zoomY = h / 1;
 
     // Keep text centered in its division
     function transform(d) {
-      return `translate(8,${d.dx * ky / 2})`;
+      return `translate(8,${d.dx * zoomY / 2})`;
     }
 
     const g = viz
@@ -321,8 +321,8 @@ function Icicle(element, props) {
         }
         return false;
       }
-      kx = (d.y ? w - 40 : w) / (1 - d.y);
-      ky = h / d.dx;
+      zoomX = (d.y ? w - 40 : w) / (1 - d.y);
+      zoomY = h / d.dx;
       x.domain([d.y, 1]).range([d.y ? 40 : 0, w]);
       y.domain([d.x, d.x + d.dx]);
 
@@ -332,12 +332,12 @@ function Icicle(element, props) {
         .attr('transform', nd => `translate(${x(nd.y)},${y(nd.x)})`);
 
       t.select('rect')
-        .attr('width', d.dy * kx)
-        .attr('height', nd => nd.dx * ky);
+        .attr('width', d.dy * zoomX)
+        .attr('height', nd => nd.dx * zoomY);
 
       t.select('text')
       .attr('transform', transform)
-      .style('opacity', nd => nd.dx * ky > 12 ? 1 : 0);
+      .style('opacity', nd => nd.dx * zoomY > 12 ? 1 : 0);
 
       d3.event.stopPropagation();
       return true;
@@ -346,13 +346,13 @@ function Icicle(element, props) {
     g.on('click', click);
 
     g.append('svg:rect')
-      .attr('width', root.dy * kx)
-      .attr('height', d => d.dx * ky);
+      .attr('width', root.dy * zoomX)
+      .attr('height', d => d.dx * zoomY);
 
     g.append('svg:text')
       .attr('transform', transform)
       .attr('dy', '0.35em')
-      .style('opacity', d => d.dx * ky > 12 ? 1 : 0)
+      .style('opacity', d => d.dx * zoomY > 12 ? 1 : 0)
       .text((d) => {
         if (!d.disp) {
           return d.name;
