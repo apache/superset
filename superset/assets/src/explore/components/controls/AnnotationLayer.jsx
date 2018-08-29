@@ -272,20 +272,20 @@ export default class AnnotationLayer extends React.PureComponent {
     let description = '';
     if (requiresQuery(sourceType)) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        label = 'Annotation Layer';
-        description = 'Select the Annotation Layer you would like to use.';
+        label = t('Annotation Layer');
+        description = t('Select the Annotation Layer you would like to use.');
       } else {
-        label = 'Slice';
-        description = `Use a pre defined Superset Slice as a source for annotations and overlays. 
+        label = t('Chart');
+        description = `Use a pre defined Superset Chart as a source for annotations and overlays. 
         'your chart must be one of these visualization types:
         '[${getSupportedSourceTypes(annotationType)
             .map(x => vizTypes[x].label).join(', ')}]'`;
       }
     } else if (annotationType === AnnotationTypes.FORMULA) {
-      label = 'Formula';
-      description = `Expects a formula with depending time parameter 'x'
+      label = t('Formula');
+      description = t(`Expects a formula with depending time parameter 'x'
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
-        Example: '2x+5'`;
+        Example: '2x+5'`);
     }
     if (requiresQuery(sourceType)) {
       return (
@@ -300,7 +300,7 @@ export default class AnnotationLayer extends React.PureComponent {
           isLoading={isLoadingOptions}
           value={value}
           onChange={this.handleValue}
-          validationErrors={!value ? ['Mandatory'] : []}
+          validationErrors={!value ? [t('Mandatory')] : []}
         />
       );
     } if (annotationType === AnnotationTypes.FORMULA) {
@@ -314,7 +314,7 @@ export default class AnnotationLayer extends React.PureComponent {
           placeholder=""
           value={value}
           onChange={this.handleValue}
-          validationErrors={this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []}
+          validationErrors={this.isValidFormula(value, annotationType) ? [t('Bad formula.')] : []}
         />
       );
     }
@@ -530,7 +530,7 @@ export default class AnnotationLayer extends React.PureComponent {
               bsSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
-              Automatic Color
+              {t('Automatic Color')}
             </Button>
           </div>
         </div>
@@ -545,8 +545,8 @@ export default class AnnotationLayer extends React.PureComponent {
         <CheckboxControl
           hovered
           name="annotation-layer-show-markers"
-          label="Show Markers"
-          description={'Shows or hides markers for the time series'}
+          label={t('Show Markers')}
+          description={t('Shows or hides markers for the time series')}
           value={showMarkers}
           onChange={v => this.setState({ showMarkers: v })}
         />
@@ -555,8 +555,8 @@ export default class AnnotationLayer extends React.PureComponent {
         <CheckboxControl
           hovered
           name="annotation-layer-hide-line"
-          label="Hide Line"
-          description={'Hides the Line for the time series'}
+          label={t('Hide Line')}
+          description={t('Hides the Line for the time series')}
           value={hideLine}
           onChange={v => this.setState({ hideLine: v })}
         />
@@ -612,8 +612,8 @@ export default class AnnotationLayer extends React.PureComponent {
               {!!getSupportedSourceTypes(annotationType).length &&
                 <SelectControl
                   hovered
-                  description="Choose the source of your annotations"
-                  label="Annotation Source"
+                  description={t('Choose the source of your annotations')}
+                  label={t('Annotation Source')}
                   name="annotation-source-type"
                   options={getSupportedSourceTypes(annotationType).map(
                         x => ({ value: x, label: getAnnotationSourceTypeLabels(x) }))}

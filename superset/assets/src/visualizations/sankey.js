@@ -1,28 +1,47 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
+import { sankey as d3Sankey } from 'd3-sankey';
 import { getColorFromScheme } from '../modules/colors';
 import './sankey.css';
 
-d3.sankey = require('d3-sankey').sankey;
+const propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    source: PropTypes.string,
+    target: PropTypes.string,
+    value: PropTypes.number,
+  })),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  colorScheme: PropTypes.string,
+};
 
+const formatNumber = d3.format(',.2f');
 
-function sankeyVis(slice, payload) {
-  const div = d3.select(slice.selector);
+function Sankey(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Sankey');
+
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+  } = props;
+
+  const div = d3.select(element);
   const margin = {
     top: 5,
     right: 5,
     bottom: 5,
     left: 5,
   };
-  const width = slice.width() - margin.left - margin.right;
-  const height = slice.height() - margin.top - margin.bottom;
-
-  const formatNumber = d3.format(',.2f');
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
 
   div.selectAll('*').remove();
   const svg = div.append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
+    .attr('width', innerWidth + margin.left + margin.right)
+    .attr('height', innerHeight + margin.top + margin.bottom)
     .append('g')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
@@ -30,16 +49,16 @@ function sankeyVis(slice, payload) {
     .attr('class', 'sankey-tooltip')
     .style('opacity', 0);
 
-  const sankey = d3.sankey()
+  const sankey = d3Sankey()
     .nodeWidth(15)
     .nodePadding(10)
-    .size([width, height]);
+    .size([innerWidth, innerHeight]);
 
   const path = sankey.link();
 
   let nodes = {};
   // Compute the distinct nodes from the links.
-  const links = payload.data.map(function (row) {
+  const links = data.map(function (row) {
     const link = Object.assign({}, row);
     link.source = nodes[link.source] || (nodes[link.source] = { name: link.source });
     link.target = nodes[link.target] || (nodes[link.target] = { name: link.target });
@@ -120,13 +139,9 @@ function sankeyVis(slice, payload) {
     .enter()
     .append('g')
     .attr('class', 'node')
-    .attr('transform', function (d) {
-      return 'translate(' + d.x + ',' + d.y + ')';
-    })
+    .attr('transform', d => 'translate(' + d.x + ',' + d.y + ')')
     .call(d3.behavior.drag()
-      .origin(function (d) {
-        return d;
-      })
+      .origin(d => d)
       .on('dragstart', function () {
         this.parentNode.appendChild(this);
       })
@@ -138,31 +153,38 @@ function sankeyVis(slice, payload) {
     .attr('width', sankey.nodeWidth())
     .style('fill', function (d) {
       const name = d.name || 'N/A';
-      d.color = getColorFromScheme(name.replace(/ .*/, ''), slice.formData.color_scheme);
+      d.color = getColorFromScheme(name.replace(/ .*/, ''), colorScheme);
       return d.color;
     })
-    .style('stroke', function (d) {
-      return d3.rgb(d.color).darker(2);
-    })
+    .style('stroke', d => d3.rgb(d.color).darker(2))
     .on('mouseover', onmouseover)
     .on('mouseout', onmouseout);
 
   node.append('text')
     .attr('x', -6)
-    .attr('y', function (d) {
-      return d.dy / 2;
-    })
+    .attr('y', d => d.dy / 2)
     .attr('dy', '.35em')
     .attr('text-anchor', 'end')
     .attr('transform', null)
-    .text(function (d) {
-      return d.name;
-    })
-    .filter(function (d) {
-      return d.x < width / 2;
-    })
+    .text(d => d.name)
+    .filter(d => d.x < innerWidth / 2)
     .attr('x', 6 + sankey.nodeWidth())
     .attr('text-anchor', 'start');
 }
 
-module.exports = sankeyVis;
+Sankey.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const { color_scheme: colorScheme } = formData;
+  const element = document.querySelector(selector);
+
+  return Sankey(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+  });
+}
+
+export default adaptor;

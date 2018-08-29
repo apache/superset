@@ -242,6 +242,14 @@ export const controls = {
     renderTrigger: true,
   },
 
+  target_color_picker: {
+    label: t('Target Color'),
+    description: t('Color of the target location'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
   legend_position: {
     label: t('Legend Position'),
     description: t('Choose the position of the legend'),
@@ -383,14 +391,15 @@ export const controls = {
 
   horizon_color_scale: {
     type: 'SelectControl',
-    label: t('Horizon Color Scale'),
+    renderTrigger: true,
+    label: t('Value Domain'),
     choices: [
       ['series', 'series'],
       ['overall', 'overall'],
       ['change', 'change'],
     ],
     default: 'series',
-    description: t('Defines how the color are attributed.'),
+    description: t('series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series'),
   },
 
   canvas_image_rendering: {
@@ -725,6 +734,7 @@ export const controls = {
     label: t('Stroke Width'),
     validators: [v.integer],
     default: null,
+    renderTrigger: true,
     choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
@@ -1205,6 +1215,7 @@ export const controls = {
 
   series_height: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Series Height'),
     default: '25',
@@ -1459,10 +1470,10 @@ export const controls = {
 
   table_filter: {
     type: 'CheckboxControl',
-    label: t('Table Filter'),
+    label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to apply filter when table cell is clicked'),
+    description: t('Whether to apply filter when items are clicked'),
   },
 
   align_pn: {
@@ -1764,6 +1775,17 @@ export const controls = {
     isFloat: true,
     description: t('Opacity of all clusters, points, and labels. ' +
     'Between 0 and 1.'),
+  },
+
+  opacity: {
+    type: 'SliderControl',
+    label: t('Opacity'),
+    default: 80,
+    step: 1,
+    min: 0,
+    max: 100,
+    renderTrigger: true,
+    description: t('Opacity, expects values between 0 and 100'),
   },
 
   viewport: {
@@ -2110,6 +2132,7 @@ export const controls = {
     choices: [
       ['polyline', 'Polyline'],
       ['json', 'JSON'],
+      ['geohash', 'geohash (square)'],
     ],
   },
 
@@ -2231,7 +2254,7 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
-    default: false,
+    default: true,
   },
 
   normalized: {

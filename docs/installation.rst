@@ -203,7 +203,8 @@ workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
 To alleviate this issue, the automatic updating of permissions can be disabled
-by setting the :envvar:`SUPERSET_UPDATE_PERMS` environment variable to `0`.
+by setting the environment variable
+`SUPERSET_UPDATE_PERMS` environment variable to `0`.
 The value `1` enables it, `0` disables it. Note if undefined the functionality
 is enabled to maintain backwards compatibility.
 
@@ -297,6 +298,9 @@ In case you need to exempt endpoints from CSRF, e.g. you are running a custom
 auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 
      WTF_CSRF_EXEMPT_LIST = ['']
+
+
+.. _ref_database_deps:
 
 Database dependencies
 ---------------------
@@ -704,7 +708,7 @@ Note that it's also possible to implement you own logger by deriving
 
 
 Install Superset with helm in Kubernetes
---------------
+----------------------------------------
 
 You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
 located in ``install/helm``.
@@ -727,7 +731,6 @@ The first step: Configure authorization in Superset ``superset_config.py``.
 .. code-block:: python
 
     AUTH_TYPE = AUTH_OAUTH
-    
     OAUTH_PROVIDERS = [
         {   'name':'egaSSO',
             'token_key':'access_token', # Name of the token in the response of access_token_url

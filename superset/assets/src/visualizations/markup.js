@@ -1,44 +1,40 @@
-const srcdoc = require('srcdoc-polyfill');
-
-require('./markup.css');
+import srcdoc from 'srcdoc-polyfill';
+import './markup.css';
 
 function markupWidget(slice, payload) {
-  $('#code').attr('rows', '15');
-  const jqdiv = slice.container;
-  jqdiv.css({
-    overflow: 'auto',
-  });
+  const { selector } = slice;
+  const height = slice.height();
+  const headerHeight = slice.headerHeight();
+  const vizType = slice.props.vizType;
+  const { data } = payload;
+
+  const container = document.querySelector(selector);
+  container.style.overflow = 'auto';
 
   // markup height is slice height - (marginTop + marginBottom)
-  let iframeHeight = slice.height() - 20;
-  if (slice.props.vizType === 'separator') {
-    // separator height is the entire chart container: slice height + header
-    iframeHeight = slice.height() + slice.headerHeight();
-  }
+  const iframeHeight = vizType === 'separator'
+    ? height - 20
+    : height + headerHeight;
 
-  const iframeId = `if__${slice.containerId}`;
-  const stylesheets = payload.data.theme_css.map(
-    href => `<link rel="stylesheet" type="text/css" href="${href}" />`,
-  );
   const html = `
     <html>
       <head>
-        ${stylesheets}
+        ${data.theme_css.map(
+          href => `<link rel="stylesheet" type="text/css" href="${href}" />`,
+        )}
       </head>
       <body style="background-color: transparent;">
-        ${payload.data.html}
+        ${data.html}
       </body>
     </html>`;
-  jqdiv.html(`
-    <iframe id="${iframeId}"
-      frameborder="0"
-      height="${iframeHeight}"
-      sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation">
-    </iframe>
-  `);
 
-  const iframe = document.getElementById(iframeId);
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('frameborder', 0);
+  iframe.setAttribute('height', iframeHeight);
+  iframe.setAttribute('sandbox', 'allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation');
+  container.appendChild(iframe);
+
   srcdoc.set(iframe, html);
 }
 
-module.exports = markupWidget;
+export default markupWidget;
