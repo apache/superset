@@ -15,6 +15,28 @@ import './TimeTable.css';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
+function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
+  if (bounds) {
+    const [min, max] = bounds;
+    const [minColor, maxColor] = colorBounds;
+    if (min !== null && max !== null) {
+      const colorScale = d3.scale.linear()
+        .domain([
+          min,
+          (max + min) / 2,
+          max,
+        ])
+        .range([minColor, 'grey', maxColor]);
+      return colorScale(value);
+    } else if (min !== null) {
+      return value >= min ? maxColor : minColor;
+    } else if (bounds[1] !== null) {
+      return value < max ? maxColor : minColor;
+    }
+  }
+  return null;
+}
+
 const propTypes = {
   className: PropTypes.string,
   data: PropTypes.shape({
@@ -143,21 +165,8 @@ class TimeTable extends React.PureComponent {
         .map((k, i) => i < column.timeLag ? k[metricLabel] : 0)
         .reduce((a, b) => a + b) / column.timeLag;
     }
-    let color;
-    if (column.bounds && column.bounds[0] !== null && column.bounds[1] !== null) {
-      const scaler = d3.scale.linear()
-        .domain([
-          column.bounds[0],
-          column.bounds[0] + ((column.bounds[1] - column.bounds[0]) / 2),
-          column.bounds[1],
-        ])
-        .range([ACCESSIBLE_COLOR_BOUNDS[0], 'grey', ACCESSIBLE_COLOR_BOUNDS[1]]);
-      color = scaler(v);
-    } else if (column.bounds && column.bounds[0] !== null) {
-      color = v >= column.bounds[0] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
-    } else if (column.bounds && column.bounds[1] !== null) {
-      color = v < column.bounds[1] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
-    }
+
+    const color = colorFromBounds(v, column.bounds);
 
     return (
       <Td
