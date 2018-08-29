@@ -338,3 +338,40 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {'table_a', 'table_b', 'table_c'},
             self.extract_tables(query))
+
+    def test_complex_extract_tables3(self):
+        query = """SELECT somecol AS somecol
+            FROM
+              (WITH bla AS
+                 (SELECT col_a
+                  FROM a
+                  WHERE 1=1
+                    AND column_of_choice NOT IN
+                      ( SELECT interesting_col
+                       FROM b ) ),
+                    rb AS
+                 ( SELECT yet_another_column
+                  FROM
+                    ( SELECT a
+                     FROM c
+                     GROUP BY the_other_col ) not_table
+                  LEFT JOIN bla foo ON foo.prop = not_table.bad_col0
+                  WHERE 1=1
+                  GROUP BY not_table.bad_col1 ,
+                           not_table.bad_col2 ,
+                  ORDER BY not_table.bad_col_3 DESC , not_table.bad_col4 ,
+                                                    not_table.bad_col5) SELECT random_col
+               FROM d
+               WHERE 1=1
+               UNION ALL SELECT even_more_cols
+               FROM e
+               WHERE 1=1
+               UNION ALL SELECT lets_go_deeper
+               FROM f
+               WHERE 1=1
+            WHERE 2=2
+            GROUP BY last_col
+            LIMIT 50000;"""
+        self.assertEquals(
+            {'a', 'b', 'c', 'd', 'e', 'f'},
+            self.extract_tables(query))
