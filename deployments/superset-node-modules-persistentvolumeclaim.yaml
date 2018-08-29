@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: superset-node-modules
+    service: superset-node-modules
   name: superset-node-modules
 spec:
   accessModes:

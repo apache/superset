@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: redis
+    service: redis
   name: redis
 spec:
   accessModes:
