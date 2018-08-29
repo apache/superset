@@ -189,7 +189,8 @@ class CeleryTestCase(SupersetTestCase):
             "WHERE name='Admin' LIMIT 666", query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
-        self.assertEqual(False, query.limit_used)
+        self.assertEqual(True, query.limit_used)
+        self.assertEqual(False, query.limit_reached)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
