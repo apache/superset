@@ -9,6 +9,7 @@ dt(window, $);
 
 const propTypes = {
   data: PropTypes.shape({
+    // TODO: replace this with raw data in SIP-6
     html: PropTypes.string,
     columns: PropTypes.arrayOf(PropTypes.oneOfType([
       PropTypes.string,
@@ -16,10 +17,10 @@ const propTypes = {
     ])),
   }),
   height: PropTypes.number,
-  columnFormats: PropTypes.object,
+  columnFormats: PropTypes.objectOf(PropTypes.string),
   groupBy: PropTypes.arrayOf(PropTypes.string),
   numberFormat: PropTypes.string,
-  verboseMap: PropTypes.object,
+  verboseMap: PropTypes.objectOf(PropTypes.string),
 };
 
 function PivotTable(element, props) {
