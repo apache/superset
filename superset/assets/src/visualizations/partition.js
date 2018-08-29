@@ -56,7 +56,7 @@ const propTypes = {
   dateTimeFormat: PropTypes.string,
   equalDateSize: PropTypes.bool,
   groupBy: PropTypes.arrayOf(PropTypes.string),
-  logScale: PropTypes.bool,
+  useLogScale: PropTypes.bool,
   metrics: PropTypes.arrayOf(PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.object,
@@ -64,7 +64,7 @@ const propTypes = {
   numberFormat: PropTypes.string,
   partitionLimit: PropTypes.number,
   partitionThreshold: PropTypes.number,
-  richTooltip: PropTypes.bool,
+  useRichTooltip: PropTypes.bool,
   timeSeriesOption: PropTypes.string,
   verboseMap: PropTypes.object,
 };
@@ -82,12 +82,12 @@ function Icicle(element, props) {
     dateTimeFormat,
     equalDateSize,
     groupBy,
-    logScale = false,
+    useLogScale = false,
     metrics = [],
     numberFormat,
     partitionLimit,
     partitionThreshold,
-    richTooltip,
+    useRichTooltip,
     timeSeriesOption = 'not_time',
     verboseMap,
   } = props;
@@ -153,7 +153,7 @@ function Icicle(element, props) {
         n.value = n.name;
         n.name = timeFormat(n.name);
       }
-      if (logScale) n.weight = Math.log(n.weight + 1);
+      if (useLogScale) n.weight = Math.log(n.weight + 1);
       n.disp = n.disp && !Number.isNaN(n.disp) && isFinite(n.disp) ? format(n.disp) : '';
     });
     // Perform sort by weight
@@ -237,7 +237,7 @@ function Icicle(element, props) {
 
     function positionAndPopulate(tip, d) {
       let t = '<table>';
-      if (richTooltip) {
+      if (useRichTooltip) {
         const nodes = getAncestors(d);
         nodes.reverse().forEach((n) => {
           const atNode = n.depth === d.depth;
@@ -369,10 +369,6 @@ function Icicle(element, props) {
         d.color = getColorFromScheme(d.name, colorScheme);
         return d.color;
       });
-
-    // Zoom out when clicking outside vis
-    // d3.select(window)
-    // .on('click', () => click(root));
   }
 
   for (let i = 0; i < data.length; i++) {
@@ -389,12 +385,12 @@ function adaptor(slice, payload) {
     date_time_format: dateTimeFormat,
     equal_date_size: equalDateSize,
     groupby: groupBy,
-    log_scale: logScale,
+    log_scale: useLogScale,
     metrics,
     number_format: numberFormat,
     partition_limit: partitionLimit,
     partition_threshold: partitionThreshold,
-    rich_tooltip: richTooltip,
+    rich_tooltip: useRichTooltip,
     time_series_option: timeSeriesOption,
   } = formData;
   const { verbose_map: verboseMap } = datasource;
@@ -408,12 +404,12 @@ function adaptor(slice, payload) {
     dateTimeFormat,
     equalDateSize,
     groupBy,
-    logScale,
+    useLogScale,
     metrics,
     numberFormat,
-    partitionLimit: partitionLimit ? parseInt(partitionLimit, 10) : partitionLimit,
-    partitionThreshold: partitionThreshold ? parseInt(partitionThreshold, 10) : partitionThreshold,
-    richTooltip,
+    partitionLimit: partitionLimit && parseInt(partitionLimit, 10),
+    partitionThreshold: partitionThreshold && parseInt(partitionThreshold, 10),
+    useRichTooltip,
     timeSeriesOption,
     verboseMap,
   });
