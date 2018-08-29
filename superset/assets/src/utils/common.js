@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-import { SupersetClient } from '../packages/core/src';
+import SupersetClient from '../packages/core/src';
 
 const d3 = require('d3');
 
@@ -44,17 +44,15 @@ export function getParamFromQuery(query, param) {
 }
 
 export function storeQuery(query) {
-  return SupersetClient.getInstance()
-    .post({
-      endpoint: '/kv/store/',
-      postPayload: { data: query },
-    })
-    .then((response) => {
-      const baseUrl = window.location.origin + window.location.pathname;
-      const url = `${baseUrl}?id=${response.json.id}`;
+  return SupersetClient.post({
+    endpoint: '/kv/store/',
+    postPayload: { data: query },
+  }).then((response) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}?id=${response.json.id}`;
 
-      return Promise.resolve(url);
-    });
+    return Promise.resolve(url);
+  });
 }
 
 export function getParamsFromUrl() {
@@ -70,12 +68,10 @@ export function getParamsFromUrl() {
 }
 
 export function getShortUrl(longUrl) {
-  return SupersetClient.getInstance()
-    .post({
-      endpoint: '/r/shortner/',
-      postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-    })
-    .then(response => Promise.resolve(response.text));
+  return SupersetClient.post({
+    endpoint: '/r/shortner/',
+    postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
+  }).then(response => Promise.resolve(response.text));
 }
 
 export function supersetURL(rootUrl, getParams = {}) {

@@ -1,5 +1,5 @@
 /* eslint no-console: 0 */
-import { SupersetClient } from './packages/core/src';
+import SupersetClient from './packages/core/src';
 
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance
@@ -62,7 +62,7 @@ export const Logger = {
       });
     }
 
-    SupersetClient.getInstance().post({
+    SupersetClient.post({
       endpoint,
       postPayload: { events: eventData },
     });

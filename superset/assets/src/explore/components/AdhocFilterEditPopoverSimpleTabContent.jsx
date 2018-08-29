@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -180,14 +180,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       const { signal } = controller;
       this.setState({ abortActiveRequest: controller.abort });
 
-      SupersetClient.getInstance()
-        .get({
-          signal,
-          endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-        })
-        .then(({ json }) => {
-          this.setState(() => ({ suggestions: json, abortActiveRequest: null }));
-        });
+      SupersetClient.get({
+        signal,
+        endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
+      }).then(({ json }) => {
+        this.setState(() => ({ suggestions: json, abortActiveRequest: null }));
+      });
     }
   }
 

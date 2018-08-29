@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 
 import * as Actions from '../actions';
 
@@ -42,15 +42,13 @@ class QueryAutoRefresh extends React.PureComponent {
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
-      SupersetClient.getInstance()
-        .get({
-          endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
-        })
-        .then(({ json }) => {
-          if (Object.keys(json).length > 0) {
-            this.props.actions.refreshQueries(json);
-          }
-        });
+      SupersetClient.get({
+        endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
+      }).then(({ json }) => {
+        if (Object.keys(json).length > 0) {
+          this.props.actions.refreshQueries(json);
+        }
+      });
     }
   }
   render() {

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Collapse, Label, OverlayTrigger, Row, Tooltip, Well } from 'react-bootstrap';
-import { SupersetClient } from '../../../packages/core/src';
+import SupersetClient from '../../../packages/core/src';
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
@@ -47,8 +47,7 @@ class DatasourceControl extends React.PureComponent {
       this.searchRef.focus();
     }
     if (!this.state.datasources) {
-      SupersetClient.getInstance()
-        .get({ endpoint: '/superset/datasources/' })
+      SupersetClient.get({ endpoint: '/superset/datasources/' })
         .then(({ json }) => {
           const datasources = json.map(ds => ({
             rawName: ds.name,

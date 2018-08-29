@@ -1,4 +1,4 @@
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 import { getAjaxErrorMsg } from '../../modules/utils';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
@@ -25,10 +25,9 @@ export function fetchDatasourceMetadata(key) {
       return dispatch(setDatasource(datasource, key));
     }
 
-    return SupersetClient.getInstance()
-      .get({
-        endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
-      })
+    return SupersetClient.get({
+      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
+    })
       .then(data => dispatch(data, key))
       .catch(error =>
         dispatch(fetchDatasourceFailed(getAjaxErrorMsg(error), key)),

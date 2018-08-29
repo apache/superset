@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import { SupersetClient } from '../packages/core/src';
+import SupersetClient from '../packages/core/src';
 
 import { t } from '../locales';
 import DatasourceEditor from '../datasource/DatasourceEditor';
@@ -52,13 +52,12 @@ class DatasourceModal extends React.PureComponent {
     });
   }
   onConfirmSave() {
-    SupersetClient.getInstance()
-      .post({
-        endpoint: '/datasource/save/',
-        postPayload: {
-          data: this.state.datasource,
-        },
-      })
+    SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: this.state.datasource,
+      },
+    })
       .then(({ json }) => {
         this.props.addSuccessToast(t('The datasource has been saved'));
         this.props.onDatasourceSave(json);

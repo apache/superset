@@ -1,20 +1,28 @@
 import callApi from './callApi';
 
-export default class SupersetClient {
+class SupersetClient {
   constructor(config) {
-    const { protocol = 'http', host = '', headers = {}, mode = 'same-origin', timeout } = config;
+    const {
+      protocol = 'http',
+      host = '',
+      headers = {},
+      mode = 'same-origin',
+      timeout,
+      credentials,
+    } = config;
 
     this.headers = headers;
     this.host = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
     this.mode = mode;
     this.timeout = timeout;
     this.protocol = protocol;
+    this.credentials = credentials;
     this.csrfToken = null;
     this.didAuthSuccessfully = false;
     this.requestingCsrf = false;
   }
 
-  authorized() {
+  isAuthorized() {
     return this.didAuthSuccessfully;
   }
 
@@ -35,6 +43,7 @@ export default class SupersetClient {
       },
       mode: this.mode,
       timeout: this.timeout,
+      credentials: this.credentials,
     })
       .then((response) => {
         if (response.json) {
@@ -92,6 +101,7 @@ export default class SupersetClient {
       callApi({
         method: 'GET',
         url: url || this.getUrlFromEndpoint(endpoint),
+        credentials: this.credentials,
         headers: { ...this.headers, ...headers },
         body,
         mode: this.mode,
@@ -106,6 +116,7 @@ export default class SupersetClient {
       callApi({
         method: 'POST',
         url: url || this.getUrlFromEndpoint(endpoint),
+        credentials: this.credentials,
         headers: { ...this.headers, ...headers },
         body,
         postPayload,
@@ -118,13 +129,35 @@ export default class SupersetClient {
   }
 }
 
-// enforce a singleton
-let client;
+let singletonClient;
 
-SupersetClient.getInstance = function getInstance(config = {}) {
-  if (!client) {
-    client = new SupersetClient(config || {});
+function hasInstance() {
+  if (!singletonClient) {
+    throw new Error('You must call SupersetClient.configure(...) before calling other methods');
   }
+  return true;
+}
 
-  return client;
+const PublicAPI = {
+  configure: (config) => {
+    singletonClient = new SupersetClient(config || {});
+
+    return singletonClient;
+  },
+  init: () => hasInstance() && singletonClient.init(),
+  get: (...args) => hasInstance() && singletonClient.get(...args),
+  post: (...args) => hasInstance() && singletonClient.post(...args),
+  isAuthorized: () => hasInstance() && singletonClient.isAuthorized(),
 };
+
+export { SupersetClient };
+
+export default PublicAPI;
+
+// import SSClient from '@superset-ui/core';
+//
+// SSClient.configure();
+// SSClient.init();
+// SSClient.get();
+// SSClient.post();
+// SSClient.authorized();

@@ -1,4 +1,4 @@
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
@@ -13,10 +13,9 @@ export function fetchDashboardsFailed(userId) {
 
 export function fetchDashboards(userId) {
   return function fetchDashboardsThunk(dispatch) {
-    return SupersetClient.getInstance()
-      .get({
-        endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
-      })
+    return SupersetClient.get({
+      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
+    })
       .then(({ json }) => {
         const choices = json.pks.map((id, index) => ({
           value: id,
@@ -53,8 +52,7 @@ export function saveSlice(formData, requestParams) {
       requestParams,
     });
 
-    return SupersetClient.getInstance()
-      .post({ url, postPayload: { form_data: payload } })
+    return SupersetClient.post({ url, postPayload: { form_data: payload } })
       .then(({ json }) => dispatch(saveSliceSuccess(json)))
       .catch(() => dispatch(saveSliceFailed()));
   };

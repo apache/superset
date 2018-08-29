@@ -4,7 +4,7 @@ import { CompactPicker } from 'react-color';
 import { Button } from 'react-bootstrap';
 import mathjs from 'mathjs';
 
-import { SupersetClient } from '../../../packages/core/src';
+import SupersetClient from '../../../packages/core/src';
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
@@ -210,31 +210,27 @@ export default class AnnotationLayer extends React.PureComponent {
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
     if (isLoadingOptions === true) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        SupersetClient.getInstance()
-          .get({ endpoint: '/annotationlayermodelview/api/read?' })
-          .then(({ json }) => {
-            const layers = json
-              ? json.result.map(layer => ({
-                  value: layer.id,
-                  label: layer.name,
-                }))
-              : [];
-            this.setState({
-              isLoadingOptions: false,
-              valueOptions: layers,
-            });
+        SupersetClient.get({ endpoint: '/annotationlayermodelview/api/read?' }).then(({ json }) => {
+          const layers = json
+            ? json.result.map(layer => ({
+                value: layer.id,
+                label: layer.name,
+              }))
+            : [];
+          this.setState({
+            isLoadingOptions: false,
+            valueOptions: layers,
           });
+        });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.getInstance()
-          .get({ endpoint: '/superset/user_slices' })
-          .then(({ json }) =>
-            this.setState({
-              isLoadingOptions: false,
-              valueOptions: json
-                .filter(x => getSupportedSourceTypes(annotationType).find(v => v === x.viz_type))
-                .map(x => ({ value: x.id, label: x.title, slice: x })),
-            }),
-          );
+        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(({ json }) =>
+          this.setState({
+            isLoadingOptions: false,
+            valueOptions: json
+              .filter(x => getSupportedSourceTypes(annotationType).find(v => v === x.viz_type))
+              .map(x => ({ value: x.id, label: x.title, slice: x })),
+          }),
+        );
       } else {
         this.setState({
           isLoadingOptions: false,

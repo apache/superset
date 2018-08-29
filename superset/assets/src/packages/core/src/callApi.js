@@ -11,7 +11,7 @@ export function callApi({
   method = 'GET', // GET, POST, PUT, DELETE
   mode = 'same-origin', // no-cors, cors, same-origin
   cache = 'default', // default, no-cache, reload, force-cache, only-if-cached
-  credentials = 'include', // include, same-origin, omit
+  credentials = 'same-origin', // include, same-origin, omit
   headers: partialHeaders,
   body,
   postPayload,

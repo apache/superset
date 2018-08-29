@@ -1,7 +1,7 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
 import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
-import { SupersetClient } from './packages/core/src';
+import SupersetClient from './packages/core/src';
 import { t } from './locales';
 
 const utils = require('./modules/utils');
@@ -20,12 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
   languagePickerLinks.forEach((elem) => {
     elem.addEventListener('click', (event) => {
       event.preventDefault();
-      const client = SupersetClient.getInstance();
       const currLocation = window.location.href;
 
       // this seems to be called twice (jQuery thing? the second time it's not authenticated)
-      if (client.authorized()) {
-        client.get({ url: event.currentTarget.href }).then(() => {
+      if (SupersetClient.authorized()) {
+        SupersetClient.get({ url: event.currentTarget.href }).then(() => {
           window.location = currLocation;
         });
       }
@@ -41,11 +40,7 @@ export function appSetup() {
   require('bootstrap');
 
   // configure and initialize the JS client which makes all requests, handles auth, etc.
-  const client = SupersetClient.getInstance({
-    host: window.location && window.location.host,
-  });
-
-  client.init();
+  SupersetClient.configure({ host: window.location && window.location.host }).init();
 }
 
 // Error messages used in many places across applications

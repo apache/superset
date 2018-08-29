@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
@@ -111,14 +111,12 @@ export function saveDashboardRequestSuccess() {
 
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-  const client = SupersetClient.getInstance();
 
   return dispatch =>
-    client
-      .post({
-        endpoint: `/superset/${path}/${id}/`,
-        postPayload: { data },
-      })
+    SupersetClient.post({
+      endpoint: `/superset/${path}/${id}/`,
+      postPayload: { data },
+    })
       .then(response =>
         Promise.all([
           Promise.resolve(response),

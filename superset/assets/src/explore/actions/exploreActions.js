@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 import { addDangerToast } from '../../messageToasts/actions';
 import { t } from '../../locales';
 
@@ -54,13 +54,11 @@ export function toggleFaveStar(isStarred) {
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
   return function (dispatch) {
-    SupersetClient.getInstance()
-      .get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count` })
-      .then(({ json }) => {
-        if (json.count > 0) {
-          dispatch(toggleFaveStar(true));
-        }
-      });
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count` }).then(({ json }) => {
+      if (json.count > 0) {
+        dispatch(toggleFaveStar(true));
+      }
+    });
   };
 }
 
@@ -68,8 +66,7 @@ export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
   return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
-    SupersetClient.getInstance()
-      .get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/` })
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/` })
       .then(() => dispatch(toggleFaveStar(!isStarred)))
       .catch(() => dispatch(addDangerToast(t('An error occurred while starring this chart'))));
   };

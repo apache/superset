@@ -1,6 +1,6 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
-import { SupersetClient } from '../packages/core/src';
+import SupersetClient from '../packages/core/src';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
@@ -90,12 +90,11 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
 
     dispatch(annotationQueryStarted(annotation, controller, sliceKey));
 
-    return SupersetClient.getInstance()
-      .get({
-        url,
-        signal,
-        timeout: timeout * 1000,
-      })
+    return SupersetClient.get({
+      url,
+      signal,
+      timeout: timeout * 1000,
+    })
       .then(({ json }) => dispatch(annotationQuerySuccess(annotation, json, sliceKey)))
       .catch((err) => {
         if (err.statusText === 'timeout') {
@@ -144,13 +143,12 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 
     dispatch(chartUpdateStarted(controller, payload, key));
 
-    const queryPromise = SupersetClient.getInstance()
-      .post({
-        url,
-        postPayload: { form_data: payload },
-        signal,
-        timeout: timeout * 1000,
-      })
+    const queryPromise = SupersetClient.post({
+      url,
+      postPayload: { form_data: payload },
+      signal,
+      timeout: timeout * 1000,
+    })
       .then(({ json }) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
@@ -213,8 +211,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 export function redirectSQLLab(formData) {
   return (dispatch) => {
     const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
-    return SupersetClient.getInstance()
-      .get({ url })
+    return SupersetClient.get({ url })
       .then(({ json }) => {
         const redirectUrl = new URL(window.location);
         redirectUrl.pathname = '/superset/sqllab';

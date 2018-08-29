@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { SupersetClient } from '../../packages/core/src';
+import SupersetClient from '../../packages/core/src';
 
 import { addDangerToast } from '../../messageToasts/actions';
 import { t } from '../../locales';
@@ -26,10 +26,9 @@ export function fetchAllSlices(userId) {
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
 
-      return SupersetClient.getInstance()
-        .get({
-          endpoint: `/sliceaddview/api/read?_flt_0_created_by=${userId}`,
-        })
+      return SupersetClient.get({
+        endpoint: `/sliceaddview/api/read?_flt_0_created_by=${userId}`,
+      })
         .then(({ json }) => {
           const slices = {};
           json.result.forEach(slice => {

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import { SupersetClient } from '../packages/core/src';
+import SupersetClient from '../packages/core/src';
 import { t } from '../locales';
 
 import Button from '../components/Button';
@@ -248,10 +248,9 @@ export class DatasourceEditor extends React.PureComponent {
   syncMetadata() {
     const { datasource } = this.state;
     this.setState({ metadataLoading: true });
-    SupersetClient.getInstance()
-      .get({
-        endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
-      })
+    SupersetClient.get({
+      endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
+    })
       .then(({ json }) => {
         this.mergeColumns(json);
         this.props.addSuccessToast(t('Metadata has been synced'));
@@ -400,7 +399,11 @@ export class DatasourceEditor extends React.PureComponent {
           itemRenderers={{
             name: (d, onChange) => <EditableTitle canEdit title={d} onSaveTitle={onChange} />,
             config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={datasource.all_cols} />
+              <SpatialControl
+                value={v}
+                onChange={onChange}
+                choices={this.state.datasource.all_cols}
+              />
             ),
           }}
         />

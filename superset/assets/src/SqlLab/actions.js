@@ -1,5 +1,5 @@
 import shortid from 'shortid';
-import { SupersetClient } from '../packages/core/src';
+import SupersetClient from '../packages/core/src';
 
 import { now } from '../modules/dates';
 import { t } from '../locales';
@@ -57,12 +57,11 @@ export function resetState() {
 
 export function saveQuery(query) {
   return (dispatch) => {
-    SupersetClient.getInstance()
-      .post({
-        endpoint: '/savedqueryviewapi/api/create',
-        postPayload: query,
-        stringify: false,
-      })
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: query,
+      stringify: false,
+    })
       .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
   };
@@ -107,8 +106,7 @@ export function fetchQueryResults(query) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
 
-    return SupersetClient.getInstance()
-      .get({ endpoint: `/superset/results/${query.resultsKey}/` })
+    return SupersetClient.get({ endpoint: `/superset/results/${query.resultsKey}/` })
       .then(({ json }) => dispatch(querySuccess(query, json)))
       .catch((error) => {
         const message =
@@ -138,12 +136,11 @@ export function runQuery(query) {
       templateParams: query.templateParams,
     };
 
-    SupersetClient.getInstance()
-      .post({
-        endpoint: `/superset/sql_json/${window.location.search}`,
-        postPayload,
-        stringify: false,
-      })
+    SupersetClient.post({
+      endpoint: `/superset/sql_json/${window.location.search}`,
+      postPayload,
+      stringify: false,
+    })
       .then(({ json }) => {
         if (!query.runAsync) {
           dispatch(querySuccess(query, json));
@@ -162,12 +159,11 @@ export function runQuery(query) {
 
 export function postStopQuery(query) {
   return function (dispatch) {
-    return SupersetClient.getInstance()
-      .post({
-        endpoint: '/superset/stop_query/',
-        postPayload: { client_id: query.id },
-        stringify: false,
-      })
+    return SupersetClient.post({
+      endpoint: '/superset/stop_query/',
+      postPayload: { client_id: query.id },
+      stringify: false,
+    })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
       .catch(() => dispatch(addDangerToast(t('Failed at stopping query. ') + `'${query.id}'`)));
@@ -255,8 +251,7 @@ export function addTable(query, tableName, schemaName) {
       }),
     );
 
-    SupersetClient.getInstance()
-      .get({ endpoint: `/superset/table/${query.dbId}/${tableName}/${schemaName}/` })
+    SupersetClient.get({ endpoint: `/superset/table/${query.dbId}/${tableName}/${schemaName}/` })
       .then(({ json }) => {
         const dataPreviewQuery = {
           id: shortid.generate(),
@@ -292,8 +287,9 @@ export function addTable(query, tableName, schemaName) {
         ]),
       );
 
-    SupersetClient.getInstance()
-      .get({ endpoint: `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/` })
+    SupersetClient.get({
+      endpoint: `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`,
+    })
       .then(({ json }) =>
         dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false })),
       )
@@ -349,8 +345,7 @@ export function persistEditorHeight(queryEditor, currentHeight) {
 
 export function popStoredQuery(urlId) {
   return function (dispatch) {
-    return SupersetClient.getInstance()
-      .get({ endpoint: `/kv/${urlId}` })
+    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
@@ -367,8 +362,7 @@ export function popStoredQuery(urlId) {
 }
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
-    return SupersetClient.getInstance()
-      .get({ endpoint: `/savedqueryviewapi/api/get/${saveQueryId}` })
+    return SupersetClient.get({ endpoint: `/savedqueryviewapi/api/get/${saveQueryId}` })
       .then(({ json }) => {
         const { result } = json;
         const queryEditorProps = {
@@ -385,8 +379,9 @@ export function popSavedQuery(saveQueryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
-    return SupersetClient.getInstance()
-      .get({ endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}` })
+    return SupersetClient.get({
+      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
@@ -416,11 +411,10 @@ export function createDatasourceFailed(err) {
 export function createDatasource(vizOptions) {
   return (dispatch) => {
     dispatch(createDatasourceStarted());
-    return SupersetClient.getInstance()
-      .post({
-        endpoint: '/superset/sqllab_viz/',
-        postPayload: { data: vizOptions },
-      })
+    return SupersetClient.post({
+      endpoint: '/superset/sqllab_viz/',
+      postPayload: { data: vizOptions },
+    })
       .then(({ json }) => {
         const data = JSON.parse(json);
         dispatch(createDatasourceSuccess(data));
