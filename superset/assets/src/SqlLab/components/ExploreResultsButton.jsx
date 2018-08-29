@@ -1,4 +1,3 @@
-/* eslint no-undef: 2 */
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';

@@ -32,8 +32,6 @@ export function callApi({
       }
     });
 
-    // console.log(formData);
-
     request = {
       ...request,
       body: formData, // new URLSearchParams(formData),
@@ -91,7 +89,7 @@ export function callApi({
 // We pass the timeoutId to callApi so that it can clear it
 export default function callApiWithTimeout({ timeout, ...rest }) {
   let timeoutId;
-  console.log('callapi', rest.url);
+
   return Promise.race([
     callApi({ ...rest, timeoutId }),
     new Promise((_, reject) => {

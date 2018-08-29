@@ -3,11 +3,12 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
+import { describe, it, afterEach, beforeEach } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
 
-import $ from 'jquery';
+// import $ from 'jquery';
 import shortid from 'shortid';
 import { queries, queryWithBadColumns } from './fixtures';
 import { sqlLabReducer } from '../../../src/SqlLab/reducers';
@@ -60,19 +61,17 @@ describe('ExploreResultsButton', () => {
     requiresTime: true,
     value: 'bar',
   };
-  const getExploreResultsButtonWrapper = (props = mockedProps) => (
+  const getExploreResultsButtonWrapper = (props = mockedProps) =>
     shallow(<ExploreResultsButton {...props} />, {
       context: { store },
-    }).dive());
+    }).dive();
 
   it('renders', () => {
     expect(React.isValidElement(<ExploreResultsButton />)).to.equal(true);
   });
 
   it('renders with props', () => {
-    expect(
-      React.isValidElement(<ExploreResultsButton {...mockedProps} />),
-    ).to.equal(true);
+    expect(React.isValidElement(<ExploreResultsButton {...mockedProps} />)).to.equal(true);
   });
 
   it('detects bad columns', () => {
@@ -167,64 +166,79 @@ describe('ExploreResultsButton', () => {
       datasourceName: 'mockDatasourceName',
     });
 
-    let ajaxSpy;
-    let datasourceSpy;
+    const visualizeURL = '/superset/sqllab_viz/';
+    const visualizeEndpoint = `glob:*${visualizeURL}`;
+    const visualizationPayload = { table_id: 107 };
+    fetchMock.post(visualizeEndpoint, visualizationPayload);
+
+    // let ajaxSpy;
+    // let datasourceSpy;
     beforeEach(() => {
-      ajaxSpy = sinon.spy($, 'ajax');
-      sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
-      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
+      // ajaxSpy = sinon.spy($, 'ajax');
+      // sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
+      sinon
+        .stub(exploreUtils, 'getExploreUrlAndPayload')
+        .callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
       sinon.spy(exploreUtils, 'exportChart');
-      sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => (mockOptions));
-      datasourceSpy = sinon.stub(actions, 'createDatasource');
+      sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => mockOptions);
+      // datasourceSpy = sinon.stub(actions, 'createDatasource');
     });
     afterEach(() => {
-      ajaxSpy.restore();
-      JSON.parse.restore();
+      // ajaxSpy.restore();
+      // JSON.parse.restore();
       exploreUtils.getExploreUrlAndPayload.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
-      datasourceSpy.restore();
+      fetchMock.reset();
+      // datasourceSpy.restore();
     });
 
-    it('should build request', () => {
+    it('should build request with correct args', (done) => {
       wrapper.instance().visualize();
-      expect(ajaxSpy.callCount).to.equal(1);
 
-      const spyCall = ajaxSpy.getCall(0);
-      expect(spyCall.args[0].type).to.equal('POST');
-      expect(spyCall.args[0].url).to.equal('/superset/sqllab_viz/');
-      expect(spyCall.args[0].data.data).to.equal(JSON.stringify(mockOptions));
-    });
-    it('should open new window', () => {
-      const infoToastSpy = sinon.spy();
+      setTimeout(() => {
+        const calls = fetchMock.calls(visualizeEndpoint);
+        expect(calls).to.have.lengthOf(1);
+        const formData = calls[0][1].body;
 
-      datasourceSpy.callsFake(() => {
-        const d = $.Deferred();
-        d.resolve('done');
-        return d.promise();
+        Object.keys(mockOptions).forEach((key) => {
+          // eslint-disable-next-line no-unused-expressions
+          expect(formData.get(key)).to.not.be.undefined;
+        });
+
+        done();
       });
+    });
+
+    it('should export chart and add an info toast', (done) => {
+      const infoToastSpy = sinon.spy();
+      const datasourceSpy = sinon.stub();
+
+      datasourceSpy.callsFake(() => Promise.resolve(visualizationPayload));
 
       wrapper.setProps({
         actions: {
-          createDatasource: datasourceSpy,
           addInfoToast: infoToastSpy,
+          createDatasource: datasourceSpy,
         },
       });
 
       wrapper.instance().visualize();
-      expect(exploreUtils.exportChart.callCount).to.equal(1);
-      expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
-      expect(infoToastSpy.callCount).to.equal(1);
-    });
-    it('should add error toast', () => {
-      const dangerToastSpy = sinon.spy();
 
-      datasourceSpy.callsFake(() => {
-        const d = $.Deferred();
-        d.reject('error message');
-        return d.promise();
+      setTimeout(() => {
+        expect(datasourceSpy.callCount).to.equal(1);
+        expect(exploreUtils.exportChart.callCount).to.equal(1);
+        expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
+        expect(infoToastSpy.callCount).to.equal(1);
+        done();
       });
+    });
 
+    it('should add error toast', (done) => {
+      const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
+      const datasourceSpy = sinon.stub();
+
+      datasourceSpy.callsFake(() => Promise.reject({ error: 'error' }));
 
       wrapper.setProps({
         actions: {
@@ -234,8 +248,14 @@ describe('ExploreResultsButton', () => {
       });
 
       wrapper.instance().visualize();
-      expect(exploreUtils.exportChart.callCount).to.equal(0);
-      expect(dangerToastSpy.callCount).to.equal(1);
+
+      setTimeout(() => {
+        expect(datasourceSpy.callCount).to.equal(1);
+        expect(exploreUtils.exportChart.callCount).to.equal(0);
+        expect(dangerToastSpy.callCount).to.equal(1);
+        dangerToastSpy.restore();
+        done();
+      });
     });
   });
 });

@@ -418,7 +418,7 @@ export function createDatasource(vizOptions) {
     dispatch(createDatasourceStarted());
     return SupersetClient.getInstance()
       .post({
-        endpoint: '/suddperset/sqllab_viz/',
+        endpoint: '/superset/sqllab_viz/',
         postPayload: { data: vizOptions },
       })
       .then(({ json }) => {
