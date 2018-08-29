@@ -39,6 +39,7 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
 
 const propTypes = {
   className: PropTypes.string,
+  height: PropTypes.number,
   data: PropTypes.shape({
     columns: PropTypes.arrayOf(PropTypes.string),
     records: PropTypes.object,
@@ -207,6 +208,7 @@ class TimeTable extends React.PureComponent {
   render() {
     const {
       className,
+      height,
       data,
       columnCollection,
       isGroupBy,
@@ -233,31 +235,36 @@ class TimeTable extends React.PureComponent {
     }
 
     return (
-      <Table
-        className={`table table-no-hover ${className}`}
-        defaultSort={defaultSort}
-        sortBy={defaultSort}
-        sortable={columnCollection.map(c => c.key)}
+      <div
+        className={`time-table-container ${className}`}
+        style={{ height }}
       >
-        <Thead>
-          <Th column="metric">Metric</Th>
-          {columnCollection.map((c, i) => (
-            <Th
-              key={c.key}
-              column={c.key}
-              width={c.colType === 'spark' ? '1%' : null}
-            >
-              {c.label} {c.tooltip && (
-                <InfoTooltipWithTrigger
-                  tooltip={c.tooltip}
-                  label={`tt-col-${i}`}
-                  placement="top"
-                />
-              )}
-            </Th>))}
-        </Thead>
-        {rows.map(row => this.renderRow(row, entries, reversedEntries))}
-      </Table>
+        <Table
+          className="table table-no-hover"
+          defaultSort={defaultSort}
+          sortBy={defaultSort}
+          sortable={columnCollection.map(c => c.key)}
+        >
+          <Thead>
+            <Th column="metric">Metric</Th>
+            {columnCollection.map((c, i) => (
+              <Th
+                key={c.key}
+                column={c.key}
+                width={c.colType === 'spark' ? '1%' : null}
+              >
+                {c.label} {c.tooltip && (
+                  <InfoTooltipWithTrigger
+                    tooltip={c.tooltip}
+                    label={`tt-col-${i}`}
+                    placement="top"
+                  />
+                )}
+              </Th>))}
+          </Thead>
+          {rows.map(row => this.renderRow(row, entries, reversedEntries))}
+        </Table>
+      </div>
     );
   }
 }
@@ -266,11 +273,13 @@ TimeTable.propTypes = propTypes;
 TimeTable.defaultProps = defaultProps;
 
 function adaptor(slice, payload) {
-  console.log('slice.formData, payload.data', slice.formData, payload.form_data, payload.data);
+  console.log('slice.datasource', slice.datasource);
+  // console.log('slice.formData, payload.data', slice.formData, payload.form_data, payload.data);
 
   const { containerId, formData, datasource } = slice;
   const {
     column_collection: columnCollection,
+    groupby,
     metrics,
     url,
   } = formData;
@@ -280,13 +289,12 @@ function adaptor(slice, payload) {
     metricMap[m.metric_name] = m;
   });
 
-  // slice.container.css('height', slice.height());
-
   ReactDOM.render(
     <TimeTable
+      height={slice.height()}
       data={payload.data}
       columnCollection={columnCollection}
-      isGroupBy={payload.data.is_group_by}
+      isGroupBy={groupby.length > 0}
       metrics={metrics}
       metricMap={metricMap}
       url={url}
