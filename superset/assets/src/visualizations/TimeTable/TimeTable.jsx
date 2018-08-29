@@ -21,16 +21,12 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
     const [minColor, maxColor] = colorBounds;
     if (min !== null && max !== null) {
       const colorScale = d3.scale.linear()
-        .domain([
-          min,
-          (max + min) / 2,
-          max,
-        ])
+        .domain([min, (max + min) / 2, max])
         .range([minColor, 'grey', maxColor]);
       return colorScale(value);
     } else if (min !== null) {
       return value >= min ? maxColor : minColor;
-    } else if (bounds[1] !== null) {
+    } else if (max !== null) {
       return value < max ? maxColor : minColor;
     }
   }
@@ -43,7 +39,14 @@ const propTypes = {
   // Example
   // {'2018-04-14 00:00:00': { 'SUM(metric_value)': 80031779.40047 }}
   data: PropTypes.objectOf(PropTypes.objectOf(PropTypes.number)).isRequired,
-  columnCollection: PropTypes.arrayOf(PropTypes.object).isRequired,
+  columnConfigs: PropTypes.arrayOf(PropTypes.shape({
+    colType: PropTypes.string,
+    comparisonType: PropTypes.string,
+    d3format: PropTypes.string,
+    key: PropTypes.string,
+    label: PropTypes.string,
+    timeLag: PropTypes.number,
+  })).isRequired,
   rows: PropTypes.arrayOf(PropTypes.oneOfType([
     PropTypes.shape({
       label: PropTypes.string,
@@ -145,7 +148,7 @@ class TimeTable extends React.PureComponent {
     let errorMsg;
     if (column.colType === 'time') {
       // Time lag ratio
-      const timeLag = parseInt(column.timeLag, 10);
+      const { timeLag } = column;
       const totalLag = Object.keys(reversedEntries).length;
       if (timeLag > totalLag) {
         errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedData.length}. No data available.`;
@@ -193,7 +196,7 @@ class TimeTable extends React.PureComponent {
   }
 
   renderRow(row, entries, reversedEntries) {
-    const { columnCollection } = this.props;
+    const { columnConfigs } = this.props;
     const valueField = row.label || row.metric_name;
     const leftCell = this.renderLeftCell(row);
 
@@ -202,7 +205,7 @@ class TimeTable extends React.PureComponent {
         <Td column="metric" data={leftCell}>
           {leftCell}
         </Td>
-        {columnCollection.map(c => c.colType === 'spark'
+        {columnConfigs.map(c => c.colType === 'spark'
           ? this.renderSparklineCell(valueField, c, entries)
           : this.renderValueCell(valueField, c, reversedEntries))}
       </Tr>
@@ -214,7 +217,7 @@ class TimeTable extends React.PureComponent {
       className,
       height,
       data,
-      columnCollection,
+      columnConfigs,
       rowType,
       rows,
     } = this.props;
@@ -225,7 +228,7 @@ class TimeTable extends React.PureComponent {
     const reversedEntries = entries.concat().reverse();
 
     const defaultSort = rowType === 'column' ? {
-      column: columnCollection[0].key,
+      column: columnConfigs[0].key,
       direction: 'desc',
     } : false;
 
@@ -238,11 +241,11 @@ class TimeTable extends React.PureComponent {
           className="table table-no-hover"
           defaultSort={defaultSort}
           sortBy={defaultSort}
-          sortable={columnCollection.map(c => c.key)}
+          sortable={columnConfigs.map(c => c.key)}
         >
           <Thead>
             <Th column="metric">Metric</Th>
-            {columnCollection.map((c, i) => (
+            {columnConfigs.map((c, i) => (
               <Th
                 key={c.key}
                 column={c.key}
@@ -270,7 +273,7 @@ TimeTable.defaultProps = defaultProps;
 function adaptor(slice, payload) {
   const { containerId, formData, datasource } = slice;
   const {
-    column_collection: columnCollection,
+    column_collection: columnConfigs,
     groupby,
     metrics,
     url,
@@ -300,14 +303,19 @@ function adaptor(slice, payload) {
       : metricMap[metric]);
   }
 
-  console.log('records', records);
+  // TODO: Better parse this from controls instead of mutative value here.
+  columnConfigs.forEach((column) => {
+    const c = column;
+    if (c.timeLag !== undefined && c.timeLag !== null && c.timeLag !== '') {
+      c.timeLag = parseInt(c.timeLag, 10);
+    }
+  });
 
   ReactDOM.render(
     <TimeTable
       height={slice.height()}
       data={records}
-      columnCollection={columnCollection}
-      isGroupBy={isGroupBy}
+      columnConfigs={columnConfigs}
       rows={rows}
       rowType={isGroupBy ? 'column' : 'metric'}
       url={url}
