@@ -40,7 +40,9 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
 const propTypes = {
   className: PropTypes.string,
   height: PropTypes.number,
-  data: PropTypes.object.isRequired,
+  // Example
+  // {'2018-04-14 00:00:00': { 'SUM(metric_value)': 80031779.40047 }}
+  data: PropTypes.objectOf(PropTypes.objectOf(PropTypes.number)).isRequired,
   columnCollection: PropTypes.arrayOf(PropTypes.object).isRequired,
   rows: PropTypes.arrayOf(PropTypes.oneOfType([
     PropTypes.shape({
@@ -297,6 +299,8 @@ function adaptor(slice, payload) {
       ? metric
       : metricMap[metric]);
   }
+
+  console.log('records', records);
 
   ReactDOM.render(
     <TimeTable
