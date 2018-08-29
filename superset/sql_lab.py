@@ -156,6 +156,7 @@ def execute_sql(
     if (superset_query.is_select() and SQL_MAX_ROWS and
             (not query.limit or query.limit > SQL_MAX_ROWS)):
         query.limit = SQL_MAX_ROWS
+        query.limit_used = True
         executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
