@@ -40,14 +40,17 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
 const propTypes = {
   className: PropTypes.string,
   height: PropTypes.number,
-  data: PropTypes.shape({
-    columns: PropTypes.arrayOf(PropTypes.string),
-    records: PropTypes.object,
-  }),
+  data: PropTypes.object,
   columnCollection: PropTypes.arrayOf(PropTypes.object),
-  isGroupBy: PropTypes.bool,
-  metrics: PropTypes.array,
-  metricMap: PropTypes.object,
+  rows: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.shape({
+      label: PropTypes.string,
+    }),
+    PropTypes.shape({
+      metric_name: PropTypes.string,
+    }),
+  ])),
+  rowType: PropTypes.oneOf(['column', 'metric']),
   url: PropTypes.string,
 };
 const defaultProps = {
@@ -55,57 +58,54 @@ const defaultProps = {
 };
 
 class TimeTable extends React.PureComponent {
-  renderLeftCell(metric) {
-    const { isGroupBy, metricMap, url } = this.props;
+  renderLeftCell(row) {
+    const { rowType, url } = this.props;
     // const context = { ...fd, metric };
-    const context = { metric };
+    const context = { metric: row };
     const fullUrl = url ? Mustache.render(url, context) : null;
 
-    if (!isGroupBy) {
-      const metricData = typeof metric === 'object'
-        ? metric
-        : metricMap[metric];
-      return (
-        <MetricOption
-          metric={metricData}
-          url={fullUrl}
-          showFormula={false}
-          openInNewWindow
-        />
-      );
+    if (rowType === 'column') {
+      const column = row;
+      if (fullUrl) {
+        return (
+          <a
+            href={fullUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {column.label}
+          </a>
+        );
+      }
+      return column.label;
     }
 
-    const metricLabel = metric.label || metric;
-
-    if (fullUrl) {
-      return (
-        <a
-          href={fullUrl}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          {metricLabel}
-        </a>
-      );
-    }
-    return metricLabel;
+    const metric = row;
+    return (
+      <MetricOption
+        metric={metric}
+        url={fullUrl}
+        showFormula={false}
+        openInNewWindow
+      />
+    );
   }
 
-  renderSparklineCell(metricLabel, column, entries) {
+  renderSparklineCell(valueField, column, entries) {
     let sparkData;
     if (column.timeRatio) {
       // Period ratio sparkline
       sparkData = [];
       for (let i = column.timeRatio; i < entries.length; i++) {
-        const prevData = entries[i - column.timeRatio][metricLabel];
+        const prevData = entries[i - column.timeRatio][valueField];
         if (prevData && prevData !== 0) {
-          sparkData.push(entries[i][metricLabel] / prevData);
+          sparkData.push(entries[i][valueField] / prevData);
         } else {
           sparkData.push(null);
         }
       }
     } else {
-      sparkData = entries.map(d => d[metricLabel]);
+      sparkData = entries.map(d => d[valueField]);
     }
 
     const formatDate = formatDateThunk(column.dateFormat);
@@ -120,7 +120,7 @@ class TimeTable extends React.PureComponent {
           width={parseInt(column.width, 10) || 300}
           height={parseInt(column.height, 10) || 50}
           data={sparkData}
-          ariaLabel={`spark-${metricLabel}`}
+          ariaLabel={`spark-${valueField}`}
           numberFormat={column.d3format}
           yAxisBounds={column.yAxisBounds}
           showYAxis={column.showYAxis}
@@ -135,8 +135,8 @@ class TimeTable extends React.PureComponent {
     );
   }
 
-  renderValueCell(metricLabel, column, reversedEntries) {
-    const recent = reversedEntries[0][metricLabel];
+  renderValueCell(valueField, column, reversedEntries) {
+    const recent = reversedEntries[0][valueField];
     let v;
     let errorMsg;
     if (column.colType === 'time') {
@@ -146,7 +146,7 @@ class TimeTable extends React.PureComponent {
       if (timeLag > totalLag) {
         errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedData.length}. No data available.`;
       } else {
-        v = reversedEntries[timeLag][metricLabel];
+        v = reversedEntries[timeLag][valueField];
       }
       if (column.comparisonType === 'diff') {
         v = recent - v;
@@ -163,7 +163,7 @@ class TimeTable extends React.PureComponent {
     } else if (column.colType === 'avg') {
       // Average over the last {timeLag}
       v = reversedEntries
-        .map((k, i) => i < column.timeLag ? k[metricLabel] : 0)
+        .map((k, i) => i < column.timeLag ? k[valueField] : 0)
         .reduce((a, b) => a + b) / column.timeLag;
     }
 
@@ -190,7 +190,7 @@ class TimeTable extends React.PureComponent {
 
   renderRow(row, entries, reversedEntries) {
     const { columnCollection } = this.props;
-    const metricLabel = row.label || row;
+    const valueField = row.label || row.metric_name;
     const leftCell = this.renderLeftCell(row);
 
     return (
@@ -199,8 +199,8 @@ class TimeTable extends React.PureComponent {
           {leftCell}
         </Td>
         {columnCollection.map(c => c.colType === 'spark'
-          ? this.renderSparklineCell(metricLabel, c, entries)
-          : this.renderValueCell(metricLabel, c, reversedEntries))}
+          ? this.renderSparklineCell(valueField, c, entries)
+          : this.renderValueCell(valueField, c, reversedEntries))}
       </Tr>
     );
   }
@@ -211,32 +211,23 @@ class TimeTable extends React.PureComponent {
       height,
       data,
       columnCollection,
-      isGroupBy,
-      metrics,
+      rowType,
+      rows,
     } = this.props;
 
-    const { records, columns } = data;
-
-    const entries = Object.keys(records)
+    const entries = Object.keys(data)
       .sort()
-      .map(time => ({ ...records[time], time }));
+      .map(time => ({ ...data[time], time }));
     const reversedEntries = entries.concat().reverse();
 
-    let rows;
-    let defaultSort = false;
-    if (isGroupBy) {
-      rows = columns;
-      defaultSort = {
-        column: columnCollection[0].key,
-        direction: 'desc',
-      };
-    } else {
-      rows = metrics;
-    }
+    const defaultSort = rowType === 'column' ? {
+      column: columnCollection[0].key,
+      direction: 'desc',
+    } : false;
 
     return (
       <div
-        className={`time-table-container ${className}`}
+        className={`time-table ${className}`}
         style={{ height }}
       >
         <Table
@@ -273,9 +264,6 @@ TimeTable.propTypes = propTypes;
 TimeTable.defaultProps = defaultProps;
 
 function adaptor(slice, payload) {
-  console.log('slice.datasource', slice.datasource);
-  // console.log('slice.formData, payload.data', slice.formData, payload.form_data, payload.data);
-
   const { containerId, formData, datasource } = slice;
   const {
     column_collection: columnCollection,
@@ -283,20 +271,39 @@ function adaptor(slice, payload) {
     metrics,
     url,
   } = formData;
+  const { records, columns } = payload.data;
+  const isGroupBy = groupby.length > 0;
 
-  const metricMap = {};
-  datasource.metrics.forEach((m) => {
-    metricMap[m.metric_name] = m;
-  });
+  // When there is a "group by",
+  // each row in the table is a database column
+  // Otherwise,
+  // each row in the table is a metric
+  let rows;
+  if (isGroupBy) {
+    rows = columns.map(column => (typeof column === 'object')
+      ? column
+      : { label: column });
+  } else {
+    const metricMap = datasource.metrics
+      .reduce((acc, current) => {
+        const map = acc;
+        map[current.metric_name] = current;
+        return map;
+      }, {});
+
+    rows = metrics.map(metric => (typeof metric === 'object')
+      ? metric
+      : metricMap[metric]);
+  }
 
   ReactDOM.render(
     <TimeTable
       height={slice.height()}
-      data={payload.data}
+      data={records}
       columnCollection={columnCollection}
-      isGroupBy={groupby.length > 0}
-      metrics={metrics}
-      metricMap={metricMap}
+      isGroupBy={isGroupBy}
+      rows={rows}
+      rowType={isGroupBy ? 'column' : 'metric'}
       url={url}
     />,
     document.getElementById(containerId),
