@@ -7,6 +7,11 @@ const propTypes = {
   format: PropTypes.string,
 };
 
+const defaultProps = {
+  num: 0,
+  format: undefined,
+};
+
 function FormattedNumber({ num, format }) {
   if (format) {
     return (
@@ -17,5 +22,6 @@ function FormattedNumber({ num, format }) {
 }
 
 FormattedNumber.propTypes = propTypes;
+FormattedNumber.defaultProps = defaultProps;
 
 export default FormattedNumber;
