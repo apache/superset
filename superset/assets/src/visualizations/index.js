@@ -101,7 +101,7 @@ const vizMap = {
   [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './sunburst.js')),
   [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './table.js')),
   [VIZ_TYPES.time_table]: () =>
-    loadVis(import(/* webpackChunkName: "time_table" */ './time_table.jsx')),
+    loadVis(import(/* webpackChunkName: "time_table" */ './TimeTable/TimeTable.jsx')),
   [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './treemap.js')),
   [VIZ_TYPES.country_map]: () =>
     loadVis(import(/* webpackChunkName: "country_map" */ './country_map.js')),
