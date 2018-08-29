@@ -10,17 +10,22 @@ import './table.css';
 dt(window, $);
 
 const propTypes = {
-  data: PropTypes.shape({
-    records: PropTypes.arrayOf(PropTypes.object),
-    columns: PropTypes.arrayOf(PropTypes.string),
-  }),
+  // Each object is { field1: value1, field2: value2 }
+  data: PropTypes.arrayOf(PropTypes.object),
   height: PropTypes.number,
   alignPn: PropTypes.bool,
   colorPn: PropTypes.bool,
-  columnFormats: PropTypes.object,
+  columns: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string,
+    label: PropTypes.string,
+    format: PropTypes.string,
+  })),
   filters: PropTypes.object,
   includeSearch: PropTypes.bool,
-  metrics: PropTypes.arrayOf(PropTypes.string),
+  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ])),
   onAddFilter: PropTypes.func,
   onRemoveFilter: PropTypes.func,
   orderDesc: PropTypes.bool,
@@ -28,17 +33,19 @@ const propTypes = {
     PropTypes.number,
     PropTypes.string,
   ]),
-  percentMetrics: PropTypes.array,
+  percentMetrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ])),
   tableFilter: PropTypes.bool,
   tableTimestampFormat: PropTypes.string,
   timeseriesLimitMetric: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.object,
   ]),
-  verboseMap: PropTypes.object,
 };
 
-const fC = d3.format('0,000');
+const formatValue = d3.format('0,000');
 function NOOP() {}
 
 function TableVis(element, props) {
@@ -49,7 +56,7 @@ function TableVis(element, props) {
     height,
     alignPn,
     colorPn,
-    columnFormats,
+    columns,
     filters,
     includeSearch,
     metrics: rawMetrics,
@@ -64,20 +71,18 @@ function TableVis(element, props) {
     verboseMap,
   } = props;
 
-  const { columns, records } = data;
-
   const $container = $(element);
 
   const metrics = (rawMetrics || []).map(m => m.label || m)
     // Add percent metrics
     .concat((percentMetrics || []).map(m => '%' + m))
     // Removing metrics (aggregates) that are strings
-    .filter(m => !Number.isNaN(records[0][m]));
+    .filter(m => !Number.isNaN(data[0][m]));
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < records.length; i += 1) {
-      arr.push(records[i][c]);
+    for (let i = 0; i < data.length; i += 1) {
+      arr.push(data[i][c]);
     }
     return arr;
   }
@@ -102,49 +107,36 @@ function TableVis(element, props) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
-  const cols = columns.map((c) => {
-    if (verboseMap[c]) {
-      return verboseMap[c];
-    }
-    // Handle verbose names for percents
-    if (c[0] === '%') {
-      const cName = c.substring(1);
-      return '% ' + (verboseMap[cName] || cName);
-    }
-    return c;
-  });
-
   table.append('thead').append('tr')
     .selectAll('th')
-    .data(cols)
+    .data(columns.map(c => c.label))
     .enter()
     .append('th')
     .text(d => d);
 
   table.append('tbody')
     .selectAll('tr')
-    .data(records)
+    .data(data)
     .enter()
     .append('tr')
     .selectAll('td')
-    .data(row => columns.map((c) => {
-      const val = row[c];
+    .data(row => columns.map(({ key, format }) => {
+      const val = row[key];
       let html;
-      const isMetric = metrics.indexOf(c) >= 0;
-      if (c === '__timestamp') {
+      const isMetric = metrics.indexOf(key) >= 0;
+      if (key === '__timestamp') {
         html = tsFormatter(val);
       }
       if (typeof (val) === 'string') {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        const format = (columnFormats && columnFormats[c]) || '0.3s';
-        html = d3.format(format)(val);
-      } else if (c[0] === '%') {
+        html = d3.format(format || '0.3s')(val);
+      } else if (key[0] === '%') {
         html = d3.format('.3p')(val);
       }
       return {
-        col: c,
+        col: key,
         val,
         html,
         isMetric,
@@ -182,7 +174,7 @@ function TableVis(element, props) {
     .classed('text-right', d => d.isMetric)
     .attr('title', (d) => {
       if (!Number.isNaN(d.val)) {
-        return fC(d.val);
+        return formatValue(d.val);
       }
       return null;
     })
@@ -239,11 +231,13 @@ function TableVis(element, props) {
     sortBy = metrics[0];
   }
   if (sortBy) {
-    datatable.column(columns.indexOf(sortBy)).order(orderDesc ? 'desc' : 'asc');
-  }
-  if (sortBy && metrics.indexOf(sortBy) < 0) {
-    // Hiding the sortBy column if not in the metrics list
-    datatable.column(columns.indexOf(sortBy)).visible(false);
+    const keys = columns.map(c => c.key);
+    const index = keys.indexOf(sortBy);
+    datatable.column(index).order(orderDesc ? 'desc' : 'asc');
+    if (metrics.indexOf(sortBy) < 0) {
+      // Hiding the sortBy column if not in the metrics list
+      datatable.column(index).visible(false);
+    }
   }
   datatable.draw();
   $container.parents('.widget').find('.tooltip').remove();
@@ -269,14 +263,34 @@ function adaptor(slice, payload) {
     verbose_map: verboseMap,
     column_formats: columnFormats,
   } = datasource;
+  const { records, columns } = payload.data;
+
+  const processedColumns = columns.map(key => {
+    let label = verboseMap[key];
+    // Handle verbose names for percents
+    if (!label) {
+      if (key[0] === '%') {
+        const cleanedKey = key.substring(1);
+        label = '% ' + (verboseMap[cleanedKey] || cleanedKey);
+      } else {
+        label = key;
+      }
+    }
+    return {
+      key,
+      label,
+      format: columnFormats[key],
+    };
+  });
+
   const element = document.querySelector(selector);
 
   return TableVis(element, {
-    data: payload.data,
+    data: records,
     height: slice.height(),
     alignPn,
     colorPn,
-    columnFormats,
+    columns: processedColumns,
     filters: slice.getFilters(),
     includeSearch,
     metrics,
@@ -291,7 +305,6 @@ function adaptor(slice, payload) {
     tableFilter,
     tableTimestampFormat,
     timeseriesLimitMetric,
-    verboseMap,
   });
 }
 
