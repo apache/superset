@@ -75,8 +75,7 @@ class ScatterPlotGlowOverlay extends React.Component {
   redraw() {
     const props = this.props;
     const pixelRatio = window.devicePixelRatio || 1;
-    const canvas = this.refs.overlay;
-    const ctx = canvas.getContext('2d');
+    const ctx = this.canvas.getContext('2d');
     const radius = props.dotRadius;
     const mercator = new ViewportMercator(props);
     const rgb = props.rgb;
@@ -211,11 +210,11 @@ class ScatterPlotGlowOverlay extends React.Component {
     const { globalOpacity } = this.props;
     const pixelRatio = window.devicePixelRatio || 1;
     return (
-      React.createElement('canvas', {
-        ref: 'overlay',
-        width: width * pixelRatio,
-        height: height * pixelRatio,
-        style: {
+      <canvas
+        ref={(c) => { this.canvas = c; }}
+        width={width * pixelRatio}
+        height={height * pixelRatio}
+        style={{
           width: `${width}px`,
           height: `${height}px`,
           position: 'absolute',
@@ -223,8 +222,8 @@ class ScatterPlotGlowOverlay extends React.Component {
           opacity: globalOpacity,
           left: 0,
           top: 0,
-        },
-      })
+        }}
+      />
     );
   }
 }
