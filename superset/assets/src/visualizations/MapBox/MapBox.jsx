@@ -38,6 +38,7 @@ const propTypes = {
 
 const defaultProps = {
   onViewportChange: NOOP,
+  pointRadius: DEFAULT_POINT_RADIUS,
   viewportLatitude: DEFAULT_LATITUDE,
   viewportLongitude: DEFAULT_LONGITUDE,
   viewportZoom: DEFAULT_ZOOM,
@@ -119,14 +120,28 @@ MapBox.propTypes = propTypes;
 MapBox.defaultProps = defaultProps;
 
 function mapbox(slice, payload, setControlValue) {
-  const { selector } = slice;
+  const { formData, selector } = slice;
   const {
-    aggregatorName: aggName,
-    clusteringRadius,
-    color,
     customMetric,
     geoJSON,
+    mapboxApiKey,
   } = payload.data;
+  const {
+    clustering_radius: clusteringRadius,
+    global_opacity: globalOpacity,
+    mapbox_color: color,
+    mapbox_style: mapStyle,
+    pandas_aggfunc: aggregatorName,
+    point_radius: pointRadius,
+    point_radius_unit: pointRadiusUnit,
+    render_while_dragging: renderWhileDragging,
+    viewport_latitude: viewportLatitude,
+    viewport_longitude: viewportLongitude,
+    viewport_zoom: viewportZoom,
+  } = formData;
+
+  console.log('ayload.data', payload.data, slice.formData);
+  // return;
 
   // Validate mapbox color
   const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/
@@ -138,7 +153,7 @@ function mapbox(slice, payload, setControlValue) {
 
   let reducer;
 
-  if (aggName === 'sum' || !customMetric) {
+  if (aggregatorName === 'sum' || !customMetric) {
     reducer = (a, b) => a + b;
   } else if (aggName === 'min') {
     reducer = Math.min;
@@ -171,18 +186,25 @@ function mapbox(slice, payload, setControlValue) {
 
   ReactDOM.render(
     <MapBox
-      {...payload.data}
-      rgb={rgb}
-      sliceHeight={slice.height()}
-      sliceWidth={slice.width()}
+      aggregatorName={aggregatorName}
       clusterer={clusterer}
-      pointRadius={DEFAULT_POINT_RADIUS}
-      aggregatorName={aggName}
+      globalOpacity={globalOpacity}
+      mapStyle={mapStyle}
+      mapboxApiKey={mapboxApiKey}
       onViewportChange={({ latitude, longitude, zoom }) => {
         setControlValue('viewport_longitude', longitude);
         setControlValue('viewport_latitude', latitude);
         setControlValue('viewport_zoom', zoom);
       }}
+      pointRadius={pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : pointRadius}
+      pointRadiusUnit={pointRadiusUnit}
+      renderWhileDragging={renderWhileDragging}
+      rgb={rgb}
+      sliceHeight={slice.height()}
+      sliceWidth={slice.width()}
+      viewportLatitude={viewportLatitude}
+      viewportLongitude={viewportLongitude}
+      viewportZoom={viewportZoom}
     />,
     document.querySelector(selector),
   );
