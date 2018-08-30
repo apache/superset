@@ -5,8 +5,8 @@ import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
+import WithLegend from './WithLegend';
 import { getColorFromScheme } from '../modules/colors';
-import './histogram.css';
 
 const propTypes = {
   className: PropTypes.string,
@@ -55,45 +55,51 @@ class CustomHistogram extends React.PureComponent {
     });
 
     return (
-      <div className={`histogram-chart ${className}`}>
-        <div className="legend-container">
+      <WithLegend
+        className={`histogram-chart ${className}`}
+        width={width}
+        height={height}
+        position="top"
+        renderLegend={({ direction }) => (
           <LegendOrdinal
             scale={colorScale}
-            direction="row"
+            direction={direction}
             shape="rect"
             labelMargin="0 15px 0 0"
           />
-        </div>
-        <Histogram
-          width={width}
-          height={height}
-          ariaLabel="Histogram"
-          normalized={normalized}
-          binCount={binCount}
-          binType="numeric"
-          renderTooltip={({ datum, color }) => (
-            <div>
-              <strong style={{ color }}>{datum.bin0} to {datum.bin1}</strong>
-              <div><strong>count </strong>{datum.count}</div>
-              <div><strong>cumulative </strong>{datum.cumulative}</div>
-            </div>
-          )}
-          valueAccessor={datum => datum}
-          theme={chartTheme}
-        >
-          {data.map(series => (
-            <BarSeries
-              key={series.key}
-              animated
-              rawData={series.values}
-              fill={colorScale(series.key)}
-              fillOpacity={opacity}
-            />
-          ))}
-          <XAxis label={xAxisLabel} />
-          <YAxis label={yAxisLabel} />
-        </Histogram>
-      </div>
+        )}
+        renderChart={parent => (
+          <Histogram
+            width={parent.width}
+            height={parent.height}
+            ariaLabel="Histogram"
+            normalized={normalized}
+            binCount={binCount}
+            binType="numeric"
+            renderTooltip={({ datum, color }) => (
+              <div>
+                <strong style={{ color }}>{datum.bin0} to {datum.bin1}</strong>
+                <div><strong>count </strong>{datum.count}</div>
+                <div><strong>cumulative </strong>{datum.cumulative}</div>
+              </div>
+            )}
+            valueAccessor={datum => datum}
+            theme={chartTheme}
+          >
+            {data.map(series => (
+              <BarSeries
+                key={series.key}
+                animated
+                rawData={series.values}
+                fill={colorScale(series.key)}
+                fillOpacity={opacity}
+              />
+            ))}
+            <XAxis label={xAxisLabel} />
+            <YAxis label={yAxisLabel} />
+          </Histogram>
+        )}
+      />
     );
   }
 }
