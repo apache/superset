@@ -171,15 +171,8 @@ function TableVis(element, props) {
       return null;
     })
     .classed('text-right', d => d.isMetric)
-    .attr('title', (d) => {
-      if (!Number.isNaN(d.val)) {
-        return formatValue(d.val);
-      }
-      return null;
-    })
-    .attr('data-sort', function (d) {
-      return (d.isMetric) ? d.val : null;
-    })
+    .attr('title', d => (!Number.isNaN(d.val) ? formatValue(d.val) : null))
+    .attr('data-sort', d => (d.isMetric) ? d.val : null)
     // Check if the dashboard currently has a filter for each row
     .classed('filtered', d =>
       filters &&
@@ -198,9 +191,7 @@ function TableVis(element, props) {
         }
       }
     })
-    .style('cursor', function (d) {
-      return (!d.isMetric) ? 'pointer' : '';
-    })
+    .style('cursor', d => (!d.isMetric) ? 'pointer' : '')
     .html(d => d.html ? d.html : d.val);
 
   const paging = pageLength && pageLength > 0;
@@ -211,7 +202,7 @@ function TableVis(element, props) {
     aaSorting: [],
     searching: includeSearch,
     bInfo: false,
-    scrollY: height + 'px',
+    scrollY: `${height}px`,
     scrollCollapse: true,
     scrollX: true,
   });
@@ -278,7 +269,7 @@ function adaptor(slice, payload) {
     return {
       key,
       label,
-      format: columnFormats[key],
+      format: columnFormats && columnFormats[key],
     };
   });
 
