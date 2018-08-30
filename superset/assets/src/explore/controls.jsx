@@ -1622,6 +1622,13 @@ export const controls = {
     description: t('Compute the contribution to the total'),
   },
 
+  params: {
+    type: 'TextControl',
+    label: t('Params'),
+    default: '{}',
+    description: t('Edit template parameters as JSON'),
+  },
+
   time_compare: {
     type: 'SelectControl',
     multi: true,
