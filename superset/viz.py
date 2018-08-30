@@ -473,7 +473,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
-        return []
+        return self.get_df().to_dict(orient='records')
 
     @property
     def json_data(self):
@@ -729,14 +729,6 @@ class WordCloudViz(BaseViz):
         d = super(WordCloudViz, self).query_obj()
         d['groupby'] = [self.form_data.get('series')]
         return d
-
-    def get_data(self, df):
-        fd = self.form_data
-        # Ordering the columns
-        df = df[[fd.get('series'), self.metric_labels[0]]]
-        # Labeling the columns for uniform json schema
-        df.columns = ['text', 'size']
-        return df.to_dict(orient='records')
 
 
 class TreemapViz(BaseViz):
