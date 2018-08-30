@@ -11,6 +11,7 @@ const propTypes = {
   rowcount: PropTypes.number,
   limit: PropTypes.number,
   rows: PropTypes.string,
+  suffix: PropTypes.string,
 };
 
 const defaultProps = {
