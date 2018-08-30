@@ -198,7 +198,7 @@ function TableVis(element, props) {
 
   const datatable = $container.find('.dataTable').DataTable({
     paging,
-    pageLength: paging ? parseInt(pageLength, 10) : undefined,
+    pageLength,
     aaSorting: [],
     searching: includeSearch,
     bInfo: false,
