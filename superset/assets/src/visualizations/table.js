@@ -68,7 +68,6 @@ function TableVis(element, props) {
     tableFilter,
     tableTimestampFormat,
     timeseriesLimitMetric,
-    verboseMap,
   } = props;
 
   const $container = $(element);
@@ -265,7 +264,7 @@ function adaptor(slice, payload) {
   } = datasource;
   const { records, columns } = payload.data;
 
-  const processedColumns = columns.map(key => {
+  const processedColumns = columns.map((key) => {
     let label = verboseMap[key];
     // Handle verbose names for percents
     if (!label) {
