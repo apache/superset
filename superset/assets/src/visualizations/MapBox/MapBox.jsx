@@ -21,10 +21,10 @@ const DEFAULT_MAX_ZOOM = 16;
 const propTypes = {
   aggregatorName: PropTypes.string,
   clusterer: PropTypes.object,
-  setControlValue: PropTypes.func,
   globalOpacity: PropTypes.number,
   mapStyle: PropTypes.string,
   mapboxApiKey: PropTypes.string,
+  onViewportChange: PropTypes.func,
   pointRadius: PropTypes.number,
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
@@ -37,6 +37,7 @@ const propTypes = {
 };
 
 const defaultProps = {
+  onViewportChange: NOOP,
   viewportLatitude: DEFAULT_LATITUDE,
   viewportLongitude: DEFAULT_LONGITUDE,
   viewportZoom: DEFAULT_ZOOM,
@@ -65,9 +66,7 @@ class MapBox extends React.Component {
 
   onViewportChange(viewport) {
     this.setState({ viewport });
-    this.props.setControlValue('viewport_longitude', viewport.longitude);
-    this.props.setControlValue('viewport_latitude', viewport.latitude);
-    this.props.setControlValue('viewport_zoom', viewport.zoom);
+    this.props.onViewportChange(viewport);
   }
 
   render() {
@@ -179,7 +178,11 @@ function mapbox(slice, payload, setControlValue) {
       clusterer={clusterer}
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}
-      setControlValue={setControlValue || NOOP}
+      onViewportChange={({ latitude, longitude, zoom }) => {
+        setControlValue('viewport_longitude', longitude);
+        setControlValue('viewport_latitude', latitude);
+        setControlValue('viewport_zoom', zoom);
+      }}
     />,
     document.querySelector(selector),
   );
