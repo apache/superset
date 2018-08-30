@@ -1,6 +1,6 @@
 import d3 from 'd3';
-import PropTypes from 'prop-types';
 import $ from 'jquery';
+import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
@@ -286,7 +286,7 @@ function adaptor(slice, payload) {
     metrics,
     onAddFilter(...args) { slice.addFilter(...args); },
     orderDesc,
-    pageLength,
+    pageLength: pageLength && parseInt(pageLength, 10),
     percentMetrics,
     // Aug 22, 2018
     // Perhaps this `tableFilter` field can be removed as there is
