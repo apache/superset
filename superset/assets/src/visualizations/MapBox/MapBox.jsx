@@ -19,6 +19,8 @@ const DEFAULT_POINT_RADIUS = 60;
 const DEFAULT_MAX_ZOOM = 16;
 
 const propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
   aggregatorName: PropTypes.string,
   clusterer: PropTypes.object,
   globalOpacity: PropTypes.number,
@@ -29,16 +31,16 @@ const propTypes = {
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
   rgb: PropTypes.array,
-  sliceHeight: PropTypes.number,
-  sliceWidth: PropTypes.number,
   viewportLatitude: PropTypes.number,
   viewportLongitude: PropTypes.number,
   viewportZoom: PropTypes.number,
 };
 
 const defaultProps = {
+  globalOpacity: 1,
   onViewportChange: NOOP,
   pointRadius: DEFAULT_POINT_RADIUS,
+  pointRadiusUnit: 'Pixels',
   viewportLatitude: DEFAULT_LATITUDE,
   viewportLongitude: DEFAULT_LONGITUDE,
   viewportZoom: DEFAULT_ZOOM,
@@ -71,41 +73,55 @@ class MapBox extends React.Component {
   }
 
   render() {
+    const {
+      width,
+      height,
+      aggregatorName,
+      globalOpacity,
+      mapStyle,
+      mapboxApiKey,
+      pointRadius,
+      pointRadiusUnit,
+      renderWhileDragging,
+      rgb,
+    } = this.props;
+    const { viewport } = this.state;
+    const { latitude, longitude, zoom } = viewport;
     const mercator = new ViewportMercator({
-      width: this.props.sliceWidth,
-      height: this.props.sliceHeight,
-      longitude: this.state.viewport.longitude,
-      latitude: this.state.viewport.latitude,
-      zoom: this.state.viewport.zoom,
+      width,
+      height,
+      longitude,
+      latitude,
+      zoom,
     });
     const topLeft = mercator.unproject([0, 0]);
-    const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
+    const bottomRight = mercator.unproject([width, height]);
     const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
-    const clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom));
-    const isDragging = this.state.viewport.isDragging === undefined ? false :
-                       this.state.viewport.isDragging;
+    const clusters = this.props.clusterer.getClusters(bbox, Math.round(zoom));
+    const isDragging = viewport.isDragging === undefined ? false :
+                       viewport.isDragging;
     return (
       <MapGL
         {...this.state.viewport}
-        mapStyle={this.props.mapStyle}
-        width={this.props.sliceWidth}
-        height={this.props.sliceHeight}
-        mapboxApiAccessToken={this.props.mapboxApiKey}
+        mapStyle={mapStyle}
+        width={width}
+        height={height}
+        mapboxApiAccessToken={mapboxApiKey}
         onViewportChange={this.onViewportChange}
       >
         <ScatterPlotGlowOverlay
-          {...this.state.viewport}
+          {...viewport}
           isDragging={isDragging}
-          width={this.props.sliceWidth}
-          height={this.props.sliceHeight}
+          width={width}
+          height={height}
           locations={Immutable.fromJS(clusters)}
-          dotRadius={this.props.pointRadius}
-          pointRadiusUnit={this.props.pointRadiusUnit}
-          rgb={this.props.rgb}
-          globalOpacity={this.props.globalOpacity}
+          dotRadius={pointRadius}
+          pointRadiusUnit={pointRadiusUnit}
+          rgb={rgb}
+          globalOpacity={globalOpacity}
           compositeOperation={'screen'}
-          renderWhileDragging={this.props.renderWhileDragging}
-          aggregatorName={this.props.aggregatorName}
+          renderWhileDragging={renderWhileDragging}
+          aggregatorName={aggregatorName}
           lngLatAccessor={function (location) {
             const coordinates = location.get('geometry').get('coordinates');
             return [coordinates.get(0), coordinates.get(1)];
@@ -118,6 +134,30 @@ class MapBox extends React.Component {
 
 MapBox.propTypes = propTypes;
 MapBox.defaultProps = defaultProps;
+
+function createReducer(aggregatorName, customMetric) {
+  if (aggregatorName === 'sum' || !customMetric) {
+    return (a, b) => a + b;
+  } else if (aggName === 'min') {
+    return Math.min;
+  } else if (aggName === 'max') {
+    return Math.max;
+  }
+  return function (a, b) {
+    if (a instanceof Array) {
+      if (b instanceof Array) {
+        return a.concat(b);
+      }
+      a.push(b);
+      return a;
+    }
+    if (b instanceof Array) {
+      b.push(a);
+      return b;
+    }
+    return [a, b];
+  };
+}
 
 function mapbox(slice, payload, setControlValue) {
   const { formData, selector } = slice;
@@ -140,9 +180,6 @@ function mapbox(slice, payload, setControlValue) {
     viewport_zoom: viewportZoom,
   } = formData;
 
-  console.log('ayload.data', payload.data, slice.formData);
-  // return;
-
   // Validate mapbox color
   const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/
     .exec(color);
@@ -151,41 +188,18 @@ function mapbox(slice, payload, setControlValue) {
     return;
   }
 
-  let reducer;
-
-  if (aggregatorName === 'sum' || !customMetric) {
-    reducer = (a, b) => a + b;
-  } else if (aggName === 'min') {
-    reducer = Math.min;
-  } else if (aggName === 'max') {
-    reducer = Math.max;
-  } else {
-    reducer = function (a, b) {
-      if (a instanceof Array) {
-        if (b instanceof Array) {
-          return a.concat(b);
-        }
-        a.push(b);
-        return a;
-      }
-      if (b instanceof Array) {
-        b.push(a);
-        return b;
-      }
-      return [a, b];
-    };
-  }
-
   const clusterer = supercluster({
     radius: clusteringRadius,
     maxZoom: DEFAULT_MAX_ZOOM,
     metricKey: 'metric',
-    metricReducer: reducer,
+    metricReducer: createReducer(aggregatorName, customMetric),
   });
   clusterer.load(geoJSON.features);
 
   ReactDOM.render(
     <MapBox
+      width={slice.width()}
+      height={slice.height()}
       aggregatorName={aggregatorName}
       clusterer={clusterer}
       globalOpacity={globalOpacity}
@@ -200,8 +214,6 @@ function mapbox(slice, payload, setControlValue) {
       pointRadiusUnit={pointRadiusUnit}
       renderWhileDragging={renderWhileDragging}
       rgb={rgb}
-      sliceHeight={slice.height()}
-      sliceWidth={slice.width()}
       viewportLatitude={viewportLatitude}
       viewportLongitude={viewportLongitude}
       viewportZoom={viewportZoom}
