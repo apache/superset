@@ -21,6 +21,7 @@ import math
 import re
 import traceback
 import uuid
+from superset.models.helpers import json_to_dict
 
 from dateutil import relativedelta as rdelta
 from flask import request
@@ -304,6 +305,7 @@ class BaseViz(object):
         }
 
         d = {
+            'params': json_to_dict(form_data.get('params')) or {},
             'granularity': granularity,
             'from_dttm': from_dttm,
             'to_dttm': to_dttm,

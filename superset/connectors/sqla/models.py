@@ -532,6 +532,7 @@ class SqlaTable(Model, BaseDatasource):
             order_desc=True,
             prequeries=None,
             is_prequery=False,
+            params={},
         ):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -544,6 +545,7 @@ class SqlaTable(Model, BaseDatasource):
             'columns': {col.column_name: col for col in self.columns},
         }
         template_kwargs.update(self.template_params_dict)
+        template_kwargs.update(params)
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
