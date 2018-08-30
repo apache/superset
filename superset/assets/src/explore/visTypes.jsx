@@ -103,6 +103,7 @@ export const visTypes = {
           ['columns'],
           ['row_limit'],
           ['contribution'],
+          ['params'],
         ],
       },
       {
@@ -141,13 +142,14 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: t('Query'),
+
         expanded: true,
         controlSetRows: [
           ['metric'],
           ['adhoc_filters'],
           ['groupby'],
           ['row_limit'],
+          ['params'],
         ],
       },
       {
@@ -182,6 +184,7 @@ export const visTypes = {
           ['show_brush', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation'],
+          ['params'],
         ],
       },
       {
@@ -256,6 +259,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       sections.annotations,
@@ -299,6 +303,7 @@ export const visTypes = {
           ['metric'],
           ['adhoc_filters'],
           ['freq'],
+          ['params'],
         ],
       },
       {
@@ -366,6 +371,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       sections.annotations,
@@ -920,6 +926,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       {
@@ -956,6 +963,7 @@ export const visTypes = {
           ['limit'],
           ['column_collection'],
           ['url'],
+          ['params'],
         ],
       },
     ],
@@ -997,6 +1005,7 @@ export const visTypes = {
           ['groupby'],
           ['columns'],
           ['row_limit', null],
+          ['params'],
         ],
       },
       {
@@ -1046,6 +1055,7 @@ export const visTypes = {
           ['adhoc_filters'],
           ['series'],
           ['row_limit', null],
+          ['params'],
         ],
       },
       {
@@ -1069,6 +1079,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['params'],
         ],
       },
       {
@@ -1099,6 +1110,7 @@ export const visTypes = {
           ['domain_granularity', 'subdomain_granularity'],
           ['metrics'],
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       {
@@ -1138,6 +1150,7 @@ export const visTypes = {
           ['adhoc_filters'],
           ['groupby'],
           ['limit'],
+          ['params'],
         ],
       },
       {
@@ -1165,6 +1178,7 @@ export const visTypes = {
           ['size'],
           ['max_bubble_size'],
           ['limit', null],
+          ['params'],
         ],
       },
       {
@@ -1214,6 +1228,7 @@ export const visTypes = {
         controlSetRows: [
           ['metric'],
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       {
@@ -1238,6 +1253,7 @@ export const visTypes = {
         controlSetRows: [
           ['metric'],
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       {
@@ -1266,6 +1282,7 @@ export const visTypes = {
         controlSetRows: [
           ['metric'],
           ['adhoc_filters'],
+          ['params'],
         ],
       },
       {
@@ -1295,6 +1312,7 @@ export const visTypes = {
           ['adhoc_filters'],
           ['row_limit'],
           ['groupby'],
+          ['params'],
         ],
       },
       {
