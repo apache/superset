@@ -54,11 +54,11 @@ function TableVis(element, props) {
   const {
     data,
     height,
-    alignPn,
-    colorPn,
+    alignPn = false,
+    colorPn = false,
     columns,
-    filters,
-    includeSearch,
+    filters = {},
+    includeSearch = false,
     metrics: rawMetrics,
     onAddFilter = NOOP,
     onRemoveFilter = NOOP,
@@ -253,6 +253,7 @@ function adaptor(slice, payload) {
     verbose_map: verboseMap,
     column_formats: columnFormats,
   } = datasource;
+
   const { records, columns } = payload.data;
 
   const processedColumns = columns.map((key) => {

@@ -1,11 +1,12 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import $ from 'jquery';
-
 import '../../helpers/browser';
-import { d3format } from '../../../src/modules/utils';
-
 import tableVis from '../../../src/visualizations/table';
+
+// Fix `Option is not defined`
+// https://stackoverflow.com/questions/39501589/jsdom-option-is-not-defined-when-running-my-mocha-test
+global.Option = window.Option;
 
 describe('table viz', () => {
   const div = '<div id="slice-container"><div class="dataTables_wrapper"></div></div>';
@@ -18,10 +19,9 @@ describe('table viz', () => {
     datasource: {
       verbose_map: {},
     },
-    getFilters: () => {},
-    d3format,
-    removeFilter: null,
-    addFilter: null,
+    getFilters: () => ({}),
+    removeFilter() {},
+    addFilter() {},
     height: () => 0,
   };
   const basePayload = {
