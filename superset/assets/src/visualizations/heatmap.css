@@ -6,18 +6,22 @@
 }
 
 .heatmap .axis text {
-  font: 10px sans-serif;
+  font: 12px sans-serif;
   text-rendering: optimizeLegibility;
+  fill: #555;
+}
+
+.heatmap .background-rect {
+  stroke: #ddd;
+  fill-opacity: 0;
+  pointer-events: all;
 }
 
 .heatmap .axis path,
 .heatmap .axis line {
   fill: none;
-  stroke: #000;
+  stroke: #ddd;
   shape-rendering: crispEdges;
-}
-
-.heatmap svg {
 }
 
 .heatmap canvas, .heatmap img {
@@ -40,4 +44,9 @@
 }
 .heatmap .legendCells .cell:last-child text {
   opacity: 1;
+}
+
+.dashboard .heatmap .axis text {
+  font-size: 10px;
+  opacity: .75;
 }

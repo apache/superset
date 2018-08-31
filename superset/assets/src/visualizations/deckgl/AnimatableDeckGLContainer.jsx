@@ -10,12 +10,14 @@ const propTypes = {
   end: PropTypes.number.isRequired,
   step: PropTypes.number.isRequired,
   values: PropTypes.array.isRequired,
+  aggregation: PropTypes.bool,
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
   children: PropTypes.node,
 };
 
 const defaultProps = {
+  aggregation: false,
   disabled: false,
   step: 1,
 };
@@ -26,30 +28,41 @@ export default class AnimatableDeckGLContainer extends React.Component {
     const { getLayers, start, end, step, values, disabled, viewport, ...other } = props;
     this.state = { values, viewport };
     this.other = other;
+    this.onChange = this.onChange.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     this.setState({ values: nextProps.values, viewport: nextProps.viewport });
   }
+  onChange(newValues) {
+    this.setState({
+      values: Array.isArray(newValues)
+        ? newValues
+        : [newValues, newValues + this.props.step],
+    });
+  }
   render() {
-    const layers = this.props.getLayers(this.state.values);
+    const { start, end, step, disabled, aggregation, children, getLayers } = this.props;
+    const { values, viewport } = this.state;
+    const layers = getLayers(values);
     return (
       <div>
         <DeckGLContainer
           {...this.other}
-          viewport={this.state.viewport}
+          viewport={viewport}
           layers={layers}
           onViewportChange={newViewport => this.setState({ viewport: newViewport })}
         />
-        {!this.props.disabled &&
+        {!disabled &&
         <PlaySlider
-          start={this.props.start}
-          end={this.props.end}
-          step={this.props.step}
-          values={this.state.values}
-          onChange={newValues => this.setState({ values: newValues })}
+          start={start}
+          end={end}
+          step={step}
+          values={values}
+          range={!aggregation}
+          onChange={this.onChange}
         />
         }
-        {this.props.children}
+        {children}
       </div>
     );
   }

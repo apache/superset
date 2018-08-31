@@ -181,7 +181,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme'],
-          ['show_brush', 'show_legend'],
+          ['show_brush', 'send_time_range', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation'],
           ['params'],
@@ -611,6 +611,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -709,25 +717,31 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['line_column', 'line_type'],
-          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
+          ['metric'],
+          ['row_limit', null],
+          ['line_column', 'line_type'],
+          ['reverse_long_lat', 'filter_nulls'],
         ],
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['reverse_long_lat', null],
+          ['autozoom', null],
         ],
       },
       {
         label: t('Polygon Settings'),
+        expanded: true,
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
           ['extruded', null],
-          ['point_radius_scale', null],
+          ['line_width', null],
+          ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
         ],
       },
       {
@@ -740,6 +754,17 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metric: {
+        validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
+      },
+    },
   },
 
   deck_arc: {
@@ -765,8 +790,9 @@ export const visTypes = {
       {
         label: t('Arc'),
         controlSetRows: [
-          ['color_picker', null],
-          ['stroke_width', null],
+          ['color_picker', 'target_color_picker'],
+          ['dimension', 'color_scheme'],
+          ['stroke_width', 'legend_position'],
         ],
       },
       {
@@ -779,6 +805,16 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
+      },
+      size: {
+        validators: [],
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
+    },
   },
 
   deck_scatter: {
@@ -944,9 +980,6 @@ export const visTypes = {
       metrics: {
         validators: [],
       },
-      time_grain_sqla: {
-        default: null,
-      },
     },
   },
 
@@ -1051,9 +1084,9 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
+          ['series'],
           ['metric'],
           ['adhoc_filters'],
-          ['series'],
           ['row_limit', null],
           ['params'],
         ],
@@ -1263,6 +1296,7 @@ export const visTypes = {
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
           ['show_trend_line', 'start_y_axis_at_zero'],
+          ['color_picker', null],
         ],
       },
     ],
@@ -1416,7 +1450,7 @@ export const visTypes = {
   },
 
   directed_force: {
-    label: t('Directed Force Layout'),
+    label: t('Force-directed Graph'),
     controlPanelSections: [
       {
         label: t('Query'),
