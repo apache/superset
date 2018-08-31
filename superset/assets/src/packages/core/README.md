@@ -1,21 +1,78 @@
-## @superset/core
+## `@superset-ui/core`
+
+Core packages for Superset:
+
+- `SupersetClient`
+- (future) `i18n`
 
 ### SupersetClient
 
-Example usage
+The `SupersetClient` handles all client-side requests to the Superset backend. It can be configured for use within the Superset application, or used to issue `CORS` requests in other applications. At a high-level it supports:
 
-Configuration
+- `CSRF` token authentication
+  - queues requests in the case that another request is made before the token is received
+  - it checks for a token before every request, an external app that uses this can detect this by catching errors, or explicitly checking `SupersetClient.isAuthorized()`
+- supports `GET` and `POST` requests (no `PUT` or `DELETE`)
+- timeouts
+- query aborts through the `AbortController` API
 
-const { protocol = 'http', host = '', headers = {}, mode = 'same-origin', timeout, signal } = config;
+#### Example usage
 
-- timeout can be per request, or globally
-- can cancel requests via AbortController, queryRequest => 'queryController' which has abort method
-- once init is called, csrf token will be fetched and all other reuquests will be queued after that response
+```javascript
+// appSetup.js
+import { SupersetClient } from `@superset-ui/core`;
 
-@TODO should i18n be included in core? useful for error messages, or supersetclient could import i18n ...
+SupersetClient.configure(...clientConfig);
+SupersetClient.init(); // CSRF auth, can also chain `.configure().init();
 
-test
+// anotherFile.js
+import { SupersetClient } from `@superset-ui/core`;
 
-- async/sync ajax (for document.execCommand('copy'))
-- copy text (sync ajax based)
-- not sure how to test the link
+SupersetClient.post(...requestConfig)
+  .then(({ request, json }) => ...)
+  .catch((error) => ...);
+```
+
+#### API
+
+##### Client Configuration
+
+The following flags can be passed in the client config call `SupersetClient.configure(...clientConfig);`
+
+- `protocol = 'http'`
+- `host`
+- `headers`
+- `credentials = 'same-origin'` (set to `include` for non-Superset apps)
+- `mode = 'same-origin'` (set to `cors` for non-Superset apps)
+- `timeout`
+
+##### Per-request Configuration
+
+The following flags can be passed on a per-request call `SupersetClient.get/post(...requestConfig);`
+
+- `url` or `endpoint`
+- `headers`
+- `body`
+- `timeout`
+- `signal` (for aborting, from `const { signal } = (new AbortController())`)
+- for `POST` requests
+  - `postPayload` (key values are added to a `new FormData()`)
+  - `stringify` whether to call `JSON.stringify` on `postPayload` values
+
+##### Query aborting
+
+Query aborting is implemented through the `AbortController` API:
+
+```javascript
+import { SupersetClient } from '@superset-ui/core';
+import AbortController from 'abortcontroller-polyfill';
+
+const controller = new AbortController();
+const { signal } = controller;
+
+SupersetClient.get({}).then(...).catch(...);
+
+if (IWantToCancelForSomeReason) {
+  signal.abort(); // Promise is rejected, request `catch` is invoked
+}
+```

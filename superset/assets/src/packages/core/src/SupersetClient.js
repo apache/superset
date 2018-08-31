@@ -12,7 +12,7 @@ class SupersetClient {
     } = config;
 
     this.headers = headers;
-    this.host = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
+    this.host = host;
     this.mode = mode;
     this.timeout = timeout;
     this.protocol = protocol;
@@ -22,7 +22,7 @@ class SupersetClient {
     this.requestingCsrf = false;
   }
 
-  isAuthorized() {
+  isAuthenticated() {
     return this.didAuthSuccessfully;
   }
 
@@ -36,7 +36,7 @@ class SupersetClient {
     // If we can request this resource successfully, it means that the user has
     // authenticated. If not we throw an error prompting to authenticate.
     return callApi({
-      url: this.getUrlFromEndpoint('superset/csrf_token/'),
+      url: this.getUrl({ host: this.host, endpoint: 'superset/csrf_token/' }),
       method: 'GET',
       headers: {
         ...this.headers,
@@ -63,8 +63,9 @@ class SupersetClient {
       .catch(error => Promise.reject(error));
   }
 
-  getUrlFromEndpoint(endpoint) {
-    return `${this.protocol}://${this.host}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
+  getUrl({ host = '', endpoint }) {
+    const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
+    return `${this.protocol}://${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
   }
 
   getUnauthorizedError() {
@@ -96,31 +97,41 @@ class SupersetClient {
     });
   }
 
-  get({ url, endpoint, headers, body, timeout, signal }) {
+  get({ host, url, endpoint, mode, credentials, headers, body, timeout, signal }) {
     return this.ensureAuth().then(() =>
       callApi({
         method: 'GET',
-        url: url || this.getUrlFromEndpoint(endpoint),
-        credentials: this.credentials,
+        url: url || this.getUrl({ host: host || this.host, endpoint }),
+        credentials: credentials || this.credentials,
         headers: { ...this.headers, ...headers },
         body,
-        mode: this.mode,
+        mode: mode || this.mode,
         timeout: timeout || this.timeout,
         signal,
       }),
     );
   }
 
-  post({ url, body, endpoint, headers, postPayload, timeout, signal, stringify }) {
+  post({
+    host,
+    endpoint,
+    url,
+    mode,
+    credentials,
+    headers,
+    postPayload,
+    timeout,
+    signal,
+    stringify,
+  }) {
     return this.ensureAuth().then(() =>
       callApi({
         method: 'POST',
-        url: url || this.getUrlFromEndpoint(endpoint),
-        credentials: this.credentials,
+        url: url || this.getUrl({ host: host || this.host, endpoint }),
+        credentials: credentials || this.credentials,
         headers: { ...this.headers, ...headers },
-        body,
         postPayload,
-        mode: this.mode,
+        mode: mode || this.mode,
         timeout: timeout || this.timeout,
         signal,
         stringify,
@@ -139,6 +150,9 @@ function hasInstance() {
 }
 
 const PublicAPI = {
+  reset: () => {
+    singletonClient = null;
+  },
   configure: (config) => {
     singletonClient = new SupersetClient(config || {});
 
@@ -147,17 +161,10 @@ const PublicAPI = {
   init: () => hasInstance() && singletonClient.init(),
   get: (...args) => hasInstance() && singletonClient.get(...args),
   post: (...args) => hasInstance() && singletonClient.post(...args),
-  isAuthorized: () => hasInstance() && singletonClient.isAuthorized(),
+  isAuthenticated: () => hasInstance() && singletonClient.isAuthenticated(),
+  reAuthenticate: () => hasInstance() && singletonClient.getCSRFToken(),
 };
 
 export { SupersetClient };
 
 export default PublicAPI;
-
-// import SSClient from '@superset-ui/core';
-//
-// SSClient.configure();
-// SSClient.init();
-// SSClient.get();
-// SSClient.post();
-// SSClient.authorized();

@@ -24,6 +24,8 @@ export function callApi({
   let request = { method, mode, cache, credentials, redirect, headers, body, signal };
 
   if (method === 'POST' && typeof postPayload === 'object') {
+    // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
+    // not e.g., 'application/x-www-form-urlencoded'
     const formData = new FormData();
     Object.keys(postPayload).forEach((key) => {
       const value = postPayload[key];
@@ -41,13 +43,13 @@ export function callApi({
   return fetch(url, request)
     .then(
       (response) => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
+        if (timeoutId) clearTimeout(timeoutId);
 
+        // first try to parse as json, and fall back to text (e.g., in the case of HTML stacktrace)
+        // cannot fall back to .text() without cloning the response because body is single-use
         return response
           .clone()
-          .json() // first try to parse as json, fall back to text
+          .json()
           .catch(() => /* jsonParseError */ response.text().then(textPayload => ({ textPayload })))
           .then(json => ({
             response,
@@ -56,32 +58,22 @@ export function callApi({
           }));
       },
       (error) => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
+        // clear timeout and forward error
+        if (timeoutId) clearTimeout(timeoutId);
 
-        return Promise.reject({
-          error: error.error || error.message || 'An error occurred',
-          status: error.status || error.code,
-          statusText: error.statusText || error.name,
-          link: error.link,
-        });
+        return Promise.reject(error);
       },
     )
     .then(({ response, json, text }) => {
       if (!response.ok) {
         return Promise.reject({
-          error: (json && json.error) || text || 'An error occurred',
+          error: response.error || (json && json.error) || text || 'An error occurred',
           status: response.status,
           statusText: response.statusText,
         });
       }
 
-      if (typeof text !== 'undefined') {
-        return { response, text };
-      }
-
-      return { response, json };
+      return Promise.resolve(typeof text === 'undefined' ? { response, json } : { response, text });
     });
 }
 
@@ -92,7 +84,7 @@ export default function callApiWithTimeout({ timeout, ...rest }) {
 
   return Promise.race([
     callApi({ ...rest, timeoutId }),
-    new Promise((_, reject) => {
+    new Promise((resolve, reject) => {
       if (typeof timeout === 'number') {
         timeoutId = setTimeout(
           () =>
