@@ -147,6 +147,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
+  devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
   devServer: {
     historyApiFallback: true,
     hot: true,
