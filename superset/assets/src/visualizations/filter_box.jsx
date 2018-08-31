@@ -13,8 +13,8 @@ import Control from '../explore/components/Control';
 import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
-import './filter_box.css';
 import { t } from '../locales';
+import './filter_box.css';
 
 // maps control names to their key in extra_filters
 const timeFilterMap = {
@@ -172,9 +172,7 @@ class FilterBox extends React.Component {
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];
       const maxes = {};
-      maxes[filter] = d3.max(data, function (d) {
-        return d.metric;
-      });
+      maxes[filter] = Math.max(...data.map(d => d.metric));
       return (
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
@@ -227,34 +225,47 @@ class FilterBox extends React.Component {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-function filterBox(slice, payload) {
-  const d3token = d3.select(slice.selector);
-  d3token.selectAll('*').remove();
-
+function adaptor(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
-  const fd = slice.formData;
-  const filtersChoices = {};
+  const { formData, datasource } = slice;
+  const { verbose_map: verboseMap } = datasource;
+  const {
+    groupby,
+    instant_filtering: instantFiltering,
+    date_filter: showDateFilter,
+    show_sqla_time_granularity: showSqlaTimeGrain,
+    show_sqla_time_column: showSqlaTimeColumn,
+    show_druid_time_granularity: showDruidTimeGrain,
+    show_druid_time_origin: showDruidTimeOrigin,
+  } = formData;
+
+  const filterFields = groupby.map(field => ({
+    field,
+    label: verboseMap[field] || field,
+  }));
+
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
-  fd.groupby.forEach((f) => {
-    filtersChoices[f] = payload.data[f];
-  });
+  const filtersChoices = groupby.reduce((acc, field) => {
+    acc[field] = payload.data[field];
+    return acc;
+  }, {});
   ReactDOM.render(
     <FilterBox
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
-      showDateFilter={fd.date_filter}
-      showSqlaTimeGrain={fd.show_sqla_time_granularity}
-      showSqlaTimeColumn={fd.show_sqla_time_column}
-      showDruidTimeGrain={fd.show_druid_time_granularity}
-      showDruidTimeOrigin={fd.show_druid_time_origin}
-      datasource={slice.datasource}
+      showDateFilter={showDateFilter}
+      showSqlaTimeGrain={showSqlaTimeGrain}
+      showSqlaTimeColumn={showSqlaTimeColumn}
+      showDruidTimeGrain={showDruidTimeGrain}
+      showDruidTimeOrigin={showDruidTimeOrigin}
+      datasource={datasource}
       origSelectedValues={slice.getFilters() || {}}
-      instantFiltering={fd.instant_filtering}
+      instantFiltering={instantFiltering}
     />,
     document.getElementById(slice.containerId),
   );
 }
 
-module.exports = filterBox;
+export default adaptor;
