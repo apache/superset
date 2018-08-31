@@ -1,5 +1,3 @@
-// JS
-import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
@@ -27,6 +25,10 @@ const timeFilterMap = {
 const propTypes = {
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
+  filtersFields: PropTypes.arrayOf(PropTypes.shape({
+    field: PropTypes.string,
+    label: PropTypes.string,
+  })),
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
@@ -34,7 +36,6 @@ const propTypes = {
   showSqlaTimeColumn: PropTypes.bool,
   showDruidTimeGrain: PropTypes.bool,
   showDruidTimeOrigin: PropTypes.bool,
-  datasource: PropTypes.object.isRequired,
 };
 const defaultProps = {
   origSelectedValues: {},
@@ -169,20 +170,26 @@ class FilterBox extends React.Component {
         }
       }
     }
-    const filters = Object.keys(this.props.filtersChoices).map((filter) => {
-      const data = this.props.filtersChoices[filter];
-      const maxes = {};
-      maxes[filter] = Math.max(...data.map(d => d.metric));
+
+    const {
+      filtersFields,
+      filtersChoices,
+      instantFiltering,
+    } = this.props;
+
+    const filters = filtersFields.map(({ key, label }) => {
+      const data = filtersChoices[key];
+      const max = Math.max(...data.map(d => d.metric));
       return (
-        <div key={filter} className="m-b-5">
-          {this.props.datasource.verbose_map[filter] || filter}
+        <div key={key} className="m-b-5">
+          {label}
           <OnPasteSelect
-            placeholder={t('Select [%s]', filter)}
-            key={filter}
+            placeholder={t('Select [%s]', key)}
+            key={key}
             multi
-            value={this.state.selectedValues[filter]}
+            value={this.state.selectedValues[key]}
             options={data.map((opt) => {
-              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+              const perc = Math.round((opt.metric / max) * 100);
               const backgroundImage = (
                 'linear-gradient(to right, lightgrey, ' +
                 `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
@@ -193,7 +200,7 @@ class FilterBox extends React.Component {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={this.changeFilter.bind(this, filter)}
+            onChange={this.changeFilter.bind(this, key)}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
             optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
@@ -207,7 +214,7 @@ class FilterBox extends React.Component {
           {dateFilter}
           {datasourceFilters}
           {filters}
-          {!this.props.instantFiltering &&
+          {!instantFiltering &&
             <Button
               bsSize="small"
               bsStyle="primary"
@@ -222,6 +229,7 @@ class FilterBox extends React.Component {
     );
   }
 }
+
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
@@ -240,27 +248,29 @@ function adaptor(slice, payload) {
     show_druid_time_origin: showDruidTimeOrigin,
   } = formData;
 
-  const filterFields = groupby.map(field => ({
-    field,
-    label: verboseMap[field] || field,
+  const filtersFields = groupby.map(key => ({
+    key,
+    label: verboseMap[key] || key,
   }));
 
-  // Making sure the ordering of the fields matches the setting in the
-  // dropdown as it may have been shuffled while serialized to json
-  const filtersChoices = groupby.reduce((acc, field) => {
-    acc[field] = payload.data[field];
-    return acc;
-  }, {});
+  // const filtersChoices = groupby.reduce((acc, key) => {
+  //   acc[key] = payload.data[key];
+  //   return acc;
+  // }, {});
+
+  // console.log('filtersFields, filtersChoices', filtersFields, filtersChoices);
+
   ReactDOM.render(
     <FilterBox
-      filtersChoices={filtersChoices}
+      datasource={datasource}
+      filtersFields={filtersFields}
+      filtersChoices={payload.data}
       onChange={slice.addFilter}
       showDateFilter={showDateFilter}
       showSqlaTimeGrain={showSqlaTimeGrain}
       showSqlaTimeColumn={showSqlaTimeColumn}
       showDruidTimeGrain={showDruidTimeGrain}
       showDruidTimeOrigin={showDruidTimeOrigin}
-      datasource={datasource}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={instantFiltering}
     />,
