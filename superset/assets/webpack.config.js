@@ -3,6 +3,8 @@ const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+// Parse command-line arguments
+const parsedArgs = require('minimist')(process.argv.slice(2));
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -11,6 +13,9 @@ const APP_DIR = path.resolve(__dirname, './');
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
 const isDevMode = process.env.NODE_ENV !== 'production';
+
+const devserverPort = parsedArgs.port || 9000;
+const supersetPort = parsedArgs.supersetPort || 8088;
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -149,13 +154,13 @@ const config = {
     inline: true,
     stats: { colors: true },
     overlay: true,
-    port: 9000,
+    port: devserverPort,
     // Only serves bundled files from webpack-dev-server
     // and proxy everything else to Superset backend
     proxy: {
       context: () => true,
-      '/': 'http://localhost:8088',
-      target: 'http://localhost:8088',
+      '/': `http://localhost:${supersetPort}`,
+      target: `http://localhost:${supersetPort}`,
     },
     contentBase: path.join(process.cwd(), '../static/assets/dist'),
   },
