@@ -30,6 +30,10 @@ global.navigator = {
   appName: 'Netscape',
 };
 
+// Fix `Option is not defined`
+// https://stackoverflow.com/questions/39501589/jsdom-option-is-not-defined-when-running-my-mocha-test
+global.Option = window.Option;
+
 // Configuration copied from https://github.com/sinonjs/sinon/issues/657
 // allowing for sinon.fakeServer to work
 
