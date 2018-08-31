@@ -301,6 +301,14 @@ If you start flask server at another port (e.g. 8081), you have to pass an extra
 npm run dev-server -- --supersetPort=8081
 ```
 
+You can also specify port for `webpack-dev-server`
+
+```bash
+npm run dev-server -- --port=9001
+# or with both dev-server port and superset port
+npm run dev-server -- --port=9001 --supersetPort=8081
+```
+
 #### Upgrading npm packages
 
 Should you add or upgrade a npm package, which involves changing `package.json`, you'll need to re-run `yarn install` and push the newly generated `yarn.lock` file so we get the reproducible build. More information at (https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/)
