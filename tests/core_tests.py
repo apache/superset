@@ -590,6 +590,11 @@ class CoreTests(SupersetTestCase):
             {'name': ' NULL', 'sum__num': 0},
         )
 
+    def test_viz_get_params(self):
+        slc = self.get_slice('Girls', db.session)
+        q = slc.viz.query_obj()
+        self.assertEquals(q['params'], {})
+
     def test_import_csv(self):
         self.login(username='admin')
         filename = 'testCSV.csv'
