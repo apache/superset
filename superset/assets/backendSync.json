@@ -67,6 +67,18 @@
       },
       "renderTrigger": true
     },
+    "target_color_picker": {
+      "label": "Target Color",
+      "description": "Color of the target location",
+      "type": "ColorPickerControl",
+      "default": {
+        "r": 0,
+        "g": 122,
+        "b": 135,
+        "a": 1
+      },
+      "renderTrigger": true
+    },
     "legend_position": {
       "label": "Legend Position",
       "description": "Choose the position of the legend",
@@ -842,7 +854,8 @@
     },
     "horizon_color_scale": {
       "type": "SelectControl",
-      "label": "Horizon Color Scale",
+      "renderTrigger": true,
+      "label": "Value Domain",
       "choices": [
         [
           "series",
@@ -858,7 +871,7 @@
         ]
       ],
       "default": "series",
-      "description": "Defines how the color are attributed."
+      "description": "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series"
     },
     "canvas_image_rendering": {
       "type": "SelectControl",
@@ -1433,6 +1446,10 @@
           "Morocco"
         ],
         [
+          "Myanmar",
+          "Myanmar"
+        ],
+        [
           "Netherlands",
           "Netherlands"
         ],
@@ -1451,6 +1468,10 @@
         [
           "Thailand",
           "Thailand"
+        ],
+        [
+          "Timorleste",
+          "Timorleste"
         ],
         [
           "Uk",
@@ -1667,6 +1688,7 @@
         null
       ],
       "default": null,
+      "renderTrigger": true,
       "choices": [
         [
           1,
@@ -1954,6 +1976,7 @@
     },
     "link_length": {
       "type": "SelectControl",
+      "renderTrigger": true,
       "freeForm": true,
       "label": "Link Length",
       "default": "200",
@@ -1995,6 +2018,7 @@
     },
     "charge": {
       "type": "SelectControl",
+      "renderTrigger": true,
       "freeForm": true,
       "label": "Charge",
       "default": "-500",
@@ -2052,6 +2076,7 @@
     "time_grain_sqla": {
       "type": "SelectControl",
       "label": "Time Grain",
+      "default": "P1D",
       "description": "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code."
     },
     "resample_rule": {
@@ -2570,6 +2595,7 @@
     },
     "series_height": {
       "type": "SelectControl",
+      "renderTrigger": true,
       "freeForm": true,
       "label": "Series Height",
       "default": "25",
@@ -2893,7 +2919,8 @@
           "square"
         ]
       ],
-      "default": "random",
+      "renderTrigger": true,
+      "default": "square",
       "description": "Rotation to apply to words in the cloud"
     },
     "line_interpolation": {
@@ -3005,6 +3032,7 @@
       "type": "TextControl",
       "isInt": true,
       "label": "Font Size From",
+      "renderTrigger": true,
       "default": "20",
       "description": "Font size for the smallest value in the list"
     },
@@ -3012,6 +3040,7 @@
       "type": "TextControl",
       "isInt": true,
       "label": "Font Size To",
+      "renderTrigger": true,
       "default": "150",
       "description": "Font size for the biggest value in the list"
     },
@@ -3097,10 +3126,10 @@
     },
     "table_filter": {
       "type": "CheckboxControl",
-      "label": "Table Filter",
+      "label": "Emit Filter Events",
       "renderTrigger": true,
       "default": false,
-      "description": "Whether to apply filter when table cell is clicked"
+      "description": "Whether to apply filter when items are clicked"
     },
     "align_pn": {
       "type": "CheckboxControl",
@@ -3129,6 +3158,13 @@
       "renderTrigger": true,
       "default": true,
       "description": "Whether to display the legend (toggles)"
+    },
+    "send_time_range": {
+      "type": "CheckboxControl",
+      "label": "Propagate",
+      "renderTrigger": true,
+      "default": false,
+      "description": "Send range filter events to other charts"
     },
     "show_labels": {
       "type": "CheckboxControl",
@@ -3226,6 +3262,12 @@
       "label": "Contribution",
       "default": false,
       "description": "Compute the contribution to the total"
+    },
+    "params": {
+      "type": "TextControl",
+      "label": "Params",
+      "default": "{}",
+      "description": "Edit template parameters as JSON"
     },
     "time_compare": {
       "type": "SelectControl",
@@ -3449,6 +3491,16 @@
       "default": 1,
       "isFloat": true,
       "description": "Opacity of all clusters, points, and labels. Between 0 and 1."
+    },
+    "opacity": {
+      "type": "SliderControl",
+      "label": "Opacity",
+      "default": 80,
+      "step": 1,
+      "min": 0,
+      "max": 100,
+      "renderTrigger": true,
+      "description": "Opacity, expects values between 0 and 100"
     },
     "viewport": {
       "type": "ViewportControl",
@@ -4003,6 +4055,10 @@
         [
           "json",
           "JSON"
+        ],
+        [
+          "geohash",
+          "geohash (square)"
         ]
       ]
     },
@@ -4347,7 +4403,7 @@
       "label": "Filled",
       "renderTrigger": true,
       "description": "Whether to fill the objects",
-      "default": false
+      "default": true
     },
     "normalized": {
       "type": "CheckboxControl",
