@@ -21,7 +21,7 @@ const plugins = [
     // Also write to disk when using devServer
     // instead of only keeping manifest.json in memory
     // This is required to make devServer work with flask.
-    writeToDisk: isDevMode,
+    writeToDisk: true,
   }),
 
   // create fresh dist/ upon build
