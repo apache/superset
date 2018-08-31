@@ -97,7 +97,10 @@ const config = {
       {
         test: /\.css$/,
         include: APP_DIR,
-        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader'],
+        use: [
+          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          'css-loader',
+        ],
       },
       {
         test: /\.less$/,
@@ -145,7 +148,7 @@ const config = {
     inline: true,
     stats: { colors: true },
     overlay: true,
-    port: 8098,
+    port: 9000,
     // Only serves bundled files
     // and proxy everything else to Superset backend
     proxy: {
