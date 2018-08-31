@@ -67,11 +67,11 @@ describe('getPlaySliderParams', () => {
       new Date('2018-01-10'),
     ].map(d => d.getTime());
     const { start, end, values, disabled } = getPlaySliderParams(timestamps, 'P2D');
-    expect(new Date(start)).to.eql(new Date('2017-12-31'));
-    expect(new Date(end)).to.eql(new Date('2018-01-10'));
+    expect(new Date(start)).to.eql(new Date('2018-01-01'));
+    expect(new Date(end)).to.eql(new Date('2018-01-11'));
     expect(values.map(v => new Date(v))).to.eql([
-      new Date('2017-12-31'),
-      new Date('2018-01-02'),
+      new Date('2018-01-01'),
+      new Date('2018-01-03'),
     ]);
     expect(disabled).to.equal(false);
   });

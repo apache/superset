@@ -89,12 +89,13 @@ export class IsoDuration {
     const explodedLowerBound = this.explode(lowerBound);
     let foundDifference = false;
     const args = [];
+    const first = [1, 1, 1, 0, 0, 0, 0];
     for (let i = 0; i < explodedTimestamp.length; i++) {
       if (explodedLowerBound[i] !== explodedTimestamp[i]) {
         foundDifference = true;
       }
       if (foundDifference) {
-        args.push(0);
+        args.push(first[i]);
       } else {
         args.push(explodedTimestamp[i]);
       }
