@@ -99,6 +99,7 @@ export class IsoDuration {
         args.push(explodedTimestamp[i]);
       }
     }
+    // new Date('2018-01-01') == Date.UTC(2018, 1, 1);
     return Date.UTC(...args);
   }
 }

@@ -8,7 +8,7 @@ const propTypes = {
   getLayers: PropTypes.func.isRequired,
   start: PropTypes.number.isRequired,
   end: PropTypes.number.isRequired,
-  step: PropTypes.number.isRequired,
+  step: PropTypes.object,
   values: PropTypes.array.isRequired,
   aggregation: PropTypes.bool,
   disabled: PropTypes.bool,
@@ -19,7 +19,6 @@ const propTypes = {
 const defaultProps = {
   aggregation: false,
   disabled: false,
-  step: 1,
 };
 
 export default class AnimatableDeckGLContainer extends React.Component {
@@ -37,7 +36,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
     this.setState({
       values: Array.isArray(newValues)
         ? newValues
-        : [newValues, newValues + this.props.step],
+        : [newValues, this.props.step.addTo(newValues)],
     });
   }
   render() {
@@ -56,7 +55,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
         <PlaySlider
           start={start}
           end={end}
-          step={step}
+          step={step.addTo(start) - start}
           values={values}
           range={!aggregation}
           onChange={this.onChange}
