@@ -29,7 +29,7 @@ const plugins = [
     // Also write to disk when using devServer
     // instead of only keeping manifest.json in memory
     // This is required to make devServer work with flask.
-    writeToDisk: true,
+    writeToDisk: isDevMode,
   }),
 
   // create fresh dist/ upon build
@@ -107,7 +107,7 @@ const config = {
         test: /\.css$/,
         include: APP_DIR,
         use: [
-          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          MiniCssExtractPlugin.loader,
           'css-loader',
         ],
       },
@@ -115,7 +115,7 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          MiniCssExtractPlugin.loader,
           'css-loader',
           'less-loader',
         ],
