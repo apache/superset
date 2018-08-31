@@ -16,7 +16,12 @@ const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
   new WebpackAssetsManifest({
     publicPath: true,
-    entrypoints: true, // this enables us to include all relevant files for an entry
+    // This enables us to include all relevant files for an entry
+    entrypoints: true,
+    // Also write to disk when using devServer
+    // instead of only keeping manifest.json in memory
+    // This is required to make devServer work with flask.
+    writeToDisk: true,
   }),
 
   // create fresh dist/ upon build
@@ -27,8 +32,8 @@ if (isDevMode) {
   plugins.push(new webpack.HotModuleReplacementPlugin());
   // text loading (webpack 4+)
   plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].[hash].entry.css',
-    chunkFilename: '[name].[hash].chunk.css',
+    filename: '[name].dev.entry.css',
+    chunkFilename: '[name].dev.chunk.css',
   }));
 } else {
   // text loading (webpack 4+)
@@ -44,8 +49,8 @@ const output = {
 };
 
 if (isDevMode) {
-  output.filename = '[name].[hash].entry.js';
-  output.chunkFilename = '[name].[hash].chunk.js';
+  output.filename = '[name].dev.entry.js';
+  output.chunkFilename = '[name].dev.chunk.js';
 } else {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
@@ -140,14 +145,15 @@ const config = {
     inline: true,
     stats: { colors: true },
     open: true,
+    overlay: true,
     port: 8099,
     proxy: {
       context: () => true,
       '/': 'http://localhost:8088',
       target: 'http://localhost:8088',
     },
-    contentBase: path.join(process.cwd(), 'static/assets/dist'),
-    // publicPath: '/dist/',
+    contentBase: path.join(process.cwd(), '../static/assets/dist'),
+    // publicPath: 'http://localhost:8099/static/assets/dist/',
   },
 };
 
