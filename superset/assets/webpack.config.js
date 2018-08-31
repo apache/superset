@@ -1,7 +1,7 @@
 const path = require('path');
+const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const webpack = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // input dir
@@ -144,16 +144,16 @@ const config = {
     index: '', // needed to enable root proxying
     inline: true,
     stats: { colors: true },
-    open: true,
     overlay: true,
-    port: 8099,
+    port: 8098,
+    // Only serves bundled files
+    // and proxy everything else to Superset backend
     proxy: {
       context: () => true,
       '/': 'http://localhost:8088',
       target: 'http://localhost:8088',
     },
     contentBase: path.join(process.cwd(), '../static/assets/dist'),
-    // publicPath: 'http://localhost:8099/static/assets/dist/',
   },
 };
 
