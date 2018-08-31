@@ -937,7 +937,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_csv_upload(self):
-        schema_access = self.schema_access_for_csv_upload or {"schemas_allowed": []}
+        schema_access = self.schema_access_for_csv_upload or {'schemas_allowed': []}
         try:
             schema_access = json.loads(schema_access)
         except Exception as e:

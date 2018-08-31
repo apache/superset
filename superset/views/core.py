@@ -325,7 +325,8 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         schema_name = form.schema.data or ''
         if not self.is_schema_allowed(database, schema_name):
-            message = 'Schema {} is not allowed for csv uploads. Please contact Superset Admin'.format(schema_name)
+            message = _('Schema {} is not allowed for csv uploads. '
+                        'Please contact Superset Admin'.format(schema_name))
             flash(
                 message,
                 'danger')
@@ -378,9 +379,12 @@ class CsvToDatabaseView(SimpleFormView):
         """
         try:
             schema_access = database.get_schema_access_for_csv_upload()
-            return schema_name in schema_access.get('schema_allowed') if schema_access.get('schema_allowed') else True
-        except:
+            return (schema_name in schema_access.get('schema_allowed')
+                    if schema_access.get('schema_allowed')
+                    else True)
+        except Exception:
             return False
+
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
@@ -2791,7 +2795,7 @@ class Superset(BaseSupersetView):
         try:
             schema_access = database.get_schema_access_for_csv_upload()
             return self.json_response(schema_access)
-        except:
+        except Exception:
             return json_error_response((
                 'Failed to fetch schemas allowed for csv upload in this database! '
                 'Please contact Superset Admin!\n\n'

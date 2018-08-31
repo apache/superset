@@ -238,7 +238,7 @@ class SupersetTestCase(unittest.TestCase):
             raise Exception('run_sql failed')
         return resp
 
-    def update_schema_access_privilege_for_csv_upload_in_main_db(self, schema_access_for_csv_upload):
+    def update_csv_upload_schema_setting_in_main(self, schema_access_for_csv_upload):
         main_db = self.get_main_database(db.session)
         main_db.schema_access_for_csv_upload = schema_access_for_csv_upload
         db.session.commit()
