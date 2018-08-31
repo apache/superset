@@ -13,8 +13,8 @@ const propTypes = {
   // Each object is { field1: value1, field2: value2 }
   data: PropTypes.arrayOf(PropTypes.object),
   height: PropTypes.number,
-  alignPn: PropTypes.bool,
-  colorPn: PropTypes.bool,
+  alignPositiveNegative: PropTypes.bool,
+  colorPositiveNegative: PropTypes.bool,
   columns: PropTypes.arrayOf(PropTypes.shape({
     key: PropTypes.string,
     label: PropTypes.string,
@@ -54,8 +54,8 @@ function TableVis(element, props) {
   const {
     data,
     height,
-    alignPn = false,
-    colorPn = false,
+    alignPositiveNegative = false,
+    colorPositiveNegative = false,
     columns,
     filters = {},
     includeSearch = false,
@@ -88,7 +88,7 @@ function TableVis(element, props) {
   const maxes = {};
   const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    if (alignPn) {
+    if (alignPositiveNegative) {
       maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
     } else {
       maxes[metrics[i]] = d3.max(col(metrics[i]));
@@ -145,8 +145,8 @@ function TableVis(element, props) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const r = (colorPn && d.val < 0) ? 150 : 0;
-        if (alignPn) {
+        const r = (colorPositiveNegative && d.val < 0) ? 150 : 0;
+        if (alignPositiveNegative) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
           // The 0.01 to 0.001 is a workaround for what appears to be a
           // CSS rendering bug on flat, transparent colors
@@ -237,8 +237,8 @@ TableVis.propTypes = propTypes;
 function adaptor(slice, payload) {
   const { selector, formData, datasource } = slice;
   const {
-    align_pn: alignPn,
-    color_pn: colorPn,
+    align_pn: alignPositiveNegative,
+    color_pn: colorPositiveNegative,
     include_search: includeSearch,
     metrics,
     order_desc: orderDesc,
@@ -278,8 +278,8 @@ function adaptor(slice, payload) {
   return TableVis(element, {
     data: records,
     height: slice.height(),
-    alignPn,
-    colorPn,
+    alignPositiveNegative,
+    colorPositiveNegative,
     columns: processedColumns,
     filters: slice.getFilters(),
     includeSearch,
