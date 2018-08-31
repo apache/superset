@@ -230,7 +230,6 @@ function TableVis(element, props) {
     }
   }
   datatable.draw();
-  $container.parents('.widget').find('.tooltip').remove();
 }
 
 TableVis.propTypes = propTypes;
