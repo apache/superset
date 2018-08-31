@@ -28,7 +28,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
-from .base_tests import SupersetTestCase
+from base_tests import SupersetTestCase
 
 
 class CoreTests(SupersetTestCase):
@@ -695,6 +695,19 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
+
+    def test_schemas_access_for_csv_upload_endpoint(self):
+        schema_access_for_csv_upload = {
+            "schemas_allowed": ["this_schema_is_allowed", "this_schema_is_allowed_too"]
+        }
+
+        self.login(username='admin')
+        self.update_schema_access_privilege_for_csv_upload_in_main_db(
+            json.dumps(schema_access_for_csv_upload))
+        data = self.get_json_resp(
+            url='/schema_access_for_csv_upload',
+            data={"db_id": self.get_main_database_id()})
+        assert schema_access_for_csv_upload in data
 
 
 if __name__ == '__main__':

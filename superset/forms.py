@@ -68,6 +68,12 @@ class CsvToDatabaseForm(DynamicForm):
         _('Database'),
         query_factory=csv_enabled_dbs,
         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
+    schema = StringField(
+        _('Schema'),
+        description=_('Specify a schema (if database flavour supports this).'),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+        filters=[lambda x: x or None])
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
@@ -83,12 +89,6 @@ class CsvToDatabaseForm(DynamicForm):
             ('fail', _('Fail')), ('replace', _('Replace')),
             ('append', _('Append'))],
         validators=[DataRequired()])
-    schema = StringField(
-        _('Schema'),
-        description=_('Specify a schema (if database flavour supports this).'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
     header = IntegerField(
         _('Header Row'),
         description=_(

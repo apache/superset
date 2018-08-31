@@ -638,7 +638,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     expose_in_sqllab = Column(Boolean, default=False)
     allow_run_sync = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=True)
+    allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
@@ -650,11 +650,16 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     }
     """))
     perm = Column(String(1000))
-
     impersonate_user = Column(Boolean, default=False)
+    schema_access_for_csv_upload = Column(Text, default=textwrap.dedent("""\
+    {
+        "schemas_allowed": []
+    }
+    """))
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-                     'allow_ctas', 'allow_csv_upload', 'extra')
+                     'allow_ctas', 'allow_csv_upload', 'schema_access_for_csv_upload',
+                     'extra')
     export_children = ['tables']
 
     def __repr__(self):
@@ -930,6 +935,15 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_foreign_keys(self, table_name, schema=None):
         return self.inspector.get_foreign_keys(table_name, schema)
+
+    def get_schema_access_for_csv_upload(self):
+        schema_access = self.schema_access_for_csv_upload or {"schemas_allowed": []}
+        try:
+            schema_access = json.loads(schema_access)
+        except Exception as e:
+            logging.error(e)
+            raise e
+        return schema_access
 
     @property
     def sqlalchemy_uri_decrypted(self):
