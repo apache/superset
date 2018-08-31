@@ -1,6 +1,7 @@
 const path = require('path');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const webpack = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // input dir
@@ -10,6 +11,45 @@ const APP_DIR = path.resolve(__dirname, './');
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
 const isDevMode = process.env.NODE_ENV !== 'production';
+
+const plugins = [
+  // creates a manifest.json mapping of name to hashed output used in template files
+  new WebpackAssetsManifest({
+    publicPath: true,
+    entrypoints: true, // this enables us to include all relevant files for an entry
+  }),
+
+  // create fresh dist/ upon build
+  new CleanWebpackPlugin(['dist']),
+];
+
+if (isDevMode) {
+  plugins.push(new webpack.HotModuleReplacementPlugin());
+  // text loading (webpack 4+)
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].[hash].entry.css',
+    chunkFilename: '[name].[hash].chunk.css',
+  }));
+} else {
+  // text loading (webpack 4+)
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].[chunkhash].entry.css',
+    chunkFilename: '[name].[chunkhash].chunk.css',
+  }));
+}
+
+const output = {
+  path: BUILD_DIR,
+  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+};
+
+if (isDevMode) {
+  output.filename = '[name].[hash].entry.js';
+  output.chunkFilename = '[name].[hash].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[name].[chunkhash].chunk.js';
+}
 
 const config = {
   node: {
@@ -25,12 +65,7 @@ const config = {
     welcome: ['babel-polyfill', APP_DIR + '/src/welcome/index.jsx'],
     profile: ['babel-polyfill', APP_DIR + '/src/profile/index.jsx'],
   },
-  output: {
-    path: BUILD_DIR,
-    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
-    filename: '[name].[chunkhash].entry.js',
-    chunkFilename: '[name].[chunkhash].chunk.js',
-  },
+  output,
   optimization: {
     splitChunks: {
       chunks: 'all',
@@ -97,22 +132,23 @@ const config = {
     'react/lib/ExecutionEnvironment': true,
     'react/lib/ReactContext': true,
   },
-  plugins: [
-    // creates a manifest.json mapping of name to hashed output used in template files
-    new WebpackAssetsManifest({
-      publicPath: true,
-      entrypoints: true, // this enables us to include all relevant files for an entry
-    }),
-
-    // create fresh dist/ upon build
-    new CleanWebpackPlugin(['dist']),
-
-    // text loading (webpack 4+)
-    new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
-    }),
-  ],
+  plugins,
+  devServer: {
+    historyApiFallback: true,
+    hot: true,
+    index: '', // needed to enable root proxying
+    inline: true,
+    stats: { colors: true },
+    open: true,
+    port: 8099,
+    proxy: {
+      context: () => true,
+      '/': 'http://localhost:8088',
+      target: 'http://localhost:8088',
+    },
+    contentBase: path.join(process.cwd(), 'static/assets/dist'),
+    // publicPath: '/dist/',
+  },
 };
 
 module.exports = config;
