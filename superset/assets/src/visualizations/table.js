@@ -1,39 +1,94 @@
 import d3 from 'd3';
+import $ from 'jquery';
+import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
-
 import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
 import './table.css';
 
-const $ = require('jquery');
-
 dt(window, $);
 
-function tableVis(slice, payload) {
-  const container = $(slice.selector);
-  const fC = d3.format('0,000');
+const propTypes = {
+  // Each object is { field1: value1, field2: value2 }
+  data: PropTypes.arrayOf(PropTypes.object),
+  height: PropTypes.number,
+  alignPositiveNegative: PropTypes.bool,
+  colorPositiveNegative: PropTypes.bool,
+  columns: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string,
+    label: PropTypes.string,
+    format: PropTypes.string,
+  })),
+  filters: PropTypes.object,
+  includeSearch: PropTypes.bool,
+  metrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ])),
+  onAddFilter: PropTypes.func,
+  onRemoveFilter: PropTypes.func,
+  orderDesc: PropTypes.bool,
+  pageLength: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.string,
+  ]),
+  percentMetrics: PropTypes.arrayOf(PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ])),
+  tableFilter: PropTypes.bool,
+  tableTimestampFormat: PropTypes.string,
+  timeseriesLimitMetric: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.object,
+  ]),
+};
 
-  const data = payload.data;
-  const fd = slice.formData;
+const formatValue = d3.format('0,000');
+function NOOP() {}
 
-  let metrics = (fd.metrics || []).map(m => m.label || m);
-  // Add percent metrics
-  metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
-  // Removing metrics (aggregates) that are strings
-  metrics = metrics.filter(m => !isNaN(data.records[0][m]));
+function TableVis(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'TableVis');
+
+  const {
+    data,
+    height,
+    alignPositiveNegative = false,
+    colorPositiveNegative = false,
+    columns,
+    filters = {},
+    includeSearch = false,
+    metrics: rawMetrics,
+    onAddFilter = NOOP,
+    onRemoveFilter = NOOP,
+    orderDesc,
+    pageLength,
+    percentMetrics,
+    tableFilter,
+    tableTimestampFormat,
+    timeseriesLimitMetric,
+  } = props;
+
+  const $container = $(element);
+
+  const metrics = (rawMetrics || []).map(m => m.label || m)
+    // Add percent metrics
+    .concat((percentMetrics || []).map(m => '%' + m))
+    // Removing metrics (aggregates) that are strings
+    .filter(m => !Number.isNaN(data[0][m]));
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < data.records.length; i += 1) {
-      arr.push(data.records[i][c]);
+    for (let i = 0; i < data.length; i += 1) {
+      arr.push(data[i][c]);
     }
     return arr;
   }
   const maxes = {};
   const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    if (fd.align_pn) {
+    if (alignPositiveNegative) {
       maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
     } else {
       maxes[metrics[i]] = d3.max(col(metrics[i]));
@@ -41,9 +96,9 @@ function tableVis(slice, payload) {
     }
   }
 
-  const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
+  const tsFormatter = d3TimeFormatPreset(tableTimestampFormat);
 
-  const div = d3.select(slice.selector);
+  const div = d3.select(element);
   div.html('');
   const table = div.append('table')
     .classed(
@@ -51,53 +106,36 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
-  const verboseMap = slice.datasource.verbose_map;
-  const cols = data.columns.map((c) => {
-    if (verboseMap[c]) {
-      return verboseMap[c];
-    }
-    // Handle verbose names for percents
-    if (c[0] === '%') {
-      const cName = c.substring(1);
-      return '% ' + (verboseMap[cName] || cName);
-    }
-    return c;
-  });
-
   table.append('thead').append('tr')
     .selectAll('th')
-    .data(cols)
+    .data(columns.map(c => c.label))
     .enter()
     .append('th')
-    .text(function (d) {
-      return d;
-    });
+    .text(d => d);
 
-  const filters = slice.getFilters();
   table.append('tbody')
     .selectAll('tr')
-    .data(data.records)
+    .data(data)
     .enter()
     .append('tr')
     .selectAll('td')
-    .data(row => data.columns.map((c) => {
-      const val = row[c];
+    .data(row => columns.map(({ key, format }) => {
+      const val = row[key];
       let html;
-      const isMetric = metrics.indexOf(c) >= 0;
-      if (c === '__timestamp') {
+      const isMetric = metrics.indexOf(key) >= 0;
+      if (key === '__timestamp') {
         html = tsFormatter(val);
       }
       if (typeof (val) === 'string') {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        html = slice.d3format(c, val);
-      }
-      if (c[0] === '%') {
+        html = d3.format(format || '0.3s')(val);
+      } else if (key[0] === '%') {
         html = d3.format('.3p')(val);
       }
       return {
-        col: c,
+        col: key,
         val,
         html,
         isMetric,
@@ -107,8 +145,8 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const r = (fd.color_pn && d.val < 0) ? 150 : 0;
-        if (fd.align_pn) {
+        const r = (colorPositiveNegative && d.val < 0) ? 150 : 0;
+        if (alignPositiveNegative) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
           // The 0.01 to 0.001 is a workaround for what appears to be a
           // CSS rendering bug on flat, transparent colors
@@ -133,15 +171,8 @@ function tableVis(slice, payload) {
       return null;
     })
     .classed('text-right', d => d.isMetric)
-    .attr('title', (d) => {
-      if (!isNaN(d.val)) {
-        return fC(d.val);
-      }
-      return null;
-    })
-    .attr('data-sort', function (d) {
-      return (d.isMetric) ? d.val : null;
-    })
+    .attr('title', d => (!Number.isNaN(d.val) ? formatValue(d.val) : null))
+    .attr('data-sort', d => (d.isMetric) ? d.val : null)
     // Check if the dashboard currently has a filter for each row
     .classed('filtered', d =>
       filters &&
@@ -149,45 +180,39 @@ function tableVis(slice, payload) {
       filters[d.col].indexOf(d.val) >= 0,
     )
     .on('click', function (d) {
-      if (!d.isMetric && fd.table_filter) {
+      if (!d.isMetric && tableFilter) {
         const td = d3.select(this);
         if (td.classed('filtered')) {
-          slice.removeFilter(d.col, [d.val]);
+          onRemoveFilter(d.col, [d.val]);
           d3.select(this).classed('filtered', false);
         } else {
           d3.select(this).classed('filtered', true);
-          slice.addFilter(d.col, [d.val]);
+          onAddFilter(d.col, [d.val]);
         }
       }
     })
-    .style('cursor', function (d) {
-      return (!d.isMetric) ? 'pointer' : '';
-    })
+    .style('cursor', d => (!d.isMetric) ? 'pointer' : '')
     .html(d => d.html ? d.html : d.val);
-  const height = slice.height();
-  let paging = false;
-  let pageLength;
-  if (fd.page_length && fd.page_length > 0) {
-    paging = true;
-    pageLength = parseInt(fd.page_length, 10);
-  }
-  const datatable = container.find('.dataTable').DataTable({
+
+  const paging = pageLength && pageLength > 0;
+
+  const datatable = $container.find('.dataTable').DataTable({
     paging,
     pageLength,
     aaSorting: [],
-    searching: fd.include_search,
+    searching: includeSearch,
     bInfo: false,
-    scrollY: height + 'px',
+    scrollY: `${height}px`,
     scrollCollapse: true,
     scrollX: true,
   });
-  fixDataTableBodyHeight(
-      container.find('.dataTables_wrapper'), height);
+
+  fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
   let sortBy;
-  const limitMetric = Array.isArray(fd.timeseries_limit_metric)
-    ? fd.timeseries_limit_metric[0]
-    : fd.timeseries_limit_metric;
+  const limitMetric = Array.isArray(timeseriesLimitMetric)
+    ? timeseriesLimitMetric[0]
+    : timeseriesLimitMetric;
   if (limitMetric) {
     // Sort by as specified
     sortBy = limitMetric.label || limitMetric;
@@ -196,14 +221,81 @@ function tableVis(slice, payload) {
     sortBy = metrics[0];
   }
   if (sortBy) {
-    datatable.column(data.columns.indexOf(sortBy)).order(fd.order_desc ? 'desc' : 'asc');
-  }
-  if (sortBy && metrics.indexOf(sortBy) < 0) {
-    // Hiding the sortBy column if not in the metrics list
-    datatable.column(data.columns.indexOf(sortBy)).visible(false);
+    const keys = columns.map(c => c.key);
+    const index = keys.indexOf(sortBy);
+    datatable.column(index).order(orderDesc ? 'desc' : 'asc');
+    if (metrics.indexOf(sortBy) < 0) {
+      // Hiding the sortBy column if not in the metrics list
+      datatable.column(index).visible(false);
+    }
   }
   datatable.draw();
-  container.parents('.widget').find('.tooltip').remove();
 }
 
-module.exports = tableVis;
+TableVis.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData, datasource } = slice;
+  const {
+    align_pn: alignPositiveNegative,
+    color_pn: colorPositiveNegative,
+    include_search: includeSearch,
+    metrics,
+    order_desc: orderDesc,
+    page_length: pageLength,
+    percent_metrics: percentMetrics,
+    table_filter: tableFilter,
+    table_timestamp_format: tableTimestampFormat,
+    timeseries_limit_metric: timeseriesLimitMetric,
+  } = formData;
+  const {
+    verbose_map: verboseMap,
+    column_formats: columnFormats,
+  } = datasource;
+
+  const { records, columns } = payload.data;
+
+  const processedColumns = columns.map((key) => {
+    let label = verboseMap[key];
+    // Handle verbose names for percents
+    if (!label) {
+      if (key[0] === '%') {
+        const cleanedKey = key.substring(1);
+        label = '% ' + (verboseMap[cleanedKey] || cleanedKey);
+      } else {
+        label = key;
+      }
+    }
+    return {
+      key,
+      label,
+      format: columnFormats && columnFormats[key],
+    };
+  });
+
+  const element = document.querySelector(selector);
+
+  return TableVis(element, {
+    data: records,
+    height: slice.height(),
+    alignPositiveNegative,
+    colorPositiveNegative,
+    columns: processedColumns,
+    filters: slice.getFilters(),
+    includeSearch,
+    metrics,
+    onAddFilter(...args) { slice.addFilter(...args); },
+    orderDesc,
+    pageLength: pageLength && parseInt(pageLength, 10),
+    percentMetrics,
+    // Aug 22, 2018
+    // Perhaps this `tableFilter` field can be removed as there is
+    // no code left in repo to set tableFilter to true.
+    // which make `onAddFilter` will never be called as well.
+    tableFilter,
+    tableTimestampFormat,
+    timeseriesLimitMetric,
+  });
+}
+
+export default adaptor;

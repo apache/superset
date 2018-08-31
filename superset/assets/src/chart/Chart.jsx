@@ -3,7 +3,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'react-bootstrap';
 
-import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
@@ -165,13 +164,6 @@ class Chart extends React.PureComponent {
     return (
       this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
     );
-  }
-
-  d3format(col, number) {
-    const { datasource } = this.props;
-    const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
-
-    return d3format(format, number);
   }
 
   error(e) {
