@@ -238,10 +238,21 @@ class SupersetTestCase(unittest.TestCase):
             raise Exception('run_sql failed')
         return resp
 
-    def update_csv_upload_schema_setting_in_main(self, schema_access_for_csv_upload):
-        main_db = self.get_main_database(db.session)
-        main_db.schema_access_for_csv_upload = schema_access_for_csv_upload
+    def get_or_create_db(self, database_name, **kwargs):
+        dbobj = (
+            db.session.query(models.Database)
+            .filter_by(database_name=database_name)
+            .first())
+        if not dbobj:
+            dbobj = models.Database(database_name=database_name)
+        dbobj.__dict__.update(**kwargs)
         db.session.commit()
+        return dbobj
 
-    def get_main_database_id(self):
-        return self.get_main_database(db.session).id
+    def delete_db_by_database_name(self, database_name):
+        dbobj = (
+            db.session.query(models.Database)
+            .filter_by(database_name=database_name)
+            .first())
+        db.session.delete(dbobj)
+        db.session.commit()

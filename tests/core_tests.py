@@ -697,17 +697,23 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['error'], None)
 
     def test_schemas_access_for_csv_upload_endpoint(self):
-        schema_access_for_csv_upload = {
-            'schemas_allowed': ['this_schema_is_allowed', 'this_schema_is_allowed_too'],
-        }
+        database_name = 'fake_db_1'
+        schema_access_for_csv_upload = """{
+            'schemas_allowed': ['this_schema_is_allowed',
+                                'this_schema_is_allowed_too']
+        }"""
 
         self.login(username='admin')
-        self.update_csv_upload_schema_setting_in_main(
-            json.dumps(schema_access_for_csv_upload))
-        data = self.get_json_resp(
-            url='/schema_access_for_csv_upload',
-            data={'db_id': self.get_main_database_id()})
-        assert schema_access_for_csv_upload in data
+        dbobj = self.get_or_create_db(
+            database_name=database_name,
+            schema_access_for_csv_upload=schema_access_for_csv_upload)
+        try:
+            data = self.get_json_resp(
+                url='/superset/schema_access_for_csv_upload',
+                data={'db_id': dbobj.id})
+            assert schema_access_for_csv_upload in data
+        finally:
+            self.delete_db_by_database_name(database_name=database_name)
 
 
 if __name__ == '__main__':
