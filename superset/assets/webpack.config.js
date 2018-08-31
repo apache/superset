@@ -12,10 +12,13 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
-const isDevMode = process.env.NODE_ENV !== 'production';
+const {
+  mode = 'development',
+  devserverPort = 9000,
+  supersetPort = 8088,
+} = parsedArgs;
 
-const devserverPort = parsedArgs.port || 9000;
-const supersetPort = parsedArgs.supersetPort || 8088;
+const isDevMode = mode !== 'production';
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
