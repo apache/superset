@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import SupersetClient from '../packages/core/src';
+import { SupersetClient } from '../packages/core/src';
 import { t } from '../locales';
 
 import Button from '../components/Button';

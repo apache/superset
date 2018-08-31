@@ -9,7 +9,7 @@ import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 import 'react-bootstrap-table/css/react-bootstrap-table.css';
-import SupersetClient from '../../packages/core/src';
+import { SupersetClient } from '../../packages/core/src';
 
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';

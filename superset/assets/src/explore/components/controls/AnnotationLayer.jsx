@@ -4,7 +4,7 @@ import { CompactPicker } from 'react-color';
 import { Button } from 'react-bootstrap';
 import mathjs from 'mathjs';
 
-import SupersetClient from '../../../packages/core/src';
+import { SupersetClient } from '../../../packages/core/src';
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';

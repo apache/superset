@@ -1,6 +1,6 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
-import SupersetClient from '../packages/core/src';
+import { SupersetClient } from '../packages/core/src';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';

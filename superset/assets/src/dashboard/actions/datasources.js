@@ -1,4 +1,4 @@
-import SupersetClient from '../../packages/core/src';
+import { SupersetClient } from '../../packages/core/src';
 import { getAjaxErrorMsg } from '../../modules/utils';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';

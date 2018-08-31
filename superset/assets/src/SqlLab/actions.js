@@ -1,5 +1,5 @@
 import shortid from 'shortid';
-import SupersetClient from '../packages/core/src';
+import { SupersetClient } from '../packages/core/src';
 
 import { now } from '../modules/dates';
 import { t } from '../locales';

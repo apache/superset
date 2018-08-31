@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Collapse, Label, OverlayTrigger, Row, Tooltip, Well } from 'react-bootstrap';
-import SupersetClient from '../../../packages/core/src';
+import { SupersetClient } from '../../../packages/core/src';
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';

@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import SupersetClient from '../../packages/core/src';
+import { SupersetClient } from '../../packages/core/src';
 import { addDangerToast } from '../../messageToasts/actions';
 import { t } from '../../locales';
 

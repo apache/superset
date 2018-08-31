@@ -1,7 +1,7 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
 import 'abortcontroller-polyfill/dist/polyfill-patch-fetch';
-import SupersetClient from './packages/core/src';
+import { SupersetClient } from './packages/core/src';
 import { t } from './locales';
 
 const utils = require('./modules/utils');

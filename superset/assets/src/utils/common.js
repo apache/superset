@@ -1,5 +1,5 @@
 /* eslint global-require: 0 */
-import SupersetClient from '../packages/core/src';
+import { SupersetClient } from '../packages/core/src';
 
 const d3 = require('d3');
 

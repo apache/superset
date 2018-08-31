@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
-import SupersetClient from '../../packages/core/src';
+import { SupersetClient } from '../../packages/core/src';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
