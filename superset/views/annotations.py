@@ -22,8 +22,7 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
     add_title = _('Add Annotation')
     edit_title = _('Edit Annotation')
 
-    list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm',
-                    'json_metadata']
+    list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm']
     edit_columns = [
         'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm',
         'json_metadata']
