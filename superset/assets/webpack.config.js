@@ -21,7 +21,7 @@ const plugins = [
     // Also write to disk when using devServer
     // instead of only keeping manifest.json in memory
     // This is required to make devServer work with flask.
-    writeToDisk: true,
+    writeToDisk: isDevMode,
   }),
 
   // create fresh dist/ upon build
@@ -29,11 +29,12 @@ const plugins = [
 ];
 
 if (isDevMode) {
+  // Enable hot module replacement
   plugins.push(new webpack.HotModuleReplacementPlugin());
   // text loading (webpack 4+)
   plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].dev.entry.css',
-    chunkFilename: '[name].dev.chunk.css',
+    filename: '[name].[hash:8].entry.css',
+    chunkFilename: '[name].[hash:8].chunk.css',
   }));
 } else {
   // text loading (webpack 4+)
@@ -49,8 +50,8 @@ const output = {
 };
 
 if (isDevMode) {
-  output.filename = '[name].dev.entry.js';
-  output.chunkFilename = '[name].dev.chunk.js';
+  output.filename = '[name].[hash:8].entry.js';
+  output.chunkFilename = '[name].[hash:8].chunk.js';
 } else {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
@@ -144,12 +145,12 @@ const config = {
   devServer: {
     historyApiFallback: true,
     hot: true,
-    index: '', // needed to enable root proxying
+    index: '', // This line is needed to enable root proxying
     inline: true,
     stats: { colors: true },
     overlay: true,
     port: 9000,
-    // Only serves bundled files
+    // Only serves bundled files from webpack-dev-server
     // and proxy everything else to Superset backend
     proxy: {
       context: () => true,
