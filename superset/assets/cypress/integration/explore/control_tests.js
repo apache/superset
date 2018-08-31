@@ -8,7 +8,7 @@ describe('Groupby', function () {
     cy.login();
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
-    cy.visitChart({ name: 'Num Births Trend' });
+    cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess('@getJson');
 
     cy.get('[data-test=groupby]').within(() => {
@@ -29,7 +29,7 @@ describe('SimpleAdhocMetric', function () {
     const metricName = 'Girl Births';
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
-    cy.visitChart({ name: 'Num Births Trend' });
+    cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess('@getJson');
 
     cy.get('[data-test=metrics]').within(() => {

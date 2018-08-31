@@ -45,10 +45,10 @@ describe('Line', function () {
       optionName: 'metric_1de0s4viy5d_ly7y8k6ghvk',
     }];
 
-    const formData = Object.assign({}, FORM_DATA_DEFAULTS, { metrics });
+    const formData = { ...FORM_DATA_DEFAULTS, metrics };
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
-    cy.visitChart({ formData: JSON.stringify(formData) });
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess('@getJson');
   });
 });

@@ -24,7 +24,7 @@
 // -- This is will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
-const BASE_URL = '/superset/explore/?form_data=';
+const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
 Cypress.Commands.add('login', () => {
   cy.request({
@@ -36,17 +36,18 @@ Cypress.Commands.add('login', () => {
   });
 });
 
-Cypress.Commands.add('visitChart', ({ name, sliceId, formData }) => {
+Cypress.Commands.add('visitChartByName', (name) => {
+  cy.request(`http://localhost:8081/chart/api/read?_flt_3_slice_name=${name}`).then((response) => {
+    cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${response.body.pks[0]}}`);
+  });
+});
 
-  if (name) {
-    cy.request(`http://localhost:8081/chart/api/read?_flt_3_slice_name=${name}`).then((response) => {
-      cy.visit(`${BASE_URL}{"slice_id": ${response.body.pks[0]}}`);
-    });
-  } else if (formData) {
-    cy.visit(`${BASE_URL}${formData}`);
-  } else {
-    cy.visit(`${BASE_URL}{"slice_id": ${sliceId}}`);
-  }
+Cypress.Commands.add('visitChartById', (chartId) => {
+  cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`);
+});
+
+Cypress.Commands.add('visitChartByParams', (params) => {
+  cy.visit(`${BASE_EXPLORE_URL}${params}`);
 });
 
 Cypress.Commands.add('verifySliceSuccess', (waitAlias) => {

@@ -6,7 +6,7 @@ describe('Load dashboard', function () {
     cy.visit('/superset/dashboard/births');
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
-    cy.wait(8000, ['@getJson']);
+    cy.wait(10000, ['@getJson']);
 
     let sliceData;
 
