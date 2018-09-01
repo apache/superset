@@ -372,9 +372,9 @@ class CsvToDatabaseView(SimpleFormView):
         This method is to check whether the schema in this database
         is allowed for csv upload
 
-        :param database: datahase
+        :param database: database
         :type database: Database object
-        :param schema_name:
+        :param schema_name: schema_name
         :type schema_name: str
         :return: whether the schema is allowed to be accessed for csv upload
         :rtype: boolean
