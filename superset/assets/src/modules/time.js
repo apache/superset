@@ -1,113 +1,58 @@
-import parseIsoDuration from 'parse-iso-duration';
+import moment from 'moment';
 
 
-export class IsoDuration {
+// array with the minimum values of each part of a timestamp -- note that
+// months are zero-indexes in Javascript
+const truncatePartTo = [
+  1,  // year
+  0,  // month
+  1,  // day
+  0,  // hour
+  0,  // minute
+  0,  // second
+  0,  // millisecond
+];
+
+
+export function truncate(timestamp, step) {
   /*
-   * Class that handles ambiguous durations like `P1M` or `P1Y`.
+   * Truncate timestamp down to duration resolution.
    */
+  const lowerBound = moment(timestamp).subtract(step);
+  const explodedTimestamp = timestamp.toArray();
+  const explodedLowerBound = lowerBound.toArray();
 
-  constructor(isoDuration) {
-    this.isoDuration = isoDuration;
-
-    // special cases not handled by parse-iso-duration
-    this.pattern = /P(\d+)(M|Y)/;
-
-    this.addTo = this.addTo.bind(this);
-    this.subtractFrom = this.subtractFrom.bind(this);
-    this.operateOn = this.operateOn.bind(this);
-    this.truncate = this.truncate.bind(this);
-    this.explode = this.explode.bind(this);
-  }
-
-  addTo(timestamp) {
-    const op = (a, b) => a + b;
-    return this.operateOn(op, timestamp);
-  }
-
-  subtractFrom(timestamp) {
-    const op = (a, b) => a - b;
-    return this.operateOn(op, timestamp);
-  }
-
-  operateOn(op, timestamp) {
-    try {
-      return op(timestamp, parseIsoDuration(this.isoDuration));
-    } catch (error) {
-      const match = this.pattern.exec(this.isoDuration);
-      if (match === null) {
-        throw error;
-      }
-      const n = parseInt(match[1], 10);  // how many months or years
-
-      const date = new Date(timestamp);
-      let year = date.getFullYear();
-      let month = date.getMonth();
-
-      if (match[2] === 'M') {
-        year = op(year, Math.floor(n / 12));
-        month = op(month, (n % 12));
-        if (month < 0 || month > 11) {
-          month = op(month, -12);
-          year = op(year, 1);
-        }
-      } else if (match[2] === 'Y') {
-        year = op(year, n);
-      } else {
-        throw error;  // should never happen
-      }
-      date.setFullYear(year);
-      date.setMonth(month);
-      return date.getTime();
+  const firstDiffIndex = explodedTimestamp
+    .map((part, i) => (explodedLowerBound[i] !== part))
+    .indexOf(true);
+  const dateParts = explodedTimestamp.map((part, i) => {
+    if (i === firstDiffIndex) {
+      // truncate down to closest `truncatePartTo[i] + n * step`
+      const difference = part - explodedLowerBound[i];
+      return part - ((part - truncatePartTo[i]) % difference);
+    } else if (i < firstDiffIndex || firstDiffIndex === -1) {
+      return part;
     }
-  }
+    return truncatePartTo[i];
+  });
 
-  explode(timestamp) {
-    // Return year, month, day, hour, minute, second, millisecond
-    const date = new Date(timestamp);
-    return [
-      date.getFullYear(),
-      date.getMonth() + 1,  // fuck Javascript
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds(),
-    ];
-  }
+  return moment(dateParts);
+}
 
-  truncate(timestamp) {
-    /*
-     * Truncate timestamp down to duration resolution.
-     *
-     *  > const duration = new IsoDuration('PT2H');  // 2 hours
-     *  > const date = new Date('2018-01-01 23:37:00').getTime();
-     *  > new Date(duration.truncate(date));
-     *  Mon Jan 01 2018 00:00:00 GMT
-     */
-    const lowerBound = this.subtractFrom(timestamp);
-    const explodedTimestamp = this.explode(timestamp);
-    const explodedLowerBound = this.explode(lowerBound);
-    let foundDifference = false;
-    const args = [];
-    const lowest = [1, 1, 1, 0, 0, 0, 0];
-    for (let i = 0; i < explodedTimestamp.length; i++) {
-      if (explodedLowerBound[i] !== explodedTimestamp[i]) {
-        foundDifference = true;
-      }
-      if (foundDifference) {
-        args.push(lowest[i]);
-      } else {
-        args.push(explodedTimestamp[i]);
-      }
-    }
-    // new Date('2018-01-01') == Date.UTC(2018, 1, 1);
-    return Date.UTC(...args);
-  }
+function getStepSeconds(step, start) {
+  /* Return number of seconds in a step.
+   *
+   * The step might be ambigous, eg, "1 month" has a variable number of
+   * seconds, which is why we need to know the start time.
+   */
+  const startMillliseconds = parseInt(moment(start).format('x'), 10);
+  const endMilliseconds = parseInt(moment(start).add(step).format('x'), 10);
+  return endMilliseconds - startMillliseconds;
 }
 
 export const getPlaySliderParams = function (timestamps, timeGrain) {
-  const minTimestamp = Math.min(...timestamps);
-  const maxTimestamp = Math.max(...timestamps);
+  const minTimestamp = moment(Math.min(...timestamps));
+  const maxTimestamp = moment(Math.max(...timestamps));
   let step;
   let reference;
 
@@ -119,37 +64,43 @@ export const getPlaySliderParams = function (timestamps, timeGrain) {
     // then both start and end should be Saturdays.
     const parts = timeGrain.split('/', 2);
     if (parts[0].endsWith('Z')) {  // ISO string
-      reference = new Date(parts[0]).getTime();
-      step = new IsoDuration(parts[1]);
+      reference = moment(parts[0]);
+      step = moment.duration(parts[1]);
     } else {
-      reference = new Date(parts[1]).getTime();
-      step = new IsoDuration(parts[0]);
+      reference = moment(parts[1]);
+      step = moment.duration(parts[0]);
     }
   } else {
-    step = new IsoDuration(timeGrain);
-    reference = step.truncate(minTimestamp);
+    step = moment.duration(timeGrain);
+    reference = truncate(minTimestamp, step);
   }
 
   // find the largest `reference + n * step` smaller than the minimum timestamp
-  let start = reference;
+  const start = moment(reference);
   while (start < minTimestamp) {
-    start = step.addTo(start);
+    start.add(step);
   }
   while (start > minTimestamp) {
-    start = step.subtractFrom(start);
+    start.subtract(step);
   }
 
   // find the smallest `reference + n * step` larger than the maximum timestamp
-  let end = reference;
+  const end = moment(reference);
   while (end > maxTimestamp) {
-    end = step.subtractFrom(end);
+    end.subtract(step);
   }
   while (end < maxTimestamp) {
-    end = step.addTo(end);
+    end.add(step);
   }
 
-  const values = timeGrain != null ? [start, step.addTo(start)] : [start, end];
+  const values = timeGrain != null ? [start, moment(start).add(step)] : [start, end];
   const disabled = timestamps.every(timestamp => timestamp === null);
 
-  return { start, end, step, values, disabled };
+  return {
+    start: parseInt(start.format('x'), 10),
+    end: parseInt(end.format('x'), 10),
+    getStep: getStepSeconds.bind(this, step),
+    values: values.map(v => parseInt(v.format('x'), 10)),
+    disabled,
+  };
 };
