@@ -211,8 +211,8 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'gets unpacked into the [sqlalchemy.MetaData]'
             '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
             '#sqlalchemy.schema.MetaData) call.<br/>'
-            '2. The ``schemas_allowed_for_csv_upload`` is a comma separated list of schemas '
-            'that CSVs are allowed to upload to. '
+            '2. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
+            'of schemas that CSVs are allowed to upload to. '
             'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
             'If database flavour does not support schema or any schema is allowed '
             'to be accessed, just leave the list empty', True),
