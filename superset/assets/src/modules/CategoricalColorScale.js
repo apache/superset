@@ -9,10 +9,12 @@ function cleanValue(value) {
     .join(', ');
 }
 
+const sharedForced = {};
+
 export default class CategoricalColorScale {
-  constructor(colors) {
+  constructor(colors, forced = sharedForced) {
     this.colors = colors;
-    this.forced = {};
+    this.forced = forced;
     this.seen = {};
   }
 

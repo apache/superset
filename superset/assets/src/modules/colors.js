@@ -91,6 +91,7 @@ CategoricalColorManager.registerSchemes({
   googleCategory20c,
   lyftColors,
 });
+CategoricalColorManager.registerScheme('default', bnbColors);
 
 export const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
 
