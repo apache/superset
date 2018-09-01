@@ -1,10 +1,26 @@
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 import d3 from 'd3';
+import PropTypes from 'prop-types';
 import nv from 'nvd3';
 import { d3TimeFormatPreset } from '../modules/utils';
 import { getColorFromScheme } from '../modules/colors';
-
 import './rose.css';
+
+const propTypes = {
+  // Data is an object hashed by numeric value, perhaps timestamp
+  data: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.arrayOf(PropTypes.string),
+    name: PropTypes.arrayOf(PropTypes.string),
+    time: PropTypes.number,
+    value: PropTypes.number,
+  }))),
+  width: PropTypes.number,
+  height: PropTypes.number,
+  dateTimeFormat: PropTypes.string,
+  numberFormat: PropTypes.string,
+  useRichTooltip: PropTypes.bool,
+  useAreaProportions: PropTypes.bool,
+};
 
 function copyArc(d) {
   return {
@@ -22,10 +38,21 @@ function sortValues(a, b) {
   return b.value - a.value;
 }
 
-function roseVis(slice, payload) {
-  const data = payload.data;
-  const fd = slice.formData;
-  const div = d3.select(slice.selector);
+function Rose(element, props) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Rose');
+
+  const {
+    data,
+    width,
+    height,
+    colorScheme,
+    dateTimeFormat,
+    numberFormat,
+    useRichTooltip,
+    useAreaProportions,
+  } = props;
+
+  const div = d3.select(element);
 
   const datum = data;
   const times = Object.keys(datum)
@@ -33,8 +60,8 @@ function roseVis(slice, payload) {
     .sort((a, b) => a - b);
   const numGrains = times.length;
   const numGroups = datum[times[0]].length;
-  const format = d3.format(fd.number_format);
-  const timeFormat = d3TimeFormatPreset(fd.date_time_format);
+  const format = d3.format(numberFormat);
+  const timeFormat = d3TimeFormatPreset(dateTimeFormat);
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();
@@ -43,12 +70,12 @@ function roseVis(slice, payload) {
   const legend = nv.models.legend();
   const tooltip = nv.models.tooltip();
   const state = { disabled: datum[times[0]].map(() => false) };
-  const color = name => getColorFromScheme(name, fd.color_scheme);
+  const color = name => getColorFromScheme(name, colorScheme);
 
   const svg = div
     .append('svg')
-    .attr('width', slice.width())
-    .attr('height', slice.height());
+    .attr('width', width)
+    .attr('height', height);
 
   const g = svg
     .append('g')
@@ -68,7 +95,7 @@ function roseVis(slice, payload) {
 
   function tooltipData(d, i, adatum) {
     const timeIndex = Math.floor(d.arcId / numGroups);
-    const series = fd.rich_tooltip ?
+    const series = useRichTooltip ?
       adatum[times[timeIndex]]
         .filter(v => !state.disabled[v.id % numGroups])
         .map(v => ({
@@ -85,8 +112,8 @@ function roseVis(slice, payload) {
   }
 
   legend
-    .width(slice.width())
-    .color(d => getColorFromScheme(d.key, fd.color_scheme));
+    .width(width)
+    .color(d => getColorFromScheme(d.key, colorScheme));
   legendWrap
     .datum(legendData(datum))
     .call(legend);
@@ -96,16 +123,15 @@ function roseVis(slice, payload) {
     .valueFormatter(format);
 
   // Compute max radius, which the largest value will occupy
-  const width = slice.width();
-  const height = slice.height() - legend.height();
+  const roseHeight = height - legend.height();
   const margin = { top: legend.height() };
   const edgeMargin = 35; // space between outermost radius and slice edge
-  const maxRadius = Math.min(width, height) / 2 - edgeMargin;
+  const maxRadius = Math.min(width, roseHeight) / 2 - edgeMargin;
   const labelThreshold = 0.05;
   const gro = 8; // mouseover radius growth in pixels
   const mini = 0.075;
 
-  const centerTranslate = `translate(${width / 2},${height / 2 + margin.top})`;
+  const centerTranslate = `translate(${width / 2},${roseHeight / 2 + margin.top})`;
   const roseWrap = g
     .append('g')
     .attr('transform', centerTranslate)
@@ -146,7 +172,7 @@ function roseVis(slice, payload) {
     // Compute proportion
     const P = maxRadius / maxSum;
     const Q = P * maxRadius;
-    const computeOuterRadius = (value, innerRadius) => fd.rose_area_proportion ?
+    const computeOuterRadius = (value, innerRadius) => useAreaProportions ?
       Math.sqrt(Q * value + innerRadius * innerRadius) :
       P * value + innerRadius;
 
@@ -537,4 +563,29 @@ function roseVis(slice, payload) {
   });
 }
 
-module.exports = roseVis;
+Rose.propTypes = propTypes;
+
+function adaptor(slice, payload) {
+  const { selector, formData } = slice;
+  const {
+    color_scheme: colorScheme,
+    date_time_format: dateTimeFormat,
+    number_format: numberFormat,
+    rich_tooltip: useRichTooltip,
+    rose_area_proportion: useAreaProportions,
+  } = formData;
+  const element = document.querySelector(selector);
+
+  return Rose(element, {
+    data: payload.data,
+    width: slice.width(),
+    height: slice.height(),
+    colorScheme,
+    dateTimeFormat,
+    numberFormat,
+    useRichTooltip,
+    useAreaProportions,
+  });
+}
+
+export default adaptor;

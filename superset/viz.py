@@ -473,7 +473,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
-        return []
+        return self.get_df().to_dict(orient='records')
 
     @property
     def json_data(self):
@@ -729,14 +729,6 @@ class WordCloudViz(BaseViz):
         d = super(WordCloudViz, self).query_obj()
         d['groupby'] = [self.form_data.get('series')]
         return d
-
-    def get_data(self, df):
-        fd = self.form_data
-        # Ordering the columns
-        df = df[[fd.get('series'), self.metric_labels[0]]]
-        # Labeling the columns for uniform json schema
-        df.columns = ['text', 'size']
-        return df.to_dict(orient='records')
 
 
 class TreemapViz(BaseViz):
@@ -2166,7 +2158,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
 
         # add NULL filters
-        if fd.get('filter_nulls'):
+        if fd.get('filter_nulls', True):
             self.add_null_filters()
 
         d = super(BaseDeckGLViz, self).query_obj()
@@ -2432,10 +2424,9 @@ class DeckArc(BaseDeckGLViz):
 
     def get_data(self, df):
         d = super(DeckArc, self).get_data(df)
-        arcs = d['features']
 
         return {
-            'arcs': arcs,
+            'features': d['features'],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 

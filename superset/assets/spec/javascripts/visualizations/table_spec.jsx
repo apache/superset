@@ -1,10 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import $ from 'jquery';
-
 import '../../helpers/browser';
-import { d3format } from '../../../src/modules/utils';
-
 import tableVis from '../../../src/visualizations/table';
 
 describe('table viz', () => {
@@ -18,10 +15,9 @@ describe('table viz', () => {
     datasource: {
       verbose_map: {},
     },
-    getFilters: () => {},
-    d3format,
-    removeFilter: null,
-    addFilter: null,
+    getFilters: () => ({}),
+    removeFilter() {},
+    addFilter() {},
     height: () => 0,
   };
   const basePayload = {

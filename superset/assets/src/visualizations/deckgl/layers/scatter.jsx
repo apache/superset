@@ -14,13 +14,18 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function getLayer(fd, data, slice) {
-  const dataWithRadius = data.map((d) => {
+function getLayer(fd, payload, slice) {
+  const dataWithRadius = payload.data.features.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
       radius *= fd.multiplier;
     }
-    return { ...d, radius };
+    if (d.color) {
+      return { ...d, radius };
+    }
+    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const color = [c.r, c.g, c.b, c.a * 255];
+    return { ...d, radius, color };
   });
 
   return new ScatterplotLayer({
@@ -49,11 +54,11 @@ function deckScatter(slice, payload, setControlValue) {
   ReactDOM.render(
     <CategoricalDeckGLContainer
       slice={slice}
-      data={payload.data.features}
       mapboxApiKey={payload.data.mapboxApiKey}
       setControlValue={setControlValue}
       viewport={viewport}
       getLayer={getLayer}
+      payload={payload}
     />,
     document.getElementById(slice.containerId),
   );
