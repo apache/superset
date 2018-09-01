@@ -59,7 +59,7 @@ class ExploreResultsButton extends React.PureComponent {
         title: t('Explore'),
         body: msg,
         actions: [
-          Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
+          Dialog.DefaultAction('Ok', () => {}, 'btn-primary'),
         ],
         bsSize: 'large',
         bsStyle: 'warning',
@@ -161,8 +161,7 @@ class ExploreResultsButton extends React.PureComponent {
         </code>){' '}
         {t('limited to alphanumeric characters and underscores. Column aliases ending with ' +
           'double underscores followed by a numeric value are not allowed for reasons ' +
-          'discussed in Github issue #5739.'
-        )}
+          'discussed in Github issue #5739.')}
       </div>);
   }
   render() {
