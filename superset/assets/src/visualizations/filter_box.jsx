@@ -15,7 +15,7 @@ import { t } from '../locales';
 import './filter_box.css';
 
 // maps control names to their key in extra_filters
-const timeFilterMap = {
+const TIME_FILTER_MAP = {
   time_range: '__time_range',
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
@@ -33,7 +33,12 @@ const propTypes = {
     field: PropTypes.string,
     label: PropTypes.string,
   })),
-  filtersChoices: PropTypes.object,
+  filtersChoices: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string,
+    text: PropTypes.string,
+    filter: PropTypes.string,
+    metric: PropTypes.number,
+  }))),
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
@@ -66,7 +71,7 @@ class FilterBox extends React.Component {
     const control = Object.assign({}, controls[controlName], {
       name: controlName,
       key: `control-${controlName}`,
-      value: selectedValues[timeFilterMap[controlName]],
+      value: selectedValues[TIME_FILTER_MAP[controlName]],
       actions: { setControlValue: this.changeFilter.bind(this) },
     });
     const mapFunc = control.mapStateToProps;
@@ -88,7 +93,7 @@ class FilterBox extends React.Component {
   }
 
   changeFilter(filter, options) {
-    const fltr = timeFilterMap[filter] || filter;
+    const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
     if (options !== null) {
       if (Array.isArray(options)) {
