@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import { TIME_SHIFT_PATTERN } from '../utils/common';
+import CategoricalColorManager from './CategoricalColorManager';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
@@ -80,7 +80,8 @@ const googleCategory20c = [
   '#5574a6',
   '#3b3eac',
 ];
-export const ALL_COLOR_SCHEMES = {
+
+CategoricalColorManager.registerSchemes({
   bnbColors,
   d3Category10,
   d3Category20,
@@ -89,7 +90,9 @@ export const ALL_COLOR_SCHEMES = {
   googleCategory10c,
   googleCategory20c,
   lyftColors,
-};
+});
+
+export const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
 
 export const spectrums = {
   blue_white_yellow: [
@@ -546,35 +549,39 @@ export function hexToRGB(hex, alpha = 255) {
  * @param {string} forcedColor - A color that the caller wants to
  forcibly associate to a label.
  */
-export const getColorFromScheme = (function () {
-  const seen = {};
-  const forcedColors = {};
-  return function (s, scheme, forcedColor) {
-    if (!s) {
-      return;
-    }
-    const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
-    let stringifyS = String(s).toLowerCase();
-    // next line is for superset series that should have the same color
-    stringifyS = stringifyS.split(', ').filter(k => !TIME_SHIFT_PATTERN.test(k)).join(', ');
+export function getColorFromScheme(value, schemeName, forcedColor) {
+  return CategoricalColorManager.getColorFromScheme(schemeName, value, forcedColor);
+}
 
-    if (forcedColor && !forcedColors[stringifyS]) {
-      forcedColors[stringifyS] = forcedColor;
-    }
-    if (forcedColors[stringifyS]) {
-      return forcedColors[stringifyS];
-    }
+// export const getColorFromScheme = (function () {
+//   const seen = {};
+//   const forcedColors = {};
+//   return function (s, scheme, forcedColor) {
+//     if (!s) {
+//       return;
+//     }
+//     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
+//     let stringifyS = String(s).toLowerCase();
+//     // next line is for superset series that should have the same color
+//     stringifyS = stringifyS.split(', ').filter(k => !TIME_SHIFT_PATTERN.test(k)).join(', ');
 
-    if (seen[selectedScheme] === undefined) {
-      seen[selectedScheme] = {};
-    }
-    if (seen[selectedScheme][stringifyS] === undefined) {
-      seen[selectedScheme][stringifyS] = Object.keys(seen[selectedScheme]).length;
-    }
-    /* eslint consistent-return: 0 */
-    return selectedScheme[seen[selectedScheme][stringifyS] % selectedScheme.length];
-  };
-}());
+//     if (forcedColor && !forcedColors[stringifyS]) {
+//       forcedColors[stringifyS] = forcedColor;
+//     }
+//     if (forcedColors[stringifyS]) {
+//       return forcedColors[stringifyS];
+//     }
+
+//     if (seen[selectedScheme] === undefined) {
+//       seen[selectedScheme] = {};
+//     }
+//     if (seen[selectedScheme][stringifyS] === undefined) {
+//       seen[selectedScheme][stringifyS] = Object.keys(seen[selectedScheme]).length;
+//     }
+//     /* eslint consistent-return: 0 */
+//     return selectedScheme[seen[selectedScheme][stringifyS] % selectedScheme.length];
+//   };
+// }());
 
 export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
   // Returns a linear scaler our of an array of color
