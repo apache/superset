@@ -6,6 +6,10 @@ Revises: d2424a248d63
 Create Date: 2016-03-25 14:35:44.642576
 
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 # revision identifiers, used by Alembic.
 revision = '1d2ddd543133'

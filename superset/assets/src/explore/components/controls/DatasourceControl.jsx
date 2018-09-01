@@ -38,7 +38,6 @@ class DatasourceControl extends React.PureComponent {
     super(props);
     this.state = {
       showEditDatasourceModal: false,
-      filter: '',
       loading: true,
       showDatasource: false,
     };
@@ -95,9 +94,6 @@ class DatasourceControl extends React.PureComponent {
   }
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
-  }
-  changeSearch(event) {
-    this.setState({ filter: event.target.value });
   }
   selectDatasource(datasourceId) {
     this.setState({ showModal: false });
