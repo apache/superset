@@ -646,20 +646,15 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
-        "engine_params": {}
+        "engine_params": {},
+        "schemas_allowed_for_csv_upload": []
     }
     """))
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
-    schema_access_for_csv_upload = Column(Text, default=textwrap.dedent("""\
-    {
-        "schemas_allowed": []
-    }
-    """))
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-                     'allow_ctas', 'allow_csv_upload', 'schema_access_for_csv_upload',
-                     'extra')
+                     'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
     def __repr__(self):
@@ -913,6 +908,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 extra = json.loads(self.extra)
             except Exception as e:
                 logging.error(e)
+                raise e
         return extra
 
     def get_table(self, table_name, schema=None):
@@ -937,13 +933,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_csv_upload(self):
-        schema_access = self.schema_access_for_csv_upload or {'schemas_allowed': []}
-        try:
-            schema_access = json.loads(schema_access)
-        except Exception as e:
-            logging.error(e)
-            raise e
-        return schema_access
+        return self.get_extra().get('schemas_allowed_for_csv_upload', [])
 
     @property
     def sqlalchemy_uri_decrypted(self):

@@ -58,30 +58,8 @@
   </script>
 {% endmacro %}
 
-{% macro manage_schema_access_for_csv_upload() %}
+{% macro expand_extra_textarea() %}
   <script>
-    var allow_csv_upload = $('#allow_csv_upload');
-    var schema_access_for_csv_upload = $("#schema_access_for_csv_upload");
-
-    if (!schema_access_for_csv_upload.val()) {
-        // this textarea is empty,
-        // mostly because the entry exists because we add this column to the dbs table
-        var default_field = '{\n' + '    "schemas_allowed": []' + '\n}';
-        schema_access_for_csv_upload.val(default_field);
-    }
-
-    if (allow_csv_upload.is(':checked')) {
-        schema_access_for_csv_upload.attr('readOnly', false);  // checked
-    } else {
-        schema_access_for_csv_upload.attr('readOnly', true);  // unchecked
-    }
-
-    allow_csv_upload.change(function() {
-      if ($(this).is(':checked')) {
-          schema_access_for_csv_upload.attr('readOnly', false);
-      } else {
-          schema_access_for_csv_upload.attr('readOnly', true);
-      }
-    });
+    $('#extra').attr('rows', '5');
   </script>
 {% endmacro %}

@@ -154,10 +154,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'modified', 'allow_csv_upload',
     ]
     add_columns = [
-        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
-        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
-        'schema_access_for_csv_upload', 'allow_ctas', 'allow_dml', 'force_ctas_schema',
-        'impersonate_user', 'allow_multi_schema_metadata_fetch',
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
+        'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
+        'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
+        'allow_multi_schema_metadata_fetch', 'extra',
     ]
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
@@ -203,14 +203,19 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'When allowing CREATE TABLE AS option in SQL Lab, '
             'this option forces the table to be created in this schema'),
         'extra': utils.markdown(
-            'JSON string containing extra configuration elements. '
-            'The ``engine_params`` object gets unpacked into the '
+            'JSON string containing extra configuration elements.<br/>'
+            '1. The ``engine_params`` object gets unpacked into the '
             '[sqlalchemy.create_engine]'
             '(http://docs.sqlalchemy.org/en/latest/core/engines.html#'
             'sqlalchemy.create_engine) call, while the ``metadata_params`` '
             'gets unpacked into the [sqlalchemy.MetaData]'
             '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
-            '#sqlalchemy.schema.MetaData) call. ', True),
+            '#sqlalchemy.schema.MetaData) call.<br/>'
+            '2. The ``schemas_allowed_for_csv_upload`` is a comma separated list of schemas '
+            'that CSVs are allowed to upload to. '
+            'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
+            'If database flavour does not support schema or any schema is allowed '
+            'to be accessed, just leave the list empty', True),
         'impersonate_user': _(
             'If Presto, all the queries in SQL Lab are going to be executed as the '
             'currently logged on user who must have permission to run them.<br/>'
@@ -225,11 +230,8 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Duration (in seconds) of the caching timeout for this database. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
-        'schema_access_for_csv_upload': utils.markdown(
-            'A comma separated list of schemas that CSVs are allowed to upload to. '
-            'Specify it as ``{"schemas_allowed": ["public", "csv_upload"]}``. '
-            'If database flavour does not support schema or any schema is allowed '
-            'to be accessed, just leave the list empty', True),
+        'allow_csv_upload': _(
+            'If selected, please set the schemas allowed for csv upload in Extra.'),
     }
     label_columns = {
         'expose_in_sqllab': _('Expose in SQL Lab'),
@@ -378,9 +380,9 @@ class CsvToDatabaseView(SimpleFormView):
         :rtype: boolean
         """
         try:
-            schema_access = database.get_schema_access_for_csv_upload()
-            return (schema_name in schema_access.get('schema_allowed')
-                    if schema_access.get('schema_allowed')
+            schemas_allowed = database.get_schema_access_for_csv_upload()
+            return (schema_name in schemas_allowed
+                    if schemas_allowed
                     else True)
         except Exception:
             return False

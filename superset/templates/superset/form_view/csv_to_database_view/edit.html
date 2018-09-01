@@ -23,7 +23,7 @@
           dataType: 'json',
           contentType: "application/json; charset=utf-8"
         }).done(function(data) {
-          change_schema_field_in_formview(data['schemas_allowed'])
+          change_schema_field_in_formview(data)
         }).fail(function(error) {
           var errorMsg = error.responseJSON.error;
           alert("ERROR: " + errorMsg);
