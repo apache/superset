@@ -71,6 +71,7 @@ def _deliver_email(schedule, subject, email):
             images=email.images,
             bcc=bcc,
             mime_subtype='related',
+            dryrun=config.get('SCHEDULED_EMAIL_DEBUG_MODE'),
         )
 
 

@@ -478,6 +478,11 @@ ENABLE_FLASK_COMPRESS = True
 # Enable / disable scheduled email reports
 ENABLE_SCHEDULED_EMAIL_REPORTS = False
 
+# If enabled, certail features are run in debug mode
+# Current list:
+# * Emails are sent using dry-run mode (logging only)
+SCHEDULED_EMAIL_DEBUG_MODE = False
+
 # Email reports - minimum time resolution (in minutes) for the crontab
 EMAIL_REPORTS_CRON_RESOLUTION = 15
 
