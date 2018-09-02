@@ -187,11 +187,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 with session.no_autoflush:
                     session.add(datasource)
                 flasher(
-                    'Adding new datasource [{}]'.format(ds_name), 'success')
+                    _('Adding new datasource [{}]').format(ds_name), 'success')
                 ds_map[ds_name] = datasource
             elif refreshAll:
                 flasher(
-                    'Refreshing datasource [{}]'.format(ds_name), 'info')
+                    _('Refreshing datasource [{}]').format(ds_name), 'info')
             else:
                 del ds_map[ds_name]
                 continue
