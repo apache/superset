@@ -3,8 +3,6 @@ services:
   redis:
     image: redis:3.2
     restart: always
-    ports:
-      - 6379:6379
     volumes:
       - redis:/data
   postgres:
@@ -14,12 +12,10 @@ services:
       POSTGRES_DB: superset
       POSTGRES_PASSWORD: superset
       POSTGRES_USER: superset
-    ports:
-      - 5432:5432
     volumes:
       - postgres:/var/lib/postgresql/data
   superset:
-    image: apache/incubator-superset
+    build: .
     restart: always
     environment:
       POSTGRES_DB: superset
