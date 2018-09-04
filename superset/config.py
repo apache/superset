@@ -201,6 +201,7 @@ ALLOWED_EXTENSIONS = set(['csv'])
 CSV_EXPORT = {
     'encoding': 'utf-8',
 }
+CSV_WINDOWS_ENCODING = 'gbk'
 
 # ---------------------------------------------------
 # Time grain configurations
