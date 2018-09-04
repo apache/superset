@@ -47,6 +47,7 @@
     "@data-ui/sparkline": "^0.0.54",
     "@data-ui/xy-chart": "^0.0.61",
     "@vx/responsive": "0.0.172",
+    "@mapbox/mapbox-gl-draw": "^1.0.9",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
@@ -73,6 +74,7 @@
     "lodash.throttle": "^4.1.1",
     "luma.gl": "^5.1.4",
     "mapbox-gl": "^0.45.0",
+
     "mathjs": "^3.20.2",
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",
