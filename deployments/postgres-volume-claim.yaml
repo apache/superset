@@ -7,7 +7,7 @@ metadata:
   name: postgres-volume-claim
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: 100Mi
