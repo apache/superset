@@ -1,15 +1,68 @@
 const path = require('path');
+const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+// Parse command-line arguments
+const parsedArgs = require('minimist')(process.argv.slice(2));
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
-
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
-const isDevMode = process.env.NODE_ENV !== 'production';
+const {
+  mode = 'development',
+  devserverPort = 9000,
+  supersetPort = 8088,
+} = parsedArgs;
+
+const isDevMode = mode !== 'production';
+
+const plugins = [
+  // creates a manifest.json mapping of name to hashed output used in template files
+  new WebpackAssetsManifest({
+    publicPath: true,
+    // This enables us to include all relevant files for an entry
+    entrypoints: true,
+    // Also write to disk when using devServer
+    // instead of only keeping manifest.json in memory
+    // This is required to make devServer work with flask.
+    writeToDisk: isDevMode,
+  }),
+
+  // create fresh dist/ upon build
+  new CleanWebpackPlugin(['dist']),
+];
+
+if (isDevMode) {
+  // Enable hot module replacement
+  plugins.push(new webpack.HotModuleReplacementPlugin());
+  // text loading (webpack 4+)
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].[hash:8].entry.css',
+    chunkFilename: '[name].[hash:8].chunk.css',
+  }));
+} else {
+  // text loading (webpack 4+)
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].[chunkhash].entry.css',
+    chunkFilename: '[name].[chunkhash].chunk.css',
+  }));
+}
+
+const output = {
+  path: BUILD_DIR,
+  publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+};
+
+if (isDevMode) {
+  output.filename = '[name].[hash:8].entry.js';
+  output.chunkFilename = '[name].[hash:8].chunk.js';
+} else {
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[name].[chunkhash].chunk.js';
+}
 
 const config = {
   node: {
@@ -25,12 +78,7 @@ const config = {
     welcome: ['babel-polyfill', APP_DIR + '/src/welcome/index.jsx'],
     profile: ['babel-polyfill', APP_DIR + '/src/profile/index.jsx'],
   },
-  output: {
-    path: BUILD_DIR,
-    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
-    filename: '[name].[chunkhash].entry.js',
-    chunkFilename: '[name].[chunkhash].chunk.js',
-  },
+  output,
   optimization: {
     splitChunks: {
       chunks: 'all',
@@ -57,13 +105,16 @@ const config = {
       {
         test: /\.css$/,
         include: APP_DIR,
-        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader'],
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+        ],
       },
       {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          MiniCssExtractPlugin.loader,
           'css-loader',
           'less-loader',
         ],
@@ -97,22 +148,25 @@ const config = {
     'react/lib/ExecutionEnvironment': true,
     'react/lib/ReactContext': true,
   },
-  plugins: [
-    // creates a manifest.json mapping of name to hashed output used in template files
-    new WebpackAssetsManifest({
-      publicPath: true,
-      entrypoints: true, // this enables us to include all relevant files for an entry
-    }),
-
-    // create fresh dist/ upon build
-    new CleanWebpackPlugin(['dist']),
-
-    // text loading (webpack 4+)
-    new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
-    }),
-  ],
+  plugins,
+  devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
+  devServer: {
+    historyApiFallback: true,
+    hot: true,
+    index: '', // This line is needed to enable root proxying
+    inline: true,
+    stats: { colors: true },
+    overlay: true,
+    port: devserverPort,
+    // Only serves bundled files from webpack-dev-server
+    // and proxy everything else to Superset backend
+    proxy: {
+      context: () => true,
+      '/': `http://localhost:${supersetPort}`,
+      target: `http://localhost:${supersetPort}`,
+    },
+    contentBase: path.join(process.cwd(), '../static/assets/dist'),
+  },
 };
 
 module.exports = config;
