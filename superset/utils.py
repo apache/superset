@@ -712,6 +712,7 @@ def get_celery_app(config):
         return _celery_app
     _celery_app = celery.Celery()
     _celery_app.config_from_object(config.get('CELERY_CONFIG'))
+    _celery_app.set_default()
     return _celery_app
 
 
