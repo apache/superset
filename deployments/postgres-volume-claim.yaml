@@ -3,8 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    service: redis
-  name: redis
+    service: postgres
+  name: postgres-volume-claim
 spec:
   accessModes:
   - ReadWriteOnce

@@ -4,7 +4,7 @@ metadata:
   creationTimestamp: null
   labels:
     service: superset-node-modules
-  name: superset-node-modules
+  name: superset-node-modules-volume-claim
 spec:
   accessModes:
   - ReadWriteOnce

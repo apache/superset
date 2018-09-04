@@ -37,7 +37,7 @@ spec:
           value: "6379"
         - name: SUPERSET_ENV
           value: local
-        image: artifacts.ggn.in.guavus.com:4245/guavus-superset:1.0.3
+        image: artifacts.ggn.in.guavus.com:4245/guavus-superset:1.0.4
         name: superset
         ports:
         - containerPort: 8088
@@ -45,10 +45,10 @@ spec:
         resources: {}
         volumeMounts:
         - mountPath: /home/work/incubator-superset/superset/assets/node_modules
-          name: superset-node-modules
+          name: superset-node-modules-storage
       restartPolicy: Always
       volumes:
-      - name: superset-node-modules
+      - name: superset-node-modules-storage
         persistentVolumeClaim:
-          claimName: superset-node-modules
+          claimName: superset-node-modules-volume-claim
 status: {}

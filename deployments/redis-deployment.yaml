@@ -23,10 +23,10 @@ spec:
         resources: {}
         volumeMounts:
         - mountPath: /data
-          name: redis
+          name: redis-storage
       restartPolicy: Always
       volumes:
-      - name: redis
+      - name: redis-storage
         persistentVolumeClaim:
-          claimName: redis
+          claimName: redis-volume-claim
 status: {}
