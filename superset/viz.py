@@ -2033,114 +2033,6 @@ class MapboxViz(BaseViz):
             'color': fd.get('mapbox_color'),
         }
 
-
-class MapFilterViz(BaseViz):
-
-    """Rich maps made with Mapbox"""
-
-    viz_type = 'map_filter'
-    verbose_name = _('Map Filter')
-    is_timeseries = False
-    credits = (
-        '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
-
-    def query_obj(self):
-        d = super(MapFilterViz, self).query_obj()
-        fd = self.form_data
-        label_col = fd.get('mapbox_label')
-
-        if not fd.get('groupby'):
-            d['columns'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
-
-            if label_col and len(label_col) >= 1:
-                if label_col[0] == 'count':
-                    raise Exception(_(
-                        "Must have a [Group By] column to have 'count' as the [Label]"))
-                d['columns'].append(label_col[0])
-
-            if fd.get('point_radius') != 'Auto':
-                d['columns'].append(fd.get('point_radius'))
-
-            d['columns'] = list(set(d['columns']))
-        else:
-            # Ensuring columns chosen are all in group by
-            if (label_col and len(label_col) >= 1 and
-                    label_col[0] != 'count' and
-                    label_col[0] not in fd.get('groupby')):
-                raise Exception(_(
-                    'Choice of [Label] must be present in [Group By]'))
-
-            if (fd.get('point_radius') != 'Auto' and
-                    fd.get('point_radius') not in fd.get('groupby')):
-                raise Exception(_(
-                    'Choice of [Point Radius] must be present in [Group By]'))
-
-            if (fd.get('all_columns_x') not in fd.get('groupby') or
-                    fd.get('all_columns_y') not in fd.get('groupby')):
-                raise Exception(_(
-                    '[Longitude] and [Latitude] columns must be present in [Group By]'))
-        return d
-
-    def get_data(self, df):
-        if df is None:
-            return None
-        fd = self.form_data
-        label_col = fd.get('mapbox_label')
-        custom_metric = label_col and len(label_col) >= 1
-        metric_col = [None] * len(df.index)
-        if custom_metric:
-            if label_col[0] == fd.get('all_columns_x'):
-                metric_col = df[fd.get('all_columns_x')]
-            elif label_col[0] == fd.get('all_columns_y'):
-                metric_col = df[fd.get('all_columns_y')]
-            else:
-                metric_col = df[label_col[0]]
-        point_radius_col = (
-            [None] * len(df.index)
-            if fd.get('point_radius') == 'Auto'
-            else df[fd.get('point_radius')])
-
-        # using geoJSON formatting
-        geo_json = {
-            'type': 'FeatureCollection',
-            'features': [
-                {
-                    'type': 'Feature',
-                    'properties': {
-                        'metric': metric,
-                        'radius': point_radius,
-                    },
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': [lon, lat],
-                    },
-                }
-                for lon, lat, metric, point_radius
-                in zip(
-                    df[fd.get('all_columns_x')],
-                    df[fd.get('all_columns_y')],
-                    metric_col, point_radius_col)
-            ],
-        }
-
-        return {
-            'geoJSON': geo_json,
-            'customMetric': custom_metric,
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-            'mapStyle': fd.get('mapbox_style'),
-            'aggregatorName': fd.get('pandas_aggfunc'),
-            'clusteringRadius': fd.get('clustering_radius'),
-            'pointRadiusUnit': fd.get('point_radius_unit'),
-            'globalOpacity': fd.get('global_opacity'),
-            'viewportLongitude': fd.get('viewport_longitude'),
-            'viewportLatitude': fd.get('viewport_latitude'),
-            'viewportZoom': fd.get('viewport_zoom'),
-            'renderWhileDragging': fd.get('render_while_dragging'),
-            'tooltip': fd.get('rich_tooltip'),
-            'color': fd.get('mapbox_color'),
-        }
-        
-
 class DeckGLMultiLayer(BaseViz):
 
     """Pile on multiple DeckGL layers"""
@@ -2776,6 +2668,47 @@ class PartitionViz(NVD3TimeSeriesViz):
         else:
             levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
         return self.nest_values(levels)
+
+class MapFilterViz(BaseDeckGLViz):
+    viz_type = 'map_filter'
+    verbose_name = _('Map Filter')
+    spatial_control_keys = ['spatial']
+    is_timeseries = True
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = bool(
+            fd.get('time_grain_sqla') or fd.get('granularity'))
+        self.point_radius_fixed = (
+            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
+        return super(MapFilterViz, self).query_obj()
+
+    def get_metrics(self):
+        self.metric = None
+        if self.point_radius_fixed.get('type') == 'metric':
+            self.metric = self.point_radius_fixed.get('value')
+            return [self.metric]
+        return None
+
+    def get_properties(self, d):
+        return {
+            'metric': d.get(self.metric_label),
+            'radius': self.fixed_value if self.fixed_value else d.get(self.metric_label),
+            'cat_color': d.get(self.dim) if self.dim else None,
+            'position': d.get('spatial'),
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
+        }
+
+    def get_data(self, df):
+        fd = self.form_data
+        self.metric_label = \
+            self.get_metric_label(self.metric) if self.metric else None
+        self.point_radius_fixed = fd.get('point_radius_fixed')
+        self.fixed_value = None
+        self.dim = self.form_data.get('dimension')
+        if self.point_radius_fixed.get('type') != 'metric':
+            self.fixed_value = self.point_radius_fixed.get('value')
+        return super(MapFilterViz, self).get_data(df)
 
 
 viz_types = {

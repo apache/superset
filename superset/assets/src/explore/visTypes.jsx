@@ -1750,75 +1750,72 @@ export const visTypes = {
   },
   map_filter: {
     label: t('Map Filter'),
+    requiresTime: true,
+    onInit: controlState => ({
+      ...controlState,
+      time_grain_sqla: {
+        ...controlState.time_grain_sqla,
+        value: null,
+      },
+      granularity: {
+        ...controlState.granularity,
+        value: null,
+      },
+    }),
     controlPanelSections: [
       {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['all_columns_x', 'all_columns_y'],
-          ['clustering_radius'],
-          ['row_limit'],
+          ['spatial', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
-          ['groupby'],
         ],
       },
       {
-        label: t('Points'),
+        label: t('Map'),
+        expanded: true,
         controlSetRows: [
-          ['point_radius'],
-          ['point_radius_unit'],
+          ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
-        label: t('Labelling'),
+        label: t('Point Size'),
         controlSetRows: [
-          ['mapbox_label'],
-          ['pandas_aggfunc'],
+          ['point_radius_fixed', 'point_unit'],
+          ['min_radius', 'max_radius'],
+          ['multiplier', null],
         ],
       },
       {
-        label: t('Visual Tweaks'),
+        label: t('Point Color'),
         controlSetRows: [
-          ['render_while_dragging'],
-          ['mapbox_style'],
-          ['global_opacity'],
-          ['mapbox_color'],
+          ['color_picker', 'legend_position'],
+          ['dimension', 'color_scheme'],
         ],
       },
       {
-        label: t('Viewport'),
+        label: t('Advanced'),
         controlSetRows: [
-          ['viewport_longitude', 'viewport_latitude'],
-          ['viewport_zoom', null],
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
     controlOverrides: {
-      all_columns_x: {
-        label: t('Longitude'),
-        description: t('Column containing longitude data'),
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
       },
-      all_columns_y: {
-        label: t('Latitude'),
-        description: t('Column containing latitude data'),
+      size: {
+        validators: [],
       },
-      pandas_aggfunc: {
-        label: t('Cluster label aggregator'),
-        description: t('Aggregate function applied to the list of points ' +
-          'in each cluster to produce the cluster label.'),
-      },
-      rich_tooltip: {
-        label: t('Tooltip'),
-        description: t('Show a tooltip when hovering over points and clusters ' +
-          'describing the label'),
-      },
-      groupby: {
-        description: t('One or many controls to group by. If grouping, latitude ' +
-          'and longitude columns must be present.'),
-      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
-
   event_flow: {
     label: t('Event flow'),
     requiresTime: true,

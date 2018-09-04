@@ -351,6 +351,7 @@ MapFilterViz.propTypes = {
 };
 
 function mapFilter(slice, json, setControlValue) {
+  console.log(json);
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
