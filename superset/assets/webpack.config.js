@@ -2,7 +2,9 @@ const path = require('path');
 const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
 
@@ -49,6 +51,7 @@ if (isDevMode) {
     filename: '[name].[chunkhash].entry.css',
     chunkFilename: '[name].[chunkhash].chunk.css',
   }));
+  plugins.push(new OptimizeCSSAssetsPlugin());
 }
 
 const output = {
