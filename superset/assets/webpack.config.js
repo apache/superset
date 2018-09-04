@@ -40,11 +40,6 @@ const plugins = [
 if (isDevMode) {
   // Enable hot module replacement
   plugins.push(new webpack.HotModuleReplacementPlugin());
-  // text loading (webpack 4+)
-  plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].css',
-    chunkFilename: '[id].css',
-  }));
 } else {
   // text loading (webpack 4+)
   plugins.push(new MiniCssExtractPlugin({
