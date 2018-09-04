@@ -341,8 +341,8 @@ class Druid(BaseSupersetView):
                 return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
-                'Refreshed metadata from cluster '
-                '[' + cluster.cluster_name + ']',
+                _('Refreshed metadata from cluster [{}]').format(
+                    cluster.cluster_name),
                 'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')

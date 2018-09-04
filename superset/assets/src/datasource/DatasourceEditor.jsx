@@ -110,11 +110,11 @@ function ColumnCollectionTable({
         </FormContainer>
       }
       columnLabels={{
-        column_name: 'Column',
-        type: 'Data Type',
-        groupby: 'Is Dimension',
-        is_dttm: 'Is Temporal',
-        filterable: 'Is Filterable',
+        column_name: t('Column'),
+        type: t('Data Type'),
+        groupby: t('Is Dimension'),
+        is_dttm: t('Is Temporal'),
+        filterable: t('Is Filterable'),
       }}
       onChange={onChange}
       itemRenderers={{
