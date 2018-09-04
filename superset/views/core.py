@@ -2787,7 +2787,7 @@ class Superset(BaseSupersetView):
         This method exposes an API endpoint to
         get the schema access control settings for csv upload in this database
         """
-        db_id = request.args.get('db_id')
+        db_id = int(request.args.get('db_id'))
         database = (
             db.session
             .query(models.Database)

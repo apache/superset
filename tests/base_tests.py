@@ -121,10 +121,13 @@ class SupersetTestCase(unittest.TestCase):
             .one()
         )
 
-    def get_or_create(self, cls, criteria, session):
+    def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
+        obj.__dict__.update(**kwargs)
+        session.add(obj)
+        session.commit()
         return obj
 
     def login(self, username='admin', password='general'):
@@ -237,22 +240,3 @@ class SupersetTestCase(unittest.TestCase):
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')
         return resp
-
-    def get_or_create_db(self, database_name, **kwargs):
-        dbobj = (
-            db.session.query(models.Database)
-            .filter_by(database_name=database_name)
-            .first())
-        if not dbobj:
-            dbobj = models.Database(database_name=database_name)
-        dbobj.__dict__.update(**kwargs)
-        db.session.commit()
-        return dbobj
-
-    def delete_db_by_database_name(self, database_name):
-        dbobj = (
-            db.session.query(models.Database)
-            .filter_by(database_name=database_name)
-            .first())
-        db.session.delete(dbobj)
-        db.session.commit()
