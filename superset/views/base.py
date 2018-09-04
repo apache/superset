@@ -276,7 +276,7 @@ class CsvResponse(Response):
     if isinstance(user_agent, str):
         user_agent = user_agent.lower()
         is_windows = user_agent.find('windows') >= 0
-    encoding_key = "windows_encoding" if is_windows else "encoding"
+    encoding_key = 'windows_encoding' if is_windows else 'encoding'
     charset = conf.get('CSV_EXPORT').get(encoding_key, 'utf-8')
 
 
