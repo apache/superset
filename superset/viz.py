@@ -2708,7 +2708,35 @@ class MapFilterViz(BaseDeckGLViz):
         self.dim = self.form_data.get('dimension')
         if self.point_radius_fixed.get('type') != 'metric':
             self.fixed_value = self.point_radius_fixed.get('value')
-        return super(MapFilterViz, self).get_data(df)
+        data = super(MapFilterViz, self).get_data(df)
+        geo_json = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'properties': {
+                        'cat_color': x['cat_color'],
+                    },
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [x['position'][0], x['position'][1]],
+                    },
+                }
+                for x in data['features']
+            ],
+        }
+        logging.warning(fd)
+        return {
+            'geoJSON': geo_json,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'mapStyle': fd.get('mapbox_style'),
+            'viewportLongitude': fd.get('viewport', {}).get('longitude'),
+            'viewportLatitude': fd.get('viewport', {}).get('latitude'),
+            'viewportZoom': fd.get('viewport', {}).get('zoom'),
+            'renderWhileDragging': fd.get('render_while_dragging'),
+            'tooltip': fd.get('rich_tooltip'),
+            'color': fd.get('mapbox_color'),
+        }
 
 
 viz_types = {
