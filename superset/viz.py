@@ -469,6 +469,8 @@ class BaseViz(object):
         if is_windows:
             encoding = config.get('windows_encoding', None) or config.get('encoding')
             config['encoding'] = encoding
+        if 'windows_encoding' in config:
+            config.pop('windows_encoding')
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
