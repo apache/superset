@@ -272,9 +272,10 @@ class CsvResponse(Response):
     """
     from flask.globals import request
     user_agent = request.headers.get('User-Agent', '')
+    is_windows = False
     if isinstance(user_agent, str):
         user_agent = user_agent.lower()
-    is_windows = user_agent.find('windows') >= 0
+        is_windows = user_agent.find('windows') >= 0
     encoding_key = "windows_encoding" if is_windows else "encoding"
     charset = conf.get('CSV_EXPORT').get(encoding_key, 'utf-8')
 
