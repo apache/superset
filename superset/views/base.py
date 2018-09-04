@@ -270,7 +270,13 @@ class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """
-    charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
+    from flask.globals import request
+    user_agent = request.headers.get('User-Agent', '')
+    if isinstance(user_agent, str):
+        user_agent = user_agent.lower()
+    is_windows = user_agent.find('windows') >= 0
+    encoding_key = "windows_encoding" if is_windows else "encoding"
+    charset = conf.get('CSV_EXPORT').get(encoding_key, 'utf-8')
 
 
 def check_ownership(obj, raise_if_false=True):
