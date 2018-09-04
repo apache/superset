@@ -1058,7 +1058,7 @@ class Superset(BaseSupersetView):
             mimetype='application/json')
 
     def generate_json(self, datasource_type, datasource_id, form_data,
-                      csv=False, query=False, force=False):
+                      csv=False, query=False, force=False, is_windows=False):
         try:
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
@@ -1080,7 +1080,7 @@ class Superset(BaseSupersetView):
 
         if csv:
             return CsvResponse(
-                viz_obj.get_csv(),
+                viz_obj.get_csv(is_windows=is_windows),
                 status=200,
                 headers=generate_download_headers('csv'),
                 mimetype='application/csv')
@@ -1166,12 +1166,18 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
+        is_windows = False
+        user_agent = request.headers.get('User-Agent', None)
+        if isinstance(user_agent, str):
+            user_agent = user_agent.lower()
+            is_windows = user_agent.find('windows') >= 0
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data,
                                   csv=csv,
                                   query=query,
-                                  force=force)
+                                  force=force,
+                                  is_windows=is_windows)
 
     @log_this
     @has_access

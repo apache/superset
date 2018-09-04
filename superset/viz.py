@@ -463,9 +463,11 @@ class BaseViz(object):
         }
         return content
 
-    def get_csv(self):
+    def get_csv(self, is_windows=False):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
+        if is_windows:
+            config['encoding'] = config.get('windows_encoding', None) or config.get('encoding')
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
