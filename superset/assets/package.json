@@ -12,6 +12,7 @@
     "test:one": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers babel-core/register --require spec/helpers/browser.js --require ignore-styles 'spec/**/*_spec.*'",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
+    "dev-server": "webpack-dev-server --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
@@ -155,6 +156,7 @@
     "less": "^2.6.1",
     "less-loader": "^4.1.0",
     "mini-css-extract-plugin": "^0.4.0",
+    "minimist": "^1.2.0",
     "mocha": "^3.5.3",
     "npm-check-updates": "^2.14.0",
     "po2json": "^0.4.5",
@@ -170,6 +172,7 @@
     "webpack": "^4.17.1",
     "webpack-assets-manifest": "^3.0.1",
     "webpack-cli": "^2.0.10",
+    "webpack-dev-server": "^3.1.7",
     "webpack-sources": "^1.1.0"
   }
 }
