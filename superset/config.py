@@ -200,8 +200,8 @@ ALLOWED_EXTENSIONS = set(['csv'])
 # note: index option should not be overridden
 CSV_EXPORT = {
     'encoding': 'utf-8',
-    'windows_encoding': 'gbk',
 }
+CSV_WINDOWS_ENCODING = 'gbk'
 
 # ---------------------------------------------------
 # Time grain configurations
