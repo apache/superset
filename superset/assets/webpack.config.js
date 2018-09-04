@@ -40,8 +40,8 @@ if (isDevMode) {
   plugins.push(new webpack.HotModuleReplacementPlugin());
   // text loading (webpack 4+)
   plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].[hash:8].entry.css',
-    chunkFilename: '[name].[hash:8].chunk.css',
+    filename: '[name].css',
+    chunkFilename: '[id].css',
   }));
 } else {
   // text loading (webpack 4+)
@@ -106,7 +106,7 @@ const config = {
         test: /\.css$/,
         include: APP_DIR,
         use: [
-          MiniCssExtractPlugin.loader,
+          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           'css-loader',
         ],
       },
@@ -114,7 +114,7 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          MiniCssExtractPlugin.loader,
+          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           'css-loader',
           'less-loader',
         ],
