@@ -14,7 +14,7 @@ import CategoricalColorManager from '../../modules/CategoricalColorManager';
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = CategoricalColorManager.getScale(fd.color_scheme);
+  const colorFn = CategoricalColorManager.getScale(fd.color_scheme).toFunction();
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -100,7 +100,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = CategoricalColorManager.getScale(fd.color_scheme);
+    const colorFn = CategoricalColorManager.getScale(fd.color_scheme).toFunction();
     return data.map((d) => {
       let color;
       if (fd.dimension) {
