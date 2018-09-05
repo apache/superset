@@ -46,14 +46,18 @@ const TIMESERIES_VIZ_TYPES = [
 ];
 
 const propTypes = {
-  data: PropTypes.object,
+  data: PropTypes.array,
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
   colorScheme: PropTypes.string,
   isBarStacked: PropTypes.bool,
+  isDonut: PropTypes.bool,
+  isPieLabelOutside: PropTypes.bool,
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
+  orderBars: PropTypes.bool,
+  pieLabelType: PropTypes.string,
   reduceXTicks: PropTypes.bool,
   showBarValue: PropTypes.bool,
   showBrush: PropTypes.oneOf([true, false, 'auto']),
@@ -84,8 +88,12 @@ function nvd3Vis(element, props, slice) {
     annotationData,
     colorScheme,
     isBarStacked,
+    isDonut,
+    isPieLabelOutside,
     lineInterpolation = 'linear',
     onError = () => {},
+    orderBars,
+    pieLabelType,
     reduceXTicks = false,
     showBarValue,
     showBrush,
@@ -205,7 +213,7 @@ function nvd3Vis(element, props, slice) {
 
         stacked = isBarStacked;
         chart.stacked(stacked);
-        if (fd.order_bars) {
+        if (orderBars) {
           data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
@@ -225,24 +233,24 @@ function nvd3Vis(element, props, slice) {
         chart = nv.models.pieChart();
         colorKey = 'x';
         chart.valueFormat(formatter);
-        if (fd.donut) {
+        if (isDonut) {
           chart.donut(true);
         }
         chart.showLabels(showLabels);
-        chart.labelsOutside(fd.labels_outside);
+        chart.labelsOutside(isPieLabelOutside);
         chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
-        if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
-          chart.labelType(fd.pie_label_type);
-        } else if (fd.pie_label_type === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
-        }
         chart.cornerRadius(true);
 
-        if (fd.pie_label_type === 'percent' || fd.pie_label_type === 'key_percent') {
-          let total = 0;
-          data.forEach((d) => { total += d.y; });
+        if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
+          chart.labelType(pieLabelType);
+        } else if (pieLabelType === 'key_value') {
+          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+        }
+
+        if (pieLabelType === 'percent' || pieLabelType === 'key_percent') {
+          const total = d3.sum(data, d => d.y);
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
-          if (fd.pie_label_type === 'key_percent') {
+          if (pieLabelType === 'key_percent') {
             chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
           }
         }
@@ -840,7 +848,11 @@ function adaptor(slice, payload) {
   const {
     bar_stacked: isBarStacked,
     color_scheme: colorScheme,
+    donut: isDonut,
+    labels_outside: isPieLabelOutside,
     line_interpolation: lineInterpolation,
+    order_bars: orderBars,
+    pie_label_type: pieLabelType,
     reduce_x_ticks: reduceXTicks,
     show_bar_value: showBarValue,
     show_brush: showBrush,
@@ -876,8 +888,12 @@ function adaptor(slice, payload) {
     annotationData,
     colorScheme,
     isBarStacked,
+    isDonut,
+    isPieLabelOutside,
     lineInterpolation,
     onError(err) { slice.error(err); },
+    orderBars,
+    pieLabelType,
     reduceXTicks,
     showBarValue,
     showBrush,
