@@ -19,7 +19,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
   superset:
-    image: apache/incubator-superset
+    image: guavus-superset
     restart: always
     environment:
       POSTGRES_DB: superset
@@ -37,7 +37,6 @@ services:
       - postgres
       - redis
     volumes:
-      - .:/home/work/incubator-superset
       - superset-node-modules:/home/work/incubator-superset/superset/assets/node_modules
 volumes:
   postgres:
