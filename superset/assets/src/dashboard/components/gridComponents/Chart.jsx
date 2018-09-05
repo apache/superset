@@ -8,7 +8,7 @@ import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
-import { VIZ_TYPES } from '../../../visualizations';
+import { VIZ_TYPES } from '../../../modules/vizTypes';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
