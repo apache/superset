@@ -268,7 +268,7 @@ def import_datasources(path, sync, recursive=False):
     '--datasource-file', '-f', default=None,
     help='Specify the the file to export to')
 @click.option(
-    '--print-stdout', '-p',
+    '--print', '-p',
     help='Print YAML to stdout')
 @click.option(
     '--back-references', '-b',
