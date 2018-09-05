@@ -54,7 +54,7 @@ class WithLegend extends React.Component {
     switch (position) {
       case 'left': return 'flex-start';
       case 'right': return 'flex-start';
-      case 'bottom': return 'center';
+      case 'bottom': return 'flex-end';
       default:
       case 'top': return 'flex-end';
     }
