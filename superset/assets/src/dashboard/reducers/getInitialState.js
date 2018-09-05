@@ -5,7 +5,6 @@ import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
-import { getColorFromScheme } from '../../modules/colors';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
@@ -42,8 +41,7 @@ export default function(bootstrapData) {
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorManager.getScale(null)
-        .setColor(label, colorMap[label]);
+      CategoricalColorManager.getScale(null).setColor(label, colorMap[label]);
     });
   }
 

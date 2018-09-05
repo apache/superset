@@ -2,17 +2,33 @@ import CategoricalColorScale from './CategoricalColorScale';
 
 const schemes = {};
 
+function getScheme(schemeName = 'default') {
+  return schemes[schemeName];
+}
+
+function getSchemes() {
+  return schemes;
+}
+
+function registerScheme(schemeName, colors) {
+  schemes[schemeName] = colors;
+}
+
+function registerSchemes(multipleSchemes) {
+  Object.assign(schemes, multipleSchemes);
+}
+
 class CategoricalColorManager {
   constructor() {
     this.scales = {};
   }
 
-  getScale(schemeName) {
+  getScale(schemeName = 'default') {
     const scale = this.scales[schemeName];
     if (scale) {
       return scale;
     }
-    const colors = schemes[schemeName] || schemes.default;
+    const colors = getScheme(schemeName);
     const newScale = new CategoricalColorScale(colors);
     this.scales[schemeName] = newScale;
     return newScale;
@@ -28,27 +44,17 @@ function getInstance() {
   return singleton;
 }
 
-CategoricalColorManager.getInstance = getInstance;
-CategoricalColorManager.getScale = function (schemeName) {
+function getScale(schemeName) {
   return getInstance().getScale(schemeName);
-};
-CategoricalColorManager.getColor = function (schemeName, value) {
-  return getInstance().getScale(schemeName).getColor(value);
-};
-CategoricalColorManager.setColor = function (schemeName, value, forcedColor) {
-  return getInstance().getScale(schemeName).setColor(value, forcedColor);
-};
-CategoricalColorManager.registerScheme = function (schemeName, colors) {
-  schemes[schemeName] = colors;
-};
-CategoricalColorManager.registerSchemes = function (multipleSchemes) {
-  Object.assign(schemes, multipleSchemes);
-};
-CategoricalColorManager.getScheme = function (schemeName) {
-  return schemes[schemeName];
-};
-CategoricalColorManager.getSchemes = function () {
-  return schemes;
-};
+}
+
+Object.assign(CategoricalColorManager, {
+  getInstance,
+  getScale,
+  registerScheme,
+  registerSchemes,
+  getScheme,
+  getSchemes,
+});
 
 export default CategoricalColorManager;
