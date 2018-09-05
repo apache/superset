@@ -1,6 +1,7 @@
 import d3 from 'd3';
 import CategoricalColorManager from './CategoricalColorManager';
-import sequential from './colorSchemes/sequential';
+import categoricalSchemes from './colorSchemes/categorical';
+import sequentialSchemes from './colorSchemes/sequential';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
@@ -43,55 +44,9 @@ export const lyftColors = [
   '#AC2077',
 ];
 
-const d3Category10 = d3.scale.category10().range();
-const d3Category20 = d3.scale.category20().range();
-const d3Category20b = d3.scale.category20b().range();
-const d3Category20c = d3.scale.category20c().range();
-const googleCategory10c = [
-  '#3366cc',
-  '#dc3912',
-  '#ff9900',
-  '#109618',
-  '#990099',
-  '#0099c6',
-  '#dd4477',
-  '#66aa00',
-  '#b82e2e',
-  '#316395',
-];
-const googleCategory20c = [
-  '#3366cc',
-  '#dc3912',
-  '#ff9900',
-  '#109618',
-  '#990099',
-  '#0099c6',
-  '#dd4477',
-  '#66aa00',
-  '#b82e2e',
-  '#316395',
-  '#994499',
-  '#22aa99',
-  '#aaaa11',
-  '#6633cc',
-  '#e67300',
-  '#8b0707',
-  '#651067',
-  '#329262',
-  '#5574a6',
-  '#3b3eac',
-];
-
-CategoricalColorManager.registerSchemes({
-  bnbColors,
-  d3Category10,
-  d3Category20,
-  d3Category20b,
-  d3Category20c,
-  googleCategory10c,
-  googleCategory20c,
-  lyftColors,
-});
+CategoricalColorManager.registerSchemes({ bnbColors });
+CategoricalColorManager.registerSchemes(categoricalSchemes);
+CategoricalColorManager.registerSchemes({ lyftColors });
 CategoricalColorManager.registerScheme('default', bnbColors);
 
 export function hexToRGB(hex, alpha = 255) {
@@ -128,7 +83,7 @@ export const colorScalerFactory = function (colors, data, accessor, extents, out
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
-    colors = sequential[colors];
+    colors = sequentialSchemes[colors];
   }
   let ext = [0, 1];
   if (extents) {
