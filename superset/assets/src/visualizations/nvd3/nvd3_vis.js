@@ -63,9 +63,11 @@ const propTypes = {
   showMarkers: PropTypes.bool,
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
+  xAxisLabel: PropTypes.string,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxis2Format: PropTypes.string,
+  yAxisLabel: PropTypes.string,
 };
 
 const formatter = d3.format('.3s');
@@ -91,9 +93,11 @@ function nvd3Vis(element, props, slice) {
     showMarkers,
     vizType,
     xAxisFormat,
+    xAxisLabel,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
+    yAxisLabel,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -503,7 +507,7 @@ function nvd3Vis(element, props, slice) {
                                               : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
-      if (fd.y_axis_label && fd.y_axis_label !== '') {
+      if (yAxisLabel && yAxisLabel !== '') {
         chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
       }
       // Hack to adjust margins to accommodate long axis tick labels.
@@ -535,23 +539,23 @@ function nvd3Vis(element, props, slice) {
         margins.left = fd.left_margin;
       }
 
-      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+      if (xAxisLabel && xAxisLabel !== '' && chart.xAxis) {
         margins.bottom += 25;
         let distance = 0;
-        if (margins.bottom && !isNaN(margins.bottom)) {
+        if (margins.bottom && !Number.isNaN(margins.bottom)) {
           distance = margins.bottom - 45;
         }
         // nvd3 bug axisLabelDistance is disregarded on xAxis
         // https://github.com/krispo/angular-nvd3/issues/90
-        chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
+        chart.xAxis.axisLabel(xAxisLabel).axisLabelDistance(distance);
       }
 
-      if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
+      if (yAxisLabel && yAxisLabel !== '' && chart.yAxis) {
         let distance = 0;
-        if (margins.left && !isNaN(margins.left)) {
+        if (margins.left && !Number.isNaN(margins.left)) {
           distance = margins.left - 70;
         }
-        chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
+        chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
 
       const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
@@ -844,9 +848,11 @@ function adaptor(slice, payload) {
     show_markers: showMarkers,
     viz_type: vizType,
     x_axis_format: xAxisFormat,
+    x_axis_label: xAxisLabel,
     x_ticks_layout: xTicksLayout,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
+    y_axis_label: yAxisLabel,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -877,9 +883,11 @@ function adaptor(slice, payload) {
     showMarkers,
     vizType,
     xAxisFormat,
+    xAxisLabel,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
+    yAxisLabel,
   };
 
   slice.clearError();
