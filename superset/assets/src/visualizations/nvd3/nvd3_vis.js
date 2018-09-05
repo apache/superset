@@ -51,6 +51,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   isBarStacked: PropTypes.bool,
+  lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
   reduceXTicks: PropTypes.bool,
   showBrush: PropTypes.oneOf([true, false, 'auto']),
@@ -69,6 +70,7 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     isBarStacked,
+    lineInterpolation = 'linear',
     onError = () => {},
     reduceXTicks = false,
     showBrush,
@@ -133,23 +135,23 @@ function nvd3Vis(element, props, slice) {
           chart = nv.models.lineChart();
         }
         chart.xScale(d3.time.scale.utc());
-        chart.interpolate(fd.line_interpolation);
+        chart.interpolate(lineInterpolation);
         break;
 
       case 'time_pivot':
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
-        chart.interpolate(fd.line_interpolation);
+        chart.interpolate(lineInterpolation);
         break;
 
       case 'dual_line':
         chart = nv.models.multiChart();
-        chart.interpolate('linear');
+        chart.interpolate(lineInterpolation);
         break;
 
       case 'line_multi':
         chart = nv.models.multiChart();
-        chart.interpolate(fd.line_interpolation);
+        chart.interpolate(lineInterpolation);
         break;
 
       case 'bar':
@@ -820,6 +822,7 @@ function adaptor(slice, payload) {
   const { formData, datasource, selector } = slice;
   const {
     bar_stacked: isBarStacked,
+    line_interpolation: lineInterpolation,
     reduce_x_ticks: reduceXTicks,
     show_brush: showBrush,
     viz_type: vizType,
@@ -840,6 +843,7 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     isBarStacked,
+    lineInterpolation,
     onError(err) { slice.error(err); },
     reduceXTicks,
     showBrush,
