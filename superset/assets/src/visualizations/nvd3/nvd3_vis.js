@@ -50,6 +50,7 @@ const propTypes = {
   data: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
+  annotationData: PropTypes.object,
   isBarStacked: PropTypes.bool,
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
@@ -58,6 +59,7 @@ const propTypes = {
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
   yAxisFormat: PropTypes.string,
+  yAxis2Format: PropTypes.string,
 };
 
 const formatter = d3.format('.3s');
@@ -69,6 +71,7 @@ function nvd3Vis(element, props, slice) {
     data,
     width: maxWidth,
     height: maxHeight,
+    annotationData,
     isBarStacked,
     lineInterpolation = 'linear',
     onError = () => {},
@@ -77,6 +80,7 @@ function nvd3Vis(element, props, slice) {
     vizType,
     xAxisFormat,
     yAxisFormat,
+    yAxis2Format,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -423,7 +427,7 @@ function nvd3Vis(element, props, slice) {
 
     if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(yAxisFormat);
-      const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
+      const yAxisFormatter2 = d3.format(yAxis2Format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
       const yAxisFormatters = data.map(datum => (
@@ -540,11 +544,11 @@ function nvd3Vis(element, props, slice) {
       }
 
       const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
-      if (isTimeSeries && annotationLayers && slice.annotationData) {
+      if (isTimeSeries && annotationLayers && annotationData) {
         // Time series annotations add additional data
         const timeSeriesAnnotations = annotationLayers
           .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-        bushel.concat((slice.annotationData[a.name] || []).map((series) => {
+        bushel.concat((annotationData[a.name] || []).map((series) => {
           if (!series) {
             return {};
           }
@@ -658,11 +662,11 @@ function nvd3Vis(element, props, slice) {
               '<div>' + body.join(', ') + '</div>';
           });
 
-        if (slice.annotationData) {
+        if (annotationData) {
           // Event annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
-            slice.annotationData && slice.annotationData[x.name]
+            annotationData && annotationData[x.name]
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add event annotation layer
@@ -673,7 +677,7 @@ function nvd3Vis(element, props, slice) {
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
 
             const tip = tipFactory(e);
-            const records = (slice.annotationData[e.name].records || []).map((r) => {
+            const records = (annotationData[e.name].records || []).map((r) => {
               const timeValue = new Date(moment.utc(r[e.timeColumn]));
 
               return {
@@ -721,7 +725,7 @@ function nvd3Vis(element, props, slice) {
           // Interval annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.INTERVAL &&
-            slice.annotationData && slice.annotationData[x.name]
+            annotationData && annotationData[x.name]
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add interval annotation layer
@@ -733,7 +737,7 @@ function nvd3Vis(element, props, slice) {
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
             const tip = tipFactory(e);
 
-            const records = (slice.annotationData[e.name].records || []).map((r) => {
+            const records = (annotationData[e.name].records || []).map((r) => {
               const timeValue = new Date(moment.utc(r[e.timeColumn]));
               const intervalEndValue = new Date(moment.utc(r[e.intervalEndColumn]));
               return {
@@ -815,7 +819,7 @@ function nvd3Vis(element, props, slice) {
 nvd3Vis.propTypes = propTypes;
 
 function adaptor(slice, payload) {
-  const { formData, datasource, selector } = slice;
+  const { formData, datasource, selector, annotationData } = slice;
   const {
     bar_stacked: isBarStacked,
     line_interpolation: lineInterpolation,
@@ -824,6 +828,7 @@ function adaptor(slice, payload) {
     viz_type: vizType,
     x_axis_format: xAxisFormat,
     y_axis_format: yAxisFormat,
+    y_axis_2_format: yAxis2Format,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -840,6 +845,7 @@ function adaptor(slice, payload) {
     data,
     width: slice.width(),
     height: slice.height(),
+    annotationData,
     isBarStacked,
     lineInterpolation,
     onError(err) { slice.error(err); },
@@ -848,6 +854,7 @@ function adaptor(slice, payload) {
     vizType,
     xAxisFormat,
     yAxisFormat,
+    yAxis2Format,
   };
 
   slice.clearError();
