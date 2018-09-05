@@ -44,7 +44,10 @@ export const addTotalBarValues = function (svg, chart, data, stacked, axisFormat
 };
 
 export function hideTooltips() {
-  $('.nvtooltip').css({ opacity: 0 });
+  const target = document.querySelector('.nvtooltip');
+  if (target) {
+    target.style.opacity = 0;
+  }
 }
 
 export function wrapTooltip(chart, container) {

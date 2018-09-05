@@ -1,5 +1,3 @@
-// JS
-import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
@@ -66,6 +64,7 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     isBarStacked,
+    vizType,
     // numberFormat,
     // colorScheme,
   } = props;
@@ -80,15 +79,15 @@ function nvd3Vis(element, props, slice) {
 
   const fd = slice.formData;
 
-  const vizType = fd.viz_type;
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
 
   const drawGraph = function () {
-    let svg = d3.select(slice.selector).select('svg');
+    const $element = d3.select(element);
+    let svg = $element.select('svg');
     if (svg.empty()) {
-      svg = d3.select(slice.selector).append('svg');
+      svg = $element.append('svg');
     }
     let height = maxHeight;
     const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
@@ -563,12 +562,12 @@ function nvd3Vis(element, props, slice) {
       svg
       .datum(data)
       .transition().duration(500)
-      .attr('height', height)
       .attr('width', width)
+      .attr('height', height)
       .call(chart);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
-      $(window).scroll(throttle(hideTooltips, 250));
+      window.addEventListener('scroll', throttle(hideTooltips, 250));
 
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
@@ -664,7 +663,9 @@ function nvd3Vis(element, props, slice) {
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add event annotation layer
-            const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
+            const annotations = d3.select(element)
+              .select('.nv-wrap')
+              .append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
 
@@ -721,7 +722,9 @@ function nvd3Vis(element, props, slice) {
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add interval annotation layer
-            const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
+            const annotations = d3.select(element)
+              .select('.nv-wrap')
+              .append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
@@ -812,6 +815,7 @@ function adaptor(slice, payload) {
   const { formData, datasource, selector } = slice;
   const {
     bar_stacked: isBarStacked,
+    viz_type: vizType,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -829,6 +833,7 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     isBarStacked,
+    vizType,
   };
 
   slice.clearError();
