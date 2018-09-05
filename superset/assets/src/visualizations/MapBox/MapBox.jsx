@@ -122,7 +122,7 @@ class MapBox extends React.Component {
           compositeOperation={'screen'}
           renderWhileDragging={renderWhileDragging}
           aggregatorName={aggregatorName}
-          lngLatAccessor={function (location) {
+          lngLatAccessor={location => {
             const coordinates = location.get('geometry').get('coordinates');
             return [coordinates.get(0), coordinates.get(1)];
           }}
