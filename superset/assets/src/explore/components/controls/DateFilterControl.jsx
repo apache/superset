@@ -5,6 +5,7 @@ import {
   DropdownButton,
   FormControl,
   FormGroup,
+  Glyphicon,
   InputGroup,
   Label,
   MenuItem,
@@ -14,11 +15,11 @@ import {
   Tab,
   Tabs,
 } from 'react-bootstrap';
+import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
-import DateTimeField from 'react-bootstrap-datetimepicker';
-import 'react-bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css';
 import moment from 'moment';
 
+import './DateFilterControl.css';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 import PopoverSection from '../../../components/PopoverSection';
@@ -45,7 +46,6 @@ const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'mon
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
 const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
-const INVALID_DATE_MESSAGE = 'Invalid date';
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
   'Superset supports smart date parsing. Strings like `last sunday` or ' +
@@ -68,13 +68,12 @@ const defaultProps = {
   value: 'Last week',
 };
 
-
-function isFreeform(s) {
+function isValidMoment(s) {
   /* Moment sometimes consider invalid dates as valid, eg, "10 years ago" gets
    * parsed as "Fri Jan 01 2010 00:00:00" local time. This function does a
    * better check by comparing a string with a parse/format roundtrip.
    */
-  return (s !== moment(s, MOMENT_FORMAT).format(MOMENT_FORMAT));
+  return (s === moment(s, MOMENT_FORMAT).format(MOMENT_FORMAT));
 }
 
 export default class DateFilterControl extends React.Component {
@@ -95,27 +94,34 @@ export default class DateFilterControl extends React.Component {
       // distinct start/end values, either ISO or freeform
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
-      freeformInputs: {},
+
+      // react-datetime has a `closeOnSelect` prop, but it's buggy... so we
+      // handle the calendar visibility here ourselves
+      showSinceCalendar: false,
+      showUntilCalendar: false,
     };
     if (value.indexOf(SEPARATOR) >= 0) {
       this.state.type = TYPES.CUSTOM_START_END;
       [this.state.since, this.state.until] = value.split(SEPARATOR, 2);
-    } else {
-      this.state.type = TYPES.DEFAULTS;
-      if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
+    } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
+        this.state.type = TYPES.DEFAULTS;
         this.state.common = value;
       } else {
         this.state.common = null;
+        this.state.type = TYPES.CUSTOM_RANGE;
         [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
-    }
-    this.state.freeformInputs.since = isFreeform(this.state.since);
-    this.state.freeformInputs.until = isFreeform(this.state.until);
 
-    // We need direct access to the state of the `DateTimeField` component
-    this.dateTimeFieldRefs = {};
-
+    this.close = this.close.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    this.isValidSince = this.isValidSince.bind(this);
+    this.isValidUntil = this.isValidUntil.bind(this);
+    this.onEnter = this.onEnter.bind(this);
+    this.renderInput = this.renderInput.bind(this);
+    this.setCustomRange = this.setCustomRange.bind(this);
+    this.setCustomStartEnd = this.setCustomStartEnd.bind(this);
+    this.setDefaults = this.setDefaults.bind(this);
+    this.toggleCalendar = this.toggleCalendar.bind(this);
   }
   componentDidMount() {
     document.addEventListener('click', this.handleClick);
@@ -136,13 +142,10 @@ export default class DateFilterControl extends React.Component {
     };
     const units = timeFrame.split(' ')[1] + 's';
     nextState.since = moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT);
-    this.setState(nextState, this.updateRefs);
+    this.setState(nextState);
   }
   setCustomRange(key, value) {
-    const nextState = { ...this.state, type: TYPES.CUSTOM_RANGE };
-    if (key !== undefined && value !== undefined) {
-      nextState[key] = value;
-    }
+    const nextState = { ...this.state, type: TYPES.CUSTOM_RANGE, [key]: value };
     if (nextState.rel === RELATIVE_TIME_OPTIONS.LAST) {
       nextState.until = moment().startOf('day').format(MOMENT_FORMAT);
       nextState.since = moment()
@@ -156,37 +159,21 @@ export default class DateFilterControl extends React.Component {
         .format(MOMENT_FORMAT);
       nextState.since = moment().startOf('day').format(MOMENT_FORMAT);
     }
-    this.setState(nextState, this.updateRefs);
+    this.setState(nextState);
   }
   setCustomStartEnd(key, value) {
-    const nextState = {
+    const showCalendar = key === 'since' ? 'showSinceCalendar' : 'showUntilCalendar';
+    this.setState({
       type: TYPES.CUSTOM_START_END,
-      freeformInputs: { ...this.state.freeformInputs },
-    };
-    if (value === INVALID_DATE_MESSAGE) {
-      // the DateTimeField component will return `Invalid date` for freeform
-      // text, so we need to cheat and steal the value from the state
-      const freeformValue = this.dateTimeFieldRefs[key].state.inputValue;
-      nextState.freeformInputs[key] = true;
-      nextState[key] = freeformValue;
-    } else {
-      nextState.freeformInputs[key] = false;
-      nextState[key] = value;
-    }
-    this.setState(nextState, this.updateRefs);
+      [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
+      [showCalendar]: !this.state[showCalendar],
+    });
   }
   handleClick(e) {
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
       this.setState({ type: TYPES.CUSTOM_START_END });
     }
-  }
-  updateRefs() {
-    /* This is required because the <DateTimeField> component does not accept
-     * freeform dates as props, since they can't be parsed by `moment`.
-     */
-    this.dateTimeFieldRefs.since.setState({ inputValue: this.state.since });
-    this.dateTimeFieldRefs.until.setState({ inputValue: this.state.until });
   }
   close() {
     let val;
@@ -200,10 +187,39 @@ export default class DateFilterControl extends React.Component {
     this.props.onChange(val);
     this.refs.trigger.hide();
   }
+  isValidSince(date) {
+    return (!isValidMoment(this.state.until) || date <= moment(this.state.until, MOMENT_FORMAT));
+  }
+  isValidUntil(date) {
+    return (!isValidMoment(this.state.since) || date >= moment(this.state.since, MOMENT_FORMAT));
+  }
+  toggleCalendar(key) {
+    this.setState({ [key]: !this.state[key] });
+  }
+  renderInput(props, key) {
+    return (
+      <FormGroup>
+        <InputGroup>
+          <FormControl
+            {...props}
+            type="text"
+            onKeyPress={this.onEnter}
+            onFocus={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+            onClick={() => {}}
+          />
+          <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
+            <Button>
+              <Glyphicon glyph="calendar" style={{ padding: 3 }} />
+            </Button>
+          </InputGroup.Button>
+        </InputGroup>
+      </FormGroup>
+    );
+  }
   renderPopover() {
     const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
-        onSelect={this.setCustomRange.bind(this, 'grain')}
+        onSelect={value => this.setCustomRange('grain', value)}
         key={grain}
         eventKey={grain}
         active={grain === this.state.grain}
@@ -215,7 +231,7 @@ export default class DateFilterControl extends React.Component {
       <Radio
         key={timeFrame.replace(' ', '').toLowerCase()}
         checked={this.state.common === timeFrame}
-        onChange={this.setDefaults.bind(this, timeFrame)}
+        onChange={() => this.setDefaults(timeFrame)}
       >
         {timeFrame}
       </Radio>
@@ -236,7 +252,7 @@ export default class DateFilterControl extends React.Component {
                 <PopoverSection
                   title="Relative to today"
                   isSelected={this.state.type === TYPES.CUSTOM_RANGE}
-                  onSelect={this.setCustomRange.bind(this)}
+                  onSelect={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
                 >
                   <div className="clearfix centered" style={{ marginTop: '12px' }}>
                     <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
@@ -245,17 +261,17 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-rel"
                         title={this.state.rel}
-                        onFocus={this.setCustomRange.bind(this)}
+                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
                       >
                         <MenuItem
-                          onSelect={this.setCustomRange.bind(this, 'rel')}
+                          onSelect={value => this.setCustomRange('rel', value)}
                           key={RELATIVE_TIME_OPTIONS.LAST}
                           eventKey={RELATIVE_TIME_OPTIONS.LAST}
                           active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
                         >Last
                         </MenuItem>
                         <MenuItem
-                          onSelect={this.setCustomRange.bind(this, 'rel')}
+                          onSelect={value => this.setCustomRange('rel', value)}
                           key={RELATIVE_TIME_OPTIONS.NEXT}
                           eventKey={RELATIVE_TIME_OPTIONS.NEXT}
                           active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
@@ -267,11 +283,9 @@ export default class DateFilterControl extends React.Component {
                       <FormControl
                         bsSize="small"
                         type="text"
-                        onChange={event => (
-                          this.setCustomRange.call(this, 'num', event.target.value)
-                        )}
-                        onFocus={this.setCustomRange.bind(this)}
-                        onKeyPress={this.onEnter.bind(this)}
+                        onChange={event => this.setCustomRange('num', event.target.value)}
+                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
+                        onKeyPress={this.onEnter}
                         value={this.state.num}
                         style={{ height: '30px' }}
                       />
@@ -282,7 +296,7 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-grain"
                         title={this.state.grain}
-                        onFocus={this.setCustomRange.bind(this)}
+                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
                       >
                         {grainOptions}
                       </DropdownButton>
@@ -292,48 +306,32 @@ export default class DateFilterControl extends React.Component {
                 <PopoverSection
                   title="Start / end"
                   isSelected={this.state.type === TYPES.CUSTOM_START_END}
-                  onSelect={this.setCustomStartEnd.bind(this)}
+                  onSelect={() => this.setState({ type: TYPES.CUSTOM_START_END })}
                   info={FREEFORM_TOOLTIP}
                 >
                   <div ref={(ref) => { this.startEndSectionRef = ref; }}>
                     <InputGroup>
                       <div style={{ margin: '5px 0' }}>
-                        <DateTimeField
-                          ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
-                          dateTime={
-                          this.state.freeformInputs.since ?
-                            DEFAULT_SINCE :
-                            this.state.since
-                        }
-                          defaultText={this.state.since}
-                          onChange={this.setCustomStartEnd.bind(this, 'since')}
-                          maxDate={moment(this.state.until, MOMENT_FORMAT)}
-                          format={MOMENT_FORMAT}
-                          inputFormat={MOMENT_FORMAT}
-                          onClick={this.setCustomStartEnd.bind(this)}
-                          inputProps={{
-                          onKeyPress: this.onEnter.bind(this),
-                          onFocus: this.setCustomStartEnd.bind(this),
-                        }}
+                        <Datetime
+                          closeOnSelect
+                          value={this.state.since}
+                          defaultValue={this.state.since}
+                          onChange={value => this.setCustomStartEnd('since', value)}
+                          isValidDate={this.isValidSince}
+                          onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+                          renderInput={props => this.renderInput(props, 'showSinceCalendar')}
+                          open={this.state.showSinceCalendar}
                         />
                       </div>
                       <div style={{ margin: '5px 0' }}>
-                        <DateTimeField
-                          ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
-                          dateTime={
-                          this.state.freeformInputs.until ?
-                            DEFAULT_UNTIL :
-                            this.state.until
-                        }
-                          defaultText={this.state.until}
-                          onChange={this.setCustomStartEnd.bind(this, 'until')}
-                          minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
-                          format={MOMENT_FORMAT}
-                          inputFormat={MOMENT_FORMAT}
-                          inputProps={{
-                          onKeyPress: this.onEnter.bind(this),
-                          onFocus: this.setCustomStartEnd.bind(this),
-                        }}
+                        <Datetime
+                          value={this.state.until}
+                          defaultValue={this.state.until}
+                          onChange={value => this.setCustomStartEnd('until', value)}
+                          isValidDate={this.isValidUntil}
+                          onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+                          renderInput={props => this.renderInput(props, 'showUntilCalendar')}
+                          open={this.state.showUntilCalendar}
                         />
                       </div>
                     </InputGroup>
@@ -347,7 +345,7 @@ export default class DateFilterControl extends React.Component {
               bsSize="small"
               className="float-right ok"
               bsStyle="primary"
-              onClick={this.close.bind(this)}
+              onClick={this.close}
             >
               Ok
             </Button>
