@@ -64,6 +64,7 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       hasChanged: false,
     };
+    this.changeFilter = this.changeFilter.bind(this);
   }
 
   getControlData(controlName) {
@@ -72,7 +73,7 @@ class FilterBox extends React.Component {
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
-      actions: { setControlValue: this.changeFilter.bind(this) },
+      actions: { setControlValue: this.changeFilter },
     });
     const mapFunc = control.mapStateToProps;
     return mapFunc
@@ -122,7 +123,7 @@ class FilterBox extends React.Component {
               name={TIME_RANGE}
               label={t('Time range')}
               description={t('Select start and end date')}
-              onChange={this.changeFilter.bind(this, TIME_RANGE)}
+              onChange={(value) => { this.changeFilter(TIME_RANGE, value); }}
               value={this.state.selectedValues[TIME_RANGE]}
             />
           </div>
@@ -202,7 +203,7 @@ class FilterBox extends React.Component {
         <div key={key} className="m-b-5">
           {label}
           <OnPasteSelect
-            placeholder={t('Select [%s]', key)}
+            placeholder={t('Select [%s]', label)}
             key={key}
             multi
             value={selectedValues[key]}
@@ -218,7 +219,7 @@ class FilterBox extends React.Component {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={this.changeFilter.bind(this, key)}
+            onChange={(value) => { this.changeFilter(key, value); }}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
             optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
