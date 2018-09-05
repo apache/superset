@@ -64,10 +64,12 @@ const propTypes = {
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
+  xAxisShowMinMax: PropTypes.bool,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxis2Format: PropTypes.string,
   yAxisLabel: PropTypes.string,
+  yAxisShowMinMax: PropTypes.bool,
 };
 
 const formatter = d3.format('.3s');
@@ -94,10 +96,12 @@ function nvd3Vis(element, props, slice) {
     vizType,
     xAxisFormat,
     xAxisLabel,
+    xAxisShowMinMax = false,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
     yAxisLabel,
+    yAxisShowMinMax = false,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -384,7 +388,6 @@ function nvd3Vis(element, props, slice) {
       chart.y2Axis.ticks(5);
     }
 
-
     // Set showMaxMin for all axis
     function setAxisShowMaxMin(axis, showminmax) {
       if (axis && axis.showMaxMin && showminmax !== undefined) {
@@ -392,11 +395,10 @@ function nvd3Vis(element, props, slice) {
       }
     }
 
-    // If these are undefined, they register as truthy
-    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax || false);
-    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax || false);
-    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax || false);
-    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax || false);
+    setAxisShowMaxMin(chart.xAxis, xAxisShowMinMax);
+    setAxisShowMaxMin(chart.x2Axis, xAxisShowMinMax);
+    setAxisShowMaxMin(chart.yAxis, yAxisShowMinMax);
+    setAxisShowMaxMin(chart.y2Axis, yAxisShowMinMax);
 
     if (vizType === 'time_pivot') {
       chart.color((d) => {
@@ -440,7 +442,7 @@ function nvd3Vis(element, props, slice) {
       }
     }
 
-    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+    if (isVizTypes(['dual_line', 'line_multi'])) {
       const yAxisFormatter1 = d3.format(yAxisFormat);
       const yAxisFormatter2 = d3.format(yAxis2Format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
@@ -467,7 +469,7 @@ function nvd3Vis(element, props, slice) {
     .call(chart);
 
     // align yAxis1 and yAxis2 ticks
-    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+    if (isVizTypes(['dual_line', 'line_multi'])) {
       const count = chart.yAxis1.ticks();
       const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
       const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
@@ -849,10 +851,12 @@ function adaptor(slice, payload) {
     viz_type: vizType,
     x_axis_format: xAxisFormat,
     x_axis_label: xAxisLabel,
+    x_axis_showminmax: xAxisShowMinMax,
     x_ticks_layout: xTicksLayout,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
     y_axis_label: yAxisLabel,
+    y_axis_showminmax: yAxisShowMinMax,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -884,10 +888,12 @@ function adaptor(slice, payload) {
     vizType,
     xAxisFormat,
     xAxisLabel,
+    xAxisShowMinMax,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
     yAxisLabel,
+    yAxisShowMinMax,
   };
 
   slice.clearError();
