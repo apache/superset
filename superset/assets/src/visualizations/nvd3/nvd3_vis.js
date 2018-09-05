@@ -56,8 +56,8 @@ const propTypes = {
   reduceXTicks: PropTypes.bool,
   showBrush: PropTypes.oneOf([true, false, 'auto']),
   vizType: PropTypes.string,
-  // numberFormat: PropTypes.string,
-  // colorScheme: PropTypes.string,
+  xAxisFormat: PropTypes.string,
+  yAxisFormat: PropTypes.string,
 };
 
 const formatter = d3.format('.3s');
@@ -75,8 +75,8 @@ function nvd3Vis(element, props, slice) {
     reduceXTicks = false,
     showBrush,
     vizType,
-    // numberFormat,
-    // colorScheme,
+    xAxisFormat,
+    yAxisFormat,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -145,10 +145,6 @@ function nvd3Vis(element, props, slice) {
         break;
 
       case 'dual_line':
-        chart = nv.models.multiChart();
-        chart.interpolate(lineInterpolation);
-        break;
-
       case 'line_multi':
         chart = nv.models.multiChart();
         chart.interpolate(lineInterpolation);
@@ -171,7 +167,7 @@ function nvd3Vis(element, props, slice) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
           }, animationTime);
         }
         break;
@@ -193,7 +189,7 @@ function nvd3Vis(element, props, slice) {
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -249,8 +245,8 @@ function nvd3Vis(element, props, slice) {
         chart.showDistY(true);
         chart.tooltip.contentGenerator(function (obj) {
           const p = obj.point;
-          const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
-          const xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+          const yAxisFormatter = d3FormatPreset(yAxisFormat);
+          const xAxisFormatter = d3FormatPreset(xAxisFormat);
           let s = '<table>';
           s += (
             `<tr><td style="color: ${p.color};">` +
@@ -288,7 +284,7 @@ function nvd3Vis(element, props, slice) {
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
 
-    if (isTruthy(canShowBrush) && isTruthy(fd.send_time_range)) {
+    if (canShowBrush && isTruthy(fd.send_time_range)) {
       chart.focus.dispatch.on('brush', (event) => {
         const extent = event.extent;
         if (extent.some(d => d.toISOString === undefined)) {
@@ -336,9 +332,9 @@ function nvd3Vis(element, props, slice) {
       chart.xScale(d3.scale.log());
     }
 
-    let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+    let xAxisFormatter = d3FormatPreset(xAxisFormat);
     if (isTimeSeries) {
-      xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+      xAxisFormatter = d3TimeFormatPreset(xAxisFormat);
       // In tooltips, always use the verbose time format
       chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
     }
@@ -350,7 +346,7 @@ function nvd3Vis(element, props, slice) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    let yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    let yAxisFormatter = d3FormatPreset(yAxisFormat);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (fd.contribution || fd.comparison_type === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format
@@ -426,7 +422,7 @@ function nvd3Vis(element, props, slice) {
     }
 
     if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
-      const yAxisFormatter1 = d3.format(fd.y_axis_format);
+      const yAxisFormatter1 = d3.format(yAxisFormat);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
@@ -826,6 +822,8 @@ function adaptor(slice, payload) {
     reduce_x_ticks: reduceXTicks,
     show_brush: showBrush,
     viz_type: vizType,
+    x_axis_format: xAxisFormat,
+    y_axis_format: yAxisFormat,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -848,6 +846,8 @@ function adaptor(slice, payload) {
     reduceXTicks,
     showBrush,
     vizType,
+    xAxisFormat,
+    yAxisFormat,
   };
 
   slice.clearError();
