@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw';
+import { getColorFromScheme, hexToRGB } from '../modules/colors';
 
 import {
   kmToPixels,
@@ -21,21 +22,45 @@ import './mapbox.css';
 
 const NOOP = () => {};
 
-
+function getCategories(fd, data) {
+  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const categories = {};
+  data.forEach((d) => {
+    d = d.properties;
+    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+      let color;
+      if (fd.dimension) {
+        color = getColorFromScheme(d.cat_color, fd.color_scheme);
+      } else {
+        color = fixedColor;
+      }
+      categories[d.cat_color] = { color, enabled: true };
+    }
+    d.color = categories[d.cat_color].color;
+  });
+  return categories;
+}
 
 class MapGLDraw extends MapGL {
 
   componentDidMount() {
-    const data = this.props.geoJSON
+    const data = this.props.geoJSON;
     super.componentDidMount();
     const map = this.getMap();
+    console.log(data);
     map.on('load', function () {
       map.addLayer({
           id: 'points',
           type: 'circle',
           source: {
               type: 'geojson',
-              data: data,
+              data,
+          },
+          paint: {
+            'circle-color': '{color}',
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#000000',
           },
       });
       this.draw = new MapboxDraw({});
@@ -91,6 +116,7 @@ class MapFilterViz extends React.Component {
         mapboxApiAccessToken={this.props.mapboxApiKey}
         onViewportChange={this.onViewportChange}
         geoJSON={this.props.geoJSON}
+        colorCategories={this.props.colorCategories}
       />
     );
   }
@@ -110,12 +136,17 @@ MapFilterViz.propTypes = {
   viewportLongitude: PropTypes.number,
   viewportZoom: PropTypes.number,
   geoJSON: PropTypes.object,
+  colorCategories: PropTypes.object,
 };
 
 function mapFilter(slice, json, setControlValue) {
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   div.selectAll('*').remove();
+  const colors =  getCategories(
+    json.form_data,
+    json.data.geoJSON.features,
+  );
   ReactDOM.render(
     <MapFilterViz
       {...json.data}
@@ -123,6 +154,7 @@ function mapFilter(slice, json, setControlValue) {
       sliceWidth={slice.width()}
       pointRadius={DEFAULT_POINT_RADIUS}
       setControlValue={setControlValue || NOOP}
+      colorCategories={colors}
     />,
     div.node(),
   );

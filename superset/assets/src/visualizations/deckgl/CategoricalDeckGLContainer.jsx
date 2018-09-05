@@ -29,22 +29,21 @@ function getCategories(fd, data) {
 }
 
 
-function getBgLayers(conf){
-   var layers = []
-   for(var key in conf){
-        var request = new XMLHttpRequest();
+function getBgLayers(conf) {
+   const layers = [];
+   for (key in conf) {
+        const request = new XMLHttpRequest();
              // Open a new connection, using the GET request on the URL endpoint
-       request.open('GET', '/geo_assets/'+conf[key].path, false);
-       var data = {}
+       request.open('GET', '/geo_assets/' + conf[key].path, false);
+       let data = {};
        request.onload = function () {
             data = JSON.parse(this.response);
        };
-       request.send()
+       request.send();
 
-       console.log(data)
        const layer = new GeoJsonLayer({
            id: 'geojson-layer-' + key,
-           data: data,
+           data,
            pickable: true,
            stroked: false,
            filled: true,
@@ -57,10 +56,9 @@ function getBgLayers(conf){
            getLineWidth: 1,
            getElevation: 30,
        });
-       layers.push(layer)
+       layers.push(layer);
    }
   return layers;
-
 }
 
 
