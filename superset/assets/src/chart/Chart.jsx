@@ -170,10 +170,6 @@ class Chart extends React.PureComponent {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
   }
 
-  verboseMetricName(metric) {
-    return this.props.datasource.verbose_map[metric] || metric;
-  }
-
   renderTooltip() {
     if (this.state.tooltip) {
       return (
