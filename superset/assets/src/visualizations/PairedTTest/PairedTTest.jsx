@@ -2,14 +2,14 @@
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import React from 'react';
-import TTestTable from './TTestTable';
+import TTestTable, { dataPropType } from './TTestTable';
 import './PairedTTest.css';
 
 const propTypes = {
   className: PropTypes.string,
   metrics: PropTypes.arrayOf(PropTypes.string).isRequired,
-  groups: PropTypes.array.isRequired,
-  data: PropTypes.object.isRequired,
+  groups: PropTypes.arrayOf(PropTypes.string).isRequired,
+  data: PropTypes.objectOf(dataPropType).isRequired,
   alpha: PropTypes.number,
   liftValPrec: PropTypes.number,
   pValPrec: PropTypes.number,
@@ -66,6 +66,8 @@ function adaptor(slice, payload) {
     pvalue_precision: pValPrec,
     significance_level: alpha,
   } = formData;
+
+  console.log('groups', groups, payload.data);
 
   ReactDOM.render(
     <PairedTTest

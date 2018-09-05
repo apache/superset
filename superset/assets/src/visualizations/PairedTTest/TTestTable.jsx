@@ -3,10 +3,18 @@ import React from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 import PropTypes from 'prop-types';
 
+export const dataPropType = PropTypes.arrayOf(PropTypes.shape({
+  group: PropTypes.arrayOf(PropTypes.string),
+  values: PropTypes.arrayOf(PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  })),
+}));
+
 const propTypes = {
   metric: PropTypes.string.isRequired,
-  groups: PropTypes.array.isRequired,
-  data: PropTypes.array.isRequired,
+  groups: PropTypes.arrayOf(PropTypes.string).isRequired,
+  data: dataPropType.isRequired,
   alpha: PropTypes.number,
   liftValPrec: PropTypes.number,
   pValPrec: PropTypes.number,
