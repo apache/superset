@@ -187,7 +187,6 @@ function Sunburst(element, props) {
 
     // If metrics match, assume we are coloring by category
     const metricsMatch = Math.abs(d.m1 - d.m2) < 0.00001;
-    console.log('metrics', metrics);
 
     gMiddleText.selectAll('*').remove();
 

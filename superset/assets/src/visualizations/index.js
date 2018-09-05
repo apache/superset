@@ -82,7 +82,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "filter_box" */ './filter_box.jsx')),
   [VIZ_TYPES.heatmap]: () => loadVis(import(/* webpackChunkName: "heatmap" */ './heatmap.js')),
   [VIZ_TYPES.histogram]: () =>
-    loadVis(import(/* webpackChunkName: "histogram" */ './histogram.js')),
+    loadVis(import(/* webpackChunkName: "histogram" */ './Histogram.jsx')),
   [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './HorizonChart.jsx')),
   [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
   [VIZ_TYPES.line]: loadNvd3,
