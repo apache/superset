@@ -66,11 +66,14 @@ const propTypes = {
   xAxisFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
   xAxisShowMinMax: PropTypes.bool,
+  xIsLogScale: PropTypes.bool,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxis2Format: PropTypes.string,
+  yAxisBounds: PropTypes.arrayOf(PropTypes.number),
   yAxisLabel: PropTypes.string,
   yAxisShowMinMax: PropTypes.bool,
+  yIsLogScale: PropTypes.bool,
   // Pie chart only
   isDonut: PropTypes.bool,
   isPieLabelOutside: PropTypes.bool,
@@ -109,11 +112,14 @@ function nvd3Vis(element, props, slice) {
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
+    xIsLogScale,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
+    yAxisBounds,
     yAxisLabel,
     yAxisShowMinMax = false,
+    yIsLogScale,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -355,15 +361,14 @@ function nvd3Vis(element, props, slice) {
       height = Math.min(height, 50);
     }
 
-    if (chart.forceY &&
-        fd.y_axis_bounds &&
-        (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
-      chart.forceY(fd.y_axis_bounds);
+    if (chart.forceY && yAxisBounds &&
+        (yAxisBounds[0] !== null || yAxisBounds[1] !== null)) {
+      chart.forceY(yAxisBounds);
     }
-    if (fd.y_log_scale) {
+    if (yIsLogScale) {
       chart.yScale(d3.scale.log());
     }
-    if (fd.x_log_scale) {
+    if (xIsLogScale) {
       chart.xScale(d3.scale.log());
     }
 
@@ -531,7 +536,7 @@ function nvd3Vis(element, props, slice) {
       // - adjust margins based on these measures and render again
       const margins = chart.margin();
       margins.bottom = 28;
-      if (fd.x_axis_showminmax) {
+      if (xAxisShowMinMax) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
       }
@@ -703,7 +708,7 @@ function nvd3Vis(element, props, slice) {
               .select('.nv-wrap')
               .append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
+            const aColor = e.color || getColorFromScheme(e.name, colorScheme);
 
             const tip = tipFactory(e);
             const records = (annotationData[e.name].records || []).map((r) => {
@@ -763,7 +768,7 @@ function nvd3Vis(element, props, slice) {
               .append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
+            const aColor = e.color || getColorFromScheme(e.name, colorScheme);
             const tip = tipFactory(e);
 
             const records = (annotationData[e.name].records || []).map((r) => {
@@ -869,11 +874,14 @@ function adaptor(slice, payload) {
     x_axis_format: xAxisFormat,
     x_axis_label: xAxisLabel,
     x_axis_showminmax: xAxisShowMinMax,
+    x_log_scale: xIsLogScale,
     x_ticks_layout: xTicksLayout,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
+    y_axis_bounds: yAxisBounds,
     y_axis_label: yAxisLabel,
     y_axis_showminmax: yAxisShowMinMax,
+    y_log_scale: yIsLogScale,
   } = formData;
 
   const element = document.querySelector(selector);
@@ -911,11 +919,14 @@ function adaptor(slice, payload) {
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax,
+    xIsLogScale,
     xTicksLayout,
     yAxisFormat,
     yAxis2Format,
+    yAxisBounds,
     yAxisLabel,
     yAxisShowMinMax,
+    yIsLogScale,
   };
 
   slice.clearError();
