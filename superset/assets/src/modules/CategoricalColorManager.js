@@ -1,4 +1,7 @@
 import CategoricalColorScale from './CategoricalColorScale';
+import categoricalSchemes from './colorSchemes/categorical';
+import airbnb from './colorSchemes/airbnb';
+import lyft from './colorSchemes/lyft';
 
 const schemes = {};
 
@@ -56,5 +59,10 @@ Object.assign(CategoricalColorManager, {
   getScheme,
   getSchemes,
 });
+
+CategoricalColorManager.registerSchemes({ bnbColors: airbnb.bnbColors });
+CategoricalColorManager.registerSchemes(categoricalSchemes);
+CategoricalColorManager.registerSchemes({ lyftColors: lyft.lyftColors });
+CategoricalColorManager.registerScheme('default', airbnb.bnbColors);
 
 export default CategoricalColorManager;

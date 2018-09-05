@@ -1,53 +1,13 @@
 import d3 from 'd3';
 import CategoricalColorManager from './CategoricalColorManager';
-import categoricalSchemes from './colorSchemes/categorical';
 import sequentialSchemes from './colorSchemes/sequential';
+import airbnb from './colorSchemes/airbnb';
+import lyft from './colorSchemes/lyft';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
-
-// Color related utility functions go in this object
-export const bnbColors = [
-  '#ff5a5f', // rausch
-  '#7b0051', // hackb
-  '#007A87', // kazan
-  '#00d1c1', // babu
-  '#8ce071', // lima
-  '#ffb400', // beach
-  '#b4a76c', // barol
-  '#ff8083',
-  '#cc0086',
-  '#00a1b3',
-  '#00ffeb',
-  '#bbedab',
-  '#ffd266',
-  '#cbc29a',
-  '#ff3339',
-  '#ff1ab1',
-  '#005c66',
-  '#00b3a5',
-  '#55d12e',
-  '#b37e00',
-  '#988b4e',
-];
-
-export const lyftColors = [
-  '#EA0B8C',
-  '#6C838E',
-  '#29ABE2',
-  '#33D9C1',
-  '#9DACB9',
-  '#7560AA',
-  '#2D5584',
-  '#831C4A',
-  '#333D47',
-  '#AC2077',
-];
-
-CategoricalColorManager.registerSchemes({ bnbColors });
-CategoricalColorManager.registerSchemes(categoricalSchemes);
-CategoricalColorManager.registerSchemes({ lyftColors });
-CategoricalColorManager.registerScheme('default', bnbColors);
+export const bnbColors = airbnb.bnbColors;
+export const lyftColors = lyft.lyftColors;
 
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {
