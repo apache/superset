@@ -601,18 +601,14 @@ class CoreTests(SupersetTestCase):
         test_file.write('john,1\n')
         test_file.write('paul,2\n')
         test_file.close()
-        main_db_uri = (
-            db.session.query(models.Database)
-            .filter_by(database_name='main')
-            .all()
-        )
+        main_db_uri = self.get_main_database(db.session)
 
         test_file = open(filename, 'rb')
         form_data = {
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri[0].id,
+            'con': main_db_uri.id,
             'if_exists': 'append',
             'index_label': 'test_label',
             'mangle_dupe_cols': False,
