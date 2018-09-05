@@ -80,3 +80,14 @@ export function formatLabel(input, verboseMap = {}) {
   }
   return label;
 }
+
+const MIN_BAR_WIDTH = 15;
+
+export function computeBarChartWidth(stacked, maxWidth) {
+  const barCount = stacked
+    ? d3.max(data, d => d.values.length)
+    : d3.sum(data, d => d.values.length);
+
+  const barWidth = barCount * MIN_BAR_WIDTH;
+  return Math.max(barWidth, maxWidth);
+}

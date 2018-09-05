@@ -8,6 +8,7 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
+import PropTypes from 'prop-types';
 
 import { getColorFromScheme } from '../../modules/colors';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
@@ -15,13 +16,19 @@ import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from 
 import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
-import { addTotalBarValues, hideTooltips, wrapTooltip, getMaxLabelSize, formatLabel } from './utils';
+import {
+  addTotalBarValues,
+  hideTooltips,
+  wrapTooltip,
+  getMaxLabelSize,
+  formatLabel,
+  computeBarChartWidth,
+} from './utils';
 
 // CSS
 import './nvd3_vis.css';
 import { VIZ_TYPES } from '../index';
 
-const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
 const maxMarginPad = 30;
 const animationTime = 1000;
@@ -41,7 +48,29 @@ const TIMESERIES_VIZ_TYPES = [
   'time_pivot',
 ];
 
-function nvd3Vis(element, props, slice, data) {
+const propTypes = {
+  data: PropTypes.object,
+  width: PropTypes.number,
+  height: PropTypes.number,
+  // numberFormat: PropTypes.string,
+  // colorScheme: PropTypes.string,
+};
+
+const formatter = d3.format('.3s');
+
+function nvd3Vis(element, props, slice) {
+  PropTypes.checkPropTypes(propTypes, props, 'prop', 'NVD3Vis');
+
+  const {
+    data,
+    width: maxWidth,
+    height: maxHeight,
+    isBarStacked,
+    // numberFormat,
+    // colorScheme,
+  } = props;
+
+  let width = maxWidth;
   let chart;
   let colorKey = 'key';
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -49,26 +78,9 @@ function nvd3Vis(element, props, slice, data) {
   const container = element;
   container.innerHTML = '';
 
-  slice.clearError();
-
-  let width = slice.width();
   const fd = slice.formData;
 
-  const barchartWidth = function () {
-    let bars;
-    if (fd.bar_stacked) {
-      bars = d3.max(data, function (d) { return d.values.length; });
-    } else {
-      bars = d3.sum(data, function (d) { return d.values.length; });
-    }
-    if (bars * minBarWidth > width) {
-      return bars * minBarWidth;
-    }
-    return width;
-  };
-
   const vizType = fd.viz_type;
-  const formatter = d3.format('.3s');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -78,7 +90,7 @@ function nvd3Vis(element, props, slice, data) {
     if (svg.empty()) {
       svg = d3.select(slice.selector).append('svg');
     }
-    let height = slice.height();
+    let height = maxHeight;
     const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
 
     // Handling xAxis ticks settings
@@ -142,13 +154,13 @@ function nvd3Vis(element, props, slice, data) {
         .groupSpacing(0.1);
 
         if (!reduceXTicks) {
-          width = barchartWidth();
+          width = computeBarChartWidth(isBarStacked, maxWidth);
         }
         chart.width(width);
         chart.xAxis
         .showMaxMin(false);
 
-        stacked = fd.bar_stacked;
+        stacked = isBarStacked;
         chart.stacked(stacked);
 
         if (fd.show_bar_value) {
@@ -166,7 +178,7 @@ function nvd3Vis(element, props, slice, data) {
 
         chart.xAxis.showMaxMin(false);
 
-        stacked = fd.bar_stacked;
+        stacked = isBarStacked;
         chart.stacked(stacked);
         if (fd.order_bars) {
           data.forEach((d) => {
@@ -179,7 +191,7 @@ function nvd3Vis(element, props, slice, data) {
           }, animationTime);
         }
         if (!reduceXTicks) {
-          width = barchartWidth();
+          width = computeBarChartWidth(isBarStacked, maxWidth);
         }
         chart.width(width);
         break;
@@ -794,8 +806,13 @@ function nvd3Vis(element, props, slice, data) {
   nv.addGraph(drawGraph);
 }
 
+nvd3Vis.propTypes = propTypes;
+
 function adaptor(slice, payload) {
   const { formData, datasource, selector } = slice;
+  const {
+    bar_stacked: isBarStacked,
+  } = formData;
 
   const element = document.querySelector(selector);
 
@@ -807,9 +824,16 @@ function adaptor(slice, payload) {
     }))
     : rawData;
 
-  const props = {};
+  const props = {
+    data,
+    width: slice.width(),
+    height: slice.height(),
+    isBarStacked,
+  };
 
-  return nvd3Vis(element, props, slice, data);
+  slice.clearError();
+
+  return nvd3Vis(element, props, slice);
 }
 
 export default adaptor;
