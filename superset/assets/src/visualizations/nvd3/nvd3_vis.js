@@ -24,13 +24,12 @@ import {
   computeBarChartWidth,
 } from './utils';
 
-// CSS
 import './nvd3_vis.css';
 
 // Limit on how large axes margins can grow as the chart window is resized
-const maxMarginPad = 30;
-const animationTime = 1000;
-const minHeightForBrush = 480;
+const MAX_MARGIN_PAD = 30;
+const ANIMATION_TIME = 1000;
+const MIN_HEIGHT_FOR_BRUSH = 480;
 
 const BREAKPOINTS = {
   small: 340,
@@ -51,6 +50,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
+  colorScheme: PropTypes.string,
   isBarStacked: PropTypes.bool,
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
@@ -58,6 +58,7 @@ const propTypes = {
   showBrush: PropTypes.oneOf([true, false, 'auto']),
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
+  xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
   yAxis2Format: PropTypes.string,
 };
@@ -72,6 +73,7 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     annotationData,
+    colorScheme,
     isBarStacked,
     lineInterpolation = 'linear',
     onError = () => {},
@@ -79,6 +81,7 @@ function nvd3Vis(element, props, slice) {
     showBrush,
     vizType,
     xAxisFormat,
+    xTicksLayout,
     yAxisFormat,
     yAxis2Format,
   } = props;
@@ -94,6 +97,10 @@ function nvd3Vis(element, props, slice) {
   let stacked = false;
   let row;
 
+  function isVizTypes(types) {
+    return types.indexOf(vizType) >= 0;
+  }
+
   const drawGraph = function () {
     const $element = d3.select(element);
     let svg = $element.select('svg');
@@ -101,28 +108,22 @@ function nvd3Vis(element, props, slice) {
       svg = $element.append('svg');
     }
     let height = maxHeight;
-    const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
+    const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
     // Handling xAxis ticks settings
-    let xLabelRotation = 0;
-    let staggerLabels = false;
-    if (fd.x_ticks_layout === 'auto') {
-      if (['column', 'dist_bar'].indexOf(vizType) >= 0) {
-        xLabelRotation = 45;
-      }
-    } else if (fd.x_ticks_layout === 'staggered') {
-      staggerLabels = true;
-    } else if (fd.x_ticks_layout === '45°') {
-      if (isTruthy(showBrush)) {
-        onError(t('You cannot use 45° tick layout along with the time range filter'));
-        return null;
-      }
-      xLabelRotation = 45;
+    const staggerLabels = xTicksLayout === 'staggered';
+    const xLabelRotation =
+      ((xTicksLayout === 'auto' && isVizTypes(['column', 'dist_bar']))
+      || xTicksLayout === '45°')
+      ? 45 : 0;
+    if (xLabelRotation === 45 && isTruthy(showBrush)) {
+      onError(t('You cannot use 45° tick layout along with the time range filter'));
+      return null;
     }
 
     const canShowBrush = (
       isTruthy(showBrush) ||
-      (showBrush === 'auto' && height >= minHeightForBrush && fd.x_ticks_layout !== '45°')
+      (showBrush === 'auto' && height >= MIN_HEIGHT_FOR_BRUSH && xTicksLayout !== '45°')
     );
 
     switch (vizType) {
@@ -172,7 +173,7 @@ function nvd3Vis(element, props, slice) {
         if (fd.show_bar_value) {
           setTimeout(function () {
             addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
-          }, animationTime);
+          }, ANIMATION_TIME);
         }
         break;
 
@@ -194,7 +195,7 @@ function nvd3Vis(element, props, slice) {
         if (fd.show_bar_value) {
           setTimeout(function () {
             addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
-          }, animationTime);
+          }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
@@ -232,7 +233,7 @@ function nvd3Vis(element, props, slice) {
 
       case 'column':
         chart = nv.models.multiBarChart()
-        .reduceXTicks(false);
+          .reduceXTicks(false);
         break;
 
       case 'compare':
@@ -393,7 +394,7 @@ function nvd3Vis(element, props, slice) {
         return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
       });
     } else if (vizType !== 'bullet') {
-      chart.color(d => d.color || getColorFromScheme(d[colorKey], fd.color_scheme));
+      chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
     }
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
@@ -486,7 +487,7 @@ function nvd3Vis(element, props, slice) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const containerWidth = slice.container.width();
       const marginPad = Math.ceil(
-        Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, maxMarginPad),
+        Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, MAX_MARGIN_PAD),
       );
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
                                               : getMaxLabelSize(slice.container, 'nv-y');
@@ -822,11 +823,13 @@ function adaptor(slice, payload) {
   const { formData, datasource, selector, annotationData } = slice;
   const {
     bar_stacked: isBarStacked,
+    color_scheme: colorScheme,
     line_interpolation: lineInterpolation,
     reduce_x_ticks: reduceXTicks,
     show_brush: showBrush,
     viz_type: vizType,
     x_axis_format: xAxisFormat,
+    x_ticks_layout: xTicksLayout,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
   } = formData;
@@ -846,6 +849,7 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     annotationData,
+    colorScheme,
     isBarStacked,
     lineInterpolation,
     onError(err) { slice.error(err); },
@@ -853,6 +857,7 @@ function adaptor(slice, payload) {
     showBrush,
     vizType,
     xAxisFormat,
+    xTicksLayout,
     yAxisFormat,
     yAxis2Format,
   };
