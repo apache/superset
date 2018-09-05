@@ -45,11 +45,14 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { colorPrimary, spectrums } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
+import CategoricalColorManager from '../modules/CategoricalColorManager';
+
+const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 

@@ -93,8 +93,6 @@ CategoricalColorManager.registerSchemes({
 });
 CategoricalColorManager.registerScheme('default', bnbColors);
 
-export const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
-
 export const spectrums = {
   blue_white_yellow: [
     '#00d1c1',
