@@ -159,6 +159,7 @@
     "minimist": "^1.2.0",
     "mocha": "^3.5.3",
     "npm-check-updates": "^2.14.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.1",
     "po2json": "^0.4.5",
     "prettier": "^1.12.1",
     "react-addons-test-utils": "^15.6.2",
