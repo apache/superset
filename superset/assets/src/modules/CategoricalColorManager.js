@@ -17,10 +17,6 @@ class CategoricalColorManager {
     this.scales[schemeName] = newScale;
     return newScale;
   }
-
-  getColorFromScheme(schemeName, value, forcedColor) {
-    return this.getScale(schemeName).getColor(value, forcedColor);
-  }
 }
 
 let singleton;
