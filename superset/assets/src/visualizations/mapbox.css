@@ -16,6 +16,5 @@
 }
 
 .map_filter .overlays{
-  display: none;
   pointer-events: none;
 }

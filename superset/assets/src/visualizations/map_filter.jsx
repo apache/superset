@@ -4,10 +4,15 @@ import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
-import MapGL from 'react-map-gl';
+import MapGL, { HTMLOverlay } from 'react-map-gl';
+import Legend from './Legend';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw';
-import { getColorFromScheme, hexToRGB } from '../modules/colors';
+import {
+  getColorFromScheme,
+  hexToRGB,
+  rgbaToHex
+} from '../modules/colors';
 
 import {
   kmToPixels,
@@ -24,20 +29,28 @@ const NOOP = () => {};
 
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-  const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const fixedColorRGBA = [c.r, c.g, c.b, 255 * c.a];
+  const fixedColorHex = rgbaToHex(fixedColorRGBA);
   const categories = {};
   data.forEach((d) => {
     d = d.properties;
-    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-      let color;
-      if (fd.dimension) {
-        color = getColorFromScheme(d.cat_color, fd.color_scheme);
-      } else {
-        color = fixedColor;
+    let color;
+    if (d.cat_color != null) {
+      if (!categories.hasOwnProperty(d.cat_color)) {
+        if (fd.dimension) {
+          color = getColorFromScheme(d.cat_color, fd.color_scheme);
+        } else {
+          color = fixedColorHex;
+        }
+        categories[d.cat_color] = {
+          color: hexToRGB(color),
+          hex: color,
+          enabled: true,
+        };
       }
-      categories[d.cat_color] = { color, enabled: true };
+
+    d.color = categories[d.cat_color].hex;
     }
-    d.color = categories[d.cat_color].color;
   });
   return categories;
 }
@@ -48,7 +61,7 @@ class MapGLDraw extends MapGL {
     const data = this.props.geoJSON;
     super.componentDidMount();
     const map = this.getMap();
-    console.log(data);
+
     map.on('load', function () {
       map.addLayer({
           id: 'points',
@@ -58,12 +71,18 @@ class MapGLDraw extends MapGL {
               data,
           },
           paint: {
-            'circle-color': '{color}',
+            'circle-color': ['get', 'color'],
             'circle-stroke-width': 1,
-            'circle-stroke-color': '#000000',
+            'circle-stroke-color': '#FFF',
           },
       });
-      this.draw = new MapboxDraw({});
+      this.draw = new MapboxDraw({
+        displayControlsDefault: false,
+          controls: {
+          polygon: true,
+          trash: true,
+        },
+      });
       map.addControl(this.draw, 'top-right');
     });
   }
@@ -117,7 +136,9 @@ class MapFilterViz extends React.Component {
         onViewportChange={this.onViewportChange}
         geoJSON={this.props.geoJSON}
         colorCategories={this.props.colorCategories}
-      />
+      >
+        <Legend categories={this.props.colorCategories} position='br' />
+      </MapGLDraw>
     );
   }
 }

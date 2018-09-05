@@ -31,7 +31,7 @@ function getCategories(fd, data) {
 
 function getBgLayers(conf) {
    const layers = [];
-   for (key in conf) {
+   for (const key in conf) {
         const request = new XMLHttpRequest();
              // Open a new connection, using the GET request on the URL endpoint
        request.open('GET', '/geo_assets/' + conf[key].path, false);

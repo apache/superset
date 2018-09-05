@@ -593,3 +593,9 @@ export function hexToRGB(hex, alpha = 255) {
   const b = parseInt(hex.slice(5, 7), 16);
   return [r, g, b, alpha];
 }
+
+export function rgbaToHex(colorArray) {
+    return ('#' + colorArray[0].toString(16) +
+      colorArray[1].toString(16) + colorArray[2].toString(16) +
+      (colorArray[3] * 255).toString(16).substring(0, 2));
+}
