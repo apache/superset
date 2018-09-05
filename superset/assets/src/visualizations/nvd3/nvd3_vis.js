@@ -55,7 +55,12 @@ const propTypes = {
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
   reduceXTicks: PropTypes.bool,
+  showBarValue: PropTypes.bool,
   showBrush: PropTypes.oneOf([true, false, 'auto']),
+  showControls: PropTypes.bool,
+  showLabels: PropTypes.bool,
+  showLegend: PropTypes.bool,
+  showMarkers: PropTypes.bool,
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
@@ -78,7 +83,12 @@ function nvd3Vis(element, props, slice) {
     lineInterpolation = 'linear',
     onError = () => {},
     reduceXTicks = false,
+    showBarValue,
     showBrush,
+    showControls,
+    showLabels,
+    showLegend,
+    showMarkers,
     vizType,
     xAxisFormat,
     xTicksLayout,
@@ -157,7 +167,7 @@ function nvd3Vis(element, props, slice) {
 
       case 'bar':
         chart = nv.models.multiBarChart()
-        .showControls(fd.show_controls)
+        .showControls(showControls)
         .groupSpacing(0.1);
 
         if (!reduceXTicks) {
@@ -170,7 +180,7 @@ function nvd3Vis(element, props, slice) {
         stacked = isBarStacked;
         chart.stacked(stacked);
 
-        if (fd.show_bar_value) {
+        if (showBarValue) {
           setTimeout(function () {
             addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
           }, ANIMATION_TIME);
@@ -179,7 +189,7 @@ function nvd3Vis(element, props, slice) {
 
       case 'dist_bar':
         chart = nv.models.multiBarChart()
-        .showControls(fd.show_controls)
+        .showControls(showControls)
         .reduceXTicks(reduceXTicks)
         .groupSpacing(0.1); // Distance between each group of bars.
 
@@ -192,7 +202,7 @@ function nvd3Vis(element, props, slice) {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
-        if (fd.show_bar_value) {
+        if (showBarValue) {
           setTimeout(function () {
             addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
           }, ANIMATION_TIME);
@@ -210,7 +220,7 @@ function nvd3Vis(element, props, slice) {
         if (fd.donut) {
           chart.donut(true);
         }
-        chart.showLabels(fd.show_labels);
+        chart.showLabels(showLabels);
         chart.labelsOutside(fd.labels_outside);
         chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
         if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
@@ -269,7 +279,7 @@ function nvd3Vis(element, props, slice) {
 
       case 'area':
         chart = nv.models.stackedAreaChart();
-        chart.showControls(fd.show_controls);
+        chart.showControls(showControls);
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
         break;
@@ -313,11 +323,11 @@ function nvd3Vis(element, props, slice) {
       chart.x2Axis.rotateLabels(xLabelRotation);
     }
 
-    if ('showLegend' in chart && typeof fd.show_legend !== 'undefined') {
+    if ('showLegend' in chart && typeof showLegend !== 'undefined') {
       if (width < BREAKPOINTS.small && vizType !== 'pie') {
         chart.showLegend(false);
       } else {
-        chart.showLegend(fd.show_legend);
+        chart.showLegend(showLegend);
       }
     }
 
@@ -437,7 +447,7 @@ function nvd3Vis(element, props, slice) {
       if (vizType === 'dual_line') {
         chart.showLegend(width > BREAKPOINTS.small);
       } else {
-        chart.showLegend(fd.show_legend);
+        chart.showLegend(showLegend);
       }
     }
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
@@ -477,10 +487,10 @@ function nvd3Vis(element, props, slice) {
       }
     }
 
-    if (fd.show_markers) {
+    if (showMarkers) {
       svg.selectAll('.nv-point')
-      .style('stroke-opacity', 1)
-      .style('fill-opacity', 1);
+        .style('stroke-opacity', 1)
+        .style('fill-opacity', 1);
     }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
@@ -826,7 +836,12 @@ function adaptor(slice, payload) {
     color_scheme: colorScheme,
     line_interpolation: lineInterpolation,
     reduce_x_ticks: reduceXTicks,
+    show_bar_value: showBarValue,
     show_brush: showBrush,
+    show_controls: showControls,
+    show_labels: showLabels,
+    show_legend: showLegend,
+    show_markers: showMarkers,
     viz_type: vizType,
     x_axis_format: xAxisFormat,
     x_ticks_layout: xTicksLayout,
@@ -854,7 +869,12 @@ function adaptor(slice, payload) {
     lineInterpolation,
     onError(err) { slice.error(err); },
     reduceXTicks,
+    showBarValue,
     showBrush,
+    showControls,
+    showLabels,
+    showLegend,
+    showMarkers,
     vizType,
     xAxisFormat,
     xTicksLayout,
