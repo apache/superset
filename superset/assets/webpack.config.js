@@ -2,7 +2,9 @@ const path = require('path');
 const webpack = require('webpack');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
 
@@ -38,17 +40,13 @@ const plugins = [
 if (isDevMode) {
   // Enable hot module replacement
   plugins.push(new webpack.HotModuleReplacementPlugin());
-  // text loading (webpack 4+)
-  plugins.push(new MiniCssExtractPlugin({
-    filename: '[name].[hash:8].entry.css',
-    chunkFilename: '[name].[hash:8].chunk.css',
-  }));
 } else {
   // text loading (webpack 4+)
   plugins.push(new MiniCssExtractPlugin({
     filename: '[name].[chunkhash].entry.css',
     chunkFilename: '[name].[chunkhash].chunk.css',
   }));
+  plugins.push(new OptimizeCSSAssetsPlugin());
 }
 
 const output = {
@@ -106,7 +104,7 @@ const config = {
         test: /\.css$/,
         include: APP_DIR,
         use: [
-          MiniCssExtractPlugin.loader,
+          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           'css-loader',
         ],
       },
@@ -114,7 +112,7 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          MiniCssExtractPlugin.loader,
+          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           'css-loader',
           'less-loader',
         ],
