@@ -14,6 +14,7 @@ import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from 
 import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
+import { VIZ_TYPES } from '../index';
 import {
   addTotalBarValues,
   hideTooltips,
@@ -25,7 +26,6 @@ import {
 
 // CSS
 import './nvd3_vis.css';
-import { VIZ_TYPES } from '../index';
 
 // Limit on how large axes margins can grow as the chart window is resized
 const maxMarginPad = 30;
@@ -50,6 +50,11 @@ const propTypes = {
   data: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
+  isBarStacked: PropTypes.bool,
+  onError: PropTypes.func,
+  reduceXTicks: PropTypes.bool,
+  showBrush: PropTypes.oneOf([true, false, 'auto']),
+  vizType: PropTypes.string,
   // numberFormat: PropTypes.string,
   // colorScheme: PropTypes.string,
 };
@@ -64,22 +69,22 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     isBarStacked,
+    onError = () => {},
+    reduceXTicks = false,
+    showBrush,
     vizType,
     // numberFormat,
     // colorScheme,
   } = props;
 
-  let width = maxWidth;
-  let chart;
-  let colorKey = 'key';
   const isExplore = document.querySelector('#explorer-container') !== null;
-
   const container = element;
   container.innerHTML = '';
 
   const fd = slice.formData;
-
-  const reduceXTicks = fd.reduce_x_ticks || false;
+  let chart;
+  let width = maxWidth;
+  let colorKey = 'key';
   let stacked = false;
   let row;
 
@@ -102,21 +107,21 @@ function nvd3Vis(element, props, slice) {
     } else if (fd.x_ticks_layout === 'staggered') {
       staggerLabels = true;
     } else if (fd.x_ticks_layout === '45°') {
-      if (isTruthy(fd.show_brush)) {
-        const error = t('You cannot use 45° tick layout along with the time range filter');
-        slice.error(error);
+      if (isTruthy(showBrush)) {
+        onError(t('You cannot use 45° tick layout along with the time range filter'));
         return null;
       }
       xLabelRotation = 45;
     }
-    const showBrush = (
-      isTruthy(fd.show_brush) ||
-      (fd.show_brush === 'auto' && height >= minHeightForBrush && fd.x_ticks_layout !== '45°')
+
+    const canShowBrush = (
+      isTruthy(showBrush) ||
+      (showBrush === 'auto' && height >= minHeightForBrush && fd.x_ticks_layout !== '45°')
     );
 
     switch (vizType) {
       case 'line':
-        if (showBrush) {
+        if (canShowBrush) {
           chart = nv.models.lineWithFocusChart();
           if (staggerLabels) {
             // Give a bit more room to focus area if X axis ticks are staggered
@@ -153,7 +158,7 @@ function nvd3Vis(element, props, slice) {
         .groupSpacing(0.1);
 
         if (!reduceXTicks) {
-          width = computeBarChartWidth(isBarStacked, maxWidth);
+          width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
         chart.width(width);
         chart.xAxis
@@ -190,7 +195,7 @@ function nvd3Vis(element, props, slice) {
           }, animationTime);
         }
         if (!reduceXTicks) {
-          width = computeBarChartWidth(isBarStacked, maxWidth);
+          width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
         chart.width(width);
         break;
@@ -281,7 +286,7 @@ function nvd3Vis(element, props, slice) {
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
 
-    if (isTruthy(fd.show_brush) && isTruthy(fd.send_time_range)) {
+    if (isTruthy(canShowBrush) && isTruthy(fd.send_time_range)) {
       chart.focus.dispatch.on('brush', (event) => {
         const extent = event.extent;
         if (extent.some(d => d.toISOString === undefined)) {
@@ -815,6 +820,8 @@ function adaptor(slice, payload) {
   const { formData, datasource, selector } = slice;
   const {
     bar_stacked: isBarStacked,
+    reduce_x_ticks: reduceXTicks,
+    show_brush: showBrush,
     viz_type: vizType,
   } = formData;
 
@@ -833,6 +840,9 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     isBarStacked,
+    onError(err) { slice.error(err); },
+    reduceXTicks,
+    showBrush,
     vizType,
   };
 

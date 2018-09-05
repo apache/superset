@@ -86,7 +86,7 @@ export function formatLabel(input, verboseMap = {}) {
 
 const MIN_BAR_WIDTH = 15;
 
-export function computeBarChartWidth(stacked, maxWidth) {
+export function computeBarChartWidth(data, stacked, maxWidth) {
   const barCount = stacked
     ? d3.max(data, d => d.values.length)
     : d3.sum(data, d => d.values.length);
