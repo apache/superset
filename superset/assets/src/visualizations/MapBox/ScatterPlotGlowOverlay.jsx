@@ -36,6 +36,11 @@ const contextTypes = {
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
+  constructor(props) {
+    super(props);
+    this.setCanvasRef = this.setCanvasRef.bind(this);
+  }
+
   componentDidMount() {
     this.redraw();
   }
@@ -43,6 +48,11 @@ class ScatterPlotGlowOverlay extends React.Component {
   componentDidUpdate() {
     this.redraw();
   }
+
+  setCanvasRef(element) {
+    this.canvas = element;
+  }
+
   drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
     const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
@@ -197,9 +207,9 @@ class ScatterPlotGlowOverlay extends React.Component {
         }
       }, this);
     }
-
     ctx.restore();
   }
+
   render() {
     let width = 0;
     let height = 0;
@@ -211,7 +221,7 @@ class ScatterPlotGlowOverlay extends React.Component {
     const pixelRatio = window.devicePixelRatio || 1;
     return (
       <canvas
-        ref={(c) => { this.canvas = c; }}
+        ref={this.setCanvasRef}
         width={width * pixelRatio}
         height={height * pixelRatio}
         style={{
