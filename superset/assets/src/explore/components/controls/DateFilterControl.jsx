@@ -121,7 +121,7 @@ export default class DateFilterControl extends React.Component {
     this.setCustomRange = this.setCustomRange.bind(this);
     this.setCustomStartEnd = this.setCustomStartEnd.bind(this);
     this.setDefaults = this.setDefaults.bind(this);
-    this.toggleCalendar = this.toggleCalendar.bind(this);
+    this.toggleState = this.toggleState.bind(this);
   }
   componentDidMount() {
     document.addEventListener('click', this.handleClick);
@@ -162,11 +162,11 @@ export default class DateFilterControl extends React.Component {
     this.setState(nextState);
   }
   setCustomStartEnd(key, value) {
-    const showCalendar = key === 'since' ? 'showSinceCalendar' : 'showUntilCalendar';
     this.setState({
       type: TYPES.CUSTOM_START_END,
       [key]: typeof value === 'string' ? value : value.format(MOMENT_FORMAT),
-      [showCalendar]: !this.state[showCalendar],
+      showSinceCalendar: false,
+      showUntilCalendar: false,
     });
   }
   handleClick(e) {
@@ -193,7 +193,7 @@ export default class DateFilterControl extends React.Component {
   isValidUntil(date) {
     return (!isValidMoment(this.state.since) || date >= moment(this.state.since, MOMENT_FORMAT));
   }
-  toggleCalendar(key) {
+  toggleState(key) {
     this.setState({ [key]: !this.state[key] });
   }
   renderInput(props, key) {
@@ -207,7 +207,7 @@ export default class DateFilterControl extends React.Component {
             onFocus={() => this.setState({ type: TYPES.CUSTOM_START_END })}
             onClick={() => {}}
           />
-          <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
+          <InputGroup.Button onClick={() => this.toggleState(key)}>
             <Button>
               <Glyphicon glyph="calendar" style={{ padding: 3 }} />
             </Button>
