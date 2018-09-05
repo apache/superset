@@ -10,6 +10,9 @@
 
   {% block tail_js %}
     {{super()}}
+    {% for entry in js_manifest('theme') %}
+      <script src="{{ entry }}"></script>
+    {% endfor %}
     {% for entry in js_manifest('common') %}
       <script src="{{ entry }}"></script>
     {% endfor %}
