@@ -1,4 +1,4 @@
-import nvd3Vis from './nvd3_vis';
+import nvd3Vis from './nvd3/nvd3_vis';
 import { getExploreLongUrl } from '../explore/exploreUtils';
 
 
