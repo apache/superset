@@ -84,6 +84,9 @@ class MapGLDraw extends MapGL {
         },
       });
       map.addControl(this.draw, 'top-right');
+      map.on('draw.selectionchange', function (e) {
+        console.log(e.features);
+      });
     });
   }
 
