@@ -551,38 +551,13 @@ export function hexToRGB(hex, alpha = 255) {
  forcibly associate to a label.
  */
 export function getColorFromScheme(value, schemeName, forcedColor) {
-  return CategoricalColorManager.getColorFromScheme(schemeName, value, forcedColor);
+  const scale = CategoricalColorManager.getScale(schemeName);
+  if (forcedColor) {
+    scale.setColor(value, forcedColor);
+    return forcedColor;
+  }
+  return scale.getColor(value);
 }
-
-// export const getColorFromScheme = (function () {
-//   const seen = {};
-//   const forcedColors = {};
-//   return function (s, scheme, forcedColor) {
-//     if (!s) {
-//       return;
-//     }
-//     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
-//     let stringifyS = String(s).toLowerCase();
-//     // next line is for superset series that should have the same color
-//     stringifyS = stringifyS.split(', ').filter(k => !TIME_SHIFT_PATTERN.test(k)).join(', ');
-
-//     if (forcedColor && !forcedColors[stringifyS]) {
-//       forcedColors[stringifyS] = forcedColor;
-//     }
-//     if (forcedColors[stringifyS]) {
-//       return forcedColors[stringifyS];
-//     }
-
-//     if (seen[selectedScheme] === undefined) {
-//       seen[selectedScheme] = {};
-//     }
-//     if (seen[selectedScheme][stringifyS] === undefined) {
-//       seen[selectedScheme][stringifyS] = Object.keys(seen[selectedScheme]).length;
-//     }
-//     /* eslint consistent-return: 0 */
-//     return selectedScheme[seen[selectedScheme][stringifyS] % selectedScheme.length];
-//   };
-// }());
 
 export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
   // Returns a linear scaler our of an array of color

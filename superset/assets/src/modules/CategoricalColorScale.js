@@ -9,25 +9,21 @@ function cleanValue(value) {
     .join(', ');
 }
 
-const sharedForced = {};
+const sharedForcedItems = {};
 
 export default class CategoricalColorScale {
-  constructor(colors, forced = sharedForced) {
+  constructor(colors, forcedItems = sharedForcedItems) {
     this.colors = colors;
-    this.forced = forced;
+    this.forcedItems = forcedItems;
     this.seen = {};
+    this.fn = value => this.getColor(value);
   }
 
-  getColor(value, forcedColor) {
+  getColor(value) {
     const cleanedValue = cleanValue(value);
 
-    const specialColor = this.forced[cleanedValue];
-    if (specialColor) {
-      return specialColor;
-    }
-
+    const forcedColor = this.forcedItems[cleanedValue];
     if (forcedColor) {
-      this.forced[cleanedValue] = forcedColor;
       return forcedColor;
     }
 
@@ -39,5 +35,14 @@ export default class CategoricalColorScale {
     const index = Object.keys(this.seen).length;
     this.seen[cleanedValue] = index;
     return this.colors[index % this.colors.length];
+  }
+
+  setColor(value, forcedColor) {
+    this.forcedItems[value] = forcedColor;
+    return this;
+  }
+
+  toFunction() {
+    return this.fn;
   }
 }

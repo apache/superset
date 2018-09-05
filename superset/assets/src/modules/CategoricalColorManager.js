@@ -36,8 +36,11 @@ CategoricalColorManager.getInstance = getInstance;
 CategoricalColorManager.getScale = function (schemeName) {
   return getInstance().getScale(schemeName);
 };
-CategoricalColorManager.getColorFromScheme = function (schemeName, value, forcedColor) {
-  return getInstance().getColorFromScheme(schemeName, value, forcedColor);
+CategoricalColorManager.getColor = function (schemeName, value) {
+  return getInstance().getScale(schemeName).getColor(value);
+};
+CategoricalColorManager.setColor = function (schemeName, value, forcedColor) {
+  return getInstance().getScale(schemeName).setColor(value, forcedColor);
 };
 CategoricalColorManager.registerScheme = function (schemeName, colors) {
   schemes[schemeName] = colors;
