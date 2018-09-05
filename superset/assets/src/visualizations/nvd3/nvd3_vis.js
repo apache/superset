@@ -52,12 +52,9 @@ const propTypes = {
   annotationData: PropTypes.object,
   colorScheme: PropTypes.string,
   isBarStacked: PropTypes.bool,
-  isDonut: PropTypes.bool,
-  isPieLabelOutside: PropTypes.bool,
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
   orderBars: PropTypes.bool,
-  pieLabelType: PropTypes.string,
   reduceXTicks: PropTypes.bool,
   showBarValue: PropTypes.bool,
   showBrush: PropTypes.oneOf([true, false, 'auto']),
@@ -74,6 +71,12 @@ const propTypes = {
   yAxis2Format: PropTypes.string,
   yAxisLabel: PropTypes.string,
   yAxisShowMinMax: PropTypes.bool,
+  // Pie chart only
+  isDonut: PropTypes.bool,
+  isPieLabelOutside: PropTypes.bool,
+  pieLabelType: PropTypes.string,
+  // Area chart only
+  areaStackedStyle: PropTypes.string,
 };
 
 const formatter = d3.format('.3s');
@@ -86,6 +89,7 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     annotationData,
+    areaStackedStyle,
     colorScheme,
     isBarStacked,
     isDonut,
@@ -296,7 +300,7 @@ function nvd3Vis(element, props, slice) {
       case 'area':
         chart = nv.models.stackedAreaChart();
         chart.showControls(showControls);
-        chart.style(fd.stacked_style);
+        chart.style(areaStackedStyle);
         chart.xScale(d3.time.scale.utc());
         break;
 
@@ -860,6 +864,7 @@ function adaptor(slice, payload) {
     show_labels: showLabels,
     show_legend: showLegend,
     show_markers: showMarkers,
+    stacked_style: areaStackedStyle,
     viz_type: vizType,
     x_axis_format: xAxisFormat,
     x_axis_label: xAxisLabel,
@@ -886,6 +891,7 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     annotationData,
+    areaStackedStyle,
     colorScheme,
     isBarStacked,
     isDonut,
