@@ -9,7 +9,6 @@ import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
 
-import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
@@ -21,6 +20,7 @@ import { t } from '../locales';
 // CSS
 import './nvd3_vis.css';
 import { VIZ_TYPES } from './';
+import CategoricalColorManager from '../modules/CategoricalColorManager';
 
 const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
@@ -468,7 +468,8 @@ export default function nvd3Vis(slice, payload) {
         return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
       });
     } else if (vizType !== 'bullet') {
-      chart.color(d => d.color || getColorFromScheme(d[colorKey], fd.color_scheme));
+      const colorFn = CategoricalColorManager.getScale(fd.color_scheme).toFunction();
+      chart.color(d => d.color || colorFn(d[colorKey]));
     }
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
@@ -747,7 +748,8 @@ export default function nvd3Vis(slice, payload) {
             // Add event annotation layer
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
+            const colorFn = CategoricalColorManager.getScale(fd.color_scheme).toFunction();
+            const aColor = e.color || colorFn(e.name);
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
@@ -805,7 +807,8 @@ export default function nvd3Vis(slice, payload) {
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
+            const colorFn = CategoricalColorManager.getScale(fd.color_scheme).toFunction();
+            const aColor = e.color || colorFn(e.name);
             const tip = tipFactory(e);
 
             const records = (slice.annotationData[e.name].records || []).map((r) => {
