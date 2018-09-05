@@ -45,12 +45,13 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary, spectrums } from '../modules/colors';
+import { colorPrimary } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
 import CategoricalColorManager from '../modules/CategoricalColorManager';
+import sequentialSchemes from '../modules/colorSchemes/sequential';
 
 const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
 
@@ -374,7 +375,7 @@ export const controls = {
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: spectrums,
+    schemes: sequentialSchemes,
     isLinear: true,
   },
 
