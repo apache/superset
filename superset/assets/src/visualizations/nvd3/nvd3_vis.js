@@ -566,9 +566,8 @@ function nvd3Vis(element, props, slice) {
       const marginPad = Math.ceil(
         Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, MAX_MARGIN_PAD),
       );
-      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
-                                              : getMaxLabelSize(slice.container, 'nv-y');
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+      const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
       if (yAxisLabel && yAxisLabel !== '') {
         chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
@@ -592,7 +591,7 @@ function nvd3Vis(element, props, slice) {
       }
 
       if (isVizTypes(['dual_line', 'line_multi'])) {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+        const maxYAxis2LabelWidth = getMaxLabelSize(svg, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }
       if (bottomMargin && bottomMargin !== 'auto') {

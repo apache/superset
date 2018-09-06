@@ -62,12 +62,15 @@ export function wrapTooltip(chart, maxWidth) {
   });
 }
 
-export function getMaxLabelSize(container, axisClass) {
+export function getMaxLabelSize(svg, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
-  const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
-  const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength() * 0.75);
-  return Math.ceil(Math.max(...labelDimensions));
+  const tickTexts = svg.selectAll(`.${axisClass} g.tick text`);
+  if (tickTexts.length > 0) {
+    const lengths = tickTexts[0].map(text => text.getComputedTextLength());
+    return Math.ceil(Math.max(...lengths));
+  }
+  return 0;
 }
 
 export function getLabel(stringOrObjectWithLabel) {
