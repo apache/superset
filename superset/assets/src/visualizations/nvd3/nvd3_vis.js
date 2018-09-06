@@ -256,9 +256,9 @@ function nvd3Vis(element, props, slice) {
 
       case 'dist_bar':
         chart = nv.models.multiBarChart()
-        .showControls(showControls)
-        .reduceXTicks(reduceXTicks)
-        .groupSpacing(0.1); // Distance between each group of bars.
+          .showControls(showControls)
+          .reduceXTicks(reduceXTicks)
+          .groupSpacing(0.1); // Distance between each group of bars.
 
         chart.xAxis.showMaxMin(false);
 
@@ -520,7 +520,7 @@ function nvd3Vis(element, props, slice) {
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
     chart.width(width);
     chart.height(height);
-    slice.container.css('height', height + 'px');
+    container.style.height = `${height}px`;
 
     svg
     .datum(data)
@@ -562,7 +562,7 @@ function nvd3Vis(element, props, slice) {
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
-      const containerWidth = slice.container.width();
+      const containerWidth = maxWidth;
       const marginPad = Math.ceil(
         Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, MAX_MARGIN_PAD),
       );
@@ -882,7 +882,7 @@ function nvd3Vis(element, props, slice) {
       }
     }
 
-    wrapTooltip(chart, slice.container);
+    wrapTooltip(chart, maxWidth);
     return chart;
   };
 

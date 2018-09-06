@@ -50,12 +50,12 @@ export function hideTooltips() {
   }
 }
 
-export function wrapTooltip(chart, container) {
+export function wrapTooltip(chart, maxWidth) {
   const tooltipLayer = chart.useInteractiveGuideline && chart.useInteractiveGuideline() ?
     chart.interactiveLayer : chart;
   const tooltipGeneratorFunc = tooltipLayer.tooltip.contentGenerator();
   tooltipLayer.tooltip.contentGenerator((d) => {
-    let tooltip = `<div style="max-width: ${container.width() * 0.5}px">`;
+    let tooltip = `<div style="max-width: ${maxWidth * 0.5}px">`;
     tooltip += tooltipGeneratorFunc(d);
     tooltip += '</div>';
     return tooltip;
