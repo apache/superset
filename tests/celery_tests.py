@@ -19,6 +19,7 @@ from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from .base_tests import SupersetTestCase
+from .utils import get_main_database
 
 
 BASE_DIR = app.config.get('BASE_DIR')
@@ -140,14 +141,14 @@ class CeleryTestCase(SupersetTestCase):
         return json.loads(resp.data.decode('utf-8'))
 
     def test_run_sync_query_dont_exist(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         db_id = main_db.id
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
         result1 = self.run_sql(db_id, sql_dont_exist, '1', cta='true')
         self.assertTrue('error' in result1)
 
     def test_run_sync_query_cta(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         db_id = main_db.id
         eng = main_db.get_sqla_engine()
         perm_name = 'can_sql_json'
@@ -166,7 +167,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual([{'name': perm_name}], data2)
 
     def test_run_sync_query_cta_no_data(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         db_id = main_db.id
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
@@ -179,7 +180,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
 
     def test_run_async_query(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         eng = main_db.get_sqla_engine()
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result = self.run_sql(
@@ -207,7 +208,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta_used)
 
     def test_run_async_query_with_lower_limit(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         eng = main_db.get_sqla_engine()
         sql_where = "SELECT name FROM ab_role WHERE name='Alpha' LIMIT 1"
         result = self.run_sql(
