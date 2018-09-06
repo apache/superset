@@ -1701,16 +1701,16 @@ class Superset(BaseSupersetView):
                                                                   username),
                 )
 
-            connect_args = (
+            engine_params = (
                 request.json
                 .get('extras', {})
-                .get('engine_params', {})
-                .get('connect_args', {}))
+                .get('engine_params', {}))
+            connect_args = engine_params.get('connect_args')
 
             if configuration:
                 connect_args['configuration'] = configuration
 
-            engine = create_engine(uri, connect_args=connect_args)
+            engine = create_engine(uri, **engine_params)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
