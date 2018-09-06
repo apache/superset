@@ -93,6 +93,7 @@ Superset can be used to visualize data out of most databases:
 * Snowflake
 * Redshift
 * Clickhouse
+* Apache Kylin
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
 
