@@ -6,12 +6,8 @@ export const addTotalBarValues = function (svg, chart, data, stacked, axisFormat
 
   const totalStackedValues = stacked && data.length !== 0 ?
     data[0].values.map(function (bar, iBar) {
-      const bars = data.map(function (series) {
-        return series.values[iBar];
-      });
-      return d3.sum(bars, function (d) {
-        return d.y;
-      });
+      const bars = data.map(series => series.values[iBar]);
+      return d3.sum(bars, d => d.y);
     }) : [];
 
   const rectsToBeLabeled = svg.selectAll('g.nv-group').filter(
