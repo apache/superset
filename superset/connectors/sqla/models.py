@@ -22,6 +22,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
+import json
 
 from superset import app, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -637,11 +638,14 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 is_list_target = op in ('in', 'not in')
-                eq = self.filter_values_handler(
-                    flt.get('val'),
-                    target_column_is_numeric=col_obj.is_num,
-                    is_list_target=is_list_target)
-                logging.info(op)
+                if op in ("geo_within"):
+                    eq = json.dumps(flt.get('val')["features"][0]["geometry"])
+                else:
+                    eq = self.filter_values_handler(
+                        flt.get('val'),
+                        target_column_is_numeric=col_obj.is_num,
+                        is_list_target=is_list_target)
+                logging.info(eq)
                 if op in ('in', 'not in'):
                     cond = col_obj.sqla_col.in_(eq)
                     if '<NULL>' in eq:

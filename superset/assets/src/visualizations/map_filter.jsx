@@ -74,11 +74,15 @@ function getCategories(formData, queryData) {
  */
 class MapGLDraw extends MapGL {
 
+   constructor(props) {
+       super(props);
+   }
+        
   componentDidMount() {
     super.componentDidMount();
     const map = this.getMap();
     const data = this.props.geoJSON;
-
+    const slice = this.props.slice;
     map.on('load', function () {
 
       // Displays the data distributions
@@ -108,7 +112,14 @@ class MapGLDraw extends MapGL {
 
       // Logs the polygon selection changes to console.
       // TODO: Hook in to the dashboard filter system here.
-      map.on('draw.selectionchange', function (e) {
+        map.on('draw.selectionchange', function (e) {
+            var feature_collection = {
+                "type": "FeatureCollection",
+                "features": e.features
+            }
+            
+        slice.addFilter("geo", feature_collection, false, true, "geo_within");
+            
         console.log(e.features);
       });
     });
@@ -138,8 +149,8 @@ class MapFilter extends React.Component {
 
   constructor(props) {
     super(props);
-    longitude = this.props.json.data.viewportLongitude || DEFAULT_LONGITUDE;
-    latitude = this.props.json.data.viewportLatitude || DEFAULT_LATITUDE;
+    var longitude = this.props.json.data.viewportLongitude || DEFAULT_LONGITUDE;
+    var latitude = this.props.json.data.viewportLatitude || DEFAULT_LATITUDE;
     this.state = {
       viewport: {
         longitude,
@@ -165,6 +176,7 @@ class MapFilter extends React.Component {
         mapStyle={this.props.slice.formData.mapbox_style}
         width={this.props.slice.width()}
         height={this.props.slice.height()}
+        slice={this.props.slice}
         mapboxApiAccessToken={this.props.json.data.mapboxApiKey}
         geoJSON={this.props.json.data.geoJSON}
         onViewportChange={this.onViewportChange}
@@ -173,7 +185,7 @@ class MapFilter extends React.Component {
           this.props.json.data.geoJSON.features,
         )}
       >
-        <Legend categories={colors} position="br" />
+        
       </MapGLDraw>
     );
   }
@@ -182,7 +194,7 @@ class MapFilter extends React.Component {
 MapFilter.propTypes = {
   json: PropTypes.object,
   slice: PropTypes.object,
-  setControlValue: PropTypes.function,
+  //setControlValue: PropTypes.function,
 };
 
 

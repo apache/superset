@@ -104,7 +104,7 @@ export default function dashboardStateReducer(state = {}, action) {
       ];
       if (
           filterKeys.indexOf(col) >= 0 ||
-              action.chart.formData.viz_type == "custom_filter" ||
+              action.chart.formData.viz_type == "map_filter" ||
               action.chart.formData.groupby.indexOf(col) !== -1 
               
       ) {
