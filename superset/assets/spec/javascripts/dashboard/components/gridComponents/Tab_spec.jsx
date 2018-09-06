@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import DashboardComponent from '../../../../../src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
+import DeleteComponentModal from '../../../../../src/dashboard/components/DeleteComponentModal';
 import DragDroppable from '../../../../../src/dashboard/components/dnd/DragDroppable';
 import EditableTitle from '../../../../../src/components/EditableTitle';
 import WithPopoverMenu from '../../../../../src/dashboard/components/menu/WithPopoverMenu';
@@ -86,14 +86,14 @@ describe('Tabs', () => {
       expect(wrapper.find(WithPopoverMenu)).to.have.length(1);
     });
 
-    it('should render a DeleteComponentButton when focused if its not the only tab', () => {
+    it('should render a DeleteComponentModal when focused if its not the only tab', () => {
       let wrapper = setup();
       wrapper.find(WithPopoverMenu).simulate('click'); // focus
-      expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+      expect(wrapper.find(DeleteComponentModal)).to.have.length(0);
 
       wrapper = setup({ editMode: true });
       wrapper.find(WithPopoverMenu).simulate('click');
-      expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+      expect(wrapper.find(DeleteComponentModal)).to.have.length(1);
 
       wrapper = setup({
         editMode: true,
@@ -103,16 +103,18 @@ describe('Tabs', () => {
         },
       });
       wrapper.find(WithPopoverMenu).simulate('click');
-      expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+      expect(wrapper.find(DeleteComponentModal)).to.have.length(0);
     });
 
-    it('should call deleteComponent when deleted', () => {
+    it('should show modal when clicked delete icon', () => {
       const deleteComponent = sinon.spy();
       const wrapper = setup({ editMode: true, deleteComponent });
       wrapper.find(WithPopoverMenu).simulate('click'); // focus
-      wrapper.find(DeleteComponentButton).simulate('click');
+      wrapper.find('.icon-button').simulate('click');
 
-      expect(deleteComponent.callCount).to.equal(1);
+      const modal = document.getElementsByClassName('modal');
+      expect(modal).to.have.length(1);
+      expect(deleteComponent.callCount).to.equal(0);
     });
   });
 
