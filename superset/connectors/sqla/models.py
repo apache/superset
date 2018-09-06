@@ -32,6 +32,8 @@ from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
 
+from geoalchemy2.types import Geography
+
 config = app.config
 
 
@@ -626,6 +628,7 @@ class SqlaTable(Model, BaseDatasource):
 
         where_clause_and = []
         having_clause_and = []
+
         for flt in filter:
             if not all([flt.get(s) for s in ['col', 'op']]):
                 continue
@@ -638,6 +641,7 @@ class SqlaTable(Model, BaseDatasource):
                     flt.get('val'),
                     target_column_is_numeric=col_obj.is_num,
                     is_list_target=is_list_target)
+                logging.info(op)
                 if op in ('in', 'not in'):
                     cond = col_obj.sqla_col.in_(eq)
                     if '<NULL>' in eq:
@@ -645,6 +649,14 @@ class SqlaTable(Model, BaseDatasource):
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
+                elif op in ("geo_within"):
+                    where_clause_and.append(
+                        sa.func.ST_COVERS(
+                            sa.cast(sa.func.ST_GeomFromGeoJSON(eq), Geography),
+                            cols.get("geo").sqla_col
+                            )
+                        )
+                        
                 else:
                     if col_obj.is_num:
                         eq = utils.string_to_num(flt['val'])

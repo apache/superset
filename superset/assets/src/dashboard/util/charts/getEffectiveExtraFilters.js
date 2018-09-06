@@ -31,8 +31,8 @@ export default function getEffectiveExtraFilters({
       if (!immuneToFields.includes(field)) {
         effectiveFilters.push({
           col: field,
-          op: 'in',
-          val: filtersFromSlice[field],
+          op: filtersFromSlice[field].operator,
+          val: filtersFromSlice[field].values,
         });
       }
     });

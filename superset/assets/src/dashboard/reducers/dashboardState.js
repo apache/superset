@@ -93,7 +93,7 @@ export default function dashboardStateReducer(state = {}, action) {
       }
 
       let filters = state.filters;
-      const { chart, col, vals: nextVals, merge, refresh } = action;
+        const { chart, col, vals: nextVals, merge, refresh, op } = action;
       const sliceId = chart.id;
       const filterKeys = [
         '__time_range',
@@ -103,16 +103,20 @@ export default function dashboardStateReducer(state = {}, action) {
         '__granularity',
       ];
       if (
-        filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.groupby.indexOf(col) !== -1
+          filterKeys.indexOf(col) >= 0 ||
+              action.chart.formData.viz_type == "custom_filter" ||
+              action.chart.formData.groupby.indexOf(col) !== -1 
+              
       ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
           // if no filters existed for the slice, set them
-          newFilter = { [col]: nextVals };
+            newFilter = { [col]: {values: nextVals,
+                                  operator: op}};
         } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
           // If no filters exist for this column, or we are overwriting them
-          newFilter = { ...filters[sliceId], [col]: nextVals };
+            newFilter = { ...filters[sliceId], [col]: {values: nextVals,
+                                                       operator: op}};
         } else if (filters[sliceId][col] instanceof Array) {
           newFilter[col] = [...filters[sliceId][col], ...nextVals];
         } else {
