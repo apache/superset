@@ -74,10 +74,6 @@ function getCategories(formData, queryData) {
  */
 class MapGLDraw extends MapGL {
 
-   constructor(props) {
-       super(props);
-   }
-        
   componentDidMount() {
     super.componentDidMount();
     const map = this.getMap();
@@ -87,17 +83,17 @@ class MapGLDraw extends MapGL {
 
       // Displays the data distributions
       map.addLayer({
-          id: 'points',
-          type: 'circle',
-          source: {
-              type: 'geojson',
-              data,
-          },
-          paint: {
-            'circle-color': ['get', 'color'],
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#FFF',
-          },
+        id: 'points',
+        type: 'circle',
+        source: {
+          type: 'geojson',
+          data,
+        },
+        paint: {
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#FFF',
+        },
       });
 
       // Displays the polygon drawing/selection controls
@@ -110,20 +106,21 @@ class MapGLDraw extends MapGL {
       });
       map.addControl(this.draw, 'top-right');
 
+      function updateFilter(e) {
+        const featureCollection = {
+          type: 'FeatureCollection',
+          features: e.features,
+        };
+        slice.addFilter('geo', featureCollection,
+                        false, true, 'geo_within');
+      }
       // Logs the polygon selection changes to console.
-      // TODO: Hook in to the dashboard filter system here.
-        map.on('draw.selectionchange', function (e) {
-            var feature_collection = {
-                "type": "FeatureCollection",
-                "features": e.features
-            }
-            
-        slice.addFilter("geo", feature_collection, false, true, "geo_within");
-            
-        console.log(e.features);
+      map.on('draw.selectionchange', updateFilter);
+      // Bug in mapbox-gl-draw doesn't fire selectionchange when deleteing
+      map.on('draw.delete', function () {
+        updateFilter(this.draw.getSelected());
       });
     });
-
   }
 
   componentWillUnmount() {
