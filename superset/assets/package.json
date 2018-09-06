@@ -17,7 +17,8 @@
     "build": "webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
-    "sync-backend": "babel-node --presets env src/syncBackend.js"
+    "sync-backend": "babel-node --presets env src/syncBackend.js",
+    "cypress": "cypress"
   },
   "repository": {
     "type": "git",
@@ -141,6 +142,7 @@
     "chai": "^4.0.2",
     "clean-webpack-plugin": "^0.1.19",
     "css-loader": "^0.28.0",
+    "cypress": "^3.0.3",
     "enzyme": "^2.0.0",
     "eslint": "^4.19.0",
     "eslint-config-airbnb": "^15.0.1",
