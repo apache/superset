@@ -220,10 +220,10 @@ function nvd3Vis(element, props) {
   }
 
   const drawGraph = function () {
-    const $element = d3.select(element);
-    let svg = $element.select('svg');
+    const d3Element = d3.select(element);
+    let svg = d3Element.select('svg');
     if (svg.empty()) {
-      svg = $element.append('svg');
+      svg = d3Element.append('svg');
     }
     const height = vizType === 'bullet' ? Math.min(maxHeight, 50) : maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
