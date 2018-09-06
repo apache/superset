@@ -2563,21 +2563,17 @@ class SpiderRadarViz(BaseViz):
         fd = self.form_data
         metrics = fd.get('metrics')
         groupby = fd.get('groupby')
+        results = []
+        for metric in metrics:
+            if not isinstance(metric,str):
+                metric = metric.get('label')
 
-        axis_map = groupby[0]
-        # if not isinstance(metrics[0], str):
-        #     value_map = metrics[0].get('label')
-        # else:
-        value_map = metrics[0]
-
-        d = [[{
-            'axis': row[axis_map],
-            'value': row[value_map]} for index, row in df.iterrows()]]
-
-        result = {
-            'scenarios': d,
-        }
-        return result
+            d = [{
+                'axis': row[groupby[0]],
+                'value': row[metric]} for index, row in df.iterrows()
+            ]
+            results.append(dict(name=metric, values=d))
+        return results
 
 
 class PartitionViz(NVD3TimeSeriesViz):

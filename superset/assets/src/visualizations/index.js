@@ -50,6 +50,7 @@ export const VIZ_TYPES = {
   deck_arc: 'deck_arc',
   deck_polygon: 'deck_polygon',
   rose: 'rose',
+  spider_radar: 'spider_radar',
 };
 
 const loadVis = promise =>
@@ -137,6 +138,7 @@ const vizMap = {
   [VIZ_TYPES.deck_multi]: () =>
     loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/multi.jsx')),
   [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './rose.js')),
+  [VIZ_TYPES.spider_radar]: () => loadVis(import(/* webpackChunkName: "spider" */ './spider_radar.js')),
 };
 
 export default vizMap;

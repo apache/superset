@@ -1,29 +1,24 @@
 import d3 from 'd3';
 import './spider_radar.css';
+import { getColorFromScheme } from '../modules/colors';
 
 function spiderRadarViz(slice, json) {
-  // console.log("Slice", slice);
-  // console.log("JSON", json);
-
   const div = d3.select(slice.selector);
-
   const formData = slice.formData;
-  const scenarios = json.data.scenarios;
   const max = formData.spider_max_value.value;
   const showlegend = formData.show_legend;
-
+  const colorScheme = formData.color_scheme;
   const width = slice.width();
   const height = slice.height();
   const marg = {
-    top: 0,
+    top: 1,
     right: 0,
     bottom: 40,
     left: 0,
   };
+
   const legpos = { x: 25, y: 25 };
 
-  const col = d3.scale.ordinal()
-    .range(['#2067A3', '#C6B201', '#BB352A']);
   const radarChartOptions = {
     w: width,
     h: height,
@@ -32,11 +27,12 @@ function spiderRadarViz(slice, json) {
     maxValue: max,
     levels: 5,
     roundStrokes: true,
-    color: col,
+    colorScheme,
     axisName: 'reason',
     areaName: 'device',
     value: 'value',
   };
+
 
   /* //////// SECONDARY FUNCTIONS ////////////////////////// */
 
@@ -54,7 +50,8 @@ function spiderRadarViz(slice, json) {
       opacityCircles: 0.1, // The opacity of the circles of each blob
       strokeWidth: 2, // The width of the stroke around each blob
       roundStrokes: false, // Makes area & stroke will follow round path (cardinal-closed)
-      color: d3.scale.category10(), // Color function
+      // color: d3.scale.category10(), // Color function
+      colorScheme: options.colorScheme,
       axisName: 'axisName',
       areaName: 'areaName',
       value: 'value',
@@ -70,7 +67,19 @@ function spiderRadarViz(slice, json) {
   }
 
   function setOuterCircleMax(cfg, data) {
-    const dataMax = d3.max(data, i => d3.max(i.map(o => o.value)));
+    let dataMax = 0;
+    for (const set of data) {
+      if (set.values !== undefined) {
+        const values = set.values.map(valueObj => valueObj.value);
+        if (Math.max(...values) > dataMax) {
+          dataMax = Math.max(...values);
+        }
+      }
+    }
+    if (dataMax === 0) {
+      dataMax = 5;
+    }
+    dataMax = Math.round(dataMax);
     return Math.max(cfg.maxValue, dataMax);
   }
 
@@ -113,13 +122,13 @@ function spiderRadarViz(slice, json) {
   }
 
   // on mouseover for the legend symbol
-  function cellover(d, data) {
+  function cellover(d) {
     // Dim all blobs
     d3.selectAll('.radarArea')
       .transition().duration(200)
       .style('fill-opacity', 0.1);
     // Bring back the hovered over blob
-    d3.select('.' + data[d][0].areaName.replace(/\s+/g, ''))
+    d3.select('.' + d.name.replace(/\s+/g, ''))
       .transition().duration(200)
       .style('fill-opacity', 0.7);
   }
@@ -135,16 +144,15 @@ function spiderRadarViz(slice, json) {
   /* //////// MAIN FUNCTION //////////////////////////////// */
   function RadarChart(_div, data, options) {
     _div.select('svg').remove();
-
     // Repopulate options with any new values
     const cfg = setOptions(options);
 
     // If the supplied maxValue is smaller than the actual one, replace by the max in the data
     const maxValue = setOuterCircleMax(cfg, data);
-    const allAxis = (data[0].map(dataPoint => dataPoint.axis)); // Names of each axis
+    const allAxis = (data[0].values.map(dataPoint => dataPoint.axis)); // Names of each axis
     const total = allAxis.length; // The number of different axes
     const radius = Math.min(cfg.w / 2.7, cfg.h / 2.7); // Radius of the outermost circle
-      // Format = d3.format('%'), // Percentage formatting
+    // Format = d3.format('%'), // Percentage formatting
     const Format = d3.format('.1f');
     const angleSlice = Math.PI * 2 / total; // The width in radians of each "slice"
 
@@ -276,12 +284,13 @@ function spiderRadarViz(slice, json) {
     // Append the backgrounds
     blobWrapper
       .append('path')
-      .attr('class', 'radarArea')
+      .attr('class', d => 'radarArea ' + d.name)
       .attr('d', function (d) {
-        return radarLine(d);
+        return radarLine(d.values);
       })
-      .style('fill', function (d, i) {
-        return cfg.color(i);
+      .style('fill', function (d) {
+        // return cfg.color(i);
+        return getColorFromScheme(d.name, cfg.colorScheme);
       })
       .style('fill-opacity', cfg.opacityArea)
       .on('mouseover', function () {
@@ -305,11 +314,12 @@ function spiderRadarViz(slice, json) {
     blobWrapper.append('path')
       .attr('class', 'radarStroke')
       .attr('d', function (d) {
-        return radarLine(d);
+        return radarLine(d.values);
       })
       .style('stroke-width', cfg.strokeWidth + 'px')
-      .style('stroke', function (d, i) {
-        return cfg.color(i);
+      .style('stroke', function (d) {
+        return getColorFromScheme(d.name, cfg.colorScheme);
+        // return cfg.color(i);
       })
       .style('fill', 'none')
       .style('filter', 'url(#glow)');
@@ -326,8 +336,9 @@ function spiderRadarViz(slice, json) {
       .attr('cy', function (d, i) {
         return rScale(d.value) * Math.sin(angleSlice * i - Math.PI / 2);
       })
-      .style('fill', function (d, i, j) {
-        return cfg.color(j);
+      .style('fill', function (d) {
+        return getColorFromScheme(d.name, cfg.colorScheme);
+        // return cfg.color(j);
       })
       .style('fill-opacity', 0.8);
 
@@ -349,7 +360,7 @@ function spiderRadarViz(slice, json) {
     // Append a set of invisible circles on top for the mouseover pop-up
     blobCircleWrapper.selectAll('.radarInvisibleCircle')
       .data(function (d) {
-        return d;
+        return d.values;
       })
       .enter().append('circle')
       .attr('class', 'radarInvisibleCircle')
@@ -359,15 +370,15 @@ function spiderRadarViz(slice, json) {
       .style('fill', 'none')
       .style('pointer-events', 'all')
       .on('mouseover', function (d) {
-        newX = parseFloat(d3.select(this).attr('cx')) - 10;
-        newY = parseFloat(d3.select(this).attr('cy')) - 10;
+        const newX = parseFloat(d3.select(this).attr('cx')) - 10;
+        const newY = parseFloat(d3.select(this).attr('cy')) - 10;
 
         tooltip
           .attr('x', newX)
           .attr('y', newY)
           .text(Format(d.value))
           .transition()
-.duration(200)
+          .duration(200)
           .style('opacity', 1);
       })
       .on('mouseout', () => {
@@ -381,30 +392,67 @@ function spiderRadarViz(slice, json) {
     // ///////////////////////////////////////////////////////
 
     if (showlegend) {
-      svg.append('g')
-        .attr('class', 'legendOrdinal')
+      const legend = svg.append('g')
+      // .attr('class', 'legendOrdinal')
         .attr('transform', 'translate(' + cfg.legendPosition.x + ',' + cfg.legendPosition.y + ')');
+      const rectHeight = data.length * 30;
 
-      const legendOrdinal = d3.legend.color()
-        .shape('path', d3.svg.symbol().type('triangle-up').size(150)())
-        .shapePadding(10)
-        .scale(cfg.color)
-        .labels(cfg.color.domain().map(d => data[d][0].areaName))
-        .on('cellover', (d) => {
+      // Calculate width of legend according to number of characters in longest category name
+      let rectWidth = 150;
+      const longestName = data.reduce((a, b) => a.length > b.name.length ? a : b, '').name;
+      if (longestName !== undefined) {
+        if (longestName.length >= 15 && longestName.length < 25) {
+          const MULTIPLIER = 8.5;
+          rectWidth = Math.round(longestName.length * MULTIPLIER);
+        } else if (longestName.length >= 25) {
+          const MULTIPLIER = 7.5;
+          rectWidth = Math.round(longestName.length * MULTIPLIER);
+        }
+      }
+      // Legend background
+      legend.append('rect')
+        .attr('x', 10)
+        .attr('y', 10)
+        .attr('rx', 10)
+        .attr('ry', 10)
+        .attr('width', rectWidth)
+        .attr('height', rectHeight)
+        .attr('id', 'legend-container')
+        .style('fill', 'black')
+        .style('opacity', 0.4);
+
+      // Legend text
+      legend
+        .selectAll('text')
+        .data(data)
+        .enter()
+        .append('text')
+        .attr('x', 40)
+        .attr('y', (d, i) => (i + 1) * 30)
+        .text(d => d.name)
+        .style('fill', d => getColorFromScheme(d.name, cfg.colorScheme));
+
+      // Legend circles
+      legend
+        .selectAll('circle')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('cx', 25)
+        .attr('cy', (d, i) => ((i + 1) * 30) - 5)
+        .attr('r', 10)
+        .style('fill', d => getColorFromScheme(d.name, cfg.colorScheme))
+        .on('mouseover', (d) => {
           cellover(d, data);
         })
-        .on('cellout', () => {
+        .on('mouseout', () => {
           // used to carry d in here, not sure why as it wasn't being used
           cellout(cfg);
         });
-
-      svg.select('.legendOrdinal')
-        .call(legendOrdinal);
     }
   }
-
-
-  RadarChart(div, scenarios, radarChartOptions);
+  // Actually plot the thing
+  RadarChart(div, json.data, radarChartOptions);
 }
 
 module.exports = spiderRadarViz;
