@@ -3,7 +3,6 @@ import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
 import moment from 'moment';
-import dompurify from 'dompurify';
 import PropTypes from 'prop-types';
 import 'nvd3/build/nv.d3.min.css';
 
@@ -15,7 +14,8 @@ import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
 import {
   drawBarValues,
-  customizeToolTip,
+  generateRichLineTooltipContent,
+  generateMultiLineTooltipContent,
   hideTooltips,
   wrapTooltip,
   getLabel,
@@ -77,17 +77,8 @@ const propTypes = {
   colorScheme: PropTypes.string,
   comparisonType: PropTypes.string,
   contribution: PropTypes.bool,
-  isBarStacked: PropTypes.bool,
   leftMargin: numberOrAutoType,
-  lineInterpolation: PropTypes.string,
-  onBrushEnd: PropTypes.func,
   onError: PropTypes.func,
-  orderBars: PropTypes.bool,
-  reduceXTicks: PropTypes.bool,
-  showBarValue: PropTypes.bool,
-  showBrush: PropTypes.oneOf([true, false, 'auto']),
-  showControls: PropTypes.bool,
-  showLabels: PropTypes.bool,
   showLegend: PropTypes.bool,
   showMarkers: PropTypes.bool,
   useRichTooltip: PropTypes.bool,
@@ -98,18 +89,34 @@ const propTypes = {
   xIsLogScale: PropTypes.bool,
   xTicksLayout: PropTypes.oneOf(['auto', 'staggered', '45°']),
   yAxisFormat: PropTypes.string,
-  yAxis2Format: PropTypes.string,
   yAxisBounds: PropTypes.arrayOf(PropTypes.number),
   yAxisLabel: PropTypes.string,
   yAxisShowMinMax: PropTypes.bool,
   yIsLogScale: PropTypes.bool,
-  // Pie chart only
+  // 'dist-bar' only
+  orderBars: PropTypes.bool,
+  // 'bar' or 'dist-bar'
+  isBarStacked: PropTypes.bool,
+  showBarValue: PropTypes.bool,
+  // 'bar', 'dist-bar' or 'column'
+  reduceXTicks: PropTypes.bool,
+  // 'bar', 'dist-bar' or 'area'
+  showControls: PropTypes.bool,
+  // 'line' only
+  showBrush: PropTypes.oneOf([true, false, 'auto']),
+  onBrushEnd: PropTypes.func,
+  // 'line-multi' or 'dual-line'
+  yAxis2Format: PropTypes.string,
+  // 'line', 'time-pivot', 'dual-line' or 'line-multi'
+  lineInterpolation: PropTypes.string,
+  // 'pie' only
   isDonut: PropTypes.bool,
   isPieLabelOutside: PropTypes.bool,
   pieLabelType: PropTypes.string,
-  // Area chart only
+  showLabels: PropTypes.bool,
+  // 'area' only
   areaStackedStyle: PropTypes.string,
-  // Bubble chart only
+  // 'bubble' only
   entity: PropTypes.string,
   maxBubbleSize: PropTypes.number,
   xField: stringOrObjectWithLabelType,
@@ -470,30 +477,8 @@ function nvd3Vis(element, props) {
     if (isVizTypes(['line', 'area']) && useRichTooltip) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
-        // Custom sorted tooltip
-        // use a verbose formatter for times
-        chart.interactiveLayer.tooltip.contentGenerator((d) => {
-          let tooltip = '';
-          tooltip += "<table><thead><tr><td colspan='3'>"
-            + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
-            + '</td></tr></thead><tbody>';
-          d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
-          d.series.forEach((series) => {
-            tooltip += (
-              `<tr class="${series.highlight ? 'emph' : ''}">` +
-                `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
-                  '<div ' +
-                    `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
-                  '></div>' +
-                '</td>' +
-                `<td>${dompurify.sanitize(series.key)}</td>` +
-                `<td>${yAxisFormatter(series.value)}</td>` +
-              '</tr>'
-            );
-          });
-          tooltip += '</tbody></table>';
-          return tooltip;
-        });
+        chart.interactiveLayer.tooltip.contentGenerator(d =>
+          generateRichLineTooltipContent(d, yAxisFormatter));
       }
     }
 
@@ -504,7 +489,9 @@ function nvd3Vis(element, props) {
       chart.yAxis2.tickFormat(yAxisFormatter2);
       const yAxisFormatters = data.map(datum => (
         datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2));
-      customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
+      chart.useInteractiveGuideline(true);
+      chart.interactiveLayer.tooltip.contentGenerator(d =>
+        generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatters));
       if (vizType === 'dual_line') {
         chart.showLegend(width > BREAKPOINTS.small);
       } else {
@@ -562,9 +549,8 @@ function nvd3Vis(element, props) {
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
-      const containerWidth = maxWidth;
       const marginPad = Math.ceil(
-        Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, MAX_MARGIN_PAD),
+        Math.min(maxWidth * (isExplore ? 0.01 : 0.03), MAX_MARGIN_PAD),
       );
       const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');

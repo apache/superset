@@ -1,4 +1,6 @@
 import d3tip from 'd3-tip';
+import dompurify from 'dompurify';
+import { formatDateVerbose } from '../../modules/dates';
 import { TIME_SHIFT_PATTERN } from '../../utils/common';
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
@@ -34,29 +36,50 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
     });
 }
 
-export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
-  chart.useInteractiveGuideline(true);
-  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
-    const tooltipTitle = xAxisFormatter(d.value);
-    let tooltip = '';
-
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
-
-    d.series.forEach((series, i) => {
-      const yAxisFormatter = yAxisFormatters[i];
-      const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
-    });
-
-    tooltip += '</tbody></table>';
-
-    return tooltip;
+// Custom sorted tooltip
+// use a verbose formatter for times
+export function generateRichLineTooltipContent(d, valueFormatter) {
+  let tooltip = '';
+  tooltip += "<table><thead><tr><td colspan='3'>"
+    + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
+    + '</td></tr></thead><tbody>';
+  d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
+  d.series.forEach((series) => {
+    tooltip += (
+      `<tr class="${series.highlight ? 'emph' : ''}">` +
+        `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+          '<div ' +
+            `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
+          '></div>' +
+        '</td>' +
+        `<td>${dompurify.sanitize(series.key)}</td>` +
+        `<td>${valueFormatter(series.value)}</td>` +
+      '</tr>'
+    );
   });
+  tooltip += '</tbody></table>';
+  return tooltip;
+}
+
+export function generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatters) {
+  const tooltipTitle = xAxisFormatter(d.value);
+  let tooltip = '';
+
+  tooltip += "<table><thead><tr><td colspan='3'>"
+    + `<strong class='x-value'>${tooltipTitle}</strong>`
+    + '</td></tr></thead><tbody>';
+
+  d.series.forEach((series, i) => {
+    const yAxisFormatter = yAxisFormatters[i];
+    tooltip += "<tr><td class='legend-color-guide'>"
+      + `<div style="background-color: ${series.color};"></div></td>`
+      + `<td class='key'>${series.key}</td>`
+      + `<td class='value'>${yAxisFormatter(series.value)}</td></tr>`;
+  });
+
+  tooltip += '</tbody></table>';
+
+  return tooltip;
 }
 
 export function hideTooltips() {
