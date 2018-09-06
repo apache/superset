@@ -58,6 +58,12 @@ const stringOrObjectWithLabelType = PropTypes.oneOfType([
   }),
 ]);
 
+const colorObjectType = PropTypes.shape({
+  r: PropTypes.number.isRequired,
+  g: PropTypes.number.isRequired,
+  b: PropTypes.number.isRequired,
+});
+
 const propTypes = {
   data: PropTypes.array,
   width: PropTypes.number,
@@ -65,6 +71,8 @@ const propTypes = {
   annotationData: PropTypes.object,
   bottomMargin: numberOrAutoType,
   colorScheme: PropTypes.string,
+  comparisonType: PropTypes.string,
+  contribution: PropTypes.bool,
   isBarStacked: PropTypes.bool,
   leftMargin: numberOrAutoType,
   lineInterpolation: PropTypes.string,
@@ -102,6 +110,8 @@ const propTypes = {
   x: stringOrObjectWithLabelType,
   y: stringOrObjectWithLabelType,
   size: stringOrObjectWithLabelType,
+  // time-pivot only
+  baseColor: colorObjectType,
 };
 
 const formatter = d3.format('.3s');
@@ -115,8 +125,11 @@ function nvd3Vis(element, props, slice) {
     height: maxHeight,
     annotationData,
     areaStackedStyle,
+    baseColor,
     bottomMargin,
     colorScheme,
+    comparisonType,
+    contribution,
     entity,
     isBarStacked,
     isDonut,
@@ -418,7 +431,7 @@ function nvd3Vis(element, props, slice) {
 
     let yAxisFormatter = d3FormatPreset(yAxisFormat);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (fd.contribution || fd.comparison_type === 'percentage') {
+      if (contribution || comparisonType === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format
         yAxisFormatter = d3.format('.1%');
       }
@@ -448,14 +461,13 @@ function nvd3Vis(element, props, slice) {
     setAxisShowMaxMin(chart.y2Axis, yAxisShowMinMax);
 
     if (vizType === 'time_pivot') {
-      chart.color((d) => {
-        const c = fd.color_picker;
-        let alpha = 1;
-        if (d.rank > 0) {
-          alpha = d.perc * 0.5;
-        }
-        return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
-      });
+      if (baseColor) {
+        const { r, g, b } = baseColor;
+        chart.color((d) => {
+          const alpha = d.rank > 0 ? d.perc * 0.5 : 1;
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        });
+      }
     } else if (vizType !== 'bullet') {
       chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
     }
@@ -887,7 +899,10 @@ function adaptor(slice, payload) {
   const {
     bar_stacked: isBarStacked,
     bottom_margin: bottomMargin,
+    color_picker: baseColor,
     color_scheme: colorScheme,
+    comparison_type: comparisonType,
+    contribution,
     donut: isDonut,
     entity,
     labels_outside: isPieLabelOutside,
@@ -932,14 +947,19 @@ function adaptor(slice, payload) {
     }))
     : rawData;
 
+  console.log('formData', formData, payload.data);
+
   const props = {
     data,
     width: slice.width(),
     height: slice.height(),
     annotationData,
     areaStackedStyle,
+    baseColor,
     bottomMargin,
     colorScheme,
+    comparisonType,
+    contribution,
     entity,
     isBarStacked,
     isDonut,
