@@ -123,7 +123,7 @@ class FilterBox extends React.Component {
               name={TIME_RANGE}
               label={t('Time range')}
               description={t('Select start and end date')}
-              onChange={(value) => { this.changeFilter(TIME_RANGE, value); }}
+              onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
               value={this.state.selectedValues[TIME_RANGE]}
             />
           </div>
@@ -219,7 +219,7 @@ class FilterBox extends React.Component {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={(value) => { this.changeFilter(key, value); }}
+            onChange={(...args) => { this.changeFilter(key, ...args); }}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
             optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
