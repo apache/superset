@@ -68,7 +68,57 @@ const colorObjectType = PropTypes.shape({
 });
 
 const propTypes = {
-  data: PropTypes.array,
+  data: PropTypes.arrayOf(PropTypes.oneOfType([
+    // pie
+    PropTypes.shape({
+      x: PropTypes.string,
+      y: PropTypes.number,
+    }),
+    // dist-bar
+    PropTypes.shape({
+      key: PropTypes.string,
+      values: PropTypes.arrayOf(PropTypes.shape({
+        x: PropTypes.string,
+        y: PropTypes.number,
+      })),
+    }),
+    // area, line
+    PropTypes.shape({
+      key: PropTypes.string,
+      values: PropTypes.arrayOf(PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+      })),
+    }),
+    // dual-line
+    PropTypes.shape({
+      classed: PropTypes.string,
+      key: PropTypes.string,
+      type: PropTypes.string,
+      values: PropTypes.arrayOf(PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+      })),
+      yAxis: PropTypes.number,
+    }),
+    // box-plot
+    PropTypes.shape({
+      label: PropTypes.string,
+      values: PropTypes.arrayOf(PropTypes.shape({
+        Q1: PropTypes.number,
+        Q2: PropTypes.number,
+        Q3: PropTypes.number,
+        outliers: PropTypes.arrayOf(PropTypes.number),
+        whisker_high: PropTypes.number,
+        whisker_low: PropTypes.number,
+      })),
+    }),
+    // bubble
+    PropTypes.shape({
+      key: PropTypes.string,
+      values: PropTypes.arrayOf(PropTypes.object),
+    }),
+  ])),
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
@@ -923,6 +973,7 @@ function adaptor(slice, payload) {
     : rawData;
 
   console.log('formData', formData, payload.data);
+  // return;
 
   const props = {
     data,
