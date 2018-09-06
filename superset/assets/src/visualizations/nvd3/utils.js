@@ -32,7 +32,7 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
         textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
       }
     });
-};
+}
 
 export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   chart.useInteractiveGuideline(true);

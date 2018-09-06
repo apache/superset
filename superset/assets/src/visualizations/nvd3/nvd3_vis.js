@@ -130,7 +130,7 @@ function nvd3Vis(element, props) {
     width: maxWidth,
     height: maxHeight,
     annotationData,
-    annotationLayers,
+    annotationLayers = [],
     areaStackedStyle,
     baseColor,
     bottomMargin,
@@ -620,12 +620,11 @@ function nvd3Vis(element, props) {
         chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
 
-      const filteredAnnotationLayers = (annotationLayers || [])
-        .filter(layer => layer.show);
-      if (isTimeSeries && filteredAnnotationLayers && annotationData) {
+      if (isTimeSeries && annotationData && annotationLayers.length > 0) {
         // Time series annotations add additional data
-        const timeSeriesAnnotations = filteredAnnotationLayers
-          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES)
+        const timeSeriesAnnotations = annotationLayers
+          .filter(layer => layer.show)
+          .filter(layer => layer.annotationType === AnnotationTypes.TIME_SERIES)
           .reduce((bushel, a) =>
             bushel.concat((annotationData[a.name] || []).map((series) => {
               if (!series) {
@@ -656,7 +655,7 @@ function nvd3Vis(element, props) {
       window.addEventListener('scroll', throttle(hideTooltips, 250));
 
       // The below code should be run AFTER rendering because chart is updated in call()
-      if (isTimeSeries && annotationLayers) {
+      if (isTimeSeries && annotationLayers.length > 0) {
         // Formula annotations
         const formulas = annotationLayers
           .filter(a => a.annotationType === AnnotationTypes.FORMULA)
@@ -686,7 +685,7 @@ function nvd3Vis(element, props) {
           xScale.clamp(true);
         }
 
-        if (Array.isArray(formulas) && formulas.length) {
+        if (formulas.length > 0) {
           const xValues = [];
           if (vizType === VIZ_TYPES.bar) {
             // For bar-charts we want one data point evaluated for every
