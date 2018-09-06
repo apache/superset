@@ -69,6 +69,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
+  annotationLayers: PropTypes.arrayOf(PropTypes.object),
   bottomMargin: numberOrAutoType,
   colorScheme: PropTypes.string,
   comparisonType: PropTypes.string,
@@ -118,7 +119,7 @@ const propTypes = {
 const NOOP = () => {};
 const formatter = d3.format('.3s');
 
-function nvd3Vis(element, props, slice) {
+function nvd3Vis(element, props) {
   PropTypes.checkPropTypes(propTypes, props, 'prop', 'NVD3Vis');
 
   const {
@@ -126,6 +127,7 @@ function nvd3Vis(element, props, slice) {
     width: maxWidth,
     height: maxHeight,
     annotationData,
+    annotationLayers,
     areaStackedStyle,
     baseColor,
     bottomMargin,
@@ -620,25 +622,27 @@ function nvd3Vis(element, props, slice) {
         chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
 
-      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
-      if (isTimeSeries && annotationLayers && annotationData) {
+      const filteredAnnotationLayers = (annotationLayers || [])
+        .filter(layer => layer.show);
+      if (isTimeSeries && filteredAnnotationLayers && annotationData) {
         // Time series annotations add additional data
-        const timeSeriesAnnotations = annotationLayers
-          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-        bushel.concat((annotationData[a.name] || []).map((series) => {
-          if (!series) {
-            return {};
-          }
-          const key = Array.isArray(series.key) ?
-            `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
-          return {
-            ...series,
-            key,
-            color: a.color,
-            strokeWidth: a.width,
-            classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
-          };
-        })), []);
+        const timeSeriesAnnotations = filteredAnnotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES)
+          .reduce((bushel, a) =>
+            bushel.concat((annotationData[a.name] || []).map((series) => {
+              if (!series) {
+                return {};
+              }
+              const key = Array.isArray(series.key) ?
+                `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
+              return {
+                ...series,
+                key,
+                color: a.color,
+                strokeWidth: a.width,
+                classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
+              };
+            })), []);
         data.push(...timeSeriesAnnotations);
       }
 
@@ -898,6 +902,7 @@ nvd3Vis.propTypes = propTypes;
 function adaptor(slice, payload) {
   const { formData, datasource, selector, annotationData } = slice;
   const {
+    annotation_layers: annotationLayers,
     bar_stacked: isBarStacked,
     bottom_margin: bottomMargin,
     color_picker: baseColor,
@@ -956,6 +961,7 @@ function adaptor(slice, payload) {
     width: slice.width(),
     height: slice.height(),
     annotationData,
+    annotationLayers,
     areaStackedStyle,
     baseColor,
     bottomMargin,
