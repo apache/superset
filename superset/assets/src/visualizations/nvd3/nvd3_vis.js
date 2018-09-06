@@ -175,7 +175,6 @@ function nvd3Vis(element, props, slice) {
   let chart;
   let width = maxWidth;
   let colorKey = 'key';
-  let stacked = false;
   let row;
 
   function isVizTypes(types) {
@@ -238,22 +237,19 @@ function nvd3Vis(element, props, slice) {
 
       case 'bar':
         chart = nv.models.multiBarChart()
-        .showControls(showControls)
-        .groupSpacing(0.1);
+          .showControls(showControls)
+          .groupSpacing(0.1);
 
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
         chart.width(width);
-        chart.xAxis
-        .showMaxMin(false);
-
-        stacked = isBarStacked;
-        chart.stacked(stacked);
+        chart.xAxis.showMaxMin(false);
+        chart.stacked(isBarStacked);
 
         if (showBarValue) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
+            addTotalBarValues(svg, chart, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
         }
         break;
@@ -266,8 +262,7 @@ function nvd3Vis(element, props, slice) {
 
         chart.xAxis.showMaxMin(false);
 
-        stacked = isBarStacked;
-        chart.stacked(stacked);
+        chart.stacked(isBarStacked);
         if (orderBars) {
           data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
@@ -275,7 +270,7 @@ function nvd3Vis(element, props, slice) {
         }
         if (showBarValue) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, data, stacked, yAxisFormat);
+            addTotalBarValues(svg, chart, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
@@ -430,7 +425,7 @@ function nvd3Vis(element, props, slice) {
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
     }
-    const isXAxisString = ['dist_bar', 'box_plot'].indexOf(vizType) >= 0;
+    const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
     if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
@@ -596,7 +591,7 @@ function nvd3Vis(element, props, slice) {
         margins.bottom = 40;
       }
 
-      if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+      if (isVizTypes(['dual_line', 'line_multi'])) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }
