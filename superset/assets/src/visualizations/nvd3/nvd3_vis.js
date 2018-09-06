@@ -45,13 +45,20 @@ const TIMESERIES_VIZ_TYPES = [
   'time_pivot',
 ];
 
+const numberOrAutoType = PropTypes.oneOfType([
+  PropTypes.number,
+  PropTypes.oneOf(['auto']),
+]);
+
 const propTypes = {
   data: PropTypes.array,
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
+  bottomMargin: numberOrAutoType,
   colorScheme: PropTypes.string,
   isBarStacked: PropTypes.bool,
+  leftMargin: numberOrAutoType,
   lineInterpolation: PropTypes.string,
   onError: PropTypes.func,
   orderBars: PropTypes.bool,
@@ -62,6 +69,7 @@ const propTypes = {
   showLabels: PropTypes.bool,
   showLegend: PropTypes.bool,
   showMarkers: PropTypes.bool,
+  useRichTooltip: PropTypes.bool,
   vizType: PropTypes.string,
   xAxisFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
@@ -80,6 +88,9 @@ const propTypes = {
   pieLabelType: PropTypes.string,
   // Area chart only
   areaStackedStyle: PropTypes.string,
+  // Bubble chart only
+  entity: PropTypes.string,
+  maxBubbleSize: PropTypes.number,
 };
 
 const formatter = d3.format('.3s');
@@ -93,11 +104,15 @@ function nvd3Vis(element, props, slice) {
     height: maxHeight,
     annotationData,
     areaStackedStyle,
+    bottomMargin,
     colorScheme,
+    entity,
     isBarStacked,
     isDonut,
     isPieLabelOutside,
+    leftMargin,
     lineInterpolation = 'linear',
+    maxBubbleSize,
     onError = () => {},
     orderBars,
     pieLabelType,
@@ -108,6 +123,7 @@ function nvd3Vis(element, props, slice) {
     showLabels,
     showLegend,
     showMarkers,
+    useRichTooltip,
     vizType,
     xAxisFormat,
     xAxisLabel,
@@ -291,7 +307,7 @@ function nvd3Vis(element, props, slice) {
           let s = '<table>';
           s += (
             `<tr><td style="color: ${p.color};">` +
-              `<strong>${p[fd.entity]}</strong> (${p.group})` +
+              `<strong>${p[entity]}</strong> (${p.group})` +
             '</td></tr>');
           s += row(fd.x.label || fd.x, xAxisFormatter(p.x));
           s += row(fd.y.label || fd.y, yAxisFormatter(p.y));
@@ -299,7 +315,7 @@ function nvd3Vis(element, props, slice) {
           s += '</table>';
           return s;
         });
-        chart.pointRange([5, fd.max_bubble_size ** 2]);
+        chart.pointRange([5, maxBubbleSize ** 2]);
         chart.pointDomain([0, d3.max(data, d => d3.max(d.values, v => v.size))]);
         break;
 
@@ -429,7 +445,7 @@ function nvd3Vis(element, props, slice) {
     } else if (vizType !== 'bullet') {
       chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
     }
-    if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
+    if ((vizType === 'line' || vizType === 'area') && useRichTooltip) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
@@ -551,11 +567,11 @@ function nvd3Vis(element, props, slice) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }
-      if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
-        margins.bottom = parseInt(fd.bottom_margin, 10);
+      if (bottomMargin && bottomMargin !== 'auto') {
+        margins.bottom = parseInt(bottomMargin, 10);
       }
-      if (fd.left_margin && fd.left_margin !== 'auto') {
-        margins.left = fd.left_margin;
+      if (leftMargin && leftMargin !== 'auto') {
+        margins.left = leftMargin;
       }
 
       if (xAxisLabel && xAxisLabel !== '' && chart.xAxis) {
@@ -856,13 +872,18 @@ function adaptor(slice, payload) {
   const { formData, datasource, selector, annotationData } = slice;
   const {
     bar_stacked: isBarStacked,
+    bottom_margin: bottomMargin,
     color_scheme: colorScheme,
     donut: isDonut,
+    entity,
     labels_outside: isPieLabelOutside,
+    left_margin: leftMargin,
     line_interpolation: lineInterpolation,
+    max_bubble_size: maxBubbleSize,
     order_bars: orderBars,
     pie_label_type: pieLabelType,
     reduce_x_ticks: reduceXTicks,
+    rich_tooltip: useRichTooltip,
     show_bar_value: showBarValue,
     show_brush: showBrush,
     show_controls: showControls,
@@ -900,11 +921,15 @@ function adaptor(slice, payload) {
     height: slice.height(),
     annotationData,
     areaStackedStyle,
+    bottomMargin,
     colorScheme,
+    entity,
     isBarStacked,
     isDonut,
     isPieLabelOutside,
+    leftMargin,
     lineInterpolation,
+    maxBubbleSize,
     onError(err) { slice.error(err); },
     orderBars,
     pieLabelType,
@@ -915,6 +940,7 @@ function adaptor(slice, payload) {
     showLabels,
     showLegend,
     showMarkers,
+    useRichTooltip,
     vizType,
     xAxisFormat,
     xAxisLabel,
