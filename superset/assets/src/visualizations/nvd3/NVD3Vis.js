@@ -938,9 +938,6 @@ function adaptor(slice, payload) {
     }))
     : rawData;
 
-  console.log('formData', formData, payload.data);
-  // return;
-
   const props = {
     data,
     width: slice.width(),
