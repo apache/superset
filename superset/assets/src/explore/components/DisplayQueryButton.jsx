@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
 import html from 'react-syntax-highlighter/languages/hljs/htmlbars';
 import markdown from 'react-syntax-highlighter/languages/hljs/markdown';
 import sql from 'react-syntax-highlighter/languages/hljs/sql';
