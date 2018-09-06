@@ -2402,6 +2402,8 @@ class Superset(BaseSupersetView):
                 tmp_table_name,
             )
 
+        client_id = request.form.get('client_id') or utils.shortid()
+
         query = Query(
             database_id=int(database_id),
             limit=mydb.db_engine_spec.get_limit_from_sql(sql),
@@ -2413,8 +2415,8 @@ class Superset(BaseSupersetView):
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=tmp_table_name,
-            user_id=int(g.user.get_id()),
-            client_id=request.form.get('client_id'),
+            user_id=g.user.get_id() if g.user else None,
+            client_id=client_id,
         )
         session.add(query)
         session.flush()
