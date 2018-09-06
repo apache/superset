@@ -1,18 +1,17 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable react/no-multi-comp */
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import MapboxDraw from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw';
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import MapboxDraw from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw';
-
+import Legend from './Legend';
 import {
-  kmToPixels,
-  rgbLuminance,
-  isNumeric,
-  MILES_PER_KM,
+  getColorFromScheme,
+  hexToRGB,
+  rgbaToHex,
+} from '../modules/colors';
+import {
   DEFAULT_LONGITUDE,
   DEFAULT_LATITUDE,
   DEFAULT_ZOOM,
@@ -21,26 +20,99 @@ import './mapbox.css';
 
 const NOOP = () => {};
 
+/* getCategories()
+ *
+ * Steps through every feature in a geoJSON data set, looks at the
+ * cat_color value and assigns the feature a "color" property.  It
+ * also returns a dictionary mapping cat_color values to a colour.  This
+ * can then be used, for instance, when rendering the legend.
+ *
+ * Args:
+ * fd - Form data storing the user settings when creating the slice.
+ * data - The data to be visualised, returned by the query.
+ *
+ * Returns:
+ * A dictionary mapping values of the colour category to the colour
+ * from the colour scheme.
+ */
+function getCategories(formData, queryData) {
 
+  const c = formData.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const fixedColorRGBA = [c.r, c.g, c.b, 255 * c.a];
+  const fixedColorHex = rgbaToHex(fixedColorRGBA);
+  const categories = {};
 
+  queryData.forEach((d) => {
+    const featureProps = d.properties;
+    if (featureProps.cat_color != null) {
+      let color;
+      if (!categories.hasOwnProperty(featureProps.cat_color)) {
+        if (formData.dimension) {
+          color = getColorFromScheme(
+            featureProps.cat_color,
+            formData.color_scheme,
+          );
+        } else {
+          color = fixedColorHex;
+        }
+        categories[featureProps.cat_color] = {
+          color: hexToRGB(color),
+          hex: color,
+          enabled: true,
+        };
+      }
+    featureProps.color = categories[featureProps.cat_color].hex;
+    }
+  });
+  return categories;
+}
+
+/* MapGLDraw
+ *
+ * An extension of the MapGL component that harnesses the power of
+ * Mapbox visualisation tools to render the map filter.
+ */
 class MapGLDraw extends MapGL {
 
   componentDidMount() {
-    const data = this.props.geoJSON
     super.componentDidMount();
     const map = this.getMap();
+    const data = this.props.geoJSON;
+
     map.on('load', function () {
+
+      // Displays the data distributions
       map.addLayer({
           id: 'points',
           type: 'circle',
           source: {
               type: 'geojson',
-              data: data,
+              data,
+          },
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#FFF',
           },
       });
-      this.draw = new MapboxDraw({});
+
+      // Displays the polygon drawing/selection controls
+      this.draw = new MapboxDraw({
+        displayControlsDefault: false,
+          controls: {
+          polygon: true,
+          trash: true,
+        },
+      });
       map.addControl(this.draw, 'top-right');
+
+      // Logs the polygon selection changes to console.
+      // TODO: Hook in to the dashboard filter system here.
+      map.on('draw.selectionchange', function (e) {
+        console.log(e.features);
+      });
     });
+
   }
 
   componentWillUnmount() {
@@ -57,17 +129,22 @@ MapGLDraw.propTypes = Object.assign({}, MapGL.propTypes, {
   geoJSON: PropTypes.object,
 });
 
-class MapFilterViz extends React.Component {
+
+/* MapFilter
+ * A MapFilter component renders the map filter visualisation with all the
+ * necessary configurations and, crucially, keeps a state for the component.
+ */
+class MapFilter extends React.Component {
+
   constructor(props) {
     super(props);
-    const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;
-    const latitude = this.props.viewportLatitude || DEFAULT_LATITUDE;
-
+    longitude = this.props.json.data.viewportLongitude || DEFAULT_LONGITUDE;
+    latitude = this.props.json.data.viewportLatitude || DEFAULT_LATITUDE;
     this.state = {
       viewport: {
         longitude,
         latitude,
-        zoom: this.props.viewportZoom || DEFAULT_ZOOM,
+        zoom: this.props.json.data.viewportZoom || DEFAULT_ZOOM,
         startDragLngLat: [longitude, latitude],
       },
     };
@@ -85,43 +162,45 @@ class MapFilterViz extends React.Component {
     return (
       <MapGLDraw
         {...this.state.viewport}
-        mapStyle={this.props.mapStyle}
-        width={this.props.sliceWidth}
-        height={this.props.sliceHeight}
-        mapboxApiAccessToken={this.props.mapboxApiKey}
+        mapStyle={this.props.slice.formData.mapbox_style}
+        width={this.props.slice.width()}
+        height={this.props.slice.height()}
+        mapboxApiAccessToken={this.props.json.data.mapboxApiKey}
+        geoJSON={this.props.json.data.geoJSON}
         onViewportChange={this.onViewportChange}
-        geoJSON={this.props.geoJSON}
-      />
+        colorCategories={getCategories(
+          this.props.slice.formData,
+          this.props.json.data.geoJSON.features,
+        )}
+      >
+        <Legend categories={colors} position="br" />
+      </MapGLDraw>
     );
   }
 }
 
-MapFilterViz.propTypes = {
-  setControlValue: PropTypes.func,
-  globalOpacity: PropTypes.number,
-  mapStyle: PropTypes.string,
-  mapboxApiKey: PropTypes.string,
-  pointRadius: PropTypes.number,
-  pointRadiusUnit: PropTypes.string,
-  renderWhileDragging: PropTypes.bool,
-  sliceHeight: PropTypes.number,
-  sliceWidth: PropTypes.number,
-  viewportLatitude: PropTypes.number,
-  viewportLongitude: PropTypes.number,
-  viewportZoom: PropTypes.number,
-  geoJSON: PropTypes.object,
+MapFilter.propTypes = {
+  json: PropTypes.object,
+  slice: PropTypes.object,
+  setControlValue: PropTypes.function,
 };
 
+
+/* mapFilter(slice, json, setControlValue)
+ *
+ * This is the hook called by superset to render the visualisation.  We are
+ * given data associated with the slice and the JSON returned from the backend.
+ * For simplicity all this data is passed to the MapFilter component.
+ */
 function mapFilter(slice, json, setControlValue) {
+
   const div = d3.select(slice.selector);
-  const DEFAULT_POINT_RADIUS = 60;
   div.selectAll('*').remove();
+
   ReactDOM.render(
-    <MapFilterViz
-      {...json.data}
-      sliceHeight={slice.height()}
-      sliceWidth={slice.width()}
-      pointRadius={DEFAULT_POINT_RADIUS}
+    <MapFilter
+      json={json}
+      slice={slice}
       setControlValue={setControlValue || NOOP}
     />,
     div.node(),

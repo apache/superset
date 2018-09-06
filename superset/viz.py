@@ -2669,31 +2669,15 @@ class PartitionViz(NVD3TimeSeriesViz):
             levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
         return self.nest_values(levels)
 
+
 class MapFilterViz(BaseDeckGLViz):
     viz_type = 'map_filter'
     verbose_name = _('Map Filter')
     spatial_control_keys = ['spatial']
-    is_timeseries = True
-
-    def query_obj(self):
-        fd = self.form_data
-        self.is_timeseries = bool(
-            fd.get('time_grain_sqla') or fd.get('granularity'))
-        self.point_radius_fixed = (
-            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
-        return super(MapFilterViz, self).query_obj()
-
-    def get_metrics(self):
-        self.metric = None
-        if self.point_radius_fixed.get('type') == 'metric':
-            self.metric = self.point_radius_fixed.get('value')
-            return [self.metric]
-        return None
+    is_timeseries = False
 
     def get_properties(self, d):
         return {
-            'metric': d.get(self.metric_label),
-            'radius': self.fixed_value if self.fixed_value else d.get(self.metric_label),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
             DTTM_ALIAS: d.get(DTTM_ALIAS),
@@ -2701,13 +2685,8 @@ class MapFilterViz(BaseDeckGLViz):
 
     def get_data(self, df):
         fd = self.form_data
-        self.metric_label = \
-            self.get_metric_label(self.metric) if self.metric else None
-        self.point_radius_fixed = fd.get('point_radius_fixed')
         self.fixed_value = None
         self.dim = self.form_data.get('dimension')
-        if self.point_radius_fixed.get('type') != 'metric':
-            self.fixed_value = self.point_radius_fixed.get('value')
         data = super(MapFilterViz, self).get_data(df)
         geo_json = {
             'type': 'FeatureCollection',

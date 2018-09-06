@@ -1750,18 +1750,6 @@ export const visTypes = {
   },
   map_filter: {
     label: t('Map Filter'),
-    requiresTime: true,
-    onInit: controlState => ({
-      ...controlState,
-      time_grain_sqla: {
-        ...controlState.time_grain_sqla,
-        value: null,
-      },
-      granularity: {
-        ...controlState.granularity,
-        value: null,
-      },
-    }),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1778,14 +1766,6 @@ export const visTypes = {
         controlSetRows: [
           ['mapbox_style', 'viewport'],
           ['autozoom', null],
-        ],
-      },
-      {
-        label: t('Point Size'),
-        controlSetRows: [
-          ['point_radius_fixed', 'point_unit'],
-          ['min_radius', 'max_radius'],
-          ['multiplier', null],
         ],
       },
       {
