@@ -764,9 +764,7 @@ class SpiderVizTestCase(unittest.TestCase):
         }
         test_viz = viz.SpiderRadarViz(Mock(), form_data)
         res = test_viz.get_data(df)
-        expected = {
-            'scenarios': [
-                [
+        expected = [
                     {'axis': 'Energy', 'value': 15.625},
                     {'axis': 'Deforestation', 'value': 10.9},
                     {'axis': 'Land Use Change', 'value': 10.9},
@@ -778,8 +776,7 @@ class SpiderVizTestCase(unittest.TestCase):
                     {'axis': 'Agriculture', 'value': 5.3},
                     {'axis': 'Agriculture Soils', 'value': 5.2},
                     {'axis': 'Electricity and heat', 'value': 5.1},
-                ],
-            ]}
+                ];
         self.assertEqual(res, expected)
 
 
