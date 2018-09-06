@@ -1,12 +1,12 @@
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
-import 'nvd3/build/nv.d3.min.css';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
 import PropTypes from 'prop-types';
+import 'nvd3/build/nv.d3.min.css';
 
 import { getColorFromScheme } from '../../modules/colors';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
@@ -19,6 +19,7 @@ import {
   addTotalBarValues,
   hideTooltips,
   wrapTooltip,
+  getLabel,
   getMaxLabelSize,
   formatLabel,
   computeBarChartWidth,
@@ -48,6 +49,13 @@ const TIMESERIES_VIZ_TYPES = [
 const numberOrAutoType = PropTypes.oneOfType([
   PropTypes.number,
   PropTypes.oneOf(['auto']),
+]);
+
+const stringOrObjectWithLabelType = PropTypes.oneOfType([
+  PropTypes.string,
+  PropTypes.shape({
+    label: PropTypes.string,
+  }),
 ]);
 
 const propTypes = {
@@ -91,6 +99,9 @@ const propTypes = {
   // Bubble chart only
   entity: PropTypes.string,
   maxBubbleSize: PropTypes.number,
+  x: stringOrObjectWithLabelType,
+  y: stringOrObjectWithLabelType,
+  size: stringOrObjectWithLabelType,
 };
 
 const formatter = d3.format('.3s');
@@ -123,13 +134,16 @@ function nvd3Vis(element, props, slice) {
     showLabels,
     showLegend,
     showMarkers,
+    size,
     useRichTooltip,
     vizType,
+    x,
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
     xIsLogScale,
     xTicksLayout,
+    y,
     yAxisFormat,
     yAxis2Format,
     yAxisBounds,
@@ -309,9 +323,9 @@ function nvd3Vis(element, props, slice) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x.label || fd.x, xAxisFormatter(p.x));
-          s += row(fd.y.label || fd.y, yAxisFormatter(p.y));
-          s += row(fd.size.label || fd.size, formatter(p.size));
+          s += row(getLabel(x), xAxisFormatter(p.x));
+          s += row(getLabel(y), yAxisFormatter(p.y));
+          s += row(getLabel(size), formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -890,13 +904,16 @@ function adaptor(slice, payload) {
     show_labels: showLabels,
     show_legend: showLegend,
     show_markers: showMarkers,
+    size,
     stacked_style: areaStackedStyle,
     viz_type: vizType,
+    x,
     x_axis_format: xAxisFormat,
     x_axis_label: xAxisLabel,
     x_axis_showminmax: xAxisShowMinMax,
     x_log_scale: xIsLogScale,
     x_ticks_layout: xTicksLayout,
+    y,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
     y_axis_bounds: yAxisBounds,
@@ -940,13 +957,16 @@ function adaptor(slice, payload) {
     showLabels,
     showLegend,
     showMarkers,
+    size,
     useRichTooltip,
     vizType,
+    x,
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax,
     xIsLogScale,
     xTicksLayout,
+    y,
     yAxisFormat,
     yAxis2Format,
     yAxisBounds,

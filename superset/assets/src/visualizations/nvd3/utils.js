@@ -70,6 +70,10 @@ export function getMaxLabelSize(container, axisClass) {
   return Math.ceil(Math.max(...labelDimensions));
 }
 
+export function getLabel(stringOrObjectWithLabel) {
+  return stringOrObjectWithLabel.label || stringOrObjectWithLabel;
+}
+
 export function formatLabel(input, verboseMap = {}) {
   // The input for label may be a string or an array of string
   // When using the time shift feature, the label contains a '---' in the array
