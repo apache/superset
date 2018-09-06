@@ -1,5 +1,3 @@
-// JS
-import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
@@ -13,28 +11,40 @@ import Control from '../explore/components/Control';
 import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
-import './filter_box.css';
 import { t } from '../locales';
+import './filter_box.css';
 
 // maps control names to their key in extra_filters
-const timeFilterMap = {
+const TIME_FILTER_MAP = {
   time_range: '__time_range',
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
   druid_time_origin: '__time_origin',
   granularity: '__granularity',
 };
+
+const TIME_RANGE = '__time_range';
+
 const propTypes = {
   origSelectedValues: PropTypes.object,
+  datasource: PropTypes.object.isRequired,
   instantFiltering: PropTypes.bool,
-  filtersChoices: PropTypes.object,
+  filtersFields: PropTypes.arrayOf(PropTypes.shape({
+    field: PropTypes.string,
+    label: PropTypes.string,
+  })),
+  filtersChoices: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string,
+    text: PropTypes.string,
+    filter: PropTypes.string,
+    metric: PropTypes.number,
+  }))),
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
   showDruidTimeGrain: PropTypes.bool,
   showDruidTimeOrigin: PropTypes.bool,
-  datasource: PropTypes.object.isRequired,
 };
 const defaultProps = {
   origSelectedValues: {},
@@ -54,22 +64,23 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       hasChanged: false,
     };
+    this.changeFilter = this.changeFilter.bind(this);
   }
+
   getControlData(controlName) {
-    const control = Object.assign({}, controls[controlName]);
-    const controlData = {
+    const { selectedValues } = this.state;
+    const control = Object.assign({}, controls[controlName], {
       name: controlName,
       key: `control-${controlName}`,
-      value: this.state.selectedValues[timeFilterMap[controlName]],
-      actions: { setControlValue: this.changeFilter.bind(this) },
-    };
-    Object.assign(control, controlData);
+      value: selectedValues[TIME_FILTER_MAP[controlName]],
+      actions: { setControlValue: this.changeFilter },
+    });
     const mapFunc = control.mapStateToProps;
-    if (mapFunc) {
-      return Object.assign({}, control, mapFunc(this.props));
-    }
-    return control;
+    return mapFunc
+      ? Object.assign({}, control, mapFunc(this.props))
+      : control;
   }
+
   clickApply() {
     const { selectedValues } = this.state;
     Object.keys(selectedValues).forEach((fltr, i, arr) => {
@@ -81,8 +92,9 @@ class FilterBox extends React.Component {
     });
     this.setState({ hasChanged: false });
   }
+
   changeFilter(filter, options) {
-    const fltr = timeFilterMap[filter] || filter;
+    const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
     if (options !== null) {
       if (Array.isArray(options)) {
@@ -100,31 +112,41 @@ class FilterBox extends React.Component {
       this.props.onChange(fltr, vals, false, true);
     }
   }
-  render() {
-    let dateFilter;
-    const timeRange = '__time_range';
-    if (this.props.showDateFilter) {
-      dateFilter = (
+
+  renderDateFilter() {
+    const { showDateFilter } = this.props;
+    if (showDateFilter) {
+      return (
         <div className="row space-1">
           <div className="col-lg-12 col-xs-12">
             <DateFilterControl
-              name={timeRange}
+              name={TIME_RANGE}
               label={t('Time range')}
               description={t('Select start and end date')}
-              onChange={this.changeFilter.bind(this, timeRange)}
-              value={this.state.selectedValues[timeRange]}
+              onChange={(...args) => { this.changeFilter(TIME_RANGE, ...args); }}
+              value={this.state.selectedValues[TIME_RANGE]}
             />
           </div>
         </div>
       );
     }
+    return null;
+  }
+
+  renderDatasourceFilters() {
+    const {
+      showSqlaTimeGrain,
+      showSqlaTimeColumn,
+      showDruidTimeGrain,
+      showDruidTimeOrigin,
+    } = this.props;
     const datasourceFilters = [];
     const sqlaFilters = [];
     const druidFilters = [];
-    if (this.props.showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
-    if (this.props.showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
-    if (this.props.showDruidTimeGrain) druidFilters.push('granularity');
-    if (this.props.showDruidTimeOrigin) druidFilters.push('druid_time_origin');
+    if (showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
+    if (showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
+    if (showDruidTimeGrain) druidFilters.push('granularity');
+    if (showDruidTimeOrigin) druidFilters.push('druid_time_origin');
     if (sqlaFilters.length) {
       datasourceFilters.push(
         <ControlRow
@@ -147,44 +169,46 @@ class FilterBox extends React.Component {
         />,
       );
     }
+    return datasourceFilters;
+  }
+
+  renderFilters() {
+    const { filtersFields, filtersChoices } = this.props;
+    const { selectedValues } = this.state;
+
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
-    for (const filterKey in this.state.selectedValues) {
-      if (
-        !this.state.selectedValues.hasOwnProperty(filterKey) ||
-        !(filterKey in this.props.filtersChoices)
-      ) {
-        continue;
-      }
-      const existValues = this.props.filtersChoices[filterKey].map(f => f.id);
-      for (const v of this.state.selectedValues[filterKey]) {
-        if (existValues.indexOf(v) === -1) {
-          const addChoice = {
-            filter: filterKey,
-            id: v,
-            text: v,
-            metric: 0,
-          };
-          this.props.filtersChoices[filterKey].unshift(addChoice);
-        }
-      }
-    }
-    const filters = Object.keys(this.props.filtersChoices).map((filter) => {
-      const data = this.props.filtersChoices[filter];
-      const maxes = {};
-      maxes[filter] = d3.max(data, function (d) {
-        return d.metric;
+    Object.keys(selectedValues)
+      .filter(key => !selectedValues.hasOwnProperty(key)
+        || !(key in filtersChoices))
+      .forEach((key) => {
+        const choices = filtersChoices[key];
+        const choiceIds = new Set(choices.map(f => f.id));
+        selectedValues[key]
+          .filter(value => !choiceIds.has(value))
+          .forEach((value) => {
+            choices.unshift({
+              filter: key,
+              id: value,
+              text: value,
+              metric: 0,
+            });
+          });
       });
+
+    return filtersFields.map(({ key, label }) => {
+      const data = filtersChoices[key];
+      const max = Math.max(...data.map(d => d.metric));
       return (
-        <div key={filter} className="m-b-5">
-          {this.props.datasource.verbose_map[filter] || filter}
+        <div key={key} className="m-b-5">
+          {label}
           <OnPasteSelect
-            placeholder={t('Select [%s]', filter)}
-            key={filter}
+            placeholder={t('Select [%s]', label)}
+            key={key}
             multi
-            value={this.state.selectedValues[filter]}
+            value={selectedValues[key]}
             options={data.map((opt) => {
-              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+              const perc = Math.round((opt.metric / max) * 100);
               const backgroundImage = (
                 'linear-gradient(to right, lightgrey, ' +
                 `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
@@ -195,7 +219,7 @@ class FilterBox extends React.Component {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={this.changeFilter.bind(this, filter)}
+            onChange={(...args) => { this.changeFilter(key, ...args); }}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
             optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
@@ -203,13 +227,18 @@ class FilterBox extends React.Component {
         </div>
       );
     });
+  }
+
+  render() {
+    const { instantFiltering } = this.props;
+
     return (
       <div className="scrollbar-container">
         <div className="scrollbar-content">
-          {dateFilter}
-          {datasourceFilters}
-          {filters}
-          {!this.props.instantFiltering &&
+          {this.renderDateFilter()}
+          {this.renderDatasourceFilters()}
+          {this.renderFilters()}
+          {!instantFiltering &&
             <Button
               bsSize="small"
               bsStyle="primary"
@@ -224,37 +253,46 @@ class FilterBox extends React.Component {
     );
   }
 }
+
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-function filterBox(slice, payload) {
-  const d3token = d3.select(slice.selector);
-  d3token.selectAll('*').remove();
-
+function adaptor(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
-  const fd = slice.formData;
-  const filtersChoices = {};
-  // Making sure the ordering of the fields matches the setting in the
-  // dropdown as it may have been shuffled while serialized to json
-  fd.groupby.forEach((f) => {
-    filtersChoices[f] = payload.data[f];
-  });
+  const { formData, datasource } = slice;
+  const { verbose_map: verboseMap } = datasource;
+  const {
+    groupby,
+    instant_filtering: instantFiltering,
+    date_filter: showDateFilter,
+    show_sqla_time_granularity: showSqlaTimeGrain,
+    show_sqla_time_column: showSqlaTimeColumn,
+    show_druid_time_granularity: showDruidTimeGrain,
+    show_druid_time_origin: showDruidTimeOrigin,
+  } = formData;
+
+  const filtersFields = groupby.map(key => ({
+    key,
+    label: verboseMap[key] || key,
+  }));
+
   ReactDOM.render(
     <FilterBox
-      filtersChoices={filtersChoices}
+      datasource={datasource}
+      filtersFields={filtersFields}
+      filtersChoices={payload.data}
       onChange={slice.addFilter}
-      showDateFilter={fd.date_filter}
-      showSqlaTimeGrain={fd.show_sqla_time_granularity}
-      showSqlaTimeColumn={fd.show_sqla_time_column}
-      showDruidTimeGrain={fd.show_druid_time_granularity}
-      showDruidTimeOrigin={fd.show_druid_time_origin}
-      datasource={slice.datasource}
+      showDateFilter={showDateFilter}
+      showSqlaTimeGrain={showSqlaTimeGrain}
+      showSqlaTimeColumn={showSqlaTimeColumn}
+      showDruidTimeGrain={showDruidTimeGrain}
+      showDruidTimeOrigin={showDruidTimeOrigin}
       origSelectedValues={slice.getFilters() || {}}
-      instantFiltering={fd.instant_filtering}
+      instantFiltering={instantFiltering}
     />,
     document.getElementById(slice.containerId),
   );
 }
 
-module.exports = filterBox;
+export default adaptor;
