@@ -244,18 +244,17 @@ function nvd3Vis(element, props) {
           .showControls(showControls)
           .groupSpacing(0.1);
 
+        if (showBarValue) {
+          setTimeout(function () {
+            addTotalBarValues(svg, data, isBarStacked, yAxisFormat);
+          }, ANIMATION_TIME);
+        }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
         chart.width(width);
         chart.xAxis.showMaxMin(false);
         chart.stacked(isBarStacked);
-
-        if (showBarValue) {
-          setTimeout(function () {
-            addTotalBarValues(svg, chart, data, isBarStacked, yAxisFormat);
-          }, ANIMATION_TIME);
-        }
         break;
 
       case 'dist_bar':
@@ -274,7 +273,7 @@ function nvd3Vis(element, props) {
         }
         if (showBarValue) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, data, isBarStacked, yAxisFormat);
+            addTotalBarValues(svg, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
@@ -661,7 +660,8 @@ function nvd3Vis(element, props) {
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
         // Formula annotations
-        const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
+        const formulas = annotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.FORMULA)
           .map(a => ({ ...a, formula: mathjs.parse(a.value) }));
 
         let xMax;
