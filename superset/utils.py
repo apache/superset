@@ -1018,3 +1018,7 @@ def get_username():
 
 def MediumText():
     return Text().with_variant(MEDIUMTEXT(), 'mysql')
+
+
+def shortid():
+    return '{}'.format(uuid.uuid4())[-12:]
