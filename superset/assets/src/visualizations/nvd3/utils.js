@@ -1,7 +1,7 @@
 import d3tip from 'd3-tip';
 import { TIME_SHIFT_PATTERN } from '../../utils/common';
 
-export const addTotalBarValues = function (svg, data, stacked, axisFormat) {
+export function drawBarValues(svg, data, stacked, axisFormat) {
   const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 

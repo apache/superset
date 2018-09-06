@@ -14,7 +14,7 @@ import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
 import {
-  addTotalBarValues,
+  drawBarValues,
   customizeToolTip,
   hideTooltips,
   wrapTooltip,
@@ -246,7 +246,7 @@ function nvd3Vis(element, props) {
 
         if (showBarValue) {
           setTimeout(function () {
-            addTotalBarValues(svg, data, isBarStacked, yAxisFormat);
+            drawBarValues(svg, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
@@ -273,7 +273,7 @@ function nvd3Vis(element, props) {
         }
         if (showBarValue) {
           setTimeout(function () {
-            addTotalBarValues(svg, data, isBarStacked, yAxisFormat);
+            drawBarValues(svg, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
