@@ -76,6 +76,7 @@ const propTypes = {
   isBarStacked: PropTypes.bool,
   leftMargin: numberOrAutoType,
   lineInterpolation: PropTypes.string,
+  onBrushEnd: PropTypes.func,
   onError: PropTypes.func,
   orderBars: PropTypes.bool,
   reduceXTicks: PropTypes.bool,
@@ -114,6 +115,7 @@ const propTypes = {
   baseColor: colorObjectType,
 };
 
+const NOOP = () => {};
 const formatter = d3.format('.3s');
 
 function nvd3Vis(element, props, slice) {
@@ -137,7 +139,8 @@ function nvd3Vis(element, props, slice) {
     leftMargin,
     lineInterpolation = 'linear',
     maxBubbleSize,
-    onError = () => {},
+    onBrushEnd = NOOP,
+    onError = NOOP,
     orderBars,
     pieLabelType,
     reduceXTicks = false,
@@ -169,7 +172,6 @@ function nvd3Vis(element, props, slice) {
   const container = element;
   container.innerHTML = '';
 
-  const fd = slice.formData;
   let chart;
   let width = maxWidth;
   let colorKey = 'key';
@@ -368,14 +370,18 @@ function nvd3Vis(element, props, slice) {
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
 
-    if (canShowBrush && isTruthy(fd.send_time_range)) {
+    if (canShowBrush && onBrushEnd !== NOOP) {
       chart.focus.dispatch.on('brush', (event) => {
         const extent = event.extent;
         if (extent.some(d => d.toISOString === undefined)) {
           return;
         }
-        const timeRange = extent.map(d => d.toISOString().slice(0, -1)).join(' : ');
-        event.brush.on('brushend', () => slice.addFilter('__time_range', timeRange, false, true));
+        const timeRange = extent.map(d => d.toISOString()
+          .slice(0, -1))
+          .join(' : ');
+        event.brush.on('brushend', () => {
+          onBrushEnd(timeRange);
+        });
       });
     }
 
@@ -471,6 +477,7 @@ function nvd3Vis(element, props, slice) {
     } else if (vizType !== 'bullet') {
       chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
     }
+
     if ((vizType === 'line' || vizType === 'area') && useRichTooltip) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
@@ -913,6 +920,7 @@ function adaptor(slice, payload) {
     pie_label_type: pieLabelType,
     reduce_x_ticks: reduceXTicks,
     rich_tooltip: useRichTooltip,
+    send_time_range: hasBrushAction,
     show_bar_value: showBarValue,
     show_brush: showBrush,
     show_controls: showControls,
@@ -941,9 +949,9 @@ function adaptor(slice, payload) {
 
   const rawData = payload.data || [];
   const data = Array.isArray(rawData)
-    ? rawData.map(x => ({
-      ...x,
-      key: formatLabel(x.key, datasource.verbose_map),
+    ? rawData.map(row => ({
+      ...row,
+      key: formatLabel(row.key, datasource.verbose_map),
     }))
     : rawData;
 
@@ -967,6 +975,9 @@ function adaptor(slice, payload) {
     leftMargin,
     lineInterpolation,
     maxBubbleSize,
+    onBrushEnd: isTruthy(hasBrushAction) ? ((timeRange) => {
+      slice.addFilter('__time_range', timeRange, false, true);
+    }) : undefined,
     onError(err) { slice.error(err); },
     orderBars,
     pieLabelType,
