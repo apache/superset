@@ -28,7 +28,7 @@ import {
   stringifyTimeRange,
 } from './utils';
 
-import './nvd3_vis.css';
+import './NVD3Vis.css';
 
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;
