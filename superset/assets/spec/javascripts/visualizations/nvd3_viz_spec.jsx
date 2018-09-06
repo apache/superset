@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import { formatLabel } from '../../../src/visualizations/nvd3_vis';
+import { formatLabel } from '../../../src/visualizations/nvd3/utils';
 
 describe('nvd3 viz', () => {
   const verboseMap = {
