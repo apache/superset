@@ -11,17 +11,12 @@ export const addTotalBarValues = function (svg, data, stacked, axisFormat) {
       return d3.sum(bars, d => d.y);
     }) : [];
 
-  const rectsToBeLabeled = svg.selectAll('g.nv-group').filter(
-    function (d, i) {
-      if (!stacked) {
-        return true;
-      }
-      return i === countSeriesDisplayed - 1;
-    }).selectAll('rect');
-
   const groupLabels = svg.select('g.nv-barsWrap').append('g');
-  rectsToBeLabeled.each(
-    function (d, index) {
+
+  svg.selectAll('g.nv-group')
+    .filter((d, i) => !stacked || i === countSeriesDisplayed - 1)
+    .selectAll('rect')
+    .each(function (d, index) {
       const rectObj = d3.select(this);
       if (rectObj.attr('class').includes('positive')) {
         const transformAttr = rectObj.attr('transform');
@@ -29,7 +24,6 @@ export const addTotalBarValues = function (svg, data, stacked, axisFormat) {
         const xPos = parseFloat(rectObj.attr('x'));
         const rectWidth = parseFloat(rectObj.attr('width'));
         const textEls = groupLabels.append('text')
-          .attr('x', xPos) // rough position first, fine tune later
           .attr('y', yPos - 5)
           .text(format(stacked ? totalStackedValues[index] : d.y))
           .attr('transform', transformAttr)
@@ -142,12 +136,18 @@ export function computeBarChartWidth(data, stacked, maxWidth) {
 export function tryNumify(s) {
   // Attempts casting to Number, returns string when failing
   const n = Number(s);
-  if (Number.isNaN(n)) {
-    return s;
-  }
-  return n;
+  return Number.isNaN(n) ? s : n;
 }
 
 export function createHTMLRow(col1, col2) {
   return `<tr><td>${col1}</td><td>${col2}</td></tr>`;
+}
+
+export function stringifyTimeRange(extent) {
+  if (extent.some(d => d.toISOString === undefined)) {
+    return null;
+  }
+  return extent.map(d => d.toISOString()
+    .slice(0, -1))
+    .join(' : ');
 }

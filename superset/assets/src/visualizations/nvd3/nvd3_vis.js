@@ -13,7 +13,6 @@ import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
-import { VIZ_TYPES } from '../index';
 import {
   addTotalBarValues,
   customizeToolTip,
@@ -26,6 +25,7 @@ import {
   createHTMLRow,
   tipFactory,
   tryNumify,
+  stringifyTimeRange,
 } from './utils';
 
 import './nvd3_vis.css';
@@ -191,7 +191,7 @@ function nvd3Vis(element, props) {
     if (svg.empty()) {
       svg = $element.append('svg');
     }
-    let height = maxHeight;
+    const height = vizType === 'bullet' ? Math.min(maxHeight, 50) : maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
     // Handling xAxis ticks settings
@@ -207,7 +207,7 @@ function nvd3Vis(element, props) {
 
     const canShowBrush = (
       isTruthy(showBrush) ||
-      (showBrush === 'auto' && height >= MIN_HEIGHT_FOR_BRUSH && xTicksLayout !== '45°')
+      (showBrush === 'auto' && maxHeight >= MIN_HEIGHT_FOR_BRUSH && xTicksLayout !== '45°')
     );
 
     switch (vizType) {
@@ -291,7 +291,8 @@ function nvd3Vis(element, props) {
         }
         chart.showLabels(showLabels);
         chart.labelsOutside(isPieLabelOutside);
-        chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
+        // Configure the minimum slice size for labels to show up
+        chart.labelThreshold(0.05);
         chart.cornerRadius(true);
 
         if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
@@ -334,7 +335,8 @@ function nvd3Vis(element, props) {
           s += (
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[entity]}</strong> (${p.group})` +
-            '</td></tr>');
+            '</td></tr>'
+          );
           s += createHTMLRow(getLabel(xField), xAxisFormatter(p.x));
           s += createHTMLRow(getLabel(yField), yAxisFormatter(p.y));
           s += createHTMLRow(getLabel(sizeField), formatter(p.size));
@@ -369,16 +371,10 @@ function nvd3Vis(element, props) {
 
     if (canShowBrush && onBrushEnd !== NOOP) {
       chart.focus.dispatch.on('brush', (event) => {
-        const extent = event.extent;
-        if (extent.some(d => d.toISOString === undefined)) {
-          return;
+        const timeRange = stringifyTimeRange(event.extent);
+        if (timeRange) {
+          event.brush.on('brushend', () => { onBrushEnd(timeRange); });
         }
-        const timeRange = extent.map(d => d.toISOString()
-          .slice(0, -1))
-          .join(' : ');
-        event.brush.on('brushend', () => {
-          onBrushEnd(timeRange);
-        });
       });
     }
 
@@ -401,10 +397,6 @@ function nvd3Vis(element, props) {
       } else {
         chart.showLegend(showLegend);
       }
-    }
-
-    if (vizType === 'bullet') {
-      height = Math.min(height, 50);
     }
 
     if (chart.forceY && yAxisBounds &&
@@ -534,8 +526,14 @@ function nvd3Vis(element, props) {
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(['dual_line', 'line_multi'])) {
       const count = chart.yAxis1.ticks();
-      const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
-      const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
+      const ticks1 = chart.yAxis1.scale()
+        .domain(chart.yAxis1.domain())
+        .nice(count)
+        .ticks(count);
+      const ticks2 = chart.yAxis2.scale()
+        .domain(chart.yAxis2.domain())
+        .nice(count)
+        .ticks(count);
 
       // match number of ticks in both axes
       const difference = ticks1.length - ticks2.length;
@@ -667,7 +665,7 @@ function nvd3Vis(element, props) {
         let xMax;
         let xMin;
         let xScale;
-        if (vizType === VIZ_TYPES.bar) {
+        if (vizType === 'bar') {
           xMin = d3.min(data[0].values, d => (d.x));
           xMax = d3.max(data[0].values, d => (d.x));
           xScale = d3.scale.quantile()
