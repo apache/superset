@@ -10,13 +10,14 @@ import 'nvd3/build/nv.d3.min.css';
 
 import { getColorFromScheme } from '../../modules/colors';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../../modules/utils';
+import { d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../../modules/utils';
 import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
 import { VIZ_TYPES } from '../index';
 import {
   addTotalBarValues,
+  customizeToolTip,
   hideTooltips,
   wrapTooltip,
   getLabel,
@@ -189,6 +190,7 @@ function nvd3Vis(element, props) {
     if (svg.empty()) {
       svg = $element.append('svg');
     }
+    console.log('svg', svg);
     let height = maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
@@ -1008,7 +1010,7 @@ function adaptor(slice, payload) {
 
   slice.clearError();
 
-  return nvd3Vis(element, props, slice);
+  return nvd3Vis(element, props);
 }
 
 export default adaptor;
