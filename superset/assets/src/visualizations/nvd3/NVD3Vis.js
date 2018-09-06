@@ -6,12 +6,12 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import 'nvd3/build/nv.d3.min.css';
 
-import { getColorFromScheme } from '../../modules/colors';
-import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
-import { formatDateVerbose } from '../../modules/dates';
-import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
+import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
+import { getColorFromScheme } from '../../modules/colors';
+import { formatDateVerbose } from '../../modules/dates';
+import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
+import { isTruthy } from '../../utils/common';
 import {
   drawBarValues,
   generateRichLineTooltipContent,
@@ -27,6 +27,15 @@ import {
   tryNumify,
   stringifyTimeRange,
 } from './utils';
+import {
+  numberOrAutoType,
+  stringOrObjectWithLabelType,
+  colorObjectType,
+  numericXYType,
+  categoryAndValueXYType,
+  boxPlotValueType,
+  bulletDataType,
+} from './PropTypes';
 
 import './NVD3Vis.css';
 
@@ -49,76 +58,43 @@ const TIMESERIES_VIZ_TYPES = [
   'time_pivot',
 ];
 
-const numberOrAutoType = PropTypes.oneOfType([
-  PropTypes.number,
-  PropTypes.oneOf(['auto']),
-]);
-
-const stringOrObjectWithLabelType = PropTypes.oneOfType([
-  PropTypes.string,
-  PropTypes.shape({
-    label: PropTypes.string,
-  }),
-]);
-
-const colorObjectType = PropTypes.shape({
-  r: PropTypes.number.isRequired,
-  g: PropTypes.number.isRequired,
-  b: PropTypes.number.isRequired,
-});
-
 const propTypes = {
-  data: PropTypes.arrayOf(PropTypes.oneOfType([
-    // pie
-    PropTypes.shape({
-      x: PropTypes.string,
-      y: PropTypes.number,
-    }),
-    // dist-bar
-    PropTypes.shape({
-      key: PropTypes.string,
-      values: PropTypes.arrayOf(PropTypes.shape({
-        x: PropTypes.string,
-        y: PropTypes.number,
-      })),
-    }),
-    // area, line
-    PropTypes.shape({
-      key: PropTypes.string,
-      values: PropTypes.arrayOf(PropTypes.shape({
-        x: PropTypes.number,
-        y: PropTypes.number,
-      })),
-    }),
-    // dual-line
-    PropTypes.shape({
-      classed: PropTypes.string,
-      key: PropTypes.string,
-      type: PropTypes.string,
-      values: PropTypes.arrayOf(PropTypes.shape({
-        x: PropTypes.number,
-        y: PropTypes.number,
-      })),
-      yAxis: PropTypes.number,
-    }),
-    // box-plot
-    PropTypes.shape({
-      label: PropTypes.string,
-      values: PropTypes.arrayOf(PropTypes.shape({
-        Q1: PropTypes.number,
-        Q2: PropTypes.number,
-        Q3: PropTypes.number,
-        outliers: PropTypes.arrayOf(PropTypes.number),
-        whisker_high: PropTypes.number,
-        whisker_low: PropTypes.number,
-      })),
-    }),
-    // bubble
-    PropTypes.shape({
-      key: PropTypes.string,
-      values: PropTypes.arrayOf(PropTypes.object),
-    }),
-  ])),
+  data: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.oneOfType([
+      // pie
+      categoryAndValueXYType,
+      // dist-bar
+      PropTypes.shape({
+        key: PropTypes.string,
+        values: PropTypes.arrayOf(categoryAndValueXYType),
+      }),
+      // area, line, compare, bar
+      PropTypes.shape({
+        key: PropTypes.arrayOf(PropTypes.string),
+        values: PropTypes.arrayOf(numericXYType),
+      }),
+      // dual-line
+      PropTypes.shape({
+        classed: PropTypes.string,
+        key: PropTypes.string,
+        type: PropTypes.string,
+        values: PropTypes.arrayOf(numericXYType),
+        yAxis: PropTypes.number,
+      }),
+      // box-plot
+      PropTypes.shape({
+        label: PropTypes.string,
+        values: PropTypes.arrayOf(boxPlotValueType),
+      }),
+      // bubble
+      PropTypes.shape({
+        key: PropTypes.string,
+        values: PropTypes.arrayOf(PropTypes.object),
+      }),
+    ])),
+    // bullet
+    bulletDataType,
+  ]),
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
@@ -723,7 +699,7 @@ function nvd3Vis(element, props) {
 
         if (formulas.length > 0) {
           const xValues = [];
-          if (vizType === VIZ_TYPES.bar) {
+          if (vizType === 'bar') {
             // For bar-charts we want one data point evaluated for every
             // data point that will be displayed.
             const distinct = data.reduce((xVals, d) => {
