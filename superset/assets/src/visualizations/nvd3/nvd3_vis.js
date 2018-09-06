@@ -109,9 +109,9 @@ const propTypes = {
   // Bubble chart only
   entity: PropTypes.string,
   maxBubbleSize: PropTypes.number,
-  x: stringOrObjectWithLabelType,
-  y: stringOrObjectWithLabelType,
-  size: stringOrObjectWithLabelType,
+  xField: stringOrObjectWithLabelType,
+  yField: stringOrObjectWithLabelType,
+  sizeField: stringOrObjectWithLabelType,
   // time-pivot only
   baseColor: colorObjectType,
 };
@@ -152,21 +152,21 @@ function nvd3Vis(element, props) {
     showLabels,
     showLegend,
     showMarkers,
-    size,
+    sizeField,
     useRichTooltip,
     vizType,
-    x,
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
+    xField,
     xIsLogScale,
     xTicksLayout,
-    y,
     yAxisFormat,
     yAxis2Format,
     yAxisBounds,
     yAxisLabel,
     yAxisShowMinMax = false,
+    yField,
     yIsLogScale,
   } = props;
 
@@ -335,9 +335,9 @@ function nvd3Vis(element, props) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(getLabel(x), xAxisFormatter(p.x));
-          s += row(getLabel(y), yAxisFormatter(p.y));
-          s += row(getLabel(size), formatter(p.size));
+          s += row(getLabel(xField), xAxisFormatter(p.x));
+          s += row(getLabel(yField), yAxisFormatter(p.y));
+          s += row(getLabel(sizeField), formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -926,16 +926,16 @@ function adaptor(slice, payload) {
     show_labels: showLabels,
     show_legend: showLegend,
     show_markers: showMarkers,
-    size,
+    size: sizeField,
     stacked_style: areaStackedStyle,
     viz_type: vizType,
-    x,
+    x: xField,
     x_axis_format: xAxisFormat,
     x_axis_label: xAxisLabel,
     x_axis_showminmax: xAxisShowMinMax,
     x_log_scale: xIsLogScale,
     x_ticks_layout: xTicksLayout,
-    y,
+    y: yField,
     y_axis_format: yAxisFormat,
     y_axis_2_format: yAxis2Format,
     y_axis_bounds: yAxisBounds,
@@ -988,21 +988,21 @@ function adaptor(slice, payload) {
     showLabels,
     showLegend,
     showMarkers,
-    size,
+    sizeField,
     useRichTooltip,
     vizType,
-    x,
     xAxisFormat,
     xAxisLabel,
     xAxisShowMinMax,
+    xField,
     xIsLogScale,
     xTicksLayout,
-    y,
     yAxisFormat,
     yAxis2Format,
     yAxisBounds,
     yAxisLabel,
     yAxisShowMinMax,
+    yField,
     yIsLogScale,
   };
 
