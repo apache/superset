@@ -149,16 +149,21 @@ class MapFilter extends React.Component {
 
   constructor(props) {
     super(props);
-    var longitude = this.props.json.data.viewportLongitude || DEFAULT_LONGITUDE;
-    var latitude = this.props.json.data.viewportLatitude || DEFAULT_LATITUDE;
+    const data = this.props.json.data;
+    const longitude = data.viewportLongitude || DEFAULT_LONGITUDE;
+    const latitude = data.viewportLatitude || DEFAULT_LATITUDE;
     this.state = {
       viewport: {
         longitude,
         latitude,
-        zoom: this.props.json.data.viewportZoom || DEFAULT_ZOOM,
+        zoom: data.viewportZoom || DEFAULT_ZOOM,
         startDragLngLat: [longitude, latitude],
       },
     };
+    this.colors = getCategories(
+      this.props.slice.formData,
+      this.props.json.data.geoJSON.features,
+    );
     this.onViewportChange = this.onViewportChange.bind(this);
   }
 
@@ -180,12 +185,11 @@ class MapFilter extends React.Component {
         mapboxApiAccessToken={this.props.json.data.mapboxApiKey}
         geoJSON={this.props.json.data.geoJSON}
         onViewportChange={this.onViewportChange}
-        colorCategories={getCategories(
-          this.props.slice.formData,
-          this.props.json.data.geoJSON.features,
-        )}
       >
-        
+        <Legend
+          position="br"
+          categories={this.colors}
+        />
       </MapGLDraw>
     );
   }
