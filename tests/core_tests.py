@@ -29,6 +29,7 @@ from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
+from .utils import get_main_database
 
 
 class CoreTests(SupersetTestCase):
@@ -312,7 +313,7 @@ class CoreTests(SupersetTestCase):
 
     def test_testconn(self, username='admin'):
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
@@ -341,7 +342,7 @@ class CoreTests(SupersetTestCase):
         assert response.headers['Content-Type'] == 'application/json'
 
     def test_custom_password_store(self):
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -359,13 +360,13 @@ class CoreTests(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = 'databaseview/edit/{}'.format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
@@ -452,27 +453,27 @@ class CoreTests(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login('admin')
-        dbid = self.get_main_database(db.session).id
+        dbid = get_main_database(db.session).id
         self.get_json_resp(
             '/superset/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_get_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb, foo='bar')
         rendered = tp.process_template(s)
         self.assertEqual('bar', rendered)
 
     def test_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo='bar')
@@ -485,7 +486,7 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['data'][0]['test'], '2017-01-01T00:00:00')
 
     def test_table_metadata(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         backend = maindb.backend
         data = self.get_json_resp(
             '/superset/table/{}/ab_user/null/'.format(maindb.id))

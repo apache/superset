@@ -14,10 +14,11 @@ from flask_appbuilder.security.sqla import models as ab_models
 from mock import Mock
 import pandas as pd
 
-from superset import app, cli, db, security_manager, utils
+from superset import app, cli, db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from .utils import get_main_database
 
 
 BASE_DIR = app.config.get('BASE_DIR')
@@ -43,52 +44,7 @@ class SupersetTestCase(unittest.TestCase):
         self.client = app.test_client()
         self.maxDiff = None
 
-        gamma_sqllab_role = security_manager.add_role('gamma_sqllab')
-        for perm in security_manager.find_role('Gamma').permissions:
-            security_manager.add_permission_role(gamma_sqllab_role, perm)
-        utils.get_or_create_main_db()
-        db_perm = self.get_main_database(security_manager.get_session).perm
-        security_manager.merge_perm('database_access', db_perm)
-        db_pvm = security_manager.find_permission_view_menu(
-            view_menu_name=db_perm, permission_name='database_access')
-        gamma_sqllab_role.permissions.append(db_pvm)
-        for perm in security_manager.find_role('sql_lab').permissions:
-            security_manager.add_permission_role(gamma_sqllab_role, perm)
-
-        admin = security_manager.find_user('admin')
-        if not admin:
-            security_manager.add_user(
-                'admin', 'admin', ' user', 'admin@fab.org',
-                security_manager.find_role('Admin'),
-                password='general')
-
-        gamma = security_manager.find_user('gamma')
-        if not gamma:
-            security_manager.add_user(
-                'gamma', 'gamma', 'user', 'gamma@fab.org',
-                security_manager.find_role('Gamma'),
-                password='general')
-
-        gamma2 = security_manager.find_user('gamma2')
-        if not gamma2:
-            security_manager.add_user(
-                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
-                security_manager.find_role('Gamma'),
-                password='general')
-
-        gamma_sqllab_user = security_manager.find_user('gamma_sqllab')
-        if not gamma_sqllab_user:
-            security_manager.add_user(
-                'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
-                gamma_sqllab_role, password='general')
-
-        alpha = security_manager.find_user('alpha')
-        if not alpha:
-            security_manager.add_user(
-                'alpha', 'alpha', 'user', 'alpha@fab.org',
-                security_manager.find_role('Alpha'),
-                password='general')
-        security_manager.get_session.commit()
+        cli.load_test_users_run()
         # create druid cluster and druid datasources
         session = db.session
         cluster = (
@@ -185,13 +141,6 @@ class SupersetTestCase(unittest.TestCase):
         resp = self.get_resp(url, data, follow_redirects, raise_on_error)
         return json.loads(resp)
 
-    def get_main_database(self, session):
-        return (
-            db.session.query(models.Database)
-            .filter_by(database_name='main')
-            .first()
-        )
-
     def get_access_requests(self, username, ds_type, ds_id):
         DAR = models.DatasourceAccessRequest
         return (
@@ -227,7 +176,7 @@ class SupersetTestCase(unittest.TestCase):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
-        dbid = self.get_main_database(db.session).id
+        dbid = get_main_database(db.session).id
         resp = self.get_json_resp(
             '/superset/sql_json/',
             raise_on_error=False,
