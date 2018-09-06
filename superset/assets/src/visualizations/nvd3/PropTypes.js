@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { ANNOTATION_TYPES } from '../../modules/AnnotationTypes';
 
 export const numberOrAutoType = PropTypes.oneOfType([
   PropTypes.number,
@@ -48,5 +49,15 @@ export const bulletDataType = PropTypes.shape({
 });
 
 export const annotationLayerType = PropTypes.shape({
-
+  annotationType: PropTypes.oneOf(Object.keys(ANNOTATION_TYPES)),
+  color: PropTypes.string,
+  name: PropTypes.string,
+  hideLine: PropTypes.bool,
+  opacity: PropTypes.string,
+  show: PropTypes.bool,
+  showMarkers: PropTypes.bool,
+  sourceType: PropTypes.string,
+  style: PropTypes.string,
+  value: PropTypes.string,
+  width: PropTypes.number,
 });

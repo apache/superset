@@ -61,8 +61,8 @@ export function generateRichLineTooltipContent(d, valueFormatter) {
   return tooltip;
 }
 
-export function generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatters) {
-  const tooltipTitle = xAxisFormatter(d.value);
+export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
+  const tooltipTitle = xFormatter(d.value);
   let tooltip = '';
 
   tooltip += "<table><thead><tr><td colspan='3'>"
@@ -70,16 +70,47 @@ export function generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatte
     + '</td></tr></thead><tbody>';
 
   d.series.forEach((series, i) => {
-    const yAxisFormatter = yAxisFormatters[i];
+    const yFormatter = yFormatters[i];
     tooltip += "<tr><td class='legend-color-guide'>"
       + `<div style="background-color: ${series.color};"></div></td>`
       + `<td class='key'>${series.key}</td>`
-      + `<td class='value'>${yAxisFormatter(series.value)}</td></tr>`;
+      + `<td class='value'>${yFormatter(series.value)}</td></tr>`;
   });
 
   tooltip += '</tbody></table>';
 
   return tooltip;
+}
+
+function getLabel(stringOrObjectWithLabel) {
+  return stringOrObjectWithLabel.label || stringOrObjectWithLabel;
+}
+
+function createHTMLRow(col1, col2) {
+  return `<tr><td>${col1}</td><td>${col2}</td></tr>`;
+}
+
+export function generateBubbleTooltipContent({
+  point,
+  entity,
+  xField,
+  yField,
+  sizeField,
+  xFormatter,
+  yFormatter,
+  sizeFormatter,
+}) {
+  let s = '<table>';
+  s += (
+    `<tr><td style="color: ${point.color};">` +
+      `<strong>${point[entity]}</strong> (${point.group})` +
+    '</td></tr>'
+  );
+  s += createHTMLRow(getLabel(xField), xFormatter(point.x));
+  s += createHTMLRow(getLabel(yField), yFormatter(point.y));
+  s += createHTMLRow(getLabel(sizeField), sizeFormatter(point.size));
+  s += '</table>';
+  return s;
 }
 
 export function hideTooltips() {
@@ -131,10 +162,6 @@ export function getMaxLabelSize(svg, axisClass) {
   return 0;
 }
 
-export function getLabel(stringOrObjectWithLabel) {
-  return stringOrObjectWithLabel.label || stringOrObjectWithLabel;
-}
-
 export function formatLabel(input, verboseMap = {}) {
   // The input for label may be a string or an array of string
   // When using the time shift feature, the label contains a '---' in the array
@@ -162,10 +189,6 @@ export function tryNumify(s) {
   return Number.isNaN(n) ? s : n;
 }
 
-export function createHTMLRow(col1, col2) {
-  return `<tr><td>${col1}</td><td>${col2}</td></tr>`;
-}
-
 export function stringifyTimeRange(extent) {
   if (extent.some(d => d.toISOString === undefined)) {
     return null;
@@ -173,4 +196,10 @@ export function stringifyTimeRange(extent) {
   return extent.map(d => d.toISOString()
     .slice(0, -1))
     .join(' : ');
+}
+
+export function setAxisShowMaxMin(axis, showminmax) {
+  if (axis && axis.showMaxMin && showminmax !== undefined) {
+    axis.showMaxMin(showminmax);
+  }
 }

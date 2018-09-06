@@ -13,28 +13,29 @@ import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
 import {
-  drawBarValues,
-  generateRichLineTooltipContent,
-  generateMultiLineTooltipContent,
-  hideTooltips,
-  wrapTooltip,
-  getLabel,
-  getMaxLabelSize,
-  formatLabel,
   computeBarChartWidth,
-  createHTMLRow,
+  drawBarValues,
+  formatLabel,
+  generateBubbleTooltipContent,
+  generateMultiLineTooltipContent,
+  generateRichLineTooltipContent,
+  getMaxLabelSize,
+  hideTooltips,
   tipFactory,
   tryNumify,
+  setAxisShowMaxMin,
   stringifyTimeRange,
+  wrapTooltip,
 } from './utils';
 import {
-  numberOrAutoType,
-  stringOrObjectWithLabelType,
-  colorObjectType,
-  numericXYType,
-  categoryAndValueXYType,
+  annotationLayerType,
   boxPlotValueType,
   bulletDataType,
+  categoryAndValueXYType,
+  colorObjectType,
+  numericXYType,
+  numberOrAutoType,
+  stringOrObjectWithLabelType,
 } from './PropTypes';
 
 import './NVD3Vis.css';
@@ -98,7 +99,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
-  annotationLayers: PropTypes.arrayOf(PropTypes.object),
+  annotationLayers: PropTypes.arrayOf(annotationLayerType),
   bottomMargin: numberOrAutoType,
   colorScheme: PropTypes.string,
   comparisonType: PropTypes.string,
@@ -360,22 +361,17 @@ function nvd3Vis(element, props) {
         chart = nv.models.scatterChart();
         chart.showDistX(true);
         chart.showDistY(true);
-        chart.tooltip.contentGenerator(function (obj) {
-          const p = obj.point;
-          const yAxisFormatter = d3FormatPreset(yAxisFormat);
-          const xAxisFormatter = d3FormatPreset(xAxisFormat);
-          let s = '<table>';
-          s += (
-            `<tr><td style="color: ${p.color};">` +
-              `<strong>${p[entity]}</strong> (${p.group})` +
-            '</td></tr>'
-          );
-          s += createHTMLRow(getLabel(xField), xAxisFormatter(p.x));
-          s += createHTMLRow(getLabel(yField), yAxisFormatter(p.y));
-          s += createHTMLRow(getLabel(sizeField), formatter(p.size));
-          s += '</table>';
-          return s;
-        });
+        chart.tooltip.contentGenerator(d =>
+          generateBubbleTooltipContent({
+            point: d.point,
+            entity,
+            xField,
+            yField,
+            sizeField,
+            xFormatter: d3FormatPreset(xAxisFormat),
+            yFormatter: d3FormatPreset(yAxisFormat),
+            sizeFormatter: formatter,
+          }));
         chart.pointRange([5, maxBubbleSize ** 2]);
         chart.pointDomain([0, d3.max(data, d => d3.max(d.values, v => v.size))]);
         break;
@@ -477,12 +473,6 @@ function nvd3Vis(element, props) {
     }
 
     // Set showMaxMin for all axis
-    function setAxisShowMaxMin(axis, showminmax) {
-      if (axis && axis.showMaxMin && showminmax !== undefined) {
-        axis.showMaxMin(showminmax);
-      }
-    }
-
     setAxisShowMaxMin(chart.xAxis, xAxisShowMinMax);
     setAxisShowMaxMin(chart.x2Axis, xAxisShowMinMax);
     setAxisShowMaxMin(chart.yAxis, yAxisShowMinMax);
