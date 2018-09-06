@@ -3,14 +3,13 @@ import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
 import moment from 'moment';
-import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
 import PropTypes from 'prop-types';
 import 'nvd3/build/nv.d3.min.css';
 
 import { getColorFromScheme } from '../../modules/colors';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../../modules/utils';
+import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import { t } from '../../locales';
@@ -24,6 +23,9 @@ import {
   getMaxLabelSize,
   formatLabel,
   computeBarChartWidth,
+  createHTMLRow,
+  tipFactory,
+  tryNumify,
 } from './utils';
 
 import './nvd3_vis.css';
@@ -178,7 +180,6 @@ function nvd3Vis(element, props) {
   let chart;
   let width = maxWidth;
   let colorKey = 'key';
-  let row;
 
   function isVizTypes(types) {
     return types.indexOf(vizType) >= 0;
@@ -190,7 +191,6 @@ function nvd3Vis(element, props) {
     if (svg.empty()) {
       svg = $element.append('svg');
     }
-    console.log('svg', svg);
     let height = maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
@@ -324,7 +324,6 @@ function nvd3Vis(element, props) {
         break;
 
       case 'bubble':
-        row = (col1, col2) => `<tr><td>${col1}</td><td>${col2}</td></tr>`;
         chart = nv.models.scatterChart();
         chart.showDistX(true);
         chart.showDistY(true);
@@ -337,9 +336,9 @@ function nvd3Vis(element, props) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(getLabel(xField), xAxisFormatter(p.x));
-          s += row(getLabel(yField), yAxisFormatter(p.y));
-          s += row(getLabel(sizeField), formatter(p.size));
+          s += createHTMLRow(getLabel(xField), xAxisFormatter(p.x));
+          s += createHTMLRow(getLabel(yField), yAxisFormatter(p.y));
+          s += createHTMLRow(getLabel(sizeField), formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -477,7 +476,7 @@ function nvd3Vis(element, props) {
       chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
     }
 
-    if ((vizType === 'line' || vizType === 'area') && useRichTooltip) {
+    if (isVizTypes(['line', 'area']) && useRichTooltip) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
@@ -527,11 +526,11 @@ function nvd3Vis(element, props) {
     container.style.height = `${height}px`;
 
     svg
-    .datum(data)
-    .transition().duration(500)
-    .attr('height', height)
-    .attr('width', width)
-    .call(chart);
+      .datum(data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
 
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(['dual_line', 'line_multi'])) {
@@ -650,11 +649,11 @@ function nvd3Vis(element, props) {
 
       // render chart
       svg
-      .datum(data)
-      .transition().duration(500)
-      .attr('width', width)
-      .attr('height', height)
-      .call(chart);
+        .datum(data)
+        .transition().duration(500)
+        .attr('width', width)
+        .attr('height', height)
+        .call(chart);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
       window.addEventListener('scroll', throttle(hideTooltips, 250));
@@ -728,22 +727,6 @@ function nvd3Vis(element, props) {
         const yAxis = chart.yAxis1 ? chart.yAxis1 : chart.yAxis;
         const chartWidth = xAxis.scale().range()[1];
         const annotationHeight = yAxis.scale().range()[0];
-        const tipFactory = layer => d3tip()
-          .attr('class', 'd3-tip')
-          .direction('n')
-          .offset([-5, 0])
-          .html((d) => {
-            if (!d) {
-              return '';
-            }
-            const title = d[layer.titleColumn] && d[layer.titleColumn].length ?
-              d[layer.titleColumn] + ' - ' + layer.name :
-              layer.name;
-            const body = Array.isArray(layer.descriptionColumns) ?
-              layer.descriptionColumns.map(c => d[c]) : Object.values(d);
-            return '<div><strong>' + title + '</strong></div><br/>' +
-              '<div>' + body.join(', ') + '</div>';
-          });
 
         if (annotationData) {
           // Event annotations

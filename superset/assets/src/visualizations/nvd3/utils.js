@@ -1,3 +1,4 @@
+import d3tip from 'd3-tip';
 import { TIME_SHIFT_PATTERN } from '../../utils/common';
 
 export const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
@@ -83,6 +84,25 @@ export function wrapTooltip(chart, maxWidth) {
   });
 }
 
+export function tipFactory(layer) {
+  return d3tip()
+    .attr('class', 'd3-tip')
+    .direction('n')
+    .offset([-5, 0])
+    .html((d) => {
+      if (!d) {
+        return '';
+      }
+      const title = d[layer.titleColumn] && d[layer.titleColumn].length ?
+        d[layer.titleColumn] + ' - ' + layer.name :
+        layer.name;
+      const body = Array.isArray(layer.descriptionColumns) ?
+        layer.descriptionColumns.map(c => d[c]) : Object.values(d);
+      return '<div><strong>' + title + '</strong></div><br/>' +
+        '<div>' + body.join(', ') + '</div>';
+    });
+}
+
 export function getMaxLabelSize(svg, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -101,15 +121,11 @@ export function getLabel(stringOrObjectWithLabel) {
 export function formatLabel(input, verboseMap = {}) {
   // The input for label may be a string or an array of string
   // When using the time shift feature, the label contains a '---' in the array
-  const verboseLkp = s => verboseMap[s] || s;
-  let label;
-  if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
-    label = verboseLabels.join(', ');
-  } else {
-    label = verboseLkp(input);
-  }
-  return label;
+  const verboseLookup = s => verboseMap[s] || s;
+  return (Array.isArray(input) && input.length)
+    ? input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLookup(l))
+      .join(', ')
+    : verboseLookup(input);
 }
 
 const MIN_BAR_WIDTH = 15;
@@ -121,4 +137,17 @@ export function computeBarChartWidth(data, stacked, maxWidth) {
 
   const barWidth = barCount * MIN_BAR_WIDTH;
   return Math.max(barWidth, maxWidth);
+}
+
+export function tryNumify(s) {
+  // Attempts casting to Number, returns string when failing
+  const n = Number(s);
+  if (Number.isNaN(n)) {
+    return s;
+  }
+  return n;
+}
+
+export function createHTMLRow(col1, col2) {
+  return `<tr><td>${col1}</td><td>${col2}</td></tr>`;
 }

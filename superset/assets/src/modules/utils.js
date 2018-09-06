@@ -221,15 +221,6 @@ export function initJQueryAjax() {
   }
 }
 
-export function tryNumify(s) {
-  // Attempts casting to Number, returns string when failing
-  const n = Number(s);
-  if (isNaN(n)) {
-    return s;
-  }
-  return n;
-}
-
 export function getParam(name) {
   /* eslint no-useless-escape: 0 */
   const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
