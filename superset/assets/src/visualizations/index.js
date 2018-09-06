@@ -113,7 +113,7 @@ const vizMap = {
   [VIZ_TYPES.event_flow]: () =>
     loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
   [VIZ_TYPES.paired_ttest]: () =>
-    loadVis(import(/* webpackChunkName: "paired_ttest" */ './paired_ttest.jsx')),
+    loadVis(import(/* webpackChunkName: "paired_ttest" */ './PairedTTest/PairedTTest.jsx')),
   [VIZ_TYPES.partition]: () =>
     loadVis(import(/* webpackChunkName: "partition" */ './partition.js')),
   [VIZ_TYPES.deck_scatter]: () =>
