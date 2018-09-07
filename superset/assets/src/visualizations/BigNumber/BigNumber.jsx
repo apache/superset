@@ -98,7 +98,7 @@ class BigNumberVis extends React.Component {
     document.body.appendChild(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width,
+      maxWidth: Math.floor(width),
       maxHeight,
       className: 'header_line',
       container,
@@ -126,7 +126,7 @@ class BigNumberVis extends React.Component {
       document.body.appendChild(container);
       fontSize = computeMaxFontSize({
         text: subheader,
-        maxWidth: width,
+        maxWidth: Math.floor(width),
         maxHeight,
         className: 'subheader_line',
         container,
@@ -165,7 +165,7 @@ class BigNumberVis extends React.Component {
           type: 'linear',
           includeZero: startYAxisAtZero,
         }}
-        width={width}
+        width={Math.floor(width)}
         height={maxHeight}
         margin={CHART_MARGIN}
         renderTooltip={renderTooltip}
