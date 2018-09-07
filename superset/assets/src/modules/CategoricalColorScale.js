@@ -1,20 +1,19 @@
 import { TIME_SHIFT_PATTERN } from '../utils/common';
 
 function cleanValue(value) {
-  return String(value).trim()
-    .toLowerCase()
     // for superset series that should have the same color
+    return String(value).trim()
+    .toLowerCase()
     .split(', ')
     .filter(k => !TIME_SHIFT_PATTERN.test(k))
     .join(', ');
 }
 
-const sharedForcedItems = {};
-
 export default class CategoricalColorScale {
-  constructor(colors, forcedItems = sharedForcedItems) {
+  constructor(colors, sharedForcedItems) {
     this.colors = colors;
-    this.forcedItems = forcedItems;
+    this.sharedForcedItems = sharedForcedItems;
+    this.forcedItems = {};
     this.seen = {};
     this.fn = value => this.getColor(value);
   }
@@ -22,21 +21,32 @@ export default class CategoricalColorScale {
   getColor(value) {
     const cleanedValue = cleanValue(value);
 
+    const sharedColor = this.sharedForcedItems && this.shareForcedItems[cleanedValue];
+    if (sharedColor) {
+      return sharedColor;
+    }
+
     const forcedColor = this.forcedItems[cleanedValue];
     if (forcedColor) {
       return forcedColor;
     }
 
     const seenColor = this.seen[cleanedValue];
+    const length = this.colors.length;
     if (seenColor !== undefined) {
-      return this.colors[seenColor % this.colors.length];
+      return this.colors[seenColor % length];
     }
 
     const index = Object.keys(this.seen).length;
     this.seen[cleanedValue] = index;
-    return this.colors[index % this.colors.length];
+    return this.colors[index % length];
   }
 
+  /**
+   * Enforce specific color for given value
+   * @param {*} value value
+   * @param {*} forcedColor forcedColor
+   */
   setColor(value, forcedColor) {
     this.forcedItems[value] = forcedColor;
     return this;
