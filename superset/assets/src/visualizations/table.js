@@ -288,10 +288,6 @@ function adaptor(slice, payload) {
     orderDesc,
     pageLength: pageLength && parseInt(pageLength, 10),
     percentMetrics,
-    // Aug 22, 2018
-    // Perhaps this `tableFilter` field can be removed as there is
-    // no code left in repo to set tableFilter to true.
-    // which make `onAddFilter` will never be called as well.
     tableFilter,
     tableTimestampFormat,
     timeseriesLimitMetric,

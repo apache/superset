@@ -12,11 +12,13 @@
     "test:one": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers babel-core/register --require spec/helpers/browser.js --require ignore-styles 'spec/**/*_spec.*'",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
+    "dev-server": "webpack-dev-server --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
-    "sync-backend": "babel-node --presets env src/syncBackend.js"
+    "sync-backend": "babel-node --presets env src/syncBackend.js",
+    "cypress": "cypress"
   },
   "repository": {
     "type": "git",
@@ -44,9 +46,13 @@
   "homepage": "http://superset.apache.org/",
   "dependencies": {
     "@data-ui/event-flow": "^0.0.54",
+    "@data-ui/histogram": "^0.0.64",
     "@data-ui/sparkline": "^0.0.54",
+    "@data-ui/theme": "^0.0.62",
     "@data-ui/xy-chart": "^0.0.61",
+    "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",
+    "@vx/scale": "^0.0.165",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
@@ -135,6 +141,7 @@
     "chai": "^4.0.2",
     "clean-webpack-plugin": "^0.1.19",
     "css-loader": "^0.28.0",
+    "cypress": "^3.0.3",
     "enzyme": "^2.0.0",
     "eslint": "^4.19.0",
     "eslint-config-airbnb": "^15.0.1",
@@ -154,8 +161,10 @@
     "less": "^2.6.1",
     "less-loader": "^4.1.0",
     "mini-css-extract-plugin": "^0.4.0",
+    "minimist": "^1.2.0",
     "mocha": "^3.5.3",
     "npm-check-updates": "^2.14.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.1",
     "po2json": "^0.4.5",
     "prettier": "^1.12.1",
     "react-addons-test-utils": "^15.6.2",
@@ -169,6 +178,7 @@
     "webpack": "^4.17.1",
     "webpack-assets-manifest": "^3.0.1",
     "webpack-cli": "^2.0.10",
+    "webpack-dev-server": "^3.1.7",
     "webpack-sources": "^1.1.0"
   }
 }

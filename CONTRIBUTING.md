@@ -261,23 +261,52 @@ To parse and generate bundled files for superset, run either of the
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
-```
+```bash
 # Copies a conf file from the frontend to the backend
 npm run sync-backend
 
 # Compiles the production / optimized js & css
 npm run prod
 
+# Start a watcher that rebundle your assets as you modify them
+npm run dev
+
 # Start a web server that manages and updates your assets as you modify them
-npm run dev
+npm run dev-server
 ```
 
-For every development session you will have to start a flask dev server
-as well as an npm watcher
+For every development session you will have to
 
-```
+1. Start a flask dev server
+
+```bash
+superset runserver -d
+# or specify port
 superset runserver -d -p 8081
-npm run dev
+```
+
+2. Start webpack dev server
+
+```bash
+npm run dev-server
+```
+
+This will start `webpack-dev-server` at port 9000 and you can access Superset at localhost:9000.
+By default, `webpack-dev-server` is configured for flask running at port 8088.
+
+If you start flask server at another port (e.g. 8081), you have to pass an extra argument
+`supersetPort` to `webpack-dev-server`
+
+```bash
+npm run dev-server -- --supersetPort=8081
+```
+
+You can also specify port for `webpack-dev-server`
+
+```bash
+npm run dev-server -- --port=9001
+# or with both dev-server port and superset port
+npm run dev-server -- --port=9001 --supersetPort=8081
 ```
 
 #### Upgrading npm packages
@@ -313,6 +342,21 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
     cd /superset/superset/assets/javascripts
     npm i
     npm run test
+
+We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+
+    export SUPERSET_CONFIG=tests.superset_test_config
+    superset load_test_users
+    superset db upgrade
+    superset init
+    superset load_examples
+    superset runserver
+
+Open Cypress tests:
+
+    cd /superset/superset/assets
+    npm run build
+    npm run cypress run
 
 ## Linting
 
