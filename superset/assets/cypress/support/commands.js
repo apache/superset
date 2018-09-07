@@ -50,10 +50,40 @@ Cypress.Commands.add('visitChartByParams', (params) => {
   cy.visit(`${BASE_EXPLORE_URL}${params}`);
 });
 
-Cypress.Commands.add('verifySliceSuccess', (waitAlias) => {
+Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, getSvg }) => {
   cy.wait([waitAlias]).then((data) => {
     expect(data.status).to.eq(200);
     expect(data.response.body).to.have.property('error', null);
-    cy.get('.slice_container');
+    expect(data.response.query).contains(querySubstring);
+    cy.get('.slice_container').within(() => {
+      if (getSvg !== false) {
+        cy.get('svg').should('have.attr', 'height').then((height) => {
+          expect(height).greaterThan(0);
+        });
+        cy.get('svg').should('have.attr', 'width').then((width) => {
+          expect(width).greaterThan(0);
+        });
+      }
+    });
+  });
+});
+
+Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, getSvg = true }) => {
+  cy.wait([waitAlias]).then((data) => {
+    expect(data.status).to.eq(200);
+    expect(data.response.body).to.have.property('error', null);
+    if (querySubstring) {
+      expect(data.response.body.query).contains(querySubstring);
+    }
+    cy.get('.slice_container').within(() => {
+      if (getSvg) {
+        cy.get('svg').should('have.attr', 'height').then((height) => {
+          expect(height).greaterThan(0);
+        });
+        cy.get('svg').should('have.attr', 'width').then((width) => {
+          expect(width).greaterThan(0);
+        });
+      }
+    });
   });
 });
