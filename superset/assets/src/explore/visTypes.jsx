@@ -56,6 +56,7 @@ export const sections = {
         ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
+        ['params'],
         ['limit', 'timeseries_limit_metric'],
         ['order_desc', 'contribution'],
         ['row_limit', null],
