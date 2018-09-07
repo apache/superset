@@ -329,11 +329,16 @@ class BaseViz(object):
 
     def cache_key(self, query_obj, **extra):
         """
-        The cache key is made out of the key/values in `query_obj`
+        The cache key is made out of the key/values in `query_obj`, plus any
+        other key/values in `extra`.
 
-        We remove datetime bounds that are hard values,
-        and replace them with the use-provided inputs to bounds, which
-        may be time-relative (as in "5 days ago" or "now").
+        We remove datetime bounds that are hard values, and replace them with
+        the use-provided inputs to bounds, which may be time-relative (as in
+        "5 days ago" or "now").
+
+        The `extra` arguments are currently used by time shift queries, since
+        different time shifts wil differ only in the `from_dttm` and `to_dttm`
+        values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
         cache_dict.update(extra)
