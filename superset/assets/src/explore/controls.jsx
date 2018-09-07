@@ -50,10 +50,10 @@ import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
-import CategoricalColorManager from '../modules/CategoricalColorManager';
+import ColorSchemeManager from '../modules/ColorSchemeManager';
 import sequentialSchemes from '../modules/colorSchemes/sequential';
 
-const ALL_COLOR_SCHEMES = CategoricalColorManager.getSchemes();
+const ALL_COLOR_SCHEMES = ColorSchemeManager.getInstance().getAll();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 

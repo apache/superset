@@ -26,7 +26,7 @@ import { nonEmpty } from '../../validators';
 import vizTypes from '../../visTypes';
 
 import { t } from '../../../locales';
-import CategoricalColorManager from '../../../modules/CategoricalColorManager';
+import ColorSchemeManager from '../../../modules/ColorSchemeManager';
 
 const AUTOMATIC_COLOR = '';
 
@@ -478,7 +478,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderDisplayConfiguration() {
     const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
-    const colorScheme = [...CategoricalColorManager.getScheme(this.props.colorScheme)];
+    const colorScheme = [...ColorSchemeManager.getInstance().get(this.props.colorScheme)];
     if (color && color !== AUTOMATIC_COLOR &&
       !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())) {
       colorScheme.push(color);
