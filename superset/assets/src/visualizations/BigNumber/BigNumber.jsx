@@ -4,12 +4,12 @@ import ReactDOM from 'react-dom';
 import * as color from 'd3-color';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 
-import { brandColor } from '../modules/colors';
-import { d3FormatPreset } from '../modules/utils';
-import { formatDateVerbose } from '../modules/dates';
-import { computeMaxFontSize } from '../modules/visUtils';
+import { brandColor } from '../../modules/colors';
+import { d3FormatPreset } from '../../modules/utils';
+import { formatDateVerbose } from '../../modules/dates';
+import { computeMaxFontSize } from '../../modules/visUtils';
 
-import './big_number.css';
+import './BigNumber.css';
 
 const CHART_MARGIN = {
   top: 4,
@@ -98,7 +98,7 @@ class BigNumberVis extends React.Component {
     document.body.appendChild(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width,
+      maxWidth: Math.floor(width),
       maxHeight,
       className: 'header_line',
       container,
@@ -126,7 +126,7 @@ class BigNumberVis extends React.Component {
       document.body.appendChild(container);
       fontSize = computeMaxFontSize({
         text: subheader,
-        maxWidth: width,
+        maxWidth: Math.floor(width),
         maxHeight,
         className: 'subheader_line',
         container,
@@ -165,7 +165,7 @@ class BigNumberVis extends React.Component {
           type: 'linear',
           includeZero: startYAxisAtZero,
         }}
-        width={width}
+        width={Math.floor(width)}
         height={maxHeight}
         margin={CHART_MARGIN}
         renderTooltip={renderTooltip}
