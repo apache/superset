@@ -79,6 +79,7 @@ class MapGLDraw extends MapGL {
     const map = this.getMap();
     const data = this.props.geoJSON;
     const slice = this.props.slice;
+    const filters = this.props.slice.getFilters() || {}
     map.on('load', function () {
 
       // Displays the data distributions
@@ -106,14 +107,27 @@ class MapGLDraw extends MapGL {
       });
       map.addControl(this.draw, 'top-right');
 
-      function updateFilter(e) {
-        const featureCollection = {
-          type: 'FeatureCollection',
-          features: e.features,
-        };
-        slice.addFilter('geo', featureCollection,
-                        false, true, 'geo_within');
-      }
+        function updateFilter(e) {
+            var featureCollection = [];
+             if (e.features.length > 0){
+               featureCollection = {
+                 type: 'FeatureCollection',
+                 features: e.features,
+              }
+           }
+           slice.addFilter('geo', featureCollection,
+                           false, true, 'geo_within');
+        }
+
+        for (var filter in filters){
+            if(filter == "geo" && filters["geo"]["values"] !== []){
+
+                this.draw.add(filters["geo"]["values"]);
+
+                }
+
+            }
+        
       // Logs the polygon selection changes to console.
       map.on('draw.selectionchange', updateFilter);
       // Bug in mapbox-gl-draw doesn't fire selectionchange when deleteing

@@ -12,6 +12,11 @@ const BUILD_DIR = path.resolve(__dirname, './dist');
 const isDevMode = process.env.NODE_ENV !== 'production';
 
 const config = {
+    watchOptions: {
+        poll: true
+    },
+
+
   node: {
     fs: 'empty',
   },

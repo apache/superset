@@ -50,9 +50,16 @@ const defaultProps = {
 class FilterBox extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      selectedValues: props.origSelectedValues,
-      hasChanged: false,
+    var origSelectedValues = {};
+      for (var filterKey in props.origSelectedValues){
+          origSelectedValues[filterKey] = props.origSelectedValues[filterKey].values;
+      }
+      console.log(origSelectedValues);
+      console.log(props.origSelectedValues);
+          
+      this.state = {
+        selectedValues:origSelectedValues,
+        hasChanged: false,
     };
   }
   getControlData(controlName) {
@@ -156,7 +163,8 @@ class FilterBox extends React.Component {
       ) {
         continue;
       }
-      const existValues = this.props.filtersChoices[filterKey].map(f => f.id);
+        const existValues = this.props.filtersChoices[filterKey].map(f => f.id);
+        console.log(this.state.selectedValues[filterKey]);
       for (const v of this.state.selectedValues[filterKey]) {
         if (existValues.indexOf(v) === -1) {
           const addChoice = {

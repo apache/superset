@@ -118,18 +118,18 @@ export default function dashboardStateReducer(state = {}, action) {
             newFilter = { ...filters[sliceId], [col]: {values: nextVals,
                                                        operator: op}};
         } else if (filters[sliceId][col] instanceof Array) {
-          newFilter[col] = [...filters[sliceId][col], ...nextVals];
+            newFilter[col] = {operator: op, values: [...filters[sliceId][col], ...nextVals]};
         } else {
-          newFilter[col] = [filters[sliceId][col], ...nextVals];
+            newFilter[col] = {oerator: op, values: [filters[sliceId][col], ...nextVals]};
         }
         filters = { ...filters, [sliceId]: newFilter };
-
+          console.log(filters);
         // remove any empty filters so they don't pollute the logs
         Object.keys(filters).forEach(chartId => {
           Object.keys(filters[chartId]).forEach(column => {
             if (
               !filters[chartId][column] ||
-              filters[chartId][column].length === 0
+              filters[chartId][column].values.length === 0
             ) {
               delete filters[chartId][column];
             }

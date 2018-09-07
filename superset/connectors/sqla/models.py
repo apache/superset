@@ -33,7 +33,7 @@ from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
 
-from geoalchemy2.types import Geography
+from geoalchemy2.types import Geography, Geometry
 
 config = app.config
 
@@ -636,10 +636,16 @@ class SqlaTable(Model, BaseDatasource):
             col = flt['col']
             op = flt['op']
             col_obj = cols.get(col)
+            
             if col_obj:
                 is_list_target = op in ('in', 'not in')
-                if op in ("geo_within"):
-                    eq = json.dumps(flt.get('val')["features"][0]["geometry"])
+                logging.info(op)
+                if op in ["geo_within"]:
+                    features = flt.get('val')["features"]
+                    geometry = features[0]["geometry"]
+                    geometry["crs"] = {"type": "name",
+                                       "properties": {"name": "EPSG:4326"}}
+                    eq = json.dumps(geometry)
                 else:
                     eq = self.filter_values_handler(
                         flt.get('val'),
@@ -653,11 +659,11 @@ class SqlaTable(Model, BaseDatasource):
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
-                elif op in ("geo_within"):
+                elif op in ("geo_within",):
                     where_clause_and.append(
                         sa.func.ST_COVERS(
-                            sa.cast(sa.func.ST_GeomFromGeoJSON(eq), Geography),
-                            cols.get("geo").sqla_col
+                            sa.func.ST_GeomFromGeoJSON(eq),
+                            sa.cast(cols.get("geo").sqla_col, Geometry)
                             )
                         )
                         
