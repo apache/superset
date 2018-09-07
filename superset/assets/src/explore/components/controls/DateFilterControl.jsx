@@ -352,6 +352,7 @@ export default class DateFilterControl extends React.Component {
                         <Datetime
                           value={this.state.since}
                           defaultValue={this.state.since}
+                          viewDate={this.state.since}
                           onChange={value => this.setCustomStartEnd('since', value)}
                           isValidDate={this.isValidSince}
                           onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
@@ -365,6 +366,7 @@ export default class DateFilterControl extends React.Component {
                         <Datetime
                           value={this.state.until}
                           defaultValue={this.state.until}
+                          viewDate={this.state.until}
                           onChange={value => this.setCustomStartEnd('until', value)}
                           isValidDate={this.isValidUntil}
                           onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
