@@ -1701,16 +1701,16 @@ class Superset(BaseSupersetView):
                                                                   username),
                 )
 
-            connect_args = (
+            engine_params = (
                 request.json
                 .get('extras', {})
-                .get('engine_params', {})
-                .get('connect_args', {}))
+                .get('engine_params', {}))
+            connect_args = engine_params.get('connect_args')
 
             if configuration:
                 connect_args['configuration'] = configuration
 
-            engine = create_engine(uri, connect_args=connect_args)
+            engine = create_engine(uri, **engine_params)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
@@ -2402,6 +2402,8 @@ class Superset(BaseSupersetView):
                 tmp_table_name,
             )
 
+        client_id = request.form.get('client_id') or utils.shortid()
+
         query = Query(
             database_id=int(database_id),
             limit=mydb.db_engine_spec.get_limit_from_sql(sql),
@@ -2413,8 +2415,8 @@ class Superset(BaseSupersetView):
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=tmp_table_name,
-            user_id=int(g.user.get_id()),
-            client_id=request.form.get('client_id'),
+            user_id=g.user.get_id() if g.user else None,
+            client_id=client_id,
         )
         session.add(query)
         session.flush()

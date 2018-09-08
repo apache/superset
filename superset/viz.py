@@ -327,15 +327,21 @@ class BaseViz(object):
             self.get_payload(),
             default=utils.json_int_dttm_ser, ignore_nan=True)
 
-    def cache_key(self, query_obj):
+    def cache_key(self, query_obj, **extra):
         """
-        The cache key is made out of the key/values in `query_obj`
+        The cache key is made out of the key/values in `query_obj`, plus any
+        other key/values in `extra`.
 
-        We remove datetime bounds that are hard values,
-        and replace them with the use-provided inputs to bounds, which
-        may be time-relative (as in "5 days ago" or "now").
+        We remove datetime bounds that are hard values, and replace them with
+        the use-provided inputs to bounds, which may be time-relative (as in
+        "5 days ago" or "now").
+
+        The `extra` arguments are currently used by time shift queries, since
+        different time shifts wil differ only in the `from_dttm` and `to_dttm`
+        values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
+        cache_dict.update(extra)
 
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
@@ -360,11 +366,11 @@ class BaseViz(object):
             del payload['df']
         return payload
 
-    def get_df_payload(self, query_obj=None):
+    def get_df_payload(self, query_obj=None, **kwargs):
         """Handles caching around the df payload retrieval"""
         if not query_obj:
             query_obj = self.query_obj()
-        cache_key = self.cache_key(query_obj) if query_obj else None
+        cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -1204,7 +1210,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['from_dttm'] -= delta
             query_object['to_dttm'] -= delta
 
-            df2 = self.get_df_payload(query_object).get('df')
+            df2 = self.get_df_payload(query_object, time_compare=option).get('df')
             if df2 is not None and DTTM_ALIAS in df2:
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta

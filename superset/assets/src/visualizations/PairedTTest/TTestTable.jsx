@@ -1,15 +1,32 @@
-import d3 from 'd3';
 import dist from 'distributions';
-
 import React from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
-import './paired_ttest.css';
+export const dataPropType = PropTypes.arrayOf(PropTypes.shape({
+  group: PropTypes.arrayOf(PropTypes.string),
+  values: PropTypes.arrayOf(PropTypes.shape({
+    x: PropTypes.number,
+    y: PropTypes.number,
+  })),
+}));
+
+const propTypes = {
+  metric: PropTypes.string.isRequired,
+  groups: PropTypes.arrayOf(PropTypes.string).isRequired,
+  data: dataPropType.isRequired,
+  alpha: PropTypes.number,
+  liftValPrec: PropTypes.number,
+  pValPrec: PropTypes.number,
+};
+
+const defaultProps = {
+  alpha: 0.05,
+  liftValPrec: 4,
+  pValPrec: 6,
+};
 
 class TTestTable extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -29,7 +46,7 @@ class TTestTable extends React.Component {
       return 'control';
     }
     const liftVal = this.state.liftValues[row];
-    if (isNaN(liftVal) || !isFinite(liftVal)) {
+    if (Number.isNaN(liftVal) || !Number.isFinite(liftVal)) {
       return 'invalid'; // infinite or NaN values
     }
     return liftVal >= 0 ? 'true' : 'false'; // green on true, red on false
@@ -40,7 +57,7 @@ class TTestTable extends React.Component {
       return 'control';
     }
     const pVal = this.state.pValues[row];
-    if (isNaN(pVal) || !isFinite(pVal)) {
+    if (Number.isNaN(pVal) || !Number.isFinite(pVal)) {
       return 'invalid';
     }
     return ''; // p-values won't normally be colored
@@ -221,57 +238,7 @@ class TTestTable extends React.Component {
   }
 }
 
-TTestTable.propTypes = {
-  metric: PropTypes.string.isRequired,
-  groups: PropTypes.array.isRequired,
-  data: PropTypes.array.isRequired,
-  alpha: PropTypes.number.isRequired,
-  liftValPrec: PropTypes.number.isRequired,
-  pValPrec: PropTypes.number.isRequired,
-};
-TTestTable.defaultProps = {
-  metric: '',
-  groups: [],
-  data: [],
-  alpha: 0.05,
-  liftValPrec: 4,
-  pValPrec: 6,
-};
+TTestTable.propTypes = propTypes;
+TTestTable.defaultProps = defaultProps;
 
-function pairedTTestVis(slice, payload) {
-  const div = d3.select(slice.selector);
-  const container = slice.container;
-  const height = slice.container.height();
-  const fd = slice.formData;
-  const data = payload.data;
-  const alpha = fd.significance_level;
-  const pValPrec = fd.pvalue_precision;
-  const liftValPrec = fd.liftvalue_precision;
-  const tables = fd.metrics.map((metric, i) => ( // create a table for each metric
-    <TTestTable
-      key={i}
-      metric={metric}
-      groups={fd.groupby}
-      data={data[metric]}
-      alpha={alpha}
-      pValPrec={pValPrec > 32 ? 32 : pValPrec}
-      liftValPrec={liftValPrec > 32 ? 32 : liftValPrec}
-    />
-  ));
-  div.html('');
-  ReactDOM.render(
-    <div className="row">
-      <div className="col-sm-12">
-        <div className="paired-ttest-table scrollbar-container">
-          <div className="scrollbar-content">
-            {tables}
-          </div>
-        </div>
-      </div>
-    </div>,
-    div.node(),
-  );
-  container.find('.scrollbar-container').css('max-height', height);
-}
-
-module.exports = pairedTTestVis;
+export default TTestTable;

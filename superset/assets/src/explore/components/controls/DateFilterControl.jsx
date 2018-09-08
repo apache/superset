@@ -153,6 +153,8 @@ export default class DateFilterControl extends React.Component {
     this.renderInput = this.renderInput.bind(this);
     this.setCustomRange = this.setCustomRange.bind(this);
     this.setCustomStartEnd = this.setCustomStartEnd.bind(this);
+    this.setTypeCustomRange = this.setTypeCustomRange.bind(this);
+    this.setTypeCustomStartEnd = this.setTypeCustomStartEnd.bind(this);
     this.toggleCalendar = this.toggleCalendar.bind(this);
   }
   componentDidMount() {
@@ -193,10 +195,16 @@ export default class DateFilterControl extends React.Component {
       untilViewMode: closeCalendar ? 'days' : this.state.untilViewMode,
     });
   }
+  setTypeCustomRange() {
+    this.setState({ type: TYPES.CUSTOM_RANGE });
+  }
+  setTypeCustomStartEnd() {
+    this.setState({ type: TYPES.CUSTOM_START_END });
+  }
   handleClick(e) {
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
-      this.setState({ type: TYPES.CUSTOM_START_END });
+      this.setTypeCustomStartEnd();
     }
   }
   close() {
@@ -241,7 +249,7 @@ export default class DateFilterControl extends React.Component {
             {...props}
             type="text"
             onKeyPress={this.onEnter}
-            onFocus={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+            onFocus={this.setTypeCustomStartEnd}
             onClick={() => {}}
           />
           <InputGroup.Button onClick={() => this.toggleCalendar(key)}>
@@ -289,7 +297,7 @@ export default class DateFilterControl extends React.Component {
                 <PopoverSection
                   title="Relative to today"
                   isSelected={this.state.type === TYPES.CUSTOM_RANGE}
-                  onSelect={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
+                  onSelect={this.setTypeCustomRange}
                 >
                   <div className="clearfix centered" style={{ marginTop: '12px' }}>
                     <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
@@ -298,7 +306,7 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-rel"
                         title={this.state.rel}
-                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
+                        onFocus={this.setTypeCustomRange}
                       >
                         <MenuItem
                           onSelect={value => this.setCustomRange('rel', value)}
@@ -321,7 +329,7 @@ export default class DateFilterControl extends React.Component {
                         bsSize="small"
                         type="text"
                         onChange={event => this.setCustomRange('num', event.target.value)}
-                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
+                        onFocus={this.setTypeCustomRange}
                         onKeyPress={this.onEnter}
                         value={this.state.num}
                         style={{ height: '30px' }}
@@ -333,7 +341,7 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-grain"
                         title={this.state.grain}
-                        onFocus={() => this.setState({ type: TYPES.CUSTOM_RANGE })}
+                        onFocus={this.setTypeCustomRange}
                       >
                         {grainOptions}
                       </DropdownButton>
@@ -343,7 +351,7 @@ export default class DateFilterControl extends React.Component {
                 <PopoverSection
                   title="Start / end"
                   isSelected={this.state.type === TYPES.CUSTOM_START_END}
-                  onSelect={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+                  onSelect={this.setTypeCustomStartEnd}
                   info={FREEFORM_TOOLTIP}
                 >
                   <div ref={(ref) => { this.startEndSectionRef = ref; }}>
@@ -355,7 +363,7 @@ export default class DateFilterControl extends React.Component {
                           viewDate={this.state.since}
                           onChange={value => this.setCustomStartEnd('since', value)}
                           isValidDate={this.isValidSince}
-                          onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+                          onClick={this.setTypeCustomStartEnd}
                           renderInput={props => this.renderInput(props, 'showSinceCalendar')}
                           open={this.state.showSinceCalendar}
                           viewMode={this.state.sinceViewMode}
@@ -369,7 +377,7 @@ export default class DateFilterControl extends React.Component {
                           viewDate={this.state.until}
                           onChange={value => this.setCustomStartEnd('until', value)}
                           isValidDate={this.isValidUntil}
-                          onClick={() => this.setState({ type: TYPES.CUSTOM_START_END })}
+                          onClick={this.setTypeCustomStartEnd}
                           renderInput={props => this.renderInput(props, 'showUntilCalendar')}
                           open={this.state.showUntilCalendar}
                           viewMode={this.state.untilViewMode}

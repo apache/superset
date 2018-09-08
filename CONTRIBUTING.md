@@ -343,6 +343,21 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
     npm i
     npm run test
 
+We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+
+    export SUPERSET_CONFIG=tests.superset_test_config
+    superset load_test_users
+    superset db upgrade
+    superset init
+    superset load_examples
+    superset runserver
+
+Open Cypress tests:
+
+    cd /superset/superset/assets
+    npm run build
+    npm run cypress run
+
 ## Linting
 
 Lint the project with:
