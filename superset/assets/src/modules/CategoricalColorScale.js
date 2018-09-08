@@ -10,10 +10,10 @@ export function cleanValue(value) {
 }
 
 export default class CategoricalColorScale {
-  constructor(colors, sharedForcedItems) {
+  constructor(colors, sharedForcedColors) {
     this.colors = colors;
-    this.sharedForcedItems = sharedForcedItems;
-    this.forcedItems = {};
+    this.sharedForcedColors = sharedForcedColors;
+    this.forcedColors = {};
     this.seen = {};
     this.fn = value => this.getColor(value);
   }
@@ -21,12 +21,12 @@ export default class CategoricalColorScale {
   getColor(value) {
     const cleanedValue = cleanValue(value);
 
-    const sharedColor = this.sharedForcedItems && this.sharedForcedItems[cleanedValue];
+    const sharedColor = this.sharedForcedColors && this.sharedForcedColors[cleanedValue];
     if (sharedColor) {
       return sharedColor;
     }
 
-    const forcedColor = this.forcedItems[cleanedValue];
+    const forcedColor = this.forcedColors[cleanedValue];
     if (forcedColor) {
       return forcedColor;
     }
@@ -48,7 +48,7 @@ export default class CategoricalColorScale {
    * @param {*} forcedColor forcedColor
    */
   setColor(value, forcedColor) {
-    this.forcedItems[value] = forcedColor;
+    this.forcedColors[value] = forcedColor;
     return this;
   }
 
