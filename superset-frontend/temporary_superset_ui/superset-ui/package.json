@@ -1,0 +1,39 @@
+{
+  "name": "@superset-ui/monorepo",
+  "version": "0.0.0",
+  "description": "Superset UI",
+  "private": true,
+  "scripts": {
+    "build": "lerna run build",
+    "jest": "lerna run test",
+    "lint": "lerna run lint",
+    "prerelease": "yarn run build",
+    "prepare-release": "git checkout master && git pull --rebase origin master && yarn run test",
+    "release": "yarn run prepare-release && lerna publish && lerna run gh-pages",
+    "test": "lerna bootstrap && yarn run lint && yarn run jest"
+  },
+  "repository": "https://github.com/apache-superset/superset-ui.git",
+  "keywords": [
+    "apache",
+    "superset",
+    "data",
+    "analytics",
+    "analysis",
+    "visualization",
+    "react",
+    "d3",
+    "data-ui",
+    "vx"
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "lerna": "^3.2.1",
+    "yarn": "^1.9.4"
+  },
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
