@@ -9,13 +9,13 @@ class CategoricalColorNamespace {
   }
 
   getScale(schemeName) {
-    const name = schemeName || ColorSchemeManager.getInstance().getDefaultSchemeName();
+    const name = schemeName || ColorSchemeManager.getDefaultSchemeName();
     const scale = this.scales[name];
     if (scale) {
       return scale;
     }
     const newScale = new CategoricalColorScale(
-      ColorSchemeManager.getInstance().getScheme(name),
+      ColorSchemeManager.getScheme(name),
       this.forcedItems,
     );
     this.scales[name] = newScale;

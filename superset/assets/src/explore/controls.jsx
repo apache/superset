@@ -53,7 +53,7 @@ import { t } from '../locales';
 import ColorSchemeManager from '../modules/ColorSchemeManager';
 import sequentialSchemes from '../modules/colorSchemes/sequential';
 
-const ALL_COLOR_SCHEMES = ColorSchemeManager.getInstance().getAllSchemes();
+const ALL_COLOR_SCHEMES = ColorSchemeManager.getAllSchemes();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 

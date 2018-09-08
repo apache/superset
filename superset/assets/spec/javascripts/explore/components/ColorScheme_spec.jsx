@@ -10,8 +10,7 @@ import ColorSchemeControl from
 import ColorSchemeManager from '../../../../src/modules/ColorSchemeManager';
 
 const defaultProps = {
-  options: Object.keys(ColorSchemeManager.getInstance()
-    .getAllSchemes()).map(s => ([s, s])),
+  options: Object.keys(ColorSchemeManager.getAllSchemes()).map(s => ([s, s])),
 };
 
 describe('ColorSchemeControl', () => {
