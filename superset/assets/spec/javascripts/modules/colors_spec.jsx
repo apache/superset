@@ -24,11 +24,11 @@ describe('colors', () => {
   it('getColorFromScheme forcing colors persists through calls', () => {
     expect(getColorFromScheme('boys', 'bnbColors', 'blue')).to.equal('blue');
     expect(getColorFromScheme('boys', 'bnbColors')).to.equal('blue');
-    expect(getColorFromScheme('boys', 'googleCategory20c')).to.equal('blue');
+    expect(getColorFromScheme('boys', 'googleCategory20c')).to.not.equal('blue');
 
     expect(getColorFromScheme('girls', 'bnbColors', 'pink')).to.equal('pink');
     expect(getColorFromScheme('girls', 'bnbColors')).to.equal('pink');
-    expect(getColorFromScheme('girls', 'googleCategory20c')).to.equal('pink');
+    expect(getColorFromScheme('girls', 'googleCategory20c')).to.not.equal('pink');
   });
   it('getColorFromScheme is not case sensitive', () => {
     const c1 = getColorFromScheme('girls', 'bnbColors');
