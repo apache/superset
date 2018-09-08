@@ -36,7 +36,7 @@ class CategoricalColorNamespace {
 }
 
 const namespaces = {};
-const DEFAULT_NAMESPACE = 'DEFAULT';
+const DEFAULT_NAMESPACE = 'GLOBAL';
 
 export function getNamespace(name = DEFAULT_NAMESPACE) {
   const instance = namespaces[name];
