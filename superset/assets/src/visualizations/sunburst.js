@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import CategoricalColorManager from '../modules/CategoricalColorManager';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import { wrapSvgText } from '../modules/utils';
 import './sunburst.css';
 
@@ -68,7 +68,7 @@ function Sunburst(element, props) {
   let arcs;
   let gMiddleText; // dom handles
 
-  const colorFn = CategoricalColorManager.getScale(colorScheme).toFunction();
+  const colorFn = getScale(colorScheme).toFunction();
 
   // Helper + path gen functions
   const partition = d3.layout.partition()

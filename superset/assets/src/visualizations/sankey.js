@@ -2,7 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import CategoricalColorManager from '../modules/CategoricalColorManager';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import './sankey.css';
 
 const propTypes = {
@@ -49,7 +49,7 @@ function Sankey(element, props) {
     .attr('class', 'sankey-tooltip')
     .style('opacity', 0);
 
-  const colorFn = CategoricalColorManager.getScale(colorScheme).toFunction();
+  const colorFn = getScale(colorScheme).toFunction();
 
   const sankey = d3Sankey()
     .nodeWidth(15)

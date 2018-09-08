@@ -18,7 +18,7 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import CategoricalColorManager from '../../modules/CategoricalColorManager';
+import { getScale } from '../../modules/CategoricalColorNamespace';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
@@ -41,7 +41,7 @@ export default function(bootstrapData) {
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorManager.getScale(null).setColor(label, colorMap[label]);
+      getScale().setColor(label, colorMap[label]);
     });
   }
 

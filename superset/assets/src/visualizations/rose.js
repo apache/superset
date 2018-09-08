@@ -2,8 +2,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import { d3TimeFormatPreset } from '../modules/utils';
-import CategoricalColorManager from '../modules/CategoricalColorManager';
 import './rose.css';
 
 const propTypes = {
@@ -62,7 +62,7 @@ function Rose(element, props) {
   const numGroups = datum[times[0]].length;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
-  const colorFn = CategoricalColorManager.getScale(colorScheme).toFunction();
+  const colorFn = getScale(colorScheme).toFunction();
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();

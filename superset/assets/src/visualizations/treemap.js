@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import CategoricalColorManager from '../modules/CategoricalColorManager';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import './treemap.css';
 
 // Declare PropTypes for recursive data structures
@@ -63,7 +63,7 @@ function treemap(element, props) {
   } = props;
   const div = d3.select(element);
   const formatNumber = d3.format(numberFormat);
-  const colorFn = CategoricalColorManager.getScale(colorScheme).toFunction();
+  const colorFn = getScale(colorScheme).toFunction();
 
   function draw(data, eltWidth, eltHeight) {
     const navBarHeight = 36;
