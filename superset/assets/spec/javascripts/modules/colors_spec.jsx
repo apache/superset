@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
 import ColorSchemeManager from '../../../src/modules/ColorSchemeManager';
 
-const ALL_COLOR_SCHEMES = ColorSchemeManager.getInstance().getAll();
+const ALL_COLOR_SCHEMES = ColorSchemeManager.getInstance().getAllSchemes();
 
 describe('colors', () => {
   it('default to bnbColors', () => {

@@ -21,7 +21,7 @@ export default class CategoricalColorScale {
   getColor(value) {
     const cleanedValue = cleanValue(value);
 
-    const sharedColor = this.sharedForcedItems && this.shareForcedItems[cleanedValue];
+    const sharedColor = this.sharedForcedItems && this.sharedForcedItems[cleanedValue];
     if (sharedColor) {
       return sharedColor;
     }

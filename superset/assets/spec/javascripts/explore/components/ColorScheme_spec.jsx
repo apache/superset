@@ -9,10 +9,9 @@ import ColorSchemeControl from
   '../../../../src/explore/components/controls/ColorSchemeControl';
 import ColorSchemeManager from '../../../../src/modules/ColorSchemeManager';
 
-const ALL_COLOR_SCHEMES = ColorSchemeManager.getInstance().getAll();
-
 const defaultProps = {
-  options: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
+  options: Object.keys(ColorSchemeManager.getInstance()
+    .getAllSchemes()).map(s => ([s, s])),
 };
 
 describe('ColorSchemeControl', () => {

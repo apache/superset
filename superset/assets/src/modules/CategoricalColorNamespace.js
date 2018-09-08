@@ -2,19 +2,20 @@ import CategoricalColorScale from './CategoricalColorScale';
 import ColorSchemeManager from './ColorSchemeManager';
 
 class CategoricalColorNamespace {
-  constructor() {
+  constructor(name) {
+    this.name = name;
     this.scales = {};
     this.forcedItems = {};
   }
 
   getScale(schemeName) {
-    const name = schemeName || ColorSchemeManager.getDefaultSchemeName();
+    const name = schemeName || ColorSchemeManager.getInstance().getDefaultSchemeName();
     const scale = this.scales[name];
     if (scale) {
       return scale;
     }
     const newScale = new CategoricalColorScale(
-      ColorSchemeManager.getScheme(name),
+      ColorSchemeManager.getInstance().getScheme(name),
       this.forcedItems,
     );
     this.scales[name] = newScale;
@@ -37,16 +38,25 @@ class CategoricalColorNamespace {
 const namespaces = {};
 const DEFAULT_NAMESPACE = 'DEFAULT';
 
-function getNamespace(namespace = DEFAULT_NAMESPACE) {
-  const instance = namespaces[namespace];
+export function getNamespace(name = DEFAULT_NAMESPACE) {
+  const instance = namespaces[name];
   if (instance) {
     return instance;
   }
-  const newInstance = new CategoricalColorNamespace();
-  namespaces[namespace] = newInstance;
+  const newInstance = new CategoricalColorNamespace(name);
+  namespaces[name] = newInstance;
   return newInstance;
 }
 
-CategoricalColorNamespace.getNamespace = getNamespace;
+export function getColor(value, scheme, namespace) {
+  return getNamespace(namespace)
+    .getScale(scheme)
+    .getColor(value);
+}
+
+export function getScale(scheme, namespace) {
+  return getNamespace(namespace)
+    .getScale(scheme);
+}
 
 export default CategoricalColorNamespace;

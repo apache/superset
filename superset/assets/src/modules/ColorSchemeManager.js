@@ -8,11 +8,16 @@ class ColorSchemeManager {
     this.defaultSchemeName = undefined;
   }
 
-  get(schemeName) {
+  clearSchemes() {
+    this.schemes = {};
+    return this;
+  }
+
+  getScheme(schemeName) {
     return this.schemes[schemeName || this.defaultSchemeName];
   }
 
-  getAll() {
+  getAllSchemes() {
     return this.schemes;
   }
 
@@ -22,23 +27,26 @@ class ColorSchemeManager {
 
   setDefaultSchemeName(schemeName) {
     this.defaultSchemeName = schemeName;
+    return this;
   }
 
-  register(schemeName, colors) {
+  registerScheme(schemeName, colors) {
     this.schemes[schemeName] = colors;
     // If there is no default, set as default
     if (!this.defaultSchemeName) {
       this.defaultSchemeName = schemeName;
     }
+    return this;
   }
 
-  registerAll(multipleSchemes) {
+  registerSchemes(multipleSchemes) {
     Object.assign(this.schemes, multipleSchemes);
     // If there is no default, set the first scheme as default
     const keys = Object.keys(multipleSchemes);
     if (!this.defaultSchemeName && keys.length > 0) {
       this.defaultSchemeName = keys[0];
     }
+    return this;
   }
 }
 
@@ -55,10 +63,10 @@ ColorSchemeManager.getInstance = getInstance;
 
 // These registration code eventually should go into per-app configuration
 // when we are completely in the plug-in system.
-const manager = ColorSchemeManager.getInstance();
-manager.register('bnbColors', airbnb.bnbColors);
-manager.registerAll(categoricalSchemes);
-manager.register('lyftColors', lyft.lyftColors);
-manager.setDefaultSchemeName('bnbColors');
+ColorSchemeManager.getInstance()
+  .registerScheme('bnbColors', airbnb.bnbColors)
+  .registerSchemes(categoricalSchemes)
+  .registerScheme('lyftColors', lyft.lyftColors)
+  .setDefaultSchemeName('bnbColors');
 
 export default ColorSchemeManager;

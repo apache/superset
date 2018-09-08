@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import CategoricalColorNamespace from './CategoricalColorNamespace';
+import { getScale } from './CategoricalColorNamespace';
 import sequentialSchemes from './colorSchemes/sequential';
 import airbnb from './colorSchemes/airbnb';
 import lyft from './colorSchemes/lyft';
@@ -31,7 +31,7 @@ export function hexToRGB(hex, alpha = 255) {
  forcibly associate to a label.
  */
 export function getColorFromScheme(value, schemeName, forcedColor) {
-  const scale = CategoricalColorNamespace.getNamespace().getScale(schemeName);
+  const scale = getScale(schemeName);
   if (forcedColor) {
     scale.setColor(value, forcedColor);
     return forcedColor;
