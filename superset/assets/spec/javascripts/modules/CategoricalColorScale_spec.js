@@ -1,11 +1,10 @@
-/* eslint-disable no-unused-expressions */
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import CategoricalColorScale from '../../../src/modules/CategoricalColorScale';
 
 describe('CategoricalColorScale', () => {
   it('exists', () => {
-    expect(CategoricalColorScale).to.exist;
+    expect(CategoricalColorScale !== undefined).to.equal(true);
   });
 
   describe('new CategoricalColorScale(colors, sharedForcedColors)', () => {
