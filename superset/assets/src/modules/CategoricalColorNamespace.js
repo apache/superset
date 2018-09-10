@@ -59,4 +59,8 @@ export function getScale(scheme, namespace) {
     .getScale(scheme);
 }
 
-export default CategoricalColorNamespace;
+export default {
+  getNamespace,
+  getScale,
+  getColor,
+};
