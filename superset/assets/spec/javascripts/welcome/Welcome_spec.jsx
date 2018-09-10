@@ -4,17 +4,17 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import App from '../../../src/welcome/App';
+import Welcome from '../../../src/welcome/Welcome';
 
-describe('App', () => {
+describe('Welcome', () => {
   const mockedProps = {};
   it('is valid', () => {
     expect(
-      React.isValidElement(<App {...mockedProps} />),
+      React.isValidElement(<Welcome {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 4 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
+    const wrapper = shallow(<Welcome {...mockedProps} />);
     expect(wrapper.find(Tab)).to.have.length(3);
     expect(wrapper.find(Panel)).to.have.length(3);
     expect(wrapper.find(Row)).to.have.length(3);

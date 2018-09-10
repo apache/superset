@@ -67,8 +67,6 @@ function adaptor(slice, payload) {
     significance_level: alpha,
   } = formData;
 
-  console.log('groups', groups, payload.data);
-
   ReactDOM.render(
     <PairedTTest
       metrics={metrics}
