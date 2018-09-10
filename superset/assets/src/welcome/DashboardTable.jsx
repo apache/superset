@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, unsafe } from 'reactable';
-
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
