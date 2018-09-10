@@ -7,6 +7,7 @@
     "build": "lerna run build",
     "jest": "lerna run test",
     "lint": "lerna run lint",
+    "lint:fix": "lerna run lint:fix",
     "prerelease": "yarn run build",
     "prepare-release": "git checkout master && git pull --rebase origin master && yarn run test",
     "release": "yarn run prepare-release && lerna publish && lerna run gh-pages",
