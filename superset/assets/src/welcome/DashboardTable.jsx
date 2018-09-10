@@ -61,4 +61,5 @@ export default class DashboardTable extends React.PureComponent {
     return <Loading />;
   }
 }
+
 DashboardTable.propTypes = propTypes;
