@@ -33,6 +33,7 @@ export default class DashboardTable extends React.PureComponent {
         <Table
           className="table"
           sortable={['dashboard', 'creator', 'modified']}
+          filterBy={this.props.search}
           filterable={['dashboard', 'creator']}
           itemsPerPage={50}
           hideFilterInput
