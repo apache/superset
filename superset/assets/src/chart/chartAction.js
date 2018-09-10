@@ -3,7 +3,7 @@ import URI from 'urijs';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { COMMON_ERR_MESSAGES } from '../common';
+import { COMMON_ERR_MESSAGES } from '../utils/common';
 import { t } from '../locales';
 
 const $ = (window.$ = require('jquery'));

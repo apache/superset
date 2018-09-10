@@ -9,7 +9,7 @@ import {
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
 } from '../messageToasts/actions';
-import { COMMON_ERR_MESSAGES } from '../common';
+import { COMMON_ERR_MESSAGES } from '../utils/common';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -441,7 +441,6 @@ export function popDatasourceQuery(datasourceKey, sql) {
     });
   };
 }
-
 export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }

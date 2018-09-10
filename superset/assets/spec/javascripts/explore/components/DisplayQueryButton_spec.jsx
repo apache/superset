@@ -2,7 +2,6 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { mount } from 'enzyme';
-import { Modal } from 'react-bootstrap';
 import ModalTrigger from './../../../../src/components/ModalTrigger';
 
 import DisplayQueryButton from '../../../../src/explore/components/DisplayQueryButton';
@@ -27,6 +26,5 @@ describe('DisplayQueryButton', () => {
   it('renders a dropdown', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
     expect(wrapper.find(ModalTrigger)).to.have.lengthOf(2);
-    expect(wrapper.find(Modal)).to.have.lengthOf(2);
   });
 });

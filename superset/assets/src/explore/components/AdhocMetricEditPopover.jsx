@@ -86,10 +86,12 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onColumnChange(column) {
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({
-      column,
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-    }) });
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        column,
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+      }),
+    });
   }
 
   onAggregateChange(aggregate) {
