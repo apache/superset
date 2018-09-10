@@ -113,9 +113,10 @@ describe('Markdown', () => {
     // the mode dropdown onchange instead
     const dropdown = wrapper.find(MarkdownModeDropdown);
     dropdown.prop('onChange')('preview');
+    wrapper.update();
 
-    expect(wrapper.find(AceEditor)).to.have.length(0);
     expect(wrapper.find(ReactMarkdown)).to.have.length(1);
+    expect(wrapper.find(AceEditor)).to.have.length(0);
   });
 
   it('should call updateComponents when editMode changes from edit => preview, and there are markdownSource changes', () => {

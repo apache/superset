@@ -89,7 +89,7 @@ class SqlEditor extends React.PureComponent {
       height,
     });
 
-    if (this.refs.ace.clientHeight) {
+    if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
