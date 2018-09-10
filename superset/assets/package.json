@@ -102,6 +102,7 @@
     "react-dnd-html5-backend": "^2.5.4",
     "react-dom": "^15.6.2",
     "react-gravatar": "^2.6.1",
+    "react-hot-loader": "^4.3.6",
     "react-map-gl": "^3.0.4",
     "react-markdown": "^3.3.0",
     "react-redux": "^5.0.2",
