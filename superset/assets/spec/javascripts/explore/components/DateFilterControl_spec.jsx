@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import { Button } from 'react-bootstrap';
+import { Button, Label } from 'react-bootstrap';
 
 import DateFilterControl from '../../../../src/explore/components/controls/DateFilterControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
@@ -19,11 +19,9 @@ const defaultProps = {
 
 describe('DateFilterControl', () => {
   let wrapper;
-  let popover;
 
   beforeEach(() => {
     wrapper = shallow(<DateFilterControl {...defaultProps} />);
-    popover = shallow(wrapper.instance().renderPopover());
   });
 
   it('renders a ControlHeader', () => {
@@ -31,9 +29,35 @@ describe('DateFilterControl', () => {
     expect(controlHeader).to.have.lengthOf(1);
   });
   it('renders 3 Buttons', () => {
-    expect(popover.find(Button)).to.have.length(1);
+    const label = wrapper.find(Label).first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.find(Button)).to.have.length(3);
+    }, 10);
   });
-  it('renders 1 dimmed sections', () => {
-    expect(popover.find(Button)).to.have.length(1);
+  it('loads the right state', () => {
+    const label = wrapper.find(Label).first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.state().num).to.equal('90');
+    }, 10);
+  });
+  it('renders 2 dimmed sections', () => {
+    const label = wrapper.find(Label).first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.find(Button)).to.have.length(3);
+    }, 10);
+  });
+  it('opens and closes', () => {
+    const label = wrapper.find(Label).first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.find('.popover')).to.have.length(1);
+      expect(wrapper.find('.ok')).first().simulate('click');
+      setTimeout(() => {
+        expect(wrapper.find('.popover')).to.have.length(0);
+      }, 10);
+    }, 10);
   });
 });

@@ -3,7 +3,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
 import { Button, FormGroup, Popover } from 'react-bootstrap';
 
 import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
@@ -27,7 +27,7 @@ const sqlExpressionAdhocMetric = new AdhocMetric({
   sqlExpression: 'COUNT(*)',
 });
 
-function setup(overrides, doShallow = true) {
+function setup(overrides) {
   const onChange = sinon.spy();
   const onClose = sinon.spy();
   const props = {
@@ -37,12 +37,7 @@ function setup(overrides, doShallow = true) {
     columns,
     ...overrides,
   };
-  let wrapper;
-  if (doShallow) {
-    wrapper = shallow(<AdhocMetricEditPopover {...props} />);
-  } else {
-    wrapper = mount(<AdhocMetricEditPopover {...props} />);
-  }
+  const wrapper = shallow(<AdhocMetricEditPopover {...props} />);
   return { wrapper, onChange, onClose };
 }
 
@@ -88,37 +83,31 @@ describe('AdhocMetricEditPopover', () => {
   });
 
   it('prevents saving if no column or aggregate is chosen', () => {
-    const { wrapper } = setup({}, true);
+    const { wrapper } = setup();
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
-
     wrapper.instance().onColumnChange(null);
-    expect(wrapper.find({ disabled: true })).to.have.lengthOf(1);
-
+    expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(1);
     wrapper.instance().onColumnChange({ column: columns[0] });
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
-
     wrapper.instance().onAggregateChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(1);
   });
 
   it('highlights save if changes are present', () => {
-    const { wrapper } = setup({}, true);
+    const { wrapper } = setup();
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(0);
-    const inst = wrapper.instance();
-    inst.onColumnChange({ column: columns[1] });
-    inst.forceUpdate();
+    wrapper.instance().onColumnChange({ column: columns[1] });
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(1);
   });
 
   it('will initiate a drag when clicked', () => {
-    const { wrapper } = setup({}, false);
-    const inst = wrapper.instance();
-    inst.onDragDown = sinon.spy();
-    inst.forceUpdate();
+    const { wrapper } = setup();
+    wrapper.instance().onDragDown = sinon.spy();
+    wrapper.instance().forceUpdate();
 
     expect(wrapper.find('i.glyphicon-resize-full')).to.have.lengthOf(1);
-    expect(inst.onDragDown.calledOnce).to.be.false;
-    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown', {});
-    expect(inst.onDragDown.calledOnce).to.be.true;
+    expect(wrapper.instance().onDragDown.calledOnce).to.be.false;
+    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
+    expect(wrapper.instance().onDragDown.calledOnce).to.be.true;
   });
 });
