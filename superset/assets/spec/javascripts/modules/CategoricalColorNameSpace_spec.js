@@ -5,12 +5,12 @@ import CategoricalColorNamespace, {
   getScale,
   getColor,
 } from '../../../src/modules/CategoricalColorNamespace';
-import ColorSchemeManager from '../../../src/modules/ColorSchemeManager';
+import { registerScheme } from '../../../src/modules/ColorSchemeManager';
 
-describe.only('CategoricalColorNamespace', () => {
+describe('CategoricalColorNamespace', () => {
   before(() => {
-    ColorSchemeManager.registerScheme('testColors', ['red', 'green', 'blue']);
-    ColorSchemeManager.registerScheme('testColors2', ['red', 'green', 'blue']);
+    registerScheme('testColors', ['red', 'green', 'blue']);
+    registerScheme('testColors2', ['red', 'green', 'blue']);
   });
   it('The class constructor cannot be accessed directly', () => {
     expect(CategoricalColorNamespace).to.not.be.a('Function');

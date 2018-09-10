@@ -59,7 +59,7 @@ function getInstance() {
   return singleton;
 }
 
-const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
+export const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
   .filter(fn => fn !== 'constructor')
   .reduce((all, fn) => {
     const functions = all;
@@ -67,16 +67,13 @@ const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
       return getInstance()[fn](...args);
     };
     return functions;
-  }, {});
+  }, { getInstance });
 
-ColorSchemeManager.getInstance = getInstance;
-Object.assign(ColorSchemeManager, staticFunctions);
-
-export default ColorSchemeManager;
+export default staticFunctions;
 
 // These registration code eventually should go into per-app configuration
 // when we migrate to the plug-in system.
-ColorSchemeManager
+getInstance()
   .registerScheme('bnbColors', airbnb.bnbColors)
   .registerSchemes(categoricalSchemes)
   .registerScheme('lyftColors', lyft.lyftColors)
