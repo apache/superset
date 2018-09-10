@@ -43,7 +43,6 @@ export default class DashboardTable extends React.PureComponent {
           ]}
           defaultSort={{ column: 'modified', direction: 'desc' }}
         >
-          <Tr><Td>test</Td></Tr>
           {this.state.dashboards.map(o => (
             <Tr key={o.id}>
               <Td column="dashboard" value={o.dashboard_title}>
