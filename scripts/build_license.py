@@ -1,6 +1,6 @@
 from collections import defaultdict
 import json
-import os
+from pprint import pprint
 import subprocess
 
 LICENSE_MAP = {
@@ -25,9 +25,11 @@ LICENSE_MAP = {
     'CC-BY-3.0': 'CC-BY-3.0',
     'CC-BY-4.0': 'CC-BY-4.0',
     'CC0-1.0': 'CC0-1.0',
-    'Custom: http://badges.github.io/stability-badges/dist/stable.svg': 'Custom: http://badges.github.io/stability-badges/dist/stable.svg',
+    'Custom: http://badges.github.io/stability-badges/dist/stable.svg':
+        'Custom: http://badges.github.io/stability-badges/dist/stable.svg',
     'Custom: http://i.imgur.com/goJdO.png': 'Custom: http://i.imgur.com/goJdO.png',
-    'Custom: https://github.com/tmcw/jsonlint': 'Custom: https://github.com/tmcw/jsonlint',
+    'Custom: https://github.com/tmcw/jsonlint':
+        'Custom: https://github.com/tmcw/jsonlint',
     'Custom: https://ppl.family': 'Custom: https://ppl.family',
     'GNU Library General Public License': 'GNU Library General Public License',
     'ISC': 'ISC',
@@ -45,8 +47,10 @@ LICENSE_MAP = {
 
 
 def build_license():
-    # os.system('npm install -g license-check')
-    result = subprocess.run(['license-checker', '--json', '--production'], stdout=subprocess.PIPE)
+    result = subprocess.run(
+        ['license-checker', '--json', '--production'],
+        stdout=subprocess.PIPE,
+    )
     packages = json.loads(result.stdout)
     license_dict = defaultdict(set)
     for npm_short, package_details in packages.items():
@@ -59,7 +63,6 @@ def build_license():
             lic = LICENSE_MAP.get(lic) or lic or 'UNKNOWN'
             license_dict[lic].add(npm_short)
 
-    from pprint import pprint
     pprint(license_dict)
 
 
