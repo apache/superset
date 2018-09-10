@@ -84,7 +84,6 @@
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "nvd3": "1.8.6",
-    "parse-iso-duration": "^1.0.0",
     "prop-types": "^15.6.0",
     "re-resizable": "^4.3.1",
     "react": "^15.6.2",
