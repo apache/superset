@@ -92,7 +92,6 @@ describe('AdhocMetricEditPopover', () => {
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
 
     wrapper.instance().onColumnChange(null);
-    wrapper.instance().render();
     expect(wrapper.find({ disabled: true })).to.have.lengthOf(1);
 
     wrapper.instance().onColumnChange({ column: columns[0] });
@@ -103,9 +102,11 @@ describe('AdhocMetricEditPopover', () => {
   });
 
   it('highlights save if changes are present', () => {
-    const { wrapper } = setup({}, false);
+    const { wrapper } = setup({}, true);
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(0);
-    wrapper.instance().onColumnChange({ column: columns[1] });
+    const inst = wrapper.instance();
+    inst.onColumnChange({ column: columns[1] });
+    inst.forceUpdate();
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(1);
   });
 

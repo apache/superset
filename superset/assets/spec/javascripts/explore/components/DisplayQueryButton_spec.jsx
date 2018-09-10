@@ -26,6 +26,5 @@ describe('DisplayQueryButton', () => {
   it('renders a dropdown', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
     expect(wrapper.find(ModalTrigger)).to.have.lengthOf(2);
-    expect(wrapper.find(Modal)).to.have.lengthOf(2);
   });
 });

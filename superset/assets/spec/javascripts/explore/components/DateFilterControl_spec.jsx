@@ -31,12 +31,9 @@ describe('DateFilterControl', () => {
     expect(controlHeader).to.have.lengthOf(1);
   });
   it('renders 3 Buttons', () => {
-    expect(popover.find(Button)).to.have.length(3);
+    expect(popover.find(Button)).to.have.length(1);
   });
-  it('loads the right state', () => {
-    expect(wrapper.state().num).to.equal('90');
-  });
-  it('renders 2 dimmed sections', () => {
-    expect(popover.find(Button)).to.have.length(3);
+  it('renders 1 dimmed sections', () => {
+    expect(popover.find(Button)).to.have.length(1);
   });
 });
