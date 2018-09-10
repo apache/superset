@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import $ from 'jquery';
-import '../../helpers/browser';
+import '../../helpers/shim';
 import tableVis from '../../../src/visualizations/table';
 
 describe('table viz', () => {

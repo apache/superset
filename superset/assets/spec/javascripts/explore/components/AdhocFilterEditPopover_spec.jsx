@@ -106,7 +106,7 @@ describe('AdhocFilterEditPopover', () => {
 
     expect(wrapper.find('i.glyphicon-resize-full')).to.have.lengthOf(1);
     expect(wrapper.instance().onDragDown.calledOnce).to.be.false;
-    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
+    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown', {});
     expect(wrapper.instance().onDragDown.calledOnce).to.be.true;
   });
 });

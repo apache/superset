@@ -1,6 +1,7 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
-import { t } from './locales';
+// Everything imported in this file ends up in the common entry file
+// be mindful of double-imports
 
 const utils = require('./modules/utils');
 
@@ -31,8 +32,3 @@ export function appSetup() {
   window.jQuery = $;
   require('bootstrap');
 }
-
-// Error messages used in many places across applications
-export const COMMON_ERR_MESSAGES = {
-  SESSION_TIMED_OUT: t('Your session timed out, please refresh your page and try again.'),
-};

@@ -36,7 +36,7 @@ describe('TableElement', () => {
     mount(<TableElement {...mockedProps} />);
   });
   it('sorts columns', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().sortColumns).to.equal(false);
     expect(wrapper.find(ColumnElement).first().props().column.name).to.equal('id');
     wrapper.find('.sort-cols').simulate('click');
@@ -50,7 +50,7 @@ describe('TableElement', () => {
     expect(mockedActions.collapseTable.called).to.equal(true);
   });
   it('removes the table', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().expanded).to.equal(true);
     wrapper.find('.table-remove').simulate('click');
     expect(wrapper.state().expanded).to.equal(false);
