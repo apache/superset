@@ -18,4 +18,6 @@ jest.config.js
 lib/
 logs/
 node_modules/
+package-lock.json
 prettier.config.js
+yarn.lock
