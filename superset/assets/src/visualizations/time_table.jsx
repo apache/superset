@@ -123,6 +123,7 @@ function viz(slice, payload) {
           } else if (column.comparisonType === 'perc_change') {
             v = (recent / v) - 1;
           }
+          v = v || 0;
         } else if (column.colType === 'contrib') {
           // contribution to column total
           v = recent / Object.keys(reversedData[0])
