@@ -6,12 +6,6 @@ import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
-
-import {
-  DEFAULT_LONGITUDE,
-  DEFAULT_LATITUDE,
-  DEFAULT_ZOOM,
-} from '../../utils/common';
 import './MapBox.css';
 
 const NOOP = () => {};
@@ -31,9 +25,6 @@ const propTypes = {
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
   rgb: PropTypes.array,
-  viewportLatitude: PropTypes.number,
-  viewportLongitude: PropTypes.number,
-  viewportZoom: PropTypes.number,
   bounds: PropTypes.array,
 };
 
@@ -42,9 +33,6 @@ const defaultProps = {
   onViewportChange: NOOP,
   pointRadius: DEFAULT_POINT_RADIUS,
   pointRadiusUnit: 'Pixels',
-  viewportLatitude: DEFAULT_LATITUDE,
-  viewportLongitude: DEFAULT_LONGITUDE,
-  viewportZoom: DEFAULT_ZOOM,
 };
 
 class MapBox extends React.Component {
@@ -172,9 +160,6 @@ function mapbox(slice, payload, setControlValue) {
     point_radius: pointRadius,
     point_radius_unit: pointRadiusUnit,
     render_while_dragging: renderWhileDragging,
-    viewport_latitude: viewportLatitude,
-    viewport_longitude: viewportLongitude,
-    viewport_zoom: viewportZoom,
   } = formData;
 
   // Validate mapbox color
@@ -211,9 +196,6 @@ function mapbox(slice, payload, setControlValue) {
       pointRadiusUnit={pointRadiusUnit}
       renderWhileDragging={renderWhileDragging}
       rgb={rgb}
-      viewportLatitude={viewportLatitude}
-      viewportLongitude={viewportLongitude}
-      viewportZoom={viewportZoom}
       bounds={bounds}
     />,
     document.querySelector(selector),
