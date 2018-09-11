@@ -7,7 +7,7 @@ import CategoricalColorNamespace, {
 } from '../../../src/modules/CategoricalColorNamespace';
 import { registerScheme } from '../../../src/modules/ColorSchemeManager';
 
-describe('CategoricalColorNamespace', () => {
+describe.only('CategoricalColorNamespace', () => {
   before(() => {
     registerScheme('testColors', ['red', 'green', 'blue']);
     registerScheme('testColors2', ['red', 'green', 'blue']);
@@ -76,6 +76,11 @@ describe('CategoricalColorNamespace', () => {
       const scale2 = ns2.getScale('testColors');
       expect(scale1.getColor('dog')).to.equal('black');
       expect(scale2.getColor('dog')).to.not.equal('black');
+    });
+    it('returns the namespace instance', () => {
+      const ns1 = getNamespace('test-set-scale3.1');
+      const ns2 =ns1.setColor('dog', 'black');
+      expect(ns1).to.equal(ns2);
     });
   });
   describe('static getScale()', () => {

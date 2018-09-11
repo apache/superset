@@ -138,5 +138,4 @@ describe.only('ColorSchemeManager', () => {
       expect(scheme2).to.deep.equal(['brown', 'purple']);
     });
   });
-
 });
