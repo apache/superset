@@ -6,12 +6,6 @@ import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
-
-import {
-  DEFAULT_LONGITUDE,
-  DEFAULT_LATITUDE,
-  DEFAULT_ZOOM,
-} from '../../utils/common';
 import './MapBox.css';
 
 const NOOP = () => {};
@@ -31,9 +25,7 @@ const propTypes = {
   pointRadiusUnit: PropTypes.string,
   renderWhileDragging: PropTypes.bool,
   rgb: PropTypes.array,
-  viewportLatitude: PropTypes.number,
-  viewportLongitude: PropTypes.number,
-  viewportZoom: PropTypes.number,
+  bounds: PropTypes.array,
 };
 
 const defaultProps = {
@@ -41,27 +33,31 @@ const defaultProps = {
   onViewportChange: NOOP,
   pointRadius: DEFAULT_POINT_RADIUS,
   pointRadiusUnit: 'Pixels',
-  viewportLatitude: DEFAULT_LATITUDE,
-  viewportLongitude: DEFAULT_LONGITUDE,
-  viewportZoom: DEFAULT_ZOOM,
 };
 
 class MapBox extends React.Component {
   constructor(props) {
     super(props);
 
-    const {
-      viewportLatitude: latitude,
-      viewportLongitude: longitude,
-      viewportZoom: zoom,
-    } = this.props;
+    const { width, height, bounds } = this.props;
+    // Get a viewport that fits the given bounds, which all marks to be clustered.
+    // Derive lat, lon and zoom from this viewport. This is only done on initial
+    // render as the bounds don't update as we pan/zoom in the current design.
+    const mercator = new ViewportMercator({
+      width,
+      height,
+    }).fitBounds(bounds);
+    const { latitude, longitude, zoom } = mercator;
+    // Compute the clusters based on the bounds. Again, this is only done once because
+    // we don't update the clusters as we pan/zoom in the current design.
+    const bbox = [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]];
+    this.clusters = this.props.clusterer.getClusters(bbox, Math.round(zoom));
 
     this.state = {
       viewport: {
         longitude,
         latitude,
         zoom,
-        startDragLngLat: [longitude, latitude],
       },
     };
     this.onViewportChange = this.onViewportChange.bind(this);
@@ -86,23 +82,11 @@ class MapBox extends React.Component {
       rgb,
     } = this.props;
     const { viewport } = this.state;
-    const { latitude, longitude, zoom } = viewport;
-    const mercator = new ViewportMercator({
-      width,
-      height,
-      longitude,
-      latitude,
-      zoom,
-    });
-    const topLeft = mercator.unproject([0, 0]);
-    const bottomRight = mercator.unproject([width, height]);
-    const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
-    const clusters = this.props.clusterer.getClusters(bbox, Math.round(zoom));
     const isDragging = viewport.isDragging === undefined ? false :
                        viewport.isDragging;
     return (
       <MapGL
-        {...this.state.viewport}
+        {...viewport}
         mapStyle={mapStyle}
         width={width}
         height={height}
@@ -114,7 +98,7 @@ class MapBox extends React.Component {
           isDragging={isDragging}
           width={width}
           height={height}
-          locations={Immutable.fromJS(clusters)}
+          locations={Immutable.fromJS(this.clusters)}
           dotRadius={pointRadius}
           pointRadiusUnit={pointRadiusUnit}
           rgb={rgb}
@@ -164,6 +148,7 @@ function mapbox(slice, payload, setControlValue) {
   const {
     customMetric,
     geoJSON,
+    bounds,
     mapboxApiKey,
   } = payload.data;
   const {
@@ -175,9 +160,6 @@ function mapbox(slice, payload, setControlValue) {
     point_radius: pointRadius,
     point_radius_unit: pointRadiusUnit,
     render_while_dragging: renderWhileDragging,
-    viewport_latitude: viewportLatitude,
-    viewport_longitude: viewportLongitude,
-    viewport_zoom: viewportZoom,
   } = formData;
 
   // Validate mapbox color
@@ -214,9 +196,7 @@ function mapbox(slice, payload, setControlValue) {
       pointRadiusUnit={pointRadiusUnit}
       renderWhileDragging={renderWhileDragging}
       rgb={rgb}
-      viewportLatitude={viewportLatitude}
-      viewportLongitude={viewportLongitude}
-      viewportZoom={viewportZoom}
+      bounds={bounds}
     />,
     document.querySelector(selector),
   );
