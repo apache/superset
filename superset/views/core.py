@@ -2334,7 +2334,12 @@ class Superset(BaseSupersetView):
         if not results_backend:
             return json_error_response("Results backend isn't configured")
 
+        read_from_results_backend_start = utils.now_as_float()
         blob = results_backend.get(key)
+        stats_logger.timing(
+            'sqllab.query.results_backend_read',
+            read_from_results_backend_start - utils.now_as_float(),
+        )
         if not blob:
             return json_error_response(
                 'Data could not be retrieved. '
@@ -2446,7 +2451,8 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=False,
                     store_results=not query.select_as_cta,
-                    user_name=g.user.username)
+                    user_name=g.user.username,
+                    start_time=utils.now_as_float())
             except Exception as e:
                 logging.exception(e)
                 msg = (
