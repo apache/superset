@@ -100,7 +100,7 @@ def execute_sql(
     user_name=None, session=None, start_time=None,
 ):
     """Executes the sql query returns the results."""
-    if store_results:
+    if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing(
             'sqllab.query.time_pending', utils.now_as_float() - start_time)
