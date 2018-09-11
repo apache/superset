@@ -10292,9 +10292,9 @@ react@^16.4.1:
     prop-types "^15.6.2"
     schedule "^0.3.0"
 
-reactable@1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/reactable/-/reactable-1.0.2.tgz#67a579fee3af68b991b5f04df921a4a40ece0b72"
+reactable@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/reactable/-/reactable-1.1.0.tgz#2f84bb8b3808df8ac64694b539be416438db8498"
 
 reactcss@^1.2.0:
   version "1.2.3"
