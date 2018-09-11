@@ -21,7 +21,7 @@ function transform(data, formData) {
   if (supportTrendline) {
     const sortedData = [...data].sort((a, b) => a[TIME_COLUMN] - b[TIME_COLUMN]);
     bigNumber = sortedData[sortedData.length - 1][metricName];
-    if (supportTrendline && compareLag > 0) {
+    if (compareLag > 0) {
       const compareIndex = sortedData.length - (compareLag + 1);
       if (compareIndex >= 0) {
         const compareValue = sortedData[compareIndex][metricName];
