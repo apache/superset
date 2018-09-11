@@ -45,6 +45,7 @@
     "node-fetch": "^2.2.0"
   },
   "dependencies": {
+    "babel-runtime": "^6.26.0",
     "url-search-params-polyfill": "^4.0.1",
     "whatwg-fetch": "^2.0.4"
   },
