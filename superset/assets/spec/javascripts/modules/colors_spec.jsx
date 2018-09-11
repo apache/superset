@@ -1,9 +1,9 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import { getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
-import ColorSchemeManager from '../../../src/modules/ColorSchemeManager';
+import { getAllSchemes } from '../../../src/modules/ColorSchemeManager';
 
-const ALL_COLOR_SCHEMES = ColorSchemeManager.getAllSchemes();
+const ALL_COLOR_SCHEMES = getAllSchemes();
 
 describe('colors', () => {
   it('default to bnbColors', () => {

@@ -8,7 +8,7 @@ class ColorSchemeManager {
     this.defaultSchemeName = undefined;
   }
 
-  clearSchemes() {
+  clearScheme() {
     this.schemes = {};
     return this;
   }
@@ -39,7 +39,7 @@ class ColorSchemeManager {
     return this;
   }
 
-  registerSchemes(multipleSchemes) {
+  registerMultipleSchemes(multipleSchemes) {
     Object.assign(this.schemes, multipleSchemes);
     // If there is no default, set the first scheme as default
     const keys = Object.keys(multipleSchemes);
@@ -52,14 +52,14 @@ class ColorSchemeManager {
 
 let singleton;
 
-function getInstance() {
+export function getInstance() {
   if (!singleton) {
     singleton = new ColorSchemeManager();
   }
   return singleton;
 }
 
-export const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
+const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
   .filter(fn => fn !== 'constructor')
   .reduce((all, fn) => {
     const functions = all;
@@ -69,12 +69,30 @@ export const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.pro
     return functions;
   }, { getInstance });
 
-export default staticFunctions;
+const {
+  clearScheme,
+  getScheme,
+  getAllSchemes,
+  getDefaultSchemeName,
+  setDefaultSchemeName,
+  registerScheme,
+  registerMultipleSchemes,
+} = staticFunctions;
+
+export {
+  clearScheme,
+  getScheme,
+  getAllSchemes,
+  getDefaultSchemeName,
+  setDefaultSchemeName,
+  registerScheme,
+  registerMultipleSchemes,
+};
 
 // These registration code eventually should go into per-app configuration
 // when we migrate to the plug-in system.
 getInstance()
   .registerScheme('bnbColors', airbnb.bnbColors)
-  .registerSchemes(categoricalSchemes)
+  .registerMultipleSchemes(categoricalSchemes)
   .registerScheme('lyftColors', lyft.lyftColors)
   .setDefaultSchemeName('bnbColors');

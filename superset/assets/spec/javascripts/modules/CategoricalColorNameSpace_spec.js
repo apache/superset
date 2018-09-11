@@ -15,7 +15,7 @@ describe('CategoricalColorNamespace', () => {
   it('The class constructor cannot be accessed directly', () => {
     expect(CategoricalColorNamespace).to.not.be.a('Function');
   });
-  describe('static function getNamespace()', () => {
+  describe('static getNamespace()', () => {
     it('returns default namespace if name is not specified', () => {
       const namespace = getNamespace();
       expect(namespace !== undefined).to.equal(true);
@@ -78,7 +78,7 @@ describe('CategoricalColorNamespace', () => {
       expect(scale2.getColor('dog')).to.not.equal('black');
     });
   });
-  describe('static function getScale()', () => {
+  describe('static getScale()', () => {
     it('getScale() returns a CategoricalColorScale with default scheme in default namespace', () => {
       const scale = getScale();
       expect(scale).to.not.equal(undefined);
@@ -98,7 +98,7 @@ describe('CategoricalColorNamespace', () => {
       expect(scale).to.equal(scale2);
     });
   });
-  describe('static function getColor()', () => {
+  describe('static getColor()', () => {
     it('getColor(value) returns a color from default scheme in default namespace', () => {
       const value = 'dog';
       const color = getColor(value);
