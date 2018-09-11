@@ -1,14 +1,17 @@
-import { it, describe } from 'mocha';
+import { it, describe, before } from 'mocha';
 import { expect } from 'chai';
 import { getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
-import { getAllSchemes } from '../../../src/modules/ColorSchemeManager';
+import { getAllSchemes, setDefaultSchemeName } from '../../../src/modules/ColorSchemeManager';
 
 const ALL_COLOR_SCHEMES = getAllSchemes();
 
 describe('colors', () => {
+  before(() => {
+    setDefaultSchemeName('bnbColors');
+  });
   it('default to bnbColors', () => {
     const color1 = getColorFromScheme('CA');
-    expect(color1).to.equal(ALL_COLOR_SCHEMES.bnbColors[0]);
+    expect(ALL_COLOR_SCHEMES.bnbColors).to.include(color1);
   });
   it('getColorFromScheme series with same scheme should have the same color', () => {
     const color1 = getColorFromScheme('CA', 'bnbColors');
@@ -16,10 +19,9 @@ describe('colors', () => {
     const color3 = getColorFromScheme('CA', 'bnbColors');
     const color4 = getColorFromScheme('NY', 'bnbColors');
 
-    expect(color1).to.equal(ALL_COLOR_SCHEMES.bnbColors[0]);
-    expect(color2).to.equal(ALL_COLOR_SCHEMES.googleCategory20c[0]);
     expect(color1).to.equal(color3);
-    expect(color4).to.equal(ALL_COLOR_SCHEMES.bnbColors[1]);
+    expect(color1).to.not.equal(color2);
+    expect(color1).to.not.equal(color4);
   });
   it('getColorFromScheme forcing colors persists through calls', () => {
     expect(getColorFromScheme('boys', 'bnbColors', 'blue')).to.equal('blue');
