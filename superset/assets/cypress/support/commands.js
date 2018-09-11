@@ -50,10 +50,24 @@ Cypress.Commands.add('visitChartByParams', (params) => {
   cy.visit(`${BASE_EXPLORE_URL}${params}`);
 });
 
-Cypress.Commands.add('verifySliceSuccess', (waitAlias) => {
-  cy.wait([waitAlias]).then((data) => {
+Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, chartSelector }) => {
+  cy.wait(waitAlias).then((data) => {
     expect(data.status).to.eq(200);
-    expect(data.response.body).to.have.property('error', null);
-    cy.get('.slice_container');
+    if (data.response.body.error) {
+      expect(data.response.body.error).to.eq(null);
+    }
+    if (querySubstring) {
+      expect(data.response.body.query).contains(querySubstring);
+    }
+
+    cy.get('.slice_container').within(() => {
+      if (chartSelector) {
+        cy.get(chartSelector).then((charts) => {
+          const firstChart = charts[0];
+          expect(firstChart.clientWidth).greaterThan(0);
+          expect(firstChart.clientHeight).greaterThan(0);
+        });
+      }
+    });
   });
 });
