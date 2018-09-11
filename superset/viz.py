@@ -2015,6 +2015,9 @@ class MapboxViz(BaseViz):
             ],
         }
 
+        southWest = [df[fd.get('all_columns_x')].min(), df[fd.get('all_columns_y')].min()]
+        northEast = [df[fd.get('all_columns_x')].max(), df[fd.get('all_columns_y')].max()]
+
         return {
             'geoJSON': geo_json,
             'customMetric': custom_metric,
@@ -2024,9 +2027,7 @@ class MapboxViz(BaseViz):
             'clusteringRadius': fd.get('clustering_radius'),
             'pointRadiusUnit': fd.get('point_radius_unit'),
             'globalOpacity': fd.get('global_opacity'),
-            'viewportLongitude': fd.get('viewport_longitude'),
-            'viewportLatitude': fd.get('viewport_latitude'),
-            'viewportZoom': fd.get('viewport_zoom'),
+            'bounds': [southWest, northEast],
             'renderWhileDragging': fd.get('render_while_dragging'),
             'tooltip': fd.get('rich_tooltip'),
             'color': fd.get('mapbox_color'),
