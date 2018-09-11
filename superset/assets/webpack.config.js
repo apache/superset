@@ -35,6 +35,11 @@ const plugins = [
 
   // create fresh dist/ upon build
   new CleanWebpackPlugin(['dist']),
+
+  // expose mode variable to other modules
+  new webpack.DefinePlugin({
+    'process.env.WEBPACK_MODE': JSON.stringify(mode),
+  }),
 ];
 
 if (isDevMode) {
