@@ -62,6 +62,15 @@ mostly content consumers, though they can create slices and dashboards.
 Also note that when Gamma users look at the dashboards and slices list view,
 they will only see the objects that they have access to.
 
+Rho
+"""
+Rho have read only access to dashboards. They cannot view anything else
+like tables or slices, is targered for users that access to data as a
+cockpit.
+
+Also note that when Rho users look at the dashboards, they will only see
+the objects that they have access to.
+
 sql_lab
 """""""
 The ``sql_lab`` role grants access to SQL Lab. Note that while ``Admin``
