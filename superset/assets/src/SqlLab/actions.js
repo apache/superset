@@ -2,6 +2,8 @@
 /* eslint no-undef: 2 */
 import $ from 'jquery';
 import shortid from 'shortid';
+import JSONbig from 'json-bigint';
+
 import { now } from '../modules/dates';
 import { t } from '../locales';
 import {
@@ -125,10 +127,11 @@ export function fetchQueryResults(query) {
     const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;
     $.ajax({
       type: 'GET',
-      dataType: 'json',
+      dataType: 'text',
       url: sqlJsonUrl,
       success(results) {
-        dispatch(querySuccess(query, results));
+        const parsedResults = JSONbig.parse(results);
+        dispatch(querySuccess(query, parsedResults));
       },
       error(err) {
         let msg = t('Failed at retrieving results from the results backend');
