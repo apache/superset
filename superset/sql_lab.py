@@ -81,14 +81,13 @@ def session_scope(nullpool):
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
-    ctask, query_id, rendered_query, return_results=True, store_results=False,
+    ctask, query_id, rendered_query, run_async=False,
         user_name=None, start_time=None):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
-
         try:
             return execute_sql(
-                ctask, query_id, rendered_query, return_results, store_results, user_name,
+                ctask, query_id, rendered_query, run_async, user_name,
                 session=session, start_time=start_time)
         except Exception as e:
             logging.exception(e)
@@ -102,14 +101,18 @@ def get_sql_results(
 
 
 def execute_sql(
-    ctask, query_id, rendered_query, return_results=True, store_results=False,
+    ctask, query_id, rendered_query, run_async=False, store_results=False,
     user_name=None, session=None, start_time=None,
 ):
     """Executes the sql query returns the results."""
-    if store_results and start_time:
+    if run_async and start_time:
         # only asynchronous queries
         stats_logger.timing(
             'sqllab.query.time_pending', now_as_float() - start_time)
+
+    if run_async and not results_backend:
+        return handle_error("Results backend isn't configured.")
+
     query = get_query(query_id, session)
     payload = dict(query_id=query_id)
 
@@ -132,13 +135,12 @@ def execute_sql(
             payload['link'] = troubleshooting_link
         return payload
 
-    if store_results and not results_backend:
-        return handle_error("Results backend isn't configured.")
-
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
     SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
+    CSV_MAX_ROWS = app.config.get('CSV_MAX_ROW')
+
     if not superset_query.is_readonly() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
@@ -235,22 +237,23 @@ def execute_sql(
         'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     })
-    if store_results:
-        key = '{}'.format(uuid.uuid4())
-        logging.info('Storing results in results backend, key: {}'.format(key))
-        write_to_results_backend_start = now_as_float()
-        json_payload = json.dumps(
-            payload, default=json_iso_dttm_ser, ignore_nan=True)
-        cache_timeout = database.cache_timeout
-        if cache_timeout is None:
-            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
-        results_backend.set(key, zlib_compress(json_payload), cache_timeout)
-        query.results_key = key
-        stats_logger.timing(
-            'sqllab.query.results_backend_write',
-            now_as_float() - write_to_results_backend_start)
+
+    if not run_async:
+        return payload
+
+    key = '{}'.format(uuid.uuid4())
+    logging.info('Storing results in results backend, key: {}'.format(key))
+    write_to_results_backend_start = now_as_float()
+    json_payload = json.dumps(
+        payload, default=json_iso_dttm_ser, ignore_nan=True)
+    cache_timeout = database.cache_timeout
+    if cache_timeout is None:
+        cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
+    results_backend.set(key, zlib_compress(json_payload), cache_timeout)
+    query.results_key = key
+    stats_logger.timing(
+        'sqllab.query.results_backend_write',
+        now_as_float() - write_to_results_backend_start)
+
     session.merge(query)
     session.commit()
-
-    if return_results:
-        return payload

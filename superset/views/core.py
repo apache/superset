@@ -2449,8 +2449,7 @@ class Superset(BaseSupersetView):
                 sql_lab.get_sql_results.delay(
                     query_id,
                     rendered_query,
-                    return_results=False,
-                    store_results=not query.select_as_cta,
+                    run_async=True,
                     user_name=g.user.username,
                     start_time=utils.now_as_float())
             except Exception as e:
@@ -2483,7 +2482,7 @@ class Superset(BaseSupersetView):
                 data = sql_lab.get_sql_results(
                     query_id,
                     rendered_query,
-                    return_results=True)
+                    run_async=False)
             payload = json.dumps(
                 data,
                 default=utils.pessimistic_json_iso_dttm_ser,
@@ -2503,11 +2502,33 @@ class Superset(BaseSupersetView):
     def csv(self, client_id):
         """Download the query results as csv."""
         logging.info('Exporting CSV file [{}]'.format(client_id))
+        # DO something where you are able to chheck the limit of the query if it goes above the specified and adjust as necessary. 
         query = (
             db.session.query(Query)
             .filter_by(client_id=client_id)
             .one()
         )
+
+        SQL_MAX_ROWS = config.get('SQL_MAX_ROW')
+        CSV_MAX_ROWS = app.config.get('CSV_MAX_ROW')
+        # get the query limit specified in the query. 
+        mydb = db.session.query(models.Database).filter_by(id=query.database.id).first()
+        user_specified_limit =  mydb.db_engine_spec.get_limit_from_sql(query.sql)
+
+        print(user_specified_limit)
+        if user_specified_limit > SQL_MAX_ROWS:
+            #some change is definitely happening
+            print('rerunning the query!!!~~~')
+            new_limit = min(user_specified_limit, CSV_MAX_ROWS)
+            modified_sql = query.database.apply_limit_to_sql(query.sql, new_limit)
+
+            sql_lab.get_sql_results.delay(query.id,
+                    modified_sql,
+                    run_async=True,
+                    user_name=g.user.username,
+                    start_time=utils.now_as_float())
+
+
 
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
