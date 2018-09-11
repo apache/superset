@@ -68,7 +68,7 @@ Rho have read only access to dashboards. They cannot view anything else
 like tables or slices, is targered for users that access to data as a
 cockpit.
 
-Also note that when Rho users look at the dashboards, they will only see
+As Gamma role the Rho users look at the dashboards, they will only see
 the objects that they have access to.
 
 sql_lab
