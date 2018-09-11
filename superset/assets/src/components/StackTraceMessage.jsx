@@ -40,7 +40,7 @@ class StackTraceMessage extends React.PureComponent {
           {this.hasLink() &&
           <a
             href={this.props.queryResponse.link}
-            target="_blank" 
+            target="_blank"
             rel="noopener noreferrer"
           >
             (Request Access)
