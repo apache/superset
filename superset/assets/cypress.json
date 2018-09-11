@@ -1,3 +1,5 @@
 {
-	"baseUrl": "http://localhost:8081"
+	"baseUrl": "http://localhost:8081",
+	"videoUploadOnPasses": false,
+	"ignoreTestFiles": "*.helper.js"
 }
