@@ -30,35 +30,35 @@ function getCategories(fd, data) {
 
 
 function getBgLayers(conf) {
-   const layers = [];
-   for (const key in conf) {
+    const layers = [];
+    for (const key in conf) {
         const request = new XMLHttpRequest();
-             // Open a new connection, using the GET request on the URL endpoint
-       request.open('GET', '/geo_assets/' + conf[key].path, false);
-       let data = {};
-       request.onload = function () {
+        // Open a new connection, using the GET request on the URL endpoint
+        request.open('GET', '/geo_assets/' + conf[key].path, false);
+        let data = {};
+        request.onload = function () {
             data = JSON.parse(this.response);
-       };
-       request.send();
+        };
+        request.send();
 
-       const layer = new GeoJsonLayer({
-           id: 'geojson-layer-' + key,
-           data,
-           pickable: true,
-           stroked: false,
-           filled: true,
-           extruded: true,
-           lineWidthScale: 20,
-           lineWidthMinPixels: 2,
-           getFillColor: conf[key].color,
-           getLineColor: conf[key].color,
-           getRadius: 100,
-           getLineWidth: 1,
-           getElevation: 30,
-       });
-       layers.push(layer);
-   }
-  return layers;
+        const layer = new GeoJsonLayer({
+            id: 'geojson-layer-' + key,
+            data,
+            pickable: true,
+            stroked: false,
+            filled: true,
+            extruded: true,
+            lineWidthScale: 20,
+            lineWidthMinPixels: 2,
+            getFillColor: conf[key].color,
+            getLineColor: conf[key].color,
+            getRadius: 100,
+            getLineWidth: 1,
+            getElevation: 30,
+        });
+        layers.push(layer);
+    }
+    return layers;
 }
 
 
@@ -141,9 +141,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     if (fd.dimension) {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
-    console.log(this)
     return [this.props.getLayer(fd, data,
-            this.props.slice)].concat(getBgLayers(this.props.deckGeoJSONLayers))
+            this.props.slice)].concat(getBgLayers(this.props.deckGeoJSONLayers));
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];

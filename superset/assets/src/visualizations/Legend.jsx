@@ -27,7 +27,7 @@ export default class Legend extends React.PureComponent {
       const style = { color: 'rgba(' + v.color.join(', ') + ')' };
       const icon = v.enabled ? '\u25CF' : '\u25CB';
       return (
-        <li>
+        <li key={k}>
           <a
             href="#"
             onClick={() => this.props.toggleCategory(k)}

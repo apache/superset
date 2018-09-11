@@ -1,0 +1,23 @@
+div.layerSelector  {
+    display: inline;
+    position: absolute;
+    top: 110px;
+    right: 30px;
+
+}
+
+div.well {
+    background: #fff;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    margin: 12px;
+    padding: 6px 12px;
+    outline: none;
+
+}
+button.cbutton {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    background: #fff;
+
+}

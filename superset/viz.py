@@ -2715,6 +2715,7 @@ class MapFilterViz(BaseDeckGLViz):
             'renderWhileDragging': fd.get('render_while_dragging'),
             'tooltip': fd.get('rich_tooltip'),
             'color': fd.get('mapbox_color'),
+            'geoJSONBgLayers': config.get('GEOJSON_LAYERS', {}),
         }
 
 

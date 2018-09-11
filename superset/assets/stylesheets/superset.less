@@ -16,6 +16,20 @@ body {
 .alert.alert-danger > .debugger {
     color: red;
 }
+.collapsing {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+  transition-timing-function: ease;
+  transition-duration: .35s;
+  transition-property: height;
+
+  &.width {
+    width: 0;
+    height: auto;
+    transition-property: width;
+  }
+}
 
 .modal-dialog {
     z-index: 1100;
