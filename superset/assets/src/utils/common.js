@@ -9,9 +9,6 @@ export const LUMINANCE_RED_WEIGHT = 0.2126;
 export const LUMINANCE_GREEN_WEIGHT = 0.7152;
 export const LUMINANCE_BLUE_WEIGHT = 0.0722;
 export const MILES_PER_KM = 1.60934;
-export const DEFAULT_LONGITUDE = -122.405293;
-export const DEFAULT_LATITUDE = 37.772123;
-export const DEFAULT_ZOOM = 11;
 
 // Regexp for the label added to time shifted series (1 hour offset, 2 days offset, etc.)
 export const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
