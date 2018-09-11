@@ -9,7 +9,7 @@ describe('Groupby', function () {
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess('@getJson');
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
 
     cy.get('[data-test=groupby]').within(() => {
       cy.get('.Select-control').click();
@@ -17,7 +17,7 @@ describe('Groupby', function () {
       cy.get('.VirtualizedSelectFocusedOption').click();
     });
     cy.get('button.query').click();
-    cy.verifySliceSuccess('@getJson');
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
   });
 });
 
@@ -30,7 +30,7 @@ describe('SimpleAdhocMetric', function () {
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess('@getJson');
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
 
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
