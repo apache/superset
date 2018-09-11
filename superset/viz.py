@@ -1029,16 +1029,6 @@ class BigNumberViz(BaseViz):
         self.form_data['metric'] = metric
         return d
 
-    def get_data(self, df):
-        form_data = self.form_data
-        df.sort_values(by=df.columns[0], inplace=True)
-        compare_lag = form_data.get('compare_lag')
-        return {
-            'data': df.values.tolist(),
-            'compare_lag': compare_lag,
-            'compare_suffix': form_data.get('compare_suffix', ''),
-        }
-
 
 class BigNumberTotalViz(BaseViz):
 
@@ -1057,14 +1047,6 @@ class BigNumberTotalViz(BaseViz):
         d['metrics'] = [self.form_data.get('metric')]
         self.form_data['metric'] = metric
         return d
-
-    def get_data(self, df):
-        form_data = self.form_data
-        df.sort_values(by=df.columns[0], inplace=True)
-        return {
-            'data': df.values.tolist(),
-            'subheader': form_data.get('subheader', ''),
-        }
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
