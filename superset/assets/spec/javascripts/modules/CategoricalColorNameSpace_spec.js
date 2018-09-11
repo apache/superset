@@ -80,7 +80,7 @@ describe('CategoricalColorNamespace', () => {
     });
     it('returns the namespace instance', () => {
       const ns1 = getNamespace('test-set-scale3.1');
-      const ns2 =ns1.setColor('dog', 'black');
+      const ns2 = ns1.setColor('dog', 'black');
       expect(ns1).to.equal(ns2);
     });
   });

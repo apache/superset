@@ -53,15 +53,15 @@ describe('CategoricalColorScale', () => {
         scale.getColor('donkey'),
         scale.getColor('goat'),
       ];
-      colors.forEach(color => {
-        if(colorSet[color]) {
+      colors.forEach((color) => {
+        if (colorSet[color]) {
           colorSet[color]++;
         } else {
           colorSet[color] = 1;
         }
       });
       expect(Object.keys(colorSet).length).to.equal(3);
-      ['blue', 'red', 'green'].forEach(color => {
+      ['blue', 'red', 'green'].forEach((color) => {
         expect(colorSet[color]).to.equal(2);
       });
     });
