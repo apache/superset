@@ -7,7 +7,7 @@ import CategoricalColorNamespace, {
 } from '../../../src/modules/CategoricalColorNamespace';
 import { registerScheme } from '../../../src/modules/ColorSchemeManager';
 
-describe.only('CategoricalColorNamespace', () => {
+describe('CategoricalColorNamespace', () => {
   before(() => {
     registerScheme('testColors', ['red', 'green', 'blue']);
     registerScheme('testColors2', ['red', 'green', 'blue']);

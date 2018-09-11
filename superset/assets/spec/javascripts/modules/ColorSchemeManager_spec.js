@@ -10,7 +10,7 @@ import ColorSchemeManager, {
   registerMultipleSchemes,
 } from '../../../src/modules/ColorSchemeManager';
 
-describe.only('ColorSchemeManager', () => {
+describe('ColorSchemeManager', () => {
   beforeEach(() => {
     const m = getInstance();
     m.clearScheme();

@@ -56,6 +56,11 @@ describe('CategoricalColorScale', () => {
       expect(scale1.getColor('pig')).to.equal('black');
       expect(scale2.getColor('pig')).to.equal('black');
     });
+    it('returns the scale', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const output = scale.setColor('pig', 'pink');
+      expect(scale).to.equal(output);
+    });
   });
   describe('.toFunction()', () => {
     it('returns a function that wraps getColor', () => {
