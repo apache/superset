@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import CategoricalColorScale from '../../../src/modules/CategoricalColorScale';
@@ -8,7 +9,7 @@ describe('CategoricalColorScale', () => {
   });
 
   describe('new CategoricalColorScale(colors, sharedForcedColors)', () => {
-    it('can create new scale when sharedForcedItem is not given', () => {
+    it('can create new scale when sharedForcedColors is not given', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale).to.be.instanceOf(CategoricalColorScale);
     });
@@ -40,6 +41,29 @@ describe('CategoricalColorScale', () => {
       expect(c1).to.not.equal(c2);
       expect(c2).to.not.equal(c3);
       expect(c3).to.not.equal(c1);
+    });
+    it('recycles colors when number of items exceed available colors', () => {
+      const colorSet = {};
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const colors = [
+        scale.getColor('pig'),
+        scale.getColor('horse'),
+        scale.getColor('cat'),
+        scale.getColor('cow'),
+        scale.getColor('donkey'),
+        scale.getColor('goat'),
+      ];
+      colors.forEach(color => {
+        if(colorSet[color]) {
+          colorSet[color]++;
+        } else {
+          colorSet[color] = 1;
+        }
+      });
+      expect(Object.keys(colorSet).length).to.equal(3);
+      ['blue', 'red', 'green'].forEach(color => {
+        expect(colorSet[color]).to.equal(2);
+      });
     });
   });
   describe('.setColor(value, forcedColor)', () => {

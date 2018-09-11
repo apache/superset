@@ -4,6 +4,7 @@ import CategoricalColorNamespace, {
   getNamespace,
   getScale,
   getColor,
+  DEFAULT_NAMESPACE,
 } from '../../../src/modules/CategoricalColorNamespace';
 import { registerScheme } from '../../../src/modules/ColorSchemeManager';
 
@@ -19,7 +20,7 @@ describe('CategoricalColorNamespace', () => {
     it('returns default namespace if name is not specified', () => {
       const namespace = getNamespace();
       expect(namespace !== undefined).to.equal(true);
-      expect(namespace.name).to.equal('GLOBAL');
+      expect(namespace.name).to.equal(DEFAULT_NAMESPACE);
     });
     it('returns namespace with specified name', () => {
       const namespace = getNamespace('myNamespace');

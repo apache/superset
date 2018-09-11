@@ -10,6 +10,11 @@ export function cleanValue(value) {
 }
 
 export default class CategoricalColorScale {
+  /**
+   * Constructor
+   * @param {*} colors an array of colors
+   * @param {*} sharedForcedColors optional parameter that comes from parent (usually CategoricalColorNamespace) and supersede this.forcedColors
+   */
   constructor(colors, sharedForcedColors) {
     this.colors = colors;
     this.sharedForcedColors = sharedForcedColors;
