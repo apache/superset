@@ -14,7 +14,7 @@ import unittest
 import pandas as pd
 from past.builtins import basestring
 
-from superset import app, cli, db, security_manager
+from superset import app, db, security_manager
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
@@ -89,6 +89,8 @@ class CeleryTestCase(SupersetTestCase):
 
     @classmethod
     def setUpClass(cls):
+        db.session.query(Query).delete()
+        db.session.commit()
         try:
             os.remove(app.config.get('SQL_CELERY_DB_FILE_PATH'))
         except OSError as e:
@@ -110,7 +112,6 @@ class CeleryTestCase(SupersetTestCase):
                 'admin', 'admin', ' user', 'admin@fab.org',
                 security_manager.find_role('Admin'),
                 password='general')
-        cli.load_examples_run(load_test_data=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -141,8 +142,7 @@ class CeleryTestCase(SupersetTestCase):
         return json.loads(resp.data.decode('utf-8'))
 
     def test_run_sync_query_dont_exist(self):
-        main_db = get_main_database(db.session)
-        db_id = main_db.id
+        db_id = get_main_database(db.session).id
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
         result1 = self.run_sql(db_id, sql_dont_exist, '1', cta='true')
         self.assertTrue('error' in result1)
@@ -167,17 +167,17 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual([{'name': perm_name}], data2)
 
     def test_run_sync_query_cta_no_data(self):
-        main_db = get_main_database(db.session)
-        db_id = main_db.id
-        sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
+        db_id = get_main_database(db.session).id
+        sql_empty_result = 'SELECT * FROM ab_user WHERE id=666 LIMIT 666'
         result3 = self.run_sql(
-            db_id, sql_empty_result, '3', tmp_table='tmp_table_3', cta='true')
+            db_id, sql_empty_result, '3', cta='false')
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
         self.assertEqual([], result3['columns'])
 
-        query3 = self.get_query_by_id(result3['query']['serverId'])
-        self.assertEqual(QueryStatus.SUCCESS, query3.status)
+        query = self.get_query_by_id(result3['query']['serverId'])
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual(666, query.limit)
 
     def test_run_async_query(self):
         main_db = get_main_database(db.session)
@@ -202,7 +202,6 @@ class CeleryTestCase(SupersetTestCase):
             "WHERE name='Admin' LIMIT 666", query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
-        self.assertEqual(666, query.limit)
         self.assertEqual(False, query.limit_used)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)

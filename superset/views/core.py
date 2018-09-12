@@ -2361,9 +2361,11 @@ class Superset(BaseSupersetView):
             payload_json['data'] = payload_json['data'][:display_limit]
         return json_success(
             json.dumps(
-                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
-
-        return json_success(utils.zlib_decompress_to_string(blob))
+                payload_json,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            ),
+        )
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
