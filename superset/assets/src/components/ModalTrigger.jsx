@@ -42,16 +42,16 @@ export default class ModalTrigger extends React.Component {
   }
 
   close() {
-    this.setState({ showModal: false });
+    this.setState(() => ({ showModal: false }));
   }
 
   open(e) {
     e.preventDefault();
     this.props.beforeOpen();
-    this.setState({ showModal: true });
+    this.setState(() => ({ showModal: true }));
   }
   renderModal() {
-    return (
+    return this.state.showModal && (
       <Modal
         animation={this.props.animation}
         show={this.state.showModal}
