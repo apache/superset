@@ -56,6 +56,7 @@
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",
     "@vx/scale": "^0.0.165",
+    "abortcontroller-polyfill": "^1.1.9",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
