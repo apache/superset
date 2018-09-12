@@ -67,7 +67,6 @@ const defaultProps = {
 class TimeTable extends React.PureComponent {
   renderLeftCell(row) {
     const { rowType, url } = this.props;
-    // const context = { ...fd, metric };
     const context = { metric: row };
     const fullUrl = url ? Mustache.render(url, context) : null;
 
