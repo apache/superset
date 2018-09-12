@@ -15,8 +15,8 @@ from superset import db, security_manager, utils
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.utils import get_main_database
 from .base_tests import SupersetTestCase
-from .utils import get_main_database
 
 
 class SqlLabTests(SupersetTestCase):
