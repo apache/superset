@@ -176,21 +176,19 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         } else if (err.statusText === 'AbortError') {
           dispatch(chartUpdateStopped(key));
         } else {
-          let errObject;
+          let errObject = err;
           if (err.responseJSON) {
             errObject = err.responseJSON;
           } else if (err.stack) {
             errObject = {
-              error: t('Unexpected error: ') + err.description,
+              error:
+                t('Unexpected error: ') +
+                (err.description || t('(no description, click to see stack trace)')),
               stacktrace: err.stack,
             };
           } else if (err.responseText && err.responseText.indexOf('CSRF') >= 0) {
             errObject = {
               error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
-            };
-          } else {
-            errObject = {
-              error: t('Unexpected error.'),
             };
           }
           dispatch(chartUpdateFailed(errObject, key));
