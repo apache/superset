@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getColorFromScheme } from '../modules/colors';
+import { getColorFromScheme } from '../../modules/colors';
 import './treemap.css';
 
 // Declare PropTypes for recursive data structures
@@ -300,23 +300,4 @@ function treemap(element, props) {
 
 treemap.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    number_format: numberFormat,
-    color_scheme: colorScheme,
-    treemap_ratio: treemapRatio,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return treemap(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    numberFormat,
-    colorScheme,
-    treemapRatio,
-  });
-}
-
-export default adaptor;
+export default treemap;
