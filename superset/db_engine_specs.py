@@ -1489,10 +1489,12 @@ class KylinEngineSpec(BaseEngineSpec):
                 dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+
 class TeradataEngineSpec(BaseEngineSpec):
+    """Dialect for Teradata DB."""
     engine = 'teradata'
     limit_method = LimitMethod.WRAP_SQL
-    
+
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('minute', _('minute'), "TRUNC(CAST({col} as DATE), 'MI')", 'PT1M'),
@@ -1503,7 +1505,8 @@ class TeradataEngineSpec(BaseEngineSpec):
         Grain('quarter', _('quarter'), "TRUNC(CAST({col} as DATE), 'Q')", 'P0.25Y'),
         Grain('year', _('year'), "TRUNC(CAST({col} as DATE), 'YEAR')", 'P1Y'),
     )
-    
+
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}
