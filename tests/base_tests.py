@@ -18,7 +18,7 @@ from superset import app, cli, db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from .utils import get_main_database
+from superset.utils import get_main_database
 
 
 BASE_DIR = app.config.get('BASE_DIR')
