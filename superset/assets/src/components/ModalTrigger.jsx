@@ -82,31 +82,31 @@ export default class ModalTrigger extends React.Component {
       'btn btn-default btn-sm': this.props.isButton,
     });
     if (this.props.isButton) {
-      return (
+      return [
         <Button
           className="modal-trigger"
           tooltip={this.props.tooltip}
           onClick={this.open}
         >
           {this.props.triggerNode}
-          {this.renderModal()}
-        </Button>
-      );
+        </Button>,
+        this.renderModal(),
+      ];
     } else if (this.props.isMenuItem) {
-      return (
+      return [
         <MenuItem onClick={this.open}>
           {this.props.triggerNode}
-          {this.renderModal()}
-        </MenuItem>
-      );
+        </MenuItem>,
+        this.renderModal(),
+      ];
     }
     /* eslint-disable jsx-a11y/interactive-supports-focus */
-    return (
+    return [
       <span className={classNames} onClick={this.open} role="button">
         {this.props.triggerNode}
-        {this.renderModal()}
-      </span>
-    );
+      </span>,
+      this.renderModal(),
+    ];
   }
 }
 
