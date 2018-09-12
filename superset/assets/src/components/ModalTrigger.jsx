@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { Modal, MenuItem } from 'react-bootstrap';
 import cx from 'classnames';
@@ -82,31 +82,37 @@ export default class ModalTrigger extends React.Component {
       'btn btn-default btn-sm': this.props.isButton,
     });
     if (this.props.isButton) {
-      return [
-        <Button
-          className="modal-trigger"
-          tooltip={this.props.tooltip}
-          onClick={this.open}
-        >
-          {this.props.triggerNode}
-        </Button>,
-        this.renderModal(),
-      ];
+      return (
+        <Fragment>
+          <Button
+            className="modal-trigger"
+            tooltip={this.props.tooltip}
+            onClick={this.open}
+          >
+            {this.props.triggerNode}
+          </Button>
+          {this.renderModal()}
+        </Fragment>
+      );
     } else if (this.props.isMenuItem) {
-      return [
-        <MenuItem onClick={this.open}>
-          {this.props.triggerNode}
-        </MenuItem>,
-        this.renderModal(),
-      ];
+      return (
+        <Fragment>
+          <MenuItem onClick={this.open}>
+            {this.props.triggerNode}
+          </MenuItem>
+          {this.renderModal()}
+        </Fragment>
+      );
     }
     /* eslint-disable jsx-a11y/interactive-supports-focus */
-    return [
-      <span className={classNames} onClick={this.open} role="button">
-        {this.props.triggerNode}
-      </span>,
-      this.renderModal(),
-    ];
+    return (
+      <Fragment>
+        <span className={classNames} onClick={this.open} role="button">
+          {this.props.triggerNode}
+        </span>
+        {this.renderModal()}
+      </Fragment>
+    );
   }
 }
 
