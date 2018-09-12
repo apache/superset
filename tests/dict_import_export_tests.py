@@ -15,8 +15,8 @@ from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.utils import get_main_database
 from .base_tests import SupersetTestCase
-from .utils import get_main_database
 
 DBREF = 'dict_import__export_test'
 NAME_PREFIX = 'dict_'

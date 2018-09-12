@@ -836,10 +836,7 @@ def get_or_create_main_db():
     from superset.models import core as models
 
     logging.info('Creating database reference')
-    dbobj = (
-        db.session.query(models.Database)
-        .filter_by(database_name='main')
-        .first())
+    dbobj = get_main_database(db.session)
     if not dbobj:
         dbobj = models.Database(database_name='main')
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
@@ -848,6 +845,15 @@ def get_or_create_main_db():
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
+
+
+def get_main_database(session):
+    from superset.models import core as models
+    return (
+        session.query(models.Database)
+        .filter_by(database_name='main')
+        .first()
+    )
 
 
 def is_adhoc_metric(metric):
