@@ -30,6 +30,7 @@ $(document).ready(function () {
   });
 });
 
+// Register color schemes
 getInstance()
   .registerScheme('bnbColors', airbnb.bnbColors)
   .registerMultipleSchemes(categoricalSchemes)

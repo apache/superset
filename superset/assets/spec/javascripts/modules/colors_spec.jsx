@@ -1,17 +1,21 @@
 import { it, describe, before } from 'mocha';
 import { expect } from 'chai';
 import { getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
-import { getAllSchemes, setDefaultSchemeName } from '../../../src/modules/ColorSchemeManager';
-
-const ALL_COLOR_SCHEMES = getAllSchemes();
+import { getInstance } from '../../../src/modules/ColorSchemeManager';
+import airbnb from '../../../src/modules/colorSchemes/airbnb';
+import categoricalSchemes from '../../../src/modules/colorSchemes/categorical';
 
 describe('colors', () => {
   before(() => {
-    setDefaultSchemeName('bnbColors');
+    // Register color schemes
+    getInstance()
+      .registerScheme('bnbColors', airbnb.bnbColors)
+      .registerMultipleSchemes(categoricalSchemes)
+      .setDefaultSchemeName('bnbColors');
   });
   it('default to bnbColors', () => {
     const color1 = getColorFromScheme('CA');
-    expect(ALL_COLOR_SCHEMES.bnbColors).to.include(color1);
+    expect(airbnb.bnbColors).to.include(color1);
   });
   it('getColorFromScheme series with same scheme should have the same color', () => {
     const color1 = getColorFromScheme('CA', 'bnbColors');
