@@ -86,7 +86,7 @@ function transform(data, formData) {
 
   const transformedData = data.map(datum => ({
     text: datum[series],
-    size: datum[metric],
+    size: datum[metric.label || metric],
   }));
 
   return transformedData;
