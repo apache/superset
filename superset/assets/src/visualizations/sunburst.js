@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getColorFromScheme } from '../modules/colors';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import { wrapSvgText } from '../modules/utils';
 import './sunburst.css';
 
@@ -68,6 +68,8 @@ function Sunburst(element, props) {
   let arcs;
   let gMiddleText; // dom handles
 
+  const colorFn = getScale(colorScheme).toFunction();
+
   // Helper + path gen functions
   const partition = d3.layout.partition()
     .size([2 * Math.PI, radius * radius])
@@ -132,7 +134,7 @@ function Sunburst(element, props) {
         .attr('points', breadcrumbPoints)
         .style('fill', function (d) {
           return colorByCategory ?
-            getColorFromScheme(d.name, colorScheme) :
+            colorFn(d.name) :
             colorScale(d.m2 / d.m1);
         });
 
@@ -143,7 +145,7 @@ function Sunburst(element, props) {
         .style('fill', function (d) {
           // Make text white or black based on the lightness of the background
           const col = d3.hsl(colorByCategory ?
-            getColorFromScheme(d.name, colorScheme) :
+            colorFn(d.name) :
             colorScale(d.m2 / d.m1));
           return col.l < 0.5 ? 'white' : 'black';
         })
@@ -377,7 +379,7 @@ function Sunburst(element, props) {
         .attr('d', arc)
         .attr('fill-rule', 'evenodd')
         .style('fill', d => colorByCategory
-          ? getColorFromScheme(d.name, colorScheme)
+          ? colorFn(d.name)
           : colorScale(d.m2 / d.m1))
         .style('opacity', 1)
         .on('mouseenter', mouseenter);

@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getColorFromScheme } from '../modules/colors';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import './treemap.css';
 
 // Declare PropTypes for recursive data structures
@@ -63,6 +63,7 @@ function treemap(element, props) {
   } = props;
   const div = d3.select(element);
   const formatNumber = d3.format(numberFormat);
+  const colorFn = getScale(colorScheme).toFunction();
 
   function draw(data, eltWidth, eltHeight) {
     const navBarHeight = 36;
@@ -282,7 +283,7 @@ function treemap(element, props) {
         .text(d => formatNumber(d.value));
       t.call(text);
       g.selectAll('rect')
-        .style('fill', d => getColorFromScheme(d.name, colorScheme));
+        .style('fill', d => colorFn(d.name));
 
       return g;
     };

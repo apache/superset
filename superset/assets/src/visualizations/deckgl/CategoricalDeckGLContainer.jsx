@@ -6,19 +6,21 @@ import PropTypes from 'prop-types';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
-import { getColorFromScheme, hexToRGB } from '../../modules/colors';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const colorFn = getScale(fd.color_scheme).toFunction();
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
       } else {
         color = fixedColor;
       }
@@ -98,10 +100,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const colorFn = getScale(fd.color_scheme).toFunction();
     return data.map((d) => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
         return { ...d, color };
       }
       return d;
