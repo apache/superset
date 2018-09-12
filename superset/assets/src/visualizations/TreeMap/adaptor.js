@@ -1,13 +1,35 @@
 import treemap from './treemap';
 
+function buildHiarachey(data, metric, groupby, level) {
+  if (level === groupby.length - 1) {
+    return data.map(d => ({
+      name: d[groupby[level]],
+      value: d[metric],
+    }));
+  }
+  const keySet = new Set(data.map(d => d[groupby[level]]));
+  return [...keySet].map(key => ({
+    name: key,
+    children: buildHiarachey(
+      data.filter(d => d[groupby[level]] === key),
+      metric,
+      groupby,
+      level + 1,
+    ),
+  }));
+}
+
 function getNestedStructure(data, metric, groupby) {
-  console.log(data);
+  const chartData = {
+    name: metric,
+    children: buildHiarachey(data, metric, groupby, 0),
+  };
+  return chartData;
 }
 
 function transform(data, formData) {
-  console.log(data);
   const { groupby, metrics } = formData;
-  return metrics.map(metric => getNestedStructure(data, metric, groupby));
+  return metrics.map(metric => getNestedStructure(data, metric.label || metric, groupby));
 }
 
 function adaptor(slice, payload) {

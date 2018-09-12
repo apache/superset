@@ -742,23 +742,6 @@ class TreemapViz(BaseViz):
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
 
-    def _nest(self, metric, df):
-        nlevels = df.index.nlevels
-        if nlevels == 1:
-            result = [{'name': n, 'value': v}
-                      for n, v in zip(df.index, df[metric])]
-        else:
-            result = [{'name': l, 'children': self._nest(metric, df.loc[l])}
-                      for l in df.index.levels[0]]
-        return result
-
-    def get_data(self, df):
-        df = df.set_index(self.form_data.get('groupby'))
-        chart_data = [{'name': metric, 'children': self._nest(metric, df)}
-                      for metric in df.columns]
-        return chart_data
-
-
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
