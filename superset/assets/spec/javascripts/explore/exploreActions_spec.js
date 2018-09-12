@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-expressions */
-import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import { defaultState } from '../../../src/explore/store';
 import exploreReducer from '../../../src/explore/reducers/exploreReducer';

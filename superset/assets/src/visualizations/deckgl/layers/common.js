@@ -1,5 +1,6 @@
 import dompurify from 'dompurify';
 import { fitBounds } from 'viewport-mercator-project';
+import d3 from 'd3';
 
 import sandboxedEval from '../../../modules/sandbox';
 

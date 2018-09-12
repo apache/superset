@@ -1,6 +1,5 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
 import Select from 'react-virtualized-select';

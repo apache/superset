@@ -2,10 +2,10 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 // Big Number Total
 
-describe('Big Number Total', function () {
+describe('Big Number Total', () => {
   const BIG_NUMBER_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'big_number_total' };
 
-  it('Test big number chart with adhoc metric', function () {
+  it('Test big number chart with adhoc metric', () => {
     cy.server();
     cy.login();
 
@@ -16,20 +16,22 @@ describe('Big Number Total', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', querySubstring: NUM_METRIC.label });
   });
 
-  it('Test big number chart with simple filter', function () {
+  it('Test big number chart with simple filter', () => {
     cy.server();
     cy.login();
 
-    const filters = [{
-      expressionType: 'SIMPLE',
-      subject: 'name',
-      operator: 'in',
-      comparator: ['Aaron', 'Amy', 'Andrea'],
-      clause: 'WHERE',
-      sqlExpression: null,
-      fromFormData: true,
-      filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
-    }];
+    const filters = [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'name',
+        operator: 'in',
+        comparator: ['Aaron', 'Amy', 'Andrea'],
+        clause: 'WHERE',
+        sqlExpression: null,
+        fromFormData: true,
+        filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
+      },
+    ];
 
     const formData = { ...BIG_NUMBER_DEFAULTS, metric: 'count', adhoc_filters: filters };
 
@@ -38,7 +40,7 @@ describe('Big Number Total', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   });
 
-  it('Test big number chart ignores groupby', function () {
+  it('Test big number chart ignores groupby', () => {
     cy.server();
     cy.login();
 

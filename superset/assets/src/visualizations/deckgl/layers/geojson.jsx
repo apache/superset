@@ -28,10 +28,10 @@ const alterProps = (props, propOverrides) => {
     }
   });
   if (typeof props.fillColor === 'string') {
-    newProps.fillColor = hexToRGB(p.fillColor);
+    newProps.fillColor = hexToRGB(props.fillColor);
   }
   if (typeof props.strokeColor === 'string') {
-    newProps.strokeColor = hexToRGB(p.strokeColor);
+    newProps.strokeColor = hexToRGB(props.strokeColor);
   }
   return {
     ...newProps,

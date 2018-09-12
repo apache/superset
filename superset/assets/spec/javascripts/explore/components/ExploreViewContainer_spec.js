@@ -3,8 +3,7 @@
 
 // import React from 'react';
 // import { expect } from 'chai';
-// import { describe, it } from 'mocha';
-// import { shallow } from 'enzyme';
+// // import { shallow } from 'enzyme';
 
 // import ExploreViewContainer
 //   from '../../../../src/explore/components/ExploreViewContainer';

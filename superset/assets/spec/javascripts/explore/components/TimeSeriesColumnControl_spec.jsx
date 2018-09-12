@@ -3,7 +3,6 @@ import React from 'react';
 import { FormControl, OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
 import TimeSeriesColumnControl from '../../../../src/explore/components/controls/TimeSeriesColumnControl';

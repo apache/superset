@@ -1,7 +1,6 @@
 import React from 'react';
 import { Label } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import QueryStateLabel from '../../../src/SqlLab/components/QueryStateLabel';
