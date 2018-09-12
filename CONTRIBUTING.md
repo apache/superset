@@ -570,3 +570,36 @@ migration hashes. Then run
 `superset db merge {PASTE_SHA1_HERE} {PASTE_SHA2_HERE}`. This will create
 a new merge migration. You can then `superset db upgrade` to this new
 checkpoint.
+
+
+## Running DB migration
+
+1. First alter the model you want to change. For example I want to add a `Column` Annotations model.
+
+https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104
+
+
+2. superset db migrate -m "this_will_be_in_the_migration_filename"
+
+For our example we'll be running this command:
+```
+superset db migrate -m "add_metadata_column_to_annotation_model.py"
+```
+
+This will generate a file in `superset/migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`
+
+https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262
+
+3. Run `superset db upgrade`
+
+The output should look like this:
+```
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
+```
+
+4. Add column to view
+Since there is a new column, we need to add it to the AppBuilder Model view.
+
+https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458
