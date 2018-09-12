@@ -2418,7 +2418,7 @@ class Superset(BaseSupersetView):
                 tmp_table_name,
             )
 
-        client_id = request.form.get('client_id') or utils.shortid()
+        client_id = request.form.get('client_id') or utils.shortid()[:10]
 
         query = Query(
             database_id=int(database_id),
