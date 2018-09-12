@@ -1,9 +1,9 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
 import Mustache from 'mustache';
+import { Table, Thead, Th, Tr, Td } from 'reactable';
 
 import MetricOption from '../../components/MetricOption';
 import { formatDateThunk } from '../../modules/dates';
