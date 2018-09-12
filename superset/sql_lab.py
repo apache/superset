@@ -138,7 +138,6 @@ def execute_sql(
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
-    SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
     if not superset_query.is_readonly() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
@@ -153,9 +152,20 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    if (superset_query.is_select() and SQL_MAX_ROWS and
-            (not query.limit or query.limit > SQL_MAX_ROWS)):
-        query.limit = SQL_MAX_ROWS
+
+    SQL_MAX_ROW = app.config.get('SQL_MAX_ROW')
+    DISPLAY_MAX_ROW = app.config.get('DISPLAY_MAX_ROW')
+    # In async mode, we allow a higher limit that gets sent to the results
+    # backend to power the larger CSV extracts
+    # the lower DISPLAY_MAX_ROW limit still gets applied on the resutls/
+    # endpoint. SQL Lab never gets more than DISPLAY_MAX_ROW to avoid
+    # crashing the user's browser
+    applicable_limit = SQL_MAX_ROW if store_results else DISPLAY_MAX_ROW
+
+    if (superset_query.is_select() and applicable_limit and
+            (not query.limit or query.limit > applicable_limit)):
+        print('query,applicable', query.limit, applicable_limit)
+        query.limit = applicable_limit
         executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
