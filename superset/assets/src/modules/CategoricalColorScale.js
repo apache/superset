@@ -13,12 +13,12 @@ export default class CategoricalColorScale {
   /**
    * Constructor
    * @param {*} colors an array of colors
-   * @param {*} sharedForcedColors optional parameter that comes from parent
+   * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(colors, sharedForcedColors) {
+  constructor(colors, parentForcedColors) {
     this.colors = colors;
-    this.sharedForcedColors = sharedForcedColors;
+    this.parentForcedColors = parentForcedColors;
     this.forcedColors = {};
     this.seen = {};
     this.fn = value => this.getColor(value);
@@ -27,9 +27,9 @@ export default class CategoricalColorScale {
   getColor(value) {
     const cleanedValue = cleanValue(value);
 
-    const sharedColor = this.sharedForcedColors && this.sharedForcedColors[cleanedValue];
-    if (sharedColor) {
-      return sharedColor;
+    const parentColor = this.parentForcedColors && this.parentForcedColors[cleanedValue];
+    if (parentColor) {
+      return parentColor;
     }
 
     const forcedColor = this.forcedColors[cleanedValue];

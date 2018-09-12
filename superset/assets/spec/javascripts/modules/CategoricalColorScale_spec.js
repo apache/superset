@@ -8,16 +8,16 @@ describe('CategoricalColorScale', () => {
     expect(CategoricalColorScale !== undefined).to.equal(true);
   });
 
-  describe('new CategoricalColorScale(colors, sharedForcedColors)', () => {
-    it('can create new scale when sharedForcedColors is not given', () => {
+  describe('new CategoricalColorScale(colors, parentForcedColors)', () => {
+    it('can create new scale when parentForcedColors is not given', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale).to.be.instanceOf(CategoricalColorScale);
     });
-    it('can create new scale when sharedForcedColors is given', () => {
-      const sharedForcedColors = {};
-      const scale = new CategoricalColorScale(['blue', 'red', 'green'], sharedForcedColors);
+    it('can create new scale when parentForcedColors is given', () => {
+      const parentForcedColors = {};
+      const scale = new CategoricalColorScale(['blue', 'red', 'green'], parentForcedColors);
       expect(scale).to.be.instanceOf(CategoricalColorScale);
-      expect(scale.sharedForcedColors).to.equal(sharedForcedColors);
+      expect(scale.parentForcedColors).to.equal(parentForcedColors);
     });
   });
   describe('.getColor(value)', () => {
@@ -72,7 +72,7 @@ describe('CategoricalColorScale', () => {
       scale.setColor('pig', 'pink');
       expect(scale.getColor('pig')).to.equal('pink');
     });
-    it('does not override sharedForcedColors', () => {
+    it('does not override parentForcedColors', () => {
       const scale1 = new CategoricalColorScale(['blue', 'red', 'green']);
       scale1.setColor('pig', 'black');
       const scale2 = new CategoricalColorScale(['blue', 'red', 'green'], scale1.forcedColors);
