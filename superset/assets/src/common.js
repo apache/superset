@@ -1,6 +1,8 @@
 /* eslint global-require: 0, no-console: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+
 import airbnb from './modules/colorSchemes/airbnb';
 import categoricalSchemes from './modules/colorSchemes/categorical';
 import lyft from './modules/colorSchemes/lyft';
@@ -34,7 +36,7 @@ getInstance()
   .setDefaultSchemeName('bnbColors');
 
 export function appSetup() {
-    // A set of hacks to allow apps to run within a FAB template
+  // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;
