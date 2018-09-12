@@ -35,7 +35,7 @@ function wordCloud(element, props) {
 
   const chart = d3.select(element);
   const size = [width, height];
-  const rotationFn = ROTATION[rotation] || ROTATION.random;
+  const rotationFn = ROTATION[rotation] || ROTATION.flat;
 
   const scale = d3.scale.linear()
     .range(sizeRange)
