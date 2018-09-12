@@ -12,6 +12,7 @@ import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
 } from '../../util/constants';
 
 const CHART_MARGIN = 32;
@@ -131,8 +132,14 @@ class ChartHolder extends React.Component {
             >
               <Chart
                 id={component.meta.chartId}
-                width={widthMultiple * columnWidth - CHART_MARGIN / 2}
-                height={component.meta.height * GRID_BASE_UNIT - CHART_MARGIN}
+                width={Math.floor(
+                  widthMultiple * columnWidth +
+                    (widthMultiple - 1) * GRID_GUTTER_SIZE -
+                    CHART_MARGIN,
+                )}
+                height={Math.floor(
+                  component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
+                )}
                 sliceName={component.meta.sliceName || ''}
                 updateSliceName={this.handleUpdateSliceName}
               />
