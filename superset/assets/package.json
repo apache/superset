@@ -155,6 +155,7 @@
     "eslint-plugin-prettier": "^2.6.0",
     "eslint-plugin-react": "^7.0.1",
     "exports-loader": "^0.7.0",
+    "fetch-mock": "^7.0.0-alpha.6",
     "file-loader": "^1.1.11",
     "gl": "^4.0.4",
     "ignore-styles": "^5.0.1",
