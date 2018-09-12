@@ -10,8 +10,8 @@ from sqlalchemy.engine.url import make_url
 
 from superset import app, db
 from superset.models.core import Database
+from superset.utils import get_main_database
 from .base_tests import SupersetTestCase
-from .utils import get_main_database
 
 
 class DatabaseModelTestCase(SupersetTestCase):
