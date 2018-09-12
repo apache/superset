@@ -381,9 +381,11 @@ class CsvToDatabaseView(SimpleFormView):
         """
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
-            return (schema_name in schemas_allowed
-                    if schemas_allowed
-                    else True)
+            if schemas_allowed:
+                schemas_allowed = security_manager.schemas_accessible_by_user(
+                    database, schemas_allowed)
+                return schema_name in schemas_allowed
+            return True
         except Exception:
             return False
 
@@ -2795,8 +2797,11 @@ class Superset(BaseSupersetView):
             .one()
         )
         try:
-            schema_access = database.get_schema_access_for_csv_upload()
-            return self.json_response(schema_access)
+            schemas_allowed = database.get_schema_access_for_csv_upload()
+            if schemas_allowed:
+                schemas_allowed = security_manager.schemas_accessible_by_user(
+                    database, schemas_allowed)
+            return self.json_response(schemas_allowed)
         except Exception:
             return json_error_response((
                 'Failed to fetch schemas allowed for csv upload in this database! '
