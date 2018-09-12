@@ -2338,7 +2338,7 @@ class Superset(BaseSupersetView):
         blob = results_backend.get(key)
         stats_logger.timing(
             'sqllab.query.results_backend_read',
-            read_from_results_backend_start - utils.now_as_float(),
+            utils.now_as_float() - read_from_results_backend_start,
         )
         if not blob:
             return json_error_response(
