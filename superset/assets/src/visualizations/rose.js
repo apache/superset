@@ -2,8 +2,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import { d3TimeFormatPreset } from '../modules/utils';
-import { getColorFromScheme } from '../modules/colors';
 import './rose.css';
 
 const propTypes = {
@@ -62,6 +62,7 @@ function Rose(element, props) {
   const numGroups = datum[times[0]].length;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
+  const colorFn = getScale(colorScheme).toFunction();
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();
@@ -70,7 +71,6 @@ function Rose(element, props) {
   const legend = nv.models.legend();
   const tooltip = nv.models.tooltip();
   const state = { disabled: datum[times[0]].map(() => false) };
-  const color = name => getColorFromScheme(name, colorScheme);
 
   const svg = div
     .append('svg')
@@ -101,9 +101,9 @@ function Rose(element, props) {
         .map(v => ({
           key: v.name,
           value: v.value,
-          color: color(v.name),
+          color: colorFn(v.name),
           highlight: v.id === d.arcId,
-        })) : [{ key: d.name, value: d.val, color: color(d.name) }];
+        })) : [{ key: d.name, value: d.val, color: colorFn(d.name) }];
     return {
       key: 'Date',
       value: d.time,
@@ -113,7 +113,7 @@ function Rose(element, props) {
 
   legend
     .width(width)
-    .color(d => getColorFromScheme(d.key, colorScheme));
+    .color(d => colorFn(d.key));
   legendWrap
     .datum(legendData(datum))
     .call(legend);
@@ -331,7 +331,7 @@ function Rose(element, props) {
   const arcs = ae
     .append('path')
     .attr('class', 'arc')
-    .attr('fill', d => color(d.name))
+    .attr('fill', d => colorFn(d.name))
     .attr('d', arc);
 
   function mousemove() {

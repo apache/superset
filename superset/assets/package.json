@@ -8,6 +8,7 @@
     "test": "spec"
   },
   "scripts": {
+    "tdd": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/shim.js 'spec/**/*_spec.*' --watch --recursive",
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/shim.js 'spec/**/*_spec.*'",
     "test:one": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/shim.js",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers babel-core/register --require spec/helpers/shim.js --require ignore-styles 'spec/**/*_spec.*'",

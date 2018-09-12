@@ -1,5 +1,10 @@
 /* eslint-disable global-require */
 import $ from 'jquery';
+import airbnb from './modules/colorSchemes/airbnb';
+import categoricalSchemes from './modules/colorSchemes/categorical';
+import lyft from './modules/colorSchemes/lyft';
+import { getInstance } from './modules/ColorSchemeManager';
+
 // Everything imported in this file ends up in the common entry file
 // be mindful of double-imports
 
@@ -25,8 +30,15 @@ $(document).ready(function () {
   });
 });
 
+// Register color schemes
+getInstance()
+  .registerScheme('bnbColors', airbnb.bnbColors)
+  .registerMultipleSchemes(categoricalSchemes)
+  .registerScheme('lyftColors', lyft.lyftColors)
+  .setDefaultSchemeName('bnbColors');
+
 export function appSetup() {
-  // A set of hacks to allow apps to run within a FAB template
+    // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;
