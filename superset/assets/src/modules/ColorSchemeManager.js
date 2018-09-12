@@ -1,7 +1,3 @@
-import airbnb from './colorSchemes/airbnb';
-import categoricalSchemes from './colorSchemes/categorical';
-import lyft from './colorSchemes/lyft';
-
 class ColorSchemeManager {
   constructor() {
     this.schemes = {};
@@ -88,11 +84,3 @@ export {
   registerScheme,
   registerMultipleSchemes,
 };
-
-// These registration code eventually should go into per-app configuration
-// when we migrate to the plug-in system.
-getInstance()
-  .registerScheme('bnbColors', airbnb.bnbColors)
-  .registerMultipleSchemes(categoricalSchemes)
-  .registerScheme('lyftColors', lyft.lyftColors)
-  .setDefaultSchemeName('bnbColors');
