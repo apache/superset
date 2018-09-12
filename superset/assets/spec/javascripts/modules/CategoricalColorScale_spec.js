@@ -1,4 +1,3 @@
-import 'babel-polyfill';
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import CategoricalColorScale from '../../../src/modules/CategoricalColorScale';
