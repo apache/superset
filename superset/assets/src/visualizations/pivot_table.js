@@ -62,6 +62,7 @@ function PivotTable(element, props) {
       const tdText = $(this)[0].textContent;
       if (!Number.isNaN(tdText) && tdText !== '') {
         $(this)[0].textContent = d3format(format, tdText);
+        $(this).attr('data-sort', tdText);
       }
     });
   });
