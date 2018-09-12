@@ -2,8 +2,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import { d3TimeFormatPreset } from '../modules/utils';
-import { getColorFromScheme } from '../modules/colors';
 import './partition.css';
 
 // Compute dx, dy, x, y for each node and
@@ -97,6 +97,7 @@ function Icicle(element, props) {
   const hasTime = ['adv_anal', 'time_series'].indexOf(chartType) >= 0;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
+  const colorFn = getScale(colorScheme).toFunction();
 
   div.selectAll('*').remove();
   const tooltip = div
@@ -363,7 +364,7 @@ function Icicle(element, props) {
     // Apply color scheme
     g.selectAll('rect')
       .style('fill', (d) => {
-        d.color = getColorFromScheme(d.name, colorScheme);
+        d.color = colorFn(d.name);
         return d.color;
       });
   }

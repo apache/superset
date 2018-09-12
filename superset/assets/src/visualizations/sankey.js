@@ -2,7 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import { getColorFromScheme } from '../modules/colors';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import './sankey.css';
 
 const propTypes = {
@@ -48,6 +48,8 @@ function Sankey(element, props) {
   const tooltip = div.append('div')
     .attr('class', 'sankey-tooltip')
     .style('opacity', 0);
+
+  const colorFn = getScale(colorScheme).toFunction();
 
   const sankey = d3Sankey()
     .nodeWidth(15)
@@ -153,7 +155,7 @@ function Sankey(element, props) {
     .attr('width', sankey.nodeWidth())
     .style('fill', function (d) {
       const name = d.name || 'N/A';
-      d.color = getColorFromScheme(name.replace(/ .*/, ''), colorScheme);
+      d.color = colorFn(name.replace(/ .*/, ''));
       return d.color;
     })
     .style('stroke', d => d3.rgb(d.color).darker(2))
