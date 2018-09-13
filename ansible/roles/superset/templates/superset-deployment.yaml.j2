@@ -1,0 +1,56 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    service: superset
+  name: superset
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: superset
+    spec:
+      containers:
+      - args:
+        - tail
+        - -f
+        - /dev/null
+        env:
+        - name: POSTGRES_DB
+          value: {{ superset_postgres_db }}
+        - name: POSTGRES_HOST
+          value: "{{ superset_postgres_access_ip }}"
+        - name: POSTGRES_PASSWORD
+          value: {{ superset_postgres_db_passwd }}
+        - name: POSTGRES_PORT
+          value: "{{ superset_postgres_access_port }}"
+        - name: POSTGRES_USER
+          value: {{ superset_postgres_db_user }}
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PORTkubectl 
+          value: "6379"
+        - name: SUPERSET_ENV
+          value: local
+        image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
+        name: superset
+        ports:
+        - containerPort: 8088
+          hostPort: {{ superset_host_port }}
+        resources: {}
+        volumeMounts:
+        - mountPath: /home/work/incubator-superset/superset/assets/node_modules
+          name: superset-node-modules-storage
+      restartPolicy: {{ superset_docker_restart_policy }}
+      nodeSelector:
+        management-nodes: "true"
+      volumes:
+      - name: superset-node-modules-storage
+        persistentVolumeClaim:
+          claimName: superset-node-modules-volume-claim
+status: {}
