@@ -24,16 +24,23 @@ from superset.models.schedules import (
     ScheduleType,
     SliceEmailSchedule,
 )
+from superset.tasks.schedules import schedule_email_report
 from superset.utils import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
+from wtforms import BooleanField, StringField
 from .base import DeleteMixin, SupersetModelView
 
 
 class EmailScheduleView(SupersetModelView, DeleteMixin):
+    _extra_data = {
+        'test_email': False,
+        'test_email_recipients': None,
+    }
     schedule_type = None
     schedule_type_model = None
 
     page_size = 20
+
     add_exclude_columns = [
         'user',
         'created_on',
@@ -51,6 +58,26 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
         'delivery_type': 'Indicates how the rendered content is delivered',
     }
 
+    add_form_extra_fields = {
+        'test_email': BooleanField(
+            'Send Test Email',
+            default=True,
+            description='If enabled, we send a test mail on create / update',
+        ),
+        'test_email_recipients': StringField(
+            'Test Email Recipients',
+            default=None,
+            description='List of recipients to send test email to. '
+                'If empty, we send it to the original recipients'
+        )
+    }
+
+    edit_form_extra_fields = add_form_extra_fields
+
+    def process_form(self, form, is_created):
+        self._extra_data['test_email'] = form.test_email.data
+        self._extra_data['test_email_recipients'] = form.test_email_recipients.data
+
     def pre_add(self, obj):
         try:
             recipients = get_email_address_list(obj.recipients)
@@ -64,6 +91,17 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
 
     def pre_update(self, obj):
         self.pre_add(obj)
+
+    def post_add(self, obj):
+        # Schedule a test mail if the user requested for it.
+        if self._extra_data['test_email']:
+            recipients = self._extra_data['test_email_recipients'] or obj.recipients
+            args = (self.schedule_type, obj.id)
+            kwargs = dict(recipients=recipients)
+            schedule_email_report.apply_async(args=args, kwargs=kwargs)
+
+    def post_update(self, obj):
+        self.post_add(obj)
 
     @has_access
     @expose('/fetch/<int:item_id>/', methods=['GET'])
@@ -112,6 +150,19 @@ class DashboardEmailScheduleView(EmailScheduleView):
         'delivery_type',
     ]
 
+    add_columns = [
+        'dashboard',
+        'active',
+        'crontab',
+        'recipients',
+        'deliver_as_group',
+        'delivery_type',
+        'test_email',
+        'test_email_recipients'
+    ]
+
+    edit_columns = add_columns
+
     search_columns = [
         'dashboard',
         'active',
@@ -156,6 +207,19 @@ class SliceEmailScheduleView(EmailScheduleView):
         'delivery_type',
         'email_format',
     ]
+
+    add_columns = [
+        'slice',
+        'active',
+        'crontab',
+        'recipients',
+        'deliver_as_group',
+        'delivery_type',
+        'test_email',
+        'test_email_recipients'
+    ]
+
+    edit_columns = add_columns
 
     search_columns = [
         'slice',

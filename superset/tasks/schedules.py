@@ -363,7 +363,7 @@ def deliver_slice(schedule):
 
 
 @celery_app.task(name='email_reports.send', bind=True, soft_time_limit=300)
-def schedule_email_report(task, report_type, schedule_id):
+def schedule_email_report(task, report_type, schedule_id, recipients=None):
     model_cls = get_scheduler_model(report_type)
     dbsession = db.create_scoped_session()
     schedule = dbsession.query(model_cls).get(schedule_id)
@@ -372,6 +372,11 @@ def schedule_email_report(task, report_type, schedule_id):
     if not schedule or not schedule.active:
         logging.info('Ignoring deactivated schedule')
         return
+
+    # TODO: Detach the schedule object from the db session
+    if recipients is not None:
+        schedule.id = schedule_id
+        schedule.recipients = recipients
 
     if report_type == ScheduleType.dashboard.value:
         deliver_dashboard(schedule)
