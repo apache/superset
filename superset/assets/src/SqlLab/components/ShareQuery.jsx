@@ -5,7 +5,7 @@ import CopyQueryTabUrl from './CopyQueryTabUrl';
 import Button from '../../components/Button';
 import { t } from '../../locales';
 
-export default class ShareQueryBtn extends CopyQueryTabUrl {
+export default class ShareQuery extends CopyQueryTabUrl {
   render() {
     return (
       <CopyToClipboard
@@ -16,7 +16,7 @@ export default class ShareQueryBtn extends CopyQueryTabUrl {
       )}
         tooltipText={t('copy URL to clipboard')}
         shouldShowText={false}
-        getText={this.getUrl.bind(this)}
+        getText={this.getUrl}
       />);
   }
 }
