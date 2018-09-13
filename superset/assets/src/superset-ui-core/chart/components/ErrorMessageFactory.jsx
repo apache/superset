@@ -28,6 +28,3 @@ export function createErrorMessage(type, error) {
 
   return ErrorMessage;
 }
-
-
-export default ErrorMessage;

@@ -11,6 +11,7 @@ export default function makeSingleton(BaseClass) {
   const staticFunctions = Object.getOwnPropertyNames(BaseClass.prototype)
     .filter(fn => fn !== 'constructor')
     .reduce((all, fn) => {
+      console.log('fn', fn);
       const functions = all;
       functions[fn] = function (...args) {
         return getInstance()[fn](...args);

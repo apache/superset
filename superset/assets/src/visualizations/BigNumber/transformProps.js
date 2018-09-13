@@ -52,7 +52,7 @@ function transformData(data, formData) {
   };
 }
 
-export default function transformProps(slice, payload) {
+export default function transformProps({ slice, payload }) {
   const { formData, containerId } = slice;
 
   const transformedData = transformData(payload.data, formData);

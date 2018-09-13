@@ -3,12 +3,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'react-bootstrap';
 
+import SuperChart from '../superset-ui-core/chart/components/SuperChart';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import visPromiseLookup from '../visualizations';
+// import visPromiseLookup from '../visualizations';
 import sandboxedEval from '../modules/sandbox';
 import './chart.css';
 
@@ -127,19 +128,19 @@ class Chart extends React.PureComponent {
   }
 
   loadAsyncVis(visType) {
-    this.visPromise = visPromiseLookup[visType];
+    // this.visPromise = visPromiseLookup[visType];
 
-    this.visPromise()
-      .then((renderVis) => {
-        // ensure Component is still mounted
-        if (this.visPromise) {
-          this.setState({ renderVis }, this.renderVis);
-        }
-      })
-      .catch((error) => {
-        console.warn(error); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(error, this.props.chartId);
-      });
+    // this.visPromise()
+    //   .then((renderVis) => {
+    //     // ensure Component is still mounted
+    //     if (this.visPromise) {
+    //       this.setState({ renderVis }, this.renderVis);
+    //     }
+    //   })
+    //   .catch((error) => {
+    //     console.warn(error); // eslint-disable-line
+    //     this.props.actions.chartRenderingFailed(error, this.props.chartId);
+    //   });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
@@ -228,6 +229,19 @@ class Chart extends React.PureComponent {
 
     // this allows <Loading /> to be positioned in the middle of the chart
     const containerStyles = isLoading ? { height: this.height(), width: this.width() } : null;
+    const {
+      className,
+      vizType,
+      faded,
+      queryResponse,
+      setControlValue,
+    } = this.props;
+    const classNames = [
+      className,
+      vizType,
+      faded ? 'faded' : '',
+    ].join(' ');
+
     return (
       <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
         {this.renderTooltip()}
@@ -254,7 +268,19 @@ class Chart extends React.PureComponent {
             />
           )}
 
-        {!isLoading &&
+        {!this.props.chartAlert && (
+          <SuperChart
+            id={this.containerId}
+            className={classNames}
+            type={vizType}
+            width={this.width()}
+            height={this.height()}
+            slice={this}
+            payload={queryResponse}
+            setControlValue={setControlValue}
+          />
+        )}
+        {/* {!isLoading &&
           !this.props.chartAlert && (
             <ChartBody
               containerId={this.containerId}
@@ -268,7 +294,7 @@ class Chart extends React.PureComponent {
                 this.container = inner;
               }}
             />
-          )}
+          )} */}
       </div>
     );
   }

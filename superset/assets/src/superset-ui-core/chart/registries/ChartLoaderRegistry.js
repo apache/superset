@@ -1,9 +1,9 @@
 import LoaderRegistry from '../../platform/LoaderRegistry';
 import makeSingleton from '../../utils/makeSingleton';
 
-class TransformPropsRegistry extends LoaderRegistry {
+class ChartLoaderRegistry extends LoaderRegistry {
   constructor() {
-    super('TransformProps');
+    super('Chart');
   }
 }
 
@@ -13,10 +13,12 @@ const {
   register,
   registerLoader,
   load,
-} = makeSingleton(TransformPropsRegistry);
+} = makeSingleton(ChartLoaderRegistry);
+
+console.log('load', load, has, getInstance);
 
 // alias
-const loadTransformProps = load;
+const loadChart = load;
 
 export {
   getInstance,
@@ -24,5 +26,5 @@ export {
   register,
   registerLoader,
   load,
-  loadTransformProps,
+  loadChart,
 };

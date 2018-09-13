@@ -1,9 +1,9 @@
 import LoaderRegistry from '../../platform/LoaderRegistry';
 import makeSingleton from '../../utils/makeSingleton';
 
-class BuildQueryRegistry extends LoaderRegistry {
+class TransformPropsLoaderRegistry extends LoaderRegistry {
   constructor() {
-    super('BuildQuery');
+    super('TransformProps');
   }
 }
 
@@ -13,10 +13,10 @@ const {
   register,
   registerLoader,
   load,
-} = makeSingleton(BuildQueryRegistry);
+} = makeSingleton(TransformPropsLoaderRegistry);
 
 // alias
-const loadBuildQuery = load;
+const loadTransformProps = load;
 
 export {
   getInstance,
@@ -24,5 +24,5 @@ export {
   register,
   registerLoader,
   load,
-  loadBuildQuery,
+  loadTransformProps,
 };

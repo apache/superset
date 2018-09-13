@@ -1,9 +1,9 @@
 import LoaderRegistry from '../../platform/LoaderRegistry';
 import makeSingleton from '../../utils/makeSingleton';
 
-class ChartRegistry extends LoaderRegistry {
+class BuildQueryLoaderRegistry extends LoaderRegistry {
   constructor() {
-    super('Chart');
+    super('BuildQuery');
   }
 }
 
@@ -13,10 +13,10 @@ const {
   register,
   registerLoader,
   load,
-} = makeSingleton(ChartRegistry);
+} = makeSingleton(BuildQueryLoaderRegistry);
 
 // alias
-const loadChart = load;
+const loadBuildQuery = load;
 
 export {
   getInstance,
@@ -24,5 +24,5 @@ export {
   register,
   registerLoader,
   load,
-  loadChart,
+  loadBuildQuery,
 };
