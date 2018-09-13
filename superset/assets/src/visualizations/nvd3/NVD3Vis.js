@@ -32,7 +32,7 @@ import {
   boxPlotValueType,
   bulletDataType,
   categoryAndValueXYType,
-  colorObjectType,
+  rgbObjectType,
   numericXYType,
   numberOrAutoType,
   stringOrObjectWithLabelType,
@@ -109,7 +109,21 @@ const propTypes = {
   showLegend: PropTypes.bool,
   showMarkers: PropTypes.bool,
   useRichTooltip: PropTypes.bool,
-  vizType: PropTypes.string,
+  vizType: PropTypes.oneOf([
+    'area',
+    'bar',
+    'box_plot',
+    'bubble',
+    'bullet',
+    'compare',
+    'column',
+    'dist_bar',
+    'line',
+    'line_multi',
+    'time_pivot',
+    'pie',
+    'dual_line',
+  ]),
   xAxisFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
   xAxisShowMinMax: PropTypes.bool,
@@ -139,7 +153,13 @@ const propTypes = {
   // 'pie' only
   isDonut: PropTypes.bool,
   isPieLabelOutside: PropTypes.bool,
-  pieLabelType: PropTypes.string,
+  pieLabelType: PropTypes.oneOf([
+    'key',
+    'value',
+    'percent',
+    'key_value',
+    'key_percent',
+  ]),
   showLabels: PropTypes.bool,
   // 'area' only
   areaStackedStyle: PropTypes.string,
@@ -150,7 +170,7 @@ const propTypes = {
   yField: stringOrObjectWithLabelType,
   sizeField: stringOrObjectWithLabelType,
   // time-pivot only
-  baseColor: colorObjectType,
+  baseColor: rgbObjectType,
 };
 
 const NOOP = () => {};

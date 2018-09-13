@@ -13,7 +13,7 @@ export const stringOrObjectWithLabelType = PropTypes.oneOfType([
   }),
 ]);
 
-export const colorObjectType = PropTypes.shape({
+export const rgbObjectType = PropTypes.shape({
   r: PropTypes.number.isRequired,
   g: PropTypes.number.isRequired,
   b: PropTypes.number.isRequired,
