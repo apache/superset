@@ -68,6 +68,11 @@ def get_css_manifest_files(filename):
     entry_files = manifest.get(filename, {})
     return entry_files.get('css', [])
 
+def filter_loaded_chunks(files, loaded_chunks):
+    filtered_files = [f for f in files if f not in loaded_chunks]
+    for f in filtered_files:
+        loaded_chunks.add(f)
+    return filtered_files
 
 parse_manifest_json()
 
@@ -75,6 +80,8 @@ parse_manifest_json()
 @app.context_processor
 def get_manifest():
     return dict(
+        loaded_chunks=set(),
+        filter_loaded_chunks=filter_loaded_chunks,
         js_manifest=get_js_manifest_files,
         css_manifest=get_css_manifest_files,
     )
