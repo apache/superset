@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { createErrorMessage } from './ErrorMessageFactory';
-import { loadComponent, loadTransformProps } from './ChartPluginManager';
+import { loadChart } from '../registries/ChartRegistry';
+import { loadTransformProps } from './ChartPluginManager';
 
 const IDENTITY = x => x;
 
@@ -54,7 +55,7 @@ class SuperChart extends React.PureComponent {
     this.loading = false;
 
     if (type) {
-      const componentPromise = loadComponent(type);
+      const componentPromise = loadChart(type);
       const transformPropsPromise = overrideTransformProps
         ? Promise.resolve(overrideTransformProps)
         : loadTransformProps(type);
