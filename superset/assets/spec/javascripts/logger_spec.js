@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 

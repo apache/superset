@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import * as color from 'd3-color';
+import d3 from 'd3';
 
 import BigNumberVis, { renderTooltipFactory } from './BigNumber';
 import { d3FormatPreset } from '../../modules/utils';

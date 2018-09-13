@@ -1,7 +1,6 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import MetricDefinitionOption from '../../../../src/explore/components/MetricDefinitionOption';

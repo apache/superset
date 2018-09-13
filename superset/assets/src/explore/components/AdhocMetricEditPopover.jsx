@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, ControlLabel, FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
+import ace from 'brace';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';

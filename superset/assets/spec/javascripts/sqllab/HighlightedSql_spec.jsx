@@ -1,7 +1,6 @@
 import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { mount, shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import HighlightedSql from '../../../src/SqlLab/components/HighlightedSql';

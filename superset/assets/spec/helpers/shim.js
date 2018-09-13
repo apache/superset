@@ -1,4 +1,4 @@
-/* eslint no-undef: 0, no-native-reassign: 0 */
+/* eslint no-native-reassign: 0 */
 import 'babel-polyfill';
 import chai from 'chai';
 import jsdom from 'jsdom';
@@ -55,4 +55,3 @@ global.window.XMLHttpRequest = global.XMLHttpRequest;
 global.window.location = { href: 'about:blank' };
 global.window.performance = { now: () => new Date().getTime() };
 global.$ = require('jquery')(global.window);
-

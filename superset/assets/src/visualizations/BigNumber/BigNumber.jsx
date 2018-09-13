@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 
 import { brandColor } from '../../modules/colors';

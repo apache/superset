@@ -1,3 +1,4 @@
+import d3 from 'd3';
 import nvd3Vis from './NVD3Vis';
 import { getExploreLongUrl } from '../../explore/exploreUtils';
 
