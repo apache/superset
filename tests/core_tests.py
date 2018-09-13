@@ -17,6 +17,7 @@ import re
 import string
 import unittest
 
+import mock
 import pandas as pd
 import psycopg2
 from six import text_type
@@ -592,6 +593,7 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username='admin')
+        main_db_uri = self.get_main_database(db.session)
         filename = 'testCSV.csv'
         table_name = ''.join(
             random.choice(string.ascii_uppercase) for _ in range(5))
@@ -601,7 +603,6 @@ class CoreTests(SupersetTestCase):
         test_file.write('john,1\n')
         test_file.write('paul,2\n')
         test_file.close()
-        main_db_uri = self.get_main_database(db.session)
 
         test_file = open(filename, 'rb')
         form_data = {
@@ -692,13 +693,15 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
 
-    def test_schemas_access_for_csv_upload_endpoint(self):
+    @mock.patch('superset.security.SupersetSecurityManager.schemas_accessible_by_user')
+    def test_schemas_access_for_csv_upload_endpoint(self, mock_schemas_accessible):
         database_name = 'fake_db_100'
         db_id = 100
         extra = """{
             "schemas_allowed_for_csv_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
+        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
 
         self.login(username='admin')
         dbobj = self.get_or_create(
@@ -710,9 +713,7 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(
             url='/superset/schema_access_for_csv_upload?db_id={db_id}'
                 .format(db_id=dbobj.id))
-        assert len(data) == 2
-        assert 'this_schema_is_allowed' in data
-        assert 'this_schema_is_allowed_too' in data
+        assert data == ['this_schema_is_allowed_too']
 
 
 if __name__ == '__main__':

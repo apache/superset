@@ -15,7 +15,7 @@ from wtforms import (
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, NumberRange, Optional
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.models import core as models
 
 config = app.config
@@ -49,10 +49,25 @@ def filter_not_empty_values(value):
 
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_enabled_dbs():
-        return db.session.query(
+    def csv_allowed_dbs():
+        csv_allowed_dbs = []
+        csv_enabled_dbs = db.session.query(
             models.Database).filter_by(
-                allow_csv_upload=True).all()
+            allow_csv_upload=True).all()
+        for csv_enabled_db in csv_enabled_dbs:
+            schemas_allowed = csv_enabled_db.get_schema_access_for_csv_upload()
+            # if schemas_allowed_for_csv_upload is configured,
+            # need to check whether user has access to any of it.
+            # if schemas_allowed_for_csv_upload is not configured,
+            # need to check whether user has access to the database.
+            if schemas_allowed:
+                if security_manager.schemas_accessible_by_user(
+                        csv_enabled_db, schemas_allowed, False):
+                    csv_allowed_dbs.append(csv_enabled_db)
+            elif (security_manager.database_access(csv_enabled_db) or
+                  security_manager.all_datasource_access()):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
 
     name = StringField(
         _('Table Name'),
@@ -66,7 +81,7 @@ class CsvToDatabaseForm(DynamicForm):
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
     con = QuerySelectField(
         _('Database'),
-        query_factory=csv_enabled_dbs,
+        query_factory=csv_allowed_dbs,
         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     schema = StringField(
         _('Schema'),

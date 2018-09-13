@@ -383,9 +383,12 @@ class CsvToDatabaseView(SimpleFormView):
             schemas_allowed = database.get_schema_access_for_csv_upload()
             if schemas_allowed:
                 schemas_allowed = security_manager.schemas_accessible_by_user(
-                    database, schemas_allowed)
+                    database, schemas_allowed, False)
                 return schema_name in schemas_allowed
-            return True
+            elif (security_manager.database_access(database) or
+                  security_manager.all_datasource_access()):
+                return True
+            return False
         except Exception:
             return False
 
@@ -2789,6 +2792,10 @@ class Superset(BaseSupersetView):
         This method exposes an API endpoint to
         get the schema access control settings for csv upload in this database
         """
+        if not request.args.get('db_id'):
+            return json_error_response(
+                'No database is allowed for your csv upload')
+
         db_id = int(request.args.get('db_id'))
         database = (
             db.session
@@ -2798,10 +2805,14 @@ class Superset(BaseSupersetView):
         )
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
+            schemas_accessible = []
             if schemas_allowed:
-                schemas_allowed = security_manager.schemas_accessible_by_user(
-                    database, schemas_allowed)
-            return self.json_response(schemas_allowed)
+                # the list schemas_accessible should never be empty here,
+                # otherwise the database should have been filtered out
+                # in CsvToDatabaseForm
+                schemas_accessible = security_manager.schemas_accessible_by_user(
+                    database, schemas_allowed, False)
+            return self.json_response(schemas_accessible)
         except Exception:
             return json_error_response((
                 'Failed to fetch schemas allowed for csv upload in this database! '
