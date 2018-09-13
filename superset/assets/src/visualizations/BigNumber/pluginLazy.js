@@ -1,4 +1,4 @@
-import ChartPlugin from '../../superset-ui-core/chart/models/ChartPlugin';
+import ChartPlugin from '../../superset-ui-core/chart/plugins/ChartPlugin';
 import metadata from './metadata';
 
 export default new ChartPlugin({
