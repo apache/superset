@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
-import { d3format } from '../modules/utils';
-import { getTextDimension } from '../modules/visUtils';
+import { d3format } from '../../modules/utils';
+import { getTextDimension } from '../../modules/visUtils';
 
 const propTypes = {
   className: PropTypes.string,
