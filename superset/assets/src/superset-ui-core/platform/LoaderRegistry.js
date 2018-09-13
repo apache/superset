@@ -1,11 +1,6 @@
 import Registry from './Registry';
 
 export default class LoaderRegistry extends Registry {
-  constructor(name) {
-    super(name);
-    this.promises = {};
-  }
-
   register(key, value) {
     this.items[key] = () => value;
   }

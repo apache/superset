@@ -2,6 +2,7 @@ export default class Registry {
   constructor(name) {
     this.name = name;
     this.items = {};
+    this.promises = {};
   }
 
   has(key) {
