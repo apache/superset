@@ -63,7 +63,6 @@ describe('AsyncSelect', () => {
         <AsyncSelect {...mockedProps} autoSelect />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
-      wrapper.instance().fetchOptions();
       server.respond();
 
       expect(spy.callCount).to.equal(1);

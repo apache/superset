@@ -187,11 +187,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 with session.no_autoflush:
                     session.add(datasource)
                 flasher(
-                    'Adding new datasource [{}]'.format(ds_name), 'success')
+                    _('Adding new datasource [{}]').format(ds_name), 'success')
                 ds_map[ds_name] = datasource
             elif refreshAll:
                 flasher(
-                    'Refreshing datasource [{}]'.format(ds_name), 'info')
+                    _('Refreshing datasource [{}]').format(ds_name), 'info')
             else:
                 del ds_map[ds_name]
                 continue
@@ -488,6 +488,7 @@ class DruidDatasource(Model, BaseDatasource):
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
+        'filter_select_enabled',
     )
     update_from_object_fields = export_fields
 

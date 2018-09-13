@@ -45,11 +45,15 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { colorPrimary } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
+import { getAllSchemes } from '../modules/ColorSchemeManager';
+import sequentialSchemes from '../modules/colorSchemes/sequential';
+
+const ALL_COLOR_SCHEMES = getAllSchemes();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -242,6 +246,14 @@ export const controls = {
     renderTrigger: true,
   },
 
+  target_color_picker: {
+    label: t('Target Color'),
+    description: t('Color of the target location'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
   legend_position: {
     label: t('Legend Position'),
     description: t('Choose the position of the legend'),
@@ -363,7 +375,7 @@ export const controls = {
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: spectrums,
+    schemes: sequentialSchemes,
     isLinear: true,
   },
 
@@ -383,14 +395,15 @@ export const controls = {
 
   horizon_color_scale: {
     type: 'SelectControl',
-    label: t('Horizon Color Scale'),
+    renderTrigger: true,
+    label: t('Value Domain'),
     choices: [
       ['series', 'series'],
       ['overall', 'overall'],
       ['change', 'change'],
     ],
     default: 'series',
-    description: t('Defines how the color are attributed.'),
+    description: t('series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series'),
   },
 
   canvas_image_rendering: {
@@ -725,6 +738,7 @@ export const controls = {
     label: t('Stroke Width'),
     validators: [v.integer],
     default: null,
+    renderTrigger: true,
     choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
@@ -1068,7 +1082,7 @@ export const controls = {
     isInt: true,
     validators: [v.integer],
     renderTrigger: true,
-    default: 0,
+    default: 2,
     label: t('Cell Padding'),
     description: t('The distance between cells, in pixels'),
   },
@@ -1205,6 +1219,7 @@ export const controls = {
 
   series_height: {
     type: 'SelectControl',
+    renderTrigger: true,
     freeForm: true,
     label: t('Series Height'),
     default: '25',
@@ -1298,7 +1313,7 @@ export const controls = {
     label: t('Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
     renderTrigger: true,
-    default: 'square',
+    default: 'flat',
     description: t('Rotation to apply to words in the cloud'),
   },
 
@@ -1459,10 +1474,10 @@ export const controls = {
 
   table_filter: {
     type: 'CheckboxControl',
-    label: t('Table Filter'),
+    label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to apply filter when table cell is clicked'),
+    description: t('Whether to apply filter when items are clicked'),
   },
 
   align_pn: {
@@ -1766,6 +1781,17 @@ export const controls = {
     'Between 0 and 1.'),
   },
 
+  opacity: {
+    type: 'SliderControl',
+    label: t('Opacity'),
+    default: 80,
+    step: 1,
+    min: 0,
+    max: 100,
+    renderTrigger: true,
+    description: t('Opacity, expects values between 0 and 100'),
+  },
+
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
@@ -1780,28 +1806,37 @@ export const controls = {
   viewport_zoom: {
     type: 'TextControl',
     label: t('Zoom'),
+    renderTrigger: true,
     isFloat: true,
     default: 11,
     description: t('Zoom level of the map'),
     places: 8,
+    // Viewport zoom shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_latitude: {
     type: 'TextControl',
     label: t('Default latitude'),
+    renderTrigger: true,
     default: 37.772123,
     isFloat: true,
     description: t('Latitude of default viewport'),
     places: 8,
+    // Viewport latitude changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_longitude: {
     type: 'TextControl',
     label: t('Default longitude'),
+    renderTrigger: true,
     default: -122.405293,
     isFloat: true,
     description: t('Longitude of default viewport'),
     places: 8,
+    // Viewport longitude changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   render_while_dragging: {
@@ -2110,6 +2145,7 @@ export const controls = {
     choices: [
       ['polyline', 'Polyline'],
       ['json', 'JSON'],
+      ['geohash', 'geohash (square)'],
     ],
   },
 
@@ -2231,7 +2267,7 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
-    default: false,
+    default: true,
   },
 
   normalized: {

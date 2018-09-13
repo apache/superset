@@ -73,9 +73,7 @@ class SupersetDataFrame(object):
         if cursor_description:
             column_names = [col[0] for col in cursor_description]
 
-        case_sensitive = db_engine_spec.consistent_case_sensitivity
-        self.column_names = dedup(column_names,
-                                  case_sensitive=case_sensitive)
+        self.column_names = dedup(column_names)
 
         data = data or []
         self.df = (

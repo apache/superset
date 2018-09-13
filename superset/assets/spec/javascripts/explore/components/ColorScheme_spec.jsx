@@ -7,10 +7,10 @@ import { Creatable } from 'react-select';
 
 import ColorSchemeControl from
   '../../../../src/explore/components/controls/ColorSchemeControl';
-import { ALL_COLOR_SCHEMES } from '../../../../src/modules/colors';
+import { getAllSchemes } from '../../../../src/modules/ColorSchemeManager';
 
 const defaultProps = {
-  options: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
+  options: Object.keys(getAllSchemes()).map(s => ([s, s])),
 };
 
 describe('ColorSchemeControl', () => {

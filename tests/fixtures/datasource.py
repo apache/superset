@@ -10,7 +10,7 @@ datasource_post = {
     'column_formats': {'ratio': '.2%'},
     'description': 'Adding a DESCRip',
     'default_endpoint': '',
-    'filter_select': True,
+    'filter_select_enabled': True,
     'name': 'birth_names',
     'datasource_name': 'birth_names',
     'type': 'table',
