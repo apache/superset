@@ -1,13 +1,10 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 import * as color from 'd3-color';
-
-import BigNumberVis, { renderTooltipFactory } from './BigNumber';
+import { renderTooltipFactory } from './BigNumber';
 import { d3FormatPreset } from '../../modules/utils';
 
 const TIME_COLUMN = '__timestamp';
 
-function transform(data, formData) {
+function transformData(data, formData) {
   let bigNumber;
   let trendlineData;
   const metricName = formData.metric.label || formData.metric;
@@ -55,10 +52,10 @@ function transform(data, formData) {
   };
 }
 
-function adaptor(slice, payload) {
+export default function transformProps(slice, payload) {
   const { formData, containerId } = slice;
 
-  const transformedData = transform(payload.data, formData);
+  const transformedData = transformData(payload.data, formData);
   const startYAxisAtZero = formData.start_y_axis_at_zero;
   const formatValue = d3FormatPreset(formData.y_axis_format);
   let userColor;
@@ -67,19 +64,14 @@ function adaptor(slice, payload) {
     userColor = color.rgb(r, g, b).hex();
   }
 
-  ReactDOM.render(
-    <BigNumberVis
-      width={slice.width()}
-      height={slice.height()}
-      formatBigNumber={formatValue}
-      startYAxisAtZero={startYAxisAtZero}
-      mainColor={userColor}
-      gradientId={`big_number_${containerId}`}
-      renderTooltip={renderTooltipFactory(formatValue)}
-      {...transformedData}
-    />,
-    document.getElementById(containerId),
-  );
+  return {
+    width: slice.width(),
+    height: slice.height(),
+    formatBigNumber: formatValue,
+    startYAxisAtZero,
+    mainColor: userColor,
+    gradientId: `big_number_${containerId}`,
+    renderTooltip: renderTooltipFactory(formatValue),
+    ...transformedData,
+  };
 }
-
-export default adaptor;

@@ -1,4 +1,4 @@
-import ChartMetadata from '../../superset-ui-superchart/ChartMetadata';
+import ChartMetadata from '../../superset-ui-core/chart/models/ChartMetadata';
 
 export default new ChartMetadata({
   name: 'Big Number',
