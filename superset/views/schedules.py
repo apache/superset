@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import enum
 
 from croniter import croniter
-from flask import g
+from flask import flash, g
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -54,7 +54,8 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     description_columns = {
         'deliver_as_group': 'If enabled, send a single email to all '
         'recipients (in email/To: field)',
-        'crontab': 'Unix style crontab schedule to deliver emails',
+        'crontab': 'Unix style crontab schedule to deliver emails. '
+                   'Changes to schedules reflect in one hour.',
         'delivery_type': 'Indicates how the rendered content is delivered',
     }
 
@@ -68,7 +69,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
             'Test Email Recipients',
             default=None,
             description='List of recipients to send test email to. '
-                'If empty, we send it to the original recipients'
+                        'If empty, we send it to the original recipients'
         )
     }
 
@@ -100,6 +101,11 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
             args = (self.schedule_type, obj.id)
             kwargs = dict(recipients=recipients)
             schedule_email_report.apply_async(args=args, kwargs=kwargs)
+
+        # Notify the user that schedule changes will be activate only in the
+        # next hour
+        if obj.active:
+            flash('Schedule changes will get applied in one hour', 'warning')
 
     def post_update(self, obj):
         self.post_add(obj)
