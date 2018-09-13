@@ -15,6 +15,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import simplejson as json
+from wtforms import BooleanField, StringField
 
 from superset import app, appbuilder, db, security_manager
 from superset.exceptions import SupersetException
@@ -27,7 +28,6 @@ from superset.models.schedules import (
 from superset.tasks.schedules import schedule_email_report
 from superset.utils import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
-from wtforms import BooleanField, StringField
 from .base import DeleteMixin, SupersetModelView
 
 
@@ -95,7 +95,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     def post_add(self, obj):
         # Schedule a test mail if the user requested for it.
         if self._extra_data['test_email']:
-            recipients = self._extra_data['test_email_recipients'] or obj.recipients
+            recipients = self._extra_data['test_email_recipients']
             args = (self.schedule_type, obj.id)
             kwargs = dict(recipients=recipients)
             schedule_email_report.apply_async(args=args, kwargs=kwargs)
