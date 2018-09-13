@@ -593,7 +593,6 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username='admin')
-        main_db_uri = self.get_main_database(db.session)
         filename = 'testCSV.csv'
         table_name = ''.join(
             random.choice(string.ascii_uppercase) for _ in range(5))
@@ -603,13 +602,18 @@ class CoreTests(SupersetTestCase):
         test_file.write('john,1\n')
         test_file.write('paul,2\n')
         test_file.close()
+        main_db_uri = (
+            db.session.query(models.Database)
+            .filter_by(database_name='main')
+            .all()
+        )
 
         test_file = open(filename, 'rb')
         form_data = {
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri.id,
+            'con': main_db_uri[0].id,
             'if_exists': 'append',
             'index_label': 'test_label',
             'mangle_dupe_cols': False,
@@ -694,14 +698,21 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['error'], None)
 
     @mock.patch('superset.security.SupersetSecurityManager.schemas_accessible_by_user')
-    def test_schemas_access_for_csv_upload_endpoint(self, mock_schemas_accessible):
+    @mock.patch('superset.security.SupersetSecurityManager.database_access')
+    @mock.patch('superset.security.SupersetSecurityManager.all_datasource_access')
+    def test_schemas_access_for_csv_upload_endpoint(self,
+                                                    mock_all_datasource_access,
+                                                    mock_database_access,
+                                                    mock_schemas_accessible):
+        mock_all_datasource_access.return_value = False
+        mock_database_access.return_value = False
+        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
         database_name = 'fake_db_100'
         db_id = 100
         extra = """{
             "schemas_allowed_for_csv_upload":
             ["this_schema_is_allowed", "this_schema_is_allowed_too"]
         }"""
-        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
 
         self.login(username='admin')
         dbobj = self.get_or_create(

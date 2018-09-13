@@ -326,9 +326,11 @@ class CsvToDatabaseView(SimpleFormView):
     def form_post(self, form):
         database = form.con.data
         schema_name = form.schema.data or ''
+
         if not self.is_schema_allowed(database, schema_name):
-            message = _('Schema {} is not allowed for csv uploads. '
-                        'Please contact Superset Admin'.format(schema_name))
+            message = _('Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+                        'Please contact Superset Admin'.format(database.database_name,
+                                                               schema_name))
             flash(
                 message,
                 'danger')
@@ -367,30 +369,14 @@ class CsvToDatabaseView(SimpleFormView):
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
 
-    def is_schema_allowed(self, database, schema_name):
-        """
-        This method is to check whether the schema in this database
-        is allowed for csv upload
-
-        :param database: database
-        :type database: Database object
-        :param schema_name: schema_name
-        :type schema_name: str
-        :return: whether the schema is allowed to be accessed for csv upload
-        :rtype: boolean
-        """
-        try:
-            schemas_allowed = database.get_schema_access_for_csv_upload()
-            if schemas_allowed:
-                schemas_allowed = security_manager.schemas_accessible_by_user(
-                    database, schemas_allowed, False)
-                return schema_name in schemas_allowed
-            elif (security_manager.database_access(database) or
-                  security_manager.all_datasource_access()):
-                return True
+    def is_schema_allowed(self, database, schema):
+        if not database.allow_csv_upload:
             return False
-        except Exception:
-            return False
+        schemas = database.get_schema_access_for_csv_upload()
+        if schemas:
+            return schema in schemas
+        return (security_manager.database_access(database) or
+                security_manager.all_datasource_access())
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
@@ -2805,14 +2791,17 @@ class Superset(BaseSupersetView):
         )
         try:
             schemas_allowed = database.get_schema_access_for_csv_upload()
-            schemas_accessible = []
-            if schemas_allowed:
-                # the list schemas_accessible should never be empty here,
-                # otherwise the database should have been filtered out
-                # in CsvToDatabaseForm
-                schemas_accessible = security_manager.schemas_accessible_by_user(
-                    database, schemas_allowed, False)
-            return self.json_response(schemas_accessible)
+            if (security_manager.database_access(database) or
+                    security_manager.all_datasource_access()):
+                return self.json_response(schemas_allowed)
+            # the list schemas_allowed should not be empty here
+            # and the list schemas_allowed_processed returned from security_manager
+            # should not be empty either,
+            # otherwise the database should have been filtered out
+            # in CsvToDatabaseForm
+            schemas_allowed_processed = security_manager.schemas_accessible_by_user(
+                database, schemas_allowed, False)
+            return self.json_response(schemas_allowed_processed)
         except Exception:
             return json_error_response((
                 'Failed to fetch schemas allowed for csv upload in this database! '

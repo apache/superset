@@ -187,8 +187,8 @@ class SupersetSecurityManager(SecurityManager):
         from superset import db
         from superset.connectors.sqla.models import SqlaTable
         if (hierarchical and
-                (self.database_access(database)
-                 or self.all_datasource_access())):
+                (self.database_access(database) or
+                 self.all_datasource_access())):
             return schemas
 
         subset = set()

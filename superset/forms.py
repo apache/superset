@@ -55,19 +55,46 @@ class CsvToDatabaseForm(DynamicForm):
             models.Database).filter_by(
             allow_csv_upload=True).all()
         for csv_enabled_db in csv_enabled_dbs:
-            schemas_allowed = csv_enabled_db.get_schema_access_for_csv_upload()
-            # if schemas_allowed_for_csv_upload is configured,
-            # need to check whether user has access to any of it.
-            # if schemas_allowed_for_csv_upload is not configured,
-            # need to check whether user has access to the database.
-            if schemas_allowed:
-                if security_manager.schemas_accessible_by_user(
-                        csv_enabled_db, schemas_allowed, False):
-                    csv_allowed_dbs.append(csv_enabled_db)
-            elif (security_manager.database_access(csv_enabled_db) or
-                  security_manager.all_datasource_access()):
+            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
                 csv_allowed_dbs.append(csv_enabled_db)
         return csv_allowed_dbs
+
+    @staticmethod
+    def at_least_one_schema_is_allowed(database):
+        """
+        If the user has access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is able to upload csv without specifying schema name
+                b) if database supports schema
+                    user is able to upload csv to any schema
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and upload will fail
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        elif the user does not access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is unable to upload csv
+                b) if database supports schema
+                    user is unable to upload csv
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and user is unable to upload csv
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        """
+        if (security_manager.database_access(database) or
+                security_manager.all_datasource_access()):
+            return True
+        else:
+            schemas = database.get_schema_access_for_csv_upload()
+            if (schemas and
+                security_manager.schemas_accessible_by_user(
+                    database, schemas, False)):
+                return True
+        return False
 
     name = StringField(
         _('Table Name'),
