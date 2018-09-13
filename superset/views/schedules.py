@@ -61,7 +61,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     add_form_extra_fields = {
         'test_email': BooleanField(
             'Send Test Email',
-            default=True,
+            default=False,
             description='If enabled, we send a test mail on create / update',
         ),
         'test_email_recipients': StringField(
@@ -75,8 +75,9 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     edit_form_extra_fields = add_form_extra_fields
 
     def process_form(self, form, is_created):
+        recipients = form.test_email_recipients.data.strip() or None
         self._extra_data['test_email'] = form.test_email.data
-        self._extra_data['test_email_recipients'] = form.test_email_recipients.data
+        self._extra_data['test_email_recipients'] = recipients
 
     def pre_add(self, obj):
         try:
@@ -215,6 +216,7 @@ class SliceEmailScheduleView(EmailScheduleView):
         'recipients',
         'deliver_as_group',
         'delivery_type',
+        'email_format',
         'test_email',
         'test_email_recipients'
     ]
