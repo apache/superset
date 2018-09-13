@@ -34,5 +34,4 @@ export default class Registry {
     }
     return Promise.reject(`[${this.name}Registry] Item with key "${key}" is not registered.`);
   }
-
 }
