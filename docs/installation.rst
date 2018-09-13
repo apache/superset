@@ -354,6 +354,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  BigQuery     | ``pip install pybigquery``          | ``bigquery://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -398,6 +400,22 @@ snowflake-sqlalchemy package that causes problems when used with Superset. It is
 use version 1.1.0 or try a newer version.
 
 See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
+
+Teradata
+---------
+
+The connection string for Teradata looks like this ::
+
+    teradata://{user}:{password}@{host}
+
+*Note*: Its required to have Teradata ODBC drivers installed and environment variables configured for proper work of sqlalchemy dialect. Teradata ODBC Drivers available here: https://downloads.teradata.com/download/connectivity/odbc-driver/linux
+
+Required environment variables: ::
+
+    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini  
+    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini 
+
+See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
 
 Caching
 -------
