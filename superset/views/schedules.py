@@ -69,8 +69,8 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
             'Test Email Recipients',
             default=None,
             description='List of recipients to send test email to. '
-                        'If empty, we send it to the original recipients'
-        )
+                        'If empty, we send it to the original recipients',
+        ),
     }
 
     edit_form_extra_fields = add_form_extra_fields
@@ -165,7 +165,7 @@ class DashboardEmailScheduleView(EmailScheduleView):
         'deliver_as_group',
         'delivery_type',
         'test_email',
-        'test_email_recipients'
+        'test_email_recipients',
     ]
 
     edit_columns = add_columns
@@ -224,7 +224,7 @@ class SliceEmailScheduleView(EmailScheduleView):
         'delivery_type',
         'email_format',
         'test_email',
-        'test_email_recipients'
+        'test_email_recipients',
     ]
 
     edit_columns = add_columns
