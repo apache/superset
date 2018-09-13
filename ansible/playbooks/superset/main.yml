@@ -1,0 +1,33 @@
+---
+
+- name: Retrieve facts all host
+  hosts:
+    - all
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - 'always'
+  tasks: []
+
+# This play permits to use a hierarchy of variables. The
+# variables are loaded form the vars inventory dir. It
+# respects the following order:
+#  - common
+#  - customers/common
+#  - customers/stage
+#  - extra_vars
+- name: Load hierarchical variables
+  hosts:
+    - all
+  any_errors_fatal: True
+  tags:
+    - 'always'
+  roles:
+    - reflex-provisionner/load_vars
+
+
+- name: Superset role deployment
+  hosts:
+    - management-nodes
+  roles:
+    - superset
