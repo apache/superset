@@ -29,6 +29,9 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -; \
     apt-get update; \
     apt-get install -y yarn
 
+RUN cd superset/assets && yarn && yarn run build && cd ../../
+
+
 ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH
 
