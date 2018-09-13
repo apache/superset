@@ -976,7 +976,7 @@ function adaptor(slice, payload) {
     isPieLabelOutside,
     leftMargin,
     lineInterpolation,
-    maxBubbleSize,
+    maxBubbleSize: parseInt(maxBubbleSize, 10),
     onBrushEnd: isTruthy(hasBrushAction) ? ((timeRange) => {
       slice.addFilter('__time_range', timeRange, false, true);
     }) : undefined,
