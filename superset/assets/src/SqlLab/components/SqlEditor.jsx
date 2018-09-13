@@ -1,5 +1,3 @@
-/* global window */
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import throttle from 'lodash.throttle';

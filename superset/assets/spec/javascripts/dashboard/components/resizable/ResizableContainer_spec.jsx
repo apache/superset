@@ -1,7 +1,6 @@
 import React from 'react';
 import Resizable from 're-resizable';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';

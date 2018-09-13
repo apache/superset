@@ -1,4 +1,3 @@
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import newEntitiesFromDrop from '../../../../src/dashboard/util/newEntitiesFromDrop';

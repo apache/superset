@@ -3,6 +3,7 @@ import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
+import $ from 'jquery';
 
 import getInitialState from './getInitialState';
 import rootReducer from './reducers';

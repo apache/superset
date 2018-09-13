@@ -2,6 +2,7 @@ import { combineReducers } from 'redux';
 import shortid from 'shortid';
 import messageToasts from '../messageToasts/reducers';
 
+import getInitialState from './getInitialState';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import {

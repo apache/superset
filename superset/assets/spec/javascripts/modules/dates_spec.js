@@ -1,5 +1,4 @@
-import { it, describe } from 'mocha';
-import { expect } from 'chai';
+import { assert, expect } from 'chai';
 import {
   tickMultiFormat,
   formatDate,

@@ -1,4 +1,3 @@
-import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import { isTruthy, optionFromValue } from '../../../src/utils/common';
 

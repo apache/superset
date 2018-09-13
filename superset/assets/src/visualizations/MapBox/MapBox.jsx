@@ -122,9 +122,9 @@ MapBox.defaultProps = defaultProps;
 function createReducer(aggregatorName, customMetric) {
   if (aggregatorName === 'sum' || !customMetric) {
     return (a, b) => a + b;
-  } else if (aggName === 'min') {
+  } else if (aggregatorName === 'min') {
     return Math.min;
-  } else if (aggName === 'max') {
+  } else if (aggregatorName === 'max') {
     return Math.max;
   }
   return function (a, b) {

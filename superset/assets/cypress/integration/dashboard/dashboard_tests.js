@@ -1,5 +1,5 @@
-describe('Load dashboard', function () {
-  it('Load birth names dashboard', function () {
+describe('Load dashboard', () => {
+  it('Load birth names dashboard', () => {
     cy.server();
     cy.login();
 

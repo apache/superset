@@ -1,5 +1,4 @@
-import { it, describe } from 'mocha';
-import { expect } from 'chai';
+import { expect, assert } from 'chai';
 
 import moment from 'moment';
 import { getPlaySliderParams, truncate } from '../../../src/modules/time';

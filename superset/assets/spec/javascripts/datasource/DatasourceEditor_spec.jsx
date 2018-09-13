@@ -1,7 +1,6 @@
 import React from 'react';
 import { Tabs } from 'react-bootstrap';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import $ from 'jquery';

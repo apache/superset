@@ -1,4 +1,3 @@
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { ADD_TOAST, REMOVE_TOAST } from '../../../../src/messageToasts/actions';
