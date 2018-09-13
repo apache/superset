@@ -3,7 +3,6 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { mount } from 'enzyme';
 
 import BoundsControl from '../../../../src/explore/components/controls/BoundsControl';

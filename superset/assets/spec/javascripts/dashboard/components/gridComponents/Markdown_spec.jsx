@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import AceEditor from 'react-ace';

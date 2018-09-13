@@ -1,4 +1,3 @@
-import { it, describe } from 'mocha';
 import { expect } from 'chai';
 
 import sandboxedEval from '../../../src/modules/sandbox';

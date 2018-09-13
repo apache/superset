@@ -1,6 +1,5 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import ExploreChartHeader from '../../../../src/explore/components/ExploreChartHeader';

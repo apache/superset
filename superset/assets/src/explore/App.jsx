@@ -1,4 +1,3 @@
-/* eslint no-undef: 2 */
 import React from 'react';
 import { hot } from 'react-hot-loader';
 import { createStore, applyMiddleware, compose } from 'redux';

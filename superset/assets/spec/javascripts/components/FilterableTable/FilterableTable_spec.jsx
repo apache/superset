@@ -1,5 +1,4 @@
 import React from 'react';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { mount } from 'enzyme';
 import FilterableTable from '../../../../src/components/FilterableTable/FilterableTable';

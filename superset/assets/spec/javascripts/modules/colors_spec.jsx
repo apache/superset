@@ -1,4 +1,3 @@
-import { it, describe, before } from 'mocha';
 import { expect } from 'chai';
 import { getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
 import { getInstance } from '../../../src/modules/ColorSchemeManager';
