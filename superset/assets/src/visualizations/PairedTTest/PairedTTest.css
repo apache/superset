@@ -1,10 +1,14 @@
 .paired_ttest .scrollbar-container {
-  overflow: scroll;
+  overflow: auto;
 }
 
 .paired-ttest-table .scrollbar-content {
   padding-left: 5px;
   padding-right: 5px;
+  margin-bottom: 0;
+}
+
+.paired-ttest-table table {
   margin-bottom: 0;
 }
 
@@ -60,8 +64,4 @@
   content: '\25b2';
   position: absolute;
   right: 10px;
-}
-
-.paired-ttest-table table {
-  margin-bottom: 0;
 }

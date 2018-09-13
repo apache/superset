@@ -20,13 +20,13 @@ import AnnotationTypes, {
   requiresQuery,
 } from '../../../modules/AnnotationTypes';
 
-import { ALL_COLOR_SCHEMES } from '../../../modules/colors';
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
 import vizTypes from '../../visTypes';
 
 import { t } from '../../../locales';
+import { getScheme } from '../../../modules/ColorSchemeManager';
 
 const AUTOMATIC_COLOR = '';
 
@@ -276,7 +276,7 @@ export default class AnnotationLayer extends React.PureComponent {
         description = t('Select the Annotation Layer you would like to use.');
       } else {
         label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays. 
+        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
         'your chart must be one of these visualization types:
         '[${getSupportedSourceTypes(annotationType)
             .map(x => vizTypes[x].label).join(', ')}]'`;
@@ -478,7 +478,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderDisplayConfiguration() {
     const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
-    const colorScheme = [...ALL_COLOR_SCHEMES[this.props.colorScheme]];
+    const colorScheme = [...getScheme(this.props.colorScheme)];
     if (color && color !== AUTOMATIC_COLOR &&
       !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())) {
       colorScheme.push(color);

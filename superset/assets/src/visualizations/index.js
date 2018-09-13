@@ -65,9 +65,9 @@ const vizMap = {
   [VIZ_TYPES.area]: loadNvd3,
   [VIZ_TYPES.bar]: loadNvd3,
   [VIZ_TYPES.big_number]: () =>
-    loadVis(import(/* webpackChunkName: 'big_number' */ './BigNumber.jsx')),
+    loadVis(import(/* webpackChunkName: 'big_number' */ './BigNumber/BigNumber.jsx')),
   [VIZ_TYPES.big_number_total]: () =>
-    loadVis(import(/* webpackChunkName: "big_number" */ './BigNumber.jsx')),
+    loadVis(import(/* webpackChunkName: "big_number" */ './BigNumber/BigNumber.jsx')),
   [VIZ_TYPES.box_plot]: loadNvd3,
   [VIZ_TYPES.bubble]: loadNvd3,
   [VIZ_TYPES.bullet]: loadNvd3,
@@ -82,14 +82,14 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "filter_box" */ './filter_box.jsx')),
   [VIZ_TYPES.heatmap]: () => loadVis(import(/* webpackChunkName: "heatmap" */ './heatmap.js')),
   [VIZ_TYPES.histogram]: () =>
-    loadVis(import(/* webpackChunkName: "histogram" */ './histogram.js')),
+    loadVis(import(/* webpackChunkName: "histogram" */ './Histogram.jsx')),
   [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './HorizonChart.jsx')),
   [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
   [VIZ_TYPES.line]: loadNvd3,
   [VIZ_TYPES.line_multi]: () =>
     loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
-  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './mapbox.jsx')),
+  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './parallel_coordinates.js')),
@@ -106,14 +106,14 @@ const vizMap = {
   [VIZ_TYPES.country_map]: () =>
     loadVis(import(/* webpackChunkName: "country_map" */ './country_map.js')),
   [VIZ_TYPES.word_cloud]: () =>
-    loadVis(import(/* webpackChunkName: "word_cloud" */ './word_cloud.js')),
+    loadVis(import(/* webpackChunkName: "word_cloud" */ './wordcloud/WordCloud.js')),
   [VIZ_TYPES.world_map]: () =>
     loadVis(import(/* webpackChunkName: "world_map" */ './world_map.js')),
   [VIZ_TYPES.dual_line]: loadNvd3,
   [VIZ_TYPES.event_flow]: () =>
     loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
   [VIZ_TYPES.paired_ttest]: () =>
-    loadVis(import(/* webpackChunkName: "paired_ttest" */ './paired_ttest.jsx')),
+    loadVis(import(/* webpackChunkName: "paired_ttest" */ './PairedTTest/PairedTTest.jsx')),
   [VIZ_TYPES.partition]: () =>
     loadVis(import(/* webpackChunkName: "partition" */ './partition.js')),
   [VIZ_TYPES.deck_scatter]: () =>

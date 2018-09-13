@@ -45,11 +45,15 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { colorPrimary } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
+import { getAllSchemes } from '../modules/ColorSchemeManager';
+import sequentialSchemes from '../modules/colorSchemes/sequential';
+
+const ALL_COLOR_SCHEMES = getAllSchemes();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -371,7 +375,7 @@ export const controls = {
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: spectrums,
+    schemes: sequentialSchemes,
     isLinear: true,
   },
 
@@ -1078,7 +1082,7 @@ export const controls = {
     isInt: true,
     validators: [v.integer],
     renderTrigger: true,
-    default: 0,
+    default: 2,
     label: t('Cell Padding'),
     description: t('The distance between cells, in pixels'),
   },
@@ -1802,28 +1806,37 @@ export const controls = {
   viewport_zoom: {
     type: 'TextControl',
     label: t('Zoom'),
+    renderTrigger: true,
     isFloat: true,
     default: 11,
     description: t('Zoom level of the map'),
     places: 8,
+    // Viewport zoom shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_latitude: {
     type: 'TextControl',
     label: t('Default latitude'),
+    renderTrigger: true,
     default: 37.772123,
     isFloat: true,
     description: t('Latitude of default viewport'),
     places: 8,
+    // Viewport latitude changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_longitude: {
     type: 'TextControl',
     label: t('Default longitude'),
+    renderTrigger: true,
     default: -122.405293,
     isFloat: true,
     description: t('Longitude of default viewport'),
     places: 8,
+    // Viewport longitude changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   render_while_dragging: {

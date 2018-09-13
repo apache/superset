@@ -4,9 +4,9 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is tested against Python ``2.7`` and Python ``3.6``.
-Airbnb currently uses 2.7.* in production. We do not plan on supporting
-Python ``2.6``.
+Superset is currently tested against Python ``2.7`` and Python ``3.6``.
+Python 3.6 is preferred. Support for Python ``<=3.6`` is planned to get
+phased out.
 
 Cloud-native!
 -------------
@@ -392,6 +392,10 @@ The role and warehouse can be omitted if defaults are defined for the user, i.e.
 Make sure the user has privileges to access and use all required
 databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
 not test for user rights during engine creation.
+
+*Note*: At the time of writing, there is a regression in the current stable version (1.1.2) of
+snowflake-sqlalchemy package that causes problems when used with Superset. It is recommended to
+use version 1.1.0 or try a newer version.
 
 See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
 

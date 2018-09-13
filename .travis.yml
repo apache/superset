@@ -28,6 +28,8 @@ matrix:
       env: TOXENV=py36-sqlite
     - python: 3.6
       env: TOXENV=pylint
+    - python: 3.6
+      env: TOXENV=cypress
   exclude:
     - python: 2.7
     - python: 3.6

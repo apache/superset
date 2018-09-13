@@ -261,23 +261,52 @@ To parse and generate bundled files for superset, run either of the
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
-```
+```bash
 # Copies a conf file from the frontend to the backend
 npm run sync-backend
 
 # Compiles the production / optimized js & css
 npm run prod
 
+# Start a watcher that rebundle your assets as you modify them
+npm run dev
+
 # Start a web server that manages and updates your assets as you modify them
-npm run dev
+npm run dev-server
 ```
 
-For every development session you will have to start a flask dev server
-as well as an npm watcher
+For every development session you will have to
 
-```
+1. Start a flask dev server
+
+```bash
+superset runserver -d
+# or specify port
 superset runserver -d -p 8081
-npm run dev
+```
+
+2. Start webpack dev server
+
+```bash
+npm run dev-server
+```
+
+This will start `webpack-dev-server` at port 9000 and you can access Superset at localhost:9000.
+By default, `webpack-dev-server` is configured for flask running at port 8088.
+
+If you start flask server at another port (e.g. 8081), you have to pass an extra argument
+`supersetPort` to `webpack-dev-server`
+
+```bash
+npm run dev-server -- --supersetPort=8081
+```
+
+You can also specify port for `webpack-dev-server`
+
+```bash
+npm run dev-server -- --port=9001
+# or with both dev-server port and superset port
+npm run dev-server -- --port=9001 --supersetPort=8081
 ```
 
 #### Upgrading npm packages
@@ -313,6 +342,21 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
     cd /superset/superset/assets/javascripts
     npm i
     npm run test
+
+We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+
+    export SUPERSET_CONFIG=tests.superset_test_config
+    superset load_test_users
+    superset db upgrade
+    superset init
+    superset load_examples
+    superset runserver
+
+Open Cypress tests:
+
+    cd /superset/superset/assets
+    npm run build
+    npm run cypress run
 
 ## Linting
 
@@ -526,3 +570,36 @@ migration hashes. Then run
 `superset db merge {PASTE_SHA1_HERE} {PASTE_SHA2_HERE}`. This will create
 a new merge migration. You can then `superset db upgrade` to this new
 checkpoint.
+
+
+## Running DB migration
+
+1. First alter the model you want to change. For example I want to add a `Column` Annotations model.
+
+https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104
+
+
+2. superset db migrate -m "this_will_be_in_the_migration_filename"
+
+For our example we'll be running this command:
+```
+superset db migrate -m "add_metadata_column_to_annotation_model.py"
+```
+
+This will generate a file in `superset/migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`
+
+https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262
+
+3. Run `superset db upgrade`
+
+The output should look like this:
+```
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
+```
+
+4. Add column to view
+Since there is a new column, we need to add it to the AppBuilder Model view.
+
+https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458
