@@ -394,7 +394,8 @@ export class DatasourceEditor extends React.PureComponent {
       </Fieldset>);
   }
   renderSpatialTab() {
-    const spatials = this.state.datasource.spatials;
+    const { datasource } = this.state;
+    const { spatials, all_cols: allCols } = datasource;
     return (
       <Tab
         title={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
@@ -414,7 +415,7 @@ export class DatasourceEditor extends React.PureComponent {
             name: (d, onChange) => (
               <EditableTitle canEdit title={d} onSaveTitle={onChange} />),
             config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={datasource.all_cols} />
+              <SpatialControl value={v} onChange={onChange} choices={allCols} />
             ),
           }}
         />

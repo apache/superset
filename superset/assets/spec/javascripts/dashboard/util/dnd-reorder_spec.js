@@ -1,4 +1,3 @@
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import reorderItem from '../../../../src/dashboard/util/dnd-reorder';

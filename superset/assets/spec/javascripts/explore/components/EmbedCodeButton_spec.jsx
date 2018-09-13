@@ -1,6 +1,5 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';

@@ -17,7 +17,6 @@
     "no-mixed-operators": 0,
     "no-continue": 2,
     "no-bitwise": 2,
-    "no-undef": 2,
     "no-multi-assign": 2,
     "no-restricted-properties": 2,
     "no-prototype-builtins": 2,

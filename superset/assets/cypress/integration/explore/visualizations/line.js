@@ -1,9 +1,9 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
-describe('Line', function () {
+describe('Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
-  it('Test line chart with adhoc metric', function () {
+  it('Test line chart with adhoc metric', () => {
     cy.server();
     cy.login();
 
@@ -14,7 +14,7 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with groupby', function () {
+  it('Test line chart with groupby', () => {
     cy.server();
     cy.login();
 
@@ -28,21 +28,23 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with simple filter', function () {
+  it('Test line chart with simple filter', () => {
     cy.server();
     cy.login();
 
     const metrics = ['count'];
-    const filters = [{
-      expressionType: 'SIMPLE',
-      subject: 'name',
-      operator: 'in',
-      comparator: ['Aaron', 'Amy', 'Andrea'],
-      clause: 'WHERE',
-      sqlExpression: null,
-      fromFormData: true,
-      filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
-    }];
+    const filters = [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'name',
+        operator: 'in',
+        comparator: ['Aaron', 'Amy', 'Andrea'],
+        clause: 'WHERE',
+        sqlExpression: null,
+        fromFormData: true,
+        filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
+      },
+    ];
 
     const formData = { ...LINE_CHART_DEFAULTS, metrics, adhoc_filters: filters };
 
@@ -51,7 +53,7 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with series limit sort asc', function () {
+  it('Test line chart with series limit sort asc', () => {
     cy.server();
     cy.login();
 
@@ -68,7 +70,7 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with series limit sort desc', function () {
+  it('Test line chart with series limit sort desc', () => {
     cy.server();
     cy.login();
 
@@ -86,7 +88,7 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with rolling avg', function () {
+  it('Test line chart with rolling avg', () => {
     cy.server();
     cy.login();
 
@@ -99,39 +101,54 @@ describe('Line', function () {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with time shift 1 year', function () {
+  it('Test line chart with time shift 1 year', () => {
     cy.server();
     cy.login();
 
     const metrics = [NUM_METRIC];
 
-    const formData = { ...LINE_CHART_DEFAULTS, metrics, time_compare: ['1+year'], comparison_type: 'values' };
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics,
+      time_compare: ['1+year'],
+      comparison_type: 'values',
+    };
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with time shift yoy', function () {
+  it('Test line chart with time shift yoy', () => {
     cy.server();
     cy.login();
 
     const metrics = [NUM_METRIC];
 
-    const formData = { ...LINE_CHART_DEFAULTS, metrics, time_compare: ['1+year'], comparison_type: 'ratio' };
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics,
+      time_compare: ['1+year'],
+      comparison_type: 'ratio',
+    };
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
-  it('Test line chart with time shift percentage change', function () {
+  it('Test line chart with time shift percentage change', () => {
     cy.server();
     cy.login();
 
     const metrics = [NUM_METRIC];
 
-    const formData = { ...LINE_CHART_DEFAULTS, metrics, time_compare: ['1+year'], comparison_type: 'percentage' };
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics,
+      time_compare: ['1+year'],
+      comparison_type: 'percentage',
+    };
 
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));

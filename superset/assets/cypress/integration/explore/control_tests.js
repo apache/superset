@@ -2,8 +2,8 @@
 // Tests for setting controls in the UI
 // ***********************************************
 
-describe('Groupby', function () {
-  it('Set groupby', function () {
+describe('Groupby', () => {
+  it('Set groupby', () => {
     cy.server();
     cy.login();
 
@@ -21,8 +21,8 @@ describe('Groupby', function () {
   });
 });
 
-describe('SimpleAdhocMetric', function () {
-  it('Clear metric and set simple adhoc metric', function () {
+describe('SimpleAdhocMetric', () => {
+  it('Clear metric and set simple adhoc metric', () => {
     cy.server();
     cy.login();
 
@@ -36,7 +36,9 @@ describe('SimpleAdhocMetric', function () {
       cy.get('.select-clear').click();
       cy.get('.Select-control').click({ force: true });
       cy.get('input').type('sum_girls', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption').trigger('mousedown').click();
+      cy.get('.VirtualizedSelectFocusedOption')
+        .trigger('mousedown')
+        .click();
     });
 
     cy.get('#metrics-edit-popover').within(() => {
@@ -44,7 +46,9 @@ describe('SimpleAdhocMetric', function () {
         cy.get('span').click();
         cy.get('input').type(metricName);
       });
-      cy.get('button').contains('Save').click();
+      cy.get('button')
+        .contains('Save')
+        .click();
     });
 
     cy.get('button.query').click();
@@ -56,4 +60,3 @@ describe('SimpleAdhocMetric', function () {
     });
   });
 });
-

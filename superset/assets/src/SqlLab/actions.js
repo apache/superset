@@ -1,5 +1,3 @@
-/* global window */
-/* eslint no-undef: 2 */
 import $ from 'jquery';
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';

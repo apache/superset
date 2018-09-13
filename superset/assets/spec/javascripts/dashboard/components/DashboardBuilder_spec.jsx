@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import ParentSize from '@vx/responsive/build/components/ParentSize';
