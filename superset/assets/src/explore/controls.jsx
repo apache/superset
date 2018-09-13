@@ -1313,7 +1313,7 @@ export const controls = {
     label: t('Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
     renderTrigger: true,
-    default: 'square',
+    default: 'flat',
     description: t('Rotation to apply to words in the cloud'),
   },
 
