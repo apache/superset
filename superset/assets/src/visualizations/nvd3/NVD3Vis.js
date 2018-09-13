@@ -8,7 +8,7 @@ import 'nvd3/build/nv.d3.min.css';
 
 import { t } from '../../locales';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getColorFromScheme } from '../../modules/colors';
+import { getScale, getColor } from '../../modules/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
@@ -507,7 +507,8 @@ function nvd3Vis(element, props) {
         });
       }
     } else if (vizType !== 'bullet') {
-      chart.color(d => d.color || getColorFromScheme(d[colorKey], colorScheme));
+      const colorFn = getScale(colorScheme).toFunction();
+      chart.color(d => d.color || colorFn(d[colorKey]));
     }
 
     if (isVizTypes(['line', 'area']) && useRichTooltip) {
@@ -759,7 +760,7 @@ function nvd3Vis(element, props) {
               .select('.nv-wrap')
               .append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColorFromScheme(e.name, colorScheme);
+            const aColor = e.color || getColor(e.name, colorScheme);
 
             const tip = tipFactory(e);
             const records = (annotationData[e.name].records || []).map((r) => {
@@ -819,7 +820,7 @@ function nvd3Vis(element, props) {
               .append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColorFromScheme(e.name, colorScheme);
+            const aColor = e.color || getColor(e.name, colorScheme);
             const tip = tipFactory(e);
 
             const records = (annotationData[e.name].records || []).map((r) => {
