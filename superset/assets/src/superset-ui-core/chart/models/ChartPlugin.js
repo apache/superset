@@ -1,5 +1,6 @@
 import Plugin from '../../platform/Plugin';
 import * as BuildQuery from '../registries/BuildQueryRegistry';
+import * as ChartMetadataRegistry from '../registries/ChartMetadataRegistry';
 import * as ChartRegistry from '../registries/ChartRegistry';
 import * as TransformPropsRegistry from '../registries/TransformPropsRegistry';
 
@@ -42,6 +43,7 @@ export default class ChartPlugin extends Plugin {
   install(key = this.key) {
     super.setInstalledKey(key);
     BuildQuery.registerLoader(key, this.loadBuildQuery);
+    ChartMetadataRegistry.register(key, this.metadata);
     ChartRegistry.registerLoader(key, this.loadChart);
     TransformPropsRegistry.registerLoader(key, this.loadTransformProps);
   }
