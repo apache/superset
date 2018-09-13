@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { createErrorMessage } from './ErrorMessageFactory';
 import { loadChart } from '../registries/ChartRegistry';
-import { loadTransformProps } from './ChartPluginManager';
+import { loadTransformProps } from '../registries/TransformPropsRegistry';
 
 const IDENTITY = x => x;
 

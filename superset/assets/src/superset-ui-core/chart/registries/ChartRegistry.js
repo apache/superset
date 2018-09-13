@@ -7,13 +7,22 @@ class ChartRegistry extends LoaderRegistry {
   }
 }
 
-const getInstance = makeSingleton(ChartRegistry);
+const {
+  getInstance,
+  has,
+  register,
+  registerLoader,
+  load,
+} = makeSingleton(ChartRegistry);
 
-function loadChart(key) {
-  return getInstance().load(key);
-}
+// alias
+const loadChart = load;
 
 export {
   getInstance,
+  has,
+  register,
+  registerLoader,
+  load,
   loadChart,
 };

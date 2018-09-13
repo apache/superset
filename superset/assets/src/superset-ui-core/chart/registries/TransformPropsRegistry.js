@@ -7,13 +7,22 @@ class TransformPropsRegistry extends LoaderRegistry {
   }
 }
 
-const getInstance = makeSingleton(TransformPropsRegistry);
+const {
+  getInstance,
+  has,
+  register,
+  registerLoader,
+  load,
+} = makeSingleton(TransformPropsRegistry);
 
-function loadTransformProps(key) {
-  return getInstance().load(key);
-}
+// alias
+const loadTransformProps = load;
 
 export {
   getInstance,
+  has,
+  register,
+  registerLoader,
+  load,
   loadTransformProps,
 };
