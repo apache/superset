@@ -1,4 +1,4 @@
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
@@ -33,18 +33,7 @@ describe('Line', () => {
     cy.login();
 
     const metrics = ['count'];
-    const filters = [
-      {
-        expressionType: 'SIMPLE',
-        subject: 'name',
-        operator: 'in',
-        comparator: ['Aaron', 'Amy', 'Andrea'],
-        clause: 'WHERE',
-        sqlExpression: null,
-        fromFormData: true,
-        filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
-      },
-    ];
+    const filters = [SIMPLE_FILTER];
 
     const formData = { ...LINE_CHART_DEFAULTS, metrics, adhoc_filters: filters };
 

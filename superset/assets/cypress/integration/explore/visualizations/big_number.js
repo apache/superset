@@ -49,12 +49,9 @@ describe('Big Number Total', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.wait(['@getJson']).then((data) => {
-      expect(data.status).to.eq(200);
-      if (data.response.body.error) {
-        expect(data.response.body.error).to.eq(null);
-      }
+      cy.verifyResponseCodes(data);
+      cy.verifySliceContainer();
       expect(data.response.body.query).not.contains(formData.groupby[0]);
-      cy.get('.slice_container');
     });
   });
 });
