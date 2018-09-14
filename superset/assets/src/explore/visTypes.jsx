@@ -1102,6 +1102,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['row_limit'],
         ],
       },
       {
