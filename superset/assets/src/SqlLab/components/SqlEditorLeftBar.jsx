@@ -80,23 +80,25 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (dbId && schema) {
       this.setState(() => ({ tableLoading: true, tableOptions: [] }));
       const endpoint = `/superset/tables/${dbId}/${schema}/${substr}/${forceRefresh}/`;
-      SupersetClient.get({ endpoint })
+
+      return SupersetClient.get({ endpoint })
         .then(({ json }) => {
           const filterOptions = createFilterOptions({ options: json.options });
-          this.setState({
+          this.setState(() => ({
             filterOptions,
             tableLoading: false,
             tableOptions: json.options,
             tableLength: json.tableLength,
-          });
+          }));
         })
         .catch(() => {
-          this.setState({ tableLoading: false, tableOptions: [], tableLength: 0 });
+          this.setState(() => ({ tableLoading: false, tableOptions: [], tableLength: 0 }));
           this.props.actions.addDangerToast(t('Error while fetching table list'));
         });
-    } else {
-      this.setState({ tableLoading: false, tableOptions: [], filterOptions: null });
     }
+
+    this.setState(() => ({ tableLoading: false, tableOptions: [], filterOptions: null }));
+    return Promise.resolve();
   }
 
   changeTable(tableOpt) {
@@ -141,6 +143,8 @@ class SqlEditorLeftBar extends React.PureComponent {
           this.props.actions.addDangerToast(t('Error while fetching schema list'));
         });
     }
+
+    return Promise.resolve();
   }
 
   closePopover(ref) {

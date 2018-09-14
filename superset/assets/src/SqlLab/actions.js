@@ -57,7 +57,7 @@ export function resetState() {
 }
 
 export function saveQuery(query) {
-  return (dispatch) => {
+  return dispatch =>
     SupersetClient.post({
       endpoint: '/savedqueryviewapi/api/create',
       postPayload: query,
@@ -65,7 +65,6 @@ export function saveQuery(query) {
     })
       .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
       .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
-  };
 }
 
 export function startQuery(query) {
@@ -111,15 +110,12 @@ export function fetchQueryResults(query) {
       endpoint: `/superset/results/${query.resultsKey}/`,
       parseMethod: 'text',
     })
-      .then(({ text }) => {
+      .then(({ text = '{}' }) => {
         const bigIntJson = JSONbig.parse(text);
         dispatch(querySuccess(query, bigIntJson));
       })
       .catch((error) => {
-        const message =
-          error.error ||
-          error.statusText ||
-          t('Failed at retrieving results from the results backend');
+        const message = error.error || error.statusText || t('Failed at retrieving results');
 
         return dispatch(queryFailed(query, message, error.link));
       });
@@ -143,7 +139,7 @@ export function runQuery(query) {
       templateParams: query.templateParams,
     };
 
-    SupersetClient.post({
+    return SupersetClient.post({
       endpoint: `/superset/sql_json/${window.location.search}`,
       postPayload,
       stringify: false,

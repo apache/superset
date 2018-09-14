@@ -1,8 +1,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
 
-import $ from 'jquery';
 import { table, defaultQueryEditor, databases, tables } from './fixtures';
 import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
 import TableElement from '../../../src/SqlLab/components/TableElement';
@@ -23,19 +23,13 @@ describe('SqlEditorLeftBar', () => {
   };
 
   let wrapper;
-  let ajaxStub;
+
   beforeEach(() => {
-    ajaxStub = sinon.stub($, 'get');
     wrapper = shallow(<SqlEditorLeftBar {...mockedProps} />);
-  });
-  afterEach(() => {
-    ajaxStub.restore();
   });
 
   it('is valid', () => {
-    expect(
-      React.isValidElement(<SqlEditorLeftBar {...mockedProps} />),
-    ).toBe(true);
+    expect(React.isValidElement(<SqlEditorLeftBar {...mockedProps} />)).toBe(true);
   });
   it('renders a TableElement', () => {
     expect(wrapper.find(TableElement)).toHaveLength(1);
@@ -52,34 +46,42 @@ describe('SqlEditorLeftBar', () => {
       expect(wrapper.state().tableOptions).toEqual([]);
     });
   });
+
   describe('getTableNamesBySubStr', () => {
-    it('should handle empty', () => (
-      wrapper.instance().getTableNamesBySubStr('')
+    const GET_TABLE_NAMES_GLOB = 'glob:*/superset/tables/1/main/*';
+
+    afterEach(fetchMock.resetHistory);
+    after(fetchMock.reset);
+
+    it('should handle empty', () =>
+      wrapper
+        .instance()
+        .getTableNamesBySubStr('')
         .then((data) => {
           expect(data).toEqual({ options: [] });
-        })
-    ));
+        }));
+
     it('should handle table name', () => {
-      const queryEditor = Object.assign({}, defaultQueryEditor,
-        {
-          dbId: 1,
-          schema: 'main',
-        });
+      const queryEditor = {
+        ...defaultQueryEditor,
+        dbId: 1,
+        schema: 'main',
+      };
+
       const mockTableOptions = { options: [table] };
       wrapper.setProps({ queryEditor });
-      ajaxStub.callsFake(() => {
-        const d = $.Deferred();
-        d.resolve(mockTableOptions);
-        return d.promise();
-      });
+      fetchMock.get(GET_TABLE_NAMES_GLOB, mockTableOptions, { overwriteRoutes: true });
 
-      return wrapper.instance().getTableNamesBySubStr('my table')
+      return wrapper
+        .instance()
+        .getTableNamesBySubStr('my table')
         .then((data) => {
-          expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/my table');
+          expect(fetchMock.calls(GET_TABLE_NAMES_GLOB)).toHaveLength(1);
           expect(data).toEqual(mockTableOptions);
         });
     });
   });
+
   it('dbMutator should build databases options', () => {
     const options = wrapper.instance().dbMutator(databases);
     expect(options).toEqual([
@@ -87,58 +89,81 @@ describe('SqlEditorLeftBar', () => {
       { value: 208, label: 'Presto - Gold' },
     ]);
   });
+
   describe('fetchTables', () => {
+    const FETCH_TABLES_GLOB = 'glob:*/superset/tables/1/main/birth_names/true/';
+    afterEach(fetchMock.resetHistory);
+    afterAll(fetchMock.reset);
+
     it('should clear table options', () => {
       wrapper.instance().fetchTables(1);
       expect(wrapper.state().tableOptions).toEqual([]);
       expect(wrapper.state().filterOptions).toBeNull();
     });
-    it('should fetch table options', () => {
-      ajaxStub.callsFake(() => {
-        const d = $.Deferred();
-        d.resolve(tables);
-        return d.promise();
-      });
-      wrapper.instance().fetchTables(1, 'main', 'true', 'birth_names');
 
-      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/birth_names/true/');
-      expect(wrapper.state().tableLength).toBe(3);
+    it('should fetch table options', () => {
+      expect.asseertions(2);
+      fetchMock.get(FETCH_TABLES_GLOB, tables, { overwriteRoutes: true });
+
+      return wrapper
+        .instance()
+        .fetchTables(1, 'main', true, 'birth_names')
+        .then(() => {
+          expect(fetchMock.calls(FETCH_TABLES_GLOB)).toHaveLength(1);
+          expect(wrapper.state().tableLength).toBe(3);
+        });
     });
+
     it('should handle error', () => {
-      ajaxStub.callsFake(() => {
-        const d = $.Deferred();
-        d.reject('error message');
-        return d.promise();
-      });
-      wrapper.instance().fetchTables(1, 'main', 'birth_names');
-      expect(wrapper.state().tableOptions).toEqual([]);
-      expect(wrapper.state().tableLength).toBe(0);
+      expect.asseertions(3);
+      fetchMock.get(FETCH_TABLES_GLOB, { throws: 'error' }, { overwriteRoutes: true });
+
+      return wrapper
+        .instance()
+        .fetchTables(1, 'main', 'birth_names')
+        .then(() => {
+          expect(fetchMock.calls(FETCH_TABLES_GLOB)).toHaveLength(1);
+          expect(wrapper.state().tableOptions).toEqual([]);
+          expect(wrapper.state().tableLength).toBe(0);
+        });
     });
   });
+
   describe('fetchSchemas', () => {
+    const FETCH_SCHEMAS_GLOB = 'glob:*/superset/schemas/*';
+    afterEach(fetchMock.resetHistory);
+    afterAll(fetchMock.reset);
+
     it('should fetch schema options', () => {
+      expect.asseertions(2);
       const schemaOptions = {
         schemas: ['main', 'erf', 'superset'],
       };
-      ajaxStub.callsFake(() => {
-        const d = $.Deferred();
-        d.resolve(schemaOptions);
-        return d.promise();
-      });
-      wrapper.instance().fetchSchemas(1);
-      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/schemas/1/false/');
-      expect(wrapper.state().schemaOptions).toHaveLength(3);
+      fetchMock.get(FETCH_SCHEMAS_GLOB, schemaOptions, { overwriteRoutes: true });
+
+      return wrapper
+        .instance()
+        .fetchSchemas(1)
+        .then(() => {
+          expect(fetchMock.calls(FETCH_SCHEMAS_GLOB)).toHaveLength(1);
+          expect(wrapper.state().schemaOptions).toHaveLength(3);
+        });
     });
+
     it('should handle error', () => {
-      ajaxStub.callsFake(() => {
-        const d = $.Deferred();
-        d.reject('error message');
-        return d.promise();
-      });
-      wrapper.instance().fetchSchemas(123);
-      expect(wrapper.state().schemaOptions).toEqual([]);
+      expect.asseertions(2);
+      fetchMock.get(FETCH_SCHEMAS_GLOB, { throws: 'error' }, { overwriteRoutes: true });
+
+      return wrapper
+        .instance()
+        .fetchSchemas(123)
+        .then(() => {
+          expect(fetchMock.calls(FETCH_SCHEMAS_GLOB)).toHaveLength(1);
+          expect(wrapper.state().schemaOptions).toEqual([]);
+        });
     });
   });
+
   describe('changeTable', () => {
     beforeEach(() => {
       sinon.stub(wrapper.instance(), 'fetchTables');
