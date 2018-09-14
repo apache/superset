@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import BasicChartInput from '../visualizations/schema/BasicChartInput';
+import BasicChartInput from '../visualizations/models/BasicChartInput';
 
 const IDENTITY = x => x;
 
