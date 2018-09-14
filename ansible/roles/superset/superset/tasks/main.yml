@@ -70,7 +70,8 @@
     force: "true"
   with_items: "{{ superset_deploy_files.results }}"
   when:
-    - superset_deploy 
+    - superset_deploy
+    - superset_reload_pods 
 
 
 - name: Deploy superset
