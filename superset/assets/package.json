@@ -78,6 +78,7 @@
     "immutable": "^3.8.2",
     "jed": "^1.1.1",
     "jquery": "3.1.1",
+    "latlon-geohash": "^1.1.0",
     "json-bigint": "^0.3.0",
     "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^0.45.0",
