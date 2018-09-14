@@ -162,7 +162,6 @@ describe('ExploreResultsButton', () => {
         .callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
       sinon.spy(exploreUtils, 'exportChart');
       sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => mockOptions);
-      // datasourceSpy = sinon.stub(actions, 'createDatasource');
     });
     afterEach(() => {
       exploreUtils.getExploreUrlAndPayload.restore();

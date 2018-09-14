@@ -51,7 +51,7 @@ describe('SqlEditorLeftBar', () => {
     const GET_TABLE_NAMES_GLOB = 'glob:*/superset/tables/1/main/*';
 
     afterEach(fetchMock.resetHistory);
-    after(fetchMock.reset);
+    afterAll(fetchMock.reset);
 
     it('should handle empty', () =>
       wrapper
