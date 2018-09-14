@@ -108,7 +108,7 @@ const vizMap = {
   [VIZ_TYPES.word_cloud]: () =>
     loadVis(import(/* webpackChunkName: "word_cloud" */ './wordcloud/WordCloud.js')),
   [VIZ_TYPES.world_map]: () =>
-    loadVis(import(/* webpackChunkName: "world_map" */ './world_map.js')),
+    loadVis(import(/* webpackChunkName: "world_map" */ './WorldMap/adaptor.jsx')),
   [VIZ_TYPES.dual_line]: loadNvd3,
   [VIZ_TYPES.event_flow]: () =>
     loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
