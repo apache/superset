@@ -1960,7 +1960,7 @@ class MapboxViz(BaseViz):
             return None
         fd = self.form_data
         label_col = fd.get('mapbox_label')
-        custom_metric = label_col and len(label_col) >= 1
+        custom_metric = bool(label_col) and len(label_col) >= 1
         metric_col = [None] * len(df.index)
         if custom_metric:
             if label_col[0] == fd.get('all_columns_x'):
