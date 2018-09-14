@@ -18,6 +18,12 @@ from .base import BaseSupersetView, DeleteMixin, SupersetModelView
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
+
+    list_title = _('List Query')
+    show_title = _('Show Query')
+    add_title = _('Add Query')
+    edit_title = _('Edit Query')
+
     list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
     label_columns = {
         'user': _('User'),

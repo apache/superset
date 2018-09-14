@@ -65,9 +65,9 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
 
-    return { start, end, step, values, disabled };
+    return { start, end, getStep, values, disabled };
   }
   constructor(props) {
     super(props);
@@ -103,13 +103,14 @@ class DeckGLScreenGrid extends React.PureComponent {
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}
-          step={this.state.step}
+          getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
           viewport={this.props.viewport}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
+          aggregation
         />
       </div>
     );

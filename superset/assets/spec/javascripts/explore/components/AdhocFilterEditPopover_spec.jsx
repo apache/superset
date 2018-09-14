@@ -2,7 +2,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
 
@@ -106,7 +105,7 @@ describe('AdhocFilterEditPopover', () => {
 
     expect(wrapper.find('i.glyphicon-resize-full')).to.have.lengthOf(1);
     expect(wrapper.instance().onDragDown.calledOnce).to.be.false;
-    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
+    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown', {});
     expect(wrapper.instance().onDragDown.calledOnce).to.be.true;
   });
 });

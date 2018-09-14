@@ -20,6 +20,7 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
+import pandas
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
 from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
@@ -40,7 +41,7 @@ from superset import conf, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
-    AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+    AuditMixinNullable, ImportMixin, QueryResult,
 )
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher,
@@ -186,11 +187,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 with session.no_autoflush:
                     session.add(datasource)
                 flasher(
-                    'Adding new datasource [{}]'.format(ds_name), 'success')
+                    _('Adding new datasource [{}]').format(ds_name), 'success')
                 ds_map[ds_name] = datasource
             elif refreshAll:
                 flasher(
-                    'Refreshing datasource [{}]'.format(ds_name), 'info')
+                    _('Refreshing datasource [{}]').format(ds_name), 'info')
             else:
                 del ds_map[ds_name]
                 continue
@@ -487,6 +488,7 @@ class DruidDatasource(Model, BaseDatasource):
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
+        'filter_select_enabled',
     )
     update_from_object_fields = export_fields
 
@@ -1346,7 +1348,10 @@ class DruidDatasource(Model, BaseDatasource):
         df = client.export_pandas()
 
         if df is None or df.size == 0:
-            raise Exception(_('No data was returned.'))
+            return QueryResult(
+                df=pandas.DataFrame([]),
+                query=query_str,
+                duration=datetime.now() - qry_start_dttm)
 
         df = self.homogenize_types(df, query_obj.get('groupby', []))
         df.columns = [
@@ -1597,5 +1602,5 @@ class DruidDatasource(Model, BaseDatasource):
         ]
 
 
-sa.event.listen(DruidDatasource, 'after_insert', set_perm)
-sa.event.listen(DruidDatasource, 'after_update', set_perm)
+sa.event.listen(DruidDatasource, 'after_insert', security_manager.set_perm)
+sa.event.listen(DruidDatasource, 'after_update', security_manager.set_perm)

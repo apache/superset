@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
@@ -152,7 +151,6 @@ describe('Dashboard', () => {
     it('should call refresh if a filter is added', () => {
       const wrapper = setup({ dashboardState: overrideDashboardState });
       const refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      const prevProps = wrapper.instance().props;
       wrapper.setProps({
         dashboardState: {
           ...overrideDashboardState,
@@ -162,7 +160,6 @@ describe('Dashboard', () => {
           },
         },
       });
-      wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
       expect(refreshExceptSpy.callCount).to.equal(1);
     });
@@ -170,14 +167,12 @@ describe('Dashboard', () => {
     it('should call refresh if a filter is removed', () => {
       const wrapper = setup({ dashboardState: overrideDashboardState });
       const refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      const prevProps = wrapper.instance().props;
       wrapper.setProps({
         dashboardState: {
           ...overrideDashboardState,
           filters: {},
         },
       });
-      wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
       expect(refreshExceptSpy.callCount).to.equal(1);
     });
@@ -185,7 +180,6 @@ describe('Dashboard', () => {
     it('should call refresh if a filter is changed', () => {
       const wrapper = setup({ dashboardState: overrideDashboardState });
       const refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      const prevProps = wrapper.instance().props;
       wrapper.setProps({
         dashboardState: {
           ...overrideDashboardState,
@@ -195,7 +189,6 @@ describe('Dashboard', () => {
           },
         },
       });
-      wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
       expect(refreshExceptSpy.callCount).to.equal(1);
     });
@@ -203,7 +196,6 @@ describe('Dashboard', () => {
     it('should not call refresh if filters change and refresh is false', () => {
       const wrapper = setup({ dashboardState: overrideDashboardState });
       const refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      const prevProps = wrapper.instance().props;
       wrapper.setProps({
         dashboardState: {
           ...overrideDashboardState,
@@ -214,7 +206,6 @@ describe('Dashboard', () => {
           refresh: false,
         },
       });
-      wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
       expect(refreshExceptSpy.callCount).to.equal(0);
     });

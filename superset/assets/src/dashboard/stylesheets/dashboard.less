@@ -129,10 +129,38 @@ body {
   }
 }
 
-.modal img.loading {
-  width: 50px;
-  margin: 0;
-  position: relative;
+.modal {
+  img.loading {
+    width: 50px;
+    margin: 0;
+    position: relative;
+  }
+
+  .modal-body {
+    padding: 24px 24px 29px 24px;
+
+    div {
+      margin-top: 24px;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+  }
+
+  .delete-modal-actions-container {
+    .btn {
+      margin-right: 16px;
+      &:last-child {
+        margin-right: 0;
+      }
+
+      &.btn-primary {
+        background: @pink !important;
+        border-color: @pink !important;
+      }
+    }
+  }
 }
 
 .react-bs-container-body {

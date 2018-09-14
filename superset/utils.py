@@ -39,7 +39,8 @@ from past.builtins import basestring
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
-from sqlalchemy import event, exc, select
+from sqlalchemy import event, exc, select, Text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -709,7 +710,9 @@ def get_celery_app(config):
     global _celery_app
     if _celery_app:
         return _celery_app
-    _celery_app = celery.Celery(config_source=config.get('CELERY_CONFIG'))
+    _celery_app = celery.Celery()
+    _celery_app.config_from_object(config.get('CELERY_CONFIG'))
+    _celery_app.set_default()
     return _celery_app
 
 
@@ -722,13 +725,13 @@ def to_adhoc(filt, expressionType='SIMPLE', clause='where'):
 
     if expressionType == 'SIMPLE':
         result.update({
-            'comparator': filt['val'],
-            'operator': filt['op'],
-            'subject': filt['col'],
+            'comparator': filt.get('val'),
+            'operator': filt.get('op'),
+            'subject': filt.get('col'),
         })
     elif expressionType == 'SQL':
         result.update({
-            'sqlExpression': filt[clause],
+            'sqlExpression': filt.get(clause),
         })
 
     return result
@@ -833,10 +836,7 @@ def get_or_create_main_db():
     from superset.models import core as models
 
     logging.info('Creating database reference')
-    dbobj = (
-        db.session.query(models.Database)
-        .filter_by(database_name='main')
-        .first())
+    dbobj = get_main_database(db.session)
     if not dbobj:
         dbobj = models.Database(database_name='main')
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
@@ -845,6 +845,15 @@ def get_or_create_main_db():
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
+
+
+def get_main_database(session):
+    from superset.models import core as models
+    return (
+        session.query(models.Database)
+        .filter_by(database_name='main')
+        .first()
+    )
 
 
 def is_adhoc_metric(metric):
@@ -949,7 +958,7 @@ def get_since_until(form_data):
 def convert_legacy_filters_into_adhoc(fd):
     mapping = {'having': 'having_filters', 'where': 'filters'}
 
-    if 'adhoc_filters' not in fd:
+    if not fd.get('adhoc_filters'):
         fd['adhoc_filters'] = []
 
         for clause, filters in mapping.items():
@@ -957,7 +966,7 @@ def convert_legacy_filters_into_adhoc(fd):
                 fd['adhoc_filters'].append(to_adhoc(fd, 'SQL', clause))
 
             if filters in fd:
-                for filt in fd[filters]:
+                for filt in filter(lambda x: x is not None, fd[filters]):
                     fd['adhoc_filters'].append(to_adhoc(filt, 'SIMPLE', clause))
 
     for key in ('filters', 'having', 'having_filters', 'where'):
@@ -1011,3 +1020,11 @@ def get_username():
         return g.user.username
     except Exception:
         pass
+
+
+def MediumText():
+    return Text().with_variant(MEDIUMTEXT(), 'mysql')
+
+
+def shortid():
+    return '{}'.format(uuid.uuid4())[-12:]

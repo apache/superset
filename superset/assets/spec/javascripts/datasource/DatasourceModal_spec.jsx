@@ -1,7 +1,6 @@
 import React from 'react';
 import { Modal } from 'react-bootstrap';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import $ from 'jquery';

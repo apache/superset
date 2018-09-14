@@ -27,6 +27,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
+from superset.utils import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
@@ -191,10 +192,11 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'target',
+            'groupby': 'source',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': new_slice_id,
+            'time_range': 'now',
         }
         # Setting the name back to its original name by overwriting new slice
         self.get_resp(
@@ -207,6 +209,7 @@ class CoreTests(SupersetTestCase):
         )
         slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
         assert slc.slice_name == new_slice_name
+        assert slc.viz.form_data == form_data
         db.session.delete(slc)
 
     def test_filter_endpoint(self):
@@ -310,7 +313,7 @@ class CoreTests(SupersetTestCase):
 
     def test_testconn(self, username='admin'):
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
@@ -339,7 +342,7 @@ class CoreTests(SupersetTestCase):
         assert response.headers['Content-Type'] == 'application/json'
 
     def test_custom_password_store(self):
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -357,13 +360,13 @@ class CoreTests(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = 'databaseview/edit/{}'.format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
@@ -450,27 +453,27 @@ class CoreTests(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login('admin')
-        dbid = self.get_main_database(db.session).id
+        dbid = get_main_database(db.session).id
         self.get_json_resp(
             '/superset/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_get_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb, foo='bar')
         rendered = tp.process_template(s)
         self.assertEqual('bar', rendered)
 
     def test_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo='bar')
@@ -483,7 +486,7 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['data'][0]['test'], '2017-01-01T00:00:00')
 
     def test_table_metadata(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         backend = maindb.backend
         data = self.get_json_resp(
             '/superset/table/{}/ab_user/null/'.format(maindb.id))
@@ -557,7 +560,7 @@ class CoreTests(SupersetTestCase):
         # superset/explore case
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        self.get_resp(slc.slice_url, {'form_data': json.dumps(slc.viz.form_data)})
+        self.get_resp(slc.slice_url, {'form_data': json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
@@ -566,7 +569,7 @@ class CoreTests(SupersetTestCase):
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         slc_url = slc.slice_url.replace('explore', 'explore_json')
-        self.get_json_resp(slc_url, {'form_data': json.dumps(slc.viz.form_data)})
+        self.get_json_resp(slc_url, {'form_data': json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_query_endpoint(self):
@@ -654,46 +657,34 @@ class CoreTests(SupersetTestCase):
         rendered_query = text_type(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
-    def test_slice_url_overrides(self):
-        # No override
-        self.login(username='admin')
-        slice_name = 'Girls'
-        slc = self.get_slice(slice_name, db.session)
-        resp = self.get_resp(slc.explore_json_url)
-        assert '"Jennifer"' in resp
-
-        # Overriding groupby
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={'groupby': ['state']})
-        resp = self.get_resp(url)
-        assert '"CA"' in resp
-
     def test_slice_payload_no_data(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
+        json_endpoint = '/superset/explore_json/'
+        form_data = slc.form_data
+        form_data.update({
+            'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
+        })
 
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={
-                'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
-            },
+        data = self.get_json_resp(
+            json_endpoint,
+            {'form_data': json.dumps(form_data)},
         )
-
-        data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.SUCCESS)
         self.assertEqual(data['error'], 'No data')
 
     def test_slice_payload_invalid_query(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
+        form_data = slc.form_data
+        form_data.update({
+            'groupby': ['N/A'],
+        })
 
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={'groupby': ['N/A']},
+        data = self.get_json_resp(
+            '/superset/explore_json/',
+            {'form_data': json.dumps(form_data)},
         )
-
-        data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.FAILED)
         assert 'KeyError' in data['stacktrace']
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 
 import ModalTrigger from '../../../src/components/ModalTrigger';
 

@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 
 import AdhocMetric, { EXPRESSION_TYPES } from '../../../src/explore/AdhocMetric';
 import { AGGREGATES } from '../../../src/explore/constants';

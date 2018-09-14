@@ -587,7 +587,7 @@ def load_world_bank_health_n_pop():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)
@@ -955,6 +955,14 @@ def load_birth_names():
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
                 })),
+        Slice(
+            slice_name="Num Births Trend",
+            viz_type='line',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                viz_type="line")),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -1211,7 +1219,7 @@ def load_birth_names():
             "CHART-e8774b49"
         ]
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
         """)
     l = json.loads(js)
@@ -1331,7 +1339,7 @@ def load_unicode_test_data():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """
     dash.dashboard_title = "Unicode Test"
@@ -1792,7 +1800,7 @@ def load_misc_dashboard():
         },
         "type": "ROW"
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)
@@ -2343,7 +2351,7 @@ def load_deck_dash():
             "CHART-2b87513c"
         ]
     },
-    "VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
     l = json.loads(js)

@@ -84,6 +84,7 @@ export default class Control extends React.PureComponent {
     const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (
       <div
+        data-test={this.props.name}
         style={divStyle}
         onMouseEnter={this.setHover.bind(this, true)}
         onMouseLeave={this.setHover.bind(this, false)}

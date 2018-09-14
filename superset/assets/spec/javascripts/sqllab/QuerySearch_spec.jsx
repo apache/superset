@@ -2,7 +2,6 @@ import React from 'react';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 

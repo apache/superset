@@ -5,7 +5,6 @@ import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
-import { getColorFromScheme } from '../../modules/colors';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
@@ -19,6 +18,7 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
+import { getScale } from '../../modules/CategoricalColorNamespace';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
@@ -41,7 +41,7 @@ export default function(bootstrapData) {
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      getColorFromScheme(label, null, colorMap[label]);
+      getScale().setColor(label, colorMap[label]);
     });
   }
 

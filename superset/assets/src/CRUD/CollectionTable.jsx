@@ -7,12 +7,13 @@ import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './styles.css';
 
+import { t } from '../locales';
+
 const propTypes = {
-  collection: PropTypes.array,
+  collection: PropTypes.arrayOf(PropTypes.object).isRequired,
   itemGenerator: PropTypes.func,
   columnLabels: PropTypes.object,
-  tableColumns: PropTypes.array,
-  columns: PropTypes.array,
+  tableColumns: PropTypes.array.isRequired,
   onChange: PropTypes.func,
   itemRenderers: PropTypes.object,
   allowDeletes: PropTypes.bool,
@@ -29,6 +30,8 @@ const defaultProps = {
   emptyMessage: 'No entries',
   allowAddItem: false,
   itemGenerator: () => ({}),
+  expandFieldset: null,
+  extraButtons: null,
 };
 const Frame = props => (
   <div className="frame">
@@ -100,6 +103,7 @@ export default class CRUDCollection extends React.PureComponent {
     const { columnLabels } = this.props;
     let label = columnLabels[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
+      // special label-free columns (ie: caret for expand, delete cross)
       label = '';
     }
     return label;
@@ -208,7 +212,7 @@ export default class CRUDCollection extends React.PureComponent {
         <div>
           {this.props.allowAddItem &&
             <Button bsStyle="primary" onClick={this.onAddItem}>
-              <i className="fa fa-plus" /> Add Item
+              <i className="fa fa-plus" /> {t('Add Item')}
             </Button>}
           {this.props.extraButtons}
         </div>

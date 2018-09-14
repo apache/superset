@@ -2,6 +2,7 @@ import { combineReducers } from 'redux';
 import shortid from 'shortid';
 import messageToasts from '../messageToasts/reducers';
 
+import getInitialState from './getInitialState';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import {
@@ -81,7 +82,7 @@ export const sqlLabReducer = function (state = {}, action) {
       at.id = shortid.generate();
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at);
+      let newState = addToArr(state, 'tables', at, true);
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });
       }

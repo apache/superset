@@ -1,8 +1,9 @@
 import URI from 'urijs';
+
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { COMMON_ERR_MESSAGES } from '../common';
+import { COMMON_ERR_MESSAGES } from '../utils/common';
 import { t } from '../locales';
 
 const $ = (window.$ = require('jquery'));
@@ -202,8 +203,13 @@ export function runQuery(formData, force = false, timeout = 60, key) {
   };
 }
 
+export const SQLLAB_REDIRECT_FAILED = 'SQLLAB_REDIRECT_FAILED';
+export function sqllabRedirectFailed(error, key) {
+  return { type: SQLLAB_REDIRECT_FAILED, error, key };
+}
+
 export function redirectSQLLab(formData) {
-  return function () {
+  return function (dispatch) {
     const { url, payload } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
     $.ajax({
       type: 'POST',
@@ -218,7 +224,7 @@ export function redirectSQLLab(formData) {
           .search({ datasourceKey: formData.datasource, sql: response.query });
         window.open(redirectUrl.href(), '_blank');
       },
-      error: () => notify.error(t("The SQL couldn't be loaded")),
+      error: (xhr, status, error) => dispatch(sqllabRedirectFailed(error, formData.slice_id)),
     });
   };
 }

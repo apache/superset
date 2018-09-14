@@ -1,4 +1,5 @@
 *.pyc
+*.swp
 yarn-error.log
 _modules
 superset/assets/coverage/*

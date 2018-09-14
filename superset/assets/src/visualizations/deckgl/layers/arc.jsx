@@ -1,12 +1,13 @@
+/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 
 import { ArcLayer } from 'deck.gl';
 
-import DeckGLContainer from './../DeckGLContainer';
+import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
 
 import * as common from './common';
-import sandboxedEval from '../../../modules/sandbox';
 
 function getPoints(data) {
   const points = [];
@@ -17,46 +18,40 @@ function getPoints(data) {
   return points;
 }
 
-function getLayer(formData, payload, slice) {
-  const fd = formData;
-  const fc = fd.color_picker;
-  let data = payload.data.arcs.map(d => ({
-    ...d,
-    color: [fc.r, fc.g, fc.b, 255 * fc.a],
-  }));
-
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = jsFnMutator(data);
-  }
-
+function getLayer(fd, payload, slice) {
+  const data = payload.data.features;
+  const sc = fd.color_picker;
+  const tc = fd.target_color_picker;
   return new ArcLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
+    getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
+    getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
     ...common.commonLayerProps(fd, slice),
   });
 }
 
 function deckArc(slice, payload, setControlValue) {
-  const layer = getLayer(slice.formData, payload, slice);
+  const fd = slice.formData;
   let viewport = {
-    ...slice.formData.viewport,
+    ...fd.viewport,
     width: slice.width(),
     height: slice.height(),
   };
 
-  if (slice.formData.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.arcs));
+  if (fd.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
   }
+
   ReactDOM.render(
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={slice.formData.mapbox_style}
+    <CategoricalDeckGLContainer
+      slice={slice}
+      mapboxApiKey={payload.data.mapboxApiKey}
       setControlValue={setControlValue}
+      viewport={viewport}
+      getLayer={getLayer}
+      payload={payload}
     />,
     document.getElementById(slice.containerId),
   );
