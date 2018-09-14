@@ -16,3 +16,4 @@ Copy files on platform -
 Run ansible playbook-
 ansible-playbook -i inventory/generated/dev/um001/hosts playbooks/superset/main.yml --user root -e ansible_ssh_pass=guavus@123
 
+ignore_errors: true
