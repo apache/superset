@@ -1,11 +1,13 @@
-
+import dompurify from 'dompurify';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw';
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
-import MapGL from 'react-map-gl';
+import MapGL, { Popup } from 'react-map-gl';
+import WebMercatorViewport from 'viewport-mercator-project';
+
 import Legend from './Legend';
 import LayerSelector from './LayerSelector';
 import {
@@ -19,7 +21,7 @@ import {
   DEFAULT_ZOOM,
 } from '../utils/common';
 import './mapbox.css';
-
+import sandboxedEval from '../modules/sandbox';
 
 const NOOP = () => {};
 
@@ -38,13 +40,13 @@ const NOOP = () => {};
  * A dictionary mapping values of the colour category to the colour
  * from the colour scheme.
  */
+
 function getCategories(formData, queryData) {
 
   const c = formData.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColorRGBA = [c.r, c.g, c.b, 255 * c.a];
   const fixedColorHex = rgbaToHex(fixedColorRGBA);
   const categories = {};
-
   queryData.forEach((d) => {
     const featureProps = d.properties;
     if (featureProps.cat_color != null) {
@@ -71,7 +73,7 @@ function getCategories(formData, queryData) {
 }
 
 /* addBgLayers
-* Adds background layers to the map
+* Adds background layers to the map from the given configuration
 */
 function addBgLayers(map, conf) {
   for (const key in conf) {
@@ -98,27 +100,68 @@ function addBgLayers(map, conf) {
   }
 }
 
+
+
 /* MapGLDraw
  *
  * An extension of the MapGL component that harnesses the power of
  * Mapbox visualisation tools to render the map filter.
  */
 class MapGLDraw extends MapGL {
+  constructor(props) {
+    super(props);
+    this.addTooltips = this.addTooltips.bind(this);
+    }
+
+  // Toggles the visibiliity of a layer
   toggleLayer(layer, visibility) {
     const map = this.getMap();
     map.setLayoutProperty(layer, 'visibility',
                             visibility ? 'visible' : 'none');
   }
+
+  addTooltips(layerName) {
+    if (this.props.slice.formData.js_tooltip) {
+      const jsTooltip = sandboxedEval(this.props.slice.formData.js_tooltip);
+      const updatePopup = this.props.updatePopup;
+      this.getMap().on('click', layerName, function (e) {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const properties = e.features[0].properties;
+
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        updatePopup({
+          coordinates: coordinates,
+          html: dompurify.sanitize(jsTooltip(properties)),
+        });
+      });
+
+    }
+  }
+
+  getChildContext() {
+    return {
+      viewport: new WebMercatorViewport(this.props),
+      isDragging: this.state.isDragging,
+      eventManager: this._eventManager,
+    };
+  }
   componentDidMount() {
     this.props.onRef(this);
     super.componentDidMount();
+
     const map = this.getMap();
     const data = this.props.geoJSON;
     const geoJSONBgLayers = this.props.geoJSONBgLayers;
     const slice = this.props.slice;
     const filters = this.props.slice.getFilters() || {};
+    const addTooltips = this.addTooltips;
+    
     map.on('load', function () {
-
       // Displays the data distributions
       map.addLayer({
         id: 'points',
@@ -140,10 +183,22 @@ class MapGLDraw extends MapGL {
               polygon: true,
               trash: true,
             },
-        });
-      map.addControl(this.draw, 'top-right');
+      });
+      
       addBgLayers(map,  geoJSONBgLayers);
+      addTooltips('points');
 
+      
+      map.addControl(this.draw, 'top-right');
+
+      // Draw existing polygons on a refresh
+      for (const filter in filters) {
+        if (filter === 'geo' && filters.geo.values !== []) {
+          this.draw.add(filters.geo.values);
+        }
+      }
+
+      
       function updateFilter(e) {
         var featureCollection = {};
         if (e.features.length > 0) {
@@ -156,11 +211,7 @@ class MapGLDraw extends MapGL {
                         false, true, 'geo_within');
       }
 
-      for (const filter in filters) {
-        if (filter === 'geo' && filters.geo.values !== []) {
-          this.draw.add(filters.geo.values);
-        }
-      }
+
       // Logs the polygon selection changes to console.
       map.on('draw.selectionchange', updateFilter);
       // Bug in mapbox-gl-draw doesn't fire selectionchange when deleteing
@@ -168,7 +219,7 @@ class MapGLDraw extends MapGL {
         updateFilter(this.draw.getSelected());
       });
     });
-  }
+  }  
 
   componentWillUnmount() {
     this.props.onRef(null);
@@ -180,10 +231,15 @@ class MapGLDraw extends MapGL {
   }
 
 }
-
+const childContextTypes = {
+  viewport: PropTypes.instanceOf(WebMercatorViewport),
+  isDragging: PropTypes.bool,
+  eventManager: PropTypes.object
+};
 MapGLDraw.propTypes = Object.assign({}, MapGL.propTypes, {
   geoJSON: PropTypes.object,
 });
+MapGLDraw.childContextTypes = childContextTypes;
 
 /* getBgLayersLegend
 * Prepares legend data for background layers
@@ -204,6 +260,7 @@ function getBgLayersLegend(layers) {
     return legends;
     }
 
+
 /* MapFilter
  * A MapFilter component renders the map filter visualisation with all the
  * necessary configurations and, crucially, keeps a state for the component.
@@ -222,6 +279,7 @@ class MapFilter extends React.Component {
         zoom: data.viewportZoom || DEFAULT_ZOOM,
         startDragLngLat: [longitude, latitude],
       },
+      popup: null
     };
     this.colors = getCategories(
       this.props.slice.formData,
@@ -231,18 +289,59 @@ class MapFilter extends React.Component {
     this.bgLayers = getBgLayersLegend(this.props.json.data.geoJSONBgLayers);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleLayer = this.toggleLayer.bind(this);
+    this.tick = this.tick.bind(this);
+    this.updatePopup = this.updatePopup.bind(this);
   }
-  
+  componentWillMount() {
+    const timer = setInterval(this.tick, 1000);
+    this.setState(() => ({ timer }));
+  }
+  componentWillUnmount() {
+    this.clearInterval(this.state.timer);
+   }
   onViewportChange(viewport) {
     this.setState({ viewport });
-    this.props.setControlValue('viewport_longitude', viewport.longitude);
-    this.props.setControlValue('viewport_latitude', viewport.latitude);
-    this.props.setControlValue('viewport_zoom', viewport.zoom);
+    // this.props.setControlValue('viewport', viewport);
+    // this.props.setControlValue('viewport_longitude', viewport.longitude);
+    // this.props.setControlValue('viewport_latitude', viewport.latitude);
+    // this.props.setControlValue('viewport_zoom', viewport.zoom);
   }
-  
-  toggleLayer(layer, visibility){
+
+  tick() {
+    // Limiting updating viewport controls through Redux at most 1*sec
+    if (this.state.previousViewport !== this.state.viewport) {
+      const setCV = this.props.setControlValue;
+      const vp = this.state.viewport;
+      if (setCV) {
+        setCV('viewport', vp);
+      }
+      this.setState(() => ({ previousViewport: this.state.viewport }));
+    }
+  }
+  toggleLayer(layer, visibility) {
     this.child.toggleLayer(layer, visibility);
   }
+
+  updatePopup(popup) {
+    this.state.popup = popup;
+    this.forceUpdate();
+  }
+  _renderPopup() {
+    const popup = this.state.popup;
+    return popup && (
+      <Popup
+        tipSize={5}
+        anchor="top"
+        longitude={popup.coordinates[0]}
+        latitude={popup.coordinates[1]}
+        onClose={() => this.setState({ popup: null })}
+      >
+        <div dangerouslySetInnerHTML={{__html: popup.html }}>
+        </div>
+      </Popup>
+    );
+  }
+
   render() {
     return (
       <div>
@@ -252,12 +351,15 @@ class MapFilter extends React.Component {
           width={this.props.slice.width() * 1.05}
           height={this.props.slice.height()}
           slice={this.props.slice}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.json.data.mapboxApiKey}
           geoJSON={this.props.json.data.geoJSON}
           geoJSONBgLayers={this.props.json.data.geoJSONBgLayers}
-          onViewportChange={this.onViewportChange}
           onRef={ref => (this.child = ref)}
+          updatePopup={this.updatePopup}
+
         >
+          {this._renderPopup()}
           <Legend
             position="br"
             categories={this.colors}
@@ -267,7 +369,6 @@ class MapFilter extends React.Component {
         <LayerSelector
           position="tr"
           toggleLayer={this.toggleLayer}
-          containerComponent={this.props.containerComponent}
           layers={this.bgLayers}
         />
       </div>

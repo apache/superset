@@ -2694,7 +2694,9 @@ class MapFilterViz(BaseDeckGLViz):
                 {
                     'type': 'Feature',
                     'properties': {
-                        'cat_color': x['cat_color'],
+                        **x['extraProps'],
+                        'cat_color': x['cat_color']
+
                     },
                     'geometry': {
                         'type': 'Point',
@@ -2704,7 +2706,7 @@ class MapFilterViz(BaseDeckGLViz):
                 for x in data['features']
             ],
         }
-        logging.warning(fd)
+        logging.warning(geo_json)
         return {
             'geoJSON': geo_json,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
