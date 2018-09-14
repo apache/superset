@@ -2,6 +2,11 @@ import React from 'react';
 
 export default function reactify(renderFn) {
   class ReactifiedComponent extends React.Component {
+    constructor(props) {
+      super(props);
+      this.setContainerRef = this.setContainerRef.bind(this);
+    }
+
     componentDidMount() {
       this.execute();
     }
@@ -12,6 +17,10 @@ export default function reactify(renderFn) {
 
     componentWillUnmount() {
       this.container = null;
+    }
+
+    setContainerRef(c) {
+      this.container = c;
     }
 
     execute() {
@@ -26,7 +35,7 @@ export default function reactify(renderFn) {
         <div
           id={id}
           className={className}
-          ref={(c) => { this.container = c; }}
+          ref={this.setContainerRef}
         />
       );
     }
