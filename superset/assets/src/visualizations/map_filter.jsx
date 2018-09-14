@@ -75,28 +75,46 @@ function getCategories(formData, queryData) {
 /* addBgLayers
 * Adds background layers to the map from the given configuration
 */
-function addBgLayers(map, conf) {
+function addBgLayers(map, conf, accessToken) {
   for (const key in conf) {
-    const paint = {
-      line: {
-        'line-color': conf[key].color,
-        'line-opacity': conf[key].opacity,
+
+    if (conf[key].type === 'raster') {
+     map.addLayer({
+        id: key,
+        type: 'raster',
+        source: {
+          type: 'raster',
+          tiles: ['https://api.mapbox.com/v4/' + conf[key].id +
+                  '/{z}/{x}/{y}.png?access_token=' + accessToken],
+          bounds: conf[key].bounds,
+        },
+        minzoom: 0,
+       maxzoom: 22,
+       paint: { 'raster-opacity': conf[key].opacity },
+       layout: {visibility: conf[key].visible ? 'visible' : 'none' },
+     });
+    } else if (conf[key].type === 'vector') {
+      const paint = {
+        line: {
+          'line-color': conf[key].color,
+          'line-opacity': conf[key].opacity,
       },
-      fill: {
-        'fill-color': conf[key].color,
-        'fill-opacity': conf[key].opacity,
-      },
-    };
-    map.addLayer({
-      id: key,
-      type: conf[key].type,
-      source: {
-        type: 'geojson',
-        data: '/geo_assets/' + conf[key].path,
-      },
-      paint: paint[conf[key].type],
-      visbility: conf[key].visibility ? 'visible' : 'none',
-    });
+        fill: {
+          'fill-color': conf[key].color,
+          'fill-opacity': conf[key].opacity,
+        },
+      };
+      map.addLayer({
+        id: key,
+        type: conf[key]['fill-type'],
+        source: {
+          type: 'geojson',
+          data: '/geo_assets/' + conf[key].path,
+        },
+        paint: paint[conf[key]['fill-type']],
+        visibility: conf[key].visible ? 'visible' : 'none',
+      });
+    }
   }
 }
 
@@ -160,9 +178,11 @@ class MapGLDraw extends MapGL {
     const slice = this.props.slice;
     const filters = this.props.slice.getFilters() || {};
     const addTooltips = this.addTooltips;
+    const accessToken = this.props.mapboxApiAccessToken;
     
     map.on('load', function () {
       // Displays the data distributions
+      addBgLayers(map,  geoJSONBgLayers, accessToken);     
       map.addLayer({
         id: 'points',
         type: 'circle',
@@ -184,11 +204,7 @@ class MapGLDraw extends MapGL {
               trash: true,
             },
       });
-      
-      addBgLayers(map,  geoJSONBgLayers);
       addTooltips('points');
-
-      
       map.addControl(this.draw, 'top-right');
 
       // Draw existing polygons on a refresh
@@ -200,7 +216,7 @@ class MapGLDraw extends MapGL {
 
       
       function updateFilter(e) {
-        var featureCollection = {};
+        let featureCollection = {};
         if (e.features.length > 0) {
           featureCollection = {
             type: 'FeatureCollection',
@@ -249,11 +265,13 @@ function getBgLayersLegend(layers) {
     const legends = {};
     for (const key in layers) {
         legends[key] = {
-            color: layers[key].rgba,
-            enabled: layers[key].visible,
-            hex: layers[key].color,
-            type: layers[key].type,
-            legend: layers[key].legend,
+          color: layers[key].rgba,
+          enabled: layers[key].visible,
+          hex: layers[key].color,
+          type: layers[key].type,
+          'fill-type': layers[key]['fill-type'],
+          color_bar: layers[key].color_bar,
+          legend: layers[key].legend,
         };
     }
 

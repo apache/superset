@@ -6,6 +6,7 @@ import  './LayerSelector.css';
 const propTypes = {
   layers: PropTypes.object,
   toggleCategory: PropTypes.func,
+  toggleLayer: PropTypes.func,
   showSingleCategory: PropTypes.func,
   position: PropTypes.oneOf(['tl', 'tr', 'bl', 'br']),
 };
@@ -36,14 +37,39 @@ export default class LayerSelector extends React.PureComponent {
     this.props.toggleLayer(target.name, target.checked);
     
   }
+
+  renderColorBar(colorBar) {
+    if (colorBar) {
+      const colorBars = colorBar.map(bar => (
+        <p
+          style={{ 'line-height': '5px' }}
+          key={bar[0]}
+        >
+          {'\u2002\u2002\u2002\u2002' + bar[0] + '\u2002'}
+          <span style={{ color: 'rgba(' + bar[1].join(', ') + ')' }}>{'\u25FC'}
+          </span>
+        </p>));
+      
+      return (
+        <div>
+          { colorBars }
+        </div>
+        );
+      }
+    return;
+  }
   render() {
     if (Object.keys(this.props.layers).length === 0) {
       return null;
     }
 
     const layers = Object.entries(this.props.layers).map(([k, v]) => {
-      const style = { color: 'rgba(' + v.color.join(', ') + ')' };
-      const icon = v.type === 'fill' ? '\u25FC' : '\u2014';
+      let style = {};
+      let icon = '';
+      if (v.type === 'vector') {
+        style = { color: 'rgba(' + v.color.join(', ') + ')' };
+        icon = v['fill-type'] === 'fill' ? '\u25FC' : '\u2014';
+      }
       return (
         <li key={k}>
           <input
@@ -54,6 +80,7 @@ export default class LayerSelector extends React.PureComponent {
           />
           {v.legend + '\u2002'}
           <span style={style}>{icon}</span>
+          {this.renderColorBar(v.color_bar)}
         </li>
       );
     });
