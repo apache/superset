@@ -37,7 +37,6 @@ import {
   numberOrAutoType,
   stringOrObjectWithLabelType,
 } from './PropTypes';
-
 import './NVD3Vis.css';
 
 // Limit on how large axes margins can grow as the chart window is resized
