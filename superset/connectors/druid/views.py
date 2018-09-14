@@ -26,6 +26,8 @@ from superset.views.base import (
 )
 from . import models
 
+appbuilder.add_separator('Sources')
+
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)

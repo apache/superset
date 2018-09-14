@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    service: postgres
+  name: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: postgres
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: superset
+        - name: POSTGRES_PASSWORD
+          value: superset
+        - name: POSTGRES_USER
+          value: superset
+        image: postgres:10
+        name: postgres
+        ports:
+        - containerPort: 5432
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+      restartPolicy: Always
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-volume-claim
+status: {}

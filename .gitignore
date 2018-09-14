@@ -17,7 +17,6 @@ envpy3
 build
 *.db
 tmp
-superset_config.py
 local_config.py
 env
 dist
@@ -44,8 +43,4 @@ venv
 @eaDir/
 
 # docker
-/Dockerfile
-/docker-build.sh
-/docker-compose.yml
-/docker-entrypoint.sh
-/docker-init.sh
+venv2
