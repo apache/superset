@@ -10,7 +10,6 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
-import ObjectTags from '../../components/ObjectTags';
 import {
   addTag,
   deleteTag,
@@ -144,13 +143,6 @@ class ExploreChartHeader extends React.PureComponent {
             currentFormData={formData}
           />
         )}
-        <ObjectTags
-          fetchTags={this.fetchTags}
-          fetchSuggestions={this.fetchSuggestions}
-          deleteTag={this.deleteTag}
-          addTag={this.addTag}
-          editable={this.props.can_overwrite}
-        />
         <div className="pull-right">
           {chartSucceeded &&
             queryResponse && (

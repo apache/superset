@@ -6,7 +6,6 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
-import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
 
@@ -219,13 +218,6 @@ class Header extends React.PureComponent {
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
-            />
-            <ObjectTags
-              fetchTags={this.fetchTags}
-              fetchSuggestions={this.fetchSuggestions}
-              deleteTag={this.deleteTag}
-              addTag={this.addTag}
-              editable={dashboardInfo.dash_edit_perm}
             />
           </span>
         </div>
