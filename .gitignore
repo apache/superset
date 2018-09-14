@@ -11,9 +11,9 @@
 .tox
 .vscode
 _build
-_static
 _images
 _modules
+_static
 build
 app.db
 changelog.sh
