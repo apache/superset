@@ -1,5 +1,5 @@
-export default function transformProps({ slice, payload }) {
-  const { formData } = slice;
+export default function transformProps(basicChartInput) {
+  const { height, formData, payload } = basicChartInput;
   const {
     max_bubble_size: maxBubbleSize,
     show_bubbles: showBubbles,
@@ -7,7 +7,7 @@ export default function transformProps({ slice, payload }) {
 
   return {
     data: payload.data,
-    height: slice.height(),
+    height,
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
   };
