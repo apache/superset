@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function reactize(renderFn) {
+export default function reactify(renderFn) {
   class ReactifiedComponent extends React.Component {
     componentDidMount() {
       this.execute();
