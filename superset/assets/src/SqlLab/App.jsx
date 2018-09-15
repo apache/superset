@@ -34,7 +34,7 @@ const store = createStore(
 // Highlight the navbar menu
 const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');
 const sqlLabMenu = Array.prototype.slice.apply(menus)
-  .filter(element => element.innerText.trim() === 'SQL Lab')[0];
+  .find(element => element.innerText.trim() === 'SQL Lab');
 if (sqlLabMenu) {
   const classes = sqlLabMenu.getAttribute('class');
   if (classes.indexOf('active') === -1) {
