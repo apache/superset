@@ -1,8 +1,8 @@
 export default function transformProps(basicChartInput) {
   const { height, formData, payload } = basicChartInput;
   const {
-    max_bubble_size: maxBubbleSize,
-    show_bubbles: showBubbles,
+    maxBubbleSize,
+    showBubbles,
   } = formData;
 
   return {
