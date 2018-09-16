@@ -14,8 +14,8 @@ describe('Welcome', () => {
   });
   it('renders 4 Tab, Panel, and Row components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).to.have.length(3);
-    expect(wrapper.find(Panel)).to.have.length(3);
-    expect(wrapper.find(Row)).to.have.length(3);
+    expect(wrapper.find(Tab)).to.have.length(4);
+    expect(wrapper.find(Panel)).to.have.length(4);
+    expect(wrapper.find(Row)).to.have.length(5);
   });
 });
