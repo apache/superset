@@ -32,7 +32,7 @@ export default class ControlPanelSection extends React.Component {
       label &&
         <div>
           <i
-            className={`text-primary expander fa fa-caret-${this.state.expanded ? 'down' : 'right'}`}
+            className={`text-primary expander fa fa-caret-${this.state.expanded ? 'up' : 'down'}`}
             onClick={this.toggleExpand.bind(this)}
           />
           {' '}

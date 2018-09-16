@@ -162,7 +162,7 @@ export default class CRUDCollection extends React.PureComponent {
       tds.push(
         <td key="__expand" className="expand">
           <i
-            className={`fa fa-caret-${isExpanded ? 'down' : 'right'} text-primary pointer`}
+            className={`fa fa-caret-${isExpanded ? 'up' : 'down'} text-primary pointer`}
             onClick={this.toggleExpand.bind(this, record.id)}
           />
         </td>);
