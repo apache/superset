@@ -34,6 +34,7 @@ from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
 
 from geoalchemy2.types import Geography, Geometry
+from shapely import geometry, ops
 
 config = app.config
 
@@ -635,23 +636,38 @@ class SqlaTable(Model, BaseDatasource):
                 continue
             col = flt['col']
             op = flt['op']
+            if op == "in":
+                if col in app.config.get("active_geo_filters", []):
+                    op = "geo_within"
+                    features = {
+                        "features": []
+                    }
+                    for value in flt.get('val'):
+                        features["features"].append(
+                            app.config.get("active_geo_filters")[
+                                col][value]
+                        )
+                    flt["val"] = features
+                    col = "geo"
             col_obj = cols.get(col)
             
             if col_obj:
                 is_list_target = op in ('in', 'not in')
                 logging.info(op)
+               
+                
                 if op in ["geo_within"]:
                     features = flt.get('val')["features"]
-                    geometry = features[0]["geometry"]
-                    geometry["crs"] = {"type": "name",
-                                       "properties": {"name": "EPSG:4326"}}
-                    eq = json.dumps(geometry)
+                    
+                    shapes = [geometry.shape(feature) for feature in features]
+                    total_shape = ops.cascaded_union(shapes)
+                    eq = total_shape
                 else:
                     eq = self.filter_values_handler(
                         flt.get('val'),
                         target_column_is_numeric=col_obj.is_num,
                         is_list_target=is_list_target)
-                logging.info(eq)
+
                 if op in ('in', 'not in'):
                     cond = col_obj.sqla_col.in_(eq)
                     if '<NULL>' in eq:
@@ -662,7 +678,7 @@ class SqlaTable(Model, BaseDatasource):
                 elif op in ("geo_within",):
                     where_clause_and.append(
                         sa.func.ST_COVERS(
-                            sa.func.ST_GeomFromGeoJSON(eq),
+                            sa.func.ST_GeogFromText(eq.wkt),
                             sa.cast(cols.get("geo").sqla_col, Geometry)
                             )
                         )
