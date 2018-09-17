@@ -9,6 +9,7 @@ import json
 import unittest
 
 from sqlalchemy.orm.session import make_transient
+from werkzeug.datastructures import MultiDict
 
 from superset import db, utils
 from superset.connectors.druid.models import (
@@ -205,11 +206,9 @@ class ImportExportTests(SupersetTestCase):
 
     def test_export_1_dashboard(self):
         birth_dash = self.get_dash_by_slug('births')
-        export_dash_url = (
-            '/dashboard/export_dashboards_form?id={}&action=go'
-            .format(birth_dash.id)
-        )
-        resp = self.client.get(export_dash_url)
+        resp = self.client.post(
+            '/dashboard/action_post',
+            data=dict(action='mulexport', rowid=birth_dash.id))
         exported_dashboards = json.loads(
             resp.data.decode('utf-8'),
             object_hook=utils.decode_dashboards,
@@ -234,10 +233,9 @@ class ImportExportTests(SupersetTestCase):
     def test_export_2_dashboards(self):
         birth_dash = self.get_dash_by_slug('births')
         world_health_dash = self.get_dash_by_slug('world_health')
-        export_dash_url = (
-            '/dashboard/export_dashboards_form?id={}&id={}&action=go'
-            .format(birth_dash.id, world_health_dash.id))
-        resp = self.client.get(export_dash_url)
+        resp = self.client.post(
+            '/dashboard/action_post',
+            data=MultiDict([('action', 'mulexport'), ('rowid', birth_dash.id), ('rowid', world_health_dash.id)]))
         exported_dashboards = sorted(
             json.loads(
                 resp.data.decode('utf-8'),

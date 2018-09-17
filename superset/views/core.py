@@ -577,22 +577,11 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     def mulexport(self, items):
         if not isinstance(items, list):
             items = [items]
-        ids = ''.join('&id={}'.format(d.id) for d in items)
-        return redirect(
-            '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
 
-    @expose('/export_dashboards_form')
-    def download_dashboards(self):
-        if request.args.get('action') == 'go':
-            ids = request.args.getlist('id')
-            return Response(
-                models.Dashboard.export_dashboards(ids),
-                headers=generate_download_headers('json'),
-                mimetype='application/text')
-        return self.render_template(
-            'superset/export_dashboards.html',
-            dashboards_url='/dashboard/list',
-        )
+        return Response(
+            models.Dashboard.export_dashboards([i.id for i in items]),
+            headers=generate_download_headers('json'),
+            mimetype='application/json')
 
 
 appbuilder.add_view(
