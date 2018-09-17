@@ -304,9 +304,16 @@ class SqlaTable(Model, BaseDatasource):
         'MAX': sa.func.MAX,
     }
 
+    # cache for storing labels that are mutated to be compatible with db engine
     mutated_label_cache = {}
 
     def mutate_label(self, label):
+        """Conditionally mutate a label to conform to db engine requirements
+
+        :param label: original label
+        :return: Either a string or sqlalchemy.sql.elements.quoted_name if required
+        by db engine
+        """
         db_engine_spec = self.database.db_engine_spec
         original_label = label
         label, sqla_label = db_engine_spec.make_label_compatible(original_label)
