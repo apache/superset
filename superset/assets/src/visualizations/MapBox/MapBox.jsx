@@ -76,7 +76,7 @@ class MapBox extends React.Component {
       pointRadiusUnit,
       renderWhileDragging,
       rgb,
-      customMetric,
+      hasCustomMetric,
       bounds,
     } = this.props;
     const { viewport } = this.state;
@@ -110,7 +110,7 @@ class MapBox extends React.Component {
           globalOpacity={globalOpacity}
           compositeOperation={'screen'}
           renderWhileDragging={renderWhileDragging}
-          aggregation={customMetric ? aggregatorName : undefined}
+          aggregation={hasCustomMetric ? aggregatorName : null}
           lngLatAccessor={(location) => {
             const coordinates = location.get('geometry').get('coordinates');
             return [coordinates.get(0), coordinates.get(1)];
@@ -127,7 +127,7 @@ MapBox.defaultProps = defaultProps;
 function mapbox(slice, payload, setControlValue) {
   const { formData, selector } = slice;
   const {
-    customMetric,
+    hasCustomMetric,
     geoJSON,
     bounds,
     mapboxApiKey,
@@ -155,7 +155,7 @@ function mapbox(slice, payload, setControlValue) {
     radius: clusteringRadius,
     maxZoom: DEFAULT_MAX_ZOOM,
   };
-  if (customMetric) {
+  if (hasCustomMetric) {
     opts.initial = () => ({
       sum: 0,
       squaredSum: 0,
@@ -185,7 +185,7 @@ function mapbox(slice, payload, setControlValue) {
     <MapBox
       width={slice.width()}
       height={slice.height()}
-      customMetric={customMetric}
+      hasCustomMetric={hasCustomMetric}
       aggregatorName={aggregatorName}
       clusterer={clusterer}
       globalOpacity={globalOpacity}
