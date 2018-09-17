@@ -642,20 +642,19 @@ class SqlaTable(Model, BaseDatasource):
                     features = {
                         "features": []
                     }
+                    logging.info(flt.get('val'))
                     for value in flt.get('val'):
                         features["features"].append(
-                            app.config.get("active_geo_filters")[
-                                col][value]
+                            app.config.get("active_geo_filters")[col][value]
                         )
                     flt["val"] = features
                     col = "geo"
+                    flt["col"] = "geo"
             col_obj = cols.get(col)
             
             if col_obj:
                 is_list_target = op in ('in', 'not in')
                 logging.info(op)
-               
-                
                 if op in ["geo_within"]:
                     features = flt.get('val')["features"]
                     
