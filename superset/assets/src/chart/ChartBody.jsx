@@ -10,14 +10,6 @@ const propTypes = {
 };
 
 class ChartBody extends React.PureComponent {
-  html(data) {
-    this.el.innerHTML = data;
-  }
-
-  css(property, value) {
-    this.el.style[property] = value;
-  }
-
   height() {
     return this.props.height();
   }
