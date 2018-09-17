@@ -59,7 +59,7 @@ const loadVis = promise =>
     // deckgl visualizations don't use esModules, fix it?
     return defaultExport.default || defaultExport;
   });
-const loadNvd3 = () => loadVis(import(/* webpackChunkName: "nvd3_vis" */ './nvd3_vis.js'));
+const loadNvd3 = () => loadVis(import(/* webpackChunkName: "nvd3_vis" */ './nvd3/NVD3Vis.js'));
 
 const vizMap = {
   [VIZ_TYPES.area]: loadNvd3,
@@ -87,7 +87,7 @@ const vizMap = {
   [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
   [VIZ_TYPES.line]: loadNvd3,
   [VIZ_TYPES.line_multi]: () =>
-    loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
+    loadVis(import(/* webpackChunkName: "line_multi" */ './nvd3/LineMulti.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
   [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),

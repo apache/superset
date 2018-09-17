@@ -206,31 +206,6 @@ export function getDatasourceParameter(datasourceId, datasourceType) {
   return `${datasourceId}__${datasourceType}`;
 }
 
-export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
-  chart.useInteractiveGuideline(true);
-  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
-    const tooltipTitle = xAxisFormatter(d.value);
-    let tooltip = '';
-
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
-
-    d.series.forEach((series, i) => {
-      const yAxisFormatter = yAxisFormatters[i];
-      const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
-    });
-
-    tooltip += '</tbody></table>';
-
-    return tooltip;
-  });
-}
-
 export function initJQueryAjax() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
@@ -244,15 +219,6 @@ export function initJQueryAjax() {
       },
     });
   }
-}
-
-export function tryNumify(s) {
-  // Attempts casting to Number, returns string when failing
-  const n = Number(s);
-  if (isNaN(n)) {
-    return s;
-  }
-  return n;
 }
 
 export function getParam(name) {

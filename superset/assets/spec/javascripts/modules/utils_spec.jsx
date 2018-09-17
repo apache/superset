@@ -1,6 +1,5 @@
 import { expect, assert } from 'chai';
 import {
-  tryNumify,
   slugify,
   formatSelectOptionsForRange,
   d3format,
@@ -11,12 +10,6 @@ import {
 } from '../../../src/modules/utils';
 
 describe('utils', () => {
-  it('tryNumify works as expected', () => {
-    expect(tryNumify(5)).to.equal(5);
-    expect(tryNumify('5')).to.equal(5);
-    expect(tryNumify('5.1')).to.equal(5.1);
-    expect(tryNumify('a string')).to.equal('a string');
-  });
   it('slugify slugifies', () => {
     expect(slugify('My Neat Label! ')).to.equal('my-neat-label');
     expect(slugify('Some Letters AnD a 5')).to.equal('some-letters-and-a-5');
