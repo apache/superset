@@ -67,6 +67,8 @@ Superset's Jinja context:
 
 .. autofunction:: superset.jinja_context.url_param
 
+.. autofunction:: superset.jinja_context.filter_values
+
 Extending macros
 ''''''''''''''''
 
