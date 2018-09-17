@@ -136,6 +136,7 @@ function TableVis(element, props) {
       if (key[0] === '%') {
         html = formatPercent(val);
       }
+
       return {
         col: key,
         val,
