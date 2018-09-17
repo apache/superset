@@ -2706,7 +2706,6 @@ class MapFilterViz(BaseDeckGLViz):
                 for x in data['features']
             ],
         }
-        logging.warning(geo_json)
         return {
             'geoJSON': geo_json,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
