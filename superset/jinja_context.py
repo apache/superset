@@ -61,8 +61,50 @@ def current_username():
         return g.user.username
 
 
-class BaseTemplateProcessor(object):
+def filter_values(column, default=None):
+    """ Gets a values for a particular filter as a list
 
+    This is useful if:
+        - you want to use a filter box to filter a query where the name of filter box
+          column doesn't match the one in the select statement
+        - you want to have the ability for filter inside the main query for speed purposes
+
+    This searches for "filters" and "extra_filters" in form_data for a match
+
+    Usage example:
+        * SELECT action, count(*) as times
+        FROM logs
+        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" )
+        GROUP BY 1
+
+    :param column: column/filter name to lookup
+    :type column: str
+    :param default: default value to return if there's no matching columns
+    :type default: str
+    :return: returns a list of filter values
+    :rtype: list
+    """
+    form_data = json.loads(request.form.get('form_data', '{}'))
+    return_val = []
+    for filter_type in ['filters', 'extra_filters']:
+        if filter_type not in form_data:
+            continue
+
+        for f in form_data[filter_type]:
+            if f['col'] == column:
+                for v in f['val']:
+                    return_val.append(v)
+
+    if return_val:
+        return return_val
+
+    if default:
+        return [default]
+    else:
+        return []
+
+
+class BaseTemplateProcessor(object):
     """Base class for database-specific jinja context
 
     There's this bit of magic in ``process_template`` that instantiates only
@@ -90,6 +132,7 @@ class BaseTemplateProcessor(object):
             'url_param': url_param,
             'current_user_id': current_user_id,
             'current_username': current_username,
+            'filter_values': filter_values,
             'form_data': {},
         }
         self.context.update(kwargs)
