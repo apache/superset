@@ -1460,6 +1460,24 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
 
+class GSheetsEngineSpec(BaseEngineSpec):
+    """Engine for Google spreadsheets"""
+    engine = 'gsheets'
+    inner_joins = False
+    allows_subquery = False
+
+    time_grain_functions = {
+        None: '{col}',
+        'PT1S': 'second({col})',
+        'PT1M': 'minute({col})',
+        'PT1H': 'hour({col})',
+        'P1D': 'day({col})',
+        'P1M': 'month({col})',
+        'P0.25Y': 'quarter({col})',
+        'P1Y': 'year({col})',
+    }
+
+
 class KylinEngineSpec(BaseEngineSpec):
     """Dialect for Apache Kylin"""
 

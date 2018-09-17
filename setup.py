@@ -71,6 +71,7 @@ setup(
         'flower',  # deprecated
         'future>=0.16.0, <0.17',
         'geopy',
+        'gsheetsdb',
         'gunicorn',  # deprecated
         'humanize',
         'idna',
