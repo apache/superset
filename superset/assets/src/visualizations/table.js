@@ -46,6 +46,7 @@ const propTypes = {
 };
 
 const formatValue = d3.format('0,000');
+const formatPercent = d3.format('.3p');
 function NOOP() {}
 
 function TableVis(element, props) {
@@ -131,8 +132,9 @@ function TableVis(element, props) {
       }
       if (isMetric) {
         html = d3.format(format || '0.3s')(val);
-      } else if (key[0] === '%') {
-        html = d3.format('.3p')(val);
+      }
+      if (key[0] === '%') {
+        html = formatPercent(val);
       }
       return {
         col: key,
