@@ -905,6 +905,7 @@ def get_since_until(form_data):
     Additionally, for `time_range` (these specify both `since` and `until`):
 
         - Last day
+        - Last weekday
         - Last week
         - Last month
         - Last quarter
@@ -916,8 +917,10 @@ def get_since_until(form_data):
     """
     separator = ' : '
     today = parse_human_datetime('today')
+    weekday_offset = [3, 1, 1, 1, 1, 2, 3][today.weekday()]
     common_time_frames = {
         'Last day': (today - relativedelta(days=1), today),
+        'Last weekday': (today - relativedelta(days=weekday_offset), today),
         'Last week': (today - relativedelta(weeks=1), today),
         'Last month': (today - relativedelta(months=1), today),
         'Last quarter': (today - relativedelta(months=3), today),

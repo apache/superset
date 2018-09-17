@@ -609,6 +609,11 @@ class UtilsTestCase(unittest.TestCase):
         expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
+        form_data = {'time_range': 'Last weekday'}
+        result = get_since_until(form_data)
+        expected = datetime(2016, 11, 4), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
         form_data = {'time_range': 'Last 5 months'}
         result = get_since_until(form_data)
         expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
