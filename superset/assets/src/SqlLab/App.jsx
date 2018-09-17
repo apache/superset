@@ -3,7 +3,6 @@ import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
-import $ from 'jquery';
 
 import getInitialState from './getInitialState';
 import rootReducer from './reducers';
@@ -32,10 +31,16 @@ const store = createStore(
   ),
 );
 
-// jquery hack to highlight the navbar menu
-$('a:contains("SQL Lab")')
-  .parent()
-  .addClass('active');
+// Highlight the navbar menu
+const menus = document.querySelectorAll('.nav.navbar-nav li.dropdown');
+const sqlLabMenu = Array.prototype.slice.apply(menus)
+  .find(element => element.innerText.trim() === 'SQL Lab');
+if (sqlLabMenu) {
+  const classes = sqlLabMenu.getAttribute('class');
+  if (classes.indexOf('active') === -1) {
+    sqlLabMenu.setAttribute('class', `${classes} active`);
+  }
+}
 
 const Application = () => (
   <Provider store={store}>
