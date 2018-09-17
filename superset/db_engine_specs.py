@@ -1477,6 +1477,21 @@ class GSheetsEngineSpec(BaseEngineSpec):
         'P1Y': 'year({col})',
     }
 
+    @classmethod
+    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
+                    show_cols=False, indent=True, latest_partition=True,
+                    cols=None):
+        return BaseEngineSpec.select_star(
+            my_db=my_db,
+            table_name=table_name,
+            engine=engine,
+            schema=None,                # omit schema
+            limit=limit,
+            show_cols=show_cols,
+            indent=indent,
+            latest_partition=False,     # no partitions
+            cols=cols)
+
 
 class KylinEngineSpec(BaseEngineSpec):
     """Dialect for Apache Kylin"""
