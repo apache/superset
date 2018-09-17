@@ -1455,7 +1455,7 @@ class BQEngineSpec(BaseEngineSpec):
         :param str label: the original label which might include unsupported characters
         :return: String that is supported by the database
         """
-        hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+        hashed_label = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
 
         # if label starts with number, add underscore as first character
         label = '_' + label if re.match('^\d', label) else label
@@ -1464,7 +1464,7 @@ class BQEngineSpec(BaseEngineSpec):
         mutated_label = re.sub('[^\w]+', '_', label)
         if mutated_label != label:
             # add md5 hash to label to avoid possible collisions
-            mutated_label += '_' + hashed_label
+            mutated_label += hashed_label
 
         # return only hash if length of final label exceeds 128 chars
         return mutated_label if len(mutated_label) <= 128 else hashed_label
