@@ -75,7 +75,7 @@ class SupersetClient {
     );
   }
 
-  get({ host, url, endpoint, mode, credentials, headers, body, timeout, signal }) {
+  get({ body, credentials, headers, host, endpoint, mode, parseMethod, signal, timeout, url }) {
     return this.ensureAuth().then(() =>
       callApi({
         body,
@@ -83,6 +83,7 @@ class SupersetClient {
         headers: { ...this.headers, ...headers },
         method: 'GET',
         mode: mode || this.mode,
+        parseMethod,
         signal,
         timeout: timeout || this.timeout,
         url: url || this.getUrl({ endpoint, host: host || this.host }),
@@ -91,16 +92,17 @@ class SupersetClient {
   }
 
   post({
-    host,
-    endpoint,
-    url,
-    mode,
     credentials,
     headers,
+    host,
+    endpoint,
+    mode,
+    parseMethod,
     postPayload,
-    timeout,
     signal,
     stringify,
+    timeout,
+    url,
   }) {
     return this.ensureAuth().then(() =>
       callApi({
@@ -108,6 +110,7 @@ class SupersetClient {
         headers: { ...this.headers, ...headers },
         method: 'POST',
         mode: mode || this.mode,
+        parseMethod,
         postPayload,
         signal,
         stringify,
