@@ -30,9 +30,7 @@ describe('World Map', () => {
 
   it('works with ad-hoc metric', () => {
     verify(WORLD_MAP_FORM_DATA);
-    cy.get('.bubbles circle.datamaps-bubble').then((circles) => {
-      expect(circles.length).to.equal(206);
-    });
+    cy.get('.bubbles circle.datamaps-bubble').should('have.length', 206);
   });
 
   it('works with simple filter', () => {
@@ -52,9 +50,7 @@ describe('World Map', () => {
         },
       ],
     });
-    cy.get('.bubbles circle.datamaps-bubble').then((circles) => {
-      expect(circles.length).to.equal(8);
-    });
+    cy.get('.bubbles circle.datamaps-bubble').should('have.length', 8);
   });
 
   it('can hide bubbles', () => {

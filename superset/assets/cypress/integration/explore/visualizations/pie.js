@@ -32,9 +32,7 @@ describe('Pie', () => {
 
   it('works with ad-hoc metric', () => {
     verify(PIE_FORM_DATA);
-    cy.get('.chart-container .nv-pie .nv-slice path').then((pieSlices) => {
-      expect(pieSlices.length).to.equal(2);
-    });
+    cy.get('.chart-container .nv-pie .nv-slice path').should('have.length', 2);
   });
 
   it('works with simple filter', () => {
@@ -53,8 +51,6 @@ describe('Pie', () => {
         },
       ],
     });
-    cy.get('.chart-container .nv-pie .nv-slice path').then((pieSlices) => {
-      expect(pieSlices.length).to.equal(1);
-    });
+    cy.get('.chart-container .nv-pie .nv-slice path').should('have.length', 1);
   });
 });
