@@ -69,7 +69,7 @@ def get_css_manifest_files(filename):
     return entry_files.get('css', [])
 
 
-def filter_loaded_chunks(files, loaded_chunks):
+def get_unloaded_chunks(files, loaded_chunks):
     filtered_files = [f for f in files if f not in loaded_chunks]
     for f in filtered_files:
         loaded_chunks.add(f)
@@ -83,7 +83,7 @@ parse_manifest_json()
 def get_manifest():
     return dict(
         loaded_chunks=set(),
-        filter_loaded_chunks=filter_loaded_chunks,
+        get_unloaded_chunks=get_unloaded_chunks,
         js_manifest=get_js_manifest_files,
         css_manifest=get_css_manifest_files,
     )
