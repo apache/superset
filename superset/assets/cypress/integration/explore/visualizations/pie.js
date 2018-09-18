@@ -3,7 +3,6 @@ describe('Pie', () => {
     datasource: '3__table',
     viz_type: 'pie',
     slice_id: 55,
-    url_params: {},
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
     time_range: '100 years ago : now',

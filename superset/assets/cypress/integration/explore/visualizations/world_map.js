@@ -3,7 +3,6 @@ describe('World Map', () => {
     datasource: '2__table',
     viz_type: 'world_map',
     slice_id: 45,
-    url_params: {},
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: '2014-01-01 : 2014-01-02',

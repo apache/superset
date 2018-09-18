@@ -1,5 +1,5 @@
 describe('Pivot Table', () => {
-  const PIVOT_TABLE_FORM_DATA = ;
+  const PIVOT_TABLE_FORM_DATA = {};
 
   function verify(formData) {
     cy.visitChartByParams(JSON.stringify(formData));
