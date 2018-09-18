@@ -52,10 +52,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.togglePublished = this.togglePublished.bind(this);
   }
 
-  togglePublished() {
-    this.props.savePublished(this.props.dashboardId, !this.props.isPublished);
-  }
-
   componentWillMount() {
     injectCustomCss(this.state.css);
 
@@ -75,6 +71,10 @@ class HeaderActionsDropdown extends React.PureComponent {
     });
     this.props.onChange();
     this.props.updateCss(css);
+  }
+
+  togglePublished() {
+    this.props.savePublished(this.props.dashboardId, !this.props.isPublished);
   }
 
   render() {
@@ -143,9 +143,12 @@ class HeaderActionsDropdown extends React.PureComponent {
         <MenuItem onClick={forceRefreshAllCharts}>
           {t('Force refresh dashboard')}
         </MenuItem>
-        {userCanSave && (<MenuItem onClick={this.togglePublished}>
-          {t(publishedText)}
-        </MenuItem>)}
+        {userCanSave &&
+          editMode && (
+            <MenuItem onClick={this.togglePublished}>
+              {t(publishedText)}
+            </MenuItem>
+          )}
         <RefreshIntervalModal
           onChange={refreshInterval =>
             startPeriodicRender(refreshInterval * 1000)
