@@ -77,7 +77,7 @@ function TableVis(element, props) {
     // Add percent metrics
     .concat((percentMetrics || []).map(m => '%' + m))
     // Removing metrics (aggregates) that are strings
-    .filter(m => !Number.isNaN(data[0][m]));
+    .filter(m => (typeof data[0][m]) === 'number');
 
   function col(c) {
     const arr = [];
