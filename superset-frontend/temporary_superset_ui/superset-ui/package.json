@@ -5,13 +5,12 @@
   "private": true,
   "scripts": {
     "build": "lerna run build",
-    "jest": "lerna run test",
     "lint": "lerna run lint",
     "lint:fix": "lerna run lint:fix",
     "prerelease": "yarn run build",
-    "prepare-release": "git checkout master && git pull --rebase origin master && yarn run test",
+    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run lint && yarn run test",
     "release": "yarn run prepare-release && lerna publish && lerna run gh-pages",
-    "test": "lerna bootstrap && yarn run lint && yarn run jest"
+    "test": "lerna run test"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
   "keywords": [

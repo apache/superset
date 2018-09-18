@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.12",
+    "@data-ui/build-config": "^0.0.14",
     "fetch-mock": "^6.5.2",
     "node-fetch": "^2.2.0"
   },

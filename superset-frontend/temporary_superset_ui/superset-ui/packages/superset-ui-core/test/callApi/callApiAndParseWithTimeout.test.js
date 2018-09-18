@@ -1,4 +1,3 @@
-/* eslint promise/no-callback-in-promise: 'off' */
 import fetchMock from 'fetch-mock';
 
 import callApiAndParseWithTimeout from '../../src/callApi/callApiAndParseWithTimeout';
@@ -80,23 +79,23 @@ describe('callApiAndParseWithTimeout()', () => {
           );
           expect(timeoutError.statusText).toBe('timeout');
 
-          return done();
+          return done(); // eslint-disable-line promise/no-callback-in-promise
         });
 
       jest.runOnlyPendingTimers();
     });
 
-    it('resolves if the request does not exceed the timeout', done => {
+    it('resolves if the request does not exceed the timeout', () => {
       expect.assertions(1);
       jest.useFakeTimers();
 
-      callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 })
-        .then(response => {
+      return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
+        response => {
           expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
 
-          return done();
-        })
-        .catch(throwIfCalled);
+          return Promise.resolve();
+        },
+      );
     });
   });
 });

@@ -2,7 +2,7 @@ import callApi from './callApi';
 import rejectAfterTimeout from './rejectAfterTimeout';
 import parseResponse from './parseResponse';
 
-export default function callApiAndParseWithTimeout({ timeout, ...rest }) {
+export default function callApiAndParseWithTimeout({ timeout, parseMethod, ...rest }) {
   const apiPromise = callApi(rest);
 
   const racedPromise =
@@ -10,5 +10,5 @@ export default function callApiAndParseWithTimeout({ timeout, ...rest }) {
       ? Promise.race([rejectAfterTimeout(timeout), apiPromise])
       : apiPromise;
 
-  return parseResponse(racedPromise);
+  return parseResponse(racedPromise, parseMethod);
 }
