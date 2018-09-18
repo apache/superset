@@ -41,6 +41,9 @@ export default function reactify(renderFn) {
     }
   }
 
+  if (renderFn.displayName) {
+    ReactifiedComponent.displayName = renderFn.displayName;
+  }
   if (renderFn.propTypes) {
     ReactifiedComponent.propTypes = renderFn.propTypes;
   }
