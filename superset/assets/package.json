@@ -124,7 +124,7 @@
     "shortid": "^2.2.6",
     "sprintf-js": "^1.1.1",
     "srcdoc-polyfill": "^1.0.0",
-    "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
+    "supercluster": "^4.1.1",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
     "viewport-mercator-project": "^5.0.0"

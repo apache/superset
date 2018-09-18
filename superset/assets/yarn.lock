@@ -7114,7 +7114,7 @@ just-extend@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/just-extend/-/just-extend-3.0.0.tgz#cee004031eaabf6406da03a7b84e4fe9d78ef288"
 
-kdbush@^1.0.0, kdbush@^1.0.1:
+kdbush@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/kdbush/-/kdbush-1.0.1.tgz#3cbd03e9dead9c0f6f66ccdb96450e5cecc640e0"
 
@@ -11732,17 +11732,11 @@ supercluster@^2.3.0:
   dependencies:
     kdbush "^1.0.1"
 
-supercluster@^4.0.1:
+supercluster@^4.0.1, supercluster@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/supercluster/-/supercluster-4.1.1.tgz#cf13c3b28a3fb3db5290bfad7f524e244bd4ce78"
   dependencies:
     kdbush "^2.0.1"
-
-"supercluster@https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40":
-  version "2.1.0"
-  resolved "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40#3ac2d8efc0224fb6f4332a7192b619ded4b967a6"
-  dependencies:
-    kdbush "^1.0.0"
 
 supports-color@3.1.2, supports-color@3.1.x:
   version "3.1.2"
