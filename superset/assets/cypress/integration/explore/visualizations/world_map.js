@@ -1,5 +1,5 @@
 describe('World Map', () => {
-  const WORLD_MAP_DEFAULTS = {
+  const WORLD_MAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'world_map',
     slice_id: 45,
@@ -29,7 +29,7 @@ describe('World Map', () => {
   });
 
   it('works with ad-hoc metric', () => {
-    verify(WORLD_MAP_DEFAULTS);
+    verify(WORLD_MAP_FORM_DATA);
     cy.get('.bubbles circle.datamaps-bubble').then((circles) => {
       expect(circles.length).to.equal(206);
     });
@@ -37,7 +37,7 @@ describe('World Map', () => {
 
   it('works with simple filter', () => {
     verify({
-      ...WORLD_MAP_DEFAULTS,
+      ...WORLD_MAP_FORM_DATA,
       metric: 'count',
       adhoc_filters: [
         {
@@ -59,7 +59,7 @@ describe('World Map', () => {
 
   it('can hide bubbles', () => {
     verify({
-      ...WORLD_MAP_DEFAULTS,
+      ...WORLD_MAP_FORM_DATA,
       show_bubbles: false,
     });
     cy.get('.slice_container').then((containers) => {
