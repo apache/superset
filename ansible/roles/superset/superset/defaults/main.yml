@@ -1,0 +1,5 @@
+---
+
+superset_deploy: true
+# Set to TRUE to always re-deploy kubernetes pods. Used in development
+superset_reload_pods: false
