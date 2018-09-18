@@ -1,26 +1,25 @@
-export default function parseResponse(apiPromise) {
-  return apiPromise.then(apiResponse =>
-    // first try to parse as json, and fall back to text (e.g., in the case of HTML stacktrace)
-    // cannot fall back to .text() without cloning the response because body is single-use
-    apiResponse
-      .clone()
-      .json()
-      .catch(() => /* jsonParseError */ apiResponse.text().then(textPayload => ({ textPayload })))
-      .then(maybeJson => ({
-        json: maybeJson.textPayload ? undefined : maybeJson,
-        response: apiResponse,
-        text: maybeJson.textPayload,
-      }))
-      .then(({ response, json, text }) => {
-        if (!response.ok) {
-          return Promise.reject({
-            error: response.error || (json && json.error) || text || 'An error occurred',
-            status: response.status,
-            statusText: response.statusText,
-          });
-        }
+const PARSERS = {
+  json: response => response.json().then(json => ({ json, response })),
+  text: response => response.text().then(text => ({ response, text })),
+};
 
-        return typeof text === 'undefined' ? { json, response } : { response, text };
-      }),
-  );
+export default function parseResponse(apiPromise, parseMethod = 'json') {
+  if (parseMethod === null) return apiPromise;
+
+  const responseParser = PARSERS[parseMethod] || PARSERS.json;
+
+  return apiPromise
+    .then(response => {
+      if (!response.ok) {
+        return Promise.reject({
+          error: response.error || 'An error occurred',
+          response,
+          status: response.status,
+          statusText: response.statusText,
+        });
+      }
+
+      return response;
+    })
+    .then(responseParser);
 }

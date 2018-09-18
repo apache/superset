@@ -15,7 +15,6 @@ export default function callApi({
   postPayload,
   stringify = true,
   redirect = 'follow', // manual, follow, error
-  timeoutId,
   signal, // used for aborting
 }) {
   let request = {
