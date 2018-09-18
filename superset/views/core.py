@@ -133,6 +133,7 @@ class DashboardFilter(SupersetFilter):
                 Dash.published == True,  # noqa
                 Dash.id.in_(users_favorite_dash_ids),
             ))
+
             return query
 
         # TODO(bogdan): add `schema_access` support here
