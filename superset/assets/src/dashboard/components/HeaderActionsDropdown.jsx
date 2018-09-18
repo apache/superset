@@ -22,6 +22,8 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
+  savePublished: PropTypes.func.isRequired,
+  isPublished: PropTypes.bool.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
@@ -47,6 +49,11 @@ class HeaderActionsDropdown extends React.PureComponent {
     };
 
     this.changeCss = this.changeCss.bind(this);
+    this.togglePublished = this.togglePublished.bind(this);
+  }
+
+  togglePublished() {
+    this.props.savePublished(this.props.dashboardId, !this.props.isPublished);
   }
 
   componentWillMount() {
@@ -74,6 +81,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     const {
       dashboardTitle,
       dashboardId,
+      isPublished,
       startPeriodicRender,
       forceRefreshAllCharts,
       editMode,
@@ -90,6 +98,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailTitle = t('Superset Dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
+    const publishedText = isPublished ? 'Hide dashboard' : 'Publish Dashboard';
 
     return (
       <DropdownButton
@@ -134,6 +143,9 @@ class HeaderActionsDropdown extends React.PureComponent {
         <MenuItem onClick={forceRefreshAllCharts}>
           {t('Force refresh dashboard')}
         </MenuItem>
+        {userCanSave && (<MenuItem onClick={this.togglePublished}>
+          {t(publishedText)}
+        </MenuItem>)}
         <RefreshIntervalModal
           onChange={refreshInterval =>
             startPeriodicRender(refreshInterval * 1000)

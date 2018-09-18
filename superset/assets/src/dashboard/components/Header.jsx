@@ -206,19 +206,18 @@ class Header extends React.PureComponent {
             showTooltip={false}
           />
           <span className="favstar">
+            <PublishedStatus
+              dashboardId={dashboardInfo.id}
+              fetchPublished={this.props.fetchPublished}
+              isPublished={this.props.isPublished}
+            />
+          </span>
+          <span className="favstar">
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
-            />
-          </span>
-          <span className="favstar">
-            <PublishedStatus
-              dashboardId={dashboardInfo.id}
-              fetchPublished={this.props.fetchPublished}
-              savePublished={this.props.savePublished}
-              isPublished={this.props.isPublished}
             />
           </span>
         </div>
@@ -312,6 +311,8 @@ class Header extends React.PureComponent {
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
+            savePublished={this.props.savePublished}
+            isPublished={this.props.isPublished}
             startPeriodicRender={this.props.startPeriodicRender}
             updateCss={updateCss}
             editMode={editMode}

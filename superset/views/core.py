@@ -127,7 +127,8 @@ class DashboardFilter(SupersetFilter):
                                   Favorites.class_name == 'Dashboard'))
             )]
 
-        if self.has_all_datasource_access():
+        if security_manager.all_datasource_access():
+
             query = query.filter(sqla.or_(
                 Dash.owners.any(User.id == g.user.id),
                 Dash.published == True,  # noqa
@@ -536,12 +537,12 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     add_title = _('Add Dashboard')
     edit_title = _('Edit Dashboard')
 
-    list_columns = ['dashboard_link', 'creator', 'modified']
-    order_columns = ['modified']
+    list_columns = ['dashboard_link', 'creator', 'published', 'modified']
+    order_columns = ['modified', 'published']
     edit_columns = ['dashboard_title', 'slug', 'owners', 'position_json',
                     'css', 'json_metadata', 'published']
     show_columns = edit_columns + ['table_names', 'slices']
-    search_columns = ('dashboard_title', 'slug', 'owners')
+    search_columns = ('dashboard_title', 'slug', 'owners', 'published')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
