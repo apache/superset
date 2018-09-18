@@ -1,4 +1,3 @@
-/* eslint promise/no-callback-in-promise: 'off' */
 import fetchMock from 'fetch-mock';
 import callApi from '../../src/callApi/callApi';
 import parseResponse from '../../src/callApi/parseResponse';
@@ -33,22 +32,20 @@ describe('parseResponse()', () => {
     expect(parsedResponsePromise).toEqual(expect.any(Promise));
   });
 
-  it('resolves to { json, response } if the request succeeds', done => {
+  it('resolves to { json, response } if the request succeeds', () => {
     expect.assertions(3);
     const apiPromise = callApi({ url: mockGetUrl, method: 'GET' });
 
-    parseResponse(apiPromise)
-      .then(args => {
-        expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-        expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'json']));
-        expect(args.json).toEqual(expect.objectContaining(mockGetPayload));
+    return parseResponse(apiPromise).then(args => {
+      expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
+      expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'json']));
+      expect(args.json).toEqual(expect.objectContaining(mockGetPayload));
 
-        return done();
-      })
-      .catch(throwIfCalled);
+      return Promise.resolve();
+    });
   });
 
-  it('resolves to { text, response } if the request succeeds with text response', done => {
+  it('throws if `parseMethod=json` and .json() fails', () => {
     expect.assertions(3);
 
     const mockTextUrl = '/mock/text/url';
@@ -57,28 +54,51 @@ describe('parseResponse()', () => {
     fetchMock.get(mockTextUrl, mockTextResponse);
 
     const apiPromise = callApi({ url: mockTextUrl, method: 'GET' });
-    parseResponse(apiPromise)
-      .then(args => {
-        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
-        expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'text']));
-        expect(args.text).toBe(mockTextResponse);
 
-        return done();
-      })
-      .catch(throwIfCalled);
-  });
-
-  it('rejects if the request throws', done => {
-    expect.assertions(3);
-
-    callApi({ url: mockErrorUrl, method: 'GET' })
+    return parseResponse(apiPromise, 'json')
       .then(throwIfCalled)
       .catch(error => {
-        expect(fetchMock.calls(mockErrorUrl)).toHaveLength(1);
-        expect(error.status).toBe(mockErrorPayload.status);
-        expect(error.statusText).toBe(mockErrorPayload.statusText);
+        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+        expect(error.stack).toBeDefined();
+        expect(error.message.includes('Unexpected token')).toBe(true);
 
-        return done();
+        return Promise.resolve();
       });
+  });
+
+  it('resolves to { text, response } if the `parseMethod=text`', () => {
+    expect.assertions(3);
+
+    // test with json + bigint to ensure that it was not first parsed as json
+    const mockTextParseUrl = '/mock/textparse/url';
+    const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
+    fetchMock.get(mockTextParseUrl, mockTextJsonResponse);
+
+    const apiPromise = callApi({ url: mockTextParseUrl, method: 'GET' });
+
+    return parseResponse(apiPromise, 'text').then(args => {
+      expect(fetchMock.calls(mockTextParseUrl)).toHaveLength(1);
+      expect(Object.keys(args)).toEqual(expect.arrayContaining(['response', 'text']));
+      expect(args.text).toBe(mockTextJsonResponse);
+
+      return Promise.resolve();
+    });
+  });
+
+  it('resolves to the unmodified `Response` object if `parseMethod=null`', () => {
+    expect.assertions(2);
+
+    const mockNoParseUrl = '/mock/noparse/url';
+    const mockResponse = new Response('test response');
+    fetchMock.get(mockNoParseUrl, mockResponse);
+
+    const apiPromise = callApi({ url: mockNoParseUrl, method: 'GET' });
+
+    return parseResponse(apiPromise, null).then(response => {
+      expect(fetchMock.calls(mockNoParseUrl)).toHaveLength(1);
+      expect(response.bodyUsed).toBe(false);
+
+      return Promise.resolve();
+    });
   });
 });
