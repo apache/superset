@@ -51,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = "Apache Superset"
-copyright = 'Apache Software Foundation'
+copyright = 'Copyright © 2018 The Apache Software Foundation, Licensed under the Apache License, Version 2.0.'
 author = u'Maxime Beauchemin'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -177,10 +177,10 @@ html_static_path = ['_static']
 html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
-#html_show_sphinx = True
+html_show_sphinx = False
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-html_show_copyright = False
+html_show_copyright = True
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
