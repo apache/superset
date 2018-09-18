@@ -37,18 +37,16 @@ describe('World Map', () => {
     verify({
       ...WORLD_MAP_FORM_DATA,
       metric: 'count',
-      adhoc_filters: [
-        {
-          expressionType: 'SIMPLE',
-          subject: 'region',
-          operator: '==',
-          comparator: 'South Asia',
-          clause: 'WHERE',
-          sqlExpression: null,
-          fromFormData: true,
-          filterOptionName: 'filter_8aqxcf5co1a_x7lm2d1fq0l',
-        },
-      ],
+      adhoc_filters: [{
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: '==',
+        comparator: 'South Asia',
+        clause: 'WHERE',
+        sqlExpression: null,
+        fromFormData: true,
+        filterOptionName: 'filter_8aqxcf5co1a_x7lm2d1fq0l',
+      }],
     });
     cy.get('.bubbles circle.datamaps-bubble').should('have.length', 8);
   });

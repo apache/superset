@@ -38,18 +38,16 @@ describe('Pie', () => {
   it('works with simple filter', () => {
     verify({
       ...PIE_FORM_DATA,
-      adhoc_filters: [
-        {
-          expressionType: 'SIMPLE',
-          subject: 'gender',
-          operator: '==',
-          comparator: 'boy',
-          clause: 'WHERE',
-          sqlExpression: null,
-          fromFormData: true,
-          filterOptionName: 'filter_tqx1en70hh_7nksse7nqic',
-        },
-      ],
+      adhoc_filters: [{
+        expressionType: 'SIMPLE',
+        subject: 'gender',
+        operator: '==',
+        comparator: 'boy',
+        clause: 'WHERE',
+        sqlExpression: null,
+        fromFormData: true,
+        filterOptionName: 'filter_tqx1en70hh_7nksse7nqic',
+      }],
     });
     cy.get('.chart-container .nv-pie .nv-slice path').should('have.length', 1);
   });

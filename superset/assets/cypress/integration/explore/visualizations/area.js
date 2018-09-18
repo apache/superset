@@ -62,4 +62,21 @@ describe('Area', () => {
     cy.get('.nv-area').should('have.length', 7);
   });
 
+  it('works with groupby and filter', () => {
+    verify({
+      ...AREA_FORM_DATA,
+      groupby: ['region'],
+      adhoc_filters: [{
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: 'in',
+        comparator: ['South Asia', 'North America'],
+        clause: 'WHERE',
+        sqlExpression: null,
+        fromFormData: true,
+        filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
+      }],
+    });
+    cy.get('.nv-area').should('have.length', 2);
+  });
 });
