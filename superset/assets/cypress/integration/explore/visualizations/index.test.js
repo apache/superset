@@ -1,4 +1,5 @@
 import AreaTest from './area';
+import BarTest from './bar';
 import BigNumberTest from './big_number';
 import BigNumberTotalTest from './big_number_total';
 import BubbleTest from './bubble';
@@ -17,6 +18,7 @@ import WorldMapTest from './world_map';
 
 describe('All Visualizations', () => {
   AreaTest();
+  BarTest();
   BigNumberTest();
   BigNumberTotalTest();
   BubbleTest();
