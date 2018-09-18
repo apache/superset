@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import _ from 'underscore';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
-
 import { colorScalerFactory } from '../../../modules/colors';
 
 const propTypes = {
@@ -12,8 +12,14 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   default: PropTypes.string,
-  choices: PropTypes.arrayOf(PropTypes.array).isRequired,
-  schemes: PropTypes.object.isRequired,
+  choices: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.array),
+    PropTypes.func,
+  ]).isRequired,
+  schemes: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.func,
+  ]).isRequired,
   isLinear: PropTypes.bool,
 };
 
@@ -41,9 +47,9 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   renderOption(key) {
-    const currentScheme = key.value ?
-      this.props.schemes[key.value] :
-      this.props.schemes[defaultProps.value];
+    const { schemes } = this.props;
+    const schemeLookup = _.isFunction(schemes) ? schemes() : schemes;
+    const currentScheme = schemeLookup[key.value || defaultProps.value];
 
     let colors = currentScheme;
     if (this.props.isLinear) {
@@ -61,12 +67,16 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
+    const { choices } = this.props;
+    const options = (_.isFunction(choices) ? choices() : choices)
+      .map(choice => ({ value: choice[0], label: choice[1] }));
+
     const selectProps = {
       multi: false,
       name: `select-${this.props.name}`,
-      placeholder: `Select (${this.props.choices.length})`,
+      placeholder: `Select (${options.length})`,
       default: this.props.default,
-      options: this.props.choices.map(choice => ({ value: choice[0], label: choice[1] })),
+      options,
       value: this.props.value,
       autosize: false,
       clearable: false,
