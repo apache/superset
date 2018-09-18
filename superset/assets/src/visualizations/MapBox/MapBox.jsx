@@ -48,10 +48,6 @@ class MapBox extends React.Component {
       height,
     }).fitBounds(bounds);
     const { latitude, longitude, zoom } = mercator;
-    // Compute the clusters based on the bounds. Again, this is only done once because
-    // we don't update the clusters as we pan/zoom in the current design.
-    const bbox = [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]];
-    this.clusters = this.props.clusterer.getClusters(bbox, Math.round(zoom));
 
     this.state = {
       viewport: {
@@ -80,10 +76,19 @@ class MapBox extends React.Component {
       pointRadiusUnit,
       renderWhileDragging,
       rgb,
+      hasCustomMetric,
+      bounds,
     } = this.props;
     const { viewport } = this.state;
     const isDragging = viewport.isDragging === undefined ? false :
                        viewport.isDragging;
+
+    // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
+    // to an area outside of the original bounds, no additional queries are made to the backend to
+    // retrieve additional data.
+    const bbox = [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]];
+    const clusters = this.props.clusterer.getClusters(bbox, Math.round(viewport.zoom));
+
     return (
       <MapGL
         {...viewport}
@@ -98,14 +103,14 @@ class MapBox extends React.Component {
           isDragging={isDragging}
           width={width}
           height={height}
-          locations={Immutable.fromJS(this.clusters)}
+          locations={Immutable.fromJS(clusters)}
           dotRadius={pointRadius}
           pointRadiusUnit={pointRadiusUnit}
           rgb={rgb}
           globalOpacity={globalOpacity}
           compositeOperation={'screen'}
           renderWhileDragging={renderWhileDragging}
-          aggregatorName={aggregatorName}
+          aggregation={hasCustomMetric ? aggregatorName : null}
           lngLatAccessor={(location) => {
             const coordinates = location.get('geometry').get('coordinates');
             return [coordinates.get(0), coordinates.get(1)];
@@ -119,34 +124,10 @@ class MapBox extends React.Component {
 MapBox.propTypes = propTypes;
 MapBox.defaultProps = defaultProps;
 
-function createReducer(aggregatorName, customMetric) {
-  if (aggregatorName === 'sum' || !customMetric) {
-    return (a, b) => a + b;
-  } else if (aggregatorName === 'min') {
-    return Math.min;
-  } else if (aggregatorName === 'max') {
-    return Math.max;
-  }
-  return function (a, b) {
-    if (a instanceof Array) {
-      if (b instanceof Array) {
-        return a.concat(b);
-      }
-      a.push(b);
-      return a;
-    }
-    if (b instanceof Array) {
-      b.push(a);
-      return b;
-    }
-    return [a, b];
-  };
-}
-
 function mapbox(slice, payload, setControlValue) {
   const { formData, selector } = slice;
   const {
-    customMetric,
+    hasCustomMetric,
     geoJSON,
     bounds,
     mapboxApiKey,
@@ -170,18 +151,41 @@ function mapbox(slice, payload, setControlValue) {
     return;
   }
 
-  const clusterer = supercluster({
+  const opts = {
     radius: clusteringRadius,
     maxZoom: DEFAULT_MAX_ZOOM,
-    metricKey: 'metric',
-    metricReducer: createReducer(aggregatorName, customMetric),
-  });
+  };
+  if (hasCustomMetric) {
+    opts.initial = () => ({
+      sum: 0,
+      squaredSum: 0,
+      min: Infinity,
+      max: -Infinity,
+    });
+    opts.map = prop => ({
+      sum: prop.metric,
+      squaredSum: Math.pow(prop.metric, 2),
+      min: prop.metric,
+      max: prop.metric,
+    });
+    opts.reduce = (accu, prop) => {
+      // Temporarily disable param-reassignment linting to work with supercluster's api
+      /* eslint-disable no-param-reassign */
+      accu.sum += prop.sum;
+      accu.squaredSum += prop.squaredSum;
+      accu.min = Math.min(accu.min, prop.min);
+      accu.max = Math.max(accu.max, prop.max);
+      /* eslint-enable no-param-reassign */
+    };
+  }
+  const clusterer = supercluster(opts);
   clusterer.load(geoJSON.features);
 
   ReactDOM.render(
     <MapBox
       width={slice.width()}
       height={slice.height()}
+      hasCustomMetric={hasCustomMetric}
       aggregatorName={aggregatorName}
       clusterer={clusterer}
       globalOpacity={globalOpacity}
