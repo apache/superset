@@ -49,7 +49,7 @@ export default class ColorSchemeControl extends React.PureComponent {
   renderOption(key) {
     const { schemes } = this.props;
     const schemeLookup = _.isFunction(schemes) ? schemes() : schemes;
-    const currentScheme = schemeLookup[key.value || defaultProps];
+    const currentScheme = schemeLookup[key.value || defaultProps.value];
 
     let colors = currentScheme;
     if (this.props.isLinear) {
