@@ -30,12 +30,12 @@ describe('Pie', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('works with ad-hoc metric', () => {
+  it('should work with ad-hoc metric', () => {
     verify(PIE_FORM_DATA);
     cy.get('.chart-container .nv-pie .nv-slice path').should('have.length', 2);
   });
 
-  it('works with simple filter', () => {
+  it('should work with simple filter', () => {
     verify({
       ...PIE_FORM_DATA,
       adhoc_filters: [{

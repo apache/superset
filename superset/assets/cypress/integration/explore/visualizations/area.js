@@ -49,12 +49,12 @@ describe('Area', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('works without groupby', () => {
+  it('should work without groupby', () => {
     verify(AREA_FORM_DATA);
     cy.get('.nv-area').should('have.length', 1);
   });
 
-  it('works with group by', () => {
+  it('should work with group by', () => {
     verify({
       ...AREA_FORM_DATA,
       groupby: ['region'],
@@ -62,7 +62,7 @@ describe('Area', () => {
     cy.get('.nv-area').should('have.length', 7);
   });
 
-  it('works with groupby and filter', () => {
+  it('should work with groupby and filter', () => {
     verify({
       ...AREA_FORM_DATA,
       groupby: ['region'],

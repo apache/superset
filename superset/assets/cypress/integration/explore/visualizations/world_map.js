@@ -28,12 +28,12 @@ describe('World Map', () => {
     cy.route('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('works with ad-hoc metric', () => {
+  it('should work with ad-hoc metric', () => {
     verify(WORLD_MAP_FORM_DATA);
     cy.get('.bubbles circle.datamaps-bubble').should('have.length', 206);
   });
 
-  it('works with simple filter', () => {
+  it('should work with simple filter', () => {
     verify({
       ...WORLD_MAP_FORM_DATA,
       metric: 'count',
@@ -51,7 +51,7 @@ describe('World Map', () => {
     cy.get('.bubbles circle.datamaps-bubble').should('have.length', 8);
   });
 
-  it('can hide bubbles', () => {
+  it('should hide bubbles when told so', () => {
     verify({
       ...WORLD_MAP_FORM_DATA,
       show_bubbles: false,
