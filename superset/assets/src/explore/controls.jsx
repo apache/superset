@@ -53,8 +53,6 @@ import { t } from '../locales';
 import { getAllSchemes } from '../modules/ColorSchemeManager';
 import sequentialSchemes from '../modules/colorSchemes/sequential';
 
-const ALL_COLOR_SCHEMES = getAllSchemes();
-
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
@@ -1977,9 +1975,9 @@ export const controls = {
     label: t('Color Scheme'),
     default: 'bnbColors',
     renderTrigger: true,
-    choices: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
+    choices: () => Object.keys(getAllSchemes()).map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
-    schemes: ALL_COLOR_SCHEMES,
+    schemes: () => getAllSchemes(),
   },
 
   significance_level: {
