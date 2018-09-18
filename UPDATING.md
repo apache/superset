@@ -11,11 +11,13 @@ assists people when migrating to a new version.
   dashboards through an automated db migration script. We
   do recommend that you take a backup prior to this migration.
 
+* Superset 0.28 deprecates the `median` cluster label aggregator for mapbox visualizations. This particular aggregation is not supported on mapbox visualizations going forward.
+
 ## Superset 0.27.0
-* Superset 0.27 start to use nested layout for dashboard builder, which is not 
+* Superset 0.27 start to use nested layout for dashboard builder, which is not
 backward-compatible with earlier dashboard grid data. We provide migration script
-to automatically convert dashboard grid to nested layout data. To be safe, please 
-take a database backup prior to this upgrade. It's the only way people could go 
+to automatically convert dashboard grid to nested layout data. To be safe, please
+take a database backup prior to this upgrade. It's the only way people could go
 back to a previous state.
 
 
@@ -38,7 +40,7 @@ The PRs bellow have more information around the breaking changes:
 * [4565](https://github.com/apache/incubator-superset/pull/4565) : we've
   changed the security model a bit where in the past you would have to
   define your authentication scheme by inheriting from Flask
-  App Builder's 
+  App Builder's
   `from flask_appbuilder.security.sqla.manager import SecurityManager`,
   you now have to derive Superset's
   own derivative `superset.security.SupersetSecurityManager`. This
@@ -46,7 +48,7 @@ The PRs bellow have more information around the breaking changes:
   permissions to another system as needed. For all implementation, you
   simply have to import and derive `SupersetSecurityManager` in place
   of the `SecurityManager`
-* [4835](https://github.com/apache/incubator-superset/pull/4835) : 
+* [4835](https://github.com/apache/incubator-superset/pull/4835) :
   our `setup.py` now only pins versions where required, giving you
   more latitude in using versions of libraries as needed. We do now
   provide a `requirements.txt` with pinned versions if you want to run
