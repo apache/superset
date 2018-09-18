@@ -5,10 +5,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from flask import json
-from tests.base_tests import SupersetTestCase
 
 from superset import app
 from superset import jinja_context
+from tests.base_tests import SupersetTestCase
 
 
 class MacroTestCase(SupersetTestCase):
