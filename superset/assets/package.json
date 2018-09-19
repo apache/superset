@@ -79,6 +79,7 @@
     "jed": "^1.1.1",
     "jquery": "3.1.1",
     "json-bigint": "^0.3.0",
+    "lodash": "^4.17.11",
     "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^0.45.0",
     "mathjs": "^3.20.2",
@@ -124,7 +125,7 @@
     "shortid": "^2.2.6",
     "sprintf-js": "^1.1.1",
     "srcdoc-polyfill": "^1.0.0",
-    "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
+    "supercluster": "^4.1.1",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
     "viewport-mercator-project": "^5.0.0"

@@ -343,9 +343,9 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 
 ```bash
 export SUPERSET_CONFIG=tests.superset_test_config
-superset load_test_users
 superset db upgrade
 superset init
+superset load_test_users
 superset load_examples
 superset runserver
 ```

@@ -7114,7 +7114,7 @@ just-extend@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/just-extend/-/just-extend-3.0.0.tgz#cee004031eaabf6406da03a7b84e4fe9d78ef288"
 
-kdbush@^1.0.0, kdbush@^1.0.1:
+kdbush@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/kdbush/-/kdbush-1.0.1.tgz#3cbd03e9dead9c0f6f66ccdb96450e5cecc640e0"
 
@@ -7486,6 +7486,10 @@ lodash@3.x:
 lodash@4.17.10, lodash@^4.0.1, lodash@^4.0.8, lodash@^4.13.1, lodash@^4.14.0, lodash@^4.15.0, lodash@^4.17.10, lodash@^4.17.2, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.2.0, lodash@^4.2.1, lodash@^4.3.0:
   version "4.17.10"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
+
+lodash@^4.17.11:
+  version "4.17.11"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
 
 log-symbols@2.2.0, log-symbols@^2.2.0:
   version "2.2.0"
@@ -11732,17 +11736,11 @@ supercluster@^2.3.0:
   dependencies:
     kdbush "^1.0.1"
 
-supercluster@^4.0.1:
+supercluster@^4.0.1, supercluster@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/supercluster/-/supercluster-4.1.1.tgz#cf13c3b28a3fb3db5290bfad7f524e244bd4ce78"
   dependencies:
     kdbush "^2.0.1"
-
-"supercluster@https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40":
-  version "2.1.0"
-  resolved "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40#3ac2d8efc0224fb6f4332a7192b619ded4b967a6"
-  dependencies:
-    kdbush "^1.0.0"
 
 supports-color@3.1.2, supports-color@3.1.x:
   version "3.1.2"

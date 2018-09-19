@@ -1960,9 +1960,9 @@ class MapboxViz(BaseViz):
             return None
         fd = self.form_data
         label_col = fd.get('mapbox_label')
-        custom_metric = label_col and len(label_col) >= 1
+        has_custom_metric = label_col is not None and len(label_col) > 0
         metric_col = [None] * len(df.index)
-        if custom_metric:
+        if has_custom_metric:
             if label_col[0] == fd.get('all_columns_x'):
                 metric_col = df[fd.get('all_columns_x')]
             elif label_col[0] == fd.get('all_columns_y'):
@@ -2003,7 +2003,7 @@ class MapboxViz(BaseViz):
 
         return {
             'geoJSON': geo_json,
-            'customMetric': custom_metric,
+            'hasCustomMetric': has_custom_metric,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
             'mapStyle': fd.get('mapbox_style'),
             'aggregatorName': fd.get('pandas_aggfunc'),

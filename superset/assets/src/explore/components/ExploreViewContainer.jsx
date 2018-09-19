@@ -170,10 +170,15 @@ class ExploreViewContainer extends React.Component {
   addHistory({ isReplace = false, title }) {
     const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
     const longUrl = getExploreLongUrl(this.props.form_data);
-    if (isReplace) {
-      history.replaceState(payload, title, longUrl);
-    } else {
-      history.pushState(payload, title, longUrl);
+    try {
+      if (isReplace) {
+        history.replaceState(payload, title, longUrl);
+      } else {
+        history.pushState(payload, title, longUrl);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed at altering browser history', payload, title, longUrl);
     }
 
     // it seems some browsers don't support pushState title attribute
