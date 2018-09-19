@@ -3,59 +3,80 @@
 Contributions are welcome and are greatly appreciated! Every
 little bit helps, and credit will always be given.
 
-You can contribute in many ways:
+## Table of Contents
+
+- [Types of Contributions](#types-of-contributions)
+  - [Report Bugs](#report-bugs)
+  - [Fix Bugs](#fix-bugs)
+  - [Implement Features](#implement-features)
+  - [Improve Documentation](#improve-documentation)
+  - [Add Translations](#add-translations)
+  - [Submit Feedback](#submit-feedback)
+  - [Ask Questions](#ask-questions)
+- [Pull Request Guidelines](#pull-request-guidelines)
+- [Local development](#local-development)
+  - [Documentation](#documentation)
+  - [Flask server](#flask-server)
+  - [Frontend assets](#frontend-assets)
+- [Testing](#testing)
+  - [JavaScript testing](#javascript-testing)
+  - [Integration testing](#integration-testing)
+  - [Linting](#linting)
+- [Translating](#translating)
+  - [Enabling language selection](#enabling-language-selection)
+  - [Extracting new strings for translation](#extracting-new-strings-for-translation)
+  - [Creating a new language dictionary](#creating-a-new-language-dictionary)
+- [Tips](#tips)
+  - [Adding a new datasource](#adding-a-new-datasource)
+  - [Creating a new visualization type](#creating-a-new-visualization-type)
+  - [Adding a DB migration](#adding-a-db-migration)
+  - [Merging DB migrations](#merging-db-migrations)
 
 ## Types of Contributions
 
 ### Report Bugs
 
-Report bugs through GitHub
+Report bugs through GitHub. If you are reporting a bug, please include:
 
-If you are reporting a bug, please include:
+- Your operating system name and version.
+- Any details about your local setup that might be helpful in troubleshooting.
+- Detailed steps to reproduce the bug.
 
--   Your operating system name and version.
--   Any details about your local setup that might be helpful in
-    troubleshooting.
--   Detailed steps to reproduce the bug.
-
-When you post python stack traces please quote them using
-[markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
+When posting Python stack traces, please quote them using
+[Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
 ### Fix Bugs
 
-Look through the GitHub issues for bugs. Anything tagged with "bug" is
+Look through the GitHub issues for bugs. Anything tagged with `bug` is
 open to whoever wants to implement it.
 
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
-"feature" or "starter_task" is open to whoever wants to implement it.
+`feature` or `starter_task` is open to whoever wants to implement it.
 
-### Documentation
+### Improve Documentation
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
-articles.
+articles. See [Documentation](#documentation) for more details.
 
-To build the docs, simply run ``./build.sh`` from the ``docs/`` folder.
-The rendered docs are accessible at `http://localhost:{PORT}/static/assets/docs/faq.html`.
+### Add Translations
+
+If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
 
 ### Submit Feedback
 
-The best way to send feedback is to file an issue on GitHub.
+The best way to send feedback is to file an issue on GitHub. If you are proposing a feature:
 
-If you are proposing a feature:
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
--   Explain in detail how it would work.
--   Keep the scope as narrow as possible, to make it easier to
-    implement.
--   Remember that this is a volunteer-driven project, and that
-    contributions are welcome :)
+### Ask Questions
 
-### Questions
-
-There is a dedicated [tag](https://stackoverflow.com/questions/tagged/apache-superset) on [stackoverflow](https://stackoverflow.com/). Please use it when asking questions.
+There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
 ## Pull Request Guidelines
 
@@ -79,9 +100,18 @@ meets these guidelines:
 8.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
-## Documentation
+## Local development
 
-The latest documentation and tutorial are available [here](https://superset.incubator.apache.org/).
+First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/), then clone it. You can clone the main repository directly instead, but you won't be able to send pull requests.
+
+```bash
+git clone git@github.com:your-username/incubator-superset.git
+cd incubator-superset
+```
+
+### Documentation
+
+The latest documentation and tutorial are available at https://superset.incubator.apache.org/.
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
@@ -92,514 +122,411 @@ If you've written Markdown before, you'll find the reStructuredText format famil
 Superset uses [Sphinx](http://www.sphinx-doc.org/en/1.5.1/) to convert the rst files
 in `docs/` to the final HTML output users see.
 
-Before you start changing the docs, you'll want to
-[fork the Superset project on Github](https://help.github.com/articles/fork-a-repo/).
-Once that new repository has been created, clone it on your local machine:
-
-    git clone git@github.com:your_username/incubator-superset.git
-
-At this point, you may also want to create a
-[Python virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
-to manage the Python packages you're about to install:
-
-    virtualenv superset-dev
-    source superset-dev/bin/activate
-
 Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
-    cd incubator-superset
-    pip install -r docs/requirements.txt
+```bash
+pip install -r docs/requirements.txt
+```
 
 To get the feel for how to edit and build the docs, let's edit a file, build
 the docs and see our changes in action. First, you'll want to
 [create a new branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
 to work on your changes:
 
-    git checkout -b changes-to-docs
+```bash
+git checkout -b changes-to-docs
+```
 
-Now, go ahead and edit one of the files under `docs/`, say `docs/tutorial.rst`
-- change it however you want. Check out the
+Now, go ahead and edit one of the files under `docs/`, say `docs/tutorial.rst` - change
+it however you want. Check out the
 [ReStructuredText Primer](http://docutils.sourceforge.net/docs/user/rst/quickstart.html)
 for a reference on the formatting of the rst files.
 
-Once you've made your changes, run this command from the root of the Superset
-repo to convert the docs into HTML:
+Once you've made your changes, run this command to convert the docs into HTML:
 
-    python setup.py build_sphinx
+```bash
+make html
+```
 
 You'll see a lot of output as Sphinx handles the conversion. After it's done, the
-HTML Sphinx generated should be in `docs/_build/html`. Go ahead and navigate there
+HTML Sphinx generated should be in `docs/_build/html`. Navigate there
 and start a simple web server so we can check out the docs in a browser:
 
-    cd docs/_build/html
-    python -m SimpleHTTPServer
+```bash
+cd docs/_build/html
+python -m SimpleHTTPServer
+```
 
 This will start a small Python web server listening on port 8000. Point your
-browser to [http://localhost:8000/](http://localhost:8000/), find the file
+browser to http://localhost:8000, find the file
 you edited earlier, and check out your changes!
 
 If you've made a change you'd like to contribute to the actual docs, just commit
 your code, push your new branch to Github:
 
-    git add docs/tutorial.rst
-    git commit -m 'Awesome new change to tutorial'
-    git push origin changes-to-docs
+```bash
+git add docs/tutorial.rst
+git commit -m 'Awesome new change to tutorial'
+git push origin changes-to-docs
+```
 
 Then, [open a pull request](https://help.github.com/articles/about-pull-requests/).
+
+#### Images
 
 If you're adding new images to the documentation, you'll notice that the images
 referenced in the rst, e.g.
 
     .. image:: _static/img/tutorial/tutorial_01_sources_database.png
 
-aren't actually included in that directory. _Instead_, you'll want to add and commit
-images (and any other static assets) to the _superset/assets/images_ directory.
-When the docs are being pushed to [Apache Superset (incubating)](https://superset.incubator.apache.org/), images
-will be moved from there to the _\_static/img_ directory, just like they're referenced
+aren't actually stored in that directory. Instead, you should add and commit
+images (and any other static assets) to the `superset/assets/images` directory.
+When the docs are deployed to https://superset.incubator.apache.org/, images
+are copied from there to the `_static/img` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in
+For example, the image referenced above actually lives in `superset/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/img/tutorial` instead.
 
-    superset/assets/images/tutorial
+#### API documentation
 
-Since the image is moved during the documentation build process, the docs reference the
-image in
+Generate the API documentation with:
 
-    _static/img/tutorial
+```bash
+pip install -r docs/requirements.txt
+python setup.py build_sphinx
+```
 
-instead.
+### Flask server
 
-## Setting up a Python development environment
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Check the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before follows these steps.
+```bash
+# Create a virtual environemnt and activate it (recommended)
+virtualenv venv
+source venv/bin/activate
 
-    # fork the repo on GitHub and then clone it
-    # alternatively you may want to clone the main repo but that won't work
-    # so well if you are planning on sending PRs
-    # git clone git@github.com:apache/incubator-superset.git
+# Install external dependencies
+pip install -r requirements.txt
+# Install Superset in editable (development) mode
+pip install -e .
 
-    # [optional] setup a virtual env and activate it
-    virtualenv env
-    source env/bin/activate
+# Create an admin user
+fabmanager create-admin --app superset
 
-    # install for development
-    pip install -r requirements.txt
-    pip install -e .
+# Initialize the database
+superset db upgrade
 
-    # Create an admin user
-    fabmanager create-admin --app superset
+# Create default roles and permissions
+superset init
 
-    # Initialize the database
-    superset db upgrade
+# Load some data to play with
+superset load_examples
 
-    # Create default roles and permissions
-    superset init
+# Start the Flask web server (but see below for frontend asset compilation)
+superset runserver -d
+```
 
-    # Load some data to play with
-    superset load_examples
+#### Logging to the browser console
 
-    # start a dev web server
-    superset runserver -d
+This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
 
-
-### Logging to the browser console (Python 3 only)
-
-When debugging your application, you can have the server logs sent directly to the browser console:
-
-    superset runserver -d --console-log
+```bash
+superset runserver -d --console-log
+```
 
 You can log anything to the browser console, including objects:
 
-    from superset import app
-    app.logger.error('An exception occurred!')
-    app.logger.info(form_data)
-
-
-## Setting up the node / npm javascript environment
-
-`superset/assets` contains all npm-managed, front end assets.
-Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
-While these may be phased out over time, these packages are currently not
-managed with npm.
-
-### Node/npm versions
-Make sure you are using recent versions of node and npm. No problems have been found with node>=5.10 and 4.0. > npm>=3.9.
-
-### Using npm to generate bundled files
-
-#### npm
-First, npm must be available in your environment. If it is not you can run the following commands
-(taken from [this source](https://gist.github.com/DanHerbert/9520689))
-```
-brew install node --without-npm
-echo prefix=~/.npm-packages >> ~/.npmrc
-curl -L https://www.npmjs.com/install.sh | sh
+```python
+from superset import app
+app.logger.error('An exception occurred!')
+app.logger.info(form_data)
 ```
 
-The final step is to add `~/.npm-packages/bin` to your `PATH` so commands you install globally are usable.
-Add something like this to your `.bashrc` file, then `source ~/.bashrc` to reflect the change.
-```
-export PATH="$HOME/.npm-packages/bin:$PATH"
-```
+### Frontend assets
 
-#### npm packages
-To install third party libraries defined in `package.json`, run the
-following within the `superset/assets/` directory which will install them in a
-new `node_modules/` folder within `assets/`.
+Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
+
+First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended.
+
+Install third-party dependencies listed in `package.json`:
 
 ```bash
-# from the root of the repository, move to where our JS package.json lives
-cd superset/assets/
-# install yarn, a replacement for `npm install` that is faster and more deterministic
+# From the root of the repository
+cd superset/assets
+
+# Install yarn, a replacement for `npm install`
 npm install -g yarn
-# run yarn to fetch all the dependencies
-yarn
+
+# Install dependencies
+yarn install
 ```
 
-To parse and generate bundled files for superset, run either of the
-following commands. The `dev` flag will keep the npm script running and
-re-run it upon any changes within the assets directory.
+Finally, to compile frontend assets, run any of the following commands.
 
 ```bash
-# Copies a conf file from the frontend to the backend
-npm run sync-backend
-
-# Compiles the production / optimized js & css
-npm run prod
-
-# Start a watcher that rebundle your assets as you modify them
+# Start a watcher that recompiles your assets as you modify them (reload your browser to see changes)
 npm run dev
 
-# Start a web server that manages and updates your assets as you modify them
+# Compile the Javascript and CSS in production/optimized mode for official releases
+npm run prod
+
+# Copy a conf file from the frontend to the backend
+npm run sync-backend
+```
+
+#### Webpack dev server
+
+Alternatively, you can run the Webpack dev server, which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to it, updates to asset sources will be reflected in-browser without a refresh.
+
+```bash
+# Run the dev server
 npm run dev-server
-```
 
-For every development session you will have to
+# Run the dev server on a non-default port
+npm run dev-server -- --port=9001
 
-1. Start a flask dev server
-
-```bash
-superset runserver -d
-# or specify port
-superset runserver -d -p 8081
-```
-
-2. Start webpack dev server
-
-```bash
-npm run dev-server
-```
-
-This will start `webpack-dev-server` at port 9000 and you can access Superset at localhost:9000.
-By default, `webpack-dev-server` is configured for flask running at port 8088.
-
-If you start flask server at another port (e.g. 8081), you have to pass an extra argument
-`supersetPort` to `webpack-dev-server`
-
-```bash
+# Run the dev server proxying to a Flask server on a non-default port
 npm run dev-server -- --supersetPort=8081
 ```
 
-You can also specify port for `webpack-dev-server`
+#### Upgrading NPM packages
 
-```bash
-npm run dev-server -- --port=9001
-# or with both dev-server port and superset port
-npm run dev-server -- --port=9001 --supersetPort=8081
-```
-
-#### Upgrading npm packages
-
-Should you add or upgrade a npm package, which involves changing `package.json`, you'll need to re-run `yarn install` and push the newly generated `yarn.lock` file so we get the reproducible build. More information at (https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/)
+After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
 
 ## Testing
+
 All tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
 a standardized testing framework mostly for Python (though we also used it for Javascript).
 All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
-    tox -e <environment>
+```bash
+tox -e <environment>
+```
 
 i.e.,
 
-    tox -e py27
-    tox -e py36
+```bash
+tox -e py27
+tox -e py36
+```
 
 Alternatively, you can run all tests in a single file via,
 
-    tox -e <environment> -- tests/test_file.py
+```bash
+tox -e <environment> -- tests/test_file.py
+```
 
 or for a specific test via,
 
-    tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+```bash
+tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+```
 
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
+### JavaScript testing
+
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
-    cd /superset/superset/assets/javascripts
-    npm i
-    npm run test
+```bash
+cd superset/assets/javascripts
+npm install
+npm run test
+```
+
+### Integration testing
 
 We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
 
-    export SUPERSET_CONFIG=tests.superset_test_config
-    superset db upgrade
-    superset init
-    superset load_test_users
-    superset load_examples
-    superset runserver
+```bash
+export SUPERSET_CONFIG=tests.superset_test_config
+superset db upgrade
+superset init
+superset load_test_users
+superset load_examples
+superset runserver
+```
 
-Open Cypress tests:
+Run Cypress tests:
 
-    cd /superset/superset/assets
-    npm run build
-    npm run cypress run
+```bash
+cd /superset/superset/assets
+npm run build
+npm run cypress run
+```
 
-## Linting
+### Linting
 
 Lint the project with:
 
-    # for python
-    tox -e flake8
+```bash
+# for python
+tox -e flake8
 
-    # for javascript
-    tox -e eslint
+# for javascript
+tox -e eslint
+```
 
-## API documentation
+## Translating
 
-Generate the documentation with:
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
 
-    pip install -r docs/requirements.txt
-    python setup.py build_sphinx
+```python
+from flask_babel import lazy_gettext as _
+```
 
-## CSS Themes
-As part of the npm build process, CSS for Superset is compiled from `Less`, a dynamic stylesheet language.
+then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
+At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
 
-It's possible to customize or add your own theme to Superset, either by overriding CSS rules or preferably
-by modifying the Less variables or files in `assets/stylesheets/less/`.
+In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number), and `TCT` (translating entire React Components).
 
-The `variables.less` and `bootswatch.less` files that ship with Superset are derived from
-[Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
-swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
+```javascript
+import {t, tn, TCT} from locales;
+```
 
-## Translations
+### Enabling language selection
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. The
-key is to instrument the strings that need translation using
-`from flask_babel import lazy_gettext as _`. Once this is imported in
-a module, all you have to do is to `_("Wrap your strings")` using the
-underscore `_` "function".
+Add the `LANGUAGES` variable to your `superset_config.py`. Having more than one
+option inside will add a language selection dropdown to the UI on the right side
+of the navigation bar.
 
-We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
+```python
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
+}
+```
 
-To enable changing language in your environment, you can simply add the
-`LANGUAGES` parameter to your `superset_config.py`. Having more than one
-options here will add a language selection dropdown on the right side of the
-navigation bar.
+### Extracting new strings for translation
 
-    LANGUAGES = {
-        'en': {'flag': 'us', 'name': 'English'},
-        'fr': {'flag': 'fr', 'name': 'French'},
-        'zh': {'flag': 'cn', 'name': 'Chinese'},
-    }
-
-As per the [Flask AppBuilder documentation] about translation, to create a
-new language dictionary, run the following command (where `es` is replaced with
-the language code for your target language):
-
-    pybabel init -i superset/translations/messages.pot -d superset/translations -l es
-
-Then it's a matter of running the statement below to gather all strings that
-need translation
-
-    fabmanager babel-extract --target superset/translations/ --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+```bash
+fabmanager babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+```
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
-to take effect, they need to be compiled using this command:
+to take effect:
 
-    fabmanager babel-compile --target superset/translations/
+```bash
+# In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
+npm install -g po2json
+fabmanager babel-compile --target superset/translations
+# Convert the en PO file into a JSON file
+po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+```
 
-In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
-We need to be compiled using this command:
+If you get errors running `po2json`, you might be running the Ubuntu package with the same
+name, rather than the NodeJS package (they have a different format for the arguments). If
+there is a conflict, you may need to update your `PATH` environment variable or fully qualify
+the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 
-    npm install po2json -g
+### Creating a new language dictionary
 
-Execute this command to convert the en PO file into a json file:
+To create a dictionary for a new language, run the following, where `LANGUAGE_CODE` is replaced with
+the language code for your target language, e.g. `es` (see [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html) for more details):
 
-    po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+```bash
+pip install -r superset/translations/requirements.txt
+pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
+```
 
-If you get errors running `po2json`, you might be running the ubuntu package with the same
-name rather than the nodejs package (they have a different format for the arguments). You
-need to be running the nodejs version, and so if there is a conflict you may need to point
-directly at `/usr/local/bin/po2json` rather than just `po2json`.
+Then, [extract strings for the new language](#extracting-new-strings-for-translation).
 
-## Adding new datasources
+## Tips
+
+### Adding a new datasource
 
 1. Create Models and Views for the datasource, add them under superset folder, like a new my_models.py
     with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
     and datasourcemodelview.
 
-2. Create db migration files for the new models
+1. Create DB migration files for the new models
 
-3. Specify this variable to add the datasource model and from which module it is from in config.py:
+1. Specify this variable to add the datasource model and from which module it is from in config.py:
 
     For example:
 
-    `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
+    ```python
+    ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}
+    ```
 
     This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-## Creating a new visualization type
+### Creating a new visualization type
 
 Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
 https://github.com/apache/incubator-superset/pull/3013
 
-## Refresh documentation website
+### Adding a DB migration
 
-  Every once in a while we want to compile the documentation and publish it.
-  Here's how to do it.
+1. Alter the model you want to change. This example will add a `Column` Annotations model.
 
-```
-    # install doc dependencies
-    pip install -r docs/requirements.txt
+    [Example commit](https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
 
-    # build the docs
-    python setup.py build_sphinx
+1. Generate the migration file
 
-    # copy html files to temp folder
-    cp -r docs/_build/html/ /tmp/tmp_superset_docs/
+    ```bash
+    superset db migrate -m 'add_metadata_column_to_annotation_model.py'
+    ```
 
-    # clone the docs repo
-    cd ~/
-    git clone https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git
+    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
 
-    # copy
-    cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
+    [Example commit](https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
 
-    # commit and push to `asf-site` branch
-    cd ~/incubator-superset-site.git/
-    git checkout asf-site
-    git add .
-    git commit -a -m "New doc version"
-    git push origin master
-```
+1. Upgrade the DB
 
-## Publishing a Pypi release
+    ```bash
+    superset db upgrade
+    ```
 
-  We create a branch that goes along each minor release `0.24`
-  and micro releases get corresponding tags as in `0.24.0`. Git history should
-  never be altered in release branches.
-  Bug fixes and security-related patches get cherry-picked
-  (usually from master) as in `git cherry-pick -x {SHA}`.
+    The output should look like this:
 
-  Following a set of cherries being picked, a release can be pushed to
-  Pypi as follows:
+    ```
+    INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+    INFO  [alembic.runtime.migration] Will assume transactional DDL.
+    INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
+    ```
 
-```
-    # branching off of master
-    git checkout -b 0.25
+1. Add column to view
 
-    # cherry-picking a SHA
-    git cherry-pick -x f9d85bd2e1fd9bc233d19c76bed09467522b968a
-    # repeat with other SHAs, don't forget the -x
+    Since there is a new column, we need to add it to the AppBuilder Model view.
 
-    # source of thruth for release numbers live in package.json
-    vi superset/assets/package.json
-    # hard code release in file, commit to the release branch
-    git commit -a -m "0.25.0"
+    [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
 
-    # create the release tag in the release branch
-    git tag 0.25.0
-    git push apache 0.25 --tags
+### Merging DB migrations
 
-    # check travis to confirm the build succeeded as
-    # you shouldn't assume that a clean cherry will be clean
-    # when landing on a new sundae
-
-    # compile the JS, and push to pypi
-    # to run this part you'll need a pypi account and rights on the
-    # superset package. Committers that want to ship releases
-    # should have this access.
-    # You'll also need a `.pypirc` as specified here:
-    # http://peterdowns.com/posts/first-time-with-pypi.html
-    ./pypi_push.sh
-
-    # publish an update to the CHANGELOG.md for the right version range
-    # looking the latest CHANGELOG entry for the second argument
-    ./gen_changelog.sh 0.22.1 0.25.0
-    # this will overwrite the CHANGELOG.md with only the version range
-    # so you'll want to copy paste that on top of the previous CHANGELOG.md
-    # open a PR against `master`
-```
-
-  In the future we'll start publishing release candidates for minor releases
-  only, but typically not for micro release.
-  The process will be similar to the process described above, expect the
-  tags will be formatted `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
-  is reached.
-
-  We should also have a Github PR label process to target the proper
-  release, and tooling helping keeping track of all the cherries and
-  target versions.
-
-  For Apache releases, the process will be a bit heavier and should get
-  documented here. There will be extra steps for signing the binaries,
-  with a PGP key and providing MD5, Apache voting, as well as
-  publishing to Apache's SVN repository. View the ASF docs for more
-  information.
-
-
-## Merging DB migrations
-
-When 2 db migrations collide, you'll get an error message like this one:
+When two DB migrations collide, you'll get an error message like this one:
 
 ```
-  alembic.util.exc.CommandError: Multiple head revisions are present for
-  given argument 'head'; please specify a specific target
-  revision, '<branchname>@head' to narrow to a specific head,
-  or 'heads' for all heads`
+alembic.util.exc.CommandError: Multiple head revisions are present for
+given argument 'head'; please specify a specific target
+revision, '<branchname>@head' to narrow to a specific head,
+or 'heads' for all heads`
 ```
 
-To fix it, first run `superset db heads`, this should list 2 or more
-migration hashes. Then run
-`superset db merge {PASTE_SHA1_HERE} {PASTE_SHA2_HERE}`. This will create
-a new merge migration. You can then `superset db upgrade` to this new
-checkpoint.
+To fix it:
 
+1. Get the migration heads
 
-## Running DB migration
+    ```bash
+    superset db heads
+    ```
 
-1. First alter the model you want to change. For example I want to add a `Column` Annotations model.
+    This should list two or more migration hashes.
 
-https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104
+1. Create a new merge migration
 
+    ```bash
+    superset db merge {HASH1} {HASH2}
+    ```
 
-2. superset db migrate -m "this_will_be_in_the_migration_filename"
+1. Upgrade the DB to the new checkpoint
 
-For our example we'll be running this command:
-```
-superset db migrate -m "add_metadata_column_to_annotation_model.py"
-```
-
-This will generate a file in `superset/migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`
-
-https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262
-
-3. Run `superset db upgrade`
-
-The output should look like this:
-```
-INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade 1a1d627ebd8e -> 40a0a483dd12, add_metadata_column_to_annotation_model.py
-```
-
-4. Add column to view
-Since there is a new column, we need to add it to the AppBuilder Model view.
-
-https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458
+    ```bash
+    superset db upgrade
+    ```
