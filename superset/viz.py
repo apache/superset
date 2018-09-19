@@ -1366,6 +1366,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         return d
 
     def get_data(self, df):
+        self.form_data['metrics'] = [self.form_data.get('metric')]
         fd = self.form_data
         df = self.process_data(df)
         freq = to_offset(fd.get('freq'))
