@@ -256,7 +256,9 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.merge_perm('database_access', db.perm)
-        for schema in db.all_schema_names():
+        # adding a new database we always want to force refresh schema list
+        # instead of getting cache from another database
+        for schema in db.all_schema_names(force_refresh=True):
             security_manager.merge_perm(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
@@ -1530,16 +1532,18 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose('/schemas/<db_id>/')
-    def schemas(self, db_id):
+    @expose('/schemas/<db_id>/<force_refresh>/')
+    def schemas(self, db_id, force_refresh):
         db_id = int(db_id)
+        force_refresh = force_refresh.lower() == 'true'
+        print(force_refresh)
         database = (
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
             .one()
         )
-        schemas = database.all_schema_names()
+        schemas = database.all_schema_names(force_refresh=force_refresh)
         schemas = security_manager.schemas_accessible_by_user(database, schemas)
         return Response(
             json.dumps({'schemas': schemas}),

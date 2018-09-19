@@ -870,8 +870,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             pass
         return views
 
-    def all_schema_names(self):
-        return sorted(self.db_engine_spec.get_schema_names(self.inspector))
+    def all_schema_names(self, force_refresh=False):
+        return sorted(self.db_engine_spec.get_schema_names(
+            inspector=self.inspector, db_id=self.id, force=force_refresh))
 
     @property
     def db_engine_spec(self):

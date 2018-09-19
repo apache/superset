@@ -235,7 +235,8 @@ class BaseEngineSpec(object):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
@@ -299,7 +300,20 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
-    def get_schema_names(cls, inspector):
+    def get_schema_names(cls, inspector, db_id, force=False):
+        """A function to get all schema names in this db
+
+        Parameters db_id and force are used when cache is enabled
+        for this function, see get_schema_names() function in HiveEngineSpec
+
+        By default we don't adopt cache for this function, so the two parameters
+        are not used in this function of BaseEngineSpec
+
+        :param inspector: URI string
+        :param db_id: database id
+        :param force: force to refresh
+        :return: a list of schema names
+        """
         return inspector.get_schema_names()
 
     @classmethod
@@ -562,7 +576,8 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         schemas = db.inspector.get_schema_names()
         result_sets = {}
@@ -712,7 +727,8 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
@@ -979,7 +995,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
@@ -1241,6 +1258,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         kwargs = {'async': async_}
         cursor.execute(query, **kwargs)
 
+    @classmethod
+    @cache_util.memoized_func(
+        timeout=86400,
+        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
+    def get_schema_names(cls, inspector, db_id, force=False):
+        return inspector.get_schema_names()
+
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
@@ -1434,7 +1458,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def get_schema_names(cls, inspector):
+    def get_schema_names(cls, inspector, db_id, force=False):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas
