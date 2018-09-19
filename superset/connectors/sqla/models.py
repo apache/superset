@@ -645,7 +645,10 @@ class SqlaTable(Model, BaseDatasource):
                     logging.info(flt.get('val'))
                     for value in flt.get('val'):
                         features["features"].append(
-                            app.config.get("active_geo_filters")[col][value]
+                            {
+                                "type": "feature",
+                                "geometry": app.config.get("active_geo_filters")[col][value]
+                             }
                         )
                     flt["val"] = features
                     col = "geo"
@@ -658,7 +661,7 @@ class SqlaTable(Model, BaseDatasource):
                 if op in ["geo_within"]:
                     features = flt.get('val')["features"]
                     
-                    shapes = [geometry.shape(feature) for feature in features]
+                    shapes = [geometry.shape(feature["geometry"]) for feature in features]
                     total_shape = ops.cascaded_union(shapes)
                     eq = total_shape
                 else:
