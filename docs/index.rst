@@ -51,8 +51,8 @@ Apache Software Foundation Resources
 ====================================
 - `The Apache Software Foundation Website <http://www.apache.org>`_
 - `Current Events <http://www.apache.org/events/current-event>`_
-- `Licenses <http://www.apache.org/licenses/>`_
-- `Thanks to the ASF's sponsors <http://www.apache.org/foundation/thanks.html>`_
+- `License <https://www.apache.org/licenses/>`_
+- `Thanks <https://www.apache.org/foundation/thanks.html>`_ to the ASF's sponsors
 - `Sponsor Apache! <http://www.apache.org/foundation/sponsorship.html>`_
 
 Overview
