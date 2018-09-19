@@ -672,20 +672,12 @@ and run via: ::
 
     celery flower --app=superset.sql_lab:celery_app
 
-Making your own build
+Building from source
 ---------------------
 
-For more advanced users, you may want to build Superset from sources. That
+More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment.::
-
-    # assuming $SUPERSET_HOME as the root of the repo
-    cd $SUPERSET_HOME/superset/assets
-    yarn
-    yarn run build
-    cd $SUPERSET_HOME
-    python setup.py install
-
+your environment. See `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#local-development>`_.
 
 Blueprints
 ----------
