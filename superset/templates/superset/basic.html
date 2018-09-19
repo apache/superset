@@ -16,23 +16,23 @@
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
 
-      {% for entry in css_manifest('theme') %}
+      {% for entry in get_unloaded_chunks(css_manifest('theme'), loaded_chunks) %}
         <link rel="stylesheet" type="text/css" href="{{ entry }}" />
       {% endfor %}
 
       {% if entry %}
         {% set entry_files = css_manifest(entry) %}
-        {% for entry in entry_files %}
+        {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
           <link rel="stylesheet" type="text/css" href="{{ entry }}" />
         {% endfor %}
       {% endif %}
 
     {% endblock %}
 
-    {% for entry in js_manifest('theme') %}
+    {% for entry in get_unloaded_chunks(js_manifest('theme'), loaded_chunks) %}
       <script src="{{ entry }}"></script>
     {% endfor %}
-    {% for entry in js_manifest('common') %}
+    {% for entry in get_unloaded_chunks(js_manifest('common'), loaded_chunks) %}
       <script src="{{ entry }}"></script>
     {% endfor %}
 
@@ -80,7 +80,7 @@
     {% block tail_js %}
       {% if entry %}
         {% set entry_files = js_manifest(entry) %}
-        {% for entry in entry_files %}
+        {% for entry in get_unloaded_chunks(entry_files, loaded_chunks) %}
           <script src="{{ entry }}"></script>
         {% endfor %}
       {% endif %}
