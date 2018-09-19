@@ -2354,7 +2354,18 @@ class Superset(BaseSupersetView):
             return json_error_response(security_manager.get_table_access_error_msg(
                 '{}'.format(rejected_tables)), status=403)
 
-        return json_success(utils.zlib_decompress_to_string(blob))
+        payload = utils.zlib_decompress_to_string(blob)
+        display_limit = app.config.get('DISPLAY_MAX_ROW', None)
+        if display_limit:
+            payload_json = json.loads(payload)
+            payload_json['data'] = payload_json['data'][:display_limit]
+        return json_success(
+            json.dumps(
+                payload_json,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            ),
+        )
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2407,7 +2418,7 @@ class Superset(BaseSupersetView):
                 tmp_table_name,
             )
 
-        client_id = request.form.get('client_id') or utils.shortid()
+        client_id = request.form.get('client_id') or utils.shortid()[:10]
 
         query = Query(
             database_id=int(database_id),
