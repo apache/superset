@@ -3,7 +3,6 @@ describe('Dual Line', () => {
     datasource: '3__table',
     viz_type: 'dual_line',
     slice_id: 58,
-    url_params: {},
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
     time_range: '100+years+ago+:+now',
