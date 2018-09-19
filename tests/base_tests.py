@@ -172,7 +172,7 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
+    def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))

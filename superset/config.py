@@ -275,8 +275,13 @@ BACKUP_COUNT = 30
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
-# Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000
+# Maximum number of rows returned from a database
+# in async mode, no more than SQL_MAX_ROW will be returned and stored
+# in the results backend. This also becomes the limit when exporting CSVs
+SQL_MAX_ROW = 100000
+
+# Limit to be returned to the frontend.
+DISPLAY_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -302,8 +307,6 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
-SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
-SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
 # static http headers to be served by your Superset server.
 # This header prevents iFrames from other domains and
