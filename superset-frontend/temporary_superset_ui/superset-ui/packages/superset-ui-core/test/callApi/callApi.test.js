@@ -14,15 +14,12 @@ describe('callApi()', () => {
 
   const mockGetUrl = '/mock/get/url';
   const mockPostUrl = '/mock/post/url';
-  const mockErrorUrl = '/mock/error/url';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
-  const mockErrorPayload = { status: 500, statusText: 'Internal error' };
 
   fetchMock.get(mockGetUrl, mockGetPayload);
   fetchMock.post(mockPostUrl, mockPostPayload);
-  fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
 
   afterEach(fetchMock.reset);
 
@@ -145,6 +142,10 @@ describe('callApi()', () => {
   });
 
   it('rejects if the request throws', () => {
+    const mockErrorUrl = '/mock/error/url';
+    const mockErrorPayload = { status: 500, statusText: 'Internal error' };
+    fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
+
     expect.assertions(3);
 
     return callApi({ url: mockErrorUrl, method: 'GET' })

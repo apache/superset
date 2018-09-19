@@ -1,5 +1,4 @@
 import 'whatwg-fetch';
-import 'url-search-params-polyfill';
 
 const DEFAULT_HEADERS = null;
 

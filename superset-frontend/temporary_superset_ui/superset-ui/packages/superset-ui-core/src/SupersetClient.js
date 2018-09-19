@@ -31,6 +31,8 @@ class SupersetClient {
   }
 
   getCSRFToken() {
+    this.csrfToken = null;
+
     // If we can request this resource successfully, it means that the user has
     // authenticated. If not we throw an error prompting to authenticate.
     this.csrfPromise = callApi({
@@ -46,10 +48,10 @@ class SupersetClient {
       if (response.json) {
         this.csrfToken = response.json.csrf_token;
         this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
-        this.didAuthSuccessfully = !!this.csrfToken;
+        this.didAuthSuccessfully = this.csrfToken !== null && this.csrfPromise !== undefined;
       }
 
-      if (!this.csrfToken) {
+      if (!this.didAuthSuccessfully) {
         return Promise.reject({ error: 'Failed to fetch CSRF token' });
       }
 

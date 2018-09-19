@@ -11,12 +11,7 @@ export default function parseResponse(apiPromise, parseMethod = 'json') {
   return apiPromise
     .then(response => {
       if (!response.ok) {
-        return Promise.reject({
-          error: response.error || 'An error occurred',
-          response,
-          status: response.status,
-          statusText: response.statusText,
-        });
+        return Promise.reject(response);
       }
 
       return response;
