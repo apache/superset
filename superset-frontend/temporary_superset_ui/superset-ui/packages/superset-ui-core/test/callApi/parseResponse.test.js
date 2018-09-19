@@ -101,4 +101,20 @@ describe('parseResponse()', () => {
       return Promise.resolve();
     });
   });
+
+  it('rejects if request.ok=false', () => {
+    const mockNotOkayUrl = '/mock/notokay/url';
+    fetchMock.get(mockNotOkayUrl, 404); // 404s result in not response.ok=false
+
+    expect.assertions(3);
+    const apiPromise = callApi({ url: mockNotOkayUrl, method: 'GET' });
+
+    return parseResponse(apiPromise)
+      .then(throwIfCalled)
+      .catch(response => {
+        expect(fetchMock.calls(mockNotOkayUrl)).toHaveLength(1);
+        expect(response.ok).toBe(false);
+        expect(response.status).toBe(404);
+      });
+  });
 });
