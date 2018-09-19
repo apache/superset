@@ -3,7 +3,6 @@ describe('Pivot Table', () => {
     datasource: '3__table',
     viz_type: 'pivot_table',
     slice_id: 61,
-    url_params: {},
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
     time_range: '100+years+ago+:+now',
