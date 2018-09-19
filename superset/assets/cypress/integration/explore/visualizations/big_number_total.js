@@ -1,4 +1,5 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Big Number Total
 
@@ -42,10 +43,12 @@ export default () => describe('Big Number Total', () => {
     const formData = { ...BIG_NUMBER_DEFAULTS, metric: NUM_METRIC, groupby: ['state'] };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait(['@getJson']).then((data) => {
-      cy.verifyResponseCodes(data);
+    cy.wait(['@getJson']).then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer();
-      expect(data.response.body.query).not.contains(formData.groupby[0]);
+
+      const responseBody = await readResponseBlob(xhr.response.body);
+      expect(responseBody.query).not.contains(formData.groupby[0]);
     });
   });
 });
