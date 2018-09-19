@@ -7,7 +7,7 @@ import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClient', () => {
   beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
+    fetchMock.get(LOGIN_GLOB, { csrf_token: '' });
   });
 
   afterAll(fetchMock.restore);
