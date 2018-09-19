@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import Datamap from 'datamaps';
-import './world_map.css';
+import './WorldMap.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
@@ -109,20 +109,4 @@ function WorldMap(element, props) {
 
 WorldMap.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    max_bubble_size: maxBubbleSize,
-    show_bubbles: showBubbles,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return WorldMap(element, {
-    data: payload.data,
-    height: slice.height(),
-    maxBubbleSize: parseInt(maxBubbleSize, 10),
-    showBubbles,
-  });
-}
-
-export default adaptor;
+export default WorldMap;
