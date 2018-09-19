@@ -41,7 +41,7 @@ class RefreshLabel extends React.PureComponent {
           onMouseOver={this.mouseOver.bind(this)}
           onMouseOut={this.mouseOut.bind(this)}
         >
-        <i className="fa fa-refresh" />
+          <i className="fa fa-refresh" />
         </Label>
       </TooltipWrapper>);
   }

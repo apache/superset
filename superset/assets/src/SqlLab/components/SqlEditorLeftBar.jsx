@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ControlLabel, Button, Row, Col } from 'react-bootstrap';
+import { ControlLabel, Button} from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
 
@@ -40,7 +40,6 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   onDatabaseChange(db, force) {
     const val = db ? db.value : null;
-    const force_refresh = force || false;
     this.setState({ schemaOptions: [] });
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, null);
     this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
@@ -48,7 +47,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.setState({ tableOptions: [] });
     } else {
       this.fetchTables(val, this.props.queryEditor.schema);
-      this.fetchSchemas(val, force_refresh);
+      this.fetchSchemas(val, force || false);
     }
   }
   getTableNamesBySubStr(input) {
@@ -116,12 +115,12 @@ class SqlEditorLeftBar extends React.PureComponent {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
     this.fetchTables(this.props.queryEditor.dbId, schema);
   }
-  fetchSchemas(dbId, force_refresh) {
+  fetchSchemas(dbId, force) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
-    force_refresh = force_refresh || false;
+    const forceRefresh = force || false;
     if (actualDbId) {
       this.setState({ schemaLoading: true });
-      const url = `/superset/schemas/${actualDbId}/${force_refresh}/`;
+      const url = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
       $.get(url).done((data) => {
         const schemaOptions = data.schemas.map(s => ({ value: s, label: s }));
         this.setState({ schemaOptions, schemaLoading: false });
@@ -193,11 +192,11 @@ class SqlEditorLeftBar extends React.PureComponent {
                 onChange={this.changeSchema.bind(this)}
               />
             </div>
-            <div className="col-md-1" style={{ paddingTop: '8px', paddingLeft: '0px'}}>
+            <div className="col-md-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
               <RefreshLabel
                 onClick={this.onDatabaseChange.bind(
                     this, { value: database.id }, true)}
-                tooltipContent='refresh schema list'
+                tooltipContent="refresh schema list"
               />
             </div>
           </div>
