@@ -58,7 +58,7 @@ class ExploreResultsButton extends React.PureComponent {
         title: t('Explore'),
         body: msg,
         actions: [
-          Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
+          Dialog.DefaultAction('Ok', () => {}, 'btn-primary'),
         ],
         bsSize: 'large',
         bsStyle: 'warning',
@@ -81,8 +81,11 @@ class ExploreResultsButton extends React.PureComponent {
     return moment.duration(this.props.query.endDttm - this.props.query.startDttm).asSeconds();
   }
   getInvalidColumns() {
-    const re = /^[A-Za-z_]\w*$/;
-    return this.props.query.results.columns.map(col => col.name).filter(col => !re.test(col));
+    const re1 = /^[A-Za-z_]\w*$/;  // starts with char or _, then only alphanum
+    const re2 = /__\d+$/;  // does not finish with __ and then a number which screams dup col name
+
+    return this.props.query.results.columns.map(col => col.name)
+      .filter(col => !re1.test(col) || re2.test(col));
   }
   datasourceName() {
     const { query } = this.props;
@@ -155,7 +158,9 @@ class ExploreResultsButton extends React.PureComponent {
         <code>SELECT count(*)
           <strong>AS my_alias</strong>
         </code>){' '}
-        {t('limited to alphanumeric characters and underscores')}
+        {t('limited to alphanumeric characters and underscores. Column aliases ending with ' +
+          'double underscores followed by a numeric value are not allowed for reasons ' +
+          'discussed in Github issue #5739.')}
       </div>);
   }
   render() {
