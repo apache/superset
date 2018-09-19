@@ -214,7 +214,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             '2. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
             'of schemas that CSVs are allowed to upload to. '
             'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
-            'If database flavour does not support schema or any schema is allowed '
+            'If database flavor does not support schema or any schema is allowed '
             'to be accessed, just leave the list empty', True),
         'impersonate_user': _(
             'If Presto, all the queries in SQL Lab are going to be executed as the '
@@ -331,9 +331,7 @@ class CsvToDatabaseView(SimpleFormView):
             message = _('Database "{0}" Schema "{1}" is not allowed for csv uploads. '
                         'Please contact Superset Admin'.format(database.database_name,
                                                                schema_name))
-            flash(
-                message,
-                'danger')
+            flash(message, 'danger')
             return redirect('/csvtodatabaseview/form')
 
         csv_file = form.csv_file.data

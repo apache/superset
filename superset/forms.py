@@ -88,12 +88,11 @@ class CsvToDatabaseForm(DynamicForm):
         if (security_manager.database_access(database) or
                 security_manager.all_datasource_access()):
             return True
-        else:
-            schemas = database.get_schema_access_for_csv_upload()
-            if (schemas and
-                security_manager.schemas_accessible_by_user(
-                    database, schemas, False)):
-                return True
+        schemas = database.get_schema_access_for_csv_upload()
+        if (schemas and
+            security_manager.schemas_accessible_by_user(
+                database, schemas, False)):
+            return True
         return False
 
     name = StringField(
@@ -112,7 +111,7 @@ class CsvToDatabaseForm(DynamicForm):
         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     schema = StringField(
         _('Schema'),
-        description=_('Specify a schema (if database flavour supports this).'),
+        description=_('Specify a schema (if database flavor supports this).'),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
         filters=[lambda x: x or None])

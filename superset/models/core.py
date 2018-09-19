@@ -647,7 +647,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     {
         "metadata_params": {},
         "engine_params": {},
-        "schemas_allowed_for_csv_upload": []
+        "schemas_allowed_for_csv_upload": [],
     }
     """))
     perm = Column(String(1000))
