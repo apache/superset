@@ -15,9 +15,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
-function ChordVis(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ChordVis');
-
+function Chord(element, props) {
   const {
     data,
     width,
@@ -117,6 +115,7 @@ function ChordVis(element, props) {
   });
 }
 
-ChordVis.propTypes = propTypes;
+Chord.displayName = 'Chord';
+Chord.propTypes = propTypes;
 
-export default ChordVis;
+export default Chord;

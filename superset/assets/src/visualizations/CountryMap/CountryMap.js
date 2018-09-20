@@ -19,8 +19,6 @@ const propTypes = {
 const maps = {};
 
 function CountryMap(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'CountryMap');
-
   const {
     data,
     width,
@@ -196,6 +194,7 @@ function CountryMap(element, props) {
 
 }
 
+CountryMap.displayName = 'CountryMap';
 CountryMap.propTypes = propTypes;
 
 export default CountryMap;

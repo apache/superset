@@ -37,8 +37,6 @@ const propTypes = {
 };
 
 function Calendar(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Calendar');
-
   const {
     data,
     height,
@@ -124,6 +122,7 @@ function Calendar(element, props) {
   });
 }
 
+Calendar.displayName = 'Calendar';
 Calendar.propTypes = propTypes;
 
 export default Calendar;
