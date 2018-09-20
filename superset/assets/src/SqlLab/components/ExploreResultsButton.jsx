@@ -27,9 +27,6 @@ const defaultProps = {
 class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      hints: [],
-    };
     this.visualize = this.visualize.bind(this);
     this.onClick = this.onClick.bind(this);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);

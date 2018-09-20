@@ -189,7 +189,6 @@ export class DatasourceEditor extends React.PureComponent {
     super(props);
     this.state = {
       datasource: props.datasource,
-      showAlert: true,
       errors: [],
       isDruid: props.datasource.type === 'druid',
       isSqla: props.datasource.type === 'table',
@@ -202,7 +201,6 @@ export class DatasourceEditor extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.hideAlert = this.hideAlert.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
@@ -306,9 +304,6 @@ export class DatasourceEditor extends React.PureComponent {
       col => t('Calculated column [%s] requires an expression', col.column_name)));
 
     this.setState({ errors }, callback);
-  }
-  hideAlert() {
-    this.setState({ showAlert: false });
   }
   handleTabSelect(activeTabKey) {
     this.setState({ activeTabKey });
