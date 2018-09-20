@@ -2,7 +2,7 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import convertKeysToCamelCase from '../../../src/utils/convertKeysToCamelCase';
 
-describe.only('convertKeysToCamelCase(object)', () => {
+describe('convertKeysToCamelCase(object)', () => {
   it('returns undefined for undefined input', () => {
     expect(convertKeysToCamelCase(undefined)).to.equal(undefined);
   });
