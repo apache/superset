@@ -93,20 +93,6 @@ describe('ExploreResultsButton', () => {
     expect(wrapper.find(Button)).to.have.length(1);
   });
 
-  describe('getColumnFromProps', () => {
-    it('should require valid query parameter in props', () => {
-      const emptyQuery = {
-        database,
-        show: true,
-        query: {},
-      };
-      const wrapper = shallow(<ExploreResultsButton {...emptyQuery} />, {
-        context: { store },
-      }).dive();
-      expect(wrapper.state().hints).to.deep.equal([]);
-    });
-  });
-
   describe('datasourceName', () => {
     let wrapper;
     let stub;
