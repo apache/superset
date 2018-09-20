@@ -638,7 +638,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     expose_in_sqllab = Column(Boolean, default=False)
     allow_run_sync = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=True)
+    allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
@@ -646,11 +646,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
-        "engine_params": {}
+        "engine_params": {},
+        "schemas_allowed_for_csv_upload": []
     }
     """))
     perm = Column(String(1000))
-
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -908,6 +908,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 extra = json.loads(self.extra)
             except Exception as e:
                 logging.error(e)
+                raise e
         return extra
 
     def get_table(self, table_name, schema=None):
@@ -930,6 +931,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_foreign_keys(self, table_name, schema=None):
         return self.inspector.get_foreign_keys(table_name, schema)
+
+    def get_schema_access_for_csv_upload(self):
+        return self.get_extra().get('schemas_allowed_for_csv_upload', [])
 
     @property
     def sqlalchemy_uri_decrypted(self):
