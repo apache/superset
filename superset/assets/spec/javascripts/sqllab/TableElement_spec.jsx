@@ -54,5 +54,6 @@ describe('TableElement', () => {
     wrapper.find('.table-remove').simulate('click');
     expect(wrapper.state().expanded).to.equal(false);
     expect(mockedActions.removeDataPreview.called).to.equal(true);
+    expect(mockedActions.removeTable.called).to.equal(true);
   });
 });
