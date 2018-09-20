@@ -23,7 +23,7 @@ class QueryAutoRefresh extends React.PureComponent {
     const now = new Date().getTime();
     return Object.values(queries)
       .some(
-        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+        q => ['running', 'started', 'pending', 'fetching', 'rendering'].indexOf(q.state) >= 0 &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
       );
   }
