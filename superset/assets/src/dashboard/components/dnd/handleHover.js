@@ -1,4 +1,4 @@
-import throttle from 'lodash/fp/throttle';
+import { throttle } from 'lodash';
 import getDropPosition from '../../util/getDropPosition';
 
 const HOVER_THROTTLE_MS = 100;
@@ -20,4 +20,4 @@ function handleHover(props, monitor, Component) {
 }
 
 // this is called very frequently by react-dnd
-export default throttle(HOVER_THROTTLE_MS, handleHover);
+export default throttle(handleHover, HOVER_THROTTLE_MS);
