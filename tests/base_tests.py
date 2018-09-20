@@ -77,10 +77,13 @@ class SupersetTestCase(unittest.TestCase):
             .one()
         )
 
-    def get_or_create(self, cls, criteria, session):
+    def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
+        obj.__dict__.update(**kwargs)
+        session.add(obj)
+        session.commit()
         return obj
 
     def login(self, username='admin', password='general'):

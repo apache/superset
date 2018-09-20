@@ -15,7 +15,7 @@ from wtforms import (
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, NumberRange, Optional
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.models import core as models
 
 config = app.config
@@ -49,10 +49,51 @@ def filter_not_empty_values(value):
 
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
-    def csv_enabled_dbs():
-        return db.session.query(
+    def csv_allowed_dbs():
+        csv_allowed_dbs = []
+        csv_enabled_dbs = db.session.query(
             models.Database).filter_by(
-                allow_csv_upload=True).all()
+            allow_csv_upload=True).all()
+        for csv_enabled_db in csv_enabled_dbs:
+            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
+
+    @staticmethod
+    def at_least_one_schema_is_allowed(database):
+        """
+        If the user has access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is able to upload csv without specifying schema name
+                b) if database supports schema
+                    user is able to upload csv to any schema
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and upload will fail
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        elif the user does not access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is unable to upload csv
+                b) if database supports schema
+                    user is unable to upload csv
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and user is unable to upload csv
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        """
+        if (security_manager.database_access(database) or
+                security_manager.all_datasource_access()):
+            return True
+        schemas = database.get_schema_access_for_csv_upload()
+        if (schemas and
+            security_manager.schemas_accessible_by_user(
+                database, schemas, False)):
+            return True
+        return False
 
     name = StringField(
         _('Table Name'),
@@ -66,8 +107,14 @@ class CsvToDatabaseForm(DynamicForm):
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
     con = QuerySelectField(
         _('Database'),
-        query_factory=csv_enabled_dbs,
+        query_factory=csv_allowed_dbs,
         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
+    schema = StringField(
+        _('Schema'),
+        description=_('Specify a schema (if database flavor supports this).'),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+        filters=[lambda x: x or None])
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
@@ -83,12 +130,6 @@ class CsvToDatabaseForm(DynamicForm):
             ('fail', _('Fail')), ('replace', _('Replace')),
             ('append', _('Append'))],
         validators=[DataRequired()])
-    schema = StringField(
-        _('Schema'),
-        description=_('Specify a schema (if database flavour supports this).'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
     header = IntegerField(
         _('Header Row'),
         description=_(
