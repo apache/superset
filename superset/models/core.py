@@ -647,6 +647,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     {
         "metadata_params": {},
         "engine_params": {},
+        "metadata_cache_timeout": {
+            "schema_timeout": 1
+        },
         "schemas_allowed_for_csv_upload": []
     }
     """))
@@ -872,7 +875,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def all_schema_names(self, force_refresh=False):
         return sorted(self.db_engine_spec.get_schema_names(
-            inspector=self.inspector, db_id=self.id, force=force_refresh))
+            inspector=self.inspector,
+            cache_timeout=(self.get_extra().
+                           get("metadata_cache_timeout", {}).
+                           get("schema_timeout")),
+            db_id=self.id,
+            force=force_refresh))
 
     @property
     def db_engine_spec(self):

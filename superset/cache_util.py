@@ -15,7 +15,11 @@ def view_cache_key(*unused_args, **unused_kwargs):
     return 'view/{}/{}'.format(request.path, args_hash)
 
 
-def memoized_func(timeout=5 * 60, key=view_cache_key, use_tables_cache=False):
+def default_timetout(*unused_args, **unused_kwargs):
+    return 5 * 60
+
+
+def memoized_func(timeout=default_timetout, key=view_cache_key, use_tables_cache=False):
     """Use this decorator to cache functions that have predefined first arg.
 
     memoized_func uses simple_cache and stored the data in memory.
@@ -36,7 +40,7 @@ def memoized_func(timeout=5 * 60, key=view_cache_key, use_tables_cache=False):
                 if not kwargs['force'] and o is not None:
                     return o
                 o = f(cls, *args, **kwargs)
-                selected_cache.set(cache_key, o, timeout=timeout)
+                selected_cache.set(cache_key, o, timeout=timeout(*args, **kwargs))
                 return o
         else:
             # noop
