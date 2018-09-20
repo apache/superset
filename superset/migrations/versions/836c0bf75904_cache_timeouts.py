@@ -6,6 +6,10 @@ Revises: 18e88e1cc004
 Create Date: 2016-03-17 08:40:03.186534
 
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 # revision identifiers, used by Alembic.
 revision = '836c0bf75904'
