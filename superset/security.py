@@ -183,10 +183,12 @@ class SupersetSecurityManager(SecurityManager):
                     datasource_perms.add(perm.view_menu.name)
         return datasource_perms
 
-    def schemas_accessible_by_user(self, database, schemas):
+    def schemas_accessible_by_user(self, database, schemas, hierarchical=True):
         from superset import db
         from superset.connectors.sqla.models import SqlaTable
-        if self.database_access(database) or self.all_datasource_access():
+        if (hierarchical and
+                (self.database_access(database) or
+                 self.all_datasource_access())):
             return schemas
 
         subset = set()

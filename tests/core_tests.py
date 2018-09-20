@@ -17,6 +17,7 @@ import re
 import string
 import unittest
 
+import mock
 import pandas as pd
 import psycopg2
 from six import text_type
@@ -696,6 +697,35 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
+
+    @mock.patch('superset.security.SupersetSecurityManager.schemas_accessible_by_user')
+    @mock.patch('superset.security.SupersetSecurityManager.database_access')
+    @mock.patch('superset.security.SupersetSecurityManager.all_datasource_access')
+    def test_schemas_access_for_csv_upload_endpoint(self,
+                                                    mock_all_datasource_access,
+                                                    mock_database_access,
+                                                    mock_schemas_accessible):
+        mock_all_datasource_access.return_value = False
+        mock_database_access.return_value = False
+        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
+        database_name = 'fake_db_100'
+        db_id = 100
+        extra = """{
+            "schemas_allowed_for_csv_upload":
+            ["this_schema_is_allowed", "this_schema_is_allowed_too"]
+        }"""
+
+        self.login(username='admin')
+        dbobj = self.get_or_create(
+            cls=models.Database,
+            criteria={'database_name': database_name},
+            session=db.session,
+            id=db_id,
+            extra=extra)
+        data = self.get_json_resp(
+            url='/superset/schema_access_for_csv_upload?db_id={db_id}'
+                .format(db_id=dbobj.id))
+        assert data == ['this_schema_is_allowed_too']
 
 
 if __name__ == '__main__':
