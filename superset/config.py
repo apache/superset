@@ -298,6 +298,7 @@ WARNING_MSG = None
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
+
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
     CELERY_IMPORTS = (
