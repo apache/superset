@@ -41,5 +41,9 @@
     "indent": 0,
     "no-multi-spaces": 0,
     "padded-blocks": 0,
-  }
+    "no-only-tests/no-only-tests": 2
+  },
+  "plugins": [
+    "no-only-tests"
+  ]
 }
