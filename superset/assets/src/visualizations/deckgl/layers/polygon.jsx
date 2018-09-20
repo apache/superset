@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import { PolygonLayer } from 'deck.gl';
-import _ from 'underscore';
+import { flatten } from 'lodash';
 import d3 from 'd3';
 
 import DeckGLContainer from './../DeckGLContainer';
@@ -12,7 +12,7 @@ import { colorScalerFactory } from '../../../modules/colors';
 import sandboxedEval from '../../../modules/sandbox';
 
 function getPoints(features) {
-  return _.flatten(features.map(d => d.polygon), true);
+  return flatten(features.map(d => d.polygon), true);
 }
 
 function getLayer(formData, payload, slice) {
