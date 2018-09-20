@@ -131,7 +131,7 @@ class DashboardFilter(SupersetFilter):
             users_favorite_dash_query = (
                 db.session.query(Favorites.obj_id)
                 .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
-                                  Favorites.class_name == 'Dashboard',))
+                                  Favorites.class_name == 'Dashboard'))
             )
             owner_ids_query = (
                 db.session.query(Dash.id)
@@ -142,7 +142,7 @@ class DashboardFilter(SupersetFilter):
                 db.session.query(Dash.id)
                 .join(Dash.slices)
                 .filter(sqla.and_(Dash.published == True,  # noqa
-                                  Slice.perm.in_(list(datasource_perms)),))
+                                  Slice.perm.in_(list(datasource_perms))))
             )
 
             query = query.filter(sqla.or_(
