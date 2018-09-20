@@ -72,11 +72,11 @@ const vizMap = {
   [VIZ_TYPES.bubble]: loadNvd3,
   [VIZ_TYPES.bullet]: loadNvd3,
   [VIZ_TYPES.cal_heatmap]: () =>
-    loadVis(import(/* webpackChunkName: "cal_heatmap" */ './cal_heatmap.js')),
+    loadVis(import(/* webpackChunkName: "cal_heatmap" */ './Calendar/adaptor.jsx')),
   [VIZ_TYPES.compare]: loadNvd3,
   [VIZ_TYPES.directed_force]: () =>
     loadVis(import(/* webpackChunkName: "directed_force" */ './directed_force.js')),
-  [VIZ_TYPES.chord]: () => loadVis(import(/* webpackChunkName: "chord" */ './chord.jsx')),
+  [VIZ_TYPES.chord]: () => loadVis(import(/* webpackChunkName: "chord" */ './Chord/adaptor.jsx')),
   [VIZ_TYPES.dist_bar]: loadNvd3,
   [VIZ_TYPES.filter_box]: () =>
     loadVis(import(/* webpackChunkName: "filter_box" */ './filter_box.jsx')),

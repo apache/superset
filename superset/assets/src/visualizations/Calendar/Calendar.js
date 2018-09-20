@@ -1,11 +1,11 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../modules/colors';
-import CalHeatMap from '../../vendor/cal-heatmap/cal-heatmap';
-import { d3TimeFormatPreset, d3FormatPreset } from '../modules/utils';
-import { UTC } from '../modules/dates';
-import '../../vendor/cal-heatmap/cal-heatmap.css';
-import './cal_heatmap.css';
+import { colorScalerFactory } from '../../modules/colors';
+import CalHeatMap from '../../../vendor/cal-heatmap/cal-heatmap';
+import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
+import { UTC } from '../../modules/dates';
+import '../../../vendor/cal-heatmap/cal-heatmap.css';
+import './Calendar.css';
 
 const UTCTS = uts => UTC(new Date(uts)).getTime();
 
@@ -126,38 +126,4 @@ function Calendar(element, props) {
 
 Calendar.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData, datasource } = slice;
-  const {
-    cell_padding: cellPadding,
-    cell_radius: cellRadius,
-    cell_size: cellSize,
-    linear_color_scheme: linearColorScheme,
-    show_legend: showLegend,
-    show_metric_name: showMetricName,
-    show_values: showValues,
-    steps,
-    x_axis_time_format: timeFormat,
-    y_axis_format: valueFormat,
-  } = formData;
-  const { verbose_map: verboseMap } = datasource;
-  const element = document.querySelector(selector);
-
-  return Calendar(element, {
-    data: payload.data,
-    height: slice.height(),
-    cellPadding,
-    cellRadius,
-    cellSize,
-    linearColorScheme,
-    showLegend,
-    showMetricName,
-    showValues,
-    steps,
-    timeFormat,
-    valueFormat,
-    verboseMap,
-  });
-}
-
-export default adaptor;
+export default Calendar;

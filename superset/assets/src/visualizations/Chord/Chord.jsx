@@ -1,8 +1,8 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import './chord.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import './Chord.css';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -15,7 +15,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
-function chordVis(element, props) {
+function ChordVis(element, props) {
   PropTypes.checkPropTypes(propTypes, props, 'prop', 'ChordVis');
 
   const {
@@ -117,20 +117,6 @@ function chordVis(element, props) {
   });
 }
 
-chordVis.propTypes = propTypes;
+ChordVis.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const { y_axis_format: numberFormat, color_scheme: colorScheme } = formData;
-  const element = document.querySelector(selector);
-
-  return chordVis(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    numberFormat,
-    colorScheme,
-  });
-}
-
-export default adaptor;
+export default ChordVis;
