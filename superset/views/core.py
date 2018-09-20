@@ -106,10 +106,13 @@ class SliceFilter(SupersetFilter):
 
 
 class DashboardFilter(SupersetFilter):
-
     """
-    List dashboards for which users have access to at least one slice and those which
-    the user owns, have been published, or have been favorited.
+    List dashboards with the following criteria:
+        1. Those which the user owns
+        2. Those which the user has favorited
+        3. Those which have been published (if they have access to at least one slice)
+
+    Show all dashboards for users which have the 'all_datasource_access' permission
     """
 
     def apply(self, query, func):  # noqa
@@ -118,50 +121,37 @@ class DashboardFilter(SupersetFilter):
         Slice = models.Slice  # noqa
         Favorites = models.FavStar
 
-        users_favorite_dash_ids = []
-
         if not g.user.is_anonymous():
-            users_favorite_dash_ids = [fav.obj_id for fav in (
-                db.session.query(Favorites)
-                .filter(sqla.and_(Favorites.user_id == g.user.id,
-                                  Favorites.class_name == 'Dashboard'))
-            )]
+            # If user has all_datasource_access, show all dashboards
+            if security_manager.all_datasource_access():
+                return query
 
-        if security_manager.all_datasource_access():
+            datasource_perms = self.get_view_menus('datasource_access')
+
+            users_favorite_dash_query = (
+                db.session.query(Favorites.obj_id)
+                .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
+                                  Favorites.class_name == 'Dashboard'
+            )))
+            owner_ids_query = (
+                db.session.query(Dash.id)
+                .join(Dash.owners)
+                .filter(User.id == User.get_user_id())
+            )
+            published_dash_query = db.session.query(Dash.id).join(Dash.slices).filter(sqla.and_(
+                    Dash.published == True,
+                    Slice.perm.in_(list(datasource_perms))
+            ))
 
             query = query.filter(sqla.or_(
-                Dash.owners.any(User.id == g.user.id),
-                Dash.published == True,  # noqa
-                Dash.id.in_(users_favorite_dash_ids),
+                Dash.id.in_(owner_ids_query),
+                Dash.id.in_(published_dash_query),
+                Dash.id.in_(users_favorite_dash_query),
             ))
 
             return query
-
-        # TODO(bogdan): add `schema_access` support here
-        datasource_perms = self.get_view_menus('datasource_access')
-        slice_ids_qry = (
-            db.session
-            .query(Slice.id)
-            .filter(Slice.perm.in_(datasource_perms))
-        )
-
-        query = query.filter(
-            Dash.id.in_(
-                db.session.query(Dash.id)
-                .distinct()
-                .join(Dash.slices)
-                .filter(Slice.id.in_(slice_ids_qry)),
-            ),
-        )
-
-        if not g.user.is_anonymous():
-            query = query.filter(sqla.or_(
-                Dash.owners.any(User.id == g.user.id),
-                Dash.published == True,  # noqa
-                Dash.id.in_(users_favorite_dash_ids),
-            ))
-
-        return query
+        else:
+            return query
 
 
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
