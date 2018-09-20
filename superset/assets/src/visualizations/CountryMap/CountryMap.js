@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../modules/colors';
-import './country_map.css';
+import { colorScalerFactory } from '../../modules/colors';
+import './CountryMap.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
@@ -198,23 +198,4 @@ function CountryMap(element, props) {
 
 CountryMap.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    linear_color_scheme: linearColorScheme,
-    number_format: numberFormat,
-    select_country: country,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return CountryMap(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    country,
-    linearColorScheme,
-    numberFormat,
-  });
-}
-
-export default adaptor;
+export default CountryMap;
