@@ -176,7 +176,7 @@ class SqlEditorLeftBar extends React.PureComponent {
         </div>
         <div className="m-t-5">
           <div className="row">
-            <div className="col-md-11" style={{ paddingRight: '2px' }}>
+            <div className="col-md-11 col-xs-11" style={{ paddingRight: '2px' }}>
               <Select
                 name="select-schema"
                 placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
@@ -192,7 +192,7 @@ class SqlEditorLeftBar extends React.PureComponent {
                 onChange={this.changeSchema.bind(this)}
               />
             </div>
-            <div className="col-md-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
+            <div className="col-md-1 col-xs-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
               <RefreshLabel
                 onClick={this.onDatabaseChange.bind(
                     this, { value: database.id }, true)}
