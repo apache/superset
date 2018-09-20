@@ -1,4 +1,12 @@
-.. image:: images/s.png
+|apache_img| |superset_img|
+
+.. |apache_img| image:: images/apache_feather.png
+   :width: 7%
+   :target: http://www.apache.org/
+   :alt: The Apache Software Foundation
+
+.. |superset_img| image:: images/s.png
+   :width: 25%
 
 Apache Superset (incubating)
 ''''''''''''''''''''''''''''
@@ -8,9 +16,6 @@ intelligence web application
 
 
 ----------------
-
-.. warning:: This project was originally named Panoramix, was renamed to
-    Caravel in March 2016, and is currently named Superset as of November 2016
 
 .. important::
 
@@ -24,8 +29,13 @@ intelligence web application
     the code, it does indicate that the project has yet to be fully
     endorsed by the ASF.
 
-Resources
-=========
+.. note:: Apache Superset, Superset, Apache, the Apache feather logo, and
+    the Apache Superset project logo are either registered trademarks or
+    trademarks of The Apache Software Foundation in the United States
+    and other countries.
+
+Superset Resources
+==================
 - `Superset's Github <https://github.com/apache/incubator-superset>`_, note
   that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
 - Superset's
@@ -36,6 +46,14 @@ Resources
 - Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
   To subscribe, send an email to ``dev-subscribe@superset.apache.org``
 - `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE>`_
+
+Apache Software Foundation Resources
+====================================
+- `The Apache Software Foundation Website <http://www.apache.org>`_
+- `Current Events <http://www.apache.org/events/current-event>`_
+- `License <https://www.apache.org/licenses/>`_
+- `Thanks <https://www.apache.org/foundation/thanks.html>`_ to the ASF's sponsors
+- `Sponsor Apache! <http://www.apache.org/foundation/sponsorship.html>`_
 
 Overview
 ========
