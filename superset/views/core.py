@@ -1075,17 +1075,26 @@ class Superset(BaseSupersetView):
         else:
             query = 'No query.'
 
-        return Response(
-            json.dumps({
-                'query': query,
-                'language': viz_obj.datasource.query_language,
-                'data': viz_obj.get_df().to_dict('records'),  # TODO, split into endpoint
-            }, default=utils.json_iso_dttm_ser),
-            status=200,
-            mimetype='application/json')
+        return self.json_response({
+            'query': query,
+            'language': viz_obj.datasource.query_language,
+        })
 
-    def generate_json(self, datasource_type, datasource_id, form_data,
-                      csv=False, query=False, force=False):
+    def get_raw_results(self, viz_obj):
+        return self.json_response({
+            'data': viz_obj.get_df().to_dict('records'),
+        })
+
+    def get_samples(self, viz_obj):
+        return self.json_response({
+            'data': viz_obj.get_samples(),
+        })
+
+    def generate_json(
+            self, datasource_type, datasource_id, form_data,
+            csv=False, query=False, force=False, results=False,
+            samples=False,
+    ):
         try:
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
@@ -1114,6 +1123,12 @@ class Superset(BaseSupersetView):
 
         if query:
             return self.get_query_string_response(viz_obj)
+
+        if results:
+            return self.get_raw_results(viz_obj)
+
+        if samples:
+            return self.get_samples(viz_obj)
 
         try:
             payload = viz_obj.get_payload()
@@ -1181,10 +1196,22 @@ class Superset(BaseSupersetView):
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
     def explore_json(self, datasource_type=None, datasource_id=None):
+        """Serves all request that GET or POST form_data
+
+        This endpoint evolved to be the entry point of many different
+        requests that GETs or POSTs a form_data.
+
+        `self.generate_json` receives this input and returns different
+        payloads based on the request args in the first block
+
+        TODO: break into one endpoint for each return shape"""
+        csv = request.args.get('csv') == 'true'
+        query = request.args.get('query') == 'true'
+        results = request.args.get('results') == 'true'
+        samples = request.args.get('samples') == 'true'
+        force = request.args.get('force') == 'true'
+
         try:
-            csv = request.args.get('csv') == 'true'
-            query = request.args.get('query') == 'true'
-            force = request.args.get('force') == 'true'
             form_data = self.get_form_data()[0]
             datasource_id, datasource_type = self.datasource_info(
                 datasource_id, datasource_type, form_data)
@@ -1193,12 +1220,16 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
-        return self.generate_json(datasource_type=datasource_type,
-                                  datasource_id=datasource_id,
-                                  form_data=form_data,
-                                  csv=csv,
-                                  query=query,
-                                  force=force)
+        return self.generate_json(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            csv=csv,
+            query=query,
+            results=results,
+            force=force,
+            samples=samples,
+        )
 
     @log_this
     @has_access
