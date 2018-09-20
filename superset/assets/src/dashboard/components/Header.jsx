@@ -66,7 +66,6 @@ class Header extends React.PureComponent {
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
-      hightlightRedo: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);

@@ -72,7 +72,7 @@ def filter_values(column, default=None):
     This searches for "filters" and "extra_filters" in form_data for a match
 
     Usage example:
-        * SELECT action, count(*) as times
+        SELECT action, count(*) as times
         FROM logs
         WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" )
         GROUP BY 1
@@ -82,7 +82,7 @@ def filter_values(column, default=None):
     :param default: default value to return if there's no matching columns
     :type default: str
     :return: returns a list of filter values
-    :rtype: list
+    :type: list
     """
     form_data = json.loads(request.form.get('form_data', '{}'))
     return_val = []
