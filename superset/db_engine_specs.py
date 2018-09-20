@@ -301,17 +301,17 @@ class BaseEngineSpec(object):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout') or 1,
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, cache_timeout, db_id, force=False):
-        """A function to get all schema names in this db
-
-        If cache_timeout is not passed to the function,
-        the cache will timeout in just 1 second
+    def get_schema_names(cls, inspector, db_id,
+                         enable_cache, cache_timeout, force=False):
+        """A function to get all schema names in this db.
 
         :param inspector: URI string
-        :param cache_timeout: timeout settings for cache in second
         :param db_id: database id
+        :param enable_cache: whether to enable cache for the function
+        :param cache_timeout: timeout settings for cache in second.
         :param force: force to refresh
         :return: a list of schema names
         """
@@ -1453,9 +1453,11 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout') or 1,
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, cache_timeout, db_id, force=False):
+    def get_schema_names(cls, inspector, db_id,
+                         enable_cache, cache_timeout, force=False):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas

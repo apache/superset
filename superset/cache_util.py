@@ -19,8 +19,21 @@ def default_timetout(*unused_args, **unused_kwargs):
     return 5 * 60
 
 
-def memoized_func(timeout=default_timetout, key=view_cache_key, use_tables_cache=False):
+def default_enable_cache(*unused_args, **unused_kwargs):
+    return True
+
+
+def memoized_func(timeout=default_timetout,
+                  key=view_cache_key,
+                  enable_cache=default_enable_cache,
+                  use_tables_cache=False):
     """Use this decorator to cache functions that have predefined first arg.
+
+    If enable_cache() is False,
+        the function will never be cached.
+    If enable_cache() is True,
+        cache is adopted and will timeout in timeout() seconds.
+        If force is True, cache will be refreshed.
 
     memoized_func uses simple_cache and stored the data in memory.
     Key is a callable function that takes function arguments and
@@ -35,6 +48,9 @@ def memoized_func(timeout=default_timetout, key=view_cache_key, use_tables_cache
 
         if selected_cache:
             def wrapped_f(cls, *args, **kwargs):
+                if not enable_cache(*args, **kwargs):
+                    return f(cls, *args, **kwargs)
+
                 cache_key = key(*args, **kwargs)
                 o = selected_cache.get(cache_key)
                 if not kwargs['force'] and o is not None:

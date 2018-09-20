@@ -196,7 +196,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               <RefreshLabel
                 onClick={this.onDatabaseChange.bind(
                     this, { value: database.id }, true)}
-                tooltipContent="refresh schema list"
+                tooltipContent="force refresh schema list"
               />
             </div>
           </div>

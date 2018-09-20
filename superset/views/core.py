@@ -211,7 +211,12 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'gets unpacked into the [sqlalchemy.MetaData]'
             '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
             '#sqlalchemy.schema.MetaData) call.<br/>'
-            '2. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
+            '2. The ``metadata_cache_timeout`` is a cache timeout setting '
+            'in second for metadata fetch of this database. Specify it as '
+            '**"metadata_cache_timeout": {"schema_cache_timeout": 600}**. '
+            'If unset, cache will not be enabled for the functionality. '
+            'A timeout of 0 indicates that the cache never expires.<br/>'
+            '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
             'of schemas that CSVs are allowed to upload to. '
             'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
             'If database flavor does not support schema or any schema is allowed '
@@ -227,7 +232,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'all database schemas. For large data warehouse with thousands of '
             'tables, this can be expensive and put strain on the system.'),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this database. '
+            'Duration (in seconds) of the caching timeout for charts of this database. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
         'allow_csv_upload': _(
@@ -242,7 +247,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'creator': _('Creator'),
         'changed_on_': _('Last Changed'),
         'sqlalchemy_uri': _('SQLAlchemy URI'),
-        'cache_timeout': _('Cache Timeout'),
+        'cache_timeout': _('Chart Cache Timeout'),
         'extra': _('Extra'),
         'allow_run_sync': _('Allow Run Sync'),
         'allow_run_async': _('Allow Run Async'),
