@@ -1,4 +1,4 @@
-import throttle from 'lodash.throttle';
+import throttle from 'lodash/fp/throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
@@ -674,7 +674,7 @@ function nvd3Vis(element, props) {
         .call(chart);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
-      window.addEventListener('scroll', throttle(hideTooltips, 250));
+      window.addEventListener('scroll', throttle(250, hideTooltips));
 
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers.length > 0) {

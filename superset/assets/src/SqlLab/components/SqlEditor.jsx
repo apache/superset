@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import throttle from 'lodash/fp/throttle';
 import {
   Col,
   FormGroup,
@@ -57,7 +57,7 @@ class SqlEditor extends React.PureComponent {
     };
 
     this.onResize = this.onResize.bind(this);
-    this.throttledResize = throttle(this.onResize, 250);
+    this.throttledResize = throttle(250, this.onResize);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
