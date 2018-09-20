@@ -158,7 +158,7 @@ export const sqlLabReducer = function (state = {}, action) {
         progress: 100,
         results: action.results,
         rows,
-        state: action.query.state,
+        state: 'rendering',
         errorMessage: null,
         cached: false,
       };
