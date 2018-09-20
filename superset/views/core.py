@@ -262,7 +262,6 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.merge_perm('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
-        # instead of getting cache from another database
         for schema in db.all_schema_names(force_refresh=True):
             security_manager.merge_perm(
                 'schema_access', security_manager.get_schema_perm(db, schema))
