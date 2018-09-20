@@ -298,7 +298,6 @@ WARNING_MSG = None
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
-
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
     CELERY_IMPORTS = (
@@ -329,8 +328,11 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+
 """
+# Set celery config to None to disable all the above configuration
 CELERY_CONFIG = None
+"""
 
 # static http headers to be served by your Superset server.
 # This header prevents iFrames from other domains and
