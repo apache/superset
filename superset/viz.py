@@ -185,6 +185,17 @@ class BaseViz(object):
         }
         return fillna
 
+    def get_samples(self):
+        query_obj = self.query_obj()
+        query_obj.update({
+            'groupby': [],
+            'metrics': [],
+            'row_limit': 1000,
+            'columns': [o.column_name for o in self.datasource.columns],
+        })
+        df = self.get_df(query_obj)
+        return df.to_dict(orient='records')
+
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
@@ -238,9 +249,15 @@ class BaseViz(object):
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
+    def process_query_filters(self):
+        utils.convert_legacy_filters_into_adhoc(self.form_data)
+        merge_extra_filters(self.form_data)
+        utils.split_adhoc_filters_into_base_filters(self.form_data)
+
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
+        self.process_query_filters()
         gb = form_data.get('groupby') or []
         metrics = self.all_metrics or []
         columns = form_data.get('columns') or []
@@ -254,12 +271,6 @@ class BaseViz(object):
             groupby.remove(DTTM_ALIAS)
             is_timeseries = True
 
-        # extras are used to query elements specific to a datasource type
-        # for instance the extra where clause that applies only to Tables
-
-        utils.convert_legacy_filters_into_adhoc(form_data)
-        merge_extra_filters(form_data)
-        utils.split_adhoc_filters_into_base_filters(form_data)
         granularity = (
             form_data.get('granularity') or
             form_data.get('granularity_sqla')
@@ -282,8 +293,8 @@ class BaseViz(object):
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
 
-        filters = form_data.get('filters', [])
-
+        # extras are used to query elements specific to a datasource type
+        # for instance the extra where clause that applies only to Tables
         extras = {
             'where': form_data.get('where', ''),
             'having': form_data.get('having', ''),
@@ -300,7 +311,7 @@ class BaseViz(object):
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
-            'filter': filters,
+            'filter': self.form_data.get('filters', []),
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
