@@ -95,7 +95,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './ParallelCoordinates/adaptor.jsx')),
   [VIZ_TYPES.pie]: loadNvd3,
   [VIZ_TYPES.pivot_table]: () =>
-    loadVis(import(/* webpackChunkName: "pivot_table" */ './pivot_table.js')),
+    loadVis(import(/* webpackChunkName: "pivot_table" */ './PivotTable/adaptor.jsx')),
   [VIZ_TYPES.sankey]: () => loadVis(import(/* webpackChunkName: "sankey" */ './sankey.js')),
   [VIZ_TYPES.separator]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './sunburst.js')),

@@ -2,8 +2,8 @@ import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import { d3format, fixDataTableBodyHeight } from '../modules/utils';
-import './pivot_table.css';
+import { d3format, fixDataTableBodyHeight } from '../../modules/utils';
+import './PivotTable.css';
 
 dt(window, $);
 
@@ -24,8 +24,6 @@ const propTypes = {
 };
 
 function PivotTable(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'PivotTable');
-
   const {
     data,
     height,
@@ -92,27 +90,7 @@ function PivotTable(element, props) {
   }
 }
 
-function adaptor(slice, payload) {
-  const { selector, formData, datasource } = slice;
-  const {
-    groupby: groupBy,
-    number_format: numberFormat,
-  } = formData;
-  const {
-    column_formats: columnFormats,
-    verbose_map: verboseMap,
-  } = datasource;
-  const element = document.querySelector(selector);
+PivotTable.displayName = 'PivotTable';
+PivotTable.propTypes = propTypes;
 
-  return PivotTable(element, {
-    data: payload.data,
-    height: slice.height(),
-    columnFormats,
-    groupBy,
-    numberFormat,
-    verboseMap,
-  });
-}
-
-export default adaptor;
-
+export default PivotTable;
