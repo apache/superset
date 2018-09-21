@@ -275,6 +275,18 @@ class DashboardTests(SupersetTestCase):
             .filter_by(table_name='birth_names')
             .one()
         )
+
+        # Make the births dash published so it can be seen
+        births_dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .one()
+        )
+        births_dash.published = True
+
+        db.session.merge(births_dash)
+        db.session.commit()
+
         # Try access before adding appropriate permissions.
         self.revoke_public_access_to_table(table)
         self.logout()
@@ -374,31 +386,44 @@ class DashboardTests(SupersetTestCase):
         self.assertNotIn('/superset/dashboard/empty_dashboard/', resp)
 
     def test_users_can_view_published_dashboard(self):
+        table = (
+            db.session
+                .query(SqlaTable)
+                .filter_by(table_name='energy_usage')
+                .one()
+        )
+        # get a slice from the allowed table
+        slice = (
+            db.session.query(models.Slice)
+            .filter_by(slice_name='Energy Sankey')
+            .one()
+        )
+
+        self.grant_public_access_to_table(table)
+
         # Create a published and hidden dashboard and add them to the database
         published_dash = models.Dashboard()
         published_dash.dashboard_title = 'Published Dashboard'
         published_dash.slug = 'published_dash'
+        published_dash.slices = [slice]
         published_dash.published = True
 
         hidden_dash = models.Dashboard()
         hidden_dash.dashboard_title = 'Hidden Dashboard'
         hidden_dash.slug = 'hidden_dash'
+        hidden_dash.slices = [slice]
         hidden_dash.published = False
 
         db.session.merge(published_dash)
         db.session.merge(hidden_dash)
         db.session.commit()
 
-        user = security_manager.find_user('alpha')
-        self.login(user.username)
-
-        # list dashboards and validate we only see the published dashboard
         resp = self.get_resp('/dashboard/list/')
         self.assertNotIn('/superset/dashboard/hidden_dash/', resp)
         self.assertIn('/superset/dashboard/published_dash/', resp)
 
     def test_users_can_view_own_dashboard(self):
-        user = security_manager.find_user('alpha')
+        user = security_manager.find_user('gamma')
 
         # Create one dashboard I own and another that I don't
         dash = models.Dashboard()
@@ -424,7 +449,7 @@ class DashboardTests(SupersetTestCase):
         self.assertNotIn('/superset/dashboard/not_my_dash/', resp)
 
     def test_users_can_view_favorited_dashboards(self):
-        user = security_manager.find_user('alpha')
+        user = security_manager.find_user('gamma')
 
         favorite_dash = models.Dashboard()
         favorite_dash.dashboard_title = 'My Favorite Dashboard'

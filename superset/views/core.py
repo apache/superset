@@ -121,13 +121,20 @@ class DashboardFilter(SupersetFilter):
         Slice = models.Slice  # noqa
         Favorites = models.FavStar
 
+        # If user has all_datasource_access, show all dashboards
+        if security_manager.all_datasource_access():
+            return query
+
+        datasource_perms = self.get_view_menus('datasource_access')
+
+        published_dash_query = (
+            db.session.query(Dash.id)
+                .join(Dash.slices)
+                .filter(sqla.and_(Dash.published == True,  # noqa
+                                  Slice.perm.in_(list(datasource_perms))))
+        )
+
         if not g.user.is_anonymous():
-            # If user has all_datasource_access, show all dashboards
-            if security_manager.all_datasource_access():
-                return query
-
-            datasource_perms = self.get_view_menus('datasource_access')
-
             users_favorite_dash_query = (
                 db.session.query(Favorites.obj_id)
                 .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
@@ -138,22 +145,16 @@ class DashboardFilter(SupersetFilter):
                 .join(Dash.owners)
                 .filter(User.id == User.get_user_id())
             )
-            published_dash_query = (
-                db.session.query(Dash.id)
-                .join(Dash.slices)
-                .filter(sqla.and_(Dash.published == True,  # noqa
-                                  Slice.perm.in_(list(datasource_perms))))
-            )
 
             query = query.filter(sqla.or_(
                 Dash.id.in_(owner_ids_query),
                 Dash.id.in_(published_dash_query),
                 Dash.id.in_(users_favorite_dash_query),
             ))
-
-            return query
         else:
-            return query
+            query = query.filter(Dash.id.in_(published_dash_query))
+
+        return query
 
 
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
