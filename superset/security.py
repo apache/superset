@@ -379,7 +379,9 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in {
                 'can_sql_json', 'can_csv', 'can_search_queries', 'can_sqllab_viz',
                 'can_sqllab',
-            })
+            } or
+            (pvm.view_menu.name == 'UserDBModelView' and
+             pvm.permission.name == 'can_list'))
 
     def is_granter_pvm(self, pvm):
         return pvm.permission.name in {
