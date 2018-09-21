@@ -67,8 +67,22 @@ export default class LayerSelector extends React.PureComponent {
       let style = {};
       let icon = '';
       if (v.type === 'vector') {
-        style = { color: 'rgba(' + v.color.join(', ') + ')' };
-        icon = v['fill-type'] === 'fill' ? '\u25FC' : '\u2014';
+        if (v["fill-type"] === "fill"){
+          style = { color: 'rgba(' + v.color.join(', ') + ')' };
+          icon = '\u25FC'
+        } else if (v["fill-type"] === "line"){
+          style = { color: 'rgba(' + v.color.join(', ') + ')' };
+          icon = '\u2014';
+        } else if (v["fill-type"] === "symbol"){
+          style = {
+            'background-image': 'url("https://cdn.rawgit.com/mapbox/mapbox-gl-styles/master/sprites/bright-v9/_svg/' + v["icon"] +'.svg")',
+            width: '20px',
+            height: '20px',
+            display: 'inline-block'
+          };
+          icon = '';
+        }
+
       }
       return (
         <li key={k}>

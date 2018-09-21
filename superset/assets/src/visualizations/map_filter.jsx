@@ -77,7 +77,6 @@ function getCategories(formData, queryData) {
 */
 function addBgLayers(map, conf, accessToken) {
   for (const key in conf) {
-
     if (conf[key].type === 'raster') {
      map.addLayer({
         id: key,
@@ -91,7 +90,7 @@ function addBgLayers(map, conf, accessToken) {
         minzoom: 0,
        maxzoom: 22,
        paint: { 'raster-opacity': conf[key].opacity },
-       layout: {visibility: conf[key].visible ? 'visible' : 'none' },
+       layout: { visibility: conf[key].visible ? 'visible' : 'none' },
      });
     } else if (conf[key].type === 'vector') {
       const paint = {
@@ -103,7 +102,15 @@ function addBgLayers(map, conf, accessToken) {
           'fill-color': conf[key].color,
           'fill-opacity': conf[key].opacity,
         },
+        symbol: {
+          'icon-color': conf[key].color,
+        },
       };
+
+      const layout = { visibility: conf[key].visible ? 'visible' : 'none' };
+      if (conf[key]['fill-type'] === 'symbol') {
+        layout['icon-image'] = conf[key].icon;
+      }
       map.addLayer({
         id: key,
         type: conf[key]['fill-type'],
@@ -112,12 +119,11 @@ function addBgLayers(map, conf, accessToken) {
           data: '/geo_assets/' + conf[key].path,
         },
         paint: paint[conf[key]['fill-type']],
-        visibility: conf[key].visible ? 'visible' : 'none',
+        layout: layout,
       });
     }
   }
 }
-
 
 
 /* MapGLDraw
@@ -272,6 +278,7 @@ function getBgLayersLegend(layers) {
           'fill-type': layers[key]['fill-type'],
           color_bar: layers[key].color_bar,
           legend: layers[key].legend,
+          icon: layers[key].icon,
         };
     }
 
@@ -411,7 +418,7 @@ function mapFilter(slice, json, setControlValue) {
 
   const div = d3.select(slice.selector);
   div.selectAll('*').remove();
-
+  console.log(slice.width());
   ReactDOM.render(
     <MapFilter
       json={json}
