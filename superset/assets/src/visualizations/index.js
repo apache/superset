@@ -79,7 +79,7 @@ const vizMap = {
   [VIZ_TYPES.chord]: () => loadVis(import(/* webpackChunkName: "chord" */ './Chord/adaptor.jsx')),
   [VIZ_TYPES.dist_bar]: loadNvd3,
   [VIZ_TYPES.filter_box]: () =>
-    loadVis(import(/* webpackChunkName: "filter_box" */ './filter_box.jsx')),
+    loadVis(import(/* webpackChunkName: "filter_box" */ './FilterBox/adaptor.jsx')),
   [VIZ_TYPES.heatmap]: () => loadVis(import(/* webpackChunkName: "heatmap" */ './Heatmap/adaptor.jsx')),
   [VIZ_TYPES.histogram]: () =>
     loadVis(import(/* webpackChunkName: "histogram" */ './Histogram/adaptor.jsx')),

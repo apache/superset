@@ -1,18 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
 import VirtualizedSelect from 'react-virtualized-select';
 import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../explore/components/controls/DateFilterControl';
-import ControlRow from '../explore/components/ControlRow';
-import Control from '../explore/components/Control';
-import controls from '../explore/controls';
-import OnPasteSelect from '../components/OnPasteSelect';
-import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
-import { t } from '../locales';
-import './filter_box.css';
+import DateFilterControl from '../../explore/components/controls/DateFilterControl';
+import ControlRow from '../../explore/components/ControlRow';
+import Control from '../../explore/components/Control';
+import controls from '../../explore/controls';
+import OnPasteSelect from '../../components/OnPasteSelect';
+import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
+import { t } from '../../locales';
+import './FilterBox.css';
 
 // maps control names to their key in extra_filters
 const TIME_FILTER_MAP = {
@@ -257,42 +256,4 @@ class FilterBox extends React.Component {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  // filter box should ignore the dashboard's filters
-  // const url = slice.jsonEndpoint({ extraFilters: false });
-  const { formData, datasource } = slice;
-  const { verbose_map: verboseMap } = datasource;
-  const {
-    groupby,
-    instant_filtering: instantFiltering,
-    date_filter: showDateFilter,
-    show_sqla_time_granularity: showSqlaTimeGrain,
-    show_sqla_time_column: showSqlaTimeColumn,
-    show_druid_time_granularity: showDruidTimeGrain,
-    show_druid_time_origin: showDruidTimeOrigin,
-  } = formData;
-
-  const filtersFields = groupby.map(key => ({
-    key,
-    label: verboseMap[key] || key,
-  }));
-
-  ReactDOM.render(
-    <FilterBox
-      datasource={datasource}
-      filtersFields={filtersFields}
-      filtersChoices={payload.data}
-      onChange={slice.addFilter}
-      showDateFilter={showDateFilter}
-      showSqlaTimeGrain={showSqlaTimeGrain}
-      showSqlaTimeColumn={showSqlaTimeColumn}
-      showDruidTimeGrain={showDruidTimeGrain}
-      showDruidTimeOrigin={showDruidTimeOrigin}
-      origSelectedValues={slice.getFilters() || {}}
-      instantFiltering={instantFiltering}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
-export default adaptor;
+export default FilterBox;
