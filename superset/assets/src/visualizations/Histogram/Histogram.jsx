@@ -108,31 +108,4 @@ class CustomHistogram extends React.PureComponent {
 CustomHistogram.propTypes = propTypes;
 CustomHistogram.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    color_scheme: colorScheme,
-    link_length: binCount,
-    normalized,
-    global_opacity: opacity,
-    x_axis_label: xAxisLabel,
-    y_axis_label: yAxisLabel,
-  } = formData;
-
-  ReactDOM.render(
-    <CustomHistogram
-      data={payload.data}
-      width={slice.width()}
-      height={slice.height()}
-      binCount={parseInt(binCount, 10)}
-      colorScheme={colorScheme}
-      normalized={normalized}
-      opacity={opacity}
-      xAxisLabel={xAxisLabel}
-      yAxisLabel={yAxisLabel}
-    />,
-    document.querySelector(selector),
-  );
-}
-
-export default adaptor;
+export default CustomHistogram;

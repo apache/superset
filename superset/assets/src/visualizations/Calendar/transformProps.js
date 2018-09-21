@@ -9,8 +9,8 @@ export default function transformProps(basicChartInput) {
     showMetricName,
     showValues,
     steps,
-    xAxisTimeFormat: timeFormat,
-    yAxisFormat: valueFormat,
+    xAxisTimeFormat,
+    yAxisFormat,
   } = formData;
 
   const { verboseMap } = datasource;
@@ -25,8 +25,8 @@ export default function transformProps(basicChartInput) {
     showMetricName,
     showValues,
     steps,
-    timeFormat,
-    valueFormat,
+    timeFormat: xAxisTimeFormat,
+    valueFormat: yAxisFormat,
     verboseMap,
   };
 }

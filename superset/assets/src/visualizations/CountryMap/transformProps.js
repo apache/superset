@@ -3,12 +3,12 @@ export default function transformProps(basicChartInput) {
   const {
     linearColorScheme,
     numberFormat,
-    selectCountry: country,
+    selectCountry,
   } = formData;
 
   return {
     data: payload.data,
-    country,
+    country: selectCountry,
     linearColorScheme,
     numberFormat,
   };

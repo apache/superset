@@ -1,10 +1,10 @@
 export default function transformProps(basicChartInput) {
   const { formData, payload } = basicChartInput;
-  const { yAxisFormat: numberFormat, colorScheme } = formData;
+  const { yAxisFormat, colorScheme } = formData;
 
   return {
     data: payload.data,
-    numberFormat,
+    numberFormat: yAxisFormat,
     colorScheme,
   };
 }
