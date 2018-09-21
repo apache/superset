@@ -81,23 +81,4 @@ class HorizonChart extends React.PureComponent {
 HorizonChart.propTypes = propTypes;
 HorizonChart.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const element = document.querySelector(selector);
-  const {
-    horizon_color_scale: colorScale,
-    series_height: seriesHeight,
-  } = formData;
-
-  ReactDOM.render(
-    <HorizonChart
-      data={payload.data}
-      width={slice.width()}
-      seriesHeight={parseInt(seriesHeight, 10)}
-      colorScale={colorScale}
-    />,
-    element,
-  );
-}
-
-export default adaptor;
+export default HorizonChart;

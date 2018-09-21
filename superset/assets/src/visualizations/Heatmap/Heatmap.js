@@ -54,8 +54,6 @@ function cmp(a, b) {
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
 function Heatmap(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Heatmap');
-
   const {
     data,
     width,
