@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import d3 from 'd3';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
