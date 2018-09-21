@@ -92,7 +92,7 @@ const vizMap = {
   [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
-    loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './parallel_coordinates.js')),
+    loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './ParallelCoordinates/adaptor.jsx')),
   [VIZ_TYPES.pie]: loadNvd3,
   [VIZ_TYPES.pivot_table]: () =>
     loadVis(import(/* webpackChunkName: "pivot_table" */ './pivot_table.js')),

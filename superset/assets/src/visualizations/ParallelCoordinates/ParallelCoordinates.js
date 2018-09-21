@@ -1,10 +1,10 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../modules/colors';
-import parcoords from '../../vendor/parallel_coordinates/d3.parcoords';
-import divgrid from '../../vendor/parallel_coordinates/divgrid';
-import '../../vendor/parallel_coordinates/d3.parcoords.css';
-import './parallel_coordinates.css';
+import { colorScalerFactory } from '../../modules/colors';
+import parcoords from '../../../vendor/parallel_coordinates/d3.parcoords';
+import divgrid from '../../../vendor/parallel_coordinates/divgrid';
+import '../../../vendor/parallel_coordinates/d3.parcoords.css';
+import './ParallelCoordinates.css';
 
 const propTypes = {
   // Standard tabular data [{ fieldName1: value1, fieldName2: value2 }]
@@ -20,8 +20,6 @@ const propTypes = {
 };
 
 function ParallelCoordinates(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ParallelCoordinates');
-
   const {
     data,
     width,
@@ -98,33 +96,7 @@ function ParallelCoordinates(element, props) {
   }
 }
 
+ParallelCoordinates.displayName = 'ParallelCoordinates';
 ParallelCoordinates.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    include_series: includeSeries,
-    linear_color_scheme: linearColorScheme,
-    metrics,
-    secondary_metric: secondaryMetric,
-    series,
-    show_datatable: showDatatable,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return ParallelCoordinates(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    includeSeries,
-    linearColorScheme,
-    metrics: metrics.map(m => m.label || m),
-    colorMetric: secondaryMetric && secondaryMetric.label
-      ? secondaryMetric.label
-      : secondaryMetric,
-    series,
-    showDatatable,
-  });
-}
-
-export default adaptor;
+export default ParallelCoordinates;
