@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import './directed_force.css';
+import './ForceDirected.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
@@ -16,9 +16,7 @@ const propTypes = {
 };
 
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
-function ForceDirectedGraph(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'ForceDirectedGraph');
-
+function ForceDirected(element, props) {
   const {
     data,
     width,
@@ -179,18 +177,7 @@ function ForceDirectedGraph(element, props) {
     .text(d => d.name);
 }
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const { link_length: linkLength, charge } = formData;
-  const element = document.querySelector(selector);
+ForceDirected.displayName = 'ForceDirected';
+ForceDirected.propTypes = propTypes;
 
-  return ForceDirectedGraph(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    linkLength,
-    charge,
-  });
-}
-
-export default adaptor;
+export default ForceDirected;

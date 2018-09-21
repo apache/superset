@@ -1,4 +1,4 @@
 import reactify from '../../utils/reactify';
-import CountryMap from './CountryMap';
+import Component from './CountryMap';
 
-export default reactify(CountryMap);
+export default reactify(Component);

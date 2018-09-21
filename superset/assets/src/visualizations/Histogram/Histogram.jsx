@@ -1,12 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
-import WithLegend from './WithLegend';
-import { getScale } from '../modules/CategoricalColorNamespace';
+import WithLegend from '../WithLegend';
+import { getScale } from '../../modules/CategoricalColorNamespace';
 
 const propTypes = {
   className: PropTypes.string,

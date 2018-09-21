@@ -75,7 +75,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "cal_heatmap" */ './Calendar/adaptor.jsx')),
   [VIZ_TYPES.compare]: loadNvd3,
   [VIZ_TYPES.directed_force]: () =>
-    loadVis(import(/* webpackChunkName: "directed_force" */ './directed_force.js')),
+    loadVis(import(/* webpackChunkName: "directed_force" */ './ForceDirected/adaptor.jsx')),
   [VIZ_TYPES.chord]: () => loadVis(import(/* webpackChunkName: "chord" */ './Chord/adaptor.jsx')),
   [VIZ_TYPES.dist_bar]: loadNvd3,
   [VIZ_TYPES.filter_box]: () =>
