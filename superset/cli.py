@@ -159,7 +159,7 @@ def load_examples_run(load_test_data):
     data.load_country_map_data()
 
     print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series_data()
+    data.load_multiformat_time_series()
 
     print('Loading [Paris GeoJson]')
     data.load_paris_iris_geojson()

@@ -263,7 +263,8 @@ def load_deck_dash():
             'population',
             'area',
         ],
-        'js_datapoint_mutator': '(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+        'js_datapoint_mutator':
+            '(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
          d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
          return d;\n}',
         'js_tooltip': '',

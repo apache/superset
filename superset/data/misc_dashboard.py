@@ -14,13 +14,14 @@ from .helpers import (
     Dash, update_slice_ids,
 )
 
+DASH_SLUG = 'misc_charts'
+
 
 def load_misc_dashboard():
     """Loading a dashboard featuring misc charts"""
 
     print('Creating the dashboard')
     db.session.expunge_all()
-    DASH_SLUG = 'misc_charts'
     dash = db.session.query(Dash).filter_by(slug=DASH_SLUG).first()
 
     if not dash:
@@ -198,7 +199,7 @@ def load_misc_dashboard():
     "DASHBOARD_VERSION_KEY": "v2"
 }
     """)
-    l = json.loads(js)
+    pos = json.loads(js)
     slices = (
         db.session
         .query(Slice)
@@ -206,9 +207,9 @@ def load_misc_dashboard():
         .all()
     )
     slices = sorted(slices, key=lambda x: x.id)
-    update_slice_ids(l, slices)
+    update_slice_ids(pos, slices)
     dash.dashboard_title = 'Misc Charts'
-    dash.position_json = json.dumps(l, indent=4)
+    dash.position_json = json.dumps(pos, indent=4)
     dash.slug = DASH_SLUG
     dash.slices = slices
     db.session.merge(dash)

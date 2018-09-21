@@ -6,17 +6,16 @@ from __future__ import unicode_literals
 import textwrap
 
 from superset import db
-from superset.models import core as models
+from superset.models.core import CssTemplate
 
 
 def load_css_templates():
     """Loads 2 css templates to demonstrate the feature"""
     print('Creating default CSS templates')
-    CSS = models.CssTemplate  # noqa
 
-    obj = db.session.query(CSS).filter_by(template_name='Flat').first()
+    obj = db.session.query(CssTemplate).filter_by(template_name='Flat').first()
     if not obj:
-        obj = CSS(template_name='Flat')
+        obj = CssTemplate(template_name='Flat')
     css = textwrap.dedent("""\
     .gridster div.widget {
         transition: background-color 0.5s ease;
@@ -54,9 +53,9 @@ def load_css_templates():
     db.session.commit()
 
     obj = (
-        db.session.query(CSS).filter_by(template_name='Courier Black').first())
+        db.session.query(CssTemplate).filter_by(template_name='Courier Black').first())
     if not obj:
-        obj = CSS(template_name='Courier Black')
+        obj = CssTemplate(template_name='Courier Black')
     css = textwrap.dedent("""\
     .gridster div.widget {
         transition: background-color 0.5s ease;

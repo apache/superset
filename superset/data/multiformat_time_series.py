@@ -17,7 +17,7 @@ from .helpers import (
 )
 
 
-def load_multiformat_time_series_data():
+def load_multiformat_time_series():
     """Loading time series data from a zip file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
         pdf = pd.read_json(f)
