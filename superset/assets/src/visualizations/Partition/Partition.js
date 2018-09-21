@@ -2,9 +2,9 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import { d3TimeFormatPreset } from '../modules/utils';
-import './partition.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { d3TimeFormatPreset } from '../../modules/utils';
+import './Partition.css';
 
 // Compute dx, dy, x, y for each node and
 // return an array of nodes in breadth-first order
@@ -71,8 +71,6 @@ const propTypes = {
 // This vis is based on
 // http://mbostock.github.io/d3/talk/20111018/partition.html
 function Icicle(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Icicle');
-
   const {
     width,
     height,
@@ -374,42 +372,7 @@ function Icicle(element, props) {
   }
 }
 
+Icicle.displayName = 'Icicle';
 Icicle.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData, datasource } = slice;
-  const {
-    color_scheme: colorScheme,
-    date_time_format: dateTimeFormat,
-    equal_date_size: equalDateSize,
-    groupby: groupBy,
-    log_scale: useLogScale,
-    metrics,
-    number_format: numberFormat,
-    partition_limit: partitionLimit,
-    partition_threshold: partitionThreshold,
-    rich_tooltip: useRichTooltip,
-    time_series_option: timeSeriesOption,
-  } = formData;
-  const { verbose_map: verboseMap } = datasource;
-  const element = document.querySelector(selector);
-
-  return Icicle(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    colorScheme,
-    dateTimeFormat,
-    equalDateSize,
-    groupBy: groupBy.map(g => verboseMap[g] || g),
-    useLogScale,
-    metrics,
-    numberFormat,
-    partitionLimit: partitionLimit && parseInt(partitionLimit, 10),
-    partitionThreshold: partitionThreshold && parseInt(partitionThreshold, 10),
-    useRichTooltip,
-    timeSeriesOption,
-  });
-}
-
-export default adaptor;
+export default Icicle;

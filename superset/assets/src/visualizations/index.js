@@ -115,7 +115,7 @@ const vizMap = {
   [VIZ_TYPES.paired_ttest]: () =>
     loadVis(import(/* webpackChunkName: "paired_ttest" */ './PairedTTest/PairedTTest.jsx')),
   [VIZ_TYPES.partition]: () =>
-    loadVis(import(/* webpackChunkName: "partition" */ './partition.js')),
+    loadVis(import(/* webpackChunkName: "partition" */ './Partition/adaptor.jsx')),
   [VIZ_TYPES.deck_scatter]: () =>
     loadVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/scatter.jsx')),
   [VIZ_TYPES.deck_screengrid]: () =>
