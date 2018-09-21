@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import 'd3-svg-legend';
 import d3tip from 'd3-tip';
 
-import { colorScalerFactory } from '../modules/colors';
-import '../../stylesheets/d3tip.css';
-import './heatmap.css';
+import { colorScalerFactory } from '../../modules/colors';
+import '../../../stylesheets/d3tip.css';
+import './Heatmap.css';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -342,53 +342,7 @@ function Heatmap(element, props) {
   createImageObj();
 }
 
+Heatmap.displayName = 'Heatmap';
 Heatmap.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    bottom_margin: bottomMargin,
-    canvas_image_rendering: canvasImageRendering,
-    all_columns_x: columnX,
-    all_columns_y: columnY,
-    linear_color_scheme: colorScheme,
-    left_margin: leftMargin,
-    metric,
-    normalized,
-    show_legend: showLegend,
-    show_perc: showPercentage,
-    show_values: showValues,
-    sort_x_axis: sortXAxis,
-    sort_y_axis: sortYAxis,
-    xscale_interval: xScaleInterval,
-    yscale_interval: yScaleInterval,
-    y_axis_bounds: yAxisBounds,
-    y_axis_format: numberFormat,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return Heatmap(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    bottomMargin,
-    canvasImageRendering,
-    colorScheme,
-    columnX,
-    columnY,
-    leftMargin,
-    metric,
-    normalized,
-    numberFormat,
-    showLegend,
-    showPercentage,
-    showValues,
-    sortXAxis,
-    sortYAxis,
-    xScaleInterval: parseInt(xScaleInterval, 10),
-    yScaleInterval: parseInt(yScaleInterval, 10),
-    yAxisBounds,
-  });
-}
-
-export default adaptor;
+export default Heatmap;
