@@ -388,9 +388,9 @@ class DashboardTests(SupersetTestCase):
     def test_users_can_view_published_dashboard(self):
         table = (
             db.session
-                .query(SqlaTable)
-                .filter_by(table_name='energy_usage')
-                .one()
+            .query(SqlaTable)
+            .filter_by(table_name='energy_usage')
+            .one()
         )
         # get a slice from the allowed table
         slice = (
