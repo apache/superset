@@ -1,9 +1,9 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import { wrapSvgText } from '../modules/utils';
-import './sunburst.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { wrapSvgText } from '../../modules/utils';
+import './Sunburst.css';
 
 const propTypes = {
   // Each row is an array of [hierarchy-lvl1, hierarchy-lvl2, metric1, metric2]
@@ -38,8 +38,6 @@ function getAncestors(node) {
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
 function Sunburst(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Sunburst');
-
   const container = d3.select(element);
   const {
     data,
@@ -391,20 +389,7 @@ function Sunburst(element, props) {
   createVisualization(data);
 }
 
+Sunburst.displayName = 'Sunburst';
 Sunburst.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const { color_scheme: colorScheme, metric, secondary_metric: secondaryMetric } = formData;
-  const element = document.querySelector(selector);
-
-  return Sunburst(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    colorScheme,
-    metrics: [metric, secondaryMetric],
-  });
-}
-
-export default adaptor;
+export default Sunburst;
