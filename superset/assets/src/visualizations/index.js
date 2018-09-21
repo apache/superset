@@ -96,7 +96,7 @@ const vizMap = {
   [VIZ_TYPES.pie]: loadNvd3,
   [VIZ_TYPES.pivot_table]: () =>
     loadVis(import(/* webpackChunkName: "pivot_table" */ './PivotTable/adaptor.jsx')),
-  [VIZ_TYPES.sankey]: () => loadVis(import(/* webpackChunkName: "sankey" */ './sankey.js')),
+  [VIZ_TYPES.sankey]: () => loadVis(import(/* webpackChunkName: "sankey" */ './Sankey/adaptor.jsx')),
   [VIZ_TYPES.separator]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './sunburst.js')),
   [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './table.js')),

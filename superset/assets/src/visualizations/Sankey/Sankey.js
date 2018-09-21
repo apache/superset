@@ -2,8 +2,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import './sankey.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import './Sankey.css';
 
 const propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
@@ -19,8 +19,6 @@ const propTypes = {
 const formatNumber = d3.format(',.2f');
 
 function Sankey(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Sankey');
-
   const {
     data,
     width,
@@ -174,19 +172,8 @@ function Sankey(element, props) {
     .attr('text-anchor', 'start');
 }
 
+Sankey.displayName = 'Sankey';
 Sankey.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const { color_scheme: colorScheme } = formData;
-  const element = document.querySelector(selector);
+export default Sankey;
 
-  return Sankey(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    colorScheme,
-  });
-}
-
-export default adaptor;
