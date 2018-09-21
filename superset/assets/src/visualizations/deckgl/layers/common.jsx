@@ -1,4 +1,4 @@
-import dompurify from 'dompurify';
+import React from 'react';
 import { fitBounds } from 'viewport-mercator-project';
 import d3 from 'd3';
 
@@ -37,10 +37,14 @@ export function commonLayerProps(formData, slice) {
   let onHover;
   let tooltipContentGenerator;
   if (fd.js_tooltip) {
-    const unsanitizedTooltipGenerator = sandboxedEval(fd.js_tooltip);
-    tooltipContentGenerator = o => dompurify.sanitize(unsanitizedTooltipGenerator(o));
+    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
   } else if (fd.line_column && fd.line_type === 'geohash') {
-    tooltipContentGenerator = o => `${fd.line_column}: ${o.object[fd.line_column]}`;
+    tooltipContentGenerator = o => (
+      <div>
+        <div>{fd.line_column}: <strong>{o.object[fd.line_column]}</strong></div>
+        {fd.metric &&
+          <div>{fd.metric}: <strong>{o.object[fd.metric]}</strong></div>}
+      </div>);
   }
   if (tooltipContentGenerator) {
     onHover = (o) => {
