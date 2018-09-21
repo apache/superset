@@ -2,9 +2,9 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import { d3TimeFormatPreset } from '../modules/utils';
-import './rose.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { d3TimeFormatPreset } from '../../modules/utils';
+import './Rose.css';
 
 const propTypes = {
   // Data is an object hashed by numeric value, perhaps timestamp
@@ -39,8 +39,6 @@ function sortValues(a, b) {
 }
 
 function Rose(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Rose');
-
   const {
     data,
     width,
@@ -563,29 +561,7 @@ function Rose(element, props) {
   });
 }
 
+Rose.displayName = 'Rose';
 Rose.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    color_scheme: colorScheme,
-    date_time_format: dateTimeFormat,
-    number_format: numberFormat,
-    rich_tooltip: useRichTooltip,
-    rose_area_proportion: useAreaProportions,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return Rose(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    colorScheme,
-    dateTimeFormat,
-    numberFormat,
-    useRichTooltip,
-    useAreaProportions,
-  });
-}
-
-export default adaptor;
+export default Rose;

@@ -136,7 +136,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/polygon.jsx')),
   [VIZ_TYPES.deck_multi]: () =>
     loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/multi.jsx')),
-  [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './rose.js')),
+  [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './Rose/adaptor.jsx')),
 };
 
 export default vizMap;
