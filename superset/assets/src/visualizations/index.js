@@ -102,7 +102,7 @@ const vizMap = {
   [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './Table/adaptor.jsx')),
   [VIZ_TYPES.time_table]: () =>
     loadVis(import(/* webpackChunkName: "time_table" */ './TimeTable/TimeTable.jsx')),
-  [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './treemap.js')),
+  [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './Treemap/adaptor.jsx')),
   [VIZ_TYPES.country_map]: () =>
     loadVis(import(/* webpackChunkName: "country_map" */ './CountryMap/adaptor.jsx')),
   [VIZ_TYPES.word_cloud]: () =>

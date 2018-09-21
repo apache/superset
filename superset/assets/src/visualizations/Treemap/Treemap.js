@@ -1,8 +1,8 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../modules/CategoricalColorNamespace';
-import './treemap.css';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import './Treemap.css';
 
 // Declare PropTypes for recursive data structures
 // https://github.com/facebook/react/issues/5676
@@ -49,9 +49,7 @@ const DEFAULT_MARGIN = {
 };
 
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
-function treemap(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'Treemap');
-
+function Treemap(element, props) {
   const {
     data,
     width,
@@ -299,25 +297,7 @@ function treemap(element, props) {
   data.forEach(d => draw(d, width, eachHeight));
 }
 
-treemap.propTypes = propTypes;
+Treemap.displayName = 'Treemap';
+Treemap.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-  const {
-    number_format: numberFormat,
-    color_scheme: colorScheme,
-    treemap_ratio: treemapRatio,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  return treemap(element, {
-    data: payload.data,
-    width: slice.width(),
-    height: slice.height(),
-    numberFormat,
-    colorScheme,
-    treemapRatio,
-  });
-}
-
-export default adaptor;
+export default Treemap;
