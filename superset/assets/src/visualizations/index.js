@@ -99,7 +99,7 @@ const vizMap = {
   [VIZ_TYPES.sankey]: () => loadVis(import(/* webpackChunkName: "sankey" */ './Sankey/adaptor.jsx')),
   [VIZ_TYPES.separator]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './Sunburst/adaptor.jsx')),
-  [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './table.js')),
+  [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './Table/adaptor.jsx')),
   [VIZ_TYPES.time_table]: () =>
     loadVis(import(/* webpackChunkName: "time_table" */ './TimeTable/TimeTable.jsx')),
   [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './treemap.js')),

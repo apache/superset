@@ -4,8 +4,8 @@ import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
-import './table.css';
+import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../../modules/utils';
+import './Table.css';
 
 dt(window, $);
 
@@ -50,8 +50,6 @@ const formatPercent = d3.format('.3p');
 function NOOP() {}
 
 function TableVis(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'TableVis');
-
   const {
     data,
     height,
@@ -235,66 +233,7 @@ function TableVis(element, props) {
   datatable.draw();
 }
 
+TableVis.displayName = 'TableVis';
 TableVis.propTypes = propTypes;
 
-function adaptor(slice, payload) {
-  const { selector, formData, datasource } = slice;
-  const {
-    align_pn: alignPositiveNegative,
-    color_pn: colorPositiveNegative,
-    include_search: includeSearch,
-    metrics,
-    order_desc: orderDesc,
-    page_length: pageLength,
-    percent_metrics: percentMetrics,
-    table_filter: tableFilter,
-    table_timestamp_format: tableTimestampFormat,
-    timeseries_limit_metric: timeseriesLimitMetric,
-  } = formData;
-  const {
-    verbose_map: verboseMap,
-    column_formats: columnFormats,
-  } = datasource;
-
-  const { records, columns } = payload.data;
-
-  const processedColumns = columns.map((key) => {
-    let label = verboseMap[key];
-    // Handle verbose names for percents
-    if (!label) {
-      if (key[0] === '%') {
-        const cleanedKey = key.substring(1);
-        label = '% ' + (verboseMap[cleanedKey] || cleanedKey);
-      } else {
-        label = key;
-      }
-    }
-    return {
-      key,
-      label,
-      format: columnFormats && columnFormats[key],
-    };
-  });
-
-  const element = document.querySelector(selector);
-
-  return TableVis(element, {
-    data: records,
-    height: slice.height(),
-    alignPositiveNegative,
-    colorPositiveNegative,
-    columns: processedColumns,
-    filters: slice.getFilters(),
-    includeSearch,
-    metrics,
-    onAddFilter(...args) { slice.addFilter(...args); },
-    orderDesc,
-    pageLength: pageLength && parseInt(pageLength, 10),
-    percentMetrics,
-    tableFilter,
-    tableTimestampFormat,
-    timeseriesLimitMetric,
-  });
-}
-
-export default adaptor;
+export default TableVis;
