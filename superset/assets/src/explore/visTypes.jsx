@@ -332,6 +332,9 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      metric: {
+        clearable: false,
+      },
     },
   },
 
