@@ -1,5 +1,4 @@
 import d3 from 'd3';
-import { getScale } from './CategoricalColorNamespace';
 import sequentialSchemes from './colorSchemes/sequential';
 import airbnb from './colorSchemes/airbnb';
 import lyft from './colorSchemes/lyft';
@@ -17,26 +16,6 @@ export function hexToRGB(hex, alpha = 255) {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return [r, g, b, alpha];
-}
-
-/**
- * Get a color from a scheme specific palette (scheme)
- * The function cycles through the palette while memoizing labels
- * association to colors. If the function is called twice with the
- * same string, it will return the same color.
- *
- * @param {string} s - The label for which we want to get a color
- * @param {string} scheme - The palette name, or "scheme"
- * @param {string} forcedColor - A color that the caller wants to
- forcibly associate to a label.
- */
-export function getColorFromScheme(value, schemeName, forcedColor) {
-  const scale = getScale(schemeName);
-  if (forcedColor) {
-    scale.setColor(value, forcedColor);
-    return forcedColor;
-  }
-  return scale.getColor(value);
 }
 
 export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
