@@ -108,6 +108,7 @@ class BaseSupersetView(BaseView):
             'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
             'locale': locale,
             'language_pack': get_language_pack(locale),
+            'feature_flags': conf.get('FEATURE_FLAGS'),
         }
 
 
