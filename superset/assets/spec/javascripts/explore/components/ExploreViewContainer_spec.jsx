@@ -41,7 +41,7 @@ describe('ExploreViewContainer', () => {
   beforeEach(() => {
     wrapper = shallow(<ExploreViewContainer />, {
       context: { store },
-      disableLifecycleMethods: true
+      disableLifecycleMethods: true,
     });
   });
 
@@ -51,7 +51,7 @@ describe('ExploreViewContainer', () => {
 
   it('renders', () => {
     expect(
-      React.isValidElement(<ExploreViewContainer />)
+      React.isValidElement(<ExploreViewContainer />),
     ).to.equal(true);
   });
 
