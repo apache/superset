@@ -89,9 +89,6 @@ const config = {
     },
   },
   resolve: {
-    alias: {
-      src: path.resolve(__dirname, 'src'),
-    },
     extensions: ['.js', '.jsx'],
   },
   module: {
