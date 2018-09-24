@@ -1,11 +1,10 @@
+# pylint: disable=too-many-statements
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
-import textwrap
-
 
 from superset import db
 
@@ -13,6 +12,154 @@ from .helpers import (
     Slice, TBL, merge_slice,
     get_slice_json, Dash, update_slice_ids,
 )
+
+COLOR_RED = {
+    'r': 205,
+    'g': 0,
+    'b': 3,
+    'a': 0.82,
+}
+POSITION_JSON = """\
+{
+    "CHART-3afd9d70": {
+        "meta": {
+            "chartId": 66,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-3afd9d70",
+        "children": []
+    },
+    "CHART-2ee7fa5e": {
+        "meta": {
+            "chartId": 67,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2ee7fa5e",
+        "children": []
+    },
+    "CHART-201f7715": {
+        "meta": {
+            "chartId": 68,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-201f7715",
+        "children": []
+    },
+    "CHART-d02f6c40": {
+        "meta": {
+            "chartId": 69,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-d02f6c40",
+        "children": []
+    },
+    "CHART-2673431d": {
+        "meta": {
+            "chartId": 70,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2673431d",
+        "children": []
+    },
+    "CHART-85265a60": {
+        "meta": {
+            "chartId": 71,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-85265a60",
+        "children": []
+    },
+    "CHART-2b87513c": {
+        "meta": {
+            "chartId": 72,
+            "width": 6,
+            "height": 50
+        },
+        "type": "CHART",
+        "id": "CHART-2b87513c",
+        "children": []
+    },
+    "GRID_ID": {
+        "type": "GRID",
+        "id": "GRID_ID",
+        "children": [
+            "ROW-a7b16cb5",
+            "ROW-72c218a5",
+            "ROW-957ba55b",
+            "ROW-af041bdd"
+        ]
+    },
+    "HEADER_ID": {
+        "meta": {
+            "text": "deck.gl Demo"
+        },
+        "type": "HEADER",
+        "id": "HEADER_ID"
+    },
+    "ROOT_ID": {
+        "type": "ROOT",
+        "id": "ROOT_ID",
+        "children": [
+            "GRID_ID"
+        ]
+    },
+    "ROW-72c218a5": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-72c218a5",
+        "children": [
+            "CHART-d02f6c40",
+            "CHART-201f7715"
+        ]
+    },
+    "ROW-957ba55b": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-957ba55b",
+        "children": [
+            "CHART-2673431d",
+            "CHART-85265a60"
+        ]
+    },
+    "ROW-a7b16cb5": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-a7b16cb5",
+        "children": [
+            "CHART-3afd9d70",
+            "CHART-2ee7fa5e"
+        ]
+    },
+    "ROW-af041bdd": {
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT"
+        },
+        "type": "ROW",
+        "id": "ROW-af041bdd",
+        "children": [
+            "CHART-2b87513c"
+        ]
+    },
+    "DASHBOARD_VERSION_KEY": "v2"
+}"""
 
 
 def load_deck_dash():
@@ -25,12 +172,7 @@ def load_deck_dash():
             'lonCol': 'LON',
             'latCol': 'LAT',
         },
-        'color_picker': {
-            'r': 205,
-            'g': 0,
-            'b': 3,
-            'a': 0.82,
-        },
+        'color_picker': COLOR_RED,
         'datasource': '5__table',
         'filters': [],
         'granularity_sqla': 'dttm',
@@ -408,148 +550,7 @@ def load_deck_dash():
 
     if not dash:
         dash = Dash()
-    js = textwrap.dedent("""\
-{
-    "CHART-3afd9d70": {
-        "meta": {
-            "chartId": 66,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-3afd9d70",
-        "children": []
-    },
-    "CHART-2ee7fa5e": {
-        "meta": {
-            "chartId": 67,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-2ee7fa5e",
-        "children": []
-    },
-    "CHART-201f7715": {
-        "meta": {
-            "chartId": 68,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-201f7715",
-        "children": []
-    },
-    "CHART-d02f6c40": {
-        "meta": {
-            "chartId": 69,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-d02f6c40",
-        "children": []
-    },
-    "CHART-2673431d": {
-        "meta": {
-            "chartId": 70,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-2673431d",
-        "children": []
-    },
-    "CHART-85265a60": {
-        "meta": {
-            "chartId": 71,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-85265a60",
-        "children": []
-    },
-    "CHART-2b87513c": {
-        "meta": {
-            "chartId": 72,
-            "width": 6,
-            "height": 50
-        },
-        "type": "CHART",
-        "id": "CHART-2b87513c",
-        "children": []
-    },
-    "GRID_ID": {
-        "type": "GRID",
-        "id": "GRID_ID",
-        "children": [
-            "ROW-a7b16cb5",
-            "ROW-72c218a5",
-            "ROW-957ba55b",
-            "ROW-af041bdd"
-        ]
-    },
-    "HEADER_ID": {
-        "meta": {
-            "text": "deck.gl Demo"
-        },
-        "type": "HEADER",
-        "id": "HEADER_ID"
-    },
-    "ROOT_ID": {
-        "type": "ROOT",
-        "id": "ROOT_ID",
-        "children": [
-            "GRID_ID"
-        ]
-    },
-    "ROW-72c218a5": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-72c218a5",
-        "children": [
-            "CHART-d02f6c40",
-            "CHART-201f7715"
-        ]
-    },
-    "ROW-957ba55b": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-957ba55b",
-        "children": [
-            "CHART-2673431d",
-            "CHART-85265a60"
-        ]
-    },
-    "ROW-a7b16cb5": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-a7b16cb5",
-        "children": [
-            "CHART-3afd9d70",
-            "CHART-2ee7fa5e"
-        ]
-    },
-    "ROW-af041bdd": {
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW",
-        "id": "ROW-af041bdd",
-        "children": [
-            "CHART-2b87513c"
-        ]
-    },
-    "DASHBOARD_VERSION_KEY": "v2"
-}
-    """)
+    js = POSITION_JSON
     pos = json.loads(js)
     update_slice_ids(pos, slices)
     dash.position_json = json.dumps(pos, indent=4)
