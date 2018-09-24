@@ -43,22 +43,29 @@ If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset
-    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
-    cp contrib/docker/superset_config.py superset/
-    bash -x docker-build.sh
-    docker-compose up -d
-    docker-compose exec superset bash
-    bash docker-init.sh
+    cd incubator-superset/contrib/docker
+    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
+    docker-compose run --rm superset ./docker-init.sh
+    # you can run this command everytime you need to start superset now:
+    docker-compose up
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
+From there, the container server will reload on modification of the superset python
+and javascript source code.
+Don't forget to reload the page to take the new frontend into account though.
+
+See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+for alternative way of serving the frontend.
+
+It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
+the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
-Or if you're curious and want to install superset from bottom up, then go 
-ahead.
+Or if you're curious and want to install superset from bottom up, then go ahead.
 
 OS dependencies
 ---------------
