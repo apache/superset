@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'react-bootstrap';
+import dompurify from 'dompurify';
 
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
@@ -180,9 +181,13 @@ class Chart extends React.PureComponent {
           positionLeft={this.state.tooltip.x + 30}
           arrowOffsetTop={10}
         >
-          <div // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: this.state.tooltip.content }}
-          />
+          {typeof (this.state.tooltip.content) === 'string' ?
+            <div // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{ __html: dompurify.sanitize(this.state.tooltip.content) }}
+            />
+            :
+            this.state.tooltip.content
+          }
         </Tooltip>
       );
     }
