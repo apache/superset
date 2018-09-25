@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import $ from 'jquery';
 import '../../helpers/shim';
-import tableVis from '../../../src/visualizations/table';
+import tableVis from '../../../src/visualizations/Table/adaptor';
 
 describe('table viz', () => {
   const div = '<div id="slice-container"><div class="dataTables_wrapper"></div></div>';
@@ -17,6 +17,7 @@ describe('table viz', () => {
     getFilters: () => ({}),
     removeFilter() {},
     addFilter() {},
+    width: () => 0,
     height: () => 0,
   };
   const basePayload = {
