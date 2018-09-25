@@ -16,6 +16,7 @@
     "dev-server": "webpack-dev-server --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "NODE_ENV=production webpack --mode=production --colors --progress",
+    "build-dev": "webpack --mode=development --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
     "sync-backend": "babel-node --presets env src/syncBackend.js",

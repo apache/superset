@@ -7,7 +7,9 @@ services:
   - postgres
   - redis-server
 cache:
-  - pip
+  pip: true
+  directories:
+    superset/assets/node_modules
 matrix:
   include:
     - python: 2.7
