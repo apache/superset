@@ -119,7 +119,7 @@ function addBgLayers(map, conf, accessToken) {
           data: '/geo_assets/' + conf[key].path,
         },
         paint: paint[conf[key]['fill-type']],
-        layout: layout,
+        layout,
       });
     }
   }
@@ -159,7 +159,7 @@ class MapGLDraw extends MapGL {
           coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
         updatePopup({
-          coordinates: coordinates,
+          coordinates,
           html: dompurify.sanitize(jsTooltip(properties)),
         });
       });
@@ -174,6 +174,7 @@ class MapGLDraw extends MapGL {
       eventManager: this._eventManager,
     };
   }
+
   componentDidMount() {
     this.props.onRef(this);
     super.componentDidMount();
@@ -185,10 +186,10 @@ class MapGLDraw extends MapGL {
     const filters = this.props.slice.getFilters() || {};
     const addTooltips = this.addTooltips;
     const accessToken = this.props.mapboxApiAccessToken;
-    
+
     map.on('load', function () {
       // Displays the data distributions
-      addBgLayers(map,  geoJSONBgLayers, accessToken);     
+      addBgLayers(map,  geoJSONBgLayers, accessToken);
       map.addLayer({
         id: 'points',
         type: 'circle',
@@ -212,6 +213,7 @@ class MapGLDraw extends MapGL {
       });
       addTooltips('points');
       map.addControl(this.draw, 'top-right');
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
       // Draw existing polygons on a refresh
       for (const filter in filters) {
@@ -220,7 +222,7 @@ class MapGLDraw extends MapGL {
         }
       }
 
-      
+
       function updateFilter(e) {
         let featureCollection = {};
         if (e.features.length > 0) {
@@ -241,7 +243,7 @@ class MapGLDraw extends MapGL {
         updateFilter(this.draw.getSelected());
       });
     });
-  }  
+  }
 
   componentWillUnmount() {
     this.props.onRef(null);
@@ -256,7 +258,7 @@ class MapGLDraw extends MapGL {
 const childContextTypes = {
   viewport: PropTypes.instanceOf(WebMercatorViewport),
   isDragging: PropTypes.bool,
-  eventManager: PropTypes.object
+  eventManager: PropTypes.object,
 };
 MapGLDraw.propTypes = Object.assign({}, MapGL.propTypes, {
   geoJSON: PropTypes.object,
@@ -281,7 +283,7 @@ function getBgLayersLegend(layers) {
           icon: layers[key].icon,
         };
     }
-
+    console.log(legends);
     return legends;
     }
 
@@ -291,7 +293,7 @@ function getBgLayersLegend(layers) {
  * necessary configurations and, crucially, keeps a state for the component.
  */
 class MapFilter extends React.Component {
-  
+
   constructor(props) {
     super(props);
     const data = this.props.json.data;
@@ -304,32 +306,31 @@ class MapFilter extends React.Component {
         zoom: data.viewportZoom || DEFAULT_ZOOM,
         startDragLngLat: [longitude, latitude],
       },
-      popup: null
+      popup: null,
     };
     this.colors = getCategories(
       this.props.slice.formData,
       this.props.json.data.geoJSON.features,
     );
-    
+
     this.bgLayers = getBgLayersLegend(this.props.json.data.geoJSONBgLayers);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleLayer = this.toggleLayer.bind(this);
     this.tick = this.tick.bind(this);
     this.updatePopup = this.updatePopup.bind(this);
   }
+
   componentWillMount() {
     const timer = setInterval(this.tick, 1000);
     this.setState(() => ({ timer }));
   }
+
   componentWillUnmount() {
     this.clearInterval(this.state.timer);
-   }
+  }
+
   onViewportChange(viewport) {
     this.setState({ viewport });
-    // this.props.setControlValue('viewport', viewport);
-    // this.props.setControlValue('viewport_longitude', viewport.longitude);
-    // this.props.setControlValue('viewport_latitude', viewport.latitude);
-    // this.props.setControlValue('viewport_zoom', viewport.zoom);
   }
 
   tick() {
@@ -351,6 +352,7 @@ class MapFilter extends React.Component {
     this.state.popup = popup;
     this.forceUpdate();
   }
+
   _renderPopup() {
     const popup = this.state.popup;
     return popup && (
@@ -361,8 +363,7 @@ class MapFilter extends React.Component {
         latitude={popup.coordinates[1]}
         onClose={() => this.setState({ popup: null })}
       >
-        <div dangerouslySetInnerHTML={{__html: popup.html }}>
-        </div>
+        <div dangerouslySetInnerHTML={{__html: popup.html }} />
       </Popup>
     );
   }
@@ -389,10 +390,10 @@ class MapFilter extends React.Component {
             position="br"
             categories={this.colors}
           />
-          
+
         </MapGLDraw>
         <LayerSelector
-          position="tr"
+          position="br"
           toggleLayer={this.toggleLayer}
           layers={this.bgLayers}
         />
@@ -418,7 +419,6 @@ function mapFilter(slice, json, setControlValue) {
 
   const div = d3.select(slice.selector);
   div.selectAll('*').remove();
-  console.log(slice.width());
   ReactDOM.render(
     <MapFilter
       json={json}

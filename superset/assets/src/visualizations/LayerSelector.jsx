@@ -28,36 +28,40 @@ export default class LayerSelector extends React.PureComponent {
     }
     this.handleInputChange = this.handleInputChange.bind(this);
   }
-  
+
   handleInputChange(event) {
     const target = event.target;
     this.setState({
       [target.name]: target.checked,
     });
     this.props.toggleLayer(target.name, target.checked);
-    
+
   }
 
   renderColorBar(colorBar) {
     if (colorBar) {
+
       const colorBars = colorBar.map(bar => (
         <p
           style={{ 'line-height': '5px' }}
           key={bar[0]}
         >
-          {'\u2002\u2002\u2002\u2002' + bar[0] + '\u2002'}
-          <span style={{ color: 'rgba(' + bar[1].join(', ') + ')' }}>{'\u25FC'}
+          <span style={{ color: 'rgba(' + bar[1].join(', ') + ')' }}>
+            {'\u25FC'}
           </span>
-        </p>));
-      
+          {bar[0]}
+        </p>
+      ));
+
       return (
-        <div>
+        <div className="colorBar">
           { colorBars }
         </div>
         );
       }
-    return;
+    return null;
   }
+
   render() {
     if (Object.keys(this.props.layers).length === 0) {
       return null;
@@ -67,20 +71,25 @@ export default class LayerSelector extends React.PureComponent {
       let style = {};
       let icon = '';
       if (v.type === 'vector') {
-        if (v["fill-type"] === "fill"){
+        if (v['fill-type'] === 'fill') {
           style = { color: 'rgba(' + v.color.join(', ') + ')' };
-          icon = '\u25FC'
-        } else if (v["fill-type"] === "line"){
+          icon = '\u25FC';
+        } else if (v['fill-type'] === 'point') {
+          style = { color: 'rgba(' + v.color.join(', ') + ')' };
+          icon = '\u26AB';
+        } else if (v['fill-type'] === 'line') {
           style = { color: 'rgba(' + v.color.join(', ') + ')' };
           icon = '\u2014';
-        } else if (v["fill-type"] === "symbol"){
-          style = {
-            'background-image': 'url("https://cdn.rawgit.com/mapbox/mapbox-gl-styles/master/sprites/bright-v9/_svg/' + v["icon"] +'.svg")',
-            width: '20px',
-            height: '20px',
-            display: 'inline-block'
-          };
-          icon = '';
+        } else if (v['fill-type'] === 'symbol') {
+        style = {
+          'background-image': 'url("https://cdn.rawgit.com/mapbox/mapbox' +
+            '-gl-styles/master/sprites/bright-v9/_svg/' + v.icon + '.svg")',
+          width: '20px',
+          height: '20px',
+          display: 'inline-block',
+          'background-position-x': '-3px',
+        };
+        icon = '';
         }
 
       }
@@ -92,29 +101,34 @@ export default class LayerSelector extends React.PureComponent {
             checked={this.state[k]}
             onChange={this.handleInputChange}
           />
-          {v.legend + '\u2002'}
           <span style={style}>{icon}</span>
+          <label htmlFor={k}>
+            {v.legend + '\u2002'}
+          </label>
           {this.renderColorBar(v.color_bar)}
         </li>
       );
     });
-    return (
-      <div
-        className={'layerSelector'}
-      >
-        <Button className={'cbutton'} onClick={() => this.setState({ open: !this.state.open })}>
-          Layers
-        </Button>
-        <Collapse in={this.state.open} dimension={'width'}>
-          <div>
-            <Well className={'well'}>
-              <h6> Layers </h6>
-              <ul>{layers}</ul>
-            </Well>
-          </div>
-        </Collapse>
-      </div>
 
+    return (
+      <div>
+        <Button
+          className={'cbutton'}
+          onClick={() => this.setState({ open: !this.state.open })}
+        >
+          <i className="material-icons">layers</i>
+        </Button>
+        <div className={'layerSelector'}>
+          <Collapse in={this.state.open} dimension={'width'}>
+            <div>
+              <Well className={'well'}>
+                <h6> Layers </h6>
+                <ul>{layers}</ul>
+              </Well>
+            </div>
+          </Collapse>
+        </div>
+      </div>
     );
   }
 }

@@ -1,23 +1,63 @@
 div.layerSelector  {
-    display: inline;
+    display: inline-block;
     position: absolute;
-    top: 110px;
-    right: 30px;
-
+    bottom: 16px;
+    right: 44px;
+    z-index: 2;
 }
 
 div.well {
     background: #fff;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
-    margin: 12px;
     padding: 6px 12px;
     outline: none;
+    width: 300px;
+    margin: 0px;
+    border: 2px solid #dcdcdc;
+    border-radius: 8px; 
 
 }
 button.cbutton {
     position: absolute;
-    top: 0px;
-    right: 0px;
+    top: 150px;
+    right: 51px;
     background: #fff;
+    padding: 5px;
+    border: 2px solid #dcdcdc;
+    border-radius: 8px;
+    width: 34px;
+}
 
+.cbutton .material-icons{
+  font-size: 20px;
+  color: black;
+}
+
+li{
+  list-style: none;
+}
+
+li span{
+  width: 20px;
+  margin-right: 10px;
+  display: inline-block;
+}
+
+ul{
+  padding-left: 10px;
+}
+
+ul input[type="checkbox"]{
+  margin-right:15px;
+  width:16px;
+  height:16px;
+}
+
+.colorBar{
+  margin-left:31px;
+  margin-top:5px;
+}
+
+.collapse{
+  overflow: hidden;
 }
