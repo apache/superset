@@ -1,3 +1,7 @@
+.partition {
+  position: relative;
+}
+
 .partition .chart {
   display: block;
   margin: auto;
@@ -18,10 +22,25 @@
 
 .partition g text {
   font-weight: bold;
-  pointer-events: none;
   fill: rgba(0, 0, 0, 0.8);
 }
 
 .partition g:hover text {
   fill: rgba(0, 0, 0, 1);
+}
+
+.partition .partition-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  padding: 5px;
+  pointer-events: none;
+  background-color: rgba(255,255,255, 0.75);
+  border-radius: 5px;
+}
+
+.partition-tooltip td {
+  padding-left: 5px;
+  font-size: 11px;
 }

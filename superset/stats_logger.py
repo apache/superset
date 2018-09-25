@@ -29,6 +29,9 @@ class BaseStatsLogger(object):
         """Decrement a counter"""
         raise NotImplementedError()
 
+    def timing(self, key, value):
+        raise NotImplementedError()
+
     def gauge(self, key):
         """Setup a gauge"""
         raise NotImplementedError()
@@ -43,6 +46,11 @@ class DummyStatsLogger(BaseStatsLogger):
         logging.debug((
             Fore.CYAN + '[stats_logger] (decr) ' + key +
             Style.RESET_ALL))
+
+    def timing(self, key, value):
+        logging.debug((
+            Fore.CYAN + '[stats_logger] (timing) {key} | {value} ' +
+            Style.RESET_ALL).format(**locals()))
 
     def gauge(self, key, value):
         logging.debug((
@@ -62,6 +70,9 @@ try:
 
         def decr(self, key):
             self.client.decr(key)
+
+        def timing(self, key, value):
+            self.client.timing(key, value)
 
         def gauge(self, key):
             # pylint: disable=no-value-for-parameter

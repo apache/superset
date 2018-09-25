@@ -6,19 +6,21 @@ import PropTypes from 'prop-types';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
-import { getColorFromScheme, hexToRGB } from '../../modules/colors';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const colorFn = getScale(fd.color_scheme).toFunction();
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
       } else {
         color = fixedColor;
       }
@@ -30,11 +32,11 @@ function getCategories(fd, data) {
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  data: PropTypes.array.isRequired,
   mapboxApiKey: PropTypes.string.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
+  payload: PropTypes.object.isRequired,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -50,11 +52,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     const fd = nextProps.slice.formData;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.data.map(f => f.__timestamp);
-    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.data);
+    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const categories = getCategories(fd, nextProps.payload.data.features);
 
-    return { start, end, step, values, disabled, categories };
+    return { start, end, getStep, values, disabled, categories };
   }
   constructor(props) {
     super(props);
@@ -67,20 +69,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   componentWillReceiveProps(nextProps) {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
   }
-  addColor(data, fd) {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    return data.map((d) => {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
-        return { ...d, color };
-      }
-      return d;
-    });
-  }
   getLayers(values) {
-    const fd = this.props.slice.formData;
-    let data = [...this.props.data];
+    const { getLayer, payload, slice } = this.props;
+    const fd = slice.formData;
+    let data = [...payload.data.features];
 
     // Add colors from categories or fixed color
     data = this.addColor(data, fd);
@@ -103,7 +95,20 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    return [this.props.getLayer(fd, data, this.props.slice)];
+    payload.data.features = data;
+    return [getLayer(fd, payload, slice)];
+  }
+  addColor(data, fd) {
+    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const colorFn = getScale(fd.color_scheme).toFunction();
+    return data.map((d) => {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
+        return { ...d, color };
+      }
+      return d;
+    });
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
@@ -132,7 +137,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}
-          step={this.state.step}
+          getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
           viewport={this.props.viewport}

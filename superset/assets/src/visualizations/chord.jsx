@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getColorFromScheme } from '../modules/colors';
+import { getScale } from '../modules/CategoricalColorNamespace';
 import './chord.css';
 
 const propTypes = {
@@ -31,6 +31,7 @@ function chordVis(element, props) {
   const div = d3.select(element);
   const { nodes, matrix } = data;
   const f = d3.format(numberFormat);
+  const colorFn = getScale(colorScheme).toFunction();
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;
@@ -78,7 +79,7 @@ function chordVis(element, props) {
   const groupPath = group.append('path')
     .attr('id', (d, i) => 'group' + i)
     .attr('d', arc)
-    .style('fill', (d, i) => getColorFromScheme(nodes[i], colorScheme));
+    .style('fill', (d, i) => colorFn(nodes[i]));
 
   // Add a text label.
   const groupText = group.append('text')
@@ -102,7 +103,7 @@ function chordVis(element, props) {
     .on('mouseover', (d) => {
       chord.classed('fade', p => p !== d);
     })
-    .style('fill', d => getColorFromScheme(nodes[d.source.index], colorScheme))
+    .style('fill', d => colorFn(nodes[d.source.index]))
     .attr('d', path);
 
   // Add an elaborate mouseover title for each chord.

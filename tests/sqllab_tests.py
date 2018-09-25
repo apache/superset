@@ -15,6 +15,7 @@ from superset import db, security_manager, utils
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.utils import get_main_database
 from .base_tests import SupersetTestCase
 
 
@@ -62,7 +63,7 @@ class SqlLabTests(SupersetTestCase):
         self.assertLess(0, len(data['data']))
 
     def test_sql_json_has_access(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         security_manager.add_permission_view_menu('database_access', main_db.perm)
         db.session.commit()
         main_db_permission_view = (

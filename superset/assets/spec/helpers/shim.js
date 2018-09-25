@@ -2,6 +2,10 @@
 import 'babel-polyfill';
 import chai from 'chai';
 import jsdom from 'jsdom';
+import { configure } from 'enzyme';
+import Adapter from 'enzyme-adapter-react-16';
+
+configure({ adapter: new Adapter() });
 
 require('babel-register')({
   // NOTE: If `dynamic-import-node` is in .babelrc alongside
@@ -30,6 +34,10 @@ global.navigator = {
   appName: 'Netscape',
 };
 
+// Fix `Option is not defined`
+// https://stackoverflow.com/questions/39501589/jsdom-option-is-not-defined-when-running-my-mocha-test
+global.Option = window.Option;
+
 // Configuration copied from https://github.com/sinonjs/sinon/issues/657
 // allowing for sinon.fakeServer to work
 
@@ -47,3 +55,4 @@ global.window.XMLHttpRequest = global.XMLHttpRequest;
 global.window.location = { href: 'about:blank' };
 global.window.performance = { now: () => new Date().getTime() };
 global.$ = require('jquery')(global.window);
+

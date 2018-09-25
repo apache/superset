@@ -66,12 +66,10 @@ describe('Chart', () => {
     });
 
     it('should call after resize', () => {
-      const prevProp = wrapper.props();
       wrapper.setProps({
         chartStatus: 'rendered',
         height: 100,
       });
-      wrapper.instance().componentDidUpdate(prevProp);
       expect(stub.callCount).to.equals(1);
     });
   });

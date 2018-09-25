@@ -1,9 +1,6 @@
-/* eslint no-unused-vars: 0 */
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
-
+import { Table, Tr, Td, unsafe } from 'reactable';
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
@@ -64,4 +61,5 @@ export default class DashboardTable extends React.PureComponent {
     return <Loading />;
   }
 }
+
 DashboardTable.propTypes = propTypes;
