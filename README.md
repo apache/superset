@@ -188,3 +188,5 @@ the world know they are using Superset. Join our growing community!
  - [Yahoo!](https://yahoo.com/)
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
+ - [Fordeal](http://www.fordeal.com)
+
