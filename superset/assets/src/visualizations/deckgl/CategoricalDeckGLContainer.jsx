@@ -6,13 +6,24 @@ import PropTypes from 'prop-types';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
-import { getScale } from '../../modules/CategoricalColorNamespace';
-import { hexToRGB } from '../../modules/colors';
-import { getPlaySliderParams } from '../../modules/time';
+import {
+  getScale
+} from '../../modules/CategoricalColorNamespace';
+import {
+  hexToRGB
+} from '../../modules/colors';
+import {
+  getPlaySliderParams
+} from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 
 function getCategories(fd, data) {
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.color_picker || {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1
+  };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const colorFn = getScale(fd.color_scheme).toFunction();
   const categories = {};
@@ -24,7 +35,10 @@ function getCategories(fd, data) {
       } else {
         color = fixedColor;
       }
-      categories[d.cat_color] = { color, enabled: true };
+      categories[d.cat_color] = {
+        color,
+        enabled: true,
+      };
     }
   });
   return categories;
@@ -48,19 +62,32 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    */
 
   /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps) {
+  static getDerivedStateFromProps(nextProps, currentState) {
     const fd = nextProps.slice.formData;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.payload.data.features);
+    const {
+      start,
+      end,
+      getStep,
+      values,
+      disabled
+    } = getPlaySliderParams(timestamps, timeGrain);
+    const categories = currentState.categories || getCategories(fd, nextProps.payload.data.features);
 
-    return { start, end, getStep, values, disabled, categories };
+    return {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+      categories
+    };
   }
   constructor(props) {
     super(props);
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props);
+    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props, {});
 
     this.getLayers = this.getLayers.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
@@ -70,42 +97,56 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
   }
   getLayers(values) {
-    const { getLayer, payload, slice } = this.props;
+    const {
+      getLayer,
+      payload,
+      slice
+    } = this.props;
     const fd = slice.formData;
-    let data = [...payload.data.features];
+    let features = [...payload.data.features];
 
     // Add colors from categories or fixed color
-    data = this.addColor(data, fd);
+    features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {
       const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      data = jsFnMutator(data);
+      features = jsFnMutator(features);
     }
 
     // Filter by time
     if (values[0] === values[1] || values[1] === this.end) {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
     } else {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
     }
 
     // Show only categories selected in the legend
     if (fd.dimension) {
-      data = data.filter(d => this.state.categories[d.cat_color].enabled);
+      features = features.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    payload.data.features = data;
-    return [getLayer(fd, payload, slice)];
+    return [getLayer(fd, { ...payload,
+      data: { ...payload.data,
+        features
+      }
+    }, slice)];
   }
   addColor(data, fd) {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+    const c = fd.color_picker || {
+      r: 0,
+      g: 0,
+      b: 0,
+      a: 1
+    };
     const colorFn = getScale(fd.color_scheme).toFunction();
     return data.map((d) => {
       let color;
       if (fd.dimension) {
         color = hexToRGB(colorFn(d.cat_color), c.a * 255);
-        return { ...d, color };
+        return { ...d,
+          color
+        };
       }
       return d;
     });
@@ -113,22 +154,33 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
     categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories, [category]: categoryState };
+    const categories = { ...this.state.categories,
+      [category]: categoryState
+    };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
-      Object.values(categories).forEach((v) => { v.enabled = true; });
+      Object.values(categories).forEach((v) => {
+        v.enabled = true;
+      });
     }
 
-    this.setState({ categories });
+    this.setState({
+      categories
+    });
   }
   showSingleCategory(category) {
-    const categories = { ...this.state.categories };
+    const categories = { ...this.state.categories
+    };
     /* eslint-disable no-param-reassign */
-    Object.values(categories).forEach((v) => { v.enabled = false; });
+    Object.values(categories).forEach((v) => {
+      v.enabled = false;
+    });
     categories[category].enabled = true;
-    this.setState({ categories });
+    this.setState({
+      categories
+    });
   }
   render() {
     return (
