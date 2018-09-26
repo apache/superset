@@ -142,6 +142,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    template_params = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
