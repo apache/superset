@@ -1,3 +1,5 @@
+import { selectResultsTab } from '../../selectors';
+
 describe('SqlLab datasource panel', () => {
   beforeEach(() => {
     cy.login();
@@ -18,6 +20,7 @@ describe('SqlLab datasource panel', () => {
     cy.get('.sql-toolbar .Select')
       .eq(0)
       .within(() => {
+        // note: we have to set force: true because the input is invisible / cypress throws
         cy.get('input').type('main{enter}', { force: true });
       })
       .then(() => {
@@ -36,7 +39,7 @@ describe('SqlLab datasource panel', () => {
       })
       .then(() => {
         cy.get('.sql-toolbar .table-schema').should('have.length', 1);
-        cy.get('.SouthPane .tab-content .filterable-table-container').should('have.length', 1);
+        selectResultsTab().should('have.length', 1);
       })
       .then(() => {
         cy.get('.sql-toolbar .Select')
@@ -47,7 +50,7 @@ describe('SqlLab datasource panel', () => {
       })
       .then(() => {
         cy.get('.sql-toolbar .table-schema').should('have.length', 2);
-        cy.get('.SouthPane .tab-content .filterable-table-container').should('have.length', 2);
+        selectResultsTab().should('have.length', 2);
       });
   });
 });
