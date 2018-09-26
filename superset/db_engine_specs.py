@@ -374,6 +374,7 @@ class BaseEngineSpec(object):
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         cursor.execute(query)
+        #print()
 
     @classmethod
     def make_label_compatible(cls, label):

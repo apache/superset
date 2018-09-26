@@ -52,6 +52,7 @@ export default class ResultSet extends React.PureComponent {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results
+      //check inside here if the query with the results contains csv 
       && nextProps.query.results.data.length > 0) {
       this.setState(
         { data: nextProps.query.results.data },
@@ -83,7 +84,9 @@ export default class ResultSet extends React.PureComponent {
     this.setState({ searchText: event.target.value });
   }
   fetchResults(query) {
-    this.props.actions.fetchQueryResults(query);
+    console.log("this is what I ger back from the database. I wish there could be some info here about whether to render it as a csv.");
+    console.log(query)
+    this.props.actions.fetchQueryResults(query, true);
   }
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
@@ -93,6 +96,14 @@ export default class ResultSet extends React.PureComponent {
     if (query.errorMessage && query.errorMessage.indexOf('session timed out') > 0) {
       this.props.actions.runQuery(query, true);
     }
+  }
+  exportCsv(){
+    console.log("I call the right thing for now")
+    this.props.actions.rerunQueryforCSVExport(this.props.query);
+    // this.props.actions.fetchCSVResults(this.props.query);
+    // runQuery(this.props.query, true)
+    // action should make an API call to know if we need to rerun and if we do, 
+    // call rerun the right way and then download the csv!
   }
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
@@ -108,8 +119,8 @@ export default class ResultSet extends React.PureComponent {
                     actions={this.props.actions}
                   />}
                 {this.props.csv &&
-                  <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
-                    <i className="fa fa-file-text-o" /> {t('.CSV')}
+                  <Button onClick={this.exportCsv.bind(this)} bsSize="small">
+                    <i className="fa fa-file-text-o" /> {t('Export to CSV')}
                   </Button>}
               </ButtonGroup>
             </div>

@@ -149,6 +149,8 @@ export const sqlLabReducer = function (state = {}, action) {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
+      console.log(action);
+      console.log("jere are all the things in action ^^ ");
       let rows;
       if (action.results.data) {
         rows = action.results.data.length;

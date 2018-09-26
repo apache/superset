@@ -82,13 +82,15 @@ def session_scope(nullpool):
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
     ctask, query_id, rendered_query, run_async=False,
-        user_name=None, start_time=None):
+        user_name=None, start_time=None, for_csv=False):
     """Executes the sql query returns the results."""
+    print("rendered_query is {}".format(rendered_query))
+    print("for_csv is {}".format(for_csv))
     with session_scope(not ctask.request.called_directly) as session:
         try:
             return execute_sql(
                 ctask, query_id, rendered_query, run_async, user_name,
-                session=session, start_time=start_time)
+                session=session, start_time=start_time, for_csv=for_csv)
         except Exception as e:
             logging.exception(e)
             stats_logger.incr('error_sqllab_unhandled')
@@ -102,7 +104,7 @@ def get_sql_results(
 
 def execute_sql(
     ctask, query_id, rendered_query, run_async=False, store_results=False,
-    user_name=None, session=None, start_time=None,
+    user_name=None, session=None, start_time=None, for_csv=False,
 ):
     """Executes the sql query returns the results."""
     if run_async and start_time:
@@ -155,10 +157,14 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    if (superset_query.is_select() and SQL_MAX_ROWS and
+
+    print(for_csv)
+    if ((not for_csv) and superset_query.is_select() and SQL_MAX_ROWS and
             (not query.limit or query.limit > SQL_MAX_ROWS)):
+        print("I got into the part where we can change the value.")
         query.limit = SQL_MAX_ROWS
         executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
+        print(executed_sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')

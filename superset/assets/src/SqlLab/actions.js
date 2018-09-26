@@ -87,8 +87,9 @@ export function startQuery(query) {
   return { type: START_QUERY, query };
 }
 
-export function querySuccess(query, results) {
-  return { type: QUERY_SUCCESS, query, results };
+export function querySuccess(query, results, csv=false) {
+  console.log("this is the csv case and I am updating the redux store!");
+  return { csv: csv, type: QUERY_SUCCESS, query, results };
 }
 
 export function queryFailed(query, msg, link) {
@@ -119,10 +120,12 @@ function getErrorLink(err) {
   return link;
 }
 
-export function fetchQueryResults(query) {
+export function fetchQueryResults(query, csv=false) {
+  console.log("I get into fetchquery results");
   return function (dispatch) {
     dispatch(requestQueryResults(query));
-    const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;
+    console.log(query)
+    const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;// `/superset/csv/${query.client_id}/`; 
     $.ajax({
       type: 'GET',
       dataType: 'text',
@@ -130,6 +133,11 @@ export function fetchQueryResults(query) {
       success(results) {
         const parsedResults = JSONbig.parse(results);
         dispatch(querySuccess(query, parsedResults));
+        console.log("I get to the next line")
+        if (csv){
+          console.log("I get inside the zone!")
+          dispatch(fetchCSVResults(query));
+        }
       },
       error(err) {
         let msg = t('Failed at retrieving results from the results backend');
@@ -142,7 +150,9 @@ export function fetchQueryResults(query) {
   };
 }
 
-export function runQuery(query) {
+//rerunQueryforCSVExport(this.props.query);
+export function rerunQueryforCSVExport(query) {
+  console.log('I am in the export csv runQuery function');
   return function (dispatch) {
     dispatch(startQuery(query));
     const sqlJsonRequest = {
@@ -158,7 +168,7 @@ export function runQuery(query) {
       select_as_cta: query.ctas,
       templateParams: query.templateParams,
     };
-    const sqlJsonUrl = '/superset/sql_json/' + window.location.search;
+    const sqlJsonUrl = '/superset/csv_export_rerun/' + window.location.search;
     $.ajax({
       type: 'POST',
       dataType: 'json',
@@ -166,7 +176,102 @@ export function runQuery(query) {
       data: sqlJsonRequest,
       success(results) {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, results));
+          //****
+          dispatch(querySuccess(query, results, true));
+        }
+      },
+      error(err, textStatus, errorThrown) {
+        let msg;
+        try {
+          msg = err.responseJSON.error;
+        } catch (e) {
+          if (err.responseText !== undefined) {
+            msg = err.responseText;
+          }
+        }
+        if (msg === null) {
+          if (errorThrown) {
+            msg = `[${textStatus}] ${errorThrown}`;
+          } else {
+            msg = t('Unknown error');
+          }
+        }
+        if (msg.indexOf('CSRF token') > 0) {
+          msg = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
+        }
+        dispatch(queryFailed(query, msg, getErrorLink(err)));
+      },
+    });
+  };
+}
+
+export function fetchCSVResults(query) {
+  return function (dispatch) {
+    dispatch(requestQueryResults(query));
+    console.log(query)
+    console.log('hereis the info at time of calling csv stuff')
+    const csvUrl = `/superset/csv/${query.id}`;
+    $.ajax({
+      type: 'GET',
+      dataType: 'text',
+      url: csvUrl,
+      success(results) {
+        //const parsedResults = JSONbig.parse(results);
+        //dispatch(querySuccess(query, parsedResults, csv=true));
+            var a = document.createElement('a');
+            console.log(results);
+            var binaryData = [];
+            binaryData.push(results);
+            var myblob = new Blob(binaryData, {type: "application/zip"})
+            var url = window.URL.createObjectURL(myblob)
+            a.href = url;
+            a.download = 'mycsv.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+      },
+      error(err) {
+        let msg = t('Failed at retrieving results from the results backend');
+        if (err.responseJSON && err.responseJSON.error) {
+          msg = err.responseJSON.error;
+        }
+        dispatch(queryFailed(query, msg, getErrorLink(err)));
+      },
+    });
+  };
+}
+
+export function runQuery(query, rerun=false) {
+  console.log('I am in the runQuery function');
+  return function (dispatch) {
+    dispatch(startQuery(query));
+    const sqlJsonRequest = {
+      client_id: query.id,
+      database_id: query.dbId,
+      json: true,
+      runAsync: query.runAsync,
+      schema: query.schema,
+      sql: query.sql,
+      sql_editor_id: query.sqlEditorId,
+      tab: query.tab,
+      tmp_table_name: query.tempTableName,
+      select_as_cta: query.ctas,
+      templateParams: query.templateParams,
+      rerun: rerun,
+    };
+    const sqlJsonUrl = '/superset/sql_json/' + window.location.search;
+    //if (rerun) {
+    //  console.log('here is the right move');
+    //  dispatch(querySuccess(query, results))
+    //}
+    $.ajax({
+      type: 'POST',
+      dataType: 'json',
+      url: sqlJsonUrl,
+      data: sqlJsonRequest,
+      success(results) {
+        if (!query.runAsync) {
+          //****
+          dispatch(querySuccess(query, results, true));
         }
       },
       error(err, textStatus, errorThrown) {

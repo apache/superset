@@ -2376,13 +2376,17 @@ class Superset(BaseSupersetView):
     @expose('/sql_json/', methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
+        # make this function potentially just take update the state to pending. If rerun is set to 1.
         """Runs arbitrary sql and returns and json"""
         async_ = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
+        rerun = request.form.get('rerun')
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
+        print("here are all the items in the request form")
+        print(request.form)
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2408,28 +2412,42 @@ class Superset(BaseSupersetView):
             )
 
         client_id = request.form.get('client_id') or utils.shortid()
+        SQL_MAX_ROW = config.get('SQL_MAX_ROW')
 
-        query = Query(
-            database_id=int(database_id),
-            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
-            sql=sql,
-            schema=schema,
-            select_as_cta=request.form.get('select_as_cta') == 'true',
-            start_time=utils.now_as_float(),
-            tab_name=request.form.get('tab'),
-            status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
-            sql_editor_id=request.form.get('sql_editor_id'),
-            tmp_table_name=tmp_table_name,
-            user_id=g.user.get_id() if g.user else None,
-            client_id=client_id,
-        )
-        session.add(query)
-        session.flush()
-        query_id = query.id
-        session.commit()  # shouldn't be necessary
-        if not query_id:
-            raise Exception(_('Query record was not created as expected.'))
-        logging.info('Triggering query_id: {}'.format(query_id))
+        print("rerun is {}".format(rerun))
+        print(type(rerun))
+        if rerun == 'true':
+            client_id = request.form.get('client_id')
+            print("client_id is {}".format(client_id))
+            query = (
+                db.session.query(Query)
+                .filter_by(client_id=client_id)
+                .one())
+                #get the query by id. """
+            print("It is a rerun case!")
+        else:
+            # make a new one
+            query = Query(
+                database_id=int(database_id),
+                limit=mydb.db_engine_spec.get_limit_from_sql(sql),
+                sql=sql,
+                schema=schema,
+                select_as_cta=request.form.get('select_as_cta') == 'true',
+                start_time=utils.now_as_float(),
+                tab_name=request.form.get('tab'),
+                status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
+                sql_editor_id=request.form.get('sql_editor_id'),
+                tmp_table_name=tmp_table_name,
+                user_id=g.user.get_id() if g.user else None,
+                client_id=client_id,
+            )
+            session.add(query)
+            session.flush()
+            query_id = query.id
+            session.commit()  # shouldn't be necessary
+            if not query_id:
+                raise Exception(_('Query record was not created as expected.'))
+            logging.info('Triggering query_id: {}'.format(query_id))
 
         try:
             template_processor = get_template_processor(
@@ -2496,6 +2514,72 @@ class Superset(BaseSupersetView):
             return json_error_response(payload=data)
         return json_success(payload)
 
+
+    @has_access_api
+    @expose('/csv_export_rerun/', methods=['POST', 'GET'])
+    @log_this
+    def csv_export_rerun(self):
+        # This endpoint will rerun a new query with the higher limit if necessary. SHould be followed by polling for the query in question. 
+        """Runs arbitrary sql and returns and json"""
+
+        #first make sure the query already exists. 
+        #if sync, return the csv result like that, otherwise, return the response with the query information. 
+        client_id = request.form.get('client_id')
+
+        query = (
+            db.session.query(Query)
+            .filter_by(client_id=client_id)
+            .one()
+        )
+
+        SQL_MAX_ROW = config.get('SQL_MAX_ROW')
+        CSV_MAX_ROW = app.config.get('CSV_MAX_ROW')
+        # get the query limit specified in the query.
+        mydb = db.session.query(models.Database).filter_by(id=query.database.id).first()
+        user_specified_limit =  mydb.db_engine_spec.get_limit_from_sql(query.sql)
+        #set the limit_used to the
+        print("vvvv")
+        print(user_specified_limit)
+        print(query.limit)
+        print(SQL_MAX_ROW)
+        print("^^^^")
+        if user_specified_limit > SQL_MAX_ROW:
+            #some change is definitely happening
+            query.limit = min(user_specified_limit, CSV_MAX_ROW)
+            print('rerunning the query!!!~~~')
+            query.executed_sql = query.database.apply_limit_to_sql(query.sql, query.limit)
+            print(query.executed_sql)
+            sql_lab.get_sql_results.delay(query.id,
+                    query.executed_sql,
+                    run_async=True,
+                    user_name=g.user.username,
+                    start_time=utils.now_as_float(),
+                    for_csv=True)
+            db.session.commit()
+            # return a json payload that tells it to start polling till it's done. 
+            # it should also contani a variable that tells it to call /csv instead of results once it is done. 
+            #return
+
+        query.csv=True
+
+
+        
+        #rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
+        #if rejected_tables:
+        #    return json_error_response(
+        #        security_manager.get_table_access_error_msg(rejected_tables),
+        #        link=security_manager.get_table_access_link(rejected_tables),
+        #        status=403)
+        #session.commit()
+
+
+        resp = json_success(json.dumps(
+            {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
+            ignore_nan=True), status=202)
+        db.session.commit()
+        return resp
+
+
     @has_access
     @expose('/csv/<client_id>')
     @log_this
@@ -2508,25 +2592,6 @@ class Superset(BaseSupersetView):
             .filter_by(client_id=client_id)
             .one()
         )
-
-        SQL_MAX_ROWS = config.get('SQL_MAX_ROW')
-        CSV_MAX_ROWS = app.config.get('CSV_MAX_ROW')
-        # get the query limit specified in the query. 
-        mydb = db.session.query(models.Database).filter_by(id=query.database.id).first()
-        user_specified_limit =  mydb.db_engine_spec.get_limit_from_sql(query.sql)
-
-        print(user_specified_limit)
-        if user_specified_limit > SQL_MAX_ROWS:
-            #some change is definitely happening
-            print('rerunning the query!!!~~~')
-            new_limit = min(user_specified_limit, CSV_MAX_ROWS)
-            modified_sql = query.database.apply_limit_to_sql(query.sql, new_limit)
-
-            sql_lab.get_sql_results.delay(query.id,
-                    modified_sql,
-                    run_async=True,
-                    user_name=g.user.username,
-                    start_time=utils.now_as_float())
 
 
 
