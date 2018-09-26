@@ -4,11 +4,13 @@ div.layerSelector  {
     bottom: 0px;
     right: 0px;
     z-index: 2;
+    pointer-events: auto;
 }
 
 div.layerSelectorContainer {
   position: absolute;
   top: 0px;
+  pointer-events: none;
 }
 
 div.well {
@@ -23,6 +25,7 @@ div.well {
 
 }
 button.cbutton {
+    pointer-events: auto;
     position: absolute;
     top: 90px;
     right: 8px;
