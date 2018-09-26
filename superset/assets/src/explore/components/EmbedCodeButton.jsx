@@ -113,7 +113,7 @@ export default class EmbedCodeButton extends React.Component {
         placement="left"
         overlay={this.renderPopover()}
       >
-        <span className="btn btn-default btn-sm">
+        <span className="btn btn-default btn-sm" data-test="embed-code-button">
           <i className="fa fa-code" />&nbsp;
         </span>
       </OverlayTrigger>

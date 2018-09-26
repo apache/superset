@@ -65,7 +65,7 @@ export default class ControlHeader extends React.Component {
     return (
       <div
         className="ControlHeader"
-        data-test={this.props.name}
+        data-test={`${this.props.name}-header`}
       >
         <div className="pull-left">
           <ControlLabel>
