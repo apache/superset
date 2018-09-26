@@ -262,7 +262,7 @@ class SqlaTable(Model, BaseDatasource):
     column_class = TableColumn
 
     __tablename__ = 'tables'
-    __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
+    __table_args__ = (UniqueConstraint('database_id', 'schema', 'table_name'),)
 
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
