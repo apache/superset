@@ -9,6 +9,8 @@ const propTypes = {
   toggleLayer: PropTypes.func,
   showSingleCategory: PropTypes.func,
   position: PropTypes.oneOf(['tl', 'tr', 'bl', 'br']),
+  width: PropTypes.number,
+  height: PropTypes.number,
 };
 
 const defaultProps = {
@@ -111,7 +113,10 @@ export default class LayerSelector extends React.PureComponent {
     });
 
     return (
-      <div>
+      <div
+        className={'layerSelectorContainer'}
+        style={{ width: this.props.width, height: this.props.height }}
+      >
         <Button
           className={'cbutton'}
           onClick={() => this.setState({ open: !this.state.open })}

@@ -1,9 +1,14 @@
 div.layerSelector  {
     display: inline-block;
     position: absolute;
-    bottom: 16px;
-    right: 44px;
+    bottom: 0px;
+    right: 0px;
     z-index: 2;
+}
+
+div.layerSelectorContainer {
+  position: absolute;
+  top: 0px;
 }
 
 div.well {
@@ -14,18 +19,19 @@ div.well {
     width: 300px;
     margin: 0px;
     border: 2px solid #dcdcdc;
-    border-radius: 8px; 
+    border-radius: 8px;
 
 }
 button.cbutton {
     position: absolute;
-    top: 150px;
-    right: 51px;
+    top: 90px;
+    right: 8px;
     background: #fff;
     padding: 5px;
     border: 2px solid #dcdcdc;
     border-radius: 8px;
     width: 34px;
+    z-index: 3;
 }
 
 .cbutton .material-icons{

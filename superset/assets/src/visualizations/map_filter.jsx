@@ -214,6 +214,7 @@ class MapGLDraw extends MapGL {
       addTooltips('points');
       map.addControl(this.draw, 'top-right');
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.resize();
 
       // Draw existing polygons on a refresh
       for (const filter in filters) {
@@ -370,11 +371,11 @@ class MapFilter extends React.Component {
 
   render() {
     return (
-      <div>
+      <div style={{ position: 'relative' }} className="mapFilter" >
         <MapGLDraw
           {...this.state.viewport}
           mapStyle={this.props.slice.formData.mapbox_style}
-          width={this.props.slice.width() * 1.05}
+          width={this.props.slice.width()}
           height={this.props.slice.height()}
           slice={this.props.slice}
           onViewportChange={this.onViewportChange}
@@ -390,12 +391,13 @@ class MapFilter extends React.Component {
             position="br"
             categories={this.colors}
           />
-
         </MapGLDraw>
         <LayerSelector
           position="br"
           toggleLayer={this.toggleLayer}
           layers={this.bgLayers}
+          width={this.props.slice.width()}
+          height={this.props.slice.height()}
         />
       </div>
     );
@@ -416,7 +418,7 @@ MapFilter.propTypes = {
  * For simplicity all this data is passed to the MapFilter component.
  */
 function mapFilter(slice, json, setControlValue) {
-
+  console.log(slice);
   const div = d3.select(slice.selector);
   div.selectAll('*').remove();
   ReactDOM.render(
