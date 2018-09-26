@@ -1,8 +1,11 @@
 const path = require('path');
 const webpack = require('webpack');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // Parse command-line arguments
@@ -17,6 +20,8 @@ const {
   mode = 'development',
   devserverPort = 9000,
   supersetPort = 8088,
+  measure = false,
+  analyzeBundle = false,
 } = parsedArgs;
 
 const isDevMode = mode !== 'production';
@@ -86,6 +91,15 @@ const config = {
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
+      cacheGroups: {
+        default: false,
+        commons: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'major-vendor',
+          chunks: 'all',
+          minChunks: 5,
+        },
+      },
     },
   },
   resolve: {
@@ -172,4 +186,29 @@ const config = {
   },
 };
 
-module.exports = config;
+if (!isDevMode) {
+  config.optimization.minimizer = [
+    new UglifyJsPlugin({
+      // extractComments: true,
+      // cache: true,
+      // parallel: true,
+      uglifyOptions: { ecma: 8 },
+    }),
+  ];
+}
+
+// Bundle analyzer is disabled by default
+// Pass flag --analyzeBundle=true to enable
+// e.g. npm run build -- --analyzeBundle=true
+if (analyzeBundle) {
+  config.plugins.push(new BundleAnalyzerPlugin());
+}
+
+// Speed measurement is disabled by default
+// Pass flag --measure=true to enable
+// e.g. npm run build -- --measure=true
+const smp = new SpeedMeasurePlugin({
+  disable: !measure,
+});
+
+module.exports = smp.wrap(config);
