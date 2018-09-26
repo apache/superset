@@ -29,34 +29,34 @@ describe('SqlLab query panel', () => {
     cy.visit('/superset/sqllab');
   });
 
-  // it('supports entering and running a query', () => {
-  //   // note that the limit has to be < ~10 for us to be able to determine
-  //   // how many rows are below (because React _Virtualized_ does not render all rows)
-  //   const rowLimit = 3;
-  //
-  //   cy.get('#brace-editor textarea')
-  //     .type(
-  //       `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
-  //       { force: true },
-  //     )
-  //     .then(() => {
-  //       cy.get('#js-sql-toolbar button')
-  //         .eq(0)
-  //         .click()
-  //         .then(() => {
-  //           cy.get('.SouthPane .ReactVirtualized__Table')
-  //             .eq(0) // ensures results tab in case preview tab exists
-  //             .then((tableNodes) => {
-  //               const [header, bodyWrapper] = tableNodes[0].childNodes;
-  //               const body = bodyWrapper.childNodes[0];
-  //               const expectedColCount = header.childNodes.length;
-  //               const expectedRowCount = body.childNodes.length;
-  //               expect(expectedColCount).to.equal(4);
-  //               expect(expectedRowCount).to.equal(rowLimit);
-  //             });
-  //         });
-  //     });
-  // });
+  it('supports entering and running a query', () => {
+    // note that the limit has to be < ~10 for us to be able to determine
+    // how many rows are below (because React _Virtualized_ does not render all rows)
+    const rowLimit = 3;
+
+    cy.get('#brace-editor textarea')
+      .type(
+        `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
+        { force: true },
+      )
+      .then(() => {
+        cy.get('#js-sql-toolbar button')
+          .eq(0)
+          .click()
+          .then(() => {
+            cy.get('.SouthPane .ReactVirtualized__Table')
+              .eq(0) // ensures results tab in case preview tab exists
+              .then((tableNodes) => {
+                const [header, bodyWrapper] = tableNodes[0].childNodes;
+                const body = bodyWrapper.childNodes[0];
+                const expectedColCount = header.childNodes.length;
+                const expectedRowCount = body.childNodes.length;
+                expect(expectedColCount).to.equal(4);
+                expect(expectedRowCount).to.equal(rowLimit);
+              });
+          });
+      });
+  });
 
   it('successfully saves a query', () => {
     const query = 'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
@@ -78,7 +78,6 @@ describe('SqlLab query panel', () => {
             selectResultsTab().then((resultsA) => {
               // Save results to check agains below
               initialResultsTable = resultsA[0];
-              console.log('initialResultsTable', initialResultsTable);
 
               cy.get('#js-sql-toolbar button')
                 .eq(1) // save query
@@ -91,7 +90,7 @@ describe('SqlLab query panel', () => {
                     })
                     .then(() => {
                       cy.get('.modal-sm .modal-body button')
-                        .eq(0)
+                        .eq(0) // save
                         .click()
                         .then(() => {
                           // visit saved queries
@@ -102,7 +101,7 @@ describe('SqlLab query panel', () => {
                               .click()
                               .then(() => {
                                 cy.get('#js-sql-toolbar button')
-                                  .eq(0) // Run query
+                                  .eq(0) // run query
                                   .click()
                                   .then(() => {
                                     selectResultsTab().then((resultsB) => {
@@ -120,7 +119,7 @@ describe('SqlLab query panel', () => {
                     });
                 });
             });
-          }); // run query
+          });
       });
   });
 });
