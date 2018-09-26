@@ -5,7 +5,8 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+// const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // Parse command-line arguments
@@ -94,10 +95,11 @@ const config = {
       cacheGroups: {
         default: false,
         commons: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'major-vendor',
+          name: 'major-vendors',
+          test: /[\\/]node_modules\/(jquery|brace|mathjs|react[-]dom)/,
+          // test: /[\\/]node_modules[\\/]/,
           chunks: 'all',
-          minChunks: 5,
+          priority: -10,
         },
       },
     },
@@ -188,11 +190,9 @@ const config = {
 
 if (!isDevMode) {
   config.optimization.minimizer = [
-    new UglifyJsPlugin({
-      // extractComments: true,
-      // cache: true,
-      // parallel: true,
-      uglifyOptions: { ecma: 8 },
+    new TerserPlugin({
+      parallel: true,
+      extractComments: true,
     }),
   ];
 }
