@@ -92,14 +92,12 @@ const config = {
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
+      minChunks: 2,
       cacheGroups: {
         default: false,
-        commons: {
-          name: 'major-vendors',
-          test: /[\\/]node_modules\/(jquery|brace|mathjs|react[-]dom)/,
-          // test: /[\\/]node_modules[\\/]/,
-          chunks: 'all',
-          priority: -10,
+        brace: {
+          name: 'vendors-brace',
+          test: /[\\/]node_modules\/brace[\\/]/,
         },
       },
     },
@@ -108,9 +106,9 @@ const config = {
     extensions: ['.js', '.jsx'],
   },
   module: {
-    // uglyfying mapbox-gl results in undefined errors, see
+    // uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    noParse: /(mapbox-gl)\.js$/,
+    noParse: /(mapbox[-]gl|jquery|d3|nv\.d3|datamaps\.all|event[-]flow\/build\/index)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
@@ -191,6 +189,7 @@ const config = {
 if (!isDevMode) {
   config.optimization.minimizer = [
     new TerserPlugin({
+      cache: true,
       parallel: true,
       extractComments: true,
     }),
