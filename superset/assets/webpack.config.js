@@ -94,9 +94,9 @@ const config = {
       minChunks: 2,
       cacheGroups: {
         default: false,
-        brace: {
-          name: 'vendors-brace',
-          test: /[\\/]node_modules\/brace[\\/]/,
+        major: {
+          name: 'vendors-major',
+          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js)[\\/]/,
         },
       },
     },
@@ -107,8 +107,18 @@ const config = {
   module: {
     // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    // Also skip parsing for other large external modules files
-    noParse: /(mapbox[-]gl|jquery|d3|nv\.d3|datamaps\.all|event[-]flow\/build\/index)\.js$/,
+    // Also skip parsing and transpiling large external modules files
+    noParse: new RegExp([
+      '[@]data[-]ui/event[-]flow/build/index[.]js',
+      'brace/.*/.*[.]js',
+      'd3/d3[.]js',
+      'datamaps/dist/datamaps[.].*[.]js',
+      'immutable/immutable[.]js',
+      'jquery/dist/.*[.]js',
+      'lodash/lodash[.]min[.]js',
+      'mapbox[-]gl/dist/mapbox[-]gl[.]js',
+      'react[-]dom/cjs/.*[.]min[.]js',
+    ].map(file => `node_modules/${file}`).join('|')),
     rules: [
       {
         test: /datatables\.net.*/,
