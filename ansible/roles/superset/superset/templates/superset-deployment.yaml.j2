@@ -43,14 +43,7 @@ spec:
         - containerPort: 8088
           hostPort: {{ superset_host_port }}
         resources: {}
-        volumeMounts:
-        - mountPath: /home/work/incubator-superset/superset/assets/node_modules
-          name: superset-node-modules-storage
       restartPolicy: {{ superset_docker_restart_policy }}
       nodeSelector:
-        management-nodes: "true"
-      volumes:
-      - name: superset-node-modules-storage
-        persistentVolumeClaim:
-          claimName: superset-node-modules-volume-claim
+        master-nodes: "true"
 status: {}
