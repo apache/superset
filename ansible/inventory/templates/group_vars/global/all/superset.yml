@@ -59,7 +59,7 @@ superset_postgres_db_user: "{{ superset_sql_conn_creds['admin']['postgres']['use
 superset_postgres_db_passwd: "{{ superset_sql_conn_creds['admin']['postgres']['password'] }}"
 
 
-superset_host_port: "8088"
+superset_host_port: "8888"
 superset_docker_restart_policy: "Always"
 
 #Path on hosts

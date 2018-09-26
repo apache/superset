@@ -45,12 +45,6 @@
     - name: superset-deployment
       file: superset-deployment.yaml
       type: Deployment
-    - name: superset-node-modules-volume-claim
-      file: superset-node-modules-volume-claim.yaml
-      type: PersistentVolumeClaim
-    - name: superset-persistent-volume
-      file: superset-persistent-volume.yaml
-      type: PersistentVolume  
     - name: superset-service
       file: superset-service.yaml
       type: Service
