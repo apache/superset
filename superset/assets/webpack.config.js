@@ -6,7 +6,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-// const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // Parse command-line arguments
@@ -106,8 +105,9 @@ const config = {
     extensions: ['.js', '.jsx'],
   },
   module: {
-    // uglifying mapbox-gl results in undefined errors, see
+    // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
+    // Also skip parsing for other large external modules files
     noParse: /(mapbox[-]gl|jquery|d3|nv\.d3|datamaps\.all|event[-]flow\/build\/index)\.js$/,
     rules: [
       {
