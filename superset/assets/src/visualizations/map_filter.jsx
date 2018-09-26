@@ -213,7 +213,6 @@ class MapGLDraw extends MapGL {
       });
       addTooltips('points');
       map.addControl(this.draw, 'top-right');
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
       map.resize();
 
       // Draw existing polygons on a refresh
