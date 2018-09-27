@@ -55,8 +55,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
   dateTimeFormat: PropTypes.string,
   equalDateSize: PropTypes.bool,
-  groupBy: PropTypes.arrayOf(PropTypes.string),
-  useLogScale: PropTypes.bool,
+  levels: PropTypes.arrayOf(PropTypes.string),
   metrics: PropTypes.arrayOf(PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.object,
@@ -64,8 +63,9 @@ const propTypes = {
   numberFormat: PropTypes.string,
   partitionLimit: PropTypes.number,
   partitionThreshold: PropTypes.number,
-  useRichTooltip: PropTypes.bool,
   timeSeriesOption: PropTypes.string,
+  useLogScale: PropTypes.bool,
+  useRichTooltip: PropTypes.bool,
 };
 
 // This vis is based on
@@ -78,7 +78,7 @@ function Icicle(element, props) {
     colorScheme,
     dateTimeFormat,
     equalDateSize,
-    groupBy,
+    levels,
     useLogScale = false,
     metrics = [],
     numberFormat,
@@ -218,7 +218,7 @@ function Icicle(element, props) {
       if (hasTime && depth === 1) {
         return 'Date';
       }
-      return groupBy[depth - (hasTime ? 2 : 1)];
+      return levels[depth - (hasTime ? 2 : 1)];
     }
 
     function getAncestors(d) {

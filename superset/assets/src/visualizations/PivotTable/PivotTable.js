@@ -18,8 +18,8 @@ const propTypes = {
   }),
   height: PropTypes.number,
   columnFormats: PropTypes.objectOf(PropTypes.string),
-  groupBy: PropTypes.arrayOf(PropTypes.string),
   numberFormat: PropTypes.string,
+  numGroups: PropTypes.number,
   verboseMap: PropTypes.objectOf(PropTypes.string),
 };
 
@@ -28,8 +28,8 @@ function PivotTable(element, props) {
     data,
     height,
     columnFormats,
-    groupBy,
     numberFormat,
+    numGroups,
     verboseMap,
   } = props;
 
@@ -65,7 +65,7 @@ function PivotTable(element, props) {
     });
   });
 
-  if (groupBy.length === 1) {
+  if (numGroups === 1) {
     // When there is only 1 group by column,
     // we use the DataTable plugin to make the header fixed.
     // The plugin takes care of the scrolling so we don't need

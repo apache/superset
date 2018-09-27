@@ -12,7 +12,7 @@ export default function transformProps(basicChartInput) {
   return {
     data: payload.data,
     columnFormats,
-    groupBy: groupby,
+    numGroups: groupby.length,
     numberFormat,
     verboseMap,
   };

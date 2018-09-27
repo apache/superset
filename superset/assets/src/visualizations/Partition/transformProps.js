@@ -20,7 +20,7 @@ export default function transformProps(basicChartInput) {
     colorScheme,
     dateTimeFormat,
     equalDateSize,
-    groupBy: groupby.map(g => verboseMap[g] || g),
+    levels: groupby.map(g => verboseMap[g] || g),
     metrics,
     numberFormat,
     partitionLimit: partitionLimit && parseInt(partitionLimit, 10),
