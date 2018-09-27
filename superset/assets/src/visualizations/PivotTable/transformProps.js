@@ -1,7 +1,7 @@
 export default function transformProps(basicChartInput) {
   const { datasource, formData, payload } = basicChartInput;
   const {
-    groupby: groupBy,
+    groupby,
     numberFormat,
   } = formData;
   const {
@@ -12,7 +12,7 @@ export default function transformProps(basicChartInput) {
   return {
     data: payload.data,
     columnFormats,
-    groupBy,
+    groupBy: groupby,
     numberFormat,
     verboseMap,
   };
