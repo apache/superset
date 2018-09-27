@@ -51,9 +51,9 @@ const propTypes = {
   bigNumber: PropTypes.number.isRequired,
   formatBigNumber: PropTypes.func,
   subheader: PropTypes.string,
-  showTrendline: PropTypes.bool,
+  showTrendLine: PropTypes.bool,
   startYAxisAtZero: PropTypes.bool,
-  trendlineData: PropTypes.array,
+  trendLineData: PropTypes.array,
   mainColor: PropTypes.string,
   gradientId: PropTypes.string,
   renderTooltip: PropTypes.func,
@@ -62,9 +62,9 @@ const defaultProps = {
   className: '',
   formatBigNumber: identity,
   subheader: '',
-  showTrendline: false,
+  showTrendLine: false,
   startYAxisAtZero: true,
-  trendlineData: null,
+  trendLineData: null,
   mainColor: brandColor,
   gradientId: '',
   renderTooltip: renderTooltipFactory(identity),
@@ -72,9 +72,9 @@ const defaultProps = {
 
 class BigNumberVis extends React.Component {
   getClassName() {
-    const { className, showTrendline } = this.props;
+    const { className, showTrendLine } = this.props;
     const names = `big_number ${className}`;
-    if (showTrendline) {
+    if (showTrendLine) {
       return names;
     }
     return `${names} no_trendline`;
@@ -148,7 +148,7 @@ class BigNumberVis extends React.Component {
   renderTrendline(maxHeight) {
     const {
       width,
-      trendlineData,
+      trendLineData,
       mainColor,
       subheader,
       renderTooltip,
@@ -175,7 +175,7 @@ class BigNumberVis extends React.Component {
           to="#fff"
         />
         <AreaSeries
-          data={trendlineData}
+          data={trendLineData}
           fill={`url(#${gradientId})`}
           stroke={mainColor}
         />
@@ -192,10 +192,10 @@ class BigNumberVis extends React.Component {
   }
 
   render() {
-    const { showTrendline, height } = this.props;
+    const { showTrendLine, height } = this.props;
     const className = this.getClassName();
 
-    if (showTrendline) {
+    if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
       return (
