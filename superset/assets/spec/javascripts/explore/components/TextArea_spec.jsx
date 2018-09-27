@@ -3,11 +3,10 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import AceEditor from 'react-ace';
 
-import TextAreaControl from '../../../../javascripts/explore/components/controls/TextAreaControl';
+import TextAreaControl from '../../../../src/explore/components/controls/TextAreaControl';
 
 const defaultProps = {
   name: 'x_axis_label',

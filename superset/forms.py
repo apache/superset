@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Contains the logic to create cohesive forms on the explore view"""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,15 +11,90 @@ from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
-    BooleanField, IntegerField, SelectField, StringField)
+    BooleanField, Field, IntegerField, SelectField, StringField)
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, NumberRange, Optional
 
-from superset import app
+from superset import app, db, security_manager
+from superset.models import core as models
 
 config = app.config
 
 
+class CommaSeparatedListField(Field):
+    widget = BS3TextFieldWidget()
+
+    def _value(self):
+        if self.data:
+            return u', '.join(self.data)
+        else:
+            return u''
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = [x.strip() for x in valuelist[0].split(',')]
+        else:
+            self.data = []
+
+
+def filter_not_empty_values(value):
+    """Returns a list of non empty values or None"""
+    if not value:
+        return None
+    data = [x for x in value if x]
+    if not data:
+        return None
+    return data
+
+
 class CsvToDatabaseForm(DynamicForm):
+    # pylint: disable=E0211
+    def csv_allowed_dbs():
+        csv_allowed_dbs = []
+        csv_enabled_dbs = db.session.query(
+            models.Database).filter_by(
+            allow_csv_upload=True).all()
+        for csv_enabled_db in csv_enabled_dbs:
+            if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
+                csv_allowed_dbs.append(csv_enabled_db)
+        return csv_allowed_dbs
+
+    @staticmethod
+    def at_least_one_schema_is_allowed(database):
+        """
+        If the user has access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is able to upload csv without specifying schema name
+                b) if database supports schema
+                    user is able to upload csv to any schema
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and upload will fail
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        elif the user does not access to the database or all datasource
+            1. if schemas_allowed_for_csv_upload is empty
+                a) if database does not support schema
+                    user is unable to upload csv
+                b) if database supports schema
+                    user is unable to upload csv
+            2. if schemas_allowed_for_csv_upload is not empty
+                a) if database does not support schema
+                    This situation is impossible and user is unable to upload csv
+                b) if database supports schema
+                    user is able to upload to schema in schemas_allowed_for_csv_upload
+        """
+        if (security_manager.database_access(database) or
+                security_manager.all_datasource_access()):
+            return True
+        schemas = database.get_schema_access_for_csv_upload()
+        if (schemas and
+            security_manager.schemas_accessible_by_user(
+                database, schemas, False)):
+            return True
+        return False
+
     name = StringField(
         _('Table Name'),
         description=_('Name of table to be created from csv data.'),
@@ -28,12 +105,16 @@ class CsvToDatabaseForm(DynamicForm):
         description=_('Select a CSV file to be uploaded to a database.'),
         validators=[
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
-
-    con = SelectField(
+    con = QuerySelectField(
         _('Database'),
-        description=_('database in which to add above table.'),
-        validators=[DataRequired()],
-        choices=[])
+        query_factory=csv_allowed_dbs,
+        get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
+    schema = StringField(
+        _('Schema'),
+        description=_('Specify a schema (if database flavor supports this).'),
+        validators=[Optional()],
+        widget=BS3TextFieldWidget(),
+        filters=[lambda x: x or None])
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
@@ -49,13 +130,6 @@ class CsvToDatabaseForm(DynamicForm):
             ('fail', _('Fail')), ('replace', _('Replace')),
             ('append', _('Append'))],
         validators=[DataRequired()])
-
-    schema = StringField(
-        _('Schema'),
-        description=_('Specify a schema (if database flavour supports this).'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
     header = IntegerField(
         _('Header Row'),
         description=_(
@@ -96,9 +170,12 @@ class CsvToDatabaseForm(DynamicForm):
         description=_(
             'Skip blank lines rather than interpreting them '
             'as NaN values.'))
-    parse_dates = BooleanField(
+    parse_dates = CommaSeparatedListField(
         _('Parse Dates'),
-        description=_('Parse date values.'))
+        description=_(
+            'A comma separated list of columns that should be '
+            'parsed as dates.'),
+        filters=[filter_not_empty_values])
     infer_datetime_format = BooleanField(
         _('Infer Datetime Format'),
         description=_(

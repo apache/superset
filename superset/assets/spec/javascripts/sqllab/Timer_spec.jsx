@@ -1,11 +1,10 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it, beforeEach } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import Timer from '../../../javascripts/components/Timer';
-import { now } from '../../../javascripts/modules/dates';
+import Timer from '../../../src/components/Timer';
+import { now } from '../../../src/modules/dates';
 
 
 describe('Timer', () => {

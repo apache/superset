@@ -1,11 +1,10 @@
 import React from 'react';
-import { beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import QueryAndSaveButtons from '../../../../javascripts/explore/components/QueryAndSaveBtns';
-import Button from '../../../../javascripts/components/Button';
+import QueryAndSaveButtons from '../../../../src/explore/components/QueryAndSaveBtns';
+import Button from '../../../../src/components/Button';
 
 describe('QueryAndSaveButtons', () => {
   const defaultProps = {

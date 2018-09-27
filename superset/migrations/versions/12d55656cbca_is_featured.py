@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """is_featured
 
 Revision ID: 12d55656cbca

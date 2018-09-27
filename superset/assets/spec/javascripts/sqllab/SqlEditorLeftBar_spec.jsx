@@ -1,17 +1,12 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import sinon from 'sinon';
 import { expect } from 'chai';
 
 import $ from 'jquery';
 import { table, defaultQueryEditor, databases, tables } from './fixtures';
-import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
-import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-
-global.notify = {
-  error: () => {},
-};
+import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
+import TableElement from '../../../src/SqlLab/components/TableElement';
 
 describe('SqlEditorLeftBar', () => {
   const mockedProps = {
@@ -20,9 +15,11 @@ describe('SqlEditorLeftBar', () => {
       queryEditorSetDb: sinon.stub(),
       setDatabases: sinon.stub(),
       addTable: sinon.stub(),
+      addDangerToast: sinon.stub(),
     },
     tables: [table],
     queryEditor: defaultQueryEditor,
+    database: {},
     height: 0,
   };
 

@@ -1,10 +1,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Modal } from 'react-bootstrap';
-import VizTypeControl from '../../../../javascripts/explore/components/controls/VizTypeControl';
+import VizTypeControl from '../../../../src/explore/components/controls/VizTypeControl';
 
 const defaultProps = {
   name: 'viz_type',

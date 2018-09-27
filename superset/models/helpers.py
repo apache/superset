@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
 from __future__ import absolute_import
 from __future__ import division
@@ -19,8 +21,16 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset import sm
 from superset.utils import QueryStatus
+
+
+def json_to_dict(json_str):
+    if json_str:
+        val = re.sub(',[ \t\r\n]+}', '}', json_str)
+        val = re.sub(',[ \t\r\n]+\]', ']', val)
+        return json.loads(val)
+    else:
+        return {}
 
 
 class ImportMixin(object):
@@ -61,8 +71,9 @@ class ImportMixin(object):
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
 
-        def formatter(c): return ('{0} Default ({1})'.format(
-            str(c.type), c.default.arg) if c.default else str(c.type))
+        def formatter(c):
+            return ('{0} Default ({1})'.format(
+                str(c.type), c.default.arg) if c.default else str(c.type))
 
         schema = {c.name: formatter(c) for c in cls.__table__.columns
                   if (c.name in cls.export_fields and
@@ -96,7 +107,7 @@ class ImportMixin(object):
                 for p in parent_refs.keys():
                     if p not in dict_rep:
                         raise RuntimeError(
-                          '{0}: Missing field {1}'.format(cls.__name__, p))
+                            '{0}: Missing field {1}'.format(cls.__name__, p))
         else:
             # Set foreign keys to parent obj
             for k, v in parent_refs.items():
@@ -176,19 +187,22 @@ class ImportMixin(object):
                     if (c.name in self.export_fields and
                         c.name not in parent_excludes and
                         (include_defaults or (
-                             getattr(self, c.name) is not None and
-                             (not c.default or
-                              getattr(self, c.name) != c.default.arg))))
+                            getattr(self, c.name) is not None and
+                            (not c.default or
+                                getattr(self, c.name) != c.default.arg))))
                     }
         if recursive:
             for c in self.export_children:
                 # sorting to make lists of children stable
-                dict_rep[c] = sorted([child.export_to_dict(
-                        recursive=recursive,
-                        include_parent_ref=include_parent_ref,
-                        include_defaults=include_defaults)
-                               for child in getattr(self, c)],
-                        key=lambda k: sorted(k.items()))
+                dict_rep[c] = sorted(
+                    [
+                        child.export_to_dict(
+                            recursive=recursive,
+                            include_parent_ref=include_parent_ref,
+                            include_defaults=include_defaults,
+                        ) for child in getattr(self, c)
+                    ],
+                    key=lambda k: sorted(k.items()))
 
         return dict_rep
 
@@ -210,12 +224,11 @@ class ImportMixin(object):
 
     @property
     def params_dict(self):
-        if self.params:
-            params = re.sub(',[ \t\r\n]+}', '}', self.params)
-            params = re.sub(',[ \t\r\n]+\]', ']', params)
-            return json.loads(params)
-        else:
-            return {}
+        return json_to_dict(self.params)
+
+    @property
+    def template_params_dict(self):
+        return json_to_dict(self.template_params)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -266,10 +279,9 @@ class AuditMixinNullable(AuditMixin):
         return Markup(
             '<span class="no-wrap">{}</span>'.format(self.changed_on))
 
-    @renders('changed_on')
+    @renders('modified')
     def modified(self):
-        s = humanize.naturaltime(datetime.now() - self.changed_on)
-        return Markup('<span class="no-wrap">{}</span>'.format(s))
+        return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def icons(self):
@@ -299,53 +311,3 @@ class QueryResult(object):
         self.duration = duration
         self.status = status
         self.error_message = error_message
-
-
-def merge_perm(sm, permission_name, view_menu_name, connection):
-
-    permission = sm.find_permission(permission_name)
-    view_menu = sm.find_view_menu(view_menu_name)
-    pv = None
-
-    if not permission:
-        permission_table = sm.permission_model.__table__
-        connection.execute(
-            permission_table.insert()
-            .values(name=permission_name),
-        )
-    if not view_menu:
-        view_menu_table = sm.viewmenu_model.__table__
-        connection.execute(
-            view_menu_table.insert()
-            .values(name=view_menu_name),
-        )
-
-    permission = sm.find_permission(permission_name)
-    view_menu = sm.find_view_menu(view_menu_name)
-
-    if permission and view_menu:
-        pv = sm.get_session.query(sm.permissionview_model).filter_by(
-            permission=permission, view_menu=view_menu).first()
-    if not pv and permission and view_menu:
-        permission_view_table = sm.permissionview_model.__table__
-        connection.execute(
-            permission_view_table.insert()
-            .values(
-                permission_id=permission.id,
-                view_menu_id=view_menu.id,
-            ),
-        )
-
-
-def set_perm(mapper, connection, target):  # noqa
-
-    if target.perm != target.get_perm():
-        link_table = target.__table__
-        connection.execute(
-            link_table.update()
-            .where(link_table.c.id == target.id)
-            .values(perm=target.get_perm()),
-        )
-
-    # add to view menu if not already exists
-    merge_perm(sm, 'datasource_access', target.get_perm(), connection)

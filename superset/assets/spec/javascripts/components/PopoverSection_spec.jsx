@@ -1,9 +1,8 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import PopoverSection from '../../../javascripts/components/PopoverSection';
+import PopoverSection from '../../../src/components/PopoverSection';
 
 describe('PopoverSection', () => {
   const defaultProps = {

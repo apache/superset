@@ -1,10 +1,16 @@
-from superset import security, sm
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from superset import app, security_manager
 from .base_tests import SupersetTestCase
 
 
 def get_perm_tuples(role_name):
     perm_set = set()
-    for perm in sm.find_role(role_name).permissions:
+    for perm in security_manager.find_role(role_name).permissions:
         perm_set.add((perm.permission.name, perm.view_menu.name))
     return perm_set
 
@@ -49,7 +55,6 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assertIn(('can_add_slices', 'Superset'), perm_set)
         self.assertIn(('can_copy_dash', 'Superset'), perm_set)
-        self.assertIn(('can_activity_per_day', 'Superset'), perm_set)
         self.assertIn(('can_created_dashboards', 'Superset'), perm_set)
         self.assertIn(('can_created_slices', 'Superset'), perm_set)
         self.assertIn(('can_csv', 'Superset'), perm_set)
@@ -76,7 +81,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('muldelete', 'DruidDatasourceModelView'), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
-        self.assert_cannot_write('AccessRequestsModelView', perm_set)
+        if app.config.get('ENABLE_ACCESS_REQUEST'):
+            self.assert_cannot_write('AccessRequestsModelView', perm_set)
+            self.assert_can_all('AccessRequestsModelView', perm_set)
         self.assert_cannot_write('Queries', perm_set)
         self.assert_cannot_write('RoleModelView', perm_set)
         self.assert_cannot_write('UserDBModelView', perm_set)
@@ -85,7 +92,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_all('DatabaseAsync', perm_set)
         self.assert_can_all('DatabaseView', perm_set)
         self.assert_can_all('DruidClusterModelView', perm_set)
-        self.assert_can_all('AccessRequestsModelView', perm_set)
         self.assert_can_all('RoleModelView', perm_set)
         self.assert_can_all('UserDBModelView', perm_set)
 
@@ -96,47 +102,49 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_approve', 'Superset'), perm_set)
 
     def test_is_admin_only(self):
-        self.assertFalse(security.is_admin_only(
-            sm.find_permission_view_menu('can_show', 'TableModelView')))
-        self.assertFalse(security.is_admin_only(
-            sm.find_permission_view_menu(
+        self.assertFalse(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu('can_show', 'TableModelView')))
+        self.assertFalse(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu(
                 'all_datasource_access', 'all_datasource_access')))
 
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu('can_delete', 'DatabaseView')))
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu(
-                'can_show', 'AccessRequestsModelView')))
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu(
+        self.assertTrue(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu('can_delete', 'DatabaseView')))
+        if app.config.get('ENABLE_ACCESS_REQUEST'):
+            self.assertTrue(security_manager.is_admin_only(
+                security_manager.find_permission_view_menu(
+                    'can_show', 'AccessRequestsModelView')))
+        self.assertTrue(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu(
                 'can_edit', 'UserDBModelView')))
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu(
+        self.assertTrue(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu(
                 'can_approve', 'Superset')))
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu(
+        self.assertTrue(security_manager.is_admin_only(
+            security_manager.find_permission_view_menu(
                 'all_database_access', 'all_database_access')))
 
     def test_is_alpha_only(self):
-        self.assertFalse(security.is_alpha_only(
-            sm.find_permission_view_menu('can_show', 'TableModelView')))
+        self.assertFalse(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu('can_show', 'TableModelView')))
 
-        self.assertTrue(security.is_alpha_only(
-            sm.find_permission_view_menu('muldelete', 'TableModelView')))
-        self.assertTrue(security.is_alpha_only(
-            sm.find_permission_view_menu(
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu('muldelete', 'TableModelView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
                 'all_datasource_access', 'all_datasource_access')))
-        self.assertTrue(security.is_alpha_only(
-            sm.find_permission_view_menu('can_edit', 'SqlMetricInlineView')))
-        self.assertTrue(security.is_alpha_only(
-            sm.find_permission_view_menu(
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
+                'can_edit', 'SqlMetricInlineView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
                 'can_delete', 'DruidMetricInlineView')))
 
     def test_is_gamma_pvm(self):
-        self.assertTrue(security.is_gamma_pvm(
-            sm.find_permission_view_menu('can_show', 'TableModelView')))
+        self.assertTrue(security_manager.is_gamma_pvm(
+            security_manager.find_permission_view_menu('can_show', 'TableModelView')))
 
-    def test_gamma_permissions(self):
+    def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples('Gamma'))
         self.assert_cannot_gamma(get_perm_tuples('Gamma'))
         self.assert_cannot_alpha(get_perm_tuples('Alpha'))
@@ -167,3 +175,50 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assert_cannot_gamma(granter_set)
         self.assert_cannot_alpha(granter_set)
+
+    def test_gamma_permissions(self):
+        def assert_can_read(view_menu):
+            self.assertIn(('can_show', view_menu), gamma_perm_set)
+            self.assertIn(('can_list', view_menu), gamma_perm_set)
+
+        def assert_can_write(view_menu):
+            self.assertIn(('can_add', view_menu), gamma_perm_set)
+            self.assertIn(('can_download', view_menu), gamma_perm_set)
+            self.assertIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertIn(('can_edit', view_menu), gamma_perm_set)
+
+        def assert_cannot_write(view_menu):
+            self.assertNotIn(('can_add', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_download', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_edit', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_save', view_menu), gamma_perm_set)
+
+        def assert_can_all(view_menu):
+            assert_can_read(view_menu)
+            assert_can_write(view_menu)
+
+        gamma_perm_set = set()
+        for perm in security_manager.find_role('Gamma').permissions:
+            gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
+
+        # check read only perms
+        assert_can_read('TableModelView')
+        assert_cannot_write('DruidColumnInlineView')
+
+        # make sure that user can create slices and dashboards
+        assert_can_all('SliceModelView')
+        assert_can_all('DashboardModelView')
+
+        self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_csv', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_dashboard', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore_json', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_slice', 'Superset'), gamma_perm_set)

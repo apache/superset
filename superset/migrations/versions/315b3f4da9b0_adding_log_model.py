@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """adding log model
 
 Revision ID: 315b3f4da9b0

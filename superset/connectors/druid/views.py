@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from datetime import datetime
 import json
 import logging
@@ -5,16 +12,16 @@ import logging
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
-from superset import appbuilder, db, security, sm, utils
+from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.utils import has_access
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
-    get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
+    get_datasource_exist_error_msg, ListWidgetWithCheckboxes, SupersetModelView,
     validate_json, YamlExportMixin,
 )
 from . import models
@@ -31,7 +38,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_widget = ListWidgetWithCheckboxes
 
     edit_columns = [
-        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
@@ -49,6 +56,8 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'sum': _('Sum'),
         'min': _('Min'),
         'max': _('Max'),
+        'verbose_name': _('Verbose Name'),
+        'description': _('Description'),
     }
     description_columns = {
         'filterable': _(
@@ -85,7 +94,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
                     .format(dimension_spec['outputName'], col.column_name))
 
     def post_update(self, col):
-        col.generate_metrics()
+        col.refresh_metrics()
 
     def post_add(self, col):
         self.post_update(col)
@@ -130,15 +139,16 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'json': _('JSON'),
         'datasource': _('Druid Datasource'),
         'warning_text': _('Warning Message'),
+        'is_restricted': _('Is Restricted'),
     }
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
@@ -168,10 +178,19 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),
+        'verbose_name': _('Verbose Name'),
+        'cache_timeout': _('Cache Timeout'),
+        'metadata_last_refreshed': _('Metadata Last Refreshed'),
+    }
+    description_columns = {
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this cluster. '
+            'A timeout of 0 indicates that the cache never expires. '
+            'Note this defaults to the global timeout if undefined.'),
     }
 
     def pre_add(self, cluster):
-        security.merge_perm(sm, 'database_access', cluster.perm)
+        security_manager.merge_perm('database_access', cluster.perm)
 
     def pre_update(self, cluster):
         self.pre_add(cluster)
@@ -204,7 +223,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'slices', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owner',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -212,18 +231,18 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'datasource_name', 'cluster', 'description', 'owner',
     )
     add_columns = edit_columns
-    show_columns = add_columns + ['perm']
+    show_columns = add_columns + ['perm', 'slices']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
         'slices': _(
-            'The list of slices associated with this table. By '
+            'The list of charts associated with this table. By '
             'altering this datasource, you may change how these associated '
-            'slices behave. '
-            'Also note that slices need to point to a datasource, so '
-            'this form will fail at saving if removing slices from a '
-            'datasource. If you want to change the datasource for a slice, '
-            "overwrite the slice from the 'explore view'"),
+            'charts behave. '
+            'Also note that charts need to point to a datasource, so '
+            'this form will fail at saving if removing charts from a '
+            'datasource. If you want to change the datasource for a chart, '
+            "overwrite the chart from the 'explore view'"),
         'offset': _('Timezone offset (in hours) for this datasource'),
         'description': Markup(
             'Supports <a href="'
@@ -242,6 +261,10 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'default_endpoint': _(
             'Redirects to this endpoint when clicking on the datasource '
             'from the datasource list'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this datasource. '
+            'A timeout of 0 indicates that the cache never expires. '
+            'Note this defaults to the cluster timeout if undefined.'),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
@@ -255,6 +278,10 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'default_endpoint': _('Default Endpoint'),
         'offset': _('Time Offset'),
         'cache_timeout': _('Cache Timeout'),
+        'datasource_name': _('Datasource Name'),
+        'fetch_values_from': _('Fetch Values From'),
+        'changed_by_': _('Changed By'),
+        'modified': _('Modified'),
     }
 
     def pre_add(self, datasource):
@@ -267,14 +294,14 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                         datasource.cluster.id)
             )
             if db.session.query(query.exists()).scalar():
-                raise Exception(get_datasource_exist_error_mgs(
+                raise Exception(get_datasource_exist_error_msg(
                     datasource.full_name))
 
     def post_add(self, datasource):
-        datasource.generate_metrics()
-        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
+        datasource.refresh_metrics()
+        security_manager.merge_perm('datasource_access', datasource.get_perm())
         if datasource.schema:
-            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
+            security_manager.merge_perm('schema_access', datasource.schema_perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
@@ -314,8 +341,8 @@ class Druid(BaseSupersetView):
                 return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
-                'Refreshed metadata from cluster '
-                '[' + cluster.cluster_name + ']',
+                _('Refreshed metadata from cluster [{}]').format(
+                    cluster.cluster_name),
                 'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')

@@ -1,14 +1,13 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Panel } from 'react-bootstrap';
 
 import InfoTooltipWithTrigger from
-  '../../../../javascripts/components/InfoTooltipWithTrigger';
+  '../../../../src/components/InfoTooltipWithTrigger';
 
 import ControlPanelSection from
-  '../../../../javascripts/explore/components/ControlPanelSection';
+  '../../../../src/explore/components/ControlPanelSection';
 
 const defaultProps = {
   children: <div>a child element</div>,

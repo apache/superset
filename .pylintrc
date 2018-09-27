@@ -23,7 +23,7 @@ persistent=yes
 load-plugins=
 
 # Use multiple processes to speed up Pylint.
-jobs=1
+jobs=2
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -65,7 +65,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type
+disable=standarderror-builtin,long-builtin,dict-view-method,intern-builtin,suppressed-message,no-absolute-import,unpacking-in-except,apply-builtin,delslice-method,indexing-exception,old-raise-syntax,print-statement,cmp-builtin,reduce-builtin,useless-suppression,coerce-method,input-builtin,cmp-method,raw_input-builtin,nonzero-method,backtick,basestring-builtin,setslice-method,reload-builtin,oct-method,map-builtin-not-iterating,execfile-builtin,old-octal-literal,zip-builtin-not-iterating,buffer-builtin,getslice-method,metaclass-assignment,xrange-builtin,long-suffix,round-builtin,range-builtin-not-iterating,next-method-called,dict-iter-method,parameter-unpacking,unicode-builtin,unichr-builtin,import-star-module-level,raising-string,filter-builtin-not-iterating,old-ne-operator,using-cmp-argument,coerce-builtin,file-builtin,old-division,hex-method,invalid-unary-operand-type,missing-docstring,too-many-lines,duplicate-code
 
 
 [REPORTS]
@@ -277,12 +277,12 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=numpy,pandas,alembic.op,sqlalchemy,alembic.context,flask_appbuilder.security.sqla.PermissionView.role,flask_appbuilder.Model.metadata,flask_appbuilder.Base.metadata
+ignored-modules=numpy,pandas,alembic.op,sqlalchemy,alembic.context,flask_appbuilder.security.sqla.PermissionView.role,flask_appbuilder.Model.metadata,flask_appbuilder.Base.metadata,distutils
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
 # qualified names.
-ignored-classes=optparse.Values,thread._local,_thread._local
+ignored-classes=contextlib.closing,optparse.Values,thread._local,_thread._local,sqlalchemy.orm.scoping.scoped_session
 
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
@@ -292,7 +292,7 @@ generated-members=
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that
 # produce valid context managers.
-contextmanager-decorators=contextlib.contextmanager
+contextmanager-decorators=contextlib.contextmanager,contextlib2.contextmanager
 
 
 [VARIABLES]

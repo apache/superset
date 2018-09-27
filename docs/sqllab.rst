@@ -4,6 +4,11 @@ SQL Lab
 SQL Lab is a modern, feature-rich SQL IDE written in
 `React <https://facebook.github.io/react/>`_.
 
+------
+
+.. image:: images/screenshots/sqllab.png
+
+------
 
 Feature Overview
 ----------------
@@ -61,6 +66,8 @@ Superset's Jinja context:
     :members:
 
 .. autofunction:: superset.jinja_context.url_param
+
+.. autofunction:: superset.jinja_context.filter_values
 
 Extending macros
 ''''''''''''''''

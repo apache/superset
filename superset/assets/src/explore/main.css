@@ -1,0 +1,248 @@
+.scrollbar-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.scrollbar-content {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  overflow-y: auto;
+  margin-right: 0px;
+  margin-bottom: 40px;
+}
+
+.fave-unfave-icon, .edit-desc-icon {
+  padding: 0 0 0 .5em;
+  font-size: 14px;
+}
+
+.checkbox {
+    float: left;
+    margin-top: 0px;
+    margin-right: 3px;
+}
+
+.control-panel-section {
+  margin-bottom: 0;
+  box-shadow: none;
+}
+.control-panel-section:last-child {
+  padding-bottom: 40px;
+ }
+
+.control-panel-section .Select-multi-value-wrapper .Select-input > input {
+  width: 100px;
+}
+
+.control-panel-section .metrics-select .Select-multi-value-wrapper .Select-input > input {
+  width: 300px;
+}
+
+.background-transparent {
+  background-color: transparent !important;
+}
+
+.viztype-label {
+  text-align: center;
+  font-size: 12px;
+}
+
+.viztype-selector-container {
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid #aaa;
+}
+
+.viztype-selector-container:hover {
+  border: 1px solid #000;
+}
+
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  border: 1px solid #aaa;
+}
+
+.color-scheme-container {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.color-scheme-container li {
+  flex-basis: 9px;
+  height: 10px;
+  margin: 9px 1px;
+}
+.control-panel-section .panel-body {
+  margin-left: 15px;
+  padding-bottom: 0px;
+}
+.control-panel-section .control-label {
+  margin-bottom: 0px;
+}
+.fa.expander {
+  width: 15px;
+}
+.control-panel-section span.label {
+  display: inline-block;
+}
+.input-inline {
+  float: left;
+  display: inline-block;
+  padding-right: 3px;
+}
+.input-inline .Select-control {
+  display: flex;
+}
+.input-inline .Select-control .Select-arrow-zone {
+  width: auto;
+  position: absolute;
+  right: 0;
+  top: 12px;
+}
+.save-modal-selector {
+  margin: 10px 0;
+}
+.list-group {
+  margin-bottom: 10px;
+}
+.color-popover.popover {
+  border: none;
+  background-color: transparent;
+}
+.color-popover .popover-content {
+  padding: 0;
+  background-color: transparent;
+}
+
+.type-label {
+  margin-right: 8px;
+  width: 30px;
+  display: inline-block;
+  text-align: center;
+  font-weight: bold;
+}
+
+.datasource-container {
+  overflow: auto;
+}
+
+.adhoc-metric-edit-tabs > .nav-tabs {
+  margin-bottom: 6px;
+}
+
+.adhoc-metric-edit-tabs > .nav-tabs > li > a {
+  padding: 4px 4px 4px 4px;
+}
+
+.adhoc-filter-edit-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.adhoc-filter-edit-tabs > .nav-tabs > li > a {
+  padding: 4px;
+}
+
+.edit-popover-resize {
+  transform: scaleX(-1);
+  -moz-transform: scaleX(-1);
+  -webkit-transform: scaleX(-1);
+  -ms-transform: scaleX(-1);
+  float: right;
+  margin-top: 18px;
+  margin-right: -10px;
+  cursor: nwse-resize;
+}
+
+#metrics-edit-popover {
+  max-width: none;
+}
+
+#filter-edit-popover {
+  max-width: none;
+}
+
+.filter-edit-clause-dropdown {
+  width: 120px;
+  margin-right: 5px;
+}
+
+.filter-edit-clause-info {
+  font-size: 10px;
+  padding-left: 5px;
+}
+
+.filter-edit-clause-section {
+  display: inline-flex;
+}
+
+.adhoc-filter-option{
+  cursor: pointer;
+}
+
+.adhoc-filter-sql-editor {
+  border: rgb(187, 187, 187) solid thin;
+}
+
+.label-default {
+  background-color: #808e95;
+  font-weight: normal;
+}
+
+.adhoc-filter-simple-column-dropdown {
+  margin-top: 20px;
+}
+
+.adhoc-label-arrow {
+  font-size: 9px;
+  margin-left: 3px;
+  position: static;
+}
+
+.time-filter-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.time-filter-tabs > .nav-tabs > li > a {
+  padding: 4px;
+}
+
+.custom-sql-disabled-message {
+  color: gray;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 60px;
+}
+
+h1.section-header {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+  margin-left: -16px;
+}
+
+h2.section-header {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-bottom: 5px;
+}
+
+.Select {
+  margin-bottom: 15px;
+}

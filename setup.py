@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import io
 import json
 import os
 import subprocess
@@ -10,11 +17,14 @@ PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
 
+with io.open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
+
 
 def get_git_sha():
     try:
-        s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
-        return s.strip()
+        s = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+        return s.decode().strip()
     except Exception:
         return ''
 
@@ -36,69 +46,71 @@ with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
 setup(
     name='superset',
     description=(
-        'A interactive data visualization platform build on SqlAlchemy '
-        'and druid.io'),
+        'A modern, enterprise-ready business intelligence web application'),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     version=version_string,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
-        'boto3>=1.4.6',
-        'celery==4.1.0',
-        'colorama==0.3.9',
-        'cryptography==1.9',
-        'flask==0.12.2',
-        'flask-appbuilder==1.9.5',
-        'flask-cache==0.13.1',
-        'flask-migrate==2.0.3',
-        'flask-script==2.0.5',
-        'flask-sqlalchemy==2.1',
-        'flask-testing==0.6.2',
-        'flask-wtf==0.14.2',
-        'flower==0.9.1',
+        'bleach',
+        'boto3==1.4.7',
+        'botocore>=1.7.0, <1.8.0',
+        'celery>=4.2.0',
+        'colorama',
+        'contextlib2',
+        'cryptography',
+        'flask<1.0.0',
+        'flask-appbuilder==1.10.0',  # known db migration with 1.11+
+        'flask-caching',
+        'flask-compress',
+        'flask-migrate',
+        'flask-wtf',
+        'flower',  # deprecated
         'future>=0.16.0, <0.17',
-        'python-geohash==0.8.5',
-        'humanize==0.5.1',
-        'gunicorn==19.7.1',
-        'idna==2.5',
-        'markdown==2.6.8',
-        'pandas==0.20.3',
-        'parsedatetime==2.0.0',
-        'pathlib2==2.3.0',
-        'polyline==1.3.2',
-        'pydruid==0.3.1',
-        'PyHive>=0.4.0',
-        'python-dateutil==2.6.0',
+        'geopy',
+        'gunicorn',  # deprecated
+        'humanize',
+        'idna',
+        'isodate',
+        'markdown>=3.0',
+        'pandas>=0.18.0',
+        'parsedatetime',
+        'pathlib2',
+        'polyline',
+        'pydruid>=0.4.3',
+        'pyhive>=0.4.0',
+        'python-dateutil',
+        'python-geohash',
         'pyyaml>=3.11',
-        'requests==2.17.3',
-        'simplejson==3.10.0',
-        'six==1.11.0',
-        'sqlalchemy==1.1.9',
-        'sqlalchemy-utils==0.32.16',
-        'sqlparse==0.2.3',
+        'requests',
+        'simplejson>=3.15.0',
+        'six',
+        'sqlalchemy',
+        'sqlalchemy-utils',
+        'sqlparse',
+        'tableschema',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
+        'unicodecsv',
         'unidecode>=0.04.21',
     ],
     extras_require={
-        'cors': ['Flask-Cors>=2.0.0'],
+        'cors': ['flask-cors>=2.0.0'],
+        'console_log': ['console_log==0.2.10'],
     },
-    tests_require=[
-        'codeclimate-test-reporter',
-        'coverage',
-        'mock',
-        'nose',
-        'redis',
-    ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/superset',
+    url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/airbnb/superset/tarball/' + version_string),
+        'https://github.com'
+        '/apache/incubator-superset/tarball/' + version_string
+    ),
     classifiers=[
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 )

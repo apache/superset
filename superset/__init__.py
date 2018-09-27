@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Package's main module!"""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,12 +14,14 @@ import os
 from flask import Flask, redirect
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
+from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
+from superset import config, utils
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset import utils, config  # noqa
+from superset.security import SupersetSecurityManager
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -43,23 +47,46 @@ def parse_manifest_json():
     global manifest
     try:
         with open(MANIFEST_FILE, 'r') as f:
-            manifest = json.load(f)
+            # the manifest inclues non-entry files
+            # we only need entries in templates
+            full_manifest = json.load(f)
+            manifest = full_manifest.get('entrypoints', {})
     except Exception:
         pass
 
 
-def get_manifest_file(filename):
+def get_js_manifest_files(filename):
     if app.debug:
         parse_manifest_json()
-    return '/static/assets/dist/' + manifest.get(filename, '')
+    entry_files = manifest.get(filename, {})
+    return entry_files.get('js', [])
+
+
+def get_css_manifest_files(filename):
+    if app.debug:
+        parse_manifest_json()
+    entry_files = manifest.get(filename, {})
+    return entry_files.get('css', [])
+
+
+def get_unloaded_chunks(files, loaded_chunks):
+    filtered_files = [f for f in files if f not in loaded_chunks]
+    for f in filtered_files:
+        loaded_chunks.add(f)
+    return filtered_files
 
 
 parse_manifest_json()
 
 
 @app.context_processor
-def get_js_manifest():
-    return dict(js_manifest=get_manifest_file)
+def get_manifest():
+    return dict(
+        loaded_chunks=set(),
+        get_unloaded_chunks=get_unloaded_chunks,
+        js_manifest=get_js_manifest_files,
+        css_manifest=get_css_manifest_files,
+    )
 
 
 #################################################################
@@ -75,7 +102,9 @@ for bp in conf.get('BLUEPRINTS'):
 if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
-if not app.debug:
+if app.debug:
+    app.logger.setLevel(logging.DEBUG)
+else:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)
@@ -147,16 +176,23 @@ class MyIndexView(IndexView):
         return redirect('/superset/welcome')
 
 
+custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager
+if not issubclass(custom_sm, SupersetSecurityManager):
+    raise Exception(
+        """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
+         not FAB's security manager.
+         See [4565] in UPDATING.md""")
+
 appbuilder = AppBuilder(
     app,
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'),
+    security_manager_class=custom_sm,
     update_perms=utils.get_update_perms_flag(),
 )
 
-sm = appbuilder.sm
+security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
 
@@ -164,6 +200,10 @@ results_backend = app.config.get('RESULTS_BACKEND')
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
 module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
+
+# Flask-Compress
+if conf.get('ENABLE_FLASK_COMPRESS'):
+    Compress(app)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization

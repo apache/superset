@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """css templates
 
 Revision ID: d827694c7555

@@ -1,10 +1,9 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
-import CachedLabel from '../../../javascripts/components/CachedLabel';
+import CachedLabel from '../../../src/components/CachedLabel';
 
 describe('CachedLabel', () => {
   const defaultProps = {

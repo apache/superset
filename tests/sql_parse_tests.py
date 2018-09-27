@@ -292,9 +292,86 @@ class SupersetTestCase(unittest.TestCase):
         """
         self.assertEquals({'src'}, self.extract_tables(query))
 
-    def multistatement(self):
+    def test_multistatement(self):
         query = 'SELECT * FROM t1; SELECT * FROM t2'
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
 
         query = 'SELECT * FROM t1; SELECT * FROM t2;'
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
+
+    def test_update_not_select(self):
+        sql = sql_parse.SupersetQuery('UPDATE t1 SET col1 = NULL')
+        self.assertEquals(False, sql.is_select())
+        self.assertEquals(False, sql.is_readonly())
+
+    def test_explain(self):
+        sql = sql_parse.SupersetQuery('EXPLAIN SELECT 1')
+
+        self.assertEquals(True, sql.is_explain())
+        self.assertEquals(False, sql.is_select())
+        self.assertEquals(True, sql.is_readonly())
+
+    def test_complex_extract_tables(self):
+        query = """SELECT sum(m_examples) AS "sum__m_example"
+            FROM
+              (SELECT COUNT(DISTINCT id_userid) AS m_examples,
+                      some_more_info
+               FROM my_b_table b
+               JOIN my_t_table t ON b.ds=t.ds
+               JOIN my_l_table l ON b.uid=l.uid
+               WHERE b.rid IN
+                   (SELECT other_col
+                    FROM inner_table)
+                 AND l.bla IN ('x', 'y')
+               GROUP BY 2
+               ORDER BY 2 ASC) AS "meh"
+            ORDER BY "sum__m_example" DESC
+            LIMIT 10;"""
+        self.assertEquals(
+            {'my_l_table', 'my_b_table', 'my_t_table', 'inner_table'},
+            self.extract_tables(query))
+
+    def test_complex_extract_tables2(self):
+        query = """SELECT *
+            FROM table_a AS a, table_b AS b, table_c as c
+            WHERE a.id = b.id and b.id = c.id"""
+        self.assertEquals(
+            {'table_a', 'table_b', 'table_c'},
+            self.extract_tables(query))
+
+    def test_complex_extract_tables3(self):
+        query = """SELECT somecol AS somecol
+            FROM
+              (WITH bla AS
+                 (SELECT col_a
+                  FROM a
+                  WHERE 1=1
+                    AND column_of_choice NOT IN
+                      ( SELECT interesting_col
+                       FROM b ) ),
+                    rb AS
+                 ( SELECT yet_another_column
+                  FROM
+                    ( SELECT a
+                     FROM c
+                     GROUP BY the_other_col ) not_table
+                  LEFT JOIN bla foo ON foo.prop = not_table.bad_col0
+                  WHERE 1=1
+                  GROUP BY not_table.bad_col1 ,
+                           not_table.bad_col2 ,
+                  ORDER BY not_table.bad_col_3 DESC , not_table.bad_col4 ,
+                                                    not_table.bad_col5) SELECT random_col
+               FROM d
+               WHERE 1=1
+               UNION ALL SELECT even_more_cols
+               FROM e
+               WHERE 1=1
+               UNION ALL SELECT lets_go_deeper
+               FROM f
+               WHERE 1=1
+            WHERE 2=2
+            GROUP BY last_col
+            LIMIT 50000;"""
+        self.assertEquals(
+            {'a', 'b', 'c', 'd', 'e', 'f'},
+            self.extract_tables(query))

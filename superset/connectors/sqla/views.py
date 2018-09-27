@@ -1,17 +1,24 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 
-from superset import appbuilder, db, security, sm, utils
+from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
-from superset.utils import has_access
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
@@ -30,12 +37,12 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
+        'table', 'expression',
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max', 'is_dttm']
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
+        'is_dttm']
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -51,8 +58,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             'expression-defined columns in some cases. In most case '
             'users should not need to alter this.'),
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `substr(name, 1, 1)`', True),
+            'a valid, *non-aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `substr(name, 1, 1)`', True),
         'python_date_format': utils.markdown(Markup(
             'The pattern of timestamp format, use '
             '<a href="https://docs.python.org/2/library/'
@@ -79,10 +86,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
         'table': _('Table'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
         'expression': _('Expression'),
         'is_dttm': _('Is temporal'),
         'python_date_format': _('Datetime Format'),
@@ -108,8 +111,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression', 'table', 'd3format', 'is_restricted', 'warning_text']
     description_columns = {
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `count(DISTINCT userid)`', True),
+            'a valid, *aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `count(DISTINCT userid)`', True),
         'is_restricted': _('Whether the access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
@@ -138,11 +141,11 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -153,7 +156,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_title = _('List Tables')
     show_title = _('Show Table')
-    add_title = _('Add Table')
+    add_title = _('Import a table definition')
     edit_title = _('Edit Table')
 
     list_columns = [
@@ -162,25 +165,28 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
-        'table_name', 'sql', 'filter_select_enabled', 'slices',
+        'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
-        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
-    show_columns = edit_columns + ['perm']
+        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
+        'is_sqllab_view', 'template_params',
+    ]
+    base_filters = [['id', DatasourceFilter, lambda: []]]
+    show_columns = edit_columns + ['perm', 'slices']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
-        'database', 'schema', 'table_name', 'owner',
+        'database', 'schema', 'table_name', 'owner', 'is_sqllab_view',
     )
     description_columns = {
         'slices': _(
-            'The list of slices associated with this table. By '
+            'The list of charts associated with this table. By '
             'altering this datasource, you may change how these associated '
-            'slices behave. '
-            'Also note that slices need to point to a datasource, so '
-            'this form will fail at saving if removing slices from a '
-            'datasource. If you want to change the datasource for a slice, '
-            "overwrite the slice from the 'explore view'"),
+            'charts behave. '
+            'Also note that charts need to point to a datasource, so '
+            'this form will fail at saving if removing charts from a '
+            'datasource. If you want to change the datasource for a chart, '
+            "overwrite the chart from the 'explore view'"),
         'offset': _('Timezone offset (in hours) for this datasource'),
         'table_name': _(
             'Name of the table that exists in the source database'),
@@ -207,8 +213,17 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             "Whether to populate the filter's dropdown in the explore "
             "view's filter section with a list of distinct values fetched "
             'from the backend on the fly'),
+        'is_sqllab_view': _(
+            "Whether the table was generated by the 'Visualize' flow "
+            'in SQL Lab'),
+        'template_params': _(
+            'A set of parameters that become available in the query using '
+            'Jinja templating syntax'),
+        'cache_timeout': _(
+            'Duration (in seconds) of the caching timeout for this table. '
+            'A timeout of 0 indicates that the cache never expires. '
+            'Note this defaults to the database timeout if undefined.'),
     }
-    base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
         'slices': _('Associated Charts'),
         'link': _('Table'),
@@ -225,6 +240,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'owner': _('Owner'),
         'main_dttm_col': _('Main Datetime Column'),
         'description': _('Description'),
+        'is_sqllab_view': _('SQL Lab View'),
+        'template_params': _('Template parameters'),
+        'modified': _('Modified'),
     }
 
     def pre_add(self, table):
@@ -235,10 +253,12 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
                 models.SqlaTable.database_id == table.database.id)
             if db.session.query(table_query.exists()).scalar():
                 raise Exception(
-                    get_datasource_exist_error_mgs(table.full_name))
+                    get_datasource_exist_error_msg(table.full_name))
 
         # Fail before adding if the table can't be found
-        if not table.database.has_table(table):
+        try:
+            table.get_sqla_table_object()
+        except Exception:
             raise Exception(_(
                 'Table [{}] could not be found, '
                 'please double check your '
@@ -247,9 +267,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.get_perm())
+        security_manager.merge_perm('datasource_access', table.get_perm())
         if table.schema:
-            security.merge_perm(sm, 'schema_access', table.schema_perm)
+            security_manager.merge_perm('schema_access', table.schema_perm)
 
         if flash_message:
             flash(_(
@@ -279,22 +299,39 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         __('Refresh column metadata'),
         'fa-refresh')
     def refresh(self, tables):
+        if not isinstance(tables, list):
+            tables = [tables]
+        successes = []
+        failures = []
         for t in tables:
-            t.fetch_metadata()
-        msg = _(
-            'Metadata refreshed for the following table(s): %(tables)s',
-            tables=', '.join([t.table_name for t in tables]))
-        flash(msg, 'info')
+            try:
+                t.fetch_metadata()
+                successes.append(t)
+            except Exception:
+                failures.append(t)
+
+        if len(successes) > 0:
+            success_msg = _(
+                'Metadata refreshed for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in successes]))
+            flash(success_msg, 'info')
+        if len(failures) > 0:
+            failure_msg = _(
+                'Unable to retrieve metadata for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in failures]))
+            flash(failure_msg, 'danger')
+
         return redirect('/tablemodelview/list/')
 
 
-appbuilder.add_view(
-    TableModelView,
+appbuilder.add_view_no_menu(TableModelView)
+appbuilder.add_link(
     'Tables',
     label=__('Tables'),
+    href='/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+    icon='fa-table',
     category='Sources',
     category_label=__('Sources'),
-    icon='fa-table',
-)
+    category_icon='fa-table')
 
 appbuilder.add_separator('Sources')

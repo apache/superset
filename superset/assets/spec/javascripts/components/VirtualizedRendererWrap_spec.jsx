@@ -3,10 +3,9 @@ import React from 'react';
 import sinon from 'sinon';
 import PropTypes from 'prop-types';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import VirtualizedRendererWrap from '../../../javascripts/components/VirtualizedRendererWrap';
+import VirtualizedRendererWrap from '../../../src/components/VirtualizedRendererWrap';
 
 const defaultProps = {
   focusedOption: { label: 'focusedOn', value: 'focusedOn' },

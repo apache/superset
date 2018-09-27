@@ -2,11 +2,10 @@ import React from 'react';
 import Gravatar from 'react-gravatar';
 import { Panel } from 'react-bootstrap';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { user } from './fixtures';
-import UserInfo from '../../../javascripts/profile/components/UserInfo';
+import UserInfo from '../../../src/profile/components/UserInfo';
 
 
 describe('UserInfo', () => {

@@ -1,11 +1,10 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import Link from '../../../javascripts/SqlLab/components/Link';
-import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-import ColumnElement from '../../../javascripts/SqlLab/components/ColumnElement';
+import Link from '../../../src/SqlLab/components/Link';
+import TableElement from '../../../src/SqlLab/components/TableElement';
+import ColumnElement from '../../../src/SqlLab/components/ColumnElement';
 import { mockedActions, table } from './fixtures';
 
 describe('TableElement', () => {
@@ -36,7 +35,7 @@ describe('TableElement', () => {
     mount(<TableElement {...mockedProps} />);
   });
   it('sorts columns', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().sortColumns).to.equal(false);
     expect(wrapper.find(ColumnElement).first().props().column.name).to.equal('id');
     wrapper.find('.sort-cols').simulate('click');
@@ -50,12 +49,10 @@ describe('TableElement', () => {
     expect(mockedActions.collapseTable.called).to.equal(true);
   });
   it('removes the table', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    const wrapper = shallow(<TableElement {...mockedProps} />);
     expect(wrapper.state().expanded).to.equal(true);
     wrapper.find('.table-remove').simulate('click');
     expect(wrapper.state().expanded).to.equal(false);
-    setTimeout(() => {
-      expect(mockedActions.removeTable.called).to.equal(true);
-    }, 10);
+    expect(mockedActions.removeDataPreview.called).to.equal(true);
   });
 });

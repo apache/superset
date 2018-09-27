@@ -5,13 +5,12 @@ import URI from 'urijs';
 
 import { Tab } from 'react-bootstrap';
 import { shallow, mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { table, initialState } from './fixtures';
-import TabbedSqlEditors from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
-import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
+import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
+import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
 
 describe('TabbedSqlEditors', () => {
   const middlewares = [thunk];
@@ -22,10 +21,12 @@ describe('TabbedSqlEditors', () => {
     'dfsadfs',
     'newEditorId',
   ];
+
   const tables = [Object.assign({}, table[0], {
     dataPreviewQueryId: 'B1-VQU1zW',
     queryEditorId: 'newEditorId',
   })];
+
   const queryEditors = [{
     autorun: false,
     dbId: 1,
@@ -47,9 +48,11 @@ describe('TabbedSqlEditors', () => {
     databases: {},
     tables: [],
     queries: {},
-    queryEditors: initialState.queryEditors,
-    tabHistory: initialState.tabHistory,
+    queryEditors: initialState.sqlLab.queryEditors,
+    tabHistory: initialState.sqlLab.tabHistory,
     editorHeight: '',
+    getHeight: () => ('100px'),
+    database: {},
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {
@@ -161,7 +164,7 @@ describe('TabbedSqlEditors', () => {
     wrapper.setState({ hideLeftBar: true });
 
     const firstTab = wrapper.find(Tab).first();
-    expect(firstTab.props().eventKey).to.contain(initialState.queryEditors[0].id);
+    expect(firstTab.props().eventKey).to.contain(initialState.sqlLab.queryEditors[0].id);
     expect(firstTab.find(SqlEditor)).to.have.length(1);
 
     const lastTab = wrapper.find(Tab).last();

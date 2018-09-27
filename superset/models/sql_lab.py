@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
 from __future__ import absolute_import
 from __future__ import division
@@ -16,9 +18,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset import sm
+from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils import QueryStatus
+from superset.utils import QueryStatus, user_label
 
 install_aliases()
 
@@ -75,7 +77,7 @@ class Query(Model):
         'Database',
         foreign_keys=[database_id],
         backref=backref('queries', cascade='all, delete-orphan'))
-    user = relationship(sm.user_model, foreign_keys=[user_id])
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
     __table_args__ = (
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
@@ -108,7 +110,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
-            'user': self.user.username,
+            'user': user_label(self.user),
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,
@@ -137,7 +139,7 @@ class SavedQuery(Model, AuditMixinNullable):
     description = Column(Text)
     sql = Column(Text)
     user = relationship(
-        sm.user_model,
+        security_manager.user_model,
         backref=backref('saved_queries', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
     database = relationship(

@@ -1,0 +1,52 @@
+.heatmap {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
+.heatmap .axis text {
+  font: 12px sans-serif;
+  text-rendering: optimizeLegibility;
+  fill: #555;
+}
+
+.heatmap .background-rect {
+  stroke: #ddd;
+  fill-opacity: 0;
+  pointer-events: all;
+}
+
+.heatmap .axis path,
+.heatmap .axis line {
+  fill: none;
+  stroke: #ddd;
+  shape-rendering: crispEdges;
+}
+
+.heatmap canvas, .heatmap img {
+  image-rendering: optimizeSpeed;             /* Older versions of FF          */
+  image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+  image-rendering: -webkit-optimize-contrast; /* Safari                        */
+  image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+  image-rendering: pixelated;                 /* Awesome future-browsers       */
+  -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+}
+
+.heatmap .legendCells text {
+  font-size: 10px;
+  font-weight: normal;
+  opacity: 0;
+}
+
+.heatmap .legendCells .cell:first-child text {
+  opacity: 1;
+}
+.heatmap .legendCells .cell:last-child text {
+  opacity: 1;
+}
+
+.dashboard .heatmap .axis text {
+  font-size: 10px;
+  opacity: .75;
+}

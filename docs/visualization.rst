@@ -1735,7 +1735,7 @@ To add a new country in country map tools, we need follow next steps :
 7. Add your country in component 'select_country'
    Example :
 
-.. code:: python
+.. code-block:: javascript
 
     select_country: {
         type: 'SelectControl',

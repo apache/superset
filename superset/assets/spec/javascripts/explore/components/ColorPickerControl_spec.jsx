@@ -1,14 +1,13 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 
 import ColorPickerControl from
-  '../../../../javascripts/explore/components/controls/ColorPickerControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+  '../../../../src/explore/components/controls/ColorPickerControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: { },

@@ -1,4 +1,12 @@
-.. image:: _static/img/s.png
+|apache_img| |superset_img|
+
+.. |apache_img| image:: images/apache_feather.png
+   :width: 7%
+   :target: http://www.apache.org/
+   :alt: The Apache Software Foundation
+
+.. |superset_img| image:: images/s.png
+   :width: 25%
 
 Apache Superset (incubating)
 ''''''''''''''''''''''''''''
@@ -8,9 +16,6 @@ intelligence web application
 
 
 ----------------
-
-.. warning:: This project was originally named Panoramix, was renamed to
-    Caravel in March 2016, and is currently named Superset as of November 2016
 
 .. important::
 
@@ -23,6 +28,32 @@ intelligence web application
     necessarily a reflection of the completeness or stability of
     the code, it does indicate that the project has yet to be fully
     endorsed by the ASF.
+
+.. note:: Apache Superset, Superset, Apache, the Apache feather logo, and
+    the Apache Superset project logo are either registered trademarks or
+    trademarks of The Apache Software Foundation in the United States
+    and other countries.
+
+Superset Resources
+==================
+- `Superset's Github <https://github.com/apache/incubator-superset>`_, note
+  that `we use Github for issue tracking <https://github.com/apache/incubator-superset/issues>`_
+- Superset's
+  `contribution guidelines <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md>`_
+  and
+  `code of conduct <https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md>`_
+  on Github.
+- Our `mailing list archives <https://lists.apache.org/list.html?dev@superset.apache.org>`_.
+  To subscribe, send an email to ``dev-subscribe@superset.apache.org``
+- `Join our Slack <https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE>`_
+
+Apache Software Foundation Resources
+====================================
+- `The Apache Software Foundation Website <http://www.apache.org>`_
+- `Current Events <http://www.apache.org/events/current-event>`_
+- `License <https://www.apache.org/licenses/>`_
+- `Thanks <https://www.apache.org/foundation/thanks.html>`_ to the ASF's sponsors
+- `Sponsor Apache! <http://www.apache.org/foundation/sponsorship.html>`_
 
 Overview
 ========
@@ -45,17 +76,22 @@ Features
 - Integration with most SQL-speaking RDBMS through SQLAlchemy
 - Deep integration with Druid.io
 
-------
+Screenshots
+-----------
 
-.. image:: https://camo.githubusercontent.com/82e264ef777ba06e1858766fe3b8817ee108eb7e/687474703a2f2f672e7265636f726469742e636f2f784658537661475574732e676966
-
-------
-
-.. image:: https://camo.githubusercontent.com/4991ff37a0005ea4e4267919a52786fda82d2d21/687474703a2f2f672e7265636f726469742e636f2f755a6767594f645235672e676966
+.. image:: images/screenshots/bank_dash.png
 
 ------
 
-.. image:: https://camo.githubusercontent.com/a389af15ac1e32a3d0fee941b4c62c850b1d583b/687474703a2f2f672e7265636f726469742e636f2f55373046574c704c76682e676966
+.. image:: images/screenshots/explore.png
+
+------
+
+.. image:: images/screenshots/sqllab.png
+
+------
+
+.. image:: images/screenshots/deckgl_dash.png
 
 ------
 
@@ -70,10 +106,9 @@ Contents
     tutorial
     security
     sqllab
-    visualization
-    videos
     gallery
     druid
+    misc
     faq
 
 

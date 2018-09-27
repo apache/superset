@@ -1,21 +1,20 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { initialState, queries, table } from './fixtures';
-import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
-import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
+import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
 
 describe('SqlEditor', () => {
   const mockedProps = {
     actions: {},
     database: {},
-    queryEditor: initialState.queryEditors[0],
+    queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
     queries,
-    height: '',
+    getHeight: () => ('100px'),
     editorQueries: [],
     dataPreviewQueries: [],
   };

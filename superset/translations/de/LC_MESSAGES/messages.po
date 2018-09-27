@@ -268,7 +268,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:647
 #: superset/viz.py:1119
 msgid "Histogram"
-msgstr ""
+msgstr "Histogramm"
 
 #: superset/viz.py:1129
 msgid "Must have one numeric column specified"
@@ -390,11 +390,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/actions.js:57
 msgid "Your query was saved"
-msgstr ""
+msgstr "Ihre Abfrage wurde gespeichert"
 
 #: superset/assets/javascripts/SqlLab/actions.js:58
 msgid "Your query could not be saved"
-msgstr ""
+msgstr "Ihre Abfrage konnte nicht gespeichert werden"
 
 #: superset/assets/javascripts/SqlLab/actions.js:111
 msgid "Failed at retrieving results from the results backend"
@@ -509,7 +509,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:188
 msgid "Search"
-msgstr ""
+msgstr "Suche"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:114
 msgid "Open in SQL Editor"
@@ -589,7 +589,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:57
 msgid "Stop"
-msgstr ""
+msgstr "Stopp"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:16
 msgid "Undefined"
@@ -963,7 +963,7 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:131
 msgid "Save as:"
-msgstr ""
+msgstr "Speichern als:"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:135
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:210
@@ -1074,11 +1074,11 @@ msgstr "Abfrage"
 
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:76
 msgid "Height"
-msgstr ""
+msgstr "Höhe"
 
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:90
 msgid "Width"
-msgstr ""
+msgstr "Breite"
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:32
 msgid "Export to .json"
@@ -1193,7 +1193,6 @@ msgstr ""
 msgid "Select operator"
 msgstr ""
 
-#: superset/assets/javascripts/explore/components/controls/FilterControl.jsx:138
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
 msgstr ""
@@ -2264,7 +2263,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/controls.jsx:1385
 #: superset/assets/javascripts/explore/stores/visTypes.js:25
 msgid "Color Scheme"
-msgstr ""
+msgstr "Farbschema"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1389
 msgid "The color scheme for rendering chart"
@@ -2437,7 +2436,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:709
 msgid "Hierarchy"
-msgstr ""
+msgstr "Hierarchie"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:710
 msgid "This defines the level of the hierarchy"
@@ -2970,7 +2969,7 @@ msgstr "Leere Abfrage?"
 
 #: superset/connectors/sqla/models.py:401
 msgid "Metric '{}' is not valid"
-msgstr ""
+msgstr "Metrik '{}' ist nicht valide"
 
 #: superset/connectors/sqla/models.py:590
 msgid ""
@@ -3115,7 +3114,7 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:223
 msgid "Table Name"
-msgstr "Tabellename"
+msgstr "Tabellenname"
 
 #: superset/connectors/sqla/views.py:224
 msgid "Fetch Values Predicate"
@@ -3147,11 +3146,11 @@ msgstr "Profil"
 
 #: superset/templates/appbuilder/navbar_right.html:42
 msgid "Logout"
-msgstr "Ausloggen"
+msgstr "Abmelden"
 
 #: superset/templates/appbuilder/navbar_right.html:47
 msgid "Login"
-msgstr "Einloggen"
+msgstr "Anmelden"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:37
 msgid "Record Count"
@@ -3163,7 +3162,7 @@ msgstr "Keine Datensätze gefunden"
 
 #: superset/templates/superset/import_dashboards.html:11
 msgid "Import"
-msgstr "Importiern"
+msgstr "Importieren"
 
 #: superset/templates/superset/request_access.html:2
 msgid "No Access!"
@@ -3180,11 +3179,11 @@ msgstr "Berechtigung anfordern"
 
 #: superset/templates/superset/welcome.html:3
 msgid "Welcome!"
-msgstr "Wilkommen!"
+msgstr "Willkommen!"
 
 #: superset/templates/superset/models/database/macros.html:4
 msgid "Test Connection"
-msgstr ""
+msgstr "Verbindungstest"
 
 #: superset/views/annotations.py:50 superset/views/annotations.py:58
 #: superset/views/core.py:277 superset/views/core.py:2371
@@ -3410,7 +3409,7 @@ msgstr ""
 
 #: superset/views/core.py:377
 msgid "Parameters"
-msgstr ""
+msgstr "Parameter"
 
 #: superset/views/core.py:378 superset/views/core.py:420
 msgid "Slice"
@@ -3490,7 +3489,7 @@ msgstr ""
 
 #: superset/views/core.py:557
 msgid "Action"
-msgstr "Tat"
+msgstr "Aktion"
 
 #: superset/views/core.py:558
 msgid "dttm"

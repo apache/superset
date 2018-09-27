@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -41,12 +43,13 @@ ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
-SUPERSET_WORKERS = 2
-SUPERSET_CELERY_WORKERS = 32
+SUPERSET_WORKERS = 2  # deprecated
+SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
-SUPERSET_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_TIMEOUT = 60  # deprecated
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -163,6 +166,9 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+    'pt': {'flag': 'pt', 'name': 'Portuguese'},
+    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'ru': {'flag': 'ru', 'name': 'Russian'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -195,6 +201,30 @@ ALLOWED_EXTENSIONS = set(['csv'])
 CSV_EXPORT = {
     'encoding': 'utf-8',
 }
+
+# ---------------------------------------------------
+# Time grain configurations
+# ---------------------------------------------------
+# List of time grains to disable in the application (see list of builtin
+# time grains in superset/db_engine_specs.builtin_time_grains).
+# For example: to disable 1 second time grain:
+# TIME_GRAIN_BLACKLIST = ['PT1S']
+TIME_GRAIN_BLACKLIST = []
+
+# Additional time grains to be supported using similar definitions as in
+# superset/db_engine_specs.builtin_time_grains.
+# For example: To add a new 2 second time grain:
+# TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
+TIME_GRAIN_ADDONS = {}
+
+# Implementation of additional time grains per engine.
+# For example: To implement 2 second time grain on clickhouse engine:
+# TIME_GRAIN_ADDON_FUNCTIONS = {
+#     'clickhouse': {
+#         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
+#     }
+# }
+TIME_GRAIN_ADDON_FUNCTIONS = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -243,11 +273,15 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ''
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
-# Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000000
-DISPLAY_SQL_MAX_ROW = 1000
+# Maximum number of rows returned from a database
+# in async mode, no more than SQL_MAX_ROW will be returned and stored
+# in the results backend. This also becomes the limit when exporting CSVs
+SQL_MAX_ROW = 100000
+
+# Limit to be returned to the frontend.
+DISPLAY_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -273,14 +307,14 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
-SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
-SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
 # static http headers to be served by your Superset server.
-# The following example prevents iFrame from other domains
-# and "clickjacking" as a result
-# HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
-HTTP_HEADERS = {}
+# This header prevents iFrames from other domains and
+# "clickjacking" as a result
+HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
+# If you need to allow iframes from other domains (and are
+# aware of the risks), you can disable this header:
+# HTTP_HEADERS = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -308,6 +342,10 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 # contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
 
+# The namespace within hive where the tables created from
+# uploading CSVs will be stored.
+UPLOADED_CSV_HIVE_NAMESPACE = None
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
@@ -326,6 +364,9 @@ CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
 FLASK_APP_MUTATOR = None
 
+# Set this to false if you don't want users to be able to request/grant
+# datasource access requests from/to other users.
+ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
@@ -349,6 +390,12 @@ SILENCE_FAB = True
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ''
 
+# CSRF token timeout, set to None for a token that never expires
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
+
+# This link should lead to a page with instructions on how to gain access to a
+# Datasource. It will be placed at the bottom of permissions errors.
+PERMISSION_INSTRUCTIONS_LINK = ''
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
@@ -358,6 +405,48 @@ BLUEPRINTS = []
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
 TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
+
+# Interval between consecutive polls when using Hive Engine
+HIVE_POLL_INTERVAL = 5
+
+# Allow for javascript controls components
+# this enables programmers to customize certain charts (like the
+# geospatial ones) by inputing javascript in controls. This exposes
+# an XSS security vulnerability
+ENABLE_JAVASCRIPT_CONTROLS = False
+
+# The id of a template dashboard that should be copied to every new user
+DASHBOARD_TEMPLATE_ID = None
+
+# A callable that allows altering the database conneciton URL and params
+# on the fly, at runtime. This allows for things like impersonation or
+# arbitrary logic. For instance you can wire different users to
+# use different connection parameters, or pass their email address as the
+# username. The function receives the connection uri object, connection
+# params, the username, and returns the mutated uri and params objects.
+# Example:
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#       user = security_manager.find_user(username=username)
+#       if user and user.email:
+#           uri.username = user.email
+#       return uri, params
+#
+# Note that the returned uri and params are passed directly to sqlalchemy's
+# as such `create_engine(url, **params)`
+DB_CONNECTION_MUTATOR = None
+
+# A function that intercepts the SQL to be executed and can alter it.
+# The use case is can be around adding some sort of comment header
+# with information such as the username and worker node information
+#
+#    def SQL_QUERY_MUTATOR(sql, username, security_manager):
+#        dttm = datetime.now().isoformat()
+#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+SQL_QUERY_MUTATOR = None
+
+# When not using gunicorn, (nginx for instance), you may want to disable
+# using flask-compress
+ENABLE_FLASK_COMPRESS = True
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

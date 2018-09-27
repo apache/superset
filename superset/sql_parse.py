@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,36 +11,46 @@ import sqlparse
 from sqlparse.sql import Identifier, IdentifierList
 from sqlparse.tokens import Keyword, Name
 
-RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
+RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT', 'SELECT'}
+ON_KEYWORD = 'ON'
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
-# TODO: some sql_lab logic here.
 class SupersetQuery(object):
     def __init__(self, sql_statement):
         self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
+        self._limit = None
         # TODO: multistatement support
+
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
         self._parsed = sqlparse.parse(self.sql)
         for statement in self._parsed:
             self.__extract_from_token(statement)
+            self._limit = self._extract_limit_from_query(statement)
         self._table_names = self._table_names - self._alias_names
 
     @property
     def tables(self):
         return self._table_names
 
+    @property
+    def limit(self):
+        return self._limit
+
     def is_select(self):
         return self._parsed[0].get_type() == 'SELECT'
 
+    def is_explain(self):
+        return self.sql.strip().upper().startswith('EXPLAIN')
+
+    def is_readonly(self):
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return self.is_select() or self.is_explain()
+
     def stripped(self):
-        sql = self.sql
-        if sql:
-            while sql[-1] in (' ', ';', '\n', '\t'):
-                sql = sql[:-1]
-            return sql
+        return self.sql.strip(' \t\n;')
 
     @staticmethod
     def __precedes_table_name(token_value):
@@ -63,13 +75,12 @@ class SupersetQuery(object):
 
     @staticmethod
     def __is_identifier(token):
-        return (
-            isinstance(token, IdentifierList) or isinstance(token, Identifier))
+        return isinstance(token, (IdentifierList, Identifier))
 
     def __process_identifier(self, identifier):
         # exclude subselects
         if '(' not in '{}'.format(identifier):
-            self._table_names.add(SupersetQuery.__get_full_name(identifier))
+            self._table_names.add(self.__get_full_name(identifier))
             return
 
         # store aliases
@@ -92,11 +103,6 @@ class SupersetQuery(object):
         :param overwrite, boolean, table table_name will be dropped if true
         :return: string, create table as query
         """
-        # TODO(bkyryliuk): enforce that all the columns have names.
-        # Presto requires it for the CTA operation.
-        # TODO(bkyryliuk): drop table if allowed, check the namespace and
-        #                  the permissions.
-        # TODO raise if multi-statement
         exec_sql = ''
         sql = self.stripped()
         if overwrite:
@@ -115,15 +121,16 @@ class SupersetQuery(object):
                 self.__extract_from_token(item)
 
             if item.ttype in Keyword:
-                if SupersetQuery.__precedes_table_name(item.value.upper()):
+                if self.__precedes_table_name(item.value.upper()):
                     table_name_preceding_token = True
                     continue
 
             if not table_name_preceding_token:
                 continue
 
-            if item.ttype in Keyword:
-                if SupersetQuery.__is_result_operation(item.value):
+            if item.ttype in Keyword or item.value == ',':
+                if (self.__is_result_operation(item.value) or
+                        item.value.upper() == ON_KEYWORD):
                     table_name_preceding_token = False
                     continue
                 # FROM clause is over
@@ -134,5 +141,43 @@ class SupersetQuery(object):
 
             if isinstance(item, IdentifierList):
                 for token in item.tokens:
-                    if SupersetQuery.__is_identifier(token):
+                    if self.__is_identifier(token):
                         self.__process_identifier(token)
+
+    def _get_limit_from_token(self, token):
+        if token.ttype == sqlparse.tokens.Literal.Number.Integer:
+            return int(token.value)
+        elif token.is_group:
+            return int(token.get_token_at_offset(1).value)
+
+    def _extract_limit_from_query(self, statement):
+        limit_token = None
+        for pos, item in enumerate(statement.tokens):
+            if item.ttype in Keyword and item.value.lower() == 'limit':
+                limit_token = statement.tokens[pos + 2]
+                return self._get_limit_from_token(limit_token)
+
+    def get_query_with_new_limit(self, new_limit):
+        """returns the query with the specified limit"""
+        """does not change the underlying query"""
+        if not self._limit:
+            return self.sql + ' LIMIT ' + str(new_limit)
+        limit_pos = None
+        tokens = self._parsed[0].tokens
+        # Add all items to before_str until there is a limit
+        for pos, item in enumerate(tokens):
+            if item.ttype in Keyword and item.value.lower() == 'limit':
+                limit_pos = pos
+                break
+        limit = tokens[limit_pos + 2]
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer:
+            tokens[limit_pos + 2].value = new_limit
+        elif limit.is_group:
+            tokens[limit_pos + 2].value = (
+                '{}, {}'.format(next(limit.get_identifiers()), new_limit)
+            )
+
+        str_res = ''
+        for i in tokens:
+            str_res += str(i.value)
+        return str_res

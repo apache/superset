@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from pyhive import hive
 from TCLIService import ttypes
 from thrift import Thrift

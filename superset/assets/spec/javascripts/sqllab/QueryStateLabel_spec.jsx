@@ -1,10 +1,9 @@
 import React from 'react';
 import { Label } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import QueryStateLabel from '../../../javascripts/SqlLab/components/QueryStateLabel';
+import QueryStateLabel from '../../../src/SqlLab/components/QueryStateLabel';
 
 describe('SavedQuery', () => {
   const mockedProps = {

@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from sqlalchemy.orm import subqueryload
 
 
@@ -27,8 +34,10 @@ class ConnectorRegistry(object):
     def get_all_datasources(cls, session):
         datasources = []
         for source_type in ConnectorRegistry.sources:
-            datasources.extend(
-                session.query(ConnectorRegistry.sources[source_type]).all())
+            source_class = ConnectorRegistry.sources[source_type]
+            qry = session.query(source_class)
+            qry = source_class.default_query(qry)
+            datasources.extend(qry.all())
         return datasources
 
     @classmethod

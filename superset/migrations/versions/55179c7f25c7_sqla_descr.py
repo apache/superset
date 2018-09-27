@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """sqla_descr
 
 Revision ID: 55179c7f25c7

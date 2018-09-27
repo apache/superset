@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """update_spatial_params
 
 Revision ID: 67a6ac9b727b
