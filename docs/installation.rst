@@ -4,9 +4,10 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is currently tested against Python ``2.7`` and Python ``3.6``.
-Python 3.6 is preferred. Support for Python ``<=3.6`` is planned to get
-phased out.
+Superset has deprecated support for Python ``2.*`` and supports
+only ``~=3.6`` to take advantage of the newer Python features and reduce
+the burden of supporting previous versions. We run our test suite
+against ``3.6``, but running on ``3.7`` **should** work as well.
 
 Cloud-native!
 -------------
