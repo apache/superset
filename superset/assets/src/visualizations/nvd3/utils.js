@@ -69,6 +69,10 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
     + '</td></tr></thead><tbody>';
   d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
   d.series.forEach((series) => {
+    let key = dompurify.sanitize(series.key);
+    if(key === "") {
+        key = "&lt;" + series.key.slice(1, -1) + "&gt;";
+    }
     tooltip += (
       `<tr class="${series.highlight ? 'emph' : ''}">` +
         `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
@@ -76,7 +80,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
             `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
           '></div>' +
         '</td>' +
-        `<td>${dompurify.sanitize(series.key)}</td>` +
+        `<td>${key}</td>` +
         `<td>${valueFormatter(series.value)}</td>` +
       '</tr>'
     );
@@ -95,6 +99,10 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   d.series.forEach((series, i) => {
     const yFormatter = yFormatters[i];
+    let key = series.key;
+    if(key === "") {
+        key = "&lt;" + series.key.slice(1, -1) + "&gt;";
+    }
     tooltip += "<tr><td class='legend-color-guide'>"
       + `<div style="background-color: ${series.color};"></div></td>`
       + `<td class='key'>${series.key}</td>`
