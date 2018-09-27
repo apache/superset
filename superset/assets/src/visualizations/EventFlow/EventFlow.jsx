@@ -10,6 +10,7 @@ const propTypes = {
 };
 const defaultProps = {
   className: '',
+  data: null,
 };
 
 function isExplorer() {
