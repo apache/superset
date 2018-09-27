@@ -806,7 +806,7 @@ class SqlaTable(Model, BaseDatasource):
         try:
             table = self.get_sqla_table_object()
         except Exception as e:
-            logging.error(e)
+            logging.exception(e)
             raise Exception(_(
                 "Table [{}] doesn't seem to exist in the specified database, "
                 "couldn't fetch column information").format(self.table_name))
