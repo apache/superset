@@ -75,7 +75,7 @@ setup(
         'humanize',
         'idna',
         'isodate',
-        'markdown<3.0.0',
+        'markdown>=3.0',
         'pandas>=0.18.0',
         'parsedatetime',
         'pathlib2',
