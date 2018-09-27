@@ -26,6 +26,8 @@ from superset.security import SupersetSecurityManager
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
+__version__ = '0.27.0'
+
 if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
 
