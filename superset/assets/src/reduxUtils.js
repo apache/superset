@@ -1,7 +1,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState from 'redux-localstorage';
-import { isEqual } from 'underscore';
+import { isEqual } from 'lodash';
 
 export function addToObject(state, arrKey, obj) {
   const newObject = Object.assign({}, state[arrKey]);

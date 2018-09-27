@@ -1,6 +1,5 @@
 import { expect, assert } from 'chai';
 import {
-  slugify,
   formatSelectOptionsForRange,
   d3format,
   d3FormatPreset,
@@ -10,12 +9,6 @@ import {
 } from '../../../src/modules/utils';
 
 describe('utils', () => {
-  it('slugify slugifies', () => {
-    expect(slugify('My Neat Label! ')).to.equal('my-neat-label');
-    expect(slugify('Some Letters AnD a 5')).to.equal('some-letters-and-a-5');
-    expect(slugify(' 439278 ')).to.equal('439278');
-    expect(slugify('5')).to.equal('5');
-  });
   it('formatSelectOptionsForRange', () => {
     expect(formatSelectOptionsForRange(0, 4)).to.deep.equal([
       [0, '0'],

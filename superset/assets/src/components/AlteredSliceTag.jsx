@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
-import { isEqual, isEmpty } from 'underscore';
+import { isEqual, isEmpty } from 'lodash';
 
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';

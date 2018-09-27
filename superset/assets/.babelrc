@@ -1,4 +1,4 @@
 {
   "presets" : ["airbnb", "react", "env"],
-  "plugins": ["syntax-dynamic-import", "react-hot-loader/babel"]
+  "plugins": ["lodash", "syntax-dynamic-import", "react-hot-loader/babel"]
 }
