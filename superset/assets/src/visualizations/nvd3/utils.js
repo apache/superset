@@ -105,7 +105,7 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
     }
     tooltip += "<tr><td class='legend-color-guide'>"
       + `<div style="background-color: ${series.color};"></div></td>`
-      + `<td class='key'>${series.key}</td>`
+      + `<td class='key'>${key}</td>`
       + `<td class='value'>${yFormatter(series.value)}</td></tr>`;
   });
 
