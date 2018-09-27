@@ -3,8 +3,8 @@ import callApi from './callApi';
 class SupersetClient {
   constructor(config) {
     const {
-      protocol = 'http',
-      host = '',
+      protocol = 'http:',
+      host = 'localhost',
       headers = {},
       mode = 'same-origin',
       timeout,
@@ -15,7 +15,7 @@ class SupersetClient {
     this.host = host;
     this.mode = mode;
     this.timeout = timeout;
-    this.protocol = protocol;
+    this.protocol = `${protocol}${protocol.slice(-1) === ':' ? '' : ':'}`;
     this.credentials = credentials;
     this.csrfToken = null;
     this.didAuthSuccessfully = false;
@@ -64,7 +64,7 @@ class SupersetClient {
   getUrl({ host = '', endpoint = '' }) {
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
-    return `${this.protocol}://${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
+    return `${this.protocol}//${cleanHost}/${endpoint[0] === '/' ? endpoint.slice(1) : endpoint}`;
   }
 
   ensureAuth() {
