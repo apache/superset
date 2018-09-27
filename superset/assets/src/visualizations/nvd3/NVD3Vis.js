@@ -1,4 +1,4 @@
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
