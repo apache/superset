@@ -20,8 +20,6 @@ const propTypes = {
 const formatter = d3.format('.3s');
 
 function WorldMap(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WorldMap');
-
   const {
     data,
     height,
@@ -107,6 +105,7 @@ function WorldMap(element, props) {
   }
 }
 
+WorldMap.displayName = 'WorldMap';
 WorldMap.propTypes = propTypes;
 
 export default WorldMap;
