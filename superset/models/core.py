@@ -913,7 +913,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_table(self, table_name, schema=None):
         extra = self.get_extra()
-        meta = MetaData(**extra.get('metadata_params', {}))
+        meta = MetaData(extra.get('metadata_params', {}))
         return Table(
             table_name, meta,
             schema=schema or None,
