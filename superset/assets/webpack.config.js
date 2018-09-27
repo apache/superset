@@ -1,8 +1,11 @@
 const path = require('path');
 const webpack = require('webpack');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // Parse command-line arguments
@@ -17,6 +20,8 @@ const {
   mode = 'development',
   devserverPort = 9000,
   supersetPort = 8088,
+  measure = false,
+  analyzeBundle = false,
 } = parsedArgs;
 
 const isDevMode = mode !== 'production';
@@ -86,13 +91,21 @@ const config = {
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
+      minChunks: 2,
+      cacheGroups: {
+        default: false,
+        major: {
+          name: 'vendors-major',
+          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js)[\\/]/,
+        },
+      },
     },
   },
   resolve: {
     extensions: ['.js', '.jsx'],
   },
   module: {
-    // uglyfying mapbox-gl results in undefined errors, see
+    // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
     noParse: /(mapbox-gl)\.js$/,
     rules: [
@@ -172,4 +185,28 @@ const config = {
   },
 };
 
-module.exports = config;
+if (!isDevMode) {
+  config.optimization.minimizer = [
+    new TerserPlugin({
+      cache: true,
+      parallel: true,
+      extractComments: true,
+    }),
+  ];
+}
+
+// Bundle analyzer is disabled by default
+// Pass flag --analyzeBundle=true to enable
+// e.g. npm run build -- --analyzeBundle=true
+if (analyzeBundle) {
+  config.plugins.push(new BundleAnalyzerPlugin());
+}
+
+// Speed measurement is disabled by default
+// Pass flag --measure=true to enable
+// e.g. npm run build -- --measure=true
+const smp = new SpeedMeasurePlugin({
+  disable: !measure,
+});
+
+module.exports = smp.wrap(config);
