@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import {
   Col,
   FormGroup,
