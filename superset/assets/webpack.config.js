@@ -107,16 +107,7 @@ const config = {
   module: {
     // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    // Also skip parsing large external modules files
-    noParse: new RegExp([
-      '[@]data[-]ui/event[-]flow/build/index[.]js',
-      'brace/.*/.*[.]js',
-      'datamaps/dist/datamaps[.].*[.]js',
-      'jquery/dist/.*[.]js',
-      'mapbox[-]gl/dist/mapbox[-]gl[.]js',
-      'nvd3/build/nv[.]d3[.]js',
-      'react[-]dom/cjs/.*[.]min[.]js',
-    ].map(file => `node_modules/${file}`).join('|')),
+    noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
