@@ -107,16 +107,14 @@ const config = {
   module: {
     // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
-    // Also skip parsing and transpiling large external modules files
+    // Also skip parsing large external modules files
     noParse: new RegExp([
       '[@]data[-]ui/event[-]flow/build/index[.]js',
       'brace/.*/.*[.]js',
-      'd3/d3[.]js',
       'datamaps/dist/datamaps[.].*[.]js',
-      'immutable/immutable[.]js',
       'jquery/dist/.*[.]js',
-      'lodash/lodash[.]min[.]js',
       'mapbox[-]gl/dist/mapbox[-]gl[.]js',
+      'nvd3/build/nv[.]d3[.]js',
       'react[-]dom/cjs/.*[.]min[.]js',
     ].map(file => `node_modules/${file}`).join('|')),
     rules: [
