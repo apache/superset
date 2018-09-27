@@ -18,7 +18,7 @@ gunicorn==19.8.0
 humanize==0.5.1
 idna==2.6
 isodate==0.6.0
-markdown==2.6.11
+markdown==3.0
 pandas==0.23.1
 parsedatetime==2.0.0
 pathlib2==2.3.0
@@ -40,4 +40,3 @@ thrift-sasl==0.3.0
 unicodecsv==0.14.1
 unidecode==1.0.22
 contextlib2==0.5.5
-
