@@ -89,7 +89,7 @@ const vizMap = {
   [VIZ_TYPES.line_multi]: () =>
     loadVis(import(/* webpackChunkName: "line_multi" */ './nvd3/LineMulti.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
-  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
+  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/adaptor.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './ParallelCoordinates/adaptor.jsx')),
