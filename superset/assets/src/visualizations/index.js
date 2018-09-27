@@ -111,7 +111,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "world_map" */ './WorldMap/adaptor.jsx')),
   [VIZ_TYPES.dual_line]: loadNvd3,
   [VIZ_TYPES.event_flow]: () =>
-    loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
+    loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow/adaptor.jsx')),
   [VIZ_TYPES.paired_ttest]: () =>
     loadVis(import(/* webpackChunkName: "paired_ttest" */ './PairedTTest/adaptor.jsx')),
   [VIZ_TYPES.partition]: () =>
