@@ -93,7 +93,7 @@ ENABLE_PROXY_FIX = False
 APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
-APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON = '/static/assets/images/guavus_logo.svg'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -543,6 +543,9 @@ WEBDRIVER_CONFIGURATION = {}
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
+#add timezone and copyright property for footer display
+TIMEZONE = 'UTC'
+COPYRIGHT = '© 2018 Guavus'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

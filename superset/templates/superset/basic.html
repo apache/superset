@@ -54,6 +54,13 @@
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
         <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
       </div>
+
+        {% block footer %}
+        <footer>
+          {% include 'appbuilder/footer.html' %}
+        </footer>
+        {% endblock %}
+        
     {% endblock %}
 
     <!-- Modal for misc messages / alerts  -->
