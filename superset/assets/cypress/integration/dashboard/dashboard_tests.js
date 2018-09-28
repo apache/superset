@@ -1,5 +1,5 @@
 describe('Load dashboard', () => {
-  it('Load birth names dashboard', () => {
+  xit('Load birth names dashboard', () => {
     cy.server();
     cy.login();
     // go to the dashboard and get list of slices first
