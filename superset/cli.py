@@ -18,7 +18,8 @@ import werkzeug.serving
 import yaml
 
 from superset import (
-    app, dashboard_import_export_util, data, db, dict_import_export_util, security_manager, utils,
+    app, dashboard_import_export_util, data, db,
+    dict_import_export_util, security_manager, utils,
 )
 
 config = app.config
@@ -223,6 +224,7 @@ def refresh_druid(datasource, merge):
             '[' + cluster.cluster_name + ']')
     session.commit()
 
+
 @app.cli.command()
 @click.option(
     '--path', '-p',
@@ -246,10 +248,11 @@ def import_dashboards(path, recursive=False):
         try:
             with f.open() as data_stream:
                 dashboard_import_export_util.import_dashboards(
-                db.session, data_stream )
+                    db.session, data_stream)
         except Exception as e:
             logging.error('Error when importing dashboard from file %s', f)
             logging.error(e)
+
 
 @app.cli.command()
 @click.option(
