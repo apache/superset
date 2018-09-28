@@ -1,0 +1,66 @@
+//=== Inverted navbar
+// Reset inverted navbar basics
+@navbar-inverse-bg:                         #383846;
+@navbar-inverse-link-color:                 #fff;
+@navbar-inverse-link-hover-color:           #fff;
+@navbar-height:                    45px;
+@navbar-inverse-brand-hover-color: @navbar-inverse-link-color;
+
+.header-img-div {
+   display: inline-flex;
+   padding-top: 5px;
+}
+.header-divider-line {
+    width: 1px;
+    height: 23px;
+    margin-left: 20px;
+    margin-right: 20px;
+    background-color: @navbar-inverse-link-color;
+}
+
+// --- changing nav bar caret colors
+.caret {
+border: none;
+color: #fff;
+}
+.caret:hover {
+color: #fff;
+}
+
+// --- footer styles ---
+@footer-label-color: #fff;
+@footer-bar-background-color: @navbar-inverse-bg;
+@text-footer-font-size: 12px;
+@text-font-weight: 'normal';
+@default-text-font-style:'normal';
+
+.footer-right {
+    float: right;
+    margin: 5px 15px 5px 0px;
+    .footer-right-label {
+      font-size: @text-footer-font-size;
+      color: @footer-label-color;
+      font-style: @default-text-font-style;
+      font-weight: @text-font-weight;
+    }
+}
+
+.footer-left {
+  float: left;
+  margin: 5px 0px 5px 15px;
+  .footer-left-label {
+    font-size: @text-footer-font-size;
+    color: @footer-label-color;
+    font-style: @default-text-font-style;
+    font-weight: @text-font-weight;
+  }
+}
+
+.navbar-fixed-bottom-template {
+  min-height: 30px;
+  height: 30px;
+}
+
+.navbar-default-template {
+  background-color: @footer-bar-background-color;
+}

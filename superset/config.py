@@ -98,7 +98,7 @@ ENABLE_PROXY_FIX = False
 APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
-APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON = '/static/assets/images/guavus_logo.svg'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -445,6 +445,10 @@ SQL_QUERY_MUTATOR = None
 # When not using gunicorn, (nginx for instance), you may want to disable
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
+
+#add timezone and copyright property for footer display
+TIMEZONE = 'UTC'
+COPYRIGHT = '© 2018 Guavus'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
