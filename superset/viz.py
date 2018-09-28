@@ -10,7 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
 import hashlib
@@ -18,6 +18,7 @@ import inspect
 from itertools import product
 import logging
 import math
+import os
 import re
 import traceback
 import uuid
@@ -36,6 +37,7 @@ import polyline
 import simplejson as json
 from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
+import sqlalchemy
 
 from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
@@ -100,7 +102,7 @@ class BaseViz(object):
         self.process_metrics()
 
     def process_metrics(self):
-        self.metric_dict = {}
+        self.metric_dict = OrderedDict()
         fd = self.form_data
         for mkey in METRIC_KEYS:
             val = fd.get(mkey)
@@ -120,9 +122,14 @@ class BaseViz(object):
     def get_metric_label(self, metric):
         if isinstance(metric, string_types):
             return metric
+
         if isinstance(metric, dict):
-            return self.datasource.database.db_engine_spec.mutate_expression_label(
-                metric.get('label'))
+            metric = metric.get('label')
+
+        if self.datasource.type == 'table':
+            db_engine_spec = self.datasource.database.db_engine_spec
+            metric = db_engine_spec.mutate_expression_label(metric)
+        return metric
 
     @staticmethod
     def handle_js_int_overflow(data):
@@ -220,15 +227,15 @@ class BaseViz(object):
                 df[DTTM_ALIAS] += self.time_shift
 
             if self.enforce_numerical_metrics:
-                self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+                self.df_metrics_to_num(df)
 
             df.replace([np.inf, -np.inf], np.nan)
             df = self.handle_nulls(df)
         return df
 
-    @staticmethod
-    def df_metrics_to_num(df, metrics):
+    def df_metrics_to_num(self, df):
         """Converting metrics to numeric when pandas.read_sql cannot"""
+        metrics = self.metric_labels
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -237,6 +244,8 @@ class BaseViz(object):
         """Building a query object"""
         form_data = self.form_data
         gb = form_data.get('groupby') or []
+        if not isinstance(gb, list):
+            gb = [gb]
         metrics = self.all_metrics or []
         columns = form_data.get('columns') or []
         groupby = []
@@ -322,15 +331,21 @@ class BaseViz(object):
             self.get_payload(),
             default=utils.json_int_dttm_ser, ignore_nan=True)
 
-    def cache_key(self, query_obj):
+    def cache_key(self, query_obj, **extra):
         """
-        The cache key is made out of the key/values in `query_obj`
+        The cache key is made out of the key/values in `query_obj`, plus any
+        other key/values in `extra`.
 
-        We remove datetime bounds that are hard values,
-        and replace them with the use-provided inputs to bounds, which
-        may be time-relative (as in "5 days ago" or "now").
+        We remove datetime bounds that are hard values, and replace them with
+        the use-provided inputs to bounds, which may be time-relative (as in
+        "5 days ago" or "now").
+
+        The `extra` arguments are currently used by time shift queries, since
+        different time shifts wil differ only in the `from_dttm` and `to_dttm`
+        values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
+        cache_dict.update(extra)
 
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
@@ -355,11 +370,11 @@ class BaseViz(object):
             del payload['df']
         return payload
 
-    def get_df_payload(self, query_obj=None):
+    def get_df_payload(self, query_obj=None, **kwargs):
         """Handles caching around the df payload retrieval"""
         if not query_obj:
             query_obj = self.query_obj()
-        cache_key = self.cache_key(query_obj) if query_obj else None
+        cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -386,10 +401,6 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                if hasattr(self.datasource, 'database') and \
-                        hasattr(self.datasource.database, 'db_engine_spec'):
-                    db_engine_spec = self.datasource.database.db_engine_spec
-                    df = db_engine_spec.adjust_df_column_names(df, self.form_data)
                 if self.status != utils.QueryStatus.FAILED:
                     stats_logger.incr('loaded_from_source')
                     is_loaded = True
@@ -1211,7 +1222,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['from_dttm'] -= delta
             query_object['to_dttm'] -= delta
 
-            df2 = self.get_df_payload(query_object).get('df')
+            df2 = self.get_df_payload(query_object, time_compare=option).get('df')
             if df2 is not None and DTTM_ALIAS in df2:
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
@@ -2016,6 +2027,10 @@ class MapboxViz(BaseViz):
             ],
         }
 
+        x_series, y_series = df[fd.get('all_columns_x')], df[fd.get('all_columns_y')]
+        south_west = [x_series.min(), y_series.min()]
+        north_east = [x_series.max(), y_series.max()]
+
         return {
             'geoJSON': geo_json,
             'customMetric': custom_metric,
@@ -2025,9 +2040,7 @@ class MapboxViz(BaseViz):
             'clusteringRadius': fd.get('clustering_radius'),
             'pointRadiusUnit': fd.get('point_radius_unit'),
             'globalOpacity': fd.get('global_opacity'),
-            'viewportLongitude': fd.get('viewport_longitude'),
-            'viewportLatitude': fd.get('viewport_latitude'),
-            'viewportZoom': fd.get('viewport_zoom'),
+            'bounds': [south_west, north_east],
             'renderWhileDragging': fd.get('render_while_dragging'),
             'tooltip': fd.get('rich_tooltip'),
             'color': fd.get('mapbox_color'),
@@ -2161,7 +2174,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
 
         # add NULL filters
-        if fd.get('filter_nulls'):
+        if fd.get('filter_nulls', True):
             self.add_null_filters()
 
         d = super(BaseDeckGLViz, self).query_obj()
@@ -2208,6 +2221,7 @@ class BaseDeckGLViz(BaseViz):
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'metricLabels': self.metric_labels,
         }
 
     def get_properties(self, d):
@@ -2266,7 +2280,6 @@ class DeckScreengrid(BaseDeckGLViz):
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
     spatial_control_keys = ['spatial']
-    is_timeseries = True
 
     def query_obj(self):
         fd = self.form_data
@@ -2304,6 +2317,17 @@ class DeckGrid(BaseDeckGLViz):
         return super(DeckGrid, self).get_data(df)
 
 
+def geohash_to_json(geohash_code):
+    p = geohash.bbox(geohash_code)
+    return [
+        [p.get('w'), p.get('n')],
+        [p.get('e'), p.get('n')],
+        [p.get('e'), p.get('s')],
+        [p.get('w'), p.get('s')],
+        [p.get('w'), p.get('n')],
+    ]
+
+
 class DeckPathViz(BaseDeckGLViz):
 
     """deck.gl's PathLayer"""
@@ -2314,26 +2338,32 @@ class DeckPathViz(BaseDeckGLViz):
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
+        'geohash': geohash_to_json,
     }
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
         line_col = self.form_data.get('line_column')
         if d['metrics']:
+            self.has_metrics = True
             d['groupby'].append(line_col)
         else:
+            self.has_metrics = False
             d['columns'].append(line_col)
         return d
 
     def get_properties(self, d):
         fd = self.form_data
-        deser = self.deser_map[fd.get('line_type')]
-        path = deser(d[fd.get('line_column')])
+        line_type = fd.get('line_type')
+        deser = self.deser_map[line_type]
+        line_column = fd.get('line_column')
+        path = deser(d[line_column])
         if fd.get('reverse_long_lat'):
-            path = (path[1], path[0])
-        return {
-            self.deck_viz_key: path,
-        }
+            path = [(o[1], o[0]) for o in path]
+        d[self.deck_viz_key] = path
+        if line_type != 'geohash':
+            del d[line_column]
+        return d
 
 
 class DeckPolygon(DeckPathViz):
@@ -2383,6 +2413,79 @@ class DeckGeoJson(BaseDeckGLViz):
         return json.loads(geojson)
 
 
+class DeckZipCodes(BaseDeckGLViz):
+
+    """Custom viz for Lyft, shows zip codes as geojson."""
+
+    viz_type = 'deck_zipcodes'
+    verbose_name = _('Deck.gl - ZIP codes')
+    is_timeseries = True
+
+    user = os.environ.get('CREDENTIALS_LYFTPG_USER', '')
+    password = os.environ.get('CREDENTIALS_LYFTPG_PASSWORD', '')
+    url = (
+        'postgresql+psycopg2://'
+        '{user}:{password}'
+        '@analytics-platform-vpc.c067nfzisc99.us-east-1.rds.amazonaws.com:5432'
+        '/platform'.format(user=user, password=password)
+    )
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+
+        d = super(DeckZipCodes, self).query_obj()
+        self.zipcode_col = self.form_data.get('groupby')
+        d['groupby'] = [self.zipcode_col]
+        return d
+
+    def get_geojson(self, zipcodes):
+        out = {}
+        missing = set()
+        for zipcode in zipcodes:
+            cache_key = 'zipcode_geojson_{}'.format(zipcode)
+            geojson = cache and cache.get(cache_key)
+            if geojson:
+                out[zipcode] = geojson
+            else:
+                missing.add(str(zipcode))
+
+        if not missing:
+            return out
+
+        # fetch missing geojson from lyftpg
+        in_clause = ', '.join(['%s'] * len(missing))
+        query = (
+            'SELECT zipcode, geojson FROM zip_codes WHERE zipcode IN ({0})'
+            .format(in_clause))
+        conn = sqlalchemy.create_engine(self.url, client_encoding='utf8')
+        results = conn.execute(query, tuple(missing)).fetchall()
+
+        for zipcode, geojson in results:
+            out[zipcode] = geojson
+            if cache and len(results) < 10000:  # avoid storing too much
+                cache_key = 'zipcode_geojson_{}'.format(zipcode)
+                try:
+                    cache.set(cache_key, geojson, timeout=86400)
+                except Exception:
+                    pass
+
+        return out
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        data = super(DeckZipCodes, self).get_data(df)
+        data['geojson'] = self.get_geojson(set(df[self.zipcode_col]))
+        return data
+
+    def get_properties(self, d):
+        return {
+            'metric': d.get(self.metric_label) or 1,
+            'zipcode': d.get(self.zipcode_col),
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
+        }
+
+
 class DeckArc(BaseDeckGLViz):
 
     """deck.gl's Arc Layer"""
@@ -2409,10 +2512,9 @@ class DeckArc(BaseDeckGLViz):
 
     def get_data(self, df):
         d = super(DeckArc, self).get_data(df)
-        arcs = d['features']
 
         return {
-            'arcs': arcs,
+            'features': d['features'],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 

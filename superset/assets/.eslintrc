@@ -8,6 +8,7 @@
   },
   "globals": {
     "document": true,
+    "window": true,
   },
   "rules": {
     "prefer-template": 0,

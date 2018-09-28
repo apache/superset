@@ -723,13 +723,13 @@ def to_adhoc(filt, expressionType='SIMPLE', clause='where'):
 
     if expressionType == 'SIMPLE':
         result.update({
-            'comparator': filt['val'],
-            'operator': filt['op'],
-            'subject': filt['col'],
+            'comparator': filt.get('val'),
+            'operator': filt.get('op'),
+            'subject': filt.get('col'),
         })
     elif expressionType == 'SQL':
         result.update({
-            'sqlExpression': filt[clause],
+            'sqlExpression': filt.get(clause),
         })
 
     return result
@@ -1016,3 +1016,7 @@ def get_username():
 
 def MediumText():
     return Text().with_variant(MEDIUMTEXT(), 'mysql')
+
+
+def shortid():
+    return '{}'.format(uuid.uuid4())[-12:]

@@ -30,11 +30,11 @@ function getCategories(fd, data) {
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  data: PropTypes.array.isRequired,
   mapboxApiKey: PropTypes.string.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
+  payload: PropTypes.object.isRequired,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -50,11 +50,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     const fd = nextProps.slice.formData;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.data.map(f => f.__timestamp);
-    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.data);
+    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const categories = getCategories(fd, nextProps.payload.data.features);
 
-    return { start, end, step, values, disabled, categories };
+    return { start, end, getStep, values, disabled, categories, viewport: nextProps.viewport };
   }
   constructor(props) {
     super(props);
@@ -63,6 +63,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.getLayers = this.getLayers.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
@@ -81,9 +82,13 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       return { ...d, color };
     });
   }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
   getLayers(values) {
-    const fd = this.props.slice.formData;
-    let data = [...this.props.data];
+    const { getLayer, payload, slice } = this.props;
+    const fd = slice.formData;
+    let data = [...payload.data.features];
 
     // Add colors from categories or fixed color
     data = this.addColor(data, fd);
@@ -106,7 +111,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data = data.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    return [this.props.getLayer(fd, data, this.props.slice)];
+    payload.data.features = data;
+    return [getLayer(fd, payload, slice)];
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
@@ -135,10 +141,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}
-          step={this.state.step}
+          getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}

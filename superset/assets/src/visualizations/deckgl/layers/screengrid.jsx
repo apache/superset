@@ -65,15 +65,16 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
 
-    return { start, end, step, values, disabled };
+    return { start, end, step, values, disabled, viewport: nextProps.viewport };
   }
   constructor(props) {
     super(props);
     this.state = DeckGLScreenGrid.getDerivedStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     this.setState(DeckGLScreenGrid.getDerivedStateFromProps(nextProps, this.state));
@@ -96,6 +97,9 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     return [layer];
   }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
   render() {
     return (
       <div>
@@ -103,10 +107,11 @@ class DeckGLScreenGrid extends React.PureComponent {
           getLayers={this.getLayers}
           start={this.state.start}
           end={this.state.end}
-          step={this.state.step}
+          getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}

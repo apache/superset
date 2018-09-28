@@ -7,6 +7,7 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
+  TAGS_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -17,6 +18,7 @@ import Header from './Header';
 import Row from './Row';
 import Tab from './Tab';
 import Tabs from './Tabs';
+import Tags from './Tags';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -26,6 +28,7 @@ export { default as Header } from './Header';
 export { default as Row } from './Row';
 export { default as Tab } from './Tab';
 export { default as Tabs } from './Tabs';
+export { default as Tags } from './Tags';
 
 export default {
   [CHART_TYPE]: ChartHolder,
@@ -36,4 +39,5 @@ export default {
   [ROW_TYPE]: Row,
   [TAB_TYPE]: Tab,
   [TABS_TYPE]: Tabs,
+  [TAGS_TYPE]: Tags,
 };

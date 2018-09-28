@@ -488,6 +488,7 @@ class DruidDatasource(Model, BaseDatasource):
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
+        'filter_select_enabled',
     )
     update_from_object_fields = export_fields
 

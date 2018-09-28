@@ -517,6 +517,12 @@ export default function nvd3Vis(slice, payload) {
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
     chart.width(width);
     chart.height(height);
+
+    //XXX: quick fix while I figure out the real problem
+    if (slice.container === null) {
+      return;
+    }
+
     slice.container.css('height', height + 'px');
 
     svg
