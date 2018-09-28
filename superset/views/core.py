@@ -26,7 +26,7 @@ import simplejson as json
 from six import text_type
 from six.moves.urllib import parse
 import sqlalchemy as sqla
-from sqlalchemy import MetaData, and_, create_engine, or_, update
+from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -287,6 +287,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         except Exception as e:
             raise Exception('The metadata_params in Extra field '
                             'is not configured correctly. {}'.format(str(e)))
+
 
 appbuilder.add_link(
     'Import Dashboards',
