@@ -26,7 +26,7 @@ import simplejson as json
 from six import text_type
 from six.moves.urllib import parse
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, or_, update
+from sqlalchemy import MetaData, and_, create_engine, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -254,6 +254,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     }
 
     def pre_add(self, db):
+        self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.merge_perm('database_access', db.perm)
         for schema in db.all_schema_names():
@@ -273,6 +274,19 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
+    def check_extra(self, db):
+        # this will check whether json.loads(extra) can succeed
+        try:
+            extra = db.get_extra()
+        except Exception as e:
+            raise Exception('Extra field cannot be decoded by JSON. {}'.format(str(e)))
+
+        # this will check whether 'metadata_params' is configured correctly
+        try:
+            MetaData(**extra.get('metadata_params', {}))
+        except Exception as e:
+            raise Exception('The metadata_params in Extra field '
+                            'is not configured correctly. {}'.format(str(e)))
 
 appbuilder.add_link(
     'Import Dashboards',
