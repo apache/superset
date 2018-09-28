@@ -318,6 +318,7 @@ class SupersetSecurityManager(SecurityManager):
         self.set_role('Gamma', self.is_gamma_pvm)
         self.set_role('granter', self.is_granter_pvm)
         self.set_role('sql_lab', self.is_sql_lab_pvm)
+        self.set_role('Dashboard_Viewer', self.is_dashboard_viewer_pvm)
 
         if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
             self.set_role('Public', self.is_gamma_pvm)
@@ -379,6 +380,28 @@ class SupersetSecurityManager(SecurityManager):
             } or
             (pvm.view_menu.name in USER_MODEL_VIEWS and
              pvm.permission.name == 'can_list'))
+
+    def is_dashboard_viewer_pvm(self, pvm):
+        return ( self.is_base_view_pvm(pvm) or self.is_base_security_pvm(pvm) or
+            pvm.permission.name in {
+                'can_dashboard', 'can_explore_json',
+            } or (pvm.permission.name in {'can_list'} and pvm.view_menu.name in {'CssTemplateAsyncModelView', 'DashboardModelViewAsync' })
+            )
+
+    def is_base_view_pvm(self, pvm):
+        return (
+            pvm.permission.name in {
+                'can_fave_slices', 'can_fave_dashboards', 'can_recent_activity',
+            })
+
+    def is_base_security_pvm(self, pvm):
+        return (
+            pvm.permission.name in {
+                'can_userinfo' , 'resetmypassword' , 'can_this_form_get' , 'can_this_form_post'
+            } and pvm.view_menu.name in { 'UserDBModelView', 'ResetMyPasswordView' } 
+            # above code will allow some options which are not in PVM 
+            # but i am shortcircuiting thsi for now as those permission will be not added to role
+            )
 
     def is_granter_pvm(self, pvm):
         return pvm.permission.name in {
