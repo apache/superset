@@ -34,9 +34,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, dashboard_import_export_util ,db, results_backend, security_manager, sql_lab, utils,
-    viz,
-)
+    app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
+    security_manager, sql_lab, utils, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
