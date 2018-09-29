@@ -8,14 +8,17 @@ jobs:
       cache:
         pip: true
         yarn: true
+        directories:
+          - ~/.cache
       services:
         - redis-server
       before_install:
+        - nvm install 8.9
         - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 1.10.1
         - export PATH=$HOME/.yarn/bin:$PATH
     - language: python
       python: 2.7
-      script: TOXENV=py27-mysql tox
+      env: TOXENV=py27-mysql
       services:
         - mysql
         - redis-server
@@ -25,7 +28,7 @@ jobs:
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
     - language: python
       python: 3.6
-      script: TOXENV=py36-postgres tox
+      env: TOXENV=py36-postgres
       services:
         - postgres
         - redis-server
@@ -55,10 +58,10 @@ jobs:
         - npm run cover
     - language: python
       python: 2.7
-      script: TOXENV=pylint tox
+      env: TOXENV=pylint
     - language: python
       python: 3.6
-      script: TOXENV=pylint tox
+      env: TOXENV=pylint
     - language: python
       python: 2.7
       env: TOXENV=flake8
