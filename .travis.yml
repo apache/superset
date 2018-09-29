@@ -2,6 +2,22 @@ cache:
   pip: true
 jobs:
   include:
+    - language: node_js
+      node_js: 6
+      stage: Lint and Unit
+      cache:
+        yarn: true
+        directories:
+          - ~/.nvm
+          - ~/.npm
+          - ~/.cache
+      before_install:
+        - cd superset/assets
+      install:
+        - yarn install --frozen-lockfile
+      script:
+        - npm run lint
+        - npm run cover
     - language: python
       python: 2.7
       env: TOXENV=flake8
@@ -47,33 +63,6 @@ jobs:
       before_script:
         - psql -U postgres -c "CREATE DATABASE superset;"
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-    - language: node_js
-      node_js: 6
-      stage: Lint and Unit
-      cache:
-        yarn: true
-        directories:
-          - ~/.nvm
-          - ~/.npm
-          - ~/.cache
-      before_script: skip
-      before_install:
-        - cd superset/assets
-      install:
-        - yarn install --frozen-lockfile
-      script:
-        - npm run lint
-        - npm run cover
-    # - language: node_js
-    #   node_js: 6
-      # stage: Build
-    #   before_script: skip
-    #   before_install:
-    #     - cd superset/assets
-    #   install:
-    #     - yarn install --frozen-lockfile
-    #   script:
-    #     - npm run build
 install:
   - pip install --upgrade pip
   - pip install codecov tox
