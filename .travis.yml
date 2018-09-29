@@ -9,6 +9,7 @@ jobs:
         pip: true
         yarn: true
         directories:
+          - ~/.npm
           - ~/.cache
       services:
         - redis-server
