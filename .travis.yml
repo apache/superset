@@ -2,9 +2,48 @@ cache:
   pip: true
 jobs:
   include:
+    - language: python
+      python: 3.6
+      env: TOXENV=cypress
+      cache:
+        pip: true
+        yarn: true
+        directories:
+          - ~/.npm
+          - ~/.cache
+      services:
+        - redis-server
+    - language: python
+      python: 2.7
+      env: TOXENV=py27-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 2.7
+      script: TOXENV=py27-mysql tox
+      services:
+        - mysql
+        - redis-server
+      before_script:
+        - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
+        - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
+        - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
+    - language: python
+      python: 3.6
+      script: TOXENV=py36-postgres tox
+      services:
+        - postgres
+        - redis-server
+      before_script:
+        - psql -U postgres -c "CREATE DATABASE superset;"
+        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
     - language: node_js
       node_js: 6
-      stage: Lint and Unit
       cache:
         yarn: true
       before_install:
@@ -17,63 +56,15 @@ jobs:
     - language: python
       python: 2.7
       env: TOXENV=flake8
-      stage: Lint and Unit
     - language: python
       python: 3.6
       env: TOXENV=flake8
-      stage: Lint and Unit
     - language: python
       python: 2.7
       script: TOXENV=pylint tox
-      stage: Lint and Unit
     - language: python
       python: 3.6
       script: TOXENV=pylint tox
-      stage: Lint and Unit
-    - language: python
-      python: 2.7
-      script: TOXENV=py27-sqlite tox
-      stage: Build sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 3.6
-      script: TOXENV=py36-sqlite tox
-      stage: Build sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 2.7
-      script: TOXENV=py27-mysql tox
-      stage: Build
-      services:
-        - mysql
-        - redis-server
-      before_script:
-        - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
-        - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
-        - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-    - language: python
-      python: 3.6
-      script: TOXENV=py36-postgres tox
-      stage: Build
-      services:
-        - postgres
-        - redis-server
-      before_script:
-        - psql -U postgres -c "CREATE DATABASE superset;"
-        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-    - language: python
-      python: 3.6
-      env: TOXENV=cypress
-      stage: Build
-      cache:
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
-      services:
-        - redis-server
 install:
   - pip install --upgrade pip
   - pip install codecov tox
