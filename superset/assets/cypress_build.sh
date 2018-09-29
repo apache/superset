@@ -11,5 +11,5 @@ cd "$(dirname "$0")"
 
 yarn install --frozen-lockfile
 npm run build
-npm run cypress run -- --record --parallel
+npm run cypress run
 kill %1
