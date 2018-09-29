@@ -9,7 +9,6 @@ jobs:
         pip: true
         yarn: true
         directories:
-          - ~/.npm
           - ~/.cache
       services:
         - redis-server
@@ -43,7 +42,7 @@ jobs:
       services:
         - redis-server
     - language: node_js
-      node_js: 6
+      node_js: 8.9
       cache:
         yarn: true
       before_install:
