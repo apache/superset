@@ -15,16 +15,6 @@ jobs:
         - redis-server
     - language: python
       python: 2.7
-      env: TOXENV=py27-sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 3.6
-      env: TOXENV=py36-sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 2.7
       script: TOXENV=py27-mysql tox
       services:
         - mysql
@@ -42,6 +32,16 @@ jobs:
       before_script:
         - psql -U postgres -c "CREATE DATABASE superset;"
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
+    - language: python
+      python: 2.7
+      env: TOXENV=py27-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-sqlite
+      services:
+        - redis-server
     - language: node_js
       node_js: 6
       cache:
@@ -55,16 +55,16 @@ jobs:
         - npm run cover
     - language: python
       python: 2.7
-      env: TOXENV=flake8
+      script: TOXENV=pylint tox
     - language: python
       python: 3.6
-      env: TOXENV=flake8
+      script: TOXENV=pylint tox
     - language: python
       python: 2.7
-      script: TOXENV=pylint tox
+      env: TOXENV=flake8
     - language: python
       python: 3.6
-      script: TOXENV=pylint tox
+      env: TOXENV=flake8
 install:
   - pip install --upgrade pip
   - pip install codecov tox
