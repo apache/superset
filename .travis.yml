@@ -1,9 +1,5 @@
 cache:
   pip: true
-  yarn: true
-  directories:
-    - ~/.npm
-    - ~/.cache
 jobs:
   include:
     - language: python
@@ -54,6 +50,12 @@ jobs:
     - language: node_js
       node_js: 6
       stage: Lint and Unit
+      cache:
+        yarn: true
+        directories:
+          - ~/.nvm
+          - ~/.npm
+          - ~/.cache
       before_script: skip
       before_install:
         - cd superset/assets
@@ -61,7 +63,6 @@ jobs:
         - yarn install --frozen-lockfile
       script:
         - npm run lint
-        - npm run test
         - npm run cover
     # - language: node_js
     #   node_js: 6

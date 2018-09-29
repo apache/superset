@@ -10,7 +10,7 @@ superset/bin/superset runserver &
 cd "$(dirname "$0")"
 
 npm install -g yarn
-yarn
+yarn install --frozen-lockfile
 npm run build
 npm run cypress run --record
 kill %1
