@@ -12,5 +12,5 @@ cd "$(dirname "$0")"
 npm install -g yarn
 yarn
 npm run build
-npm run cypress run --record
+npm run cypress run -- --record
 kill %1
