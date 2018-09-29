@@ -43,9 +43,8 @@ initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
     cd incubator-superset
-    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
+    cp contrib/docker/{docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
     cp contrib/docker/superset_config.py superset/
-    bash -x docker-build.sh
     docker-compose up -d
     docker-compose exec superset bash
     bash docker-init.sh

@@ -13,12 +13,3 @@ superset load_examples
 
 # Create default roles and permissions
 superset init
-
-# Need to run `npm run build` when enter contains for first time
-cd superset/assets && npm run build && cd ../../
-
-# Start superset worker for SQL Lab
-superset worker &
-
-# To start a development web server, use the -d switch
-superset runserver -d
