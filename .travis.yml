@@ -1,32 +1,39 @@
 cache:
-  - pip
+  pip: true
+  yarn: true
+  directories:
+    - ~/.npm
+    - ~/.cache
 jobs:
   include:
     - language: python
       python: 2.7
       env: TOXENV=flake8
+      stage: Lint and Unit
     - language: python
       python: 3.6
       env: TOXENV=flake8
+      stage: Lint and Unit
     - language: python
       python: 2.7
       env: TOXENV=pylint
+      stage: Lint and Unit
     - language: python
       python: 3.6
       env: TOXENV=pylint
+      stage: Lint and Unit
     - language: python
       python: 2.7
       env: TOXENV=py27-sqlite
-      services:
-        - redis-server
+      stage: Build
     - language: python
       python: 3.6
       env: TOXENV=py36-sqlite
-      services:
-        - redis-server
+      stage: Build
     - language: python
       python: 2.7
       env: TOXENV=py27-mysql
+      stage: Build
       services:
         - mysql
         - redis-server
@@ -37,6 +44,7 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=py36-postgres
+      stage: Build
       services:
         - postgres
         - redis-server
@@ -45,24 +53,26 @@ jobs:
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
     - language: node_js
       node_js: 6
+      stage: Lint and Unit
       before_script: skip
       before_install:
         - cd superset/assets
       install:
-        - yarn install
+        - yarn install --frozen-lockfile
       script:
         - npm run lint
         - npm run test
         - npm run cover
-    - language: node_js
-      node_js: 6
-      before_script: skip
-      before_install:
-        - cd superset/assets
-      install:
-        - yarn install
-      script:
-        - npm run build
+    # - language: node_js
+    #   node_js: 6
+      # stage: Build
+    #   before_script: skip
+    #   before_install:
+    #     - cd superset/assets
+    #   install:
+    #     - yarn install --frozen-lockfile
+    #   script:
+    #     - npm run build
 install:
   - pip install --upgrade pip
   - pip install codecov tox
