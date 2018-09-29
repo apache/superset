@@ -20,19 +20,19 @@ jobs:
         - npm run cover
     - language: python
       python: 2.7
-      env: TOXENV=flake8
+      script: TOXENV=flake8 tox
       stage: Lint and Unit
     - language: python
       python: 3.6
-      env: TOXENV=flake8
+      script: TOXENV=flake8 tox
       stage: Lint and Unit
     - language: python
       python: 2.7
-      env: TOXENV=pylint
+      script: TOXENV=pylint tox
       stage: Lint and Unit
     - language: python
       python: 3.6
-      env: TOXENV=pylint
+      script: TOXENV=pylint tox
       stage: Lint and Unit
     - language: python
       python: 2.7
