@@ -1,6 +1,6 @@
 cache:
   - pip
-matrix:
+jobs:
   include:
     - language: python
       python: 2.7
@@ -21,7 +21,7 @@ matrix:
         - redis-server
     - language: python
       python: 3.6
-      env: TOXENV=py27-sqlite
+      env: TOXENV=py36-sqlite
       services:
         - redis-server
     - language: python
@@ -36,7 +36,7 @@ matrix:
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
     - language: python
       python: 3.6
-      env: TOXENV=py27-postgres
+      env: TOXENV=py36-postgres
       services:
         - postgres
         - redis-server
