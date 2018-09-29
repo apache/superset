@@ -7,9 +7,6 @@ jobs:
       stage: Lint and Unit
       cache:
         yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       before_install:
         - cd superset/assets
       install:
