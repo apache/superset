@@ -8,7 +8,6 @@ jobs:
       cache:
         yarn: true
         directories:
-          - ~/.nvm
           - ~/.npm
           - ~/.cache
       before_install:
@@ -20,11 +19,11 @@ jobs:
         - npm run cover
     - language: python
       python: 2.7
-      script: TOXENV=flake8 tox
+      env: TOXENV=flake8
       stage: Lint and Unit
     - language: python
       python: 3.6
-      script: TOXENV=flake8 tox
+      env: TOXENV=flake8
       stage: Lint and Unit
     - language: python
       python: 2.7
@@ -69,12 +68,11 @@ jobs:
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
     - language: python
       python: 3.6
-      script: TOXENV=cypress tox
+      env: TOXENV=cypress
       stage: Build
       cache:
         yarn: true
         directories:
-          - ~/.nvm
           - ~/.npm
           - ~/.cache
       services:
