@@ -37,13 +37,13 @@ jobs:
     - language: python
       python: 2.7
       script: TOXENV=py27-sqlite tox
-      stage: Build
+      stage: Build sqlite
       services:
         - redis-server
     - language: python
       python: 3.6
       script: TOXENV=py36-sqlite tox
-      stage: Build
+      stage: Build sqlite
       services:
         - redis-server
     - language: python
@@ -67,6 +67,18 @@ jobs:
       before_script:
         - psql -U postgres -c "CREATE DATABASE superset;"
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
+    - language: python
+      python: 3.6
+      script: TOXENV=cypress tox
+      stage: Build
+      cache:
+        yarn: true
+        directories:
+          - ~/.nvm
+          - ~/.npm
+          - ~/.cache
+      services:
+        - redis-server
 install:
   - pip install --upgrade pip
   - pip install codecov tox
