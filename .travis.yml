@@ -15,7 +15,6 @@ jobs:
         - redis-server
       before_install:
         - nvm install 8.9
-        - export PATH=$HOME/.yarn/bin:$PATH
     - language: python
       python: 2.7
       env: TOXENV=py27-mysql
