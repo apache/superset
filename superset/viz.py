@@ -21,7 +21,6 @@ import math
 import re
 import traceback
 import uuid
-from superset.models.helpers import json_to_dict
 
 from dateutil import relativedelta as rdelta
 from flask import request
@@ -40,6 +39,7 @@ from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
+from superset.models.helpers import json_to_dict
 from superset.utils import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
