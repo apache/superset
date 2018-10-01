@@ -560,8 +560,8 @@ class ImportExportTests(SupersetTestCase):
 
         exported_dashboards = dashboards_objects['dashboards']
         for dashboard in exported_dashboards:
-            id = dashboard.id
-            dash = self.get_dash(id)
+            id_ = dashboard.id
+            dash = self.get_dash(id_)
             self.assert_dash_equals(dash, dashboard)
             self.assertEquals(
                 dash.id, json.loads(
@@ -574,8 +574,8 @@ class ImportExportTests(SupersetTestCase):
 
         exported_tables = dashboards_objects['datasources']
         for exported_table in exported_tables:
-            id = exported_table.id
-            table = self.get_table(id)
+            id_ = exported_table.id
+            table = self.get_table(id_)
             self.assert_table_equals(table, exported_table)
 
 
