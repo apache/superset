@@ -376,6 +376,14 @@ class BaseEngineSpec(object):
         cursor.execute(query)
 
     @classmethod
+    def custom_sqllab_cursor_params(cls):
+        pass
+
+    @classmethod
+    def custom_chart_cursor_params(cls):
+        pass
+
+    @classmethod
     def make_label_compatible(cls, label):
         """
         Return a sqlalchemy.sql.elements.quoted_name if the engine requires
@@ -888,6 +896,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         sql = cls._partition_query(table_name, 1, [(part_field, True)])
         df = database.get_df(sql, schema)
         return part_field, cls._latest_partition_from_df(df)
+
+    @classmethod
+    def custom_sqllab_cursor_params(cls):
+        return config['SQLLAB_PYHIVE_SOURCE']
+
+    @classmethod
+    def custom_chart_cursor_params(cls):
+        return config['CHART_PYHIVE_SOURCE']
 
     @classmethod
     def latest_sub_partition(cls, table_name, schema, database, **kwargs):

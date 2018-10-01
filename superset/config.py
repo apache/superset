@@ -291,6 +291,12 @@ MAX_TABLE_NAMES = 3000
 # not the production version of the site.
 WARNING_MSG = None
 
+# The source label for sqllab pyhive connection initialization.
+SQLLAB_PYHIVE_SOURCE = None
+
+# The source label for chart pyhive connection initialization.
+CHART_PYHIVE_SOURCE = None
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html

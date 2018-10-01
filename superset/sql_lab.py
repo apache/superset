@@ -176,6 +176,7 @@ def execute_sql(
             schema=query.schema,
             nullpool=True,
             user_name=user_name,
+            sqllab=True,
         )
         conn = engine.raw_connection()
         cursor = conn.cursor()

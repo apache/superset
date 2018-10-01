@@ -733,7 +733,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None, sqllab=False):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -767,6 +767,15 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
                 url, params, effective_username, security_manager)
+
+        if (sqllab and self.db_engine_spec.custom_sqllab_cursor_params()):
+            url = '{}?source={}'.format(
+                url, self.db_engine_spec.custom_sqllab_cursor_params())
+
+        if ((not sqllab) and self.db_engine_spec.custom_chart_cursor_params()):
+            url = '{}?source={}'.format(
+                url, self.db_engine_spec.custom_chart_cursor_params())
+
         return create_engine(url, **params)
 
     def get_reserved_words(self):
