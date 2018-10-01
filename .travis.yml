@@ -17,6 +17,14 @@ jobs:
         - nvm install 8.9
     - language: python
       python: 2.7
+      env: TOXENV=flake8
+    - language: python
+      python: 2.7
+      env: TOXENV=py27-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 2.7
       env: TOXENV=py27-mysql
       services:
         - mysql
@@ -26,24 +34,8 @@ jobs:
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
     - language: python
-      python: 3.6
-      env: TOXENV=py36-postgres
-      services:
-        - postgres
-        - redis-server
-      before_script:
-        - psql -U postgres -c "CREATE DATABASE superset;"
-        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-    - language: python
       python: 2.7
-      env: TOXENV=py27-sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 3.6
-      env: TOXENV=py36-sqlite
-      services:
-        - redis-server
+      env: TOXENV=pylint
     - language: node_js
       node_js: 8.9
       cache:
@@ -55,18 +47,26 @@ jobs:
       script:
         - npm run lint
         - npm run cover
-    - language: python
-      python: 2.7
-      env: TOXENV=pylint
-    - language: python
+      - language: python
       python: 3.6
-      env: TOXENV=pylint
-    - language: python
-      python: 2.7
       env: TOXENV=flake8
     - language: python
       python: 3.6
-      env: TOXENV=flake8
+      env: TOXENV=py36-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-postgres
+      services:
+        - postgres
+        - redis-server
+      before_script:
+        - psql -U postgres -c "CREATE DATABASE superset;"
+        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
+    - language: python
+      python: 3.6
+      env: TOXENV=pylint
 install:
   - pip install --upgrade pip
   - pip install codecov tox
