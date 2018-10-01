@@ -13,6 +13,7 @@ import {
   getFromArr,
   addToArr,
 } from '../reduxUtils';
+import featureFlags from '../featureFlags';
 import { t } from '../locales';
 
 export const sqlLabReducer = function (state = {}, action) {
@@ -267,6 +268,7 @@ export const sqlLabReducer = function (state = {}, action) {
 };
 
 export default combineReducers({
+  featureFlags,
   sqlLab: sqlLabReducer,
   messageToasts,
 });
