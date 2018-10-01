@@ -550,19 +550,6 @@ class ImportExportTests(SupersetTestCase):
         self.assert_datasource_equals(
             copy_datasource, self.get_datasource(imported_id))
 
-    def test_import_util_dashboard(self):
-        dashboard_json = None
-        with open('tests/births_dash_test.json') as data_stream:
-            dashboard_import_export_util.import_dashboards(
-                db.session, data_stream, import_time=2018)
-            data_stream.seek(0, 0)
-            dashboard_json = json.loads(
-                data_stream.read(),
-                object_hook=utils.decode_dashboards)
-        imported_dash = self.get_dash_by_slug('test_birth_import')
-        expected_dash = dashboard_json['dashboards'][0]
-        self.assert_dash_equals(expected_dash, imported_dash, check_position=False)
-
     def test_export_dashboards_util(self):
         dashboards_json_dump = dashboard_import_export_util.export_dashboards(
             db.session)
