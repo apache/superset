@@ -56,6 +56,14 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
+    - python: 3.6
+      env: TOXENV=py36-mysql
+    - python: 3.6
+      env: TOXENV=pylint
+    - python: 3.6
+      env: TOXENV=cypress
+  exclude:
+    - python: 3.6
 install:
   - pip install --upgrade pip
   - pip install codecov tox
