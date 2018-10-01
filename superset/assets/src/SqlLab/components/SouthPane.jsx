@@ -103,6 +103,7 @@ function mapStateToProps({ sqlLab }) {
   return {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
+    offline: offline,
   };
 }
 

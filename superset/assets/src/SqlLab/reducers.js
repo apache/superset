@@ -250,6 +250,12 @@ export const sqlLabReducer = function (state = {}, action) {
       }
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
     },
+    [actions.USER_OFFLINE]() {
+      console.log(action)
+      console.log(state)
+      return Object.assign({}, state, {'offline':true});
+      // set the values into the ? and it will propagate down... 
+    },
     [actions.CREATE_DATASOURCE_STARTED]() {
       return Object.assign({}, state, {
         isDatasourceLoading: true,
