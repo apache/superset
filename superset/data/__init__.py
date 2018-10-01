@@ -169,7 +169,7 @@ def load_world_bank_health_n_pop():
     tbl_name = 'wb_health_population'
     with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
         pdf = pd.read_json(f)
-    pdf.columns = [col.replace('.', '_') for col in pdf.columns]
+    pdf.columns = [col.replace('.', '_').lower() for col in pdf.columns]
     pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
         tbl_name,
@@ -1408,6 +1408,7 @@ def load_country_map_data():
     csv_path = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')
     data = pd.read_csv(csv_path, encoding="utf-8")
     data['dttm'] = datetime.datetime.now().date()
+    data.columns = [col.lower() for col in data.columns]
     data.to_sql(  # pylint: disable=no-member
         'birth_france_by_region',
         db.engine,
@@ -1481,6 +1482,7 @@ def load_long_lat_data():
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
         lambda x: geohash.encode(*x), axis=1)
     pdf['delimited'] = pdf['LAT'].map(str).str.cat(pdf['LON'].map(str), sep=',')
+    pdf.columns = [col.lower() for col in pdf.columns]
     pdf.to_sql(  # pylint: disable=no-member
         'long_lat',
         db.engine,
@@ -2383,6 +2385,7 @@ def load_flights():
 
     pdf = pdf.join(airports, on='ORIGIN_AIRPORT', rsuffix='_ORIG')
     pdf = pdf.join(airports, on='DESTINATION_AIRPORT', rsuffix='_DEST')
+    pdf.columns = [col.lower() for col in pdf.columns]
     pdf.to_sql(
         tbl_name,
         db.engine,
