@@ -22,7 +22,7 @@ function tableVis(slice, payload) {
   metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
   // Removing metrics (aggregates) that are strings
   metrics = metrics.filter(m => !isNaN(data.records[0][m]));
-  // Get the headers of columns use in groupby
+  // Get the headers of the columns use in groupby
   const groupby = fd.groupby || [];
 
   function col(c) {
