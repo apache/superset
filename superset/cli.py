@@ -228,7 +228,7 @@ def refresh_druid(datasource, merge):
 @app.cli.command()
 @click.option(
     '--path', '-p',
-    help='Path to a single JSON file or path containing multiple JSON '
+    help='Path to a single JSON file or path containing multiple JSON files'
          'files to import (*.json)')
 @click.option(
     '--recursive', '-r',
@@ -262,7 +262,7 @@ def import_dashboards(path, recursive=False):
     '--print_stdout', '-p',
     help='Print JSON to stdout')
 def export_dashboards(print_stdout, dashboard_file):
-    """Export dashboards to json"""
+    """Export dashboards to JSON"""
     data = dashboard_import_export_util.export_dashboards(db.session)
     if print_stdout or not dashboard_file:
         print(data)

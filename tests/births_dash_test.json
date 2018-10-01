@@ -1,0 +1,529 @@
+{
+    "dashboards": [
+        {
+            "__Dashboard__": {
+                "dashboard_title": "Births for test", 
+                "slug": "test_birth_import", 
+                "json_metadata": "{\"filter_immune_slice_fields\": {}, \"filter_immune_slices\": [], \"remote_id\": 33333, \"timed_refresh_immune_slices\": [], \"expanded_slices\": {}, \"default_filters\": \"{}\", \"import_time\": 2018}", 
+                "description": null, 
+                "slices": [
+                    {
+                        "__Slice__": {
+                            "created_by_fk": 1, 
+                            "datasource_id": 3, 
+                            "description": null, 
+                            "viz_type": "pie", 
+                            "perm": "[main].[birth_names](id:3)", 
+                            "datasource_type": "table", 
+                            "created_on": {
+                                "__datetime__": "2018-10-01T10:00:22"
+                            }, 
+                            "params": "{\"since\": \"100 years ago\", \"row_limit\": 50000, \"metric\": \"sum__num\", \"metrics\": [\"sum__num\"], \"markup_type\": \"markdown\", \"granularity_sqla\": \"ds\", \"viz_type\": \"pie\", \"database_name\": \"main\", \"remote_id\": 280, \"compare_suffix\": \"o10Y\", \"compare_lag\": \"10\", \"limit\": \"25\", \"until\": \"now\", \"datasource_name\": \"birth_names\", \"where\": \"\", \"groupby\": [\"gender\"], \"import_time\": 2018, \"schema\": \"birth_names\"}", 
+                            "changed_by_fk": 1, 
+                            "datasource_name": null, 
+                            "slice_name": "Genders", 
+                            "cache_timeout": null, 
+                            "id": 280, 
+                            "changed_on": {
+                                "__datetime__": "2018-10-01T10:36:24"
+                            }
+                        }
+                    }, 
+                    {
+                        "__Slice__": {
+                            "created_by_fk": 1, 
+                            "datasource_id": 3, 
+                            "description": null, 
+                            "viz_type": "big_number_total", 
+                            "perm": "[main].[birth_names](id:3)", 
+                            "datasource_type": "table", 
+                            "created_on": {
+                                "__datetime__": "2018-10-01T10:00:22"
+                            }, 
+                            "params": "{\"subheader\": \"total female participants\", \"since\": \"100 years ago\", \"row_limit\": 50000, \"metric\": \"sum__num\", \"metrics\": [\"sum__num\"], \"markup_type\": \"markdown\", \"filters\": [{\"col\": \"gender\", \"val\": [\"girl\"], \"op\": \"in\"}], \"granularity_sqla\": \"ds\", \"viz_type\": \"big_number_total\", \"database_name\": \"main\", \"remote_id\": 286, \"compare_suffix\": \"o10Y\", \"compare_lag\": \"10\", \"limit\": \"25\", \"until\": \"now\", \"datasource_name\": \"birth_names\", \"where\": \"\", \"groupby\": [], \"import_time\": 2018, \"schema\": \"birth_names\"}", 
+                            "changed_by_fk": 1, 
+                            "datasource_name": null, 
+                            "slice_name": "Number of Girls", 
+                            "cache_timeout": null, 
+                            "id": 286, 
+                            "changed_on": {
+                                "__datetime__": "2018-10-01T10:36:24"
+                            }
+                        }
+                    }
+                ], 
+                "position_json": "{\"CHART-58575537\":{\"children\":[],\"id\":\"CHART-58575537\",\"meta\":{\"chartId\":280,\"height\":69,\"sliceName\":\"Genders\",\"width\":4},\"type\":\"CHART\"},\"CHART-985bfd1e\":{\"children\":[],\"id\":\"CHART-985bfd1e\",\"meta\":{\"chartId\":286,\"height\":66,\"sliceName\":\"Number of Girls\",\"width\":8},\"type\":\"CHART\"},\"COLUMN-25a865d6\":{\"children\":[\"ROW-cc97c6ac\"],\"id\":\"COLUMN-25a865d6\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\",\"width\":4},\"type\":\"COLUMN\"},\"DASHBOARD_VERSION_KEY\":\"v2\",\"GRID_ID\":{\"children\":[\"ROW-8515ace3\"],\"id\":\"GRID_ID\",\"type\":\"GRID\"},\"HEADER_ID\":{\"id\":\"HEADER_ID\",\"meta\":{\"text\":\"Births for test [copy]\"},\"type\":\"HEADER\"},\"ROOT_ID\":{\"children\":[\"GRID_ID\"],\"id\":\"ROOT_ID\",\"type\":\"ROOT\"},\"ROW-8515ace3\":{\"children\":[\"COLUMN-25a865d6\",\"CHART-985bfd1e\"],\"id\":\"ROW-8515ace3\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"type\":\"ROW\"},\"ROW-cc97c6ac\":{\"children\":[\"CHART-58575537\"],\"id\":\"ROW-cc97c6ac\",\"meta\":{\"background\":\"BACKGROUND_TRANSPARENT\"},\"type\":\"ROW\"}}", 
+                "created_on": {
+                    "__datetime__": "2018-10-01T10:34:58"
+                }, 
+                "css": "", 
+                "changed_by_fk": 1, 
+                "created_by_fk": 1, 
+                "id": 3, 
+                "changed_on": {
+                    "__datetime__": "2018-10-01T10:35:46"
+                }
+            }
+        }
+    ], 
+    "datasources": [
+        {
+            "__SqlaTable__": {
+                "is_featured": false, 
+                "offset": 0, 
+                "main_dttm_col": "ds", 
+                "created_on": {
+                    "__datetime__": "2018-08-13T13:07:16"
+                }, 
+                "cache_timeout": null, 
+                "id": 3, 
+                "changed_on": {
+                    "__datetime__": "2018-10-01T10:00:22"
+                }, 
+                "template_params": null, 
+                "created_by_fk": null, 
+                "user_id": null, 
+                "default_endpoint": null, 
+                "perm": "[main].[birth_names](id:3)", 
+                "params": "{\"database_name\": \"main\", \"remote_id\": 3, \"import_time\": 1538368222}", 
+                "filter_select_enabled": true, 
+                "changed_by_fk": 1, 
+                "columns": [
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": false, 
+                            "id": 332, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": false, 
+                            "is_dttm": false, 
+                            "sum": false, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": null, 
+                            "column_name": "num_california", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END", 
+                            "groupby": false, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": false, 
+                            "id": 333, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": false, 
+                            "is_dttm": true, 
+                            "sum": false, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "DATETIME", 
+                            "column_name": "ds", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": false, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": false, 
+                            "id": 334, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": true, 
+                            "is_dttm": false, 
+                            "sum": false, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "VARCHAR(16)", 
+                            "column_name": "gender", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": true, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": false, 
+                            "id": 335, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": true, 
+                            "is_dttm": false, 
+                            "sum": false, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "VARCHAR(255)", 
+                            "column_name": "name", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": true, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": true, 
+                            "id": 336, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": false, 
+                            "is_dttm": false, 
+                            "sum": true, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "BIGINT", 
+                            "column_name": "num", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": false, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": false, 
+                            "id": 337, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": true, 
+                            "is_dttm": false, 
+                            "sum": false, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "VARCHAR(10)", 
+                            "column_name": "state", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": true, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": true, 
+                            "id": 338, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": false, 
+                            "is_dttm": false, 
+                            "sum": true, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "BIGINT", 
+                            "column_name": "sum_boys", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": false, 
+                            "count_distinct": false
+                        }
+                    }, 
+                    {
+                        "__TableColumn__": {
+                            "python_date_format": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "avg": true, 
+                            "id": 339, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "created_by_fk": null, 
+                            "min": false, 
+                            "filterable": false, 
+                            "is_dttm": false, 
+                            "sum": true, 
+                            "database_expression": null, 
+                            "changed_by_fk": null, 
+                            "type": "BIGINT", 
+                            "column_name": "sum_girls", 
+                            "description": null, 
+                            "max": false, 
+                            "is_active": true, 
+                            "verbose_name": null, 
+                            "table_id": 3, 
+                            "expression": "", 
+                            "groupby": false, 
+                            "count_distinct": false
+                        }
+                    }
+                ], 
+                "schema": null, 
+                "fetch_values_predicate": null, 
+                "description": null, 
+                "metrics": [
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "avg", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "AVG(num)", 
+                            "id": 653, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "avg__num"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "sum", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "SUM(num)", 
+                            "id": 654, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "sum__num"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "avg", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "AVG(sum_boys)", 
+                            "id": 655, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "avg__sum_boys"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "sum", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "SUM(sum_boys)", 
+                            "id": 656, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "sum__sum_boys"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "avg", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "AVG(sum_girls)", 
+                            "id": 657, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "avg__sum_girls"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": null, 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "sum", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "SUM(sum_girls)", 
+                            "id": 658, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "sum__sum_girls"
+                        }
+                    }, 
+                    {
+                        "__SqlMetric__": {
+                            "description": null, 
+                            "d3format": null, 
+                            "verbose_name": "COUNT(*)", 
+                            "created_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "warning_text": null, 
+                            "table_id": 3, 
+                            "changed_by_fk": null, 
+                            "metric_type": "count", 
+                            "is_restricted": false, 
+                            "created_by_fk": null, 
+                            "expression": "COUNT(*)", 
+                            "id": 659, 
+                            "changed_on": {
+                                "__datetime__": "2018-08-13T13:07:16"
+                            }, 
+                            "metric_name": "count"
+                        }
+                    }
+                ], 
+                "sql": null, 
+                "database": {
+                    "__Database__": {
+                        "allow_run_sync": true, 
+                        "allow_ctas": false, 
+                        "allow_multi_schema_metadata_fetch": true, 
+                        "created_on": {
+                            "__datetime__": "2018-08-13T13:07:04"
+                        }, 
+                        "created_by_fk": null, 
+                        "id": 1, 
+                        "allow_csv_upload": true, 
+                        "cache_timeout": null, 
+                        "extra": "{\n    \"metadata_params\": {},\n    \"engine_params\": {}\n}\n", 
+                        "perm": "[main].(id:1)", 
+                        "changed_on": {
+                            "__datetime__": "2018-08-13T13:07:04"
+                        }, 
+                        "changed_by_fk": null, 
+                        "verbose_name": null, 
+                        "expose_in_sqllab": true, 
+                        "allow_dml": false, 
+                        "allow_run_async": false, 
+                        "password": null, 
+                        "select_as_create_table_as": false, 
+                        "database_name": "main", 
+                        "sqlalchemy_uri": "sqlite:////Users/arpit.agarwal/.superset/superset.db", 
+                        "impersonate_user": false, 
+                        "force_ctas_schema": null
+                    }
+                }, 
+                "database_id": 1, 
+                "table_name": "birth_names", 
+                "is_sqllab_view": false
+            }
+        }
+    ]
+}
