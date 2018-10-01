@@ -47,7 +47,7 @@ jobs:
       script:
         - npm run lint
         - npm run cover
-      - language: python
+    - language: python
       python: 3.6
       env: TOXENV=flake8
     - language: python
