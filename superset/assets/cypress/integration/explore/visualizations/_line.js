@@ -1,6 +1,6 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
-describe('Line', () => {
+export default () => describe('Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
   beforeEach(() => {
