@@ -1,4 +1,4 @@
-describe('Sankey', () => {
+export default () => describe('Sankey', () => {
   const SANKEY_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'sankey',

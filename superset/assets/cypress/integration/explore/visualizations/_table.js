@@ -2,7 +2,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 // Table
 
-export default() => describe('Table chart', () => {
+export default () => describe('Table chart', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'table' };
 
   beforeEach(() => {

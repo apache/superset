@@ -1,4 +1,4 @@
-describe('Dual Line', () => {
+export default () => describe('Dual Line', () => {
   const DUAL_LINE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'dual_line',

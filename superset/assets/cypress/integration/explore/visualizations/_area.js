@@ -1,4 +1,4 @@
-describe('Area', () => {
+export default () => describe('Area', () => {
   const AREA_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'area',

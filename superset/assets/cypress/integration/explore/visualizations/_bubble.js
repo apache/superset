@@ -1,4 +1,4 @@
-describe('Bubble', () => {
+export default () => describe('Bubble', () => {
   const BUBBLE_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'bubble',

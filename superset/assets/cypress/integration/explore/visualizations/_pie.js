@@ -1,4 +1,4 @@
-describe('Pie', () => {
+export default () => describe('Pie', () => {
   const PIE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'pie',

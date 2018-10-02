@@ -1,4 +1,4 @@
-describe('Big Number', () => {
+export default () => describe('Big Number', () => {
   const BIG_NUMBER_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'big_number',

@@ -1,4 +1,4 @@
-describe('Sunburst', () => {
+export default () => describe('Sunburst', () => {
   const SUNBURST_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'sunburst',

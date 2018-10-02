@@ -1,4 +1,4 @@
-describe('Pivot Table', () => {
+export default () => describe('Pivot Table', () => {
   const PIVOT_TABLE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'pivot_table',

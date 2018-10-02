@@ -1,4 +1,4 @@
-describe('World Map', () => {
+export default () => describe('World Map', () => {
   const WORLD_MAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'world_map',
