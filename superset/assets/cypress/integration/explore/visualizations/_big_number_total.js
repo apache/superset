@@ -2,7 +2,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 // Big Number Total
 
-describe('Big Number Total', () => {
+export default () => describe('Big Number Total', () => {
   const BIG_NUMBER_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'big_number_total' };
 
   beforeEach(() => {
