@@ -1,4 +1,4 @@
-describe('Histogram', () => {
+export default () => describe('Histogram', () => {
   const HISTOGRAM_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'histogram',

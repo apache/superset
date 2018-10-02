@@ -1,4 +1,4 @@
-describe('Compare', () => {
+export default () => describe('Compare', () => {
   const COMPARE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'compare',
