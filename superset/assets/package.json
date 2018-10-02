@@ -19,7 +19,8 @@
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
     "sync-backend": "babel-node --presets env src/syncBackend.js",
-    "cypress": "cypress"
+    "cypress": "cypress",
+    "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
   "repository": {
     "type": "git",
