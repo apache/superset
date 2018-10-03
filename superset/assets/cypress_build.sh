@@ -12,5 +12,6 @@ cd "$(dirname "$0")"
 npm install -g yarn
 yarn
 npm run build
+echo $CYPRESS_RECORD_KEY
 npm run cypress run -- --record
 kill %1
