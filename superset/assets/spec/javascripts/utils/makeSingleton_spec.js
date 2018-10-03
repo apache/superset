@@ -12,8 +12,9 @@ describe('makeSingleton(BaseClass)', () => {
 
   it('returns a function for getting singleton instance of a given base class', () => {
     expect(getInstance).to.be.a('Function');
+    expect(getInstance()).to.be.instanceOf(Dog);
   });
-  it('getInstance() returns same instance across all calls', () => {
+  it('returned function returns same instance across all calls', () => {
     expect(getInstance()).to.equal(getInstance());
   });
 });
