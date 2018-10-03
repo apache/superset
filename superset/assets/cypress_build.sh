@@ -9,6 +9,8 @@ superset/bin/superset runserver &
 
 cd "$(dirname "$0")"
 
+echo "TEST BUILD"
+echo $TEST_ENV
 yarn install --frozen-lockfile
 npm run build
 npm run cypress run -- --record

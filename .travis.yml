@@ -63,3 +63,5 @@ script:
   - tox
 after_success:
   - codecov
+env:
+  - TEST_ENV=true
