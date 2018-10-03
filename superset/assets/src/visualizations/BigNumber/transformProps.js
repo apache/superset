@@ -6,7 +6,7 @@ import { renderTooltipFactory } from './BigNumber';
 const TIME_COLUMN = '__timestamp';
 
 export default function transformProps(basicChartInput) {
-  const { containerId, formData, payload } = basicChartInput;
+  const { formData, payload } = basicChartInput;
   const {
     colorPicker,
     compareLag: compareLagInput,
@@ -68,7 +68,6 @@ export default function transformProps(basicChartInput) {
     bigNumber,
     className,
     formatBigNumber: formatValue,
-    gradientId: `big_number_${containerId}`,
     mainColor,
     renderTooltip: renderTooltipFactory(formatValue),
     showTrendLine: supportAndShowTrendLine,

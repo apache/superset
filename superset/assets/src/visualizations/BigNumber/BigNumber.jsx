@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
-
 import { brandColor } from '../../modules/colors';
 import { formatDateVerbose } from '../../modules/dates';
 import { computeMaxFontSize } from '../../modules/visUtils';
@@ -55,7 +54,6 @@ const propTypes = {
   startYAxisAtZero: PropTypes.bool,
   trendLineData: PropTypes.array,
   mainColor: PropTypes.string,
-  gradientId: PropTypes.string,
   renderTooltip: PropTypes.func,
 };
 const defaultProps = {
@@ -66,11 +64,15 @@ const defaultProps = {
   startYAxisAtZero: true,
   trendLineData: null,
   mainColor: brandColor,
-  gradientId: '',
   renderTooltip: renderTooltipFactory(identity),
 };
 
 class BigNumberVis extends React.Component {
+  constructor(props) {
+    super(props);
+    this.gradientId = shortid.generate();
+  }
+
   getClassName() {
     const { className, showTrendLine } = this.props;
     const names = `big_number ${className}`;
@@ -152,7 +154,6 @@ class BigNumberVis extends React.Component {
       mainColor,
       subheader,
       renderTooltip,
-      gradientId,
       startYAxisAtZero,
     } = this.props;
     return (
@@ -170,13 +171,13 @@ class BigNumberVis extends React.Component {
         snapTooltipToDataX
       >
         <LinearGradient
-          id={gradientId}
+          id={this.gradientId}
           from={mainColor}
           to="#fff"
         />
         <AreaSeries
           data={trendLineData}
-          fill={`url(#${gradientId})`}
+          fill={`url(#${this.gradientId})`}
           stroke={mainColor}
         />
         <CrossHair

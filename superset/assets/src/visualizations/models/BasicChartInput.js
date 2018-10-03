@@ -3,7 +3,6 @@ import convertKeysToCamelCase from '../../utils/convertKeysToCamelCase';
 export default class BasicChartInput {
   constructor(slice, payload, setControlValue) {
     this.annotationData = slice.annotationData;
-    this.containerId = slice.containerId;
     this.datasource = convertKeysToCamelCase(slice.datasource);
     this.rawDatasource = slice.datasource;
     this.filters = slice.getFilters();
