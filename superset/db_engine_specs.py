@@ -899,11 +899,11 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def custom_sqllab_cursor_params(cls):
-        return config['SQLLAB_PYHIVE_SOURCE']
+        return {'source': config['SQLLAB_PYHIVE_SOURCE']}
 
     @classmethod
     def custom_chart_cursor_params(cls):
-        return config['CHART_PYHIVE_SOURCE']
+        return {'source': config['CHART_PYHIVE_SOURCE']}
 
     @classmethod
     def latest_sub_partition(cls, table_name, schema, database, **kwargs):

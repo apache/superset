@@ -768,13 +768,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             url, params = DB_CONNECTION_MUTATOR(
                 url, params, effective_username, security_manager)
 
+        custom_url_params = None
+
         if (sqllab and self.db_engine_spec.custom_sqllab_cursor_params()):
-            url = '{}?source={}'.format(
-                url, self.db_engine_spec.custom_sqllab_cursor_params())
+            custom_url_params = parse.urlencode(
+                self.db_engine_spec.custom_sqllab_cursor_params())
 
         if ((not sqllab) and self.db_engine_spec.custom_chart_cursor_params()):
-            url = '{}?source={}'.format(
-                url, self.db_engine_spec.custom_chart_cursor_params())
+            custom_url_params = parse.urlencode(
+                self.db_engine_spec.custom_chart_cursor_params())
+
+        if custom_url_params:
+            url = '{}?{}'.format(url, custom_url_params)
 
         return create_engine(url, **params)
 
