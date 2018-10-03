@@ -10,6 +10,9 @@ export default class BasicChartInput {
     this.onAddFilter = (...args) => {
       slice.addFilter(...args);
     };
+    this.onError = (...args) => {
+      slice.error(...args);
+    };
     this.payload = payload;
     this.setControlValue = setControlValue;
   }

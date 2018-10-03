@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import nvd3Vis from './NVD3Vis';
+import nvd3Vis from './adaptor';
 import { getExploreLongUrl } from '../../explore/exploreUtils';
 
 export default function lineMulti(slice, payload) {
