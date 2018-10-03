@@ -60,6 +60,20 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
     });
 }
 
+// Formats the series key to account for a possible NULL value
+function getFormattedKey(seriesKey, toDompurify) {
+    let key = '';
+    if (toDompurify === true) {
+        key = dompurify.sanitize(seriesKey);
+    } else {
+        key = seriesKey;
+    }
+    if (key === '') {
+        key = '&lt;' + seriesKey.slice(1, -1) + '&gt;';
+    }
+    return key;
+}
+
 // Custom sorted tooltip
 // use a verbose formatter for times
 export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter) {
@@ -69,10 +83,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
     + '</td></tr></thead><tbody>';
   d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
   d.series.forEach((series) => {
-    let key = dompurify.sanitize(series.key);
-    if (key === '') {
-        key = '&lt;' + series.key.slice(1, -1) + '&gt;';
-    }
+    const key = getFormattedKey(series.key, true);
     tooltip += (
       `<tr class="${series.highlight ? 'emph' : ''}">` +
         `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
@@ -99,10 +110,7 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   d.series.forEach((series, i) => {
     const yFormatter = yFormatters[i];
-    let key = series.key;
-    if (key === '') {
-        key = '&lt;' + series.key.slice(1, -1) + '&gt;';
-    }
+    const key = getFormattedKey(series.key, false);
     tooltip += "<tr><td class='legend-color-guide'>"
       + `<div style="background-color: ${series.color};"></div></td>`
       + `<td class='key'>${key}</td>`
