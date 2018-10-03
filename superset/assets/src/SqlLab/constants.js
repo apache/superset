@@ -1,4 +1,5 @@
 export const STATE_BSSTYLE_MAP = {
+  offline: 'danger',
   failed: 'danger',
   pending: 'info',
   fetching: 'info',
@@ -14,6 +15,8 @@ export const STATUS_OPTIONS = [
   'running',
   'pending',
 ];
+
+export const OFFLINE_STATE = 'offline';
 
 export const TIME_OPTIONS = [
   'now',

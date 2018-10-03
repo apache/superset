@@ -41,7 +41,6 @@ class QueryAutoRefresh extends React.PureComponent {
   }
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
-    const self = this;
     if (this.shouldCheckForQueries()) {
       SupersetClient.get({
         endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
@@ -59,16 +58,17 @@ class QueryAutoRefresh extends React.PureComponent {
       const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
       $.ajax({
         dataType: 'json',
+        timeout: 7000,
         url,
         success: (data) => {
           if (Object.keys(data).length > 0) {
-            self.props.actions.refreshQueries(data);
+            this.props.actions.refreshQueries(data);
           }
+          this.props.actions.setUserOffline(false);
         },
         error: (XMLHttpRequest) => {
           if (XMLHttpRequest.readyState === 0) {
-            self.props.actions.userOffline();
-            // document.location.reload(true);
+            this.props.actions.setUserOffline(true);
           }
         },
 >>>>>>> add timeout and refresh for failed backend*/
