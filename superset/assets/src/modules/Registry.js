@@ -35,6 +35,6 @@ export default class Registry {
       this.promises[key] = newPromise;
       return newPromise;
     }
-    return Promise.reject(`[${this.name}Registry] Item with key "${key}" is not registered.`);
+    return Promise.reject(`Item with key "${key}" is not registered.`);
   }
 }

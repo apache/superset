@@ -70,7 +70,7 @@ describe('Registry', () => {
     it('returns a rejected promise if the item with specified key does not exist', () => {
       const registry = new Registry();
       return registry.getAsPromise('a').then(null, (err) => {
-        expect(err).to.equal('[Registry] Item with key "a" is not registered.');
+        expect(err).to.equal('Item with key "a" is not registered.');
       });
     });
     it('If the key was registered multiple times, returns a promise of the most recent value.', () => {
