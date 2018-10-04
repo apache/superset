@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import _ from 'underscore';
+import { isFunction } from 'lodash';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 import { colorScalerFactory } from '../../../modules/colors';
@@ -48,7 +48,7 @@ export default class ColorSchemeControl extends React.PureComponent {
 
   renderOption(key) {
     const { schemes } = this.props;
-    const schemeLookup = _.isFunction(schemes) ? schemes() : schemes;
+    const schemeLookup = isFunction(schemes) ? schemes() : schemes;
     const currentScheme = schemeLookup[key.value || defaultProps.value];
 
     let colors = currentScheme;
@@ -68,7 +68,7 @@ export default class ColorSchemeControl extends React.PureComponent {
 
   render() {
     const { choices } = this.props;
-    const options = (_.isFunction(choices) ? choices() : choices)
+    const options = (isFunction(choices) ? choices() : choices)
       .map(choice => ({ value: choice[0], label: choice[1] }));
 
     const selectProps = {

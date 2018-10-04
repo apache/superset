@@ -420,7 +420,7 @@ def markdown(s, markup_wrap=False):
                           'li', 'dd', 'dt', 'img', 'a']
     safe_markdown_attrs = {'img': ['src', 'alt', 'title'],
                            'a': ['href', 'alt', 'title']}
-    s = md.markdown(s or '', [
+    s = md.markdown(s or '', extensions=[
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',

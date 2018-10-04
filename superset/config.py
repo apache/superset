@@ -170,6 +170,14 @@ LANGUAGES = {
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
 }
+
+# ---------------------------------------------------
+# Feature flags
+# ---------------------------------------------------
+# Feature flags that are on by default go here. Their
+# values can be overridden by those in super_config.py
+FEATURE_FLAGS = {}
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------

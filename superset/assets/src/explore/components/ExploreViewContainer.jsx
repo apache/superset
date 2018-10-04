@@ -15,6 +15,7 @@ import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
+import { isFeatureEnabledCreator } from '../../featureFlags';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 const propTypes = {
@@ -296,11 +297,13 @@ class ExploreViewContainer extends React.Component {
 
 ExploreViewContainer.propTypes = propTypes;
 
-function mapStateToProps({ explore, charts, impressionId }) {
+function mapStateToProps(state) {
+  const { explore, charts, impressionId } = state;
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {
+    isFeatureEnabled: isFeatureEnabledCreator(state),
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,

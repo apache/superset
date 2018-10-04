@@ -1,44 +1,72 @@
-language: python
-python:
-  - 2.7
-  - 3.6
-services:
-  - mysql
-  - postgres
-  - redis-server
 cache:
-  - pip
-matrix:
+  pip: true
+jobs:
   include:
-    - python: 2.7
-      env: TOXENV=flake8
-    - python: 2.7
-      env: TOXENV=py27-mysql
-    - python: 2.7
-      env: TOXENV=py27-sqlite
-    - python: 2.7
-      env: TOXENV=pylint
-    - python: 3.6
-      env: TOXENV=flake8
-    - python: 3.6
-      env: TOXENV=javascript
-    - python: 3.6
-      env: TOXENV=py36-postgres
-    - python: 3.6
-      env: TOXENV=py36-sqlite
-    - python: 3.6
-      env: TOXENV=pylint
-    - python: 3.6
+    - language: python
+      python: 3.6
       env: TOXENV=cypress
-  exclude:
-    - python: 2.7
-    - python: 3.6
-before_script:
-  - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
-  - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
-  - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-  - psql -U postgres -c "CREATE DATABASE superset;"
-  - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
+      cache:
+        pip: true
+        yarn: true
+        directories:
+          - ~/.npm
+          - ~/.cache
+      services:
+        - redis-server
+      before_install:
+        - nvm install 8.9
+    - language: python
+      python: 2.7
+      env: TOXENV=flake8
+    - language: python
+      python: 2.7
+      env: TOXENV=py27-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 2.7
+      env: TOXENV=py27-mysql
+      services:
+        - mysql
+        - redis-server
+      before_script:
+        - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
+        - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
+        - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
+    - language: python
+      python: 2.7
+      env: TOXENV=pylint
+    - language: node_js
+      node_js: 8.9
+      cache:
+        yarn: true
+      before_install:
+        - cd superset/assets
+      install:
+        - yarn install --frozen-lockfile
+      script:
+        - npm run lint
+        - npm run cover
+    - language: python
+      python: 3.6
+      env: TOXENV=flake8
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-sqlite
+      services:
+        - redis-server
+    - language: python
+      python: 3.6
+      env: TOXENV=py36-postgres
+      services:
+        - postgres
+        - redis-server
+      before_script:
+        - psql -U postgres -c "CREATE DATABASE superset;"
+        - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
+    - language: python
+      python: 3.6
+      env: TOXENV=pylint
 install:
   - pip install --upgrade pip
   - pip install codecov tox

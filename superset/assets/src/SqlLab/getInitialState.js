@@ -14,6 +14,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   };
 
   return {
+    featureFlags: restBootstrapData.common.feature_flags,
     sqlLab: {
       alerts: [],
       queries: {},

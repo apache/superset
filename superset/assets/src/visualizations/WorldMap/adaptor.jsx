@@ -1,5 +1,5 @@
 import createAdaptor from '../../utils/createAdaptor';
-import WorldMap from './ReactWorldMap';
+import Component from './ReactWorldMap';
 import transformProps from './transformProps';
 
-export default createAdaptor(WorldMap, transformProps);
+export default createAdaptor(Component, transformProps);
