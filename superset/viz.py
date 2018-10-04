@@ -100,6 +100,8 @@ class BaseViz(object):
         self.process_metrics()
 
     def process_metrics(self):
+        # metrics in TableViz is order sensitive, so metric_dict should be
+        # OrderedDict
         self.metric_dict = OrderedDict()
         fd = self.form_data
         for mkey in METRIC_KEYS:
