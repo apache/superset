@@ -34,8 +34,9 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
-    security_manager, sql_lab, utils, viz)
+    app, appbuilder, cache, db, results_backend, security_manager, sql_lab, utils,
+    viz,
+)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -1237,7 +1238,16 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
-            dashboard_import_export_util.import_dashboards(db.session, f.stream)
+            current_tt = int(time.time())
+            data = json.loads(f.stream.read(), object_hook=utils.decode_dashboards)
+            # TODO: import DRUID datasources
+            for table in data['datasources']:
+                type(table).import_obj(table, import_time=current_tt)
+            db.session.commit()
+            for dashboard in data['dashboards']:
+                models.Dashboard.import_obj(
+                    dashboard, import_time=current_tt)
+            db.session.commit()
             return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
