@@ -48,7 +48,7 @@ describe('Preset', () => {
       expect(values).to.deep.equal([1, 2, 3]);
     });
 
-    it('calls plugin.install() if the plugin entry is a Plugin', () => {
+    it('calls plugin.install() if the plugin entry is a Plugin or execute plugin() otherwise', () => {
       const values = [];
       class Plugin1 extends Plugin {
         install() {
