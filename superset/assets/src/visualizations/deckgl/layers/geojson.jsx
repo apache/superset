@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { GeoJsonLayer } from 'deck.gl';
 // TODO import geojsonExtent from 'geojson-extent';
 
@@ -92,6 +93,19 @@ function getLayer(formData, payload, onAddFilter, onTooltip) {
   });
 }
 
+const propTypes = {
+  formData: PropTypes.object.isRequired,
+  payload: PropTypes.object.isRequired,
+  setControlValue: PropTypes.func.isRequired,
+  viewport: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  onTooltip: PropTypes.func,
+};
+const defaultProps = {
+  onAddFilter() {},
+  onTooltip() {},
+};
+
 function deckGeoJson(props) {
   const {
     formData,
@@ -119,6 +133,9 @@ function deckGeoJson(props) {
     />
   );
 }
+
+deckGeoJson.propTypes = propTypes;
+deckGeoJson.defaultProps = defaultProps;
 
 module.exports = {
   default: createAdaptor(deckGeoJson),

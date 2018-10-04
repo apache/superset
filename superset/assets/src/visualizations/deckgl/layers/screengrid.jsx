@@ -56,6 +56,10 @@ const propTypes = {
   onAddFilter: PropTypes.func,
   onTooltip: PropTypes.func,
 };
+const defaultProps = {
+  onAddFilter() {},
+  onTooltip() {},
+};
 
 class DeckGLScreenGrid extends React.PureComponent {
   /* eslint-disable-next-line react/sort-comp */
@@ -124,6 +128,7 @@ class DeckGLScreenGrid extends React.PureComponent {
 }
 
 DeckGLScreenGrid.propTypes = propTypes;
+DeckGLScreenGrid.defaultProps = defaultProps;
 
 module.exports = {
   default: createAdaptor(DeckGLScreenGrid),
