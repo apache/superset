@@ -32,7 +32,7 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, slice) {
+export function commonLayerProps(formData, onAddFilter, onTooltip) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
@@ -49,13 +49,13 @@ export function commonLayerProps(formData, slice) {
   if (tooltipContentGenerator) {
     onHover = (o) => {
       if (o.picked) {
-        slice.setTooltip({
+        onTooltip({
           content: tooltipContentGenerator(o),
           x: o.x,
           y: o.y,
         });
       } else {
-        slice.setTooltip(null);
+        onTooltip(null);
       }
     };
   }
@@ -66,7 +66,7 @@ export function commonLayerProps(formData, slice) {
       window.open(href);
     };
   } else if (fd.table_filter && fd.line_type === 'geohash') {
-    onClick = o => slice.addFilter(fd.line_column, [o.object[fd.line_column]], false);
+    onClick = o => onAddFilter(fd.line_column, [o.object[fd.line_column]], false);
   }
   return {
     onClick,
