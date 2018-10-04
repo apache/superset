@@ -85,7 +85,7 @@ def get_datasource_exist_error_msg(full_name):
 
 
 def get_user_roles():
-    if g.user.is_anonymous():
+    if g.user.is_anonymous:
         public_role = conf.get('AUTH_ROLE_PUBLIC')
         return [security_manager.find_role(public_role)] if public_role else []
     return g.user.roles
@@ -289,7 +289,7 @@ def check_ownership(obj, raise_if_false=True):
     security_exception = SupersetSecurityException(
         "You don't have the rights to alter [{}]".format(obj))
 
-    if g.user.is_anonymous():
+    if g.user.is_anonymous:
         if raise_if_false:
             raise security_exception
         return False
