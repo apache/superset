@@ -7,13 +7,13 @@ import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
 import {
-  getScale
+  getScale,
 } from '../../modules/CategoricalColorNamespace';
 import {
-  hexToRGB
+  hexToRGB,
 } from '../../modules/colors';
 import {
-  getPlaySliderParams
+  getPlaySliderParams,
 } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 
@@ -22,7 +22,7 @@ function getCategories(fd, data) {
     r: 0,
     g: 0,
     b: 0,
-    a: 1
+    a: 1,
   };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const colorFn = getScale(fd.color_scheme).toFunction();
@@ -72,9 +72,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       end,
       getStep,
       values,
-      disabled
+      disabled,
     } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = currentState.categories || getCategories(fd, nextProps.payload.data.features);
+    const categories = currentState.categories ||
+      getCategories(fd, nextProps.payload.data.features);
 
     return {
       start,
@@ -82,7 +83,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       getStep,
       values,
       disabled,
-      categories
+      categories,
     };
   }
   constructor(props) {
@@ -100,7 +101,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     const {
       getLayer,
       payload,
-      slice
+      slice,
     } = this.props;
     const fd = slice.formData;
     let features = [...payload.data.features];
@@ -128,8 +129,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
 
     return [getLayer(fd, { ...payload,
       data: { ...payload.data,
-        features
-      }
+        features,
+      },
     }, slice)];
   }
   addColor(data, fd) {
@@ -137,7 +138,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       r: 0,
       g: 0,
       b: 0,
-      a: 1
+      a: 1,
     };
     const colorFn = getScale(fd.color_scheme).toFunction();
     return data.map((d) => {
@@ -145,7 +146,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       if (fd.dimension) {
         color = hexToRGB(colorFn(d.cat_color), c.a * 255);
         return { ...d,
-          color
+          color,
         };
       }
       return d;
@@ -155,7 +156,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     const categoryState = this.state.categories[category];
     categoryState.enabled = !categoryState.enabled;
     const categories = { ...this.state.categories,
-      [category]: categoryState
+      [category]: categoryState,
     };
 
     // if all categories are disabled, enable all -- similar to nvd3
@@ -167,11 +168,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     }
 
     this.setState({
-      categories
+      categories,
     });
   }
   showSingleCategory(category) {
-    const categories = { ...this.state.categories
+    const categories = { ...this.state.categories,
     };
     /* eslint-disable no-param-reassign */
     Object.values(categories).forEach((v) => {
@@ -179,7 +180,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     });
     categories[category].enabled = true;
     this.setState({
-      categories
+      categories,
     });
   }
   render() {

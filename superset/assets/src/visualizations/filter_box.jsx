@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import VirtualizedSelect from 'react-virtualized-select';
 import {
-  Creatable
+  Creatable,
 } from 'react-select';
 import {
-  Button
+  Button,
 } from 'react-bootstrap';
 
 import DateFilterControl from '../explore/components/controls/DateFilterControl';
@@ -16,7 +16,7 @@ import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
 import {
-  t
+  t,
 } from '../locales';
 import './filter_box.css';
 
@@ -75,14 +75,14 @@ class FilterBox extends React.Component {
 
   getControlData(controlName) {
     const {
-      selectedValues
+      selectedValues,
     } = this.state;
     const control = Object.assign({}, controls[controlName], {
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
       actions: {
-        setControlValue: this.changeFilter
+        setControlValue: this.changeFilter,
       },
     });
     const mapFunc = control.mapStateToProps;
@@ -93,7 +93,7 @@ class FilterBox extends React.Component {
 
   clickApply() {
     const {
-      selectedValues
+      selectedValues,
     } = this.state;
     Object.keys(selectedValues).forEach((fltr, i, arr) => {
       let refresh = false;
@@ -103,7 +103,7 @@ class FilterBox extends React.Component {
       this.props.onChange(fltr, selectedValues[fltr], false, refresh);
     });
     this.setState({
-      hasChanged: false
+      hasChanged: false,
     });
   }
 
@@ -123,7 +123,7 @@ class FilterBox extends React.Component {
     selectedValues[fltr] = vals;
     this.setState({
       selectedValues,
-      hasChanged: true
+      hasChanged: true,
     });
     if (this.props.instantFiltering) {
       this.props.onChange(fltr, vals, false, true);
@@ -132,7 +132,7 @@ class FilterBox extends React.Component {
 
   renderDateFilter() {
     const {
-      showDateFilter
+      showDateFilter,
     } = this.props;
     if (showDateFilter) {
       return (
@@ -175,19 +175,19 @@ class FilterBox extends React.Component {
             <Control {...this.getControlData(control)} />
       ))
   }
-  />,
+        />,
 );
 }
 if (druidFilters.length) {
   datasourceFilters.push(
     <ControlRow
-          key="druid-filters"
-          className="control-row"
-          controls={druidFilters.map(control => (
-            <Control {...this.getControlData(control)} />
+      key="druid-filters"
+      className="control-row"
+      controls={druidFilters.map(control => (
+        <Control {...this.getControlData(control)} />
   ))
 }
-/>,
+    />,
 );
 }
 return datasourceFilters;
@@ -196,10 +196,10 @@ return datasourceFilters;
 renderFilters() {
   const {
     filtersFields,
-    filtersChoices
+    filtersChoices,
   } = this.props;
   const {
-    selectedValues
+    selectedValues,
   } = this.state;
 
   // Add created options to filtersChoices, even though it doesn't exist,
@@ -208,10 +208,12 @@ renderFilters() {
     .filter(key => !selectedValues.hasOwnProperty(key) ||
       !(key in filtersChoices))
     .forEach((key) => {
-      console.log(key, filtersChoices);
       const choices = filtersChoices[key];
       const choiceIds = new Set(choices.map(f => f.id));
-      selectedValues[key]
+      const selectedValuesForKey = Array.isArray(selectedValues[key])
+        ? selectedValues[key]
+        : [selectedValues[key]];
+      selectedValuesForKey
         .filter(value => !choiceIds.has(value))
         .forEach((value) => {
           choices.unshift({
@@ -225,19 +227,19 @@ renderFilters() {
 
   return filtersFields.map(({
     key,
-    label
+    label,
   }) => {
     const data = filtersChoices[key];
     const max = Math.max(...data.map(d => d.metric));
     return (
       <div key={key} className="m-b-5">
-          {label}
-          <OnPasteSelect
-            placeholder={t('Select [%s]', label)}
-            key={key}
-            multi
-            value={selectedValues[key]}
-            options={data.map((opt) => {
+        {label}
+        <OnPasteSelect
+          placeholder={t('Select [%s]', label)}
+          key={key}
+          multi
+          value={selectedValues[key]}
+          options={data.map((opt) => {
               const perc = Math.round((opt.metric / max) * 100);
               const backgroundImage = (
                 'linear-gradient(to right, lightgrey, ' +
@@ -249,39 +251,39 @@ renderFilters() {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={(...args) => { this.changeFilter(key, ...args); }}
-            selectComponent={Creatable}
-            selectWrap={VirtualizedSelect}
-            optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
-          />
-        </div>
+          onChange={(...args) => { this.changeFilter(key, ...args); }}
+          selectComponent={Creatable}
+          selectWrap={VirtualizedSelect}
+          optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
+        />
+      </div>
     );
   });
 }
 
 render() {
   const {
-    instantFiltering
+    instantFiltering,
   } = this.props;
 
   return (
     <div className="scrollbar-container">
-        <div className="scrollbar-content">
-          {this.renderDateFilter()}
-          {this.renderDatasourceFilters()}
-          {this.renderFilters()}
-          {!instantFiltering &&
-            <Button
-              bsSize="small"
-              bsStyle="primary"
-              onClick={this.clickApply.bind(this)}
-              disabled={!this.state.hasChanged}
-            >
-              {t('Apply')}
-            </Button>
+      <div className="scrollbar-content">
+        {this.renderDateFilter()}
+        {this.renderDatasourceFilters()}
+        {this.renderFilters()}
+        {!instantFiltering &&
+        <Button
+          bsSize="small"
+          bsStyle="primary"
+          onClick={this.clickApply.bind(this)}
+          disabled={!this.state.hasChanged}
+        >
+          {t('Apply')}
+        </Button>
           }
-        </div>
       </div>
+    </div>
   );
 }
 }
@@ -294,10 +296,10 @@ function adaptor(slice, payload) {
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const {
     formData,
-    datasource
+    datasource,
   } = slice;
   const {
-    verbose_map: verboseMap
+    verbose_map: verboseMap,
   } = datasource;
   const {
     groupby,
