@@ -104,7 +104,7 @@ function deckGeoJson(props) {
 
   // TODO get this to work
   // if (formData.autozoom) {
-    // viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
+  //   viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
   // }
 
   const layer = getLayer(formData, payload, onAddFilter, onTooltip);

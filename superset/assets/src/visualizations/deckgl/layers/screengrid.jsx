@@ -96,7 +96,13 @@ class DeckGLScreenGrid extends React.PureComponent {
 
     return [layer];
   }
+
   render() {
+    const { formData, payload } = this.props;
+    const viewport = formData.autozoom
+      ? fitViewport(this.props.viewport, getPoints(payload.data.features))
+      : this.props.viewport;
+
     return (
       <div>
         <AnimatableDeckGLContainer
@@ -106,7 +112,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={viewport}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
@@ -119,33 +125,7 @@ class DeckGLScreenGrid extends React.PureComponent {
 
 DeckGLScreenGrid.propTypes = propTypes;
 
-function deckScreenGrid(props) {
-  const {
-    formData,
-    payload,
-    setControlValue,
-    onAddFilter,
-    onTooltip,
-    viewport: originalViewport,
-  } = props;
-
-  const viewport = formData.autozoom
-    ? fitViewport(originalViewport, getPoints(payload.data.features))
-    : originalViewport;
-
-  return (
-    <DeckGLScreenGrid
-      formData={formData}
-      payload={payload}
-      setControlValue={setControlValue}
-      viewport={viewport}
-      onAddFilter={onAddFilter}
-      onTooltip={onTooltip}
-    />
-  );
-}
-
 module.exports = {
-  default: createAdaptor(deckScreenGrid),
+  default: createAdaptor(DeckGLScreenGrid),
   getLayer,
 };
