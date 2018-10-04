@@ -5,13 +5,17 @@ const IDENTITY = x => x;
 
 class DeckGlChartInput {
   constructor(slice, payload, setControlValue) {
-    this.width = slice.width();
-    this.height = slice.height();
     this.formData = slice.formData;
     this.payload = payload;
     this.setControlValue = setControlValue;
-    this.onAddFilter = (...args) => { slice.addFilter(...args); };
-    this.onTooltip = (...args) => { slice.tooltip(...args); }
+    this.viewport = {
+      ...this.formData.viewport,
+      width: slice.width(),
+      height: slice.height(),
+    };
+
+    this.onAddFilter = ((...args) => { slice.addFilter(...args); });
+    this.onTooltip = ((...args) => { slice.tooltip(...args); });
   }
 }
 

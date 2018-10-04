@@ -29,24 +29,19 @@ function getLayer(fd, payload, onAddFilter, onTooltip) {
 
 function deckArc(props) {
   const {
-    width,
-    height,
     formData,
     payload,
     setControlValue,
     onAddFilter,
     onTooltip,
+    viewport: originalViewport,
   } = props;
 
-  let viewport = {
-    ...formData.viewport,
-    width,
-    height,
-  };
+  const { autozoom } = formData;
 
-  if (formData.autozoom) {
-    viewport = fitViewport(viewport, getPoints(payload.data.features));
-  }
+  const viewport = formData.autozoom
+    ? fitViewport(originalViewport, getPoints(payload.data.features))
+    : originalViewport;
 
   return (
     <CategoricalDeckGLContainer
