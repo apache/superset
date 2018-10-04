@@ -63,7 +63,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
 
   /* eslint-disable-next-line react/sort-comp */
   static getDerivedStateFromProps(nextProps, currentState) {
-    const fd = nextProps.slice.formData;
+    const fd = nextProps.payload.form_data;
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
