@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import Datamap from 'datamaps';
+import Datamap from 'datamaps/dist/datamaps.world.min';
 import './WorldMap.css';
 
 const propTypes = {
