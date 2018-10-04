@@ -26,6 +26,54 @@ class BaseVizTestCase(SupersetTestCase):
         with self.assertRaises(Exception):
             viz.BaseViz(datasource, form_data)
 
+    def test_process_metrics(self):
+        # test TableViz metrics in correct order
+        form_data = {
+            'url_params': {},
+            'row_limit': 500,
+            'metric': 'sum__SP_POP_TOTL',
+            'entity': 'country_code',
+            'secondary_metric': 'sum__SP_POP_TOTL',
+            'granularity_sqla': 'year',
+            'page_length': 0,
+            'all_columns': [],
+            'viz_type': 'table',
+            'since': '2014-01-01',
+            'until': '2014-01-02',
+            'metrics': [
+                'sum__SP_POP_TOTL',
+                'SUM(SE_PRM_NENR_MA)',
+                'SUM(SP_URB_TOTL)',
+            ],
+            'country_fieldtype': 'cca3',
+            'percent_metrics': [
+                'count',
+            ],
+            'slice_id': 74,
+            'time_grain_sqla': None,
+            'order_by_cols': [],
+            'groupby': [
+                'country_name',
+            ],
+            'compare_lag': '10',
+            'limit': '25',
+            'datasource': '2__table',
+            'table_timestamp_format': '%Y-%m-%d %H:%M:%S',
+            'markup_type': 'markdown',
+            'where': '',
+            'compare_suffix': 'o10Y',
+        }
+        datasource = Mock()
+        datasource.type = 'table'
+        test_viz = viz.BaseViz(datasource, form_data)
+        expect_metric_labels = [u'sum__SP_POP_TOTL',
+                                u'SUM(SE_PRM_NENR_MA)',
+                                u'SUM(SP_URB_TOTL)',
+                                u'count',
+                                ]
+        self.assertEqual(test_viz.metric_labels, expect_metric_labels)
+        self.assertEqual(test_viz.all_metrics, expect_metric_labels)
+
     def test_get_fillna_returns_default_on_null_columns(self):
         form_data = {
             'viz_type': 'table',
