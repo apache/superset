@@ -1,12 +1,7 @@
-/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
-
-import React from 'react';
-import ReactDOM from 'react-dom';
-
 import { ScatterplotLayer } from 'deck.gl';
-
-import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
-import * as common from './common';
+import { commonLayerProps } from './common';
+import createAdaptor from '../createAdaptor';
+import { createCategoricalDeckGLComponent } from '../factory';
 import { unitToRadius } from '../../../modules/geo';
 
 
@@ -35,36 +30,11 @@ function getLayer(fd, payload, slice) {
     radiusMinPixels: fd.min_radius || null,
     radiusMaxPixels: fd.max_radius || null,
     outline: false,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, slice),
   });
 }
 
-function deckScatter(slice, payload, setControlValue) {
-  const fd = slice.formData;
-  let viewport = {
-    ...fd.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
-
-  if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
-  }
-
-  ReactDOM.render(
-    <CategoricalDeckGLContainer
-      slice={slice}
-      mapboxApiKey={payload.data.mapboxApiKey}
-      setControlValue={setControlValue}
-      viewport={viewport}
-      getLayer={getLayer}
-      payload={payload}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
 module.exports = {
-  default: deckScatter,
+  default: createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints)),
   getLayer,
 };

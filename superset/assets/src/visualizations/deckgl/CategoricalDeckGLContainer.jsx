@@ -37,6 +37,8 @@ const propTypes = {
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
   payload: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  onTooltip: PropTypes.func,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
