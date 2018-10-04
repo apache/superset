@@ -179,8 +179,8 @@ class FilterBox extends React.Component {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(key => !selectedValues.hasOwnProperty(key) ||
-        !(key in filtersChoices))
+      .filter(key => !selectedValues.hasOwnProperty(key)
+        || !(key in filtersChoices))
       .forEach((key) => {
         const choices = filtersChoices[key] || [];
         const choiceIds = new Set(choices.map(f => f.id));
@@ -199,10 +199,7 @@ class FilterBox extends React.Component {
           });
       });
 
-    return filtersFields.map(({
-      key,
-      label,
-    }) => {
+    return filtersFields.map(({ key, label }) => {
       const data = filtersChoices[key];
       const max = Math.max(...data.map(d => d.metric));
       return (
@@ -214,17 +211,17 @@ class FilterBox extends React.Component {
             multi
             value={selectedValues[key]}
             options={data.map((opt) => {
-                const perc = Math.round((opt.metric / max) * 100);
-                const backgroundImage = (
-                  'linear-gradient(to right, lightgrey, ' +
-                  `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-                );
-                const style = {
-                  backgroundImage,
-                  padding: '2px 5px',
-                };
-                return { value: opt.id, label: opt.id, style };
-              })}
+              const perc = Math.round((opt.metric / max) * 100);
+              const backgroundImage = (
+                'linear-gradient(to right, lightgrey, ' +
+                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+              );
+              const style = {
+                backgroundImage,
+                padding: '2px 5px',
+              };
+              return { value: opt.id, label: opt.id, style };
+            })}
             onChange={(...args) => { this.changeFilter(key, ...args); }}
             selectComponent={Creatable}
             selectWrap={VirtualizedSelect}
@@ -245,15 +242,15 @@ class FilterBox extends React.Component {
           {this.renderDatasourceFilters()}
           {this.renderFilters()}
           {!instantFiltering &&
-          <Button
-            bsSize="small"
-            bsStyle="primary"
-            onClick={this.clickApply.bind(this)}
-            disabled={!this.state.hasChanged}
-          >
-            {t('Apply')}
-          </Button>
-            }
+            <Button
+              bsSize="small"
+              bsStyle="primary"
+              onClick={this.clickApply.bind(this)}
+              disabled={!this.state.hasChanged}
+            >
+              {t('Apply')}
+            </Button>
+          }
         </div>
       </div>
     );
