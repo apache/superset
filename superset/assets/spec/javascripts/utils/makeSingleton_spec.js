@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import makeSingleton from "../../../src/utils/makeSingleton";
+import makeSingleton from '../../../src/utils/makeSingleton';
 
 describe('makeSingleton(BaseClass)', () => {
   class Dog {
