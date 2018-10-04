@@ -4,7 +4,8 @@ import sandboxedEval from '../../../modules/sandbox';
 import createAdaptor from '../createAdaptor';
 import { createDeckGLComponent } from '../factory';
 
-function getLayer(fd, payload, onAddFilter, onTooltip) {
+function getLayer(formData, payload, onAddFilter, onTooltip) {
+  const fd = formData;
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   let data = payload.data.features.map(feature => ({
