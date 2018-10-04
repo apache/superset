@@ -1,15 +1,11 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-
 import { PathLayer } from 'deck.gl';
-
 import DeckGLContainer from './../DeckGLContainer';
-
-import * as common from './common';
+import { commonLayerProps, fitViewport } from './common';
 import sandboxedEval from '../../../modules/sandbox';
+import createAdaptor from '../createAdaptor';
 
-function getLayer(formData, payload, slice) {
-  const fd = formData;
+function getLayer(fd, payload, onAddFilter, onTooltip) {
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   let data = payload.data.features.map(feature => ({
@@ -29,7 +25,7 @@ function getLayer(formData, payload, slice) {
     data,
     rounded: true,
     widthScale: 1,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, onAddFilter, onTooltip),
   });
 }
 
@@ -41,31 +37,58 @@ function getPoints(data) {
   return points;
 }
 
-function deckPath(slice, payload, setControlValue) {
-  const layer = getLayer(slice.formData, payload, slice);
-  let viewport = {
-    ...slice.formData.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
+function deckPath(props) {
+  const {
+    formData,
+    payload,
+    setControlValue,
+    onAddFilter,
+    onTooltip,
+    viewport: originalViewport,
+  } = props;
 
-  if (slice.formData.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
-  }
+  const viewport = formData.autozoom
+    ? fitViewport(originalViewport, getPoints(payload.data.features))
+    : originalViewport;
 
-  ReactDOM.render(
+  const layer = getLayer(formData, payload, onAddFilter, onTooltip);
+
+  return (
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={slice.formData.mapbox_style}
+      mapStyle={formData.mapbox_style}
       setControlValue={setControlValue}
-    />,
-    document.getElementById(slice.containerId),
+    />
   );
 }
 
+// function deckPath(slice, payload, setControlValue) {
+//   const layer = getLayer(slice.formData, payload, slice);
+//   let viewport = {
+//     ...slice.formData.viewport,
+//     width: slice.width(),
+//     height: slice.height(),
+//   };
+
+//   if (slice.formData.autozoom) {
+//     viewport = fitViewport(viewport, getPoints(payload.data.features));
+//   }
+
+//   ReactDOM.render(
+//     <DeckGLContainer
+//       mapboxApiAccessToken={payload.data.mapboxApiKey}
+//       viewport={viewport}
+//       layers={[layer]}
+//       mapStyle={slice.formData.mapbox_style}
+//       setControlValue={setControlValue}
+//     />,
+//     document.getElementById(slice.containerId),
+//   );
+// }
+
 module.exports = {
-  default: deckPath,
+  default: createAdaptor(deckPath),
   getLayer,
 };

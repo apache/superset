@@ -37,8 +37,6 @@ function deckArc(props) {
     viewport: originalViewport,
   } = props;
 
-  const { autozoom } = formData;
-
   const viewport = formData.autozoom
     ? fitViewport(originalViewport, getPoints(payload.data.features))
     : originalViewport;
