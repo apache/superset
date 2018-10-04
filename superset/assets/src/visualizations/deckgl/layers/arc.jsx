@@ -1,8 +1,7 @@
-import React from 'react';
 import { ArcLayer } from 'deck.gl';
-import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
-import { commonLayerProps, fitViewport } from './common';
+import { commonLayerProps } from './common';
 import createAdaptor from '../createAdaptor';
+import { createCategoricalDeckGLComponent } from '../factory';
 
 function getPoints(data) {
   const points = [];
@@ -27,35 +26,7 @@ function getLayer(fd, payload, onAddFilter, onTooltip) {
   });
 }
 
-function deckArc(props) {
-  const {
-    formData,
-    payload,
-    setControlValue,
-    onAddFilter,
-    onTooltip,
-    viewport: originalViewport,
-  } = props;
-
-  const viewport = formData.autozoom
-    ? fitViewport(originalViewport, getPoints(payload.data.features))
-    : originalViewport;
-
-  return (
-    <CategoricalDeckGLContainer
-      formData={formData}
-      mapboxApiKey={payload.data.mapboxApiKey}
-      setControlValue={setControlValue}
-      viewport={viewport}
-      getLayer={getLayer}
-      payload={payload}
-      onAddFilter={onAddFilter}
-      onTooltip={onTooltip}
-    />
-  );
-}
-
 module.exports = {
-  default: createAdaptor(deckArc),
+  default: createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints)),
   getLayer,
 };

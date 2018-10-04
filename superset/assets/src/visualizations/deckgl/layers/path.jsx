@@ -1,9 +1,8 @@
-import React from 'react';
 import { PathLayer } from 'deck.gl';
-import DeckGLContainer from './../DeckGLContainer';
-import { commonLayerProps, fitViewport } from './common';
+import { commonLayerProps } from './common';
 import sandboxedEval from '../../../modules/sandbox';
 import createAdaptor from '../createAdaptor';
+import { createDeckGLComponent } from '../factory';
 
 function getLayer(fd, payload, onAddFilter, onTooltip) {
   const c = fd.color_picker;
@@ -37,34 +36,7 @@ function getPoints(data) {
   return points;
 }
 
-function deckPath(props) {
-  const {
-    formData,
-    payload,
-    setControlValue,
-    onAddFilter,
-    onTooltip,
-    viewport: originalViewport,
-  } = props;
-
-  const viewport = formData.autozoom
-    ? fitViewport(originalViewport, getPoints(payload.data.features))
-    : originalViewport;
-
-  const layer = getLayer(formData, payload, onAddFilter, onTooltip);
-
-  return (
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={formData.mapbox_style}
-      setControlValue={setControlValue}
-    />
-  );
-}
-
 module.exports = {
-  default: createAdaptor(deckPath),
+  default: createAdaptor(createDeckGLComponent(getLayer, getPoints)),
   getLayer,
 };
