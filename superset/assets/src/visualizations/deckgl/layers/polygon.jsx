@@ -1,12 +1,11 @@
 import d3 from 'd3';
-import React from 'react';
 import { PolygonLayer } from 'deck.gl';
 import { flatten } from 'lodash';
-import DeckGLContainer from './../DeckGLContainer';
-import { commonLayerProps, fitViewport } from './common';
 import { colorScalerFactory } from '../../../modules/colors';
+import { commonLayerProps } from './common';
 import sandboxedEval from '../../../modules/sandbox';
 import createAdaptor from '../createAdaptor';
+import { createDeckGLComponent } from '../factory';
 
 function getPoints(features) {
   return flatten(features.map(d => d.polygon), true);
@@ -50,34 +49,7 @@ function getLayer(formData, payload, onAddFilter, onTooltip) {
   });
 }
 
-function deckPolygon(props) {
-  const {
-    formData,
-    payload,
-    setControlValue,
-    onAddFilter,
-    onTooltip,
-    viewport: originalViewport,
-  } = props;
-
-  const viewport = formData.autozoom
-    ? fitViewport(originalViewport, getPoints(payload.data.features))
-    : originalViewport;
-
-  const layer = getLayer(formData, payload, onAddFilter, onTooltip);
-
-  return (
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={formData.mapbox_style}
-      setControlValue={setControlValue}
-    />
-  );
-}
-
 module.exports = {
-  default: createAdaptor(deckPolygon),
+  default: createAdaptor(createDeckGLComponent(getLayer, getPoints)),
   getLayer,
 };
