@@ -1,7 +1,21 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import DeckGLContainer from './DeckGLContainer';
 import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import { fitViewport } from './layers/common';
+
+const propTypes = {
+  formData: PropTypes.object.isRequired,
+  payload: PropTypes.object.isRequired,
+  setControlValue: PropTypes.func.isRequired,
+  viewport: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  onTooltip: PropTypes.func,
+};
+const defaultProps = {
+  onAddFilter() {},
+  onTooltip() {},
+};
 
 export function createDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
@@ -30,6 +44,9 @@ export function createDeckGLComponent(getLayer, getPoints) {
       />
     );
   }
+
+  Component.propTypes = propTypes;
+  Component.defaultProps = defaultProps;
 
   return Component;
 }
@@ -62,6 +79,9 @@ export function createCategoricalDeckGLComponent(getLayer, getPoints) {
       />
     );
   }
+
+  Component.propTypes = propTypes;
+  Component.defaultProps = defaultProps;
 
   return Component;
 }
