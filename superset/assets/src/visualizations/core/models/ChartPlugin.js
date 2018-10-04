@@ -8,7 +8,7 @@ const IDENTITY = x => x;
 
 export default class ChartPlugin extends Plugin {
   constructor({
-    metadata,
+    metadata = isRequired('metadata'),
 
     // use transformProps for immediate value
     transformProps = IDENTITY,

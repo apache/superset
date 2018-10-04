@@ -6,7 +6,7 @@ export default class Preset {
     description = '',
     presets = [],
     plugins = [],
-  }) {
+  } = {}) {
     this.name = name;
     this.description = description;
     this.presets = presets;
