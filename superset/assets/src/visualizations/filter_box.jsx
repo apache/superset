@@ -2,12 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import VirtualizedSelect from 'react-virtualized-select';
-import {
-  Creatable,
-} from 'react-select';
-import {
-  Button,
-} from 'react-bootstrap';
+import { Creatable } from 'react-select';
+import { Button } from 'react-bootstrap';
 
 import DateFilterControl from '../explore/components/controls/DateFilterControl';
 import ControlRow from '../explore/components/ControlRow';
@@ -15,9 +11,7 @@ import Control from '../explore/components/Control';
 import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
-import {
-  t,
-} from '../locales';
+import { t } from '../locales';
 import './filter_box.css';
 
 // maps control names to their key in extra_filters
@@ -74,27 +68,21 @@ class FilterBox extends React.Component {
   }
 
   getControlData(controlName) {
-    const {
-      selectedValues,
-    } = this.state;
+    const { selectedValues } = this.state;
     const control = Object.assign({}, controls[controlName], {
       name: controlName,
       key: `control-${controlName}`,
       value: selectedValues[TIME_FILTER_MAP[controlName]],
-      actions: {
-        setControlValue: this.changeFilter,
-      },
+      actions: { setControlValue: this.changeFilter },
     });
     const mapFunc = control.mapStateToProps;
-    return mapFunc ?
-      Object.assign({}, control, mapFunc(this.props)) :
-      control;
+    return mapFunc
+      ?  Object.assign({}, control, mapFunc(this.props))
+      : control;
   }
 
   clickApply() {
-    const {
-      selectedValues,
-    } = this.state;
+    const { selectedValues } = this.state;
     Object.keys(selectedValues).forEach((fltr, i, arr) => {
       let refresh = false;
       if (i === arr.length - 1) {
@@ -102,9 +90,7 @@ class FilterBox extends React.Component {
       }
       this.props.onChange(fltr, selectedValues[fltr], false, refresh);
     });
-    this.setState({
-      hasChanged: false,
-    });
+    this.setState({ hasChanged: false });
   }
 
   changeFilter(filter, options) {
@@ -131,9 +117,7 @@ class FilterBox extends React.Component {
   }
 
   renderDateFilter() {
-    const {
-      showDateFilter,
-    } = this.props;
+    const { showDateFilter } = this.props;
     if (showDateFilter) {
       return (
         <div className="row space-1">
@@ -194,13 +178,8 @@ return datasourceFilters;
 }
 
 renderFilters() {
-  const {
-    filtersFields,
-    filtersChoices,
-  } = this.props;
-  const {
-    selectedValues,
-  } = this.state;
+  const { filtersFields, filtersChoices } = this.props;
+  const { selectedValues } = this.state;
 
   // Add created options to filtersChoices, even though it doesn't exist,
   // or these options will exist in query sql but invisible to end user.
@@ -262,9 +241,7 @@ renderFilters() {
 }
 
 render() {
-  const {
-    instantFiltering,
-  } = this.props;
+  const { instantFiltering } = this.props;
 
   return (
     <div className="scrollbar-container">
@@ -294,13 +271,8 @@ FilterBox.defaultProps = defaultProps;
 function adaptor(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
-  const {
-    formData,
-    datasource,
-  } = slice;
-  const {
-    verbose_map: verboseMap,
-  } = datasource;
+  const { formData, datasource } = slice;
+  const { verbose_map: verboseMap } = datasource;
   const {
     groupby,
     instant_filtering: instantFiltering,

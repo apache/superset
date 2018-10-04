@@ -3,9 +3,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {
-  ArcLayer
-} from 'deck.gl';
+import { ArcLayer } from 'deck.gl';
 
 import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
 

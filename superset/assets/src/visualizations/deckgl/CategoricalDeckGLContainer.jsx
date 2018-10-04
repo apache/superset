@@ -6,24 +6,13 @@ import PropTypes from 'prop-types';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
-import {
-  getScale,
-} from '../../modules/CategoricalColorNamespace';
-import {
-  hexToRGB,
-} from '../../modules/colors';
-import {
-  getPlaySliderParams,
-} from '../../modules/time';
+import { getScale } from '../../modules/CategoricalColorNamespace';
+import { hexToRGB } from '../../modules/colors';
+import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 
 function getCategories(fd, data) {
-  const c = fd.color_picker || {
-    r: 0,
-    g: 0,
-    b: 0,
-    a: 1,
-  };
+  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const colorFn = getScale(fd.color_scheme).toFunction();
   const categories = {};
@@ -35,10 +24,7 @@ function getCategories(fd, data) {
       } else {
         color = fixedColor;
       }
-      categories[d.cat_color] = {
-        color,
-        enabled: true,
-      };
+      categories[d.cat_color] = { color, enabled: true };
     }
   });
   return categories;
@@ -67,24 +53,11 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
 
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
-    } = getPlaySliderParams(timestamps, timeGrain);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
     const categories = currentState.categories ||
       getCategories(fd, nextProps.payload.data.features);
 
-    return {
-      start,
-      end,
-      getStep,
-      values,
-      disabled,
-      categories,
-    };
+    return { start, end, getStep, values, disabled, categories };
   }
   constructor(props) {
     super(props);
@@ -98,11 +71,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
   }
   getLayers(values) {
-    const {
-      getLayer,
-      payload,
-      slice,
-    } = this.props;
+    const { getLayer, payload, slice } = this.props;
     const fd = slice.formData;
     let features = [...payload.data.features];
 
@@ -134,20 +103,13 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     }, slice)];
   }
   addColor(data, fd) {
-    const c = fd.color_picker || {
-      r: 0,
-      g: 0,
-      b: 0,
-      a: 1,
-    };
+    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
     const colorFn = getScale(fd.color_scheme).toFunction();
     return data.map((d) => {
       let color;
       if (fd.dimension) {
         color = hexToRGB(colorFn(d.cat_color), c.a * 255);
-        return { ...d,
-          color,
-        };
+        return { ...d, color };
       }
       return d;
     });
@@ -155,33 +117,22 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
     categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories,
-      [category]: categoryState,
-    };
+    const categories = { ...this.state.categories, [category]: categoryState };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
-      Object.values(categories).forEach((v) => {
-        v.enabled = true;
-      });
+      Object.values(categories).forEach((v) => { v.enabled = true; });
     }
 
-    this.setState({
-      categories,
-    });
+    this.setState({ categories });
   }
   showSingleCategory(category) {
-    const categories = { ...this.state.categories,
-    };
+    const categories = { ...this.state.categories };
     /* eslint-disable no-param-reassign */
-    Object.values(categories).forEach((v) => {
-      v.enabled = false;
-    });
+    Object.values(categories).forEach((v) => { v.enabled = false; });
     categories[category].enabled = true;
-    this.setState({
-      categories,
-    });
+    this.setState({ categories });
   }
   render() {
     return (
