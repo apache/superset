@@ -77,7 +77,7 @@ class FilterBox extends React.Component {
     });
     const mapFunc = control.mapStateToProps;
     return mapFunc
-      ?  Object.assign({}, control, mapFunc(this.props))
+      ? Object.assign({}, control, mapFunc(this.props))
       : control;
   }
 
@@ -107,10 +107,7 @@ class FilterBox extends React.Component {
     }
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[fltr] = vals;
-    this.setState({
-      selectedValues,
-      hasChanged: true,
-    });
+    this.setState({ selectedValues, hasChanged: true });
     if (this.props.instantFiltering) {
       this.props.onChange(fltr, vals, false, true);
     }
@@ -157,112 +154,110 @@ class FilterBox extends React.Component {
           className="control-row"
           controls={sqlaFilters.map(control => (
             <Control {...this.getControlData(control)} />
-      ))
-  }
+          ))}
         />,
-);
-}
-if (druidFilters.length) {
-  datasourceFilters.push(
-    <ControlRow
-      key="druid-filters"
-      className="control-row"
-      controls={druidFilters.map(control => (
-        <Control {...this.getControlData(control)} />
-  ))
-}
-    />,
-);
-}
-return datasourceFilters;
-}
+      );
+    }
+    if (druidFilters.length) {
+      datasourceFilters.push(
+        <ControlRow
+          key="druid-filters"
+          className="control-row"
+          controls={druidFilters.map(control => (
+            <Control {...this.getControlData(control)} />
+          ))}
+        />,
+      );
+    }
+    return datasourceFilters;
+  }
 
-renderFilters() {
-  const { filtersFields, filtersChoices } = this.props;
-  const { selectedValues } = this.state;
+  renderFilters() {
+    const { filtersFields, filtersChoices } = this.props;
+    const { selectedValues } = this.state;
 
-  // Add created options to filtersChoices, even though it doesn't exist,
-  // or these options will exist in query sql but invisible to end user.
-  Object.keys(selectedValues)
-    .filter(key => !selectedValues.hasOwnProperty(key) ||
-      !(key in filtersChoices))
-    .forEach((key) => {
-      const choices = filtersChoices[key] || [];
-      const choiceIds = new Set(choices.map(f => f.id));
-      const selectedValuesForKey = Array.isArray(selectedValues[key])
-        ? selectedValues[key]
-        : [selectedValues[key]];
-      selectedValuesForKey
-        .filter(value => !choiceIds.has(value))
-        .forEach((value) => {
-          choices.unshift({
-            filter: key,
-            id: value,
-            text: value,
-            metric: 0,
+    // Add created options to filtersChoices, even though it doesn't exist,
+    // or these options will exist in query sql but invisible to end user.
+    Object.keys(selectedValues)
+      .filter(key => !selectedValues.hasOwnProperty(key) ||
+        !(key in filtersChoices))
+      .forEach((key) => {
+        const choices = filtersChoices[key] || [];
+        const choiceIds = new Set(choices.map(f => f.id));
+        const selectedValuesForKey = Array.isArray(selectedValues[key])
+          ? selectedValues[key]
+          : [selectedValues[key]];
+        selectedValuesForKey
+          .filter(value => !choiceIds.has(value))
+          .forEach((value) => {
+            choices.unshift({
+              filter: key,
+              id: value,
+              text: value,
+              metric: 0,
+            });
           });
-        });
-    });
+      });
 
-  return filtersFields.map(({
-    key,
-    label,
-  }) => {
-    const data = filtersChoices[key];
-    const max = Math.max(...data.map(d => d.metric));
+    return filtersFields.map(({
+      key,
+      label,
+    }) => {
+      const data = filtersChoices[key];
+      const max = Math.max(...data.map(d => d.metric));
+      return (
+        <div key={key} className="m-b-5">
+          {label}
+          <OnPasteSelect
+            placeholder={t('Select [%s]', label)}
+            key={key}
+            multi
+            value={selectedValues[key]}
+            options={data.map((opt) => {
+                const perc = Math.round((opt.metric / max) * 100);
+                const backgroundImage = (
+                  'linear-gradient(to right, lightgrey, ' +
+                  `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+                );
+                const style = {
+                  backgroundImage,
+                  padding: '2px 5px',
+                };
+                return { value: opt.id, label: opt.id, style };
+              })}
+            onChange={(...args) => { this.changeFilter(key, ...args); }}
+            selectComponent={Creatable}
+            selectWrap={VirtualizedSelect}
+            optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
+          />
+        </div>
+      );
+    });
+  }
+
+  render() {
+    const { instantFiltering } = this.props;
+
     return (
-      <div key={key} className="m-b-5">
-        {label}
-        <OnPasteSelect
-          placeholder={t('Select [%s]', label)}
-          key={key}
-          multi
-          value={selectedValues[key]}
-          options={data.map((opt) => {
-              const perc = Math.round((opt.metric / max) * 100);
-              const backgroundImage = (
-                'linear-gradient(to right, lightgrey, ' +
-                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-              );
-              const style = {
-                backgroundImage,
-                padding: '2px 5px',
-              };
-              return { value: opt.id, label: opt.id, style };
-            })}
-          onChange={(...args) => { this.changeFilter(key, ...args); }}
-          selectComponent={Creatable}
-          selectWrap={VirtualizedSelect}
-          optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
-        />
+      <div className="scrollbar-container">
+        <div className="scrollbar-content">
+          {this.renderDateFilter()}
+          {this.renderDatasourceFilters()}
+          {this.renderFilters()}
+          {!instantFiltering &&
+          <Button
+            bsSize="small"
+            bsStyle="primary"
+            onClick={this.clickApply.bind(this)}
+            disabled={!this.state.hasChanged}
+          >
+            {t('Apply')}
+          </Button>
+            }
+        </div>
       </div>
     );
-  });
-}
-
-render() {
-  const { instantFiltering } = this.props;
-
-  return (
-    <div className="scrollbar-container">
-      <div className="scrollbar-content">
-        {this.renderDateFilter()}
-        {this.renderDatasourceFilters()}
-        {this.renderFilters()}
-        {!instantFiltering &&
-        <Button
-          bsSize="small"
-          bsStyle="primary"
-          onClick={this.clickApply.bind(this)}
-          disabled={!this.state.hasChanged}
-        >
-          {t('Apply')}
-        </Button>
-          }
-      </div>
-    </div>
-  );
-}
+  }
 }
 
 FilterBox.propTypes = propTypes;
