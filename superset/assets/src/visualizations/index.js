@@ -65,9 +65,9 @@ const vizMap = {
   [VIZ_TYPES.area]: loadNvd3,
   [VIZ_TYPES.bar]: loadNvd3,
   [VIZ_TYPES.big_number]: () =>
-    loadVis(import(/* webpackChunkName: 'big_number' */ './BigNumber/index.js')),
+    loadVis(import(/* webpackChunkName: 'big_number' */ './BigNumber/adaptor.jsx')),
   [VIZ_TYPES.big_number_total]: () =>
-    loadVis(import(/* webpackChunkName: "big_number" */ './BigNumber/index.js')),
+    loadVis(import(/* webpackChunkName: "big_number" */ './BigNumber/adaptor.jsx')),
   [VIZ_TYPES.box_plot]: loadNvd3,
   [VIZ_TYPES.bubble]: loadNvd3,
   [VIZ_TYPES.bullet]: loadNvd3,
@@ -89,7 +89,7 @@ const vizMap = {
   [VIZ_TYPES.line_multi]: () =>
     loadVis(import(/* webpackChunkName: "line_multi" */ './nvd3/LineMulti.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
-  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
+  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/adaptor.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './ParallelCoordinates/adaptor.jsx')),
@@ -101,7 +101,7 @@ const vizMap = {
   [VIZ_TYPES.sunburst]: () => loadVis(import(/* webpackChunkName: "sunburst" */ './Sunburst/adaptor.jsx')),
   [VIZ_TYPES.table]: () => loadVis(import(/* webpackChunkName: "table" */ './Table/adaptor.jsx')),
   [VIZ_TYPES.time_table]: () =>
-    loadVis(import(/* webpackChunkName: "time_table" */ './TimeTable/TimeTable.jsx')),
+    loadVis(import(/* webpackChunkName: "time_table" */ './TimeTable/adaptor.jsx')),
   [VIZ_TYPES.treemap]: () => loadVis(import(/* webpackChunkName: "treemap" */ './Treemap/adaptor.jsx')),
   [VIZ_TYPES.country_map]: () =>
     loadVis(import(/* webpackChunkName: "country_map" */ './CountryMap/adaptor.jsx')),
@@ -111,7 +111,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "world_map" */ './WorldMap/adaptor.jsx')),
   [VIZ_TYPES.dual_line]: loadNvd3,
   [VIZ_TYPES.event_flow]: () =>
-    loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow.jsx')),
+    loadVis(import(/* webpackChunkName: "EventFlow" */ './EventFlow/adaptor.jsx')),
   [VIZ_TYPES.paired_ttest]: () =>
     loadVis(import(/* webpackChunkName: "paired_ttest" */ './PairedTTest/adaptor.jsx')),
   [VIZ_TYPES.partition]: () =>
