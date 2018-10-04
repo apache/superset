@@ -1,33 +1,29 @@
+import Plugin from './Plugin';
+
 export default class Preset {
-  constructor({ name, namespace = '', presets = [], plugins = [] }) {
+  constructor({
+    name = '',
+    description = '',
+    presets = [],
+    plugins = [],
+  }) {
     this.name = name;
-    this.namespace = namespace;
-    this.presets = presets
-      .map(preset => (preset instanceof Preset) ? preset : new Preset(preset));
+    this.description = description;
+    this.presets = presets;
     this.plugins = plugins;
   }
 
-  expandPlugins() {
-    const allPlugins = {};
-    const addPlugin = (plugin) => {
-      const key = `${this.namespace}${plugin.name}`;
-      allPlugins[key] = plugin;
-    };
-    this.presets
-      .map(preset => preset.expandPlugins())
-      .forEach((plugins) => {
-        plugins.forEach(addPlugin);
-      });
-    this.plugins.forEach(addPlugin);
-    return allPlugins;
-  }
-
   install() {
-    const allPlugins = this.expandPlugins();
-    Object.keys(allPlugins)
-      .forEach((key) => {
-        allPlugins[key].install(key);
-      });
+    this.presets.forEach((preset) => {
+      preset.install();
+    });
+    this.plugins.forEach((plugin) => {
+      if (plugin instanceof Plugin) {
+        plugin.install();
+      } else {
+        plugin();
+      }
+    });
     return this;
   }
 }
