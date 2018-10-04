@@ -1,13 +1,8 @@
-/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
-
 import React from 'react';
-import ReactDOM from 'react-dom';
-
 import { ArcLayer } from 'deck.gl';
-
 import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
-
-import * as common from './common';
+import { commonLayerProps, fitViewport } from './common';
+import createAdaptor from '../createAdaptor';
 
 function getPoints(data) {
   const points = [];
@@ -18,7 +13,7 @@ function getPoints(data) {
   return points;
 }
 
-function getLayer(fd, payload, slice) {
+function getLayer(fd, payload, onAddFilter, onTooltip) {
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -28,36 +23,46 @@ function getLayer(fd, payload, slice) {
     getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, onAddFilter, onTooltip),
   });
 }
 
-function deckArc(slice, payload, setControlValue) {
-  const fd = slice.formData;
+function deckArc(props) {
+  const {
+    width,
+    height,
+    formData,
+    payload,
+    setControlValue,
+    onAddFilter,
+    onTooltip,
+  } = props;
+
   let viewport = {
-    ...fd.viewport,
-    width: slice.width(),
-    height: slice.height(),
+    ...formData.viewport,
+    width,
+    height,
   };
 
-  if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
+  if (formData.autozoom) {
+    viewport = fitViewport(viewport, getPoints(payload.data.features));
   }
 
-  ReactDOM.render(
+  return (
     <CategoricalDeckGLContainer
-      slice={slice}
+      formData={formData}
       mapboxApiKey={payload.data.mapboxApiKey}
       setControlValue={setControlValue}
       viewport={viewport}
       getLayer={getLayer}
       payload={payload}
-    />,
-    document.getElementById(slice.containerId),
+      onAddFilter={onAddFilter}
+      onTooltip={onTooltip}
+    />
   );
 }
 
 module.exports = {
-  default: deckArc,
+  default: createAdaptor(deckArc),
   getLayer,
 };

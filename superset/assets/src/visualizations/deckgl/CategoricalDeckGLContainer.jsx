@@ -70,7 +70,13 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
   }
   getLayers(values) {
-    const { getLayer, payload, formData: fd } = this.props;
+    const {
+      getLayer,
+      payload,
+      formData: fd,
+      onAddFilter,
+      onTooltip,
+    } = this.props;
     let data = [...payload.data.features];
 
     // Add colors from categories or fixed color
@@ -95,7 +101,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     }
 
     payload.data.features = data;
-    return [getLayer(fd, payload, slice)];
+    return [getLayer(fd, payload, onAddFilter, onTooltip)];
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
