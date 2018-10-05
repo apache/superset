@@ -54,9 +54,11 @@ describe('QuerySearch', () => {
     expect(wrapper.state().searchText).to.equal('text');
   });
 
-  it('refreshes queries when enter is pressed on the input', () => {
+  it('refreshes queries when enter (only) is pressed on the input', () => {
     const callCount = search.callCount;
-    wrapper.find('input').simulate('keyDown', { keyCode: 13 });
+    wrapper.find('input').simulate('keyDown', { keyCode: 'a'.charCodeAt(0) });
+    expect(search.callCount).to.equal(callCount);
+    wrapper.find('input').simulate('keyDown', { keyCode: '\r'.charCodeAt(0) });
     expect(search.callCount).to.equal(callCount + 1);
   });
 
