@@ -8,6 +8,7 @@ import { SketchPicker } from 'react-color';
 import ColorPickerControl from
   '../../../../src/explore/components/controls/ColorPickerControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import { registerScheme } from '../../../../src/modules/ColorSchemeManager';
 
 const defaultProps = {
   value: { },
@@ -17,6 +18,8 @@ describe('ColorPickerControl', () => {
   let wrapper;
   let inst;
   beforeEach(() => {
+    registerScheme('test', ['red', 'green', 'blue'])
+      .setDefaultSchemeName('test');
     wrapper = shallow(<ColorPickerControl {...defaultProps} />);
     inst = wrapper.instance();
   });

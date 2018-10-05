@@ -1,12 +1,8 @@
 import d3 from 'd3';
 import sequentialSchemes from './colorSchemes/sequential';
-import airbnb from './colorSchemes/airbnb';
-import lyft from './colorSchemes/lyft';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
-export const bnbColors = airbnb.bnbColors;
-export const lyftColors = lyft.lyftColors;
 
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {
