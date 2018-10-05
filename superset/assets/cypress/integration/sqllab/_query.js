@@ -78,6 +78,7 @@ export default () => {
         .should('have.attr', 'href')
         .then((href) => {
           cy.visit(href).then(() => {
+            cy.wait(1000);
             // run the saved query
             cy.get('#js-sql-toolbar button')
               .eq(0) // run query
