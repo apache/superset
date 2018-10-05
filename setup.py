@@ -8,8 +8,12 @@ import io
 import json
 import os
 import subprocess
+import sys
 
 from setuptools import find_packages, setup
+
+if sys.version_info < (3, 6):
+    sys.exit('Sorry, Python < 3.6 is not supported')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
@@ -109,8 +113,6 @@ setup(
         '/apache/incubator-superset/tarball/' + version_string
     ),
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
 )

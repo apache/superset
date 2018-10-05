@@ -4,6 +4,9 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Superset 0.28.0
+* Support for Python 2 is deprecated, we only support >=3.6 from
+  `0.28.0` onwards
+
 * Superset 0.28 deprecates the previous dashboard layout. While 0.27
   offered a migration workflow to users and allowed them to validate and
   publish their migrated dashboards individually, 0.28 forces
