@@ -77,7 +77,7 @@ export default () => {
       // run the saved query
       cy.get('#js-sql-toolbar button')
         .eq(0) // run query
-        .click();
+        .click({ force: true });
 
       // assert the results of the saved query match the initial results
       selectResultsTab().then((resultsB) => {
