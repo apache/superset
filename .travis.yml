@@ -56,8 +56,6 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
-    - python: 3.6
-      env: TOXENV=pylint
 install:
   - pip install --upgrade pip
   - pip install codecov tox
