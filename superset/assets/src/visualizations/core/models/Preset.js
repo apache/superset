@@ -1,5 +1,3 @@
-import Plugin from './Plugin';
-
 export default class Preset {
   constructor({
     name = '',
@@ -13,16 +11,12 @@ export default class Preset {
     this.plugins = plugins;
   }
 
-  install() {
+  register() {
     this.presets.forEach((preset) => {
-      preset.install();
+      preset.register();
     });
     this.plugins.forEach((plugin) => {
-      if (plugin instanceof Plugin) {
-        plugin.install();
-      } else {
-        plugin();
-      }
+      plugin.register();
     });
     return this;
   }

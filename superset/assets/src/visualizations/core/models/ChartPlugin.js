@@ -33,8 +33,8 @@ export default class ChartPlugin extends Plugin {
     }
   }
 
-  install(key = isRequired('key')) {
-    this.key = key;
+  register() {
+    const { key = isRequired('config.key') } = this.config;
     getChartMetadataRegistry().register(key, this.metadata);
     getChartComponentRegistry().registerLoader(key, this.loadChart);
     getChartTransformPropsRegistry().registerLoader(key, this.loadTransformProps);

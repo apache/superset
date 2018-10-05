@@ -26,17 +26,17 @@ describe('ChartPlugin', () => {
     });
   });
 
-  describe('.install(key)', () => {
+  describe('.register(key)', () => {
     const plugin = new ChartPlugin({
       metadata,
       Chart() {},
     });
     it('throws an error if key is not provided', () => {
-      expect(() => plugin.install()).to.throw(Error);
-      expect(() => plugin.install('abc')).to.not.throw(Error);
+      expect(() => plugin.register()).to.throw(Error);
+      expect(() => plugin.configure({ key: 'abc' }).register()).to.not.throw(Error);
     });
     it('returns itself', () => {
-      expect(plugin.install('abc')).to.equal(plugin);
+      expect(plugin.configure({ key: 'abc' }).register()).to.equal(plugin);
     });
   });
 });

@@ -15,22 +15,28 @@ describe('Preset', () => {
     });
   });
 
-  describe('.install()', () => {
-    it('install all listed presets then plugins', () => {
+  describe('.register()', () => {
+    it('register all listed presets then plugins', () => {
       const values = [];
       class Plugin1 extends Plugin {
-        install() {
+        register() {
           values.push(1);
         }
       }
       class Plugin2 extends Plugin {
-        install() {
+        register() {
           values.push(2);
         }
       }
       class Plugin3 extends Plugin {
-        install() {
+        register() {
           values.push(3);
+        }
+      }
+      class Plugin4 extends Plugin {
+        register() {
+          const { key } = this.config;
+          values.push(key);
         }
       }
 
@@ -42,38 +48,18 @@ describe('Preset', () => {
       });
       const preset3 = new Preset({
         presets: [preset1, preset2],
-        plugins: [new Plugin3()],
-      });
-      preset3.install();
-      expect(values).to.deep.equal([1, 2, 3]);
-    });
-
-    it('calls plugin.install() if the plugin entry is a Plugin or execute plugin() otherwise', () => {
-      const values = [];
-      class Plugin1 extends Plugin {
-        install() {
-          values.push(1);
-        }
-      }
-      class Plugin2 extends Plugin {
-        install(key) {
-          values.push(key);
-        }
-      }
-
-      const preset = new Preset({
         plugins: [
-          new Plugin1(),
-          () => new Plugin2().install('abc'),
+          new Plugin3(),
+          new Plugin4().configure({ key: 'abc' }),
         ],
       });
-      preset.install();
-      expect(values).to.deep.equal([1, 'abc']);
+      preset3.register();
+      expect(values).to.deep.equal([1, 2, 3, 'abc']);
     });
 
     it('returns itself', () => {
       const preset = new Preset();
-      expect(preset.install()).to.equal(preset);
+      expect(preset.register()).to.equal(preset);
     });
   });
 });
