@@ -279,7 +279,7 @@ export default class AnnotationLayer extends React.PureComponent {
         description = `Use a pre defined Superset Chart as a source for annotations and overlays.
         'your chart must be one of these visualization types:
         '[${getSupportedSourceTypes(annotationType)
-            .map(x => vizTypes[x].label).join(', ')}]'`;
+            .map(x => ((x in vizTypes && 'label' in vizTypes[x]) ? vizTypes[x].label : '')).join(', ')}]'`;
       }
     } else if (annotationType === AnnotationTypes.FORMULA) {
       label = t('Formula');
