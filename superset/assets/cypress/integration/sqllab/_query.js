@@ -18,21 +18,19 @@ export default () => {
         `{selectall}{backspace}SELECT ds, gender, name, num FROM main.birth_names LIMIT ${rowLimit}`,
         { force: true },
       );
-
       cy.get('#js-sql-toolbar button')
         .eq(0)
-        .click()
-        .then(() => {
-          cy.get('.SouthPane .ReactVirtualized__Table')
-            .eq(0) // ensures results tab in case preview tab exists
-            .then((tableNodes) => {
-              const [header, bodyWrapper] = tableNodes[0].childNodes;
-              const body = bodyWrapper.childNodes[0];
-              const expectedColCount = header.childNodes.length;
-              const expectedRowCount = body.childNodes.length;
-              expect(expectedColCount).to.equal(4);
-              expect(expectedRowCount).to.equal(rowLimit);
-            });
+        .click();
+
+      cy.get('.SouthPane .ReactVirtualized__Table')
+        .eq(0) // ensures results tab in case preview tab exists
+        .then((tableNodes) => {
+          const [header, bodyWrapper] = tableNodes[0].childNodes;
+          const body = bodyWrapper.childNodes[0];
+          const expectedColCount = header.childNodes.length;
+          const expectedRowCount = body.childNodes.length;
+          expect(expectedColCount).to.equal(4);
+          expect(expectedRowCount).to.equal(rowLimit);
         });
     });
 
@@ -47,58 +45,51 @@ export default () => {
       cy.get('#brace-editor textarea')
         .type(`{selectall}{backspace}${query}`, { force: true })
         .focus() // focus => blur is required for updating the query that is to be saved
-        .blur()
-        .then(() => {
-          // ctrl + r also runs query
-          cy.get('#brace-editor textarea')
-            .type('{ctrl}r', { force: true })
-            .then(() => {
-              // Save results to check agains below
-              selectResultsTab().then((resultsA) => {
-                initialResultsTable = resultsA[0];
+        .blur();
 
-                cy.get('#js-sql-toolbar button')
-                  .eq(1) // save query
-                  .click()
-                  .then(() => {
-                    // Enter name + save into modal
-                    cy.get('.modal-sm input')
-                      .type(`{selectall}{backspace}${savedQueryTitle}`, {
-                        force: true,
-                      })
-                      .then(() => {
-                        cy.get('.modal-sm .modal-body button')
-                          .eq(0) // save
-                          .click()
-                          .then(() => {
-                            // visit saved queries
-                            cy.visit('/sqllab/my_queries/').then(() => {
-                              // first row contains most recent link, follow back to SqlLab
-                              cy.get('table tr:first-child a[href*="savedQueryId"')
-                                .click()
-                                .then(() => {
-                                  cy.wait(500);
-                                  // run the saved query
-                                  cy.get('#brace-editor textarea')
-                                    .type('{ctrl}r', { force: true })
-                                    .then(() => {
-                                      // assert results of the saved query match the initial results
-                                      selectResultsTab().then((resultsB) => {
-                                        savedQueryResultsTable = resultsB[0];
+      // ctrl + r also runs query
+      cy.get('#brace-editor textarea').type('{ctrl}r', { force: true });
 
-                                        assertSQLLabResultsAreEqual(
-                                          initialResultsTable,
-                                          savedQueryResultsTable,
-                                        );
-                                      });
-                                    });
-                                });
-                            });
-                          });
-                      });
-                  });
-              });
+      // Save results to check agains below
+      selectResultsTab().then((resultsA) => {
+        initialResultsTable = resultsA[0];
+      });
+
+      cy.get('#js-sql-toolbar button')
+        .eq(1) // save query
+        .click();
+
+      // Enter name + save into modal
+      cy.get('.modal-sm input').type(`{selectall}{backspace}${savedQueryTitle}`, {
+        force: true,
+      });
+
+      cy.get('.modal-sm .modal-body button')
+        .eq(0) // save
+        .click();
+
+      // visit saved queries
+      cy.visit('/sqllab/my_queries/');
+
+      // first row contains most recent link, follow back to SqlLab
+      // cy.get('table tr:first-child a[href*="savedQueryId"').click();
+
+      cy.get('table tr:first-child a[href*="savedQueryId"')
+        .should('have.attr', 'href')
+        .then((href) => {
+          cy.visit(href).then(() => {
+            // run the saved query
+            cy.get('#js-sql-toolbar button')
+              .eq(0) // run query
+              .click();
+
+            // assert the results of the saved query match the initial results
+            selectResultsTab().then((resultsB) => {
+              savedQueryResultsTable = resultsB[0];
+
+              assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
             });
+          });
         });
     });
   });
