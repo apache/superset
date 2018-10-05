@@ -55,7 +55,6 @@ describe('QuerySearch', () => {
   });
 
   it('refreshes queries when enter is pressed on the input', () => {
-    wrapper = shallow(<QuerySearch {...mockedProps} />);
     const callCount = search.callCount;
     wrapper.find('input').simulate('keyDown', { keyCode: 13 });
     expect(search.callCount).to.equal(callCount + 1);
