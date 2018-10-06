@@ -37,6 +37,8 @@ app.config['CELERY_CONFIG'] = CeleryConfig
 
 class UtilityFunctionTests(SupersetTestCase):
 
+    _multiprocess_shared_ = True
+
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         q = SupersetQuery('SELECT * FROM outer_space;')

@@ -14,6 +14,7 @@ from .fixtures.datasource import datasource_post
 class DatasourceTests(SupersetTestCase):
 
     requires_examples = True
+    _multiprocess_can_split_ = True
 
     def __init__(self, *args, **kwargs):
         super(DatasourceTests, self).__init__(*args, **kwargs)

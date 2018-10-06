@@ -82,6 +82,7 @@ DruidCluster.get_druid_version = lambda _: '0.9.1'
 class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
+    _multiprocess_shared_ = True
 
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)

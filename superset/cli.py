@@ -140,55 +140,95 @@ def version(verbose):
 
 
 def load_examples_run(load_test_data):
-    print('Loading examples into {}'.format(db))
+    #raise Exception("Where am I coming from?")
+    #import sys 
+    #print(sys._getframe(1).f_code.co_name)
+    #print(sys._getframe(2).f_code.co_name)
+    #print(sys._getframe(3).f_code.co_name)
+    #print("^^^^")
+    #shave the time it spends loading and then parallelize the tests. 
 
-    data.load_css_templates()
+    #do we need this? 
+    # parallelize the loading...
+
+    #print('Loading examples into {}'.format(db))
+    #start_css_tmp = utils.now_as_float()
+    #data.load_css_templates()
+    #print("took {}".format(utils.now_as_float() - start_css_tmp))
 
     print('Loading energy related dataset')
+    start_energy = utils.now_as_float()
     data.load_energy()
+    print("took {}".format(utils.now_as_float() - start_energy))
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
+    start_health = utils.now_as_float()
     data.load_world_bank_health_n_pop()
+    energy_time = utils.now_as_float() - start_health
 
     print('Loading [Birth names]')
+    start_birth = utils.now_as_float()
     data.load_birth_names()
+    print(utils.now_as_float() - start_birth)
 
-    print('Loading [Random time series data]')
-    data.load_random_time_series_data()
+    #print('Loading [Random time series data]')
+    #start_ts = utils.now_as_float()
+    #data.load_random_time_series_data()
+    #print("took {}".format(utils.now_as_float() - start_ts))
 
-    print('Loading [Random long/lat data]')
-    data.load_long_lat_data()
+    #print('Loading [Random long/lat data]')
+    #start_lola = utils.now_as_float()
+    #data.load_long_lat_data()
+    #print("took {}".format(utils.now_as_float() - start_lola))
 
-    print('Loading [Country Map data]')
-    data.load_country_map_data()
+    #print('Loading [Country Map data]')
+    #start_map = utils.now_as_float()
+    #data.load_country_map_data()
+    #print("took {}".format(utils.now_as_float() - start_map))
 
-    print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series_data()
+    #print('Loading [Multiformat time series]')
+    #start_mts = utils.now_as_float()
+    #data.load_multiformat_time_series_data()
+    #print("took {}".format(utils.now_as_float() - start_mts))
 
-    print('Loading [Paris GeoJson]')
-    data.load_paris_iris_geojson()
+    #print('Loading [Paris GeoJson]')
+    #start_geo = utils.now_as_float()
+    #data.load_paris_iris_geojson()
+    #print("took {}".format(utils.now_as_float() - start_geo))
 
-    print('Loading [San Francisco population polygons]')
-    data.load_sf_population_polygons()
+    #print('Loading [San Francisco population polygons]')
+    #start_polygons = utils.now_as_float()
+    #data.load_sf_population_polygons()
+    #print("took {}".format(utils.now_as_float() - start_polygons))
 
-    print('Loading [Flights data]')
-    data.load_flights()
+    #print('Loading [Flights data]')
+    #start_flights = utils.now_as_float()
+    #data.load_flights()
+    #print("took {}".format(utils.now_as_float() - start_flights))
 
-    print('Loading [BART lines]')
-    data.load_bart_lines()
+    #print('Loading [BART lines]')
+    #start_bart = utils.now_as_float()
+    #data.load_bart_lines()
+    #print("took {}".format(utils.now_as_float() - start_bart))
 
-    print('Loading [Multi Line]')
-    data.load_multi_line()
+    #print('Loading [Multi Line]')
+    #start_ml = utils.now_as_float()
+    #data.load_multi_line()
+    #print("took {}".format(utils.now_as_float() - start_ml))
 
-    print('Loading [Misc Charts] dashboard')
-    data.load_misc_dashboard()
+    #print('Loading [Misc Charts] dashboard')
+    #start_misc = utils.now_as_float()
+    #data.load_misc_dashboard()
+    #print("took {}".format(utils.now_as_float() - start_misc))
 
-    if load_test_data:
-        print('Loading [Unicode test data]')
-        data.load_unicode_test_data()
+    #if load_test_data:
+    #    print('Loading [Unicode test data]')
+    #    data.load_unicode_test_data()
 
-    print('Loading DECK.gl demo')
-    data.load_deck_dash()
+    #print('Loading DECK.gl demo')
+    #start_deckgl = utils.now_as_float()
+    #data.load_deck_dash()
+    #print("took {}".format(utils.now_as_float() - start_deckgl))
 
 
 @app.cli.command()

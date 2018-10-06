@@ -18,6 +18,8 @@ def get_perm_tuples(role_name):
 class RolePermissionTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
+    _multiprocess_can_split_ = True
+
     def __init__(self, *args, **kwargs):
         super(RolePermissionTests, self).__init__(*args, **kwargs)
 

@@ -73,6 +73,9 @@ def mock_to_adhoc(filt, expressionType='SIMPLE', clause='where'):
 
 
 class UtilsTestCase(unittest.TestCase):
+
+    _multiprocess_can_split_ = True
+    
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0

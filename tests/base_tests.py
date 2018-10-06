@@ -28,12 +28,14 @@ class SupersetTestCase(unittest.TestCase):
     requires_examples = False
     examples_loaded = False
 
+    _multiprocess_shared_ = True
+
     def __init__(self, *args, **kwargs):
         if (
             self.requires_examples and
             not os.environ.get('examples_loaded')
         ):
-            logging.info('Loading examples')
+            logging.info('Loading examples in test case')
             cli.load_examples_run(load_test_data=True)
             logging.info('Done loading examples')
             security_manager.sync_role_definitions()

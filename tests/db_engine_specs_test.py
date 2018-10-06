@@ -18,6 +18,8 @@ from .base_tests import SupersetTestCase
 
 
 class DbEngineSpecsTestCase(SupersetTestCase):
+    _multiprocess_can_split_ = True
+    
     def test_0_progress(self):
         log = """
             17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>

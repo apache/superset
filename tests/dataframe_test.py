@@ -12,6 +12,8 @@ from .base_tests import SupersetTestCase
 
 
 class SupersetDataFrameTestCase(SupersetTestCase):
+    _multiprocess_can_split_ = True
+    
     def test_dedup(self):
         self.assertEquals(
             dedup(['foo', 'bar']),

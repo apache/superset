@@ -22,6 +22,8 @@ from .base_tests import SupersetTestCase
 class SqlLabTests(SupersetTestCase):
     """Testings for Sql Lab"""
 
+    #_multiprocess_shared_ = True
+
     def __init__(self, *args, **kwargs):
         super(SqlLabTests, self).__init__(*args, **kwargs)
 

@@ -36,6 +36,7 @@ from .base_tests import SupersetTestCase
 class CoreTests(SupersetTestCase):
 
     requires_examples = True
+    _multiprocess_can_split_ = True
 
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
@@ -378,7 +379,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 4
+        assert len(data) == 3
 
     def test_shortner(self):
         self.login(username='admin')

@@ -8,8 +8,11 @@ import unittest
 
 from superset import sql_parse
 
+#can parallelize
+
 
 class SupersetTestCase(unittest.TestCase):
+    _multiprocess_can_split_ = True
 
     def extract_tables(self, query):
         sq = sql_parse.SupersetQuery(query)

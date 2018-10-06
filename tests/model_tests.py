@@ -15,6 +15,7 @@ from .base_tests import SupersetTestCase
 
 
 class DatabaseModelTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     def test_database_schema_presto(self):
         sqlalchemy_uri = 'presto://presto.airbnb.io:8080/hive/default'
@@ -79,7 +80,7 @@ class DatabaseModelTestCase(SupersetTestCase):
 
     def test_select_star(self):
         main_db = get_main_database(db.session)
-        table_name = 'bart_lines'
+        table_name = 'energy_usage'
         sql = main_db.select_star(
             table_name, show_cols=False, latest_partition=False)
         expected = textwrap.dedent("""\
@@ -91,11 +92,10 @@ class DatabaseModelTestCase(SupersetTestCase):
         sql = main_db.select_star(
             table_name, show_cols=True, latest_partition=False)
         expected = textwrap.dedent("""\
-        SELECT color,
-               name,
-               path_json,
-               polyline
-        FROM bart_lines
+        SELECT source,
+               target,
+               value
+        FROM energy_usage
         LIMIT 100""".format(**locals()))
         assert sql.startswith(expected)
 
@@ -129,6 +129,8 @@ class DatabaseModelTestCase(SupersetTestCase):
 
 
 class SqlaTableModelTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
+
 
     def test_get_timestamp_expression(self):
         tbl = self.get_table_by_name('birth_names')

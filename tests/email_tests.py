@@ -19,6 +19,9 @@ send_email_test = mock.Mock()
 
 
 class EmailSmtpTest(unittest.TestCase):
+
+    #_multiprocess_shared_ = True
+    
     def setUp(self):
         app.config['smtp_ssl'] = False
 

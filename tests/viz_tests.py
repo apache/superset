@@ -20,6 +20,8 @@ from .utils import load_fixture
 
 class BaseVizTestCase(SupersetTestCase):
 
+    _multiprocess_shared_ = True
+
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -172,6 +174,7 @@ class BaseVizTestCase(SupersetTestCase):
 
 
 class TableVizTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     def test_get_data_applies_percentage(self):
         form_data = {
@@ -396,6 +399,8 @@ class TableVizTestCase(SupersetTestCase):
 
 
 class PairedTTestTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
+
     def test_get_data_transforms_dataframe(self):
         form_data = {
             'groupby': ['groupA', 'groupB', 'groupC'],
@@ -528,6 +533,7 @@ class PairedTTestTestCase(SupersetTestCase):
 
 
 class PartitionVizTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     @patch('superset.viz.BaseViz.query_obj')
     def test_query_obj_time_series_option(self, super_query_obj):
@@ -753,6 +759,7 @@ class PartitionVizTestCase(SupersetTestCase):
 
 
 class RoseVisTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     def test_rose_vis_get_data(self):
         raw = {}
@@ -793,6 +800,7 @@ class RoseVisTestCase(SupersetTestCase):
 
 
 class TimeSeriesTableVizTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     def test_get_data_metrics(self):
         form_data = {
@@ -873,6 +881,7 @@ class TimeSeriesTableVizTestCase(SupersetTestCase):
 
 
 class BaseDeckGLVizTestCase(SupersetTestCase):
+    _multiprocess_shared_ = True
 
     def test_get_metrics(self):
         form_data = load_fixture('deck_path_form_data.json')
@@ -1065,6 +1074,8 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
 
 
 class TimeSeriesVizTestCase(SupersetTestCase):
+
+    _multiprocess_shared_ = True
 
     def test_timeseries_unicode_data(self):
         datasource = self.get_datasource_mock()

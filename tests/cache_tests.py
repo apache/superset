@@ -13,6 +13,8 @@ from .base_tests import SupersetTestCase
 
 class CacheTests(SupersetTestCase):
 
+    _multiprocess_shared_ = True
+
     def __init__(self, *args, **kwargs):
         super(CacheTests, self).__init__(*args, **kwargs)
 

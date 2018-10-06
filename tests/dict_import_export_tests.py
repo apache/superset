@@ -26,6 +26,8 @@ ID_PREFIX = 20000
 class DictImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
+    _multiprocess_can_split_ = True
+
     def __init__(self, *args, **kwargs):
         super(DictImportExportTests, self).__init__(*args, **kwargs)
 
