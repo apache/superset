@@ -8,6 +8,7 @@ import sinon from 'sinon';
 import QuerySearch from '../../../src/SqlLab/components/QuerySearch';
 
 describe('QuerySearch', () => {
+  const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
   const mockedProps = {
     actions: {},
     height: 0,
@@ -53,15 +54,21 @@ describe('QuerySearch', () => {
     expect(wrapper.state().searchText).to.equal('text');
   });
 
+  it('refreshes queries when enter (only) is pressed on the input', () => {
+    const callCount = search.callCount;
+    wrapper.find('input').simulate('keyDown', { keyCode: 'a'.charCodeAt(0) });
+    expect(search.callCount).to.equal(callCount);
+    wrapper.find('input').simulate('keyDown', { keyCode: '\r'.charCodeAt(0) });
+    expect(search.callCount).to.equal(callCount + 1);
+  });
+
   it('should have one Button', () => {
     expect(wrapper.find(Button)).to.have.length(1);
   });
 
   it('refreshes queries when clicked', () => {
-    const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
-    wrapper = shallow(<QuerySearch {...mockedProps} />);
+    const callCount = search.callCount;
     wrapper.find(Button).simulate('click');
-    /* eslint-disable no-unused-expressions */
-    expect(search.called).to.equal(true);
+    expect(search.callCount).to.equal(callCount + 1);
   });
 });
