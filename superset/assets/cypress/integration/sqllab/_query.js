@@ -35,6 +35,7 @@ export default () => {
     });
 
     it('successfully saves a query', () => {
+      cy.route('savedqueryviewapi/**').as('getSavedQuery');
       const query = 'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
       const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
 
@@ -72,27 +73,22 @@ export default () => {
       cy.visit('/sqllab/my_queries/');
 
       // first row contains most recent link, follow back to SqlLab
-      cy.get('table tr:first-child a[href*="savedQueryId"')
-        .should('have.attr', 'href')
-        .then((href) => {
-          cy.visit(href).then(() => {
-            // will timeout without explicitly waiting here
-            cy.route('/savedqueryviewapi/api/get/*').as('getSavedQuery');
-            cy.wait('@getSavedQuery');
+      cy.get('table tr:first-child a[href*="savedQueryId"').click();
 
-            // run the saved query
-            cy.get('#js-sql-toolbar button')
-              .eq(0) // run query
-              .click();
+      // will timeout without explicitly waiting here
+      cy.wait('@getSavedQuery');
 
-            // assert the results of the saved query match the initial results
-            selectResultsTab().then((resultsB) => {
-              savedQueryResultsTable = resultsB[0];
+      // run the saved query
+      cy.get('#js-sql-toolbar button')
+        .eq(0) // run query
+        .click();
 
-              assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
-            });
-          });
-        });
+      // assert the results of the saved query match the initial results
+      selectResultsTab().then((resultsB) => {
+        savedQueryResultsTable = resultsB[0];
+
+        assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
+      });
     });
   });
 };
