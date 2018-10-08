@@ -1,4 +1,3 @@
-import ReactDOM from 'react-dom';
 import React from 'react';
 import PropTypes from 'prop-types';
 import d3 from 'd3';
@@ -270,58 +269,4 @@ class TimeTable extends React.PureComponent {
 TimeTable.propTypes = propTypes;
 TimeTable.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { containerId, formData, datasource } = slice;
-  const {
-    column_collection: columnConfigs,
-    groupby,
-    metrics,
-    url,
-  } = formData;
-  const { records, columns } = payload.data;
-  const isGroupBy = groupby.length > 0;
-
-  // When there is a "group by",
-  // each row in the table is a database column
-  // Otherwise,
-  // each row in the table is a metric
-  let rows;
-  if (isGroupBy) {
-    rows = columns.map(column => (typeof column === 'object')
-      ? column
-      : { label: column });
-  } else {
-    const metricMap = datasource.metrics
-      .reduce((acc, current) => {
-        const map = acc;
-        map[current.metric_name] = current;
-        return map;
-      }, {});
-
-    rows = metrics.map(metric => (typeof metric === 'object')
-      ? metric
-      : metricMap[metric]);
-  }
-
-  // TODO: Better parse this from controls instead of mutative value here.
-  columnConfigs.forEach((column) => {
-    const c = column;
-    if (c.timeLag !== undefined && c.timeLag !== null && c.timeLag !== '') {
-      c.timeLag = parseInt(c.timeLag, 10);
-    }
-  });
-
-  ReactDOM.render(
-    <TimeTable
-      height={slice.height()}
-      data={records}
-      columnConfigs={columnConfigs}
-      rows={rows}
-      rowType={isGroupBy ? 'column' : 'metric'}
-      url={url}
-    />,
-    document.getElementById(containerId),
-  );
-}
-
-export default adaptor;
+export default TimeTable;

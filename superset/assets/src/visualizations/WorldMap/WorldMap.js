@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import Datamap from 'datamaps';
+import Datamap from 'datamaps/dist/datamaps.world.min';
 import './WorldMap.css';
 
 const propTypes = {
@@ -20,8 +20,6 @@ const propTypes = {
 const formatter = d3.format('.3s');
 
 function WorldMap(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WorldMap');
-
   const {
     data,
     height,
@@ -107,6 +105,7 @@ function WorldMap(element, props) {
   }
 }
 
+WorldMap.displayName = 'WorldMap';
 WorldMap.propTypes = propTypes;
 
 export default WorldMap;
