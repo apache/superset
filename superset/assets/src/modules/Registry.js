@@ -22,12 +22,6 @@ export default class Registry {
     return this;
   }
 
-  remove(key) {
-    delete this.items[key];
-    delete this.promises[key];
-    return this;
-  }
-
   get(key) {
     const item = this.items[key];
     if (item) {
@@ -48,5 +42,11 @@ export default class Registry {
       return newPromise;
     }
     return Promise.reject(`Item with key "${key}" is not registered.`);
+  }
+
+  remove(key) {
+    delete this.items[key];
+    delete this.promises[key];
+    return this;
   }
 }

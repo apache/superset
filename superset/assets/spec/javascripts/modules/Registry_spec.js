@@ -112,4 +112,21 @@ describe('Registry', () => {
       return Promise.all([promise1, promise2]);
     });
   });
+  describe('.remove(key)', () => {
+    it('removes the item with given key', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'testValue');
+      registry.remove('a');
+      expect(registry.get('a')).to.equal(null);
+    });
+    it('does not throw error if the key does not exist', () => {
+      const registry = new Registry();
+      expect(() => registry.remove('a')).to.not.throw();
+    });
+    it('returns itself', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'testValue');
+      expect(registry.remove('a')).to.equal(registry);
+    });
+  });
 });
