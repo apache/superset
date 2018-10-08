@@ -50,7 +50,10 @@ class DeckMulti extends React.PureComponent {
 
       const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
       $.get(url, (data) => {
-        const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);
+        const layer = layerGenerators[subsliceCopy.form_data.viz_type](
+          subsliceCopy.form_data,
+          data,
+        );
         this.setState({
           subSlicesLayers: {
             ...this.state.subSlicesLayers,
