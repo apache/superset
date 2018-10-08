@@ -212,7 +212,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
             '#sqlalchemy.schema.MetaData) call.<br/>'
             '2. The ``metadata_cache_timeout`` is a cache timeout setting '
-            'in second for metadata fetch of this database. Specify it as '
+            'in seconds for metadata fetch of this database. Specify it as '
             '**"metadata_cache_timeout": {"schema_cache_timeout": 600}**. '
             'If unset, cache will not be enabled for the functionality. '
             'A timeout of 0 indicates that the cache never expires.<br/>'
@@ -1536,11 +1536,11 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose('/schemas/<db_id>/')
     @expose('/schemas/<db_id>/<force_refresh>/')
-    def schemas(self, db_id, force_refresh):
+    def schemas(self, db_id, force_refresh='true'):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
-        print(force_refresh)
         database = (
             db.session
             .query(models.Database)

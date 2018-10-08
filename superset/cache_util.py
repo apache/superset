@@ -15,7 +15,7 @@ def view_cache_key(*unused_args, **unused_kwargs):
     return 'view/{}/{}'.format(request.path, args_hash)
 
 
-def default_timetout(*unused_args, **unused_kwargs):
+def default_timeout(*unused_args, **unused_kwargs):
     return 5 * 60
 
 
@@ -23,7 +23,7 @@ def default_enable_cache(*unused_args, **unused_kwargs):
     return True
 
 
-def memoized_func(timeout=default_timetout,
+def memoized_func(timeout=default_timeout,
                   key=view_cache_key,
                   enable_cache=default_enable_cache,
                   use_tables_cache=False):
