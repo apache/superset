@@ -32,7 +32,7 @@ from flask_babel import lazy_gettext as _
 import pandas
 from past.builtins import basestring
 import sqlalchemy as sqla
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
@@ -853,6 +853,20 @@ class PrestoEngineSpec(BaseEngineSpec):
         return sql
 
     @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        try:
+            col_name, value = cls.latest_partition(
+                table_name, schema, database, show_first=True)
+        except Exception:
+            # table is not partitioned
+            return False
+        for c in columns:
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
+        return False
+
+    @classmethod
     def _latest_partition_from_df(cls, df):
         recs = df.to_records(index=False)
         if recs:
@@ -1180,7 +1194,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, schema, database, qry, columns=None):
         try:
             col_name, value = cls.latest_partition(
-                table_name, schema, database)
+                table_name, schema, database, show_first=True)
         except Exception:
             # table is not partitioned
             return False

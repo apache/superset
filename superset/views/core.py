@@ -2332,7 +2332,7 @@ class Superset(BaseSupersetView):
             'columns': payload_columns,
             'selectStar': mydb.select_star(
                 table_name, schema=schema, show_cols=True, indent=True,
-                cols=columns, latest_partition=False),
+                cols=columns, latest_partition=True),
             'primaryKey': primary_key,
             'foreignKeys': foreign_keys,
             'indexes': keys,
@@ -2350,14 +2350,19 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(payload))
 
     @has_access
-    @expose('/select_star/<database_id>/<table_name>/')
+    @expose('/select_star/<database_id>/<table_name>')
+    @expose('/select_star/<database_id>/<table_name>/<schema>')
     @log_this
-    def select_star(self, database_id, table_name):
+    def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
-        return self.render_template(
-            'superset/ajah.html',
-            content=mydb.select_star(table_name, show_cols=True),
+        return json_success(
+            mydb.select_star(
+                table_name,
+                schema,
+                latest_partition=True,
+                show_cols=True,
+            ),
         )
 
     @expose('/theme/')

@@ -727,6 +727,11 @@ class CoreTests(SupersetTestCase):
                 .format(db_id=dbobj.id))
         assert data == ['this_schema_is_allowed_too']
 
+    def test_select_star(self):
+        self.login(username='admin')
+        resp = self.get_resp('/superset/select_star/1/birth_names')
+        self.assertIn('gender', resp)
+
 
 if __name__ == '__main__':
     unittest.main()
