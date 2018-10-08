@@ -79,8 +79,8 @@ function Sunburst(element, props) {
     .innerRadius(d => Math.sqrt(d.y))
     .outerRadius(d => Math.sqrt(d.y + d.dy));
 
-  const formatNum = d3.format('.1s');
-  const formatPerc = d3.format('.1p');
+  const formatNum = d3.format('.3s');
+  const formatPerc = d3.format('.3p');
 
   container.select('svg').remove();
 
