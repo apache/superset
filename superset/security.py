@@ -89,7 +89,7 @@ class SupersetSecurityManager(SecurityManager):
         """Protecting from has_access failing from missing perms/view"""
         if not user:
             user = g.user
-        if user.is_anonymous():
+        if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 

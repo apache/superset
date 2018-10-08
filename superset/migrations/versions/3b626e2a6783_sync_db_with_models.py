@@ -27,14 +27,16 @@ def upgrade():
     try:
         slices_ibfk_1 = generic_find_constraint_name(
             table='slices', columns={'druid_datasource_id'},
-            referenced='datasources', db=db) or 'slices_ibfk_1'
+            referenced='datasources', db=db)
         slices_ibfk_2 = generic_find_constraint_name(
             table='slices', columns={'table_id'},
-            referenced='tables', db=db) or 'slices_ibfk_2'
+            referenced='tables', db=db)
 
         with op.batch_alter_table("slices") as batch_op:
-            batch_op.drop_constraint(slices_ibfk_1, type_="foreignkey")
-            batch_op.drop_constraint(slices_ibfk_2, type_="foreignkey")
+            if slices_ibfk_1:
+                batch_op.drop_constraint(slices_ibfk_1, type_="foreignkey")
+            if slices_ibfk_2:
+                batch_op.drop_constraint(slices_ibfk_2, type_="foreignkey")
             batch_op.drop_column('druid_datasource_id')
             batch_op.drop_column('table_id')
     except Exception as e:
@@ -56,17 +58,6 @@ def upgrade():
     try:
         with op.batch_alter_table('query') as batch_op:
             batch_op.drop_column('name')
-    except Exception as e:
-        logging.warning(str(e))
-
-    try:
-        # wasn't created for some databases in the migration b4456560d4f3
-        if not table_has_constraint('tables', '_customer_location_uc', db):
-            with op.batch_alter_table('tables') as batch_op:
-                batch_op.create_unique_constraint(
-                    '_customer_location_uc',
-                    ['database_id', 'schema', 'table_name'])
-                batch_op.drop_index('table_name')
     except Exception as e:
         logging.warning(str(e))
 

@@ -33,10 +33,11 @@ def find_constraint_name(upgrade=True):
 
 def upgrade():
     try:
-        constraint = find_constraint_name() or 'fk_columns_column_name_datasources'
+        constraint = find_constraint_name()
         with op.batch_alter_table("columns",
                 naming_convention=naming_convention) as batch_op:
-            batch_op.drop_constraint(constraint, type_="foreignkey")
+            if constraint:
+                batch_op.drop_constraint(constraint, type_="foreignkey")
             batch_op.create_foreign_key(
                 'fk_columns_datasource_name_datasources',
                 'datasources',
