@@ -21,10 +21,16 @@ describe('Plugin', () => {
     it('replaces the default config with given config when replace is true', () => {
 
     });
+    it('returns the plugin itself', () => {
+
+    });
   });
 
   describe('.resetConfig()', () => {
     it('resets config back to default', () => {
+
+    });
+    it('returns the plugin itself', () => {
 
     });
   });
