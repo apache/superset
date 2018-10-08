@@ -72,13 +72,14 @@ export default () => {
       cy.visit('/sqllab/my_queries/');
 
       // first row contains most recent link, follow back to SqlLab
-      // cy.get('table tr:first-child a[href*="savedQueryId"').click();
-
       cy.get('table tr:first-child a[href*="savedQueryId"')
         .should('have.attr', 'href')
         .then((href) => {
           cy.visit(href).then(() => {
-            cy.wait(1000);
+            // will timeout without explicitly waiting here
+            cy.route('/savedqueryviewapi/api/get/*').as('getSavedQuery');
+            cy.wait('@getSavedQuery');
+
             // run the saved query
             cy.get('#js-sql-toolbar button')
               .eq(0) // run query
