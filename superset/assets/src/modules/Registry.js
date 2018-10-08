@@ -10,8 +10,20 @@ export default class Registry {
     return item !== null && item !== undefined;
   }
 
-  register(key, value) {
-    this.items[key] = value;
+  registerValue(key, value) {
+    this.items[key] = { value };
+    delete this.promises[key];
+    return this;
+  }
+
+  registerLoader(key, loader) {
+    this.items[key] = { loader };
+    delete this.promises[key];
+    return this;
+  }
+
+  remove(key) {
+    delete this.items[key];
     delete this.promises[key];
     return this;
   }
@@ -19,7 +31,7 @@ export default class Registry {
   get(key) {
     const item = this.items[key];
     if (item) {
-      return item;
+      return item.loader ? item.loader() : item.value;
     }
     return null;
   }

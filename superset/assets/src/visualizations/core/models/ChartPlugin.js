@@ -1,8 +1,8 @@
 import Plugin from './Plugin';
 import isRequired from '../../../utils/isRequired';
-import { getInstance as getChartMetadataRegistry } from '../registries/ChartMetadataRegistry';
-import { getInstance as getChartComponentRegistry } from '../registries/ChartComponentLoaderRegistry';
-import { getInstance as getChartTransformPropsRegistry } from '../registries/ChartTransformPropsLoaderRegistry';
+import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
+import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
+import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 
 const IDENTITY = x => x;
 
@@ -35,7 +35,7 @@ export default class ChartPlugin extends Plugin {
 
   register() {
     const { key = isRequired('config.key') } = this.config;
-    getChartMetadataRegistry().register(key, this.metadata);
+    getChartMetadataRegistry().registerValue(key, this.metadata);
     getChartComponentRegistry().registerLoader(key, this.loadChart);
     getChartTransformPropsRegistry().registerLoader(key, this.loadTransformProps);
     return this;

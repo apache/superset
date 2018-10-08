@@ -4,8 +4,8 @@ export default class Plugin {
   }
 
   resetConfig() {
-    // For the extended class,
-    // can set default config in this function.
+    // The child class can set default config
+    // by overriding this function.
     this.config = {};
     return this;
   }

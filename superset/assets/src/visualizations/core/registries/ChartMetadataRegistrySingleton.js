@@ -7,4 +7,6 @@ class ChartMetadataRegistry extends Registry {
   }
 }
 
-export const getInstance = makeSingleton(ChartMetadataRegistry);
+const getInstance = makeSingleton(ChartMetadataRegistry);
+
+export default getInstance;
