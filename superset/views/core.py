@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
+import inspect
 import logging
 import os
 import re
@@ -282,11 +283,12 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             raise Exception('Extra field cannot be decoded by JSON. {}'.format(str(e)))
 
         # this will check whether 'metadata_params' is configured correctly
-        try:
-            MetaData(**extra.get('metadata_params', {}))
-        except Exception as e:
-            raise Exception('The metadata_params in Extra field '
-                            'is not configured correctly. {}'.format(str(e)))
+        metadata_signature = inspect.signature(MetaData)
+        for key in extra.get('metadata_params', {}):
+            if key not in metadata_signature.parameters:
+                raise Exception('The metadata_params in Extra field '
+                                'is not configured correctly. The key '
+                                '{} is invalid.'.format(key))
 
 
 appbuilder.add_link(
