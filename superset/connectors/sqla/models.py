@@ -809,7 +809,8 @@ class SqlaTable(Model, BaseDatasource):
         """Fetches the metadata for the table and merges it in"""
         try:
             table = self.get_sqla_table_object()
-        except Exception:
+        except Exception as e:
+            logging.exception(e)
             raise Exception(_(
                 "Table [{}] doesn't seem to exist in the specified database, "
                 "couldn't fetch column information").format(self.table_name))
