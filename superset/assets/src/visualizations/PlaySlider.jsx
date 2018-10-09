@@ -47,7 +47,8 @@ export default class PlaySlider extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.play = this.play.bind(this);
     this.pause = this.pause.bind(this);
-    this.step = this.step.bind(this);
+    this.stepBackward = this.stepBackward.bind(this);
+    this.stepForward = this.stepForward.bind(this);
     this.getPlayClass = this.getPlayClass.bind(this);
     this.formatter = this.formatter.bind(this);
   }
@@ -76,7 +77,7 @@ export default class PlaySlider extends React.PureComponent {
     if (this.state.intervalId != null) {
       this.pause();
     } else {
-      const id = setInterval(this.step, this.intervalMilliseconds);
+      const id = setInterval(this.stepForward, this.intervalMilliseconds);
       this.setState({ intervalId: id });
     }
   }
@@ -84,7 +85,7 @@ export default class PlaySlider extends React.PureComponent {
     clearInterval(this.state.intervalId);
     this.setState({ intervalId: null });
   }
-  step() {
+  stepForward() {
     const { start, end, step, values, disabled } = this.props;
 
     if (disabled) {
@@ -96,6 +97,19 @@ export default class PlaySlider extends React.PureComponent {
     const carriageReturn = (nextValues[1] > end) ? (nextValues[0] - start) : 0;
 
     this.props.onChange(nextValues.map(value => value - carriageReturn));
+  }
+  stepBackward() {
+    const { start, end, step, values, disabled } = this.props;
+
+    if (disabled) {
+      return;
+    }
+
+    const currentValues = Array.isArray(values) ? values : [values, values + step];
+    const nextValues = currentValues.map(value => value - this.increment);
+    const carriageReturn = (nextValues[0] < start) ? (end - nextValues[1]) : 0;
+
+    this.props.onChange(nextValues.map(value => value + carriageReturn));
   }
   formatter(values) {
     if (this.props.disabled) {
@@ -115,8 +129,9 @@ export default class PlaySlider extends React.PureComponent {
     return (
       <Row className="play-slider">
         <Col md={1} className="padded">
+          <i className="fa fa-step-backward fa-lg slider-button " onClick={this.stepBackward} />
           <i className={this.getPlayClass()} onClick={this.play} />
-          <i className="fa fa-step-forward fa-lg slider-button " onClick={this.step} />
+          <i className="fa fa-step-forward fa-lg slider-button " onClick={this.stepForward} />
         </Col>
         <Col md={11} className="padded">
           <BootrapSliderWrapper
