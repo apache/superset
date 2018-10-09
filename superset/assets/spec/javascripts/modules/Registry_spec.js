@@ -118,7 +118,7 @@ describe('Registry', () => {
     });
   });
 
-  describe('keys', () => {
+  describe('.keys()', () => {
     it('returns an array of keys', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
@@ -127,7 +127,7 @@ describe('Registry', () => {
     });
   });
 
-  describe('entries()', () => {
+  describe('.entries()', () => {
     it('returns an array of { key, value }', () => {
       const registry = new Registry();
       registry.registerValue('a', 'test1');
@@ -139,7 +139,7 @@ describe('Registry', () => {
     });
   });
 
-  describe('entriesAsPromise()', () => {
+  describe('.entriesAsPromise()', () => {
     it('returns a Promise of an array { key, value }', () => {
       const registry = new Registry();
       registry.registerValue('a', 'test1');
