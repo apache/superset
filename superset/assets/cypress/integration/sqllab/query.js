@@ -7,6 +7,8 @@ export default () => {
       cy.login();
       cy.server();
       cy.visit('/superset/sqllab');
+
+      cy.route('POST', '/superset/sql_json/**').as('sqlLabQuery');
     });
 
     it('supports entering and running a query', () => {
@@ -21,6 +23,8 @@ export default () => {
       cy.get('#js-sql-toolbar button')
         .eq(0)
         .click();
+
+      cy.wait('@sqlLabQuery');
 
       cy.get('.SouthPane .ReactVirtualized__Table')
         .eq(0) // ensures results tab in case preview tab exists
@@ -51,6 +55,8 @@ export default () => {
 
       // ctrl + r also runs query
       cy.get('#brace-editor textarea').type('{ctrl}r', { force: true });
+
+      cy.wait('@sqlLabQuery');
 
       // Save results to check agains below
       selectResultsTab().then((resultsA) => {
@@ -83,6 +89,8 @@ export default () => {
       cy.get('#js-sql-toolbar button')
         .eq(0) // run query
         .click();
+
+      cy.wait('@sqlLabQuery');
 
       // assert the results of the saved query match the initial results
       selectResultsTab().then((resultsB) => {
