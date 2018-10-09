@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Row } from 'react-bootstrap';
+import { Row, Col } from 'react-bootstrap';
 
 import Mousetrap from 'mousetrap';
 
@@ -128,12 +128,12 @@ export default class PlaySlider extends React.PureComponent {
     const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
     return (
       <Row className="play-slider">
-        <Col lg={1} className="padded" style={{ textAlign: 'center' }}>
+        <Col md={1} className="padded">
           <i className="fa fa-step-backward fa-lg slider-button " onClick={this.stepBackward} />
           <i className={this.getPlayClass()} onClick={this.play} />
           <i className="fa fa-step-forward fa-lg slider-button " onClick={this.stepForward} />
         </Col>
-        <Col lg={11} className="padded">
+        <Col md={11} className="padded">
           <BootrapSliderWrapper
             value={range ? values : values[0]}
             range={range}
