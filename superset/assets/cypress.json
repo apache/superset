@@ -1,9 +1,6 @@
 {
   "baseUrl": "http://localhost:8081",
   "videoUploadOnPasses": false,
-  "ignoreTestFiles": [
-    "_*.js",
-    "*.helper.js"
-  ],
+  "ignoreTestFiles": ["**/!(*.test.js)"],
   "projectId": "fbf96q"
 }
