@@ -36,6 +36,7 @@ export default () => {
 
     it('successfully saves a query', () => {
       cy.route('savedqueryviewapi/**').as('getSavedQuery');
+
       const query = 'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
       const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
 

@@ -15,6 +15,8 @@ export default () => {
     });
 
     it('creates a table schema and preview when a database, schema, and table are selected', () => {
+      cy.route('/superset/table/**').as('tableMetadata');
+
       cy.get('.sql-toolbar .table-schema').should('not.exist');
       cy.get('.SouthPane .tab-content .filterable-table-container').should('not.exist');
 
@@ -37,6 +39,8 @@ export default () => {
           cy.get('input').type('birth_names{enter}', { force: true });
         });
 
+      cy.wait('@tableMetadata');
+
       cy.get('.sql-toolbar .table-schema').should('have.length', 1);
       selectResultsTab().should('have.length', 1);
 
@@ -46,6 +50,8 @@ export default () => {
         .within(() => {
           cy.get('input').type('logs{enter}', { force: true });
         });
+
+      cy.wait('@tableMetadata');
 
       cy.get('.sql-toolbar .table-schema').should('have.length', 2);
       selectResultsTab().should('have.length', 2);
