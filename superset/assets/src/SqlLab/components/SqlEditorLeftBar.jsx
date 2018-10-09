@@ -6,6 +6,7 @@ import createFilterOptions from 'react-select-fast-filter-options';
 
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
+import RefreshLabel from '../../components/RefreshLabel';
 import { t } from '../../locales';
 
 const $ = require('jquery');
@@ -37,7 +38,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     this.fetchSchemas(this.props.queryEditor.dbId);
     this.fetchTables(this.props.queryEditor.dbId, this.props.queryEditor.schema);
   }
-  onDatabaseChange(db) {
+  onDatabaseChange(db, force) {
     const val = db ? db.value : null;
     this.setState({ schemaOptions: [] });
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, null);
@@ -46,7 +47,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.setState({ tableOptions: [] });
     } else {
       this.fetchTables(val, this.props.queryEditor.schema);
-      this.fetchSchemas(val);
+      this.fetchSchemas(val, force || false);
     }
   }
   getTableNamesBySubStr(input) {
@@ -114,11 +115,12 @@ class SqlEditorLeftBar extends React.PureComponent {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
     this.fetchTables(this.props.queryEditor.dbId, schema);
   }
-  fetchSchemas(dbId) {
+  fetchSchemas(dbId, force) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
+    const forceRefresh = force || false;
     if (actualDbId) {
       this.setState({ schemaLoading: true });
-      const url = `/superset/schemas/${actualDbId}/`;
+      const url = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
       $.get(url).done((data) => {
         const schemaOptions = data.schemas.map(s => ({ value: s, label: s }));
         this.setState({ schemaOptions, schemaLoading: false });
@@ -144,6 +146,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       tableSelectPlaceholder = t('Select table ');
       tableSelectDisabled = true;
     }
+    const database = this.props.database || {};
     return (
       <div className="clearfix sql-toolbar">
         <div>
@@ -172,20 +175,31 @@ class SqlEditorLeftBar extends React.PureComponent {
           />
         </div>
         <div className="m-t-5">
-          <Select
-            name="select-schema"
-            placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
-            options={this.state.schemaOptions}
-            value={this.props.queryEditor.schema}
-            valueRenderer={o => (
-              <div>
-                <span className="text-muted">{t('Schema:')}</span> {o.label}
-              </div>
-            )}
-            isLoading={this.state.schemaLoading}
-            autosize={false}
-            onChange={this.changeSchema.bind(this)}
-          />
+          <div className="row">
+            <div className="col-md-11 col-xs-11" style={{ paddingRight: '2px' }}>
+              <Select
+                name="select-schema"
+                placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
+                options={this.state.schemaOptions}
+                value={this.props.queryEditor.schema}
+                valueRenderer={o => (
+                  <div>
+                    <span className="text-muted">{t('Schema:')}</span> {o.label}
+                  </div>
+                )}
+                isLoading={this.state.schemaLoading}
+                autosize={false}
+                onChange={this.changeSchema.bind(this)}
+              />
+            </div>
+            <div className="col-md-1 col-xs-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
+              <RefreshLabel
+                onClick={this.onDatabaseChange.bind(
+                    this, { value: database.id }, true)}
+                tooltipContent="force refresh schema list"
+              />
+            </div>
+          </div>
         </div>
         <hr />
         <div className="m-t-5">
