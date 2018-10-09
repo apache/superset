@@ -92,8 +92,8 @@ meets these guidelines:
 4.  The pull request should work for Python 2.7 and Python 3.6.
     ``from __future__ import`` will be required in every `.py` file soon.
 5.  If the pull request adds a Python dependency include it in `setup.py`
-    denoting any specific restrictions and in `requirements.txt` pinned to a
-    specific version which ensures that the application build is deterministic.
+    denoting any specific restrictions and run `pip-compile` to update the
+    `requirements.txt` file which ensures that the application build is deterministic.
 6.  Please rebase and resolve all conflicts before submitting.
 7.  Please ensure the necessary checks pass and that code coverage does not
     decrease.
