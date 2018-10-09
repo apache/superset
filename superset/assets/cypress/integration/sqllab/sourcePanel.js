@@ -8,14 +8,11 @@ export default () => {
       cy.visit('/superset/sqllab');
     });
 
-    it('renders dropdowns to select database, schema, and table', () => {
-      cy.get('.sql-toolbar .Select').then((nodes) => {
-        expect(nodes).to.have.length(3);
-      });
-    });
-
     it('creates a table schema and preview when a database, schema, and table are selected', () => {
       cy.route('/superset/table/**').as('tableMetadata');
+
+      // it should have dropdowns to select database, schema, and table
+      cy.get('.sql-toolbar .Select').should('have.length', 3);
 
       cy.get('.sql-toolbar .table-schema').should('not.exist');
       cy.get('.SouthPane .tab-content .filterable-table-container').should('not.exist');
