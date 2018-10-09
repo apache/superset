@@ -1,19 +1,19 @@
-import AreaTest from './_area';
-import BigNumberTest from './_big_number';
-import BigNumberTotalTest from './_big_number_total';
-import BubbleTest from './_bubble';
-import CompareTest from './_compare';
-import DistBarTest from './_dist_bar';
-import DualLineTest from './_dual_line';
-import HistogramTest from './_histogram';
-import LineTest from './_line';
-import PieTest from './_pie';
-import PivotTableTest from './_pivot_table';
-import SankeyTest from './_sankey';
-import SunburstTest from './_sunburst';
-import TableTest from './_table';
-import TreemapTest from './_treemap';
-import WorldMapTest from './_world_map';
+import AreaTest from './area';
+import BigNumberTest from './big_number';
+import BigNumberTotalTest from './big_number_total';
+import BubbleTest from './bubble';
+import CompareTest from './compare';
+import DistBarTest from './dist_bar';
+import DualLineTest from './dual_line';
+import HistogramTest from './histogram';
+import LineTest from './line';
+import PieTest from './pie';
+import PivotTableTest from './pivot_table';
+import SankeyTest from './sankey';
+import SunburstTest from './sunburst';
+import TableTest from './table';
+import TreemapTest from './treemap';
+import WorldMapTest from './world_map';
 
 describe('All Visualizations', () => {
   AreaTest();
