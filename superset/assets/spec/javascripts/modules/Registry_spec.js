@@ -18,6 +18,7 @@ describe('Registry', () => {
       expect(registry.name).to.equal('abc');
     });
   });
+
   describe('.has(key)', () => {
     it('returns true if an item with the given key exists', () => {
       const registry = new Registry();
@@ -31,6 +32,7 @@ describe('Registry', () => {
       expect(registry.has('a')).to.equal(false);
     });
   });
+
   describe('.registerValue(key, value)', () => {
     it('registers the given value with the given key', () => {
       const registry = new Registry();
@@ -43,6 +45,7 @@ describe('Registry', () => {
       expect(registry.registerValue('a', 'testValue')).to.equal(registry);
     });
   });
+
   describe('.registerLoader(key, loader)', () => {
     it('registers the given loader with the given key', () => {
       const registry = new Registry();
@@ -55,6 +58,7 @@ describe('Registry', () => {
       expect(registry.registerLoader('a', () => 'testValue')).to.equal(registry);
     });
   });
+
   describe('.get(key)', () => {
     it('given the key, returns the value if the item is a value', () => {
       const registry = new Registry();
@@ -78,6 +82,7 @@ describe('Registry', () => {
       expect(registry.get('a')).to.equal('newValue');
     });
   });
+
   describe('.getAsPromise(key)', () => {
     it('given the key, returns a promise of item value if the item is a value', () => {
       const registry = new Registry();
@@ -112,6 +117,44 @@ describe('Registry', () => {
       return Promise.all([promise1, promise2]);
     });
   });
+
+  describe('keys', () => {
+    it('returns an array of keys', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'testValue');
+      registry.registerLoader('b', () => 'test2');
+      expect(registry.keys()).to.deep.equal(['a', 'b']);
+    });
+  });
+
+  describe('entries()', () => {
+    it('returns an array of { key, value }', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      expect(registry.entries()).to.deep.equal([
+        { key: 'a', value: 'test1' },
+        { key: 'b', value: 'test2' },
+      ]);
+    });
+  });
+
+  describe('entriesAsPromise()', () => {
+    it('returns a Promise of an array { key, value }', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      registry.registerLoader('c', () => Promise.resolve('test3'));
+      return registry.entriesAsPromise().then((entries) => {
+        expect(entries).to.deep.equal([
+          { key: 'a', value: 'test1' },
+          { key: 'b', value: 'test2' },
+          { key: 'c', value: 'test3' },
+        ]);
+      });
+    });
+  });
+
   describe('.remove(key)', () => {
     it('removes the item with given key', () => {
       const registry = new Registry();

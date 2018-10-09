@@ -44,6 +44,26 @@ export default class Registry {
     return Promise.reject(`Item with key "${key}" is not registered.`);
   }
 
+  keys() {
+    return Object.keys(this.items);
+  }
+
+  entries() {
+    return this.keys().map(key => ({
+      key,
+      value: this.get(key),
+    }));
+  }
+
+  entriesAsPromise() {
+    const keys = this.keys();
+    return Promise.all(keys.map(key => this.getAsPromise(key)))
+      .then(values => values.map((value, i) => ({
+        key: keys[i],
+        value,
+      })));
+  }
+
   remove(key) {
     delete this.items[key];
     delete this.promises[key];
