@@ -1,6 +1,6 @@
-import queryTests from './_query';
-import sourcePanelTests from './_sourcePanel';
-import tabsTests from './_tabs';
+import queryTests from './query';
+import sourcePanelTests from './sourcePanel';
+import tabsTests from './tabs';
 
 describe('All SqlLab tests', () => {
   queryTests();
