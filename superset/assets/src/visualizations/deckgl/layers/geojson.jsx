@@ -58,7 +58,7 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
-function getLayer(formData, payload, onAddFilter, onTooltip) {
+export function getLayer(formData, payload, onAddFilter, onTooltip) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -137,7 +137,4 @@ function deckGeoJson(props) {
 deckGeoJson.propTypes = propTypes;
 deckGeoJson.defaultProps = defaultProps;
 
-module.exports = {
-  default: createAdaptor(deckGeoJson),
-  getLayer,
-};
+export default createAdaptor(deckGeoJson);

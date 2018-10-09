@@ -4,12 +4,11 @@ import createAdaptor from '../createAdaptor';
 import { createCategoricalDeckGLComponent } from '../factory';
 import { unitToRadius } from '../../../modules/geo';
 
-
 function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function getLayer(fd, payload, slice) {
+export function getLayer(fd, payload, slice) {
   const dataWithRadius = payload.data.features.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
@@ -34,7 +33,4 @@ function getLayer(fd, payload, slice) {
   });
 }
 
-module.exports = {
-  default: createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints)),
-  getLayer,
-};
+export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));

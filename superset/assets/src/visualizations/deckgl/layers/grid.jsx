@@ -4,7 +4,7 @@ import sandboxedEval from '../../../modules/sandbox';
 import createAdaptor from '../createAdaptor';
 import { createDeckGLComponent } from '../factory';
 
-function getLayer(formData, payload, onAddFilter, onTooltip) {
+export function getLayer(formData, payload, onAddFilter, onTooltip) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -37,7 +37,4 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-module.exports = {
-  default: createAdaptor(createDeckGLComponent(getLayer, getPoints)),
-  getLayer,
-};
+export default createAdaptor(createDeckGLComponent(getLayer, getPoints));

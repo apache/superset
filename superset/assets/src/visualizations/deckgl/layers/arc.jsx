@@ -12,7 +12,7 @@ function getPoints(data) {
   return points;
 }
 
-function getLayer(fd, payload, onAddFilter, onTooltip) {
+export function getLayer(fd, payload, onAddFilter, onTooltip) {
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -26,7 +26,4 @@ function getLayer(fd, payload, onAddFilter, onTooltip) {
   });
 }
 
-module.exports = {
-  default: createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints)),
-  getLayer,
-};
+export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));

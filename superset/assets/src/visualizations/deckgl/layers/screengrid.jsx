@@ -13,7 +13,7 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function getLayer(formData, payload, onAddFilter, onTooltip, filters) {
+export function getLayer(formData, payload, onAddFilter, onTooltip, filters) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -130,7 +130,4 @@ class DeckGLScreenGrid extends React.PureComponent {
 DeckGLScreenGrid.propTypes = propTypes;
 DeckGLScreenGrid.defaultProps = defaultProps;
 
-module.exports = {
-  default: createAdaptor(DeckGLScreenGrid),
-  getLayer,
-};
+export default createAdaptor(DeckGLScreenGrid);
