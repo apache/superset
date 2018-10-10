@@ -6,6 +6,7 @@ import { hot } from 'react-hot-loader';
 
 import getInitialState from './getInitialState';
 import rootReducer from './reducers';
+import { initFeatureFlags } from '../featureFlags';
 import { initEnhancer } from '../reduxUtils';
 import App from './components/App';
 import { appSetup } from '../common';
@@ -18,6 +19,7 @@ appSetup();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+initFeatureFlags(bootstrapData.common.feature_flags);
 const state = getInitialState(bootstrapData);
 
 const store = createStore(
