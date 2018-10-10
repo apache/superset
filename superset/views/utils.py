@@ -30,10 +30,11 @@ def bootstrap_user_data(username=None, include_perms=False):
         'firstName': user.first_name,
         'lastName': user.last_name,
         'userId': user.id,
-        'isActive': user.is_active,
+        'isActive': user.is_active(),
         'createdOn': user.created_on.isoformat(),
         'email': user.email,
     }
+    print(payload)
 
     if include_perms:
         roles, permissions = get_permissions(user)

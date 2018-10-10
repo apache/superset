@@ -6,6 +6,7 @@ import { flatten } from 'lodash';
 import d3 from 'd3';
 
 import DeckGLContainer from './../DeckGLContainer';
+import Legend from '../../Legend';
 
 import * as common from './common';
 import { colorScalerFactory } from '../../../modules/colors';
@@ -67,13 +68,17 @@ function deckPolygon(slice, payload, setControlValue) {
   }
 
   ReactDOM.render(
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={slice.formData.mapbox_style}
-      setControlValue={setControlValue}
-    />,
+    <div>
+      <DeckGLContainer
+        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        viewport={viewport}
+        layers={[layer]}
+        mapStyle={slice.formData.mapbox_style}
+        setControlValue={setControlValue}
+      />
+      <Legend
+        categories={this.state.categories}
+    </div>,
     document.getElementById(slice.containerId),
   );
 }
