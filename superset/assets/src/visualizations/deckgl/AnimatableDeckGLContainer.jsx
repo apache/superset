@@ -14,34 +14,38 @@ const propTypes = {
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
   children: PropTypes.node,
+  onViewportChange: PropTypes.func,
+  onValuesChange: PropTypes.func,
 };
 
 const defaultProps = {
   aggregation: false,
   disabled: false,
+  onViewportChange: () => {},
+  onValuesChange: () => {},
 };
 
 export default class AnimatableDeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
     const { getLayers, start, end, getStep, values, disabled, viewport, ...other } = props;
-    this.state = { values, viewport };
     this.other = other;
-    this.onChange = this.onChange.bind(this);
   }
   componentWillReceiveProps(nextProps) {
-    this.setState({ values: nextProps.values, viewport: nextProps.viewport });
-  }
-  onChange(newValues) {
-    this.setState({
-      values: Array.isArray(newValues)
-        ? newValues
-        : [newValues, newValues + this.props.getStep(newValues)],
-    });
+    this.setState({ values: nextProps.values });
   }
   render() {
-    const { start, end, getStep, disabled, aggregation, children, getLayers } = this.props;
-    const { values, viewport } = this.state;
+    const {
+      start,
+      end,
+      getStep,
+      disabled,
+      aggregation,
+      children,
+      getLayers,
+      values,
+      viewport,
+    } = this.props;
     const layers = getLayers(values);
     return (
       <div>
@@ -49,7 +53,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           {...this.other}
           viewport={viewport}
           layers={layers}
-          onViewportChange={newViewport => this.setState({ viewport: newViewport })}
+          onViewportChange={this.props.onViewportChange}
         />
         {!disabled &&
         <PlaySlider
@@ -58,7 +62,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           step={getStep(start)}
           values={values}
           range={!aggregation}
-          onChange={this.onChange}
+          onChange={this.props.onValuesChange}
         />
         }
         {children}

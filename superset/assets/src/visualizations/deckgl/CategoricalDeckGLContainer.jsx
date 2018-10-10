@@ -46,29 +46,31 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    * The container will have an interactive legend, populated from the
    * categories present in the data.
    */
-
-  /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps, currentState) {
-    const fd = nextProps.payload.form_data;
-
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = currentState.categories ||
-      getCategories(fd, nextProps.payload.data.features);
-
-    return { start, end, getStep, values, disabled, categories };
-  }
   constructor(props) {
     super(props);
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props, {});
+
+    const fd = props.payload.form_data;
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
+    const timestamps = props.payload.data.features.map(f => f.__timestamp);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const categories = getCategories(fd, props.payload.data.features);
+    this.state = { start, end, getStep, values, disabled, categories, viewport: props.viewport };
 
     this.getLayers = this.getLayers.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
-    this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
   }
   getLayers(values) {
     const { getLayer, payload, slice } = this.props;
@@ -144,8 +146,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
+          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}

@@ -59,24 +59,20 @@ const propTypes = {
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
-  /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps) {
-    const fd = nextProps.slice.formData;
-
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-
-    return { start, end, getStep, values, disabled };
-  }
   constructor(props) {
     super(props);
-    this.state = DeckGLScreenGrid.getDerivedStateFromProps(props);
+
+    const fd = props.slice.formData;
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
+    const timestamps = props.payload.data.features.map(f => f.__timestamp);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    this.state = { start, end, getStep, values, disabled, viewport: props.viewport };
 
     this.getLayers = this.getLayers.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
-    this.setState(DeckGLScreenGrid.getDerivedStateFromProps(nextProps, this.state));
+  onViewportChange(viewport) {
+    this.setState({ viewport });
   }
   getLayers(values) {
     const filters = [];
@@ -106,7 +102,8 @@ class DeckGLScreenGrid extends React.PureComponent {
           getStep={this.state.getStep}
           values={this.state.values}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
