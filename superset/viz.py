@@ -5,11 +5,6 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
