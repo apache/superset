@@ -36,7 +36,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
     this.setState({
       values: Array.isArray(newValues)
         ? newValues
-        : [newValues, this.props.getStep(newValues)],
+        : [newValues, newValues + this.props.getStep(newValues)],
     });
   }
   render() {
