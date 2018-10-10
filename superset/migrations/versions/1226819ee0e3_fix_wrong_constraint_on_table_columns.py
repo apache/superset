@@ -6,11 +6,6 @@ Revises: 956a063c52b3
 Create Date: 2016-05-27 15:03:32.980343
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 # revision identifiers, used by Alembic.
 revision = '1226819ee0e3'
 down_revision = '956a063c52b3'
