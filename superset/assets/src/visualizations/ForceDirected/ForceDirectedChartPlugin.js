@@ -1,20 +1,21 @@
 import ChartPlugin from '../core/models/ChartPlugin';
 import ChartMetadata from '../core/models/ChartMetadata';
+import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  name: 'Event Flow',
+  name: 'Force-directed Graph',
   description: '',
-  credits: ['https://github.com/williaster/data-ui'],
+  credits: ['http://bl.ocks.org/d3noob/5141278'],
   thumbnail,
 });
 
-export default class EventFlowChartPlugin extends ChartPlugin {
+export default class ForceDirectedChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata,
-      loadTransformProps: () => import('./transformProps.js'),
-      loadChart: () => import('./EventFlow.jsx'),
+      transformProps,
+      loadChart: () => import('./ReactForceDirected.js'),
     });
   }
 }

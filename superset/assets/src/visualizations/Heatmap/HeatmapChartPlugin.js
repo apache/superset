@@ -1,20 +1,21 @@
 import ChartPlugin from '../core/models/ChartPlugin';
 import ChartMetadata from '../core/models/ChartMetadata';
+import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  name: 'Event Flow',
+  name: 'Heatmap',
   description: '',
-  credits: ['https://github.com/williaster/data-ui'],
+  credits: ['http://bl.ocks.org/mbostock/3074470'],
   thumbnail,
 });
 
-export default class EventFlowChartPlugin extends ChartPlugin {
+export default class HeatmapChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata,
-      loadTransformProps: () => import('./transformProps.js'),
-      loadChart: () => import('./EventFlow.jsx'),
+      transformProps,
+      loadChart: () => import('./ReactHeatmap.js'),
     });
   }
 }
