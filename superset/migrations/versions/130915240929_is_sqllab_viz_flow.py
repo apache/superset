@@ -5,10 +5,6 @@ Revises: f231d82b9b26
 Create Date: 2018-04-03 08:19:34.098789
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
