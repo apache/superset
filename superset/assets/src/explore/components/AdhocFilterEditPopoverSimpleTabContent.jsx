@@ -257,7 +257,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup>
           <OnPasteSelect {...this.selectProps} {...operatorSelectProps} />
         </FormGroup>
-        <FormGroup>
+        <FormGroup data-test="adhoc-filter-simple-value">
           {
             (
               MULTI_OPERATORS.indexOf(adhocFilter.operator) >= 0 ||

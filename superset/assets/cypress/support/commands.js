@@ -29,7 +29,7 @@ const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
-    url: 'http://localhost:8081/login/',
+    url: '/login/',
     body: { username: 'admin', password: 'general' },
   }).then((response) => {
     expect(response.status).to.eq(200);
@@ -37,7 +37,7 @@ Cypress.Commands.add('login', () => {
 });
 
 Cypress.Commands.add('visitChartByName', (name) => {
-  cy.request(`http://localhost:8081/chart/api/read?_flt_3_slice_name=${name}`).then((response) => {
+  cy.request(`/chart/api/read?_flt_3_slice_name=${name}`).then((response) => {
     cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${response.body.pks[0]}}`);
   });
 });
