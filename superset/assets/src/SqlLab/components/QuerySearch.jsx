@@ -41,6 +41,7 @@ class QuerySearch extends React.PureComponent {
     this.dbMutator = this.dbMutator.bind(this);
     this.onChange = this.onChange.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
     this.changeFrom = this.changeFrom.bind(this);
     this.changeTo = this.changeTo.bind(this);
     this.changeStatus = this.changeStatus.bind(this);
@@ -64,6 +65,11 @@ class QuerySearch extends React.PureComponent {
   onChange(db) {
     const val = db ? db.value : null;
     this.setState({ databaseId: val });
+  }
+  onKeyDown(event) {
+    if (event.keyCode === 13) {
+      this.refreshQueries();
+    }
   }
   getTimeFromSelection(selection) {
     switch (selection) {
@@ -173,6 +179,7 @@ class QuerySearch extends React.PureComponent {
             <input
               type="text"
               onChange={this.changeSearch}
+              onKeyDown={this.onKeyDown}
               className="form-control input-sm"
               placeholder={t('Search Results')}
             />

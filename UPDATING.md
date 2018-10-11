@@ -4,6 +4,9 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Superset 0.28.0
+* Support for Python 2 is deprecated, we only support >=3.6 from
+  `0.28.0` onwards
+
 * Superset 0.28 deprecates the previous dashboard layout. While 0.27
   offered a migration workflow to users and allowed them to validate and
   publish their migrated dashboards individually, 0.28 forces
@@ -12,6 +15,11 @@ assists people when migrating to a new version.
   do recommend that you take a backup prior to this migration.
 
 * Superset 0.28 deprecates the `median` cluster label aggregator for mapbox visualizations. This particular aggregation is not supported on mapbox visualizations going forward.
+
+* Superset 0.28 upgrades `flask-login` to `>=0.3`, which includes a
+    backwards-incompatible change: `g.user.is_authenticated`,
+    `g.user.is_anonymous`, and `g.user.is_active` are now properties
+    instead of methods.
 
 ## Superset 0.27.0
 * Superset 0.27 start to use nested layout for dashboard builder, which is not

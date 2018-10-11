@@ -16,16 +16,8 @@ jobs:
       before_install:
         - nvm install 8.9
     - language: python
-      python: 2.7
-      env: TOXENV=flake8
-    - language: python
-      python: 2.7
-      env: TOXENV=py27-sqlite
-      services:
-        - redis-server
-    - language: python
-      python: 2.7
-      env: TOXENV=py27-mysql
+      python: 3.6
+      env: TOXENV=py36-mysql
       services:
         - mysql
         - redis-server
@@ -33,9 +25,6 @@ jobs:
         - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-    - language: python
-      python: 2.7
-      env: TOXENV=pylint
     - language: node_js
       node_js: 8.9
       cache:

@@ -318,6 +318,10 @@ class SqlaTable(Model, BaseDatasource):
         return self.table_name
 
     @property
+    def database_name(self):
+        return self.database.name
+
+    @property
     def link(self):
         name = escape(self.name)
         anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
@@ -753,7 +757,11 @@ class SqlaTable(Model, BaseDatasource):
                     'order_desc': True,
                 }
                 result = self.query(subquery_obj)
-                dimensions = [c for c in result.df.columns if c not in metrics]
+                cols = {col.column_name: col for col in self.columns}
+                dimensions = [
+                    c for c in result.df.columns
+                    if c not in metrics and c in cols
+                ]
                 top_groups = self._get_top_groups(result.df, dimensions)
                 qry = qry.where(top_groups)
 
@@ -805,7 +813,8 @@ class SqlaTable(Model, BaseDatasource):
         """Fetches the metadata for the table and merges it in"""
         try:
             table = self.get_sqla_table_object()
-        except Exception:
+        except Exception as e:
+            logging.exception(e)
             raise Exception(_(
                 "Table [{}] doesn't seem to exist in the specified database, "
                 "couldn't fetch column information").format(self.table_name))

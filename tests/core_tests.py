@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import csv
 import datetime
 import doctest
@@ -726,6 +721,11 @@ class CoreTests(SupersetTestCase):
             url='/superset/schema_access_for_csv_upload?db_id={db_id}'
                 .format(db_id=dbobj.id))
         assert data == ['this_schema_is_allowed_too']
+
+    def test_select_star(self):
+        self.login(username='admin')
+        resp = self.get_resp('/superset/select_star/1/birth_names')
+        self.assertIn('gender', resp)
 
 
 if __name__ == '__main__':
