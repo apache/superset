@@ -1,8 +1,6 @@
-const SVG_NS = 'http://www.w3.org/2000/svg';
+import isDefined from '../utils/isDefined';
 
-function isDefined(x) {
-  return x !== null && x !== undefined;
-}
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function getTextDimension({
   text,

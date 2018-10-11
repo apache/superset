@@ -1,8 +1,8 @@
 import d3 from 'd3';
 import sequentialSchemes from './colorSchemes/sequential';
 
-export const brandColor = '#00A699';
-export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
+export const BRAND_COLOR = '#00A699';
+export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {

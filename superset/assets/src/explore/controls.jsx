@@ -45,7 +45,7 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary } from '../modules/colors';
+import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
@@ -240,7 +240,7 @@ export const controls = {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -248,7 +248,7 @@ export const controls = {
     label: t('Target Color'),
     description: t('Color of the target location'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -272,7 +272,7 @@ export const controls = {
     label: t('Fill Color'),
     description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -280,7 +280,7 @@ export const controls = {
     label: t('Stroke Color'),
     description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -1853,7 +1853,7 @@ export const controls = {
   color: {
     type: 'ColorPickerControl',
     label: t('Color'),
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     description: t('Pick a color'),
   },
 
