@@ -188,6 +188,7 @@ class SaveModal extends React.Component {
             disabled={canNotSaveToDash}
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
+            data-test="add-to-existing-dashboard"
           >
             {t('Add chart to existing dashboard')}
           </Radio>
@@ -206,6 +207,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
             disabled={canNotSaveToDash}
+            data-test="add-to-new-dashboard"
           >
             {t('Add to new dashboard')} &nbsp;
           </Radio>
