@@ -5,11 +5,6 @@ Revises: f231d82b9b26
 Create Date: 2018-04-10 11:19:47.621878
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from alembic import op

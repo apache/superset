@@ -6,8 +6,6 @@ Create Date: 2018-07-05 15:19:14.609299
 
 """
 
-from __future__ import division
-
 # revision identifiers, used by Alembic.
 
 import datetime
