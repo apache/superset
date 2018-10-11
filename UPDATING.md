@@ -19,7 +19,7 @@ assists people when migrating to a new version.
 * Superset 0.28 upgrades `flask-login` to `>=0.3`, which includes a
     backwards-incompatible change: `g.user.is_authenticated`,
     `g.user.is_anonymous`, and `g.user.is_active` are now properties
-    instead of properties.
+    instead of methods.
 
 ## Superset 0.27.0
 * Superset 0.27 start to use nested layout for dashboard builder, which is not
