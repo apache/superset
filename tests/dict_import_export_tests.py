@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
@@ -25,7 +20,6 @@ ID_PREFIX = 20000
 
 class DictImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
     def __init__(self, *args, **kwargs):
         super(DictImportExportTests, self).__init__(*args, **kwargs)
 
