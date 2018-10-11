@@ -6,11 +6,6 @@ Revises: 4fa88fe24e94
 Create Date: 2016-04-25 08:54:04.303859
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import Column, ForeignKey, Integer, String
