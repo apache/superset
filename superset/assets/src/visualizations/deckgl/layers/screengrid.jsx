@@ -69,7 +69,15 @@ class DeckGLScreenGrid extends React.PureComponent {
     this.state = { start, end, getStep, values, disabled, viewport: props.viewport };
 
     this.getLayers = this.getLayers.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
+  }
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
   }
   onViewportChange(viewport) {
     this.setState({ viewport });
@@ -101,6 +109,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
+          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
