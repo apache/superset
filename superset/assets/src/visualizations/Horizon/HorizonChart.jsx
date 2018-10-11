@@ -62,7 +62,7 @@ class HorizonChart extends React.PureComponent {
             key={row.key}
             width={width}
             height={seriesHeight}
-            title={row.key[0]}
+            title={row.key.join(', ')}
             data={row.values}
             bands={bands}
             colors={colors}
