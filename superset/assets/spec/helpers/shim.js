@@ -1,6 +1,5 @@
 /* eslint no-native-reassign: 0 */
 import 'babel-polyfill';
-import chai from 'chai';
 import jsdom from 'jsdom';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
@@ -45,9 +44,6 @@ global.window = global.document.defaultView;
 global.XMLHttpRequest = global.window.XMLHttpRequest;
 
 global.sinon = require('sinon');
-
-global.expect = chai.expect;
-global.assert = chai.assert;
 
 global.sinon.useFakeXMLHttpRequest();
 

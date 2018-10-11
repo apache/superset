@@ -1,6 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import Timer from '../../../src/components/Timer';
@@ -26,13 +25,13 @@ describe('Timer', () => {
   });
 
   it('is a valid element', () => {
-    expect(React.isValidElement(<Timer {...mockedProps} />)).to.equal(true);
+    expect(React.isValidElement(<Timer {...mockedProps} />)).toBe(true);
   });
 
   it('componentWillMount starts timer after 30ms and sets state.clockStr', () => {
-    expect(wrapper.state().clockStr).to.equal('');
+    expect(wrapper.state().clockStr).toBe('');
     clock.tick(31);
-    expect(wrapper.state().clockStr).not.equal('');
+    expect(wrapper.state().clockStr).not.toBe('');
   });
 
   it('calls startTimer on mount', () => {
@@ -50,6 +49,6 @@ describe('Timer', () => {
   });
 
   it('renders a span with the correct class', () => {
-    expect(wrapper.find('span').hasClass('label-warning')).to.equal(true);
+    expect(wrapper.find('span').hasClass('label-warning')).toBe(true);
   });
 });

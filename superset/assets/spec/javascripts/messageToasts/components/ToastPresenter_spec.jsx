@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import mockMessageToasts from '../mockMessageToasts';
 import Toast from '../../../../src/messageToasts/components/Toast';
@@ -19,12 +18,12 @@ describe('ToastPresenter', () => {
 
   it('should render a div with class toast-presenter', () => {
     const wrapper = setup();
-    expect(wrapper.find('.toast-presenter')).to.have.length(1);
+    expect(wrapper.find('.toast-presenter')).toHaveLength(1);
   });
 
   it('should render a Toast for each toast object', () => {
     const wrapper = setup();
-    expect(wrapper.find(Toast)).to.have.length(props.toasts.length);
+    expect(wrapper.find(Toast)).toHaveLength(props.toasts.length);
   });
 
   it('should pass removeToast to the Toast component', () => {
@@ -35,6 +34,6 @@ describe('ToastPresenter', () => {
         .find(Toast)
         .first()
         .prop('onCloseToast'),
-    ).to.equal(removeToast);
+    ).toBe(removeToast);
   });
 });

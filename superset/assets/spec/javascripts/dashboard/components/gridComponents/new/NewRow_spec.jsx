@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import DraggableNewComponent from '../../../../../../src/dashboard/components/gridComponents/new/DraggableNewComponent';
 import NewRow from '../../../../../../src/dashboard/components/gridComponents/new/NewRow';
@@ -15,12 +14,12 @@ describe('NewRow', () => {
 
   it('should render a DraggableNewComponent', () => {
     const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent)).to.have.length(1);
+    expect(wrapper.find(DraggableNewComponent)).toHaveLength(1);
   });
 
   it('should set appropriate type and id', () => {
     const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent).props()).to.include({
+    expect(wrapper.find(DraggableNewComponent).props()).toMatchObject({
       type: ROW_TYPE,
       id: NEW_ROW_ID,
     });

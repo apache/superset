@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import dropOverflowsParent from '../../../../src/dashboard/util/dropOverflowsParent';
 import { NEW_COMPONENTS_SOURCE_ID } from '../../../../src/dashboard/util/constants';
 import {
@@ -11,7 +9,7 @@ import {
 } from '../../../../src/dashboard/util/componentTypes';
 
 describe('dropOverflowsParent', () => {
-  it('returns true if a parent does NOT have adequate width for child', () => {
+  test('returns true if a parent does NOT have adequate width for child', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -40,10 +38,10 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
   });
 
-  it('returns false if a parent DOES have adequate width for child', () => {
+  test('returns false if a parent DOES have adequate width for child', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -72,10 +70,10 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
-  it('returns false if a child CAN shrink to available parent space', () => {
+  test('returns false if a child CAN shrink to available parent space', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -104,10 +102,10 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
-  it('returns true if a child CANNOT shrink to available parent space', () => {
+  test('returns true if a child CANNOT shrink to available parent space', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'a' },
@@ -137,55 +135,58 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
   });
 
-  it('returns true if a column has children that CANNOT shrink to available parent space', () => {
-    const dropResult = {
-      source: { id: '_' },
-      destination: { id: 'destination' },
-      dragging: { id: 'dragging' },
-    };
+  test(
+    'returns true if a column has children that CANNOT shrink to available parent space',
+    () => {
+      const dropResult = {
+        source: { id: '_' },
+        destination: { id: 'destination' },
+        dragging: { id: 'dragging' },
+      };
 
-    const layout = {
-      destination: {
-        id: 'destination',
-        type: ROW_TYPE,
-        children: ['b', 'b'], // 2x b = 10, 2 available
-      },
-      b: {
-        id: 'b',
-        type: CHART_TYPE,
-        meta: {
-          width: 5,
+      const layout = {
+        destination: {
+          id: 'destination',
+          type: ROW_TYPE,
+          children: ['b', 'b'], // 2x b = 10, 2 available
         },
-      },
-      dragging: {
-        id: 'dragging',
-        type: COLUMN_TYPE,
-        meta: {
-          width: 10,
+        b: {
+          id: 'b',
+          type: CHART_TYPE,
+          meta: {
+            width: 5,
+          },
         },
-        children: ['rowWithChildren'], // 2x b = width 10
-      },
-      rowWithChildren: {
-        id: 'rowWithChildren',
-        type: ROW_TYPE,
-        children: ['b', 'b'],
-      },
-    };
+        dragging: {
+          id: 'dragging',
+          type: COLUMN_TYPE,
+          meta: {
+            width: 10,
+          },
+          children: ['rowWithChildren'], // 2x b = width 10
+        },
+        rowWithChildren: {
+          id: 'rowWithChildren',
+          type: ROW_TYPE,
+          children: ['b', 'b'],
+        },
+      };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
-    // remove children
-    expect(
-      dropOverflowsParent(dropResult, {
-        ...layout,
-        dragging: { ...layout.dragging, children: [] },
-      }),
-    ).to.equal(false);
-  });
+      expect(dropOverflowsParent(dropResult, layout)).toBe(true);
+      // remove children
+      expect(
+        dropOverflowsParent(dropResult, {
+          ...layout,
+          dragging: { ...layout.dragging, children: [] },
+        }),
+      ).toBe(false);
+    }
+  );
 
-  it('should work with new components that are not in the layout', () => {
+  test('should work with new components that are not in the layout', () => {
     const dropResult = {
       source: { id: NEW_COMPONENTS_SOURCE_ID },
       destination: { id: 'a' },
@@ -200,10 +201,10 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
-  it('source/destination without widths should not overflow parent', () => {
+  test('source/destination without widths should not overflow parent', () => {
     const dropResult = {
       source: { id: '_' },
       destination: { id: 'tab' },
@@ -221,6 +222,6 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 });

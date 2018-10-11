@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import {
   ADD_SLICE,
   CHANGE_FILTER,
@@ -17,89 +15,89 @@ import {
 import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardState';
 
 describe('dashboardState reducer', () => {
-  it('should return initial state', () => {
-    expect(dashboardStateReducer(undefined, {})).to.deep.equal({});
+  test('should return initial state', () => {
+    expect(dashboardStateReducer(undefined, {})).toEqual({});
   });
 
-  it('should add a slice', () => {
+  test('should add a slice', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1] },
         { type: ADD_SLICE, slice: { slice_id: 2 } },
       ),
-    ).to.deep.equal({ sliceIds: [1, 2] });
+    ).toEqual({ sliceIds: [1, 2] });
   });
 
-  it('should remove a slice', () => {
+  test('should remove a slice', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1, 2], filters: {} },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ sliceIds: [1], refresh: false, filters: {} });
+    ).toEqual({ sliceIds: [1], refresh: false, filters: {} });
   });
 
-  it('should reset filters if a removed slice is a filter', () => {
+  test('should reset filters if a removed slice is a filter', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ sliceIds: [1], filters: { 1: {} }, refresh: true });
+    ).toEqual({ sliceIds: [1], filters: { 1: {} }, refresh: true });
   });
 
-  it('should toggle fav star', () => {
+  test('should toggle fav star', () => {
     expect(
       dashboardStateReducer(
         { isStarred: false },
         { type: TOGGLE_FAVE_STAR, isStarred: true },
       ),
-    ).to.deep.equal({ isStarred: true });
+    ).toEqual({ isStarred: true });
   });
 
-  it('should toggle edit mode', () => {
+  test('should toggle edit mode', () => {
     expect(
       dashboardStateReducer(
         { editMode: false },
         { type: SET_EDIT_MODE, editMode: true },
       ),
-    ).to.deep.equal({ editMode: true, showBuilderPane: true });
+    ).toEqual({ editMode: true, showBuilderPane: true });
   });
 
-  it('should toggle builder pane', () => {
+  test('should toggle builder pane', () => {
     expect(
       dashboardStateReducer(
         { showBuilderPane: false },
         { type: TOGGLE_BUILDER_PANE },
       ),
-    ).to.deep.equal({ showBuilderPane: true });
+    ).toEqual({ showBuilderPane: true });
 
     expect(
       dashboardStateReducer(
         { showBuilderPane: true },
         { type: TOGGLE_BUILDER_PANE },
       ),
-    ).to.deep.equal({ showBuilderPane: false });
+    ).toEqual({ showBuilderPane: false });
   });
 
-  it('should toggle expanded slices', () => {
+  test('should toggle expanded slices', () => {
     expect(
       dashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } },
         { type: TOGGLE_EXPAND_SLICE, sliceId: 1 },
       ),
-    ).to.deep.equal({ expandedSlices: { 2: false } });
+    ).toEqual({ expandedSlices: { 2: false } });
 
     expect(
       dashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } },
         { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ expandedSlices: { 1: true, 2: true } });
+    ).toEqual({ expandedSlices: { 1: true, 2: true } });
   });
 
-  it('should set hasUnsavedChanges', () => {
-    expect(dashboardStateReducer({}, { type: ON_CHANGE })).to.deep.equal({
+  test('should set hasUnsavedChanges', () => {
+    expect(dashboardStateReducer({}, { type: ON_CHANGE })).toEqual({
       hasUnsavedChanges: true,
     });
 
@@ -108,12 +106,12 @@ describe('dashboardState reducer', () => {
         {},
         { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges: false } },
       ),
-    ).to.deep.equal({
+    ).toEqual({
       hasUnsavedChanges: false,
     });
   });
 
-  it('should set maxUndoHistoryExceeded', () => {
+  test('should set maxUndoHistoryExceeded', () => {
     expect(
       dashboardStateReducer(
         {},
@@ -122,23 +120,26 @@ describe('dashboardState reducer', () => {
           payload: { maxUndoHistoryExceeded: true },
         },
       ),
-    ).to.deep.equal({
+    ).toEqual({
       maxUndoHistoryExceeded: true,
     });
   });
 
-  it('should set unsaved changes, max undo history, and editMode to false on save', () => {
-    expect(
-      dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
-    ).to.deep.equal({
-      hasUnsavedChanges: false,
-      maxUndoHistoryExceeded: false,
-      editMode: false,
-    });
-  });
+  test(
+    'should set unsaved changes, max undo history, and editMode to false on save',
+    () => {
+      expect(
+        dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
+      ).toEqual({
+        hasUnsavedChanges: false,
+        maxUndoHistoryExceeded: false,
+        editMode: false,
+      });
+    }
+  );
 
   describe('change filter', () => {
-    it('should add a new filter if it does not exist', () => {
+    test('should add a new filter if it does not exist', () => {
       expect(
         dashboardStateReducer(
           {
@@ -154,14 +155,14 @@ describe('dashboardState reducer', () => {
             merge: true,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['b', 'a'] } },
         refresh: true,
         sliceIds: [1],
       });
     });
 
-    it('should overwrite a filter if merge is false', () => {
+    test('should overwrite a filter if merge is false', () => {
       expect(
         dashboardStateReducer(
           {
@@ -179,14 +180,14 @@ describe('dashboardState reducer', () => {
             merge: false,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['b', 'a'] } },
         refresh: true,
         sliceIds: [1],
       });
     });
 
-    it('should merge a filter if merge is true', () => {
+    test('should merge a filter if merge is true', () => {
       expect(
         dashboardStateReducer(
           {
@@ -204,14 +205,14 @@ describe('dashboardState reducer', () => {
             merge: true,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['z', 'b', 'a'] } },
         refresh: true,
         sliceIds: [1],
       });
     });
 
-    it('should remove the filter if values are empty', () => {
+    test('should remove the filter if values are empty', () => {
       expect(
         dashboardStateReducer(
           {
@@ -229,7 +230,7 @@ describe('dashboardState reducer', () => {
             merge: false,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: {},
         refresh: true,
         sliceIds: [1],

@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 
 import CopyToClipboard from '../../../src/components/CopyToClipboard';
 
@@ -11,6 +10,6 @@ describe('CopyToClipboard', () => {
   it('renders', () => {
     expect(
       React.isValidElement(<CopyToClipboard {...defaultProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 });

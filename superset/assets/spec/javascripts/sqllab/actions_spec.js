@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-expressions */
-import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
 import * as actions from '../../../src/SqlLab/actions';
@@ -18,17 +17,17 @@ describe('async actions', () => {
   });
 
   describe('saveQuery', () => {
-    it('makes the ajax request', () => {
+    test('makes the ajax request', () => {
       const thunk = actions.saveQuery(query);
       thunk((/* mockDispatch */) => {});
-      expect(ajaxStub.calledOnce).to.be.true;
+      expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    it('calls correct url', () => {
+    test('calls correct url', () => {
       const url = '/savedqueryviewapi/api/create';
       const thunk = actions.saveQuery(query);
       thunk((/* mockDispatch */) => {});
-      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+      expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
   });
 
@@ -38,34 +37,34 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    it('makes the ajax request', () => {
+    test('makes the ajax request', () => {
       makeRequest();
-      expect(ajaxStub.calledOnce).to.be.true;
+      expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    it('calls correct url', () => {
+    test('calls correct url', () => {
       const url = `/superset/results/${query.resultsKey}/`;
       makeRequest();
-      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+      expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
 
-    it('calls requestQueryResults', () => {
+    test('calls requestQueryResults', () => {
       makeRequest();
-      expect(dispatch.args[0][0].type).to.equal(actions.REQUEST_QUERY_RESULTS);
+      expect(dispatch.args[0][0].type).toBe(actions.REQUEST_QUERY_RESULTS);
     });
 
-    it('calls querySuccess on ajax success', () => {
+    test('calls querySuccess on ajax success', () => {
       ajaxStub.yieldsTo('success', '{ "data": "" }');
       makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_SUCCESS);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
     });
 
-    it('calls queryFailed on ajax error', () => {
+    test('calls queryFailed on ajax error', () => {
       ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
       makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_FAILED);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_FAILED);
     });
   });
 
@@ -75,21 +74,21 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    it('makes the ajax request', () => {
+    test('makes the ajax request', () => {
       makeRequest();
-      expect(ajaxStub.calledOnce).to.be.true;
+      expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    it('calls startQuery', () => {
+    test('calls startQuery', () => {
       makeRequest();
-      expect(dispatch.args[0][0].type).to.equal(actions.START_QUERY);
+      expect(dispatch.args[0][0].type).toBe(actions.START_QUERY);
     });
 
-    it('calls queryFailed on ajax error', () => {
+    test('calls queryFailed on ajax error', () => {
       ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
       makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_FAILED);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_FAILED);
     });
   });
 
@@ -99,26 +98,26 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    it('makes the ajax request', () => {
+    test('makes the ajax request', () => {
       makeRequest();
-      expect(ajaxStub.calledOnce).to.be.true;
+      expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    it('calls stopQuery', () => {
+    test('calls stopQuery', () => {
       makeRequest();
-      expect(dispatch.args[0][0].type).to.equal(actions.STOP_QUERY);
+      expect(dispatch.args[0][0].type).toBe(actions.STOP_QUERY);
     });
 
-    it('calls the correct url', () => {
+    test('calls the correct url', () => {
       const url = '/superset/stop_query/';
       makeRequest();
-      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+      expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
 
-    it('sends the correct data', () => {
+    test('sends the correct data', () => {
       const data = { client_id: query.id };
       makeRequest();
-      expect(ajaxStub.getCall(0).args[0].data).to.deep.equal(data);
+      expect(ajaxStub.getCall(0).args[0].data).toEqual(data);
     });
   });
 });

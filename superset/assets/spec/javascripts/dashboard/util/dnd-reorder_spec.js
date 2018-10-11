@@ -1,29 +1,30 @@
-import { expect } from 'chai';
-
 import reorderItem from '../../../../src/dashboard/util/dnd-reorder';
 
 describe('dnd-reorderItem', () => {
-  it('should remove the item from its source entity and add it to its destination entity', () => {
-    const result = reorderItem({
-      entitiesMap: {
-        a: {
-          id: 'a',
-          children: ['x', 'y', 'z'],
+  test(
+    'should remove the item from its source entity and add it to its destination entity',
+    () => {
+      const result = reorderItem({
+        entitiesMap: {
+          a: {
+            id: 'a',
+            children: ['x', 'y', 'z'],
+          },
+          b: {
+            id: 'b',
+            children: ['banana'],
+          },
         },
-        b: {
-          id: 'b',
-          children: ['banana'],
-        },
-      },
-      source: { id: 'a', index: 2 },
-      destination: { id: 'b', index: 1 },
-    });
+        source: { id: 'a', index: 2 },
+        destination: { id: 'b', index: 1 },
+      });
 
-    expect(result.a.children).to.deep.equal(['x', 'y']);
-    expect(result.b.children).to.deep.equal(['banana', 'z']);
-  });
+      expect(result.a.children).toEqual(['x', 'y']);
+      expect(result.b.children).toEqual(['banana', 'z']);
+    }
+  );
 
-  it('should correctly move elements within the same list', () => {
+  test('should correctly move elements within the same list', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -35,10 +36,10 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'a', index: 0 },
     });
 
-    expect(result.a.children).to.deep.equal(['z', 'x', 'y']);
+    expect(result.a.children).toEqual(['z', 'x', 'y']);
   });
 
-  it('should copy items that do not move into the result', () => {
+  test('should copy items that do not move into the result', () => {
     const extraEntity = {};
     const result = reorderItem({
       entitiesMap: {
@@ -56,6 +57,6 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'b', index: 1 },
     });
 
-    expect(result.iAmExtra === extraEntity).to.equal(true);
+    expect(result.iAmExtra === extraEntity).toBe(true);
   });
 });

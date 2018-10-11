@@ -1,22 +1,20 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import Preset from '../../../../src/visualizations/core/models/Preset';
 import Plugin from '../../../../src/visualizations/core/models/Plugin';
 
 describe('Preset', () => {
-  it('exists', () => {
-    expect(Preset).to.not.equal(undefined);
+  test('exists', () => {
+    expect(Preset).toBeDefined();
   });
 
   describe('new Preset()', () => {
-    it('creates new preset', () => {
+    test('creates new preset', () => {
       const preset = new Preset();
-      expect(preset).to.be.instanceOf(Preset);
+      expect(preset).toBeInstanceOf(Preset);
     });
   });
 
   describe('.register()', () => {
-    it('register all listed presets then plugins', () => {
+    test('register all listed presets then plugins', () => {
       const values = [];
       class Plugin1 extends Plugin {
         register() {
@@ -54,12 +52,12 @@ describe('Preset', () => {
         ],
       });
       preset3.register();
-      expect(values).to.deep.equal([1, 2, 3, 'abc']);
+      expect(values).toEqual([1, 2, 3, 'abc']);
     });
 
-    it('returns itself', () => {
+    test('returns itself', () => {
       const preset = new Preset();
-      expect(preset.register()).to.equal(preset);
+      expect(preset.register()).toBe(preset);
     });
   });
 });

@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import isValidChild from '../../../../src/dashboard/util/isValidChild';
 
 import {
@@ -79,7 +77,7 @@ describe('isValidChild', () => {
         if (i > 0 && !didTest[testKey]) {
           didTest[testKey] = true;
 
-          it(`(${exampleIdx})${getIndentation(
+          test(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ✅`, () => {
             expect(
@@ -88,7 +86,7 @@ describe('isValidChild', () => {
                 parentType,
                 childType,
               }),
-            ).to.equal(true);
+            ).toBe(true);
           });
         }
         // see isValidChild.js for why tabs do not increment the depth of their children
@@ -126,7 +124,7 @@ describe('isValidChild', () => {
           const parentDepth = childDepth - 1;
           const parentType = example[i - 1];
 
-          it(`(${exampleIdx})${getIndentation(
+          test(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ❌`, () => {
             expect(
@@ -135,7 +133,7 @@ describe('isValidChild', () => {
                 parentType,
                 childType,
               }),
-            ).to.equal(false);
+            ).toBe(false);
           });
         }
         // see isValidChild.js for why tabs do not increment the depth of their children

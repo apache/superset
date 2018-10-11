@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import componentIsResizable from '../../../../src/dashboard/util/componentIsResizable';
 import {
   CHART_TYPE,
@@ -28,14 +26,14 @@ const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE];
 
 describe('componentIsResizable', () => {
   resizable.forEach(type => {
-    it(`should return true for ${type}`, () => {
-      expect(componentIsResizable({ type })).to.equal(true);
+    test(`should return true for ${type}`, () => {
+      expect(componentIsResizable({ type })).toBe(true);
     });
   });
 
   notResizable.forEach(type => {
-    it(`should return false for ${type}`, () => {
-      expect(componentIsResizable({ type })).to.equal(false);
+    test(`should return false for ${type}`, () => {
+      expect(componentIsResizable({ type })).toBe(false);
     });
   });
 });
