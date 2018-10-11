@@ -49,7 +49,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const fd = props.payload.form_data;
+    const fd = props.slice.formData;
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = props.payload.data.features.map(f => f.__timestamp);
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
