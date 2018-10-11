@@ -2331,7 +2331,9 @@ class DeckPathViz(BaseDeckGLViz):
     }
 
     def query_obj(self):
+        form_data = self.form_data
         d = super(DeckPathViz, self).query_obj()
+        self.metric = form_data.get('metric')
         line_col = self.form_data.get('line_column')
         if d['metrics']:
             self.has_metrics = True
@@ -2352,7 +2354,12 @@ class DeckPathViz(BaseDeckGLViz):
         d[self.deck_viz_key] = path
         if line_type != 'geohash':
             del d[line_column]
+        d['metric'] = d.get(self.metric_label)
         return d
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckPathViz, self).get_data(df)
 
 
 class DeckPolygon(DeckPathViz):
