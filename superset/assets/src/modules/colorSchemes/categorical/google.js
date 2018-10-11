@@ -1,11 +1,5 @@
-import d3 from 'd3';
-
 export default {
-  d3Category10: d3.scale.category10().range(),
-  d3Category20: d3.scale.category20().range(),
-  d3Category20b: d3.scale.category20b().range(),
-  d3Category20c: d3.scale.category20c().range(),
-  googleCategory10c: [
+  category10c: [
     '#3366cc',
     '#dc3912',
     '#ff9900',
@@ -17,7 +11,7 @@ export default {
     '#b82e2e',
     '#316395',
   ],
-  googleCategory20c: [
+  category20c: [
     '#3366cc',
     '#dc3912',
     '#ff9900',
