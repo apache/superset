@@ -757,7 +757,11 @@ class SqlaTable(Model, BaseDatasource):
                     'order_desc': True,
                 }
                 result = self.query(subquery_obj)
-                dimensions = [c for c in result.df.columns if c not in metrics]
+                cols = {col.column_name: col for col in self.columns}
+                dimensions = [
+                    c for c in result.df.columns
+                    if c not in metrics and c in cols
+                ]
                 top_groups = self._get_top_groups(result.df, dimensions)
                 qry = qry.where(top_groups)
 
