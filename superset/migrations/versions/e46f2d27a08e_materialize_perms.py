@@ -6,11 +6,6 @@ Revises: c611f2b591b8
 Create Date: 2016-11-14 15:23:32.594898
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 # revision identifiers, used by Alembic.
 revision = 'e46f2d27a08e'
 down_revision = 'c611f2b591b8'
