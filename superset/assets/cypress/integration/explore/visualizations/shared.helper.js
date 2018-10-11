@@ -15,6 +15,13 @@ export const FORM_DATA_DEFAULTS = {
   contribution: false,
 };
 
+export const HEALTH_POP_FORM_DATA_DEFAULTS = {
+  datasource: '2__table',
+  granularity_sqla: 'ds',
+  time_grain_sqla: 'P1D',
+  time_range: '1960-01-01+:+2014-01-02',
+};
+
 export const NUM_METRIC = {
   expressionType: 'SIMPLE',
   column: {
