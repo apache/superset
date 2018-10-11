@@ -5,6 +5,7 @@ instrumentation:
     excludes: [
         'dist/**',
         'visualizations/index.js',
+        'visualizations/**/*ChartPlugin.js',
     ]
     embed-source: false
     variable: __coverage__
