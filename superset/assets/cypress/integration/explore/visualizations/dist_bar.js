@@ -2,7 +2,7 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 // Dist bar
 
-describe('Distribution bar chart', () => {
+export default () => describe('Distribution bar chart', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
 
   beforeEach(() => {

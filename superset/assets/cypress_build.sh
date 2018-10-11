@@ -9,8 +9,7 @@ superset/bin/superset runserver &
 
 cd "$(dirname "$0")"
 
-npm install -g yarn
-yarn
+yarn install --frozen-lockfile
 npm run build
-npm run cypress run --record --parallel --key 1f958c86-be14-44d9-8d08-fad68da06811
+npm run cypress run
 kill %1

@@ -1,7 +1,6 @@
 /* eslint camelcase: 0 */
 import d3 from 'd3';
 import $ from 'jquery';
-
 import { formatDate, UTC } from './dates';
 
 const siFormatter = d3.format('.3s');
@@ -184,16 +183,6 @@ export function formatSelectOptions(options) {
   return options.map(opt =>
      [opt, opt.toString()],
   );
-}
-
-export function slugify(string) {
-  // slugify('My Neat Label! '); returns 'my-neat-label'
-  return string
-          .toString()
-          .toLowerCase()
-          .trim()
-          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
-          .replace(/-$/, ''); // remove last floating dash
 }
 
 export function getAjaxErrorMsg(error) {
