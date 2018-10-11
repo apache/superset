@@ -41,12 +41,10 @@ class SqlEditorLeftBar extends React.PureComponent {
   onDatabaseChange(db, force) {
     const val = db ? db.value : null;
     this.setState({ schemaOptions: [] });
+    this.setState({ tableOptions: [] });
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, null);
     this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
-    if (!(db)) {
-      this.setState({ tableOptions: [] });
-    } else {
-      this.fetchTables(val, this.props.queryEditor.schema);
+    if (db) {
       this.fetchSchemas(val, force || false);
     }
   }
@@ -69,11 +67,15 @@ class SqlEditorLeftBar extends React.PureComponent {
   resetState() {
     this.props.actions.resetState();
   }
-  fetchTables(dbId, schema, substr) {
+  fetchTables(dbId, schema, force) {
     // This can be large so it shouldn't be put in the Redux store
+    // This function has never been called with substr param so we just
+    // assign null to substr and have it passed to the endpoint.
+    const substr = null;
+    const forceRefresh = force || false;
     if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
-      const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
+      const url = `/superset/tables/${dbId}/${schema}/${substr}/${forceRefresh}/`;
       $.get(url).done((data) => {
         const filterOptions = createFilterOptions({ options: data.options });
         this.setState({
@@ -110,10 +112,10 @@ class SqlEditorLeftBar extends React.PureComponent {
     }
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
-  changeSchema(schemaOpt) {
+  changeSchema(schemaOpt, force) {
     const schema = (schemaOpt) ? schemaOpt.value : null;
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
-    this.fetchTables(this.props.queryEditor.dbId, schema);
+    this.fetchTables(this.props.queryEditor.dbId, schema, force);
   }
   fetchSchemas(dbId, force) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
@@ -214,30 +216,41 @@ class SqlEditorLeftBar extends React.PureComponent {
               </i>)
             </small>
           </ControlLabel>
-          {this.props.queryEditor.schema &&
-            <Select
-              name="select-table"
-              ref="selectTable"
-              isLoading={this.state.tableLoading}
-              placeholder={t('Select table or type table name')}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              filterOptions={this.state.filterOptions}
-              options={this.state.tableOptions}
-            />
-          }
-          {!this.props.queryEditor.schema &&
-            <Select
-              async
-              name="async-select-table"
-              ref="selectTable"
-              placeholder={tableSelectPlaceholder}
-              disabled={tableSelectDisabled}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              loadOptions={this.getTableNamesBySubStr.bind(this)}
-            />
-          }
+          <div className="row">
+            <div className="col-md-11 col-xs-11" style={{ paddingRight: '2px' }}>
+              {this.props.queryEditor.schema &&
+                <Select
+                  name="select-table"
+                  ref="selectTable"
+                  isLoading={this.state.tableLoading}
+                  placeholder={t('Select table or type table name')}
+                  autosize={false}
+                  onChange={this.changeTable.bind(this)}
+                  filterOptions={this.state.filterOptions}
+                  options={this.state.tableOptions}
+                />
+              }
+              {!this.props.queryEditor.schema &&
+                <Select
+                  async
+                  name="async-select-table"
+                  ref="selectTable"
+                  placeholder={tableSelectPlaceholder}
+                  disabled={tableSelectDisabled}
+                  autosize={false}
+                  onChange={this.changeTable.bind(this)}
+                  loadOptions={this.getTableNamesBySubStr.bind(this)}
+                />
+              }
+            </div>
+            <div className="col-md-1 col-xs-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
+              <RefreshLabel
+                onClick={this.changeSchema.bind(
+                    this, { value: this.props.queryEditor.schema }, true)}
+                tooltipContent="force refresh schema list"
+              />
+            </div>
+          </div>
         </div>
         <hr />
         <div className="m-t-5">

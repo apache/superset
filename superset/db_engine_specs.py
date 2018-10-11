@@ -312,8 +312,26 @@ class BaseEngineSpec(object):
         return inspector.get_schema_names()
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
+    )
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    @cache_util.memoized_func(
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
+    )
+    def get_view_names(cls, inspector, db_id, schema,
+                       enable_cache, cache_timeout, force=False):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -438,7 +456,14 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
+    )
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -596,7 +621,14 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
+        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
+    )
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 

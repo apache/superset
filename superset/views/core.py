@@ -206,7 +206,8 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             '#sqlalchemy.schema.MetaData) call.<br/>'
             '2. The ``metadata_cache_timeout`` is a cache timeout setting '
             'in seconds for metadata fetch of this database. Specify it as '
-            '**"metadata_cache_timeout": {"schema_cache_timeout": 600}**. '
+            '**"metadata_cache_timeout": {"schema_cache_timeout": 600, '
+            '"table_cache_timeout": 600}**. '
             'If unset, cache will not be enabled for the functionality. '
             'A timeout of 0 indicates that the cache never expires.<br/>'
             '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
@@ -1538,7 +1539,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/schemas/<db_id>/')
     @expose('/schemas/<db_id>/<force_refresh>/')
-    def schemas(self, db_id, force_refresh='true'):
+    def schemas(self, db_id, force_refresh='false'):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
         database = (
@@ -1556,16 +1557,18 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/tables/<db_id>/<schema>/<substr>/')
-    def tables(self, db_id, schema, substr):
+    @expose('/tables/<db_id>/<schema>/<substr>/<force_refresh>/')
+    def tables(self, db_id, schema, substr, force_refresh='false'):
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
+        force_refresh = force_refresh.lower() == 'true'
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
         table_names = security_manager.accessible_by_user(
-            database, database.all_table_names(schema), schema)
+            database, database.all_table_names(schema, force_refresh), schema)
         view_names = security_manager.accessible_by_user(
-            database, database.all_view_names(schema), schema)
+            database, database.all_view_names(schema, force_refresh), schema)
 
         if substr:
             table_names = [tn for tn in table_names if substr in tn]
