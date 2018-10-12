@@ -10,7 +10,6 @@
   "scripts": {
     "tdd": "jest --watch",
     "test": "jest",
-    "test:one": "jest",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers babel-core/register --require spec/helpers/shim.js --require ignore-styles 'spec/**/*_spec.*'",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
     "dev-server": "webpack-dev-server --mode=development --progress",
