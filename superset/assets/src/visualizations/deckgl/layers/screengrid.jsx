@@ -107,10 +107,6 @@ class DeckGLScreenGrid extends React.PureComponent {
 
   render() {
     const { formData, payload } = this.props;
-    const viewport = formData.autozoom
-      ? fitViewport(this.state.viewport, getPoints(payload.data.features))
-      : this.state.viewport;
-
     return (
       <div>
         <AnimatableDeckGLContainer
@@ -121,7 +117,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           values={this.state.values}
           onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={viewport}
+          viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.formData.mapbox_style}
