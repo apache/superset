@@ -1,21 +1,17 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-
+import d3 from 'd3';
 import { PolygonLayer } from 'deck.gl';
 import { flatten } from 'lodash';
-import d3 from 'd3';
-
-import DeckGLContainer from './../DeckGLContainer';
-
-import * as common from './common';
 import { colorScalerFactory } from '../../../modules/colors';
+import { commonLayerProps } from './common';
 import sandboxedEval from '../../../modules/sandbox';
+import createAdaptor from '../createAdaptor';
+import { createDeckGLComponent } from '../factory';
 
 function getPoints(features) {
   return flatten(features.map(d => d.polygon), true);
 }
 
-function getLayer(formData, payload, slice) {
+export function getLayer(formData, payload, onAddFilter, onTooltip) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -49,36 +45,8 @@ function getLayer(formData, payload, slice) {
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     fp64: true,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, onAddFilter, onTooltip),
   });
 }
 
-function deckPolygon(slice, payload, setControlValue) {
-  const layer = getLayer(slice.formData, payload, slice);
-  const fd = slice.formData;
-  let viewport = {
-    ...slice.formData.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
-
-  if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
-  }
-
-  ReactDOM.render(
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={slice.formData.mapbox_style}
-      setControlValue={setControlValue}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
-module.exports = {
-  default: deckPolygon,
-  getLayer,
-};
+export default createAdaptor(createDeckGLComponent(getLayer, getPoints));
