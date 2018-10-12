@@ -6,4 +6,5 @@ module.exports = {
   },
   setupTestFrameworkScriptFile: '<rootDir>/spec/helpers/shim.js',
   testURL: 'http://localhost',
+  collectCoverageFrom: ['src/**/*.{js,jsx}'],
 };
