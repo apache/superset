@@ -67,11 +67,8 @@ class SqlEditorLeftBar extends React.PureComponent {
   resetState() {
     this.props.actions.resetState();
   }
-  fetchTables(dbId, schema, force) {
+  fetchTables(dbId, schema, force, substr) {
     // This can be large so it shouldn't be put in the Redux store
-    // This function has never been called with substr param so we just
-    // assign null to substr and have it passed to the endpoint.
-    const substr = null;
     const forceRefresh = force || false;
     if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
