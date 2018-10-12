@@ -1,7 +1,7 @@
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../src/explore/AdhocFilter';
 
 describe('AdhocFilter', () => {
-  test('sets filterOptionName in constructor', () => {
+  it('sets filterOptionName in constructor', () => {
     const adhocFilter = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
@@ -22,7 +22,7 @@ describe('AdhocFilter', () => {
     });
   });
 
-  test('can create altered duplicates', () => {
+  it('can create altered duplicates', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
@@ -41,7 +41,7 @@ describe('AdhocFilter', () => {
     expect(adhocFilter2.operator).toBe('<');
   });
 
-  test('can verify equality', () => {
+  it('can verify equality', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
@@ -57,7 +57,7 @@ describe('AdhocFilter', () => {
     expect(adhocFilter1 === adhocFilter2).toBe(false);
   });
 
-  test('can verify inequality', () => {
+  it('can verify inequality', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
@@ -81,7 +81,7 @@ describe('AdhocFilter', () => {
     expect(adhocFilter3.equals(adhocFilter4)).toBe(false);
   });
 
-  test('can determine if it is valid', () => {
+  it('can determine if it is valid', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',
@@ -131,7 +131,7 @@ describe('AdhocFilter', () => {
     expect(adhocFilter5.isValid()).toBe(true);
   });
 
-  test('can translate from simple expressions to sql expressions', () => {
+  it('can translate from simple expressions to sql expressions', () => {
     const adhocFilter1 = new AdhocFilter({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'value',

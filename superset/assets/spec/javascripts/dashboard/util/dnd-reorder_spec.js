@@ -1,7 +1,7 @@
 import reorderItem from '../../../../src/dashboard/util/dnd-reorder';
 
 describe('dnd-reorderItem', () => {
-  test('should remove the item from its source entity and add it to its destination entity', () => {
+  it('should remove the item from its source entity and add it to its destination entity', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -21,7 +21,7 @@ describe('dnd-reorderItem', () => {
     expect(result.b.children).toEqual(['banana', 'z']);
   });
 
-  test('should correctly move elements within the same list', () => {
+  it('should correctly move elements within the same list', () => {
     const result = reorderItem({
       entitiesMap: {
         a: {
@@ -36,7 +36,7 @@ describe('dnd-reorderItem', () => {
     expect(result.a.children).toEqual(['z', 'x', 'y']);
   });
 
-  test('should copy items that do not move into the result', () => {
+  it('should copy items that do not move into the result', () => {
     const extraEntity = {};
     const result = reorderItem({
       entitiesMap: {

@@ -6,24 +6,24 @@ describe('nvd3/utils', () => {
     bar: 'Bar',
   };
   describe('formatLabel()', () => {
-    test('formats simple labels', () => {
+    it('formats simple labels', () => {
       expect(formatLabel('foo')).toBe('foo');
       expect(formatLabel(['foo'])).toBe('foo');
       expect(formatLabel(['foo', 'bar'])).toBe('foo, bar');
     });
-    test('formats simple labels with lookups', () => {
+    it('formats simple labels with lookups', () => {
       expect(formatLabel('foo', verboseMap)).toBe('Foo');
       expect(formatLabel('baz', verboseMap)).toBe('baz');
       expect(formatLabel(['foo'], verboseMap)).toBe('Foo');
       expect(formatLabel(['foo', 'bar', 'baz'], verboseMap)).toBe('Foo, Bar, baz');
     });
-    test('deals with time shift properly', () => {
+    it('deals with time shift properly', () => {
       expect(formatLabel(['foo', '1 hour offset'], verboseMap)).toBe('Foo, 1 hour offset');
       expect(formatLabel(['foo', 'bar', 'baz', '2 hours offset'], verboseMap)).toBe('Foo, Bar, baz, 2 hours offset');
     });
   });
   describe('tryNumify()', () => {
-    test('tryNumify works as expected', () => {
+    it('tryNumify works as expected', () => {
       expect(tryNumify(5)).toBe(5);
       expect(tryNumify('5')).toBe(5);
       expect(tryNumify('5.1')).toBe(5.1);

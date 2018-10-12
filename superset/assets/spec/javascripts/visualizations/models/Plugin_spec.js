@@ -1,19 +1,19 @@
 import Plugin from '../../../../src/visualizations/core/models/Plugin';
 
 describe('Plugin', () => {
-  test('exists', () => {
+  it('exists', () => {
     expect(Plugin).toBeDefined();
   });
 
   describe('new Plugin()', () => {
-    test('creates a new plugin', () => {
+    it('creates a new plugin', () => {
       const plugin = new Plugin();
       expect(plugin).toBeInstanceOf(Plugin);
     });
   });
 
   describe('.configure(config, replace)', () => {
-    test(
+    it(
       'extends the default config with given config when replace is not set or false',
       () => {
         const plugin = new Plugin();
@@ -22,7 +22,7 @@ describe('Plugin', () => {
         expect(plugin.config).toEqual({ key: 'def', foo: 'bar' });
       },
     );
-    test(
+    it(
       'replaces the default config with given config when replace is true',
       () => {
         const plugin = new Plugin();
@@ -31,20 +31,20 @@ describe('Plugin', () => {
         expect(plugin.config).toEqual({ key: 'def' });
       },
     );
-    test('returns the plugin itself', () => {
+    it('returns the plugin itself', () => {
       const plugin = new Plugin();
       expect(plugin.configure({ key: 'abc' })).toBe(plugin);
     });
   });
 
   describe('.resetConfig()', () => {
-    test('resets config back to default', () => {
+    it('resets config back to default', () => {
       const plugin = new Plugin();
       plugin.configure({ key: 'abc', foo: 'bar' });
       plugin.resetConfig();
       expect(plugin.config).toEqual({});
     });
-    test('returns the plugin itself', () => {
+    it('returns the plugin itself', () => {
       const plugin = new Plugin();
       expect(plugin.resetConfig()).toBe(plugin);
     });

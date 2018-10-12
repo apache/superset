@@ -77,7 +77,7 @@ describe('isValidChild', () => {
         if (i > 0 && !didTest[testKey]) {
           didTest[testKey] = true;
 
-          test(`(${exampleIdx})${getIndentation(
+          it(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ✅`, () => {
             expect(
@@ -124,7 +124,7 @@ describe('isValidChild', () => {
           const parentDepth = childDepth - 1;
           const parentType = example[i - 1];
 
-          test(`(${exampleIdx})${getIndentation(
+          it(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ❌`, () => {
             expect(

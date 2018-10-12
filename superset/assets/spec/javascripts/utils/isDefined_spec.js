@@ -1,7 +1,7 @@
 import isDefined from '../../../src/utils/isDefined';
 
 describe('isDefined(value)', () => {
-  test('returns true if value is not null and not undefined', () => {
+  it('returns true if value is not null and not undefined', () => {
     expect(isDefined(0)).toBe(true);
     expect(isDefined(1)).toBe(true);
     expect(isDefined('')).toBe(true);
@@ -13,7 +13,7 @@ describe('isDefined(value)', () => {
     expect(isDefined({ a: 1 })).toBe(true);
     expect(isDefined([{}])).toBe(true);
   });
-  test('returns false otherwise', () => {
+  it('returns false otherwise', () => {
     expect(isDefined(null)).toBe(false);
     expect(isDefined(undefined)).toBe(false);
   });

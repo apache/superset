@@ -4,7 +4,7 @@ import { AGGREGATES } from '../../../src/explore/constants';
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 
 describe('AdhocMetric', () => {
-  test('sets label, hasCustomLabel and optionName in constructor', () => {
+  it('sets label, hasCustomLabel and optionName in constructor', () => {
     const adhocMetric = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -22,7 +22,7 @@ describe('AdhocMetric', () => {
     });
   });
 
-  test('can create altered duplicates', () => {
+  it('can create altered duplicates', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -36,7 +36,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
   });
 
-  test('can verify equality', () => {
+  it('can verify equality', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -47,7 +47,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric1.equals(adhocMetric2)).toBe(true);
   });
 
-  test('can verify inequality', () => {
+  it('can verify inequality', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -71,7 +71,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric3.equals(adhocMetric4)).toBe(false);
   });
 
-  test('updates label if hasCustomLabel is false', () => {
+  it('updates label if hasCustomLabel is false', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -81,7 +81,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.label).toBe('AVG(value)');
   });
 
-  test('keeps label if hasCustomLabel is true', () => {
+  it('keeps label if hasCustomLabel is true', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
@@ -93,7 +93,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.label).toBe('label1');
   });
 
-  test('can determine if it is valid', () => {
+  it('can determine if it is valid', () => {
     const adhocMetric1 = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
@@ -142,7 +142,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric5.isValid()).toBe(false);
   });
 
-  test(
+  it(
     'can translate back from sql expressions to simple expressions when possible',
     () => {
       const adhocMetric = new AdhocMetric({
@@ -165,7 +165,7 @@ describe('AdhocMetric', () => {
     },
   );
 
-  test(
+  it(
     'will infer columns and aggregates when converting to a simple expression',
     () => {
       const adhocMetric = new AdhocMetric({

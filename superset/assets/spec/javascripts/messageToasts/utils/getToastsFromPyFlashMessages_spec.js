@@ -7,12 +7,12 @@ import {
 import getToastsFromPyFlashMessages from '../../../../src/messageToasts/utils/getToastsFromPyFlashMessages';
 
 describe('getToastsFromPyFlashMessages', () => {
-  test('should return an info toast', () => {
+  it('should return an info toast', () => {
     const toast = getToastsFromPyFlashMessages([['info', 'info test']])[0];
     expect(toast).toMatchObject({ toastType: INFO_TOAST, text: 'info test' });
   });
 
-  test('should return a success toast', () => {
+  it('should return a success toast', () => {
     const toast = getToastsFromPyFlashMessages([
       ['success', 'success test'],
     ])[0];
@@ -22,7 +22,7 @@ describe('getToastsFromPyFlashMessages', () => {
     });
   });
 
-  test('should return a danger toast', () => {
+  it('should return a danger toast', () => {
     const toast = getToastsFromPyFlashMessages([['danger', 'danger test']])[0];
     expect(toast).toMatchObject({
       toastType: DANGER_TOAST,

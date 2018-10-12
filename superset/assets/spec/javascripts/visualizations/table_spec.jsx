@@ -32,24 +32,24 @@ describe('table viz', () => {
   it('renders into a container', () => {
     $('body').html(div);
     const container = $(baseSlice.selector);
-    expect(container.length).toBe(1);
+    expect(container).toHaveLength(1);
   });
 
   it('renders header and body datatables in container', () => {
     $('body').html(div);
     const container = $(baseSlice.selector);
 
-    expect(container.find('.dataTable').length).toBe(0);
+    expect(container.find('.dataTable')).toHaveLength(0);
     tableVis(baseSlice, basePayload);
-    expect(container.find('.dataTable').length).toBe(2);
+    expect(container.find('.dataTable')).toHaveLength(2);
 
     const tableHeader = container.find('.dataTable')[0];
-    expect($(tableHeader).find('thead tr').length).toBe(1);
-    expect($(tableHeader).find('th').length).toBe(2);
+    expect($(tableHeader).find('thead tr')).toHaveLength(1);
+    expect($(tableHeader).find('th')).toHaveLength(2);
 
     const tableBody = container.find('.dataTable')[1];
-    expect($(tableBody).find('tbody tr').length).toBe(2);
-    expect($(tableBody).find('th').length).toBe(2);
+    expect($(tableBody).find('tbody tr')).toHaveLength(2);
+    expect($(tableBody).find('th')).toHaveLength(2);
   });
 
   it('hides the sort by column', () => {
@@ -73,7 +73,7 @@ describe('table viz', () => {
 
     const container = $(slice.selector);
     const tableHeader = container.find('.dataTable')[0];
-    expect($(tableHeader).find('th').length).toBe(2);
+    expect($(tableHeader).find('th')).toHaveLength(2);
   });
 
   it('works with empty list for sort by', () => {
@@ -95,6 +95,6 @@ describe('table viz', () => {
 
     const container = $(slice.selector);
     const tableBody = container.find('.dataTable')[1];
-    expect($(tableBody).find('th').length).toBe(3);
+    expect($(tableBody).find('th')).toHaveLength(3);
   });
 });

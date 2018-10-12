@@ -5,7 +5,6 @@ import sinon from 'sinon';
 import Timer from '../../../src/components/Timer';
 import { now } from '../../../src/modules/dates';
 
-
 describe('Timer', () => {
   let wrapper;
   let clock;
@@ -35,16 +34,20 @@ describe('Timer', () => {
   });
 
   it('calls startTimer on mount', () => {
+    // Timer is already mounted in beforeEach
+    wrapper.unmount();
     const startTimerSpy = sinon.spy(Timer.prototype, 'startTimer');
     wrapper.mount();
-    expect(Timer.prototype.startTimer.calledOnce);
+    // Timer is started once in willUnmount and a second timer in render
+    // TODO: Questionable whether this is necessary.
+    expect(startTimerSpy.callCount).toBe(2);
     startTimerSpy.restore();
   });
 
   it('calls stopTimer on unmount', () => {
     const stopTimerSpy = sinon.spy(Timer.prototype, 'stopTimer');
     wrapper.unmount();
-    expect(Timer.prototype.stopTimer.calledOnce);
+    expect(stopTimerSpy.callCount).toBe(1);
     stopTimerSpy.restore();
   });
 

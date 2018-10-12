@@ -7,11 +7,11 @@ import {
 import sliceEntitiesReducer from '../../../../src/dashboard/reducers/sliceEntities';
 
 describe('sliceEntities reducer', () => {
-  test('should return initial state', () => {
+  it('should return initial state', () => {
     expect(sliceEntitiesReducer({}, {})).toEqual({});
   });
 
-  test('should set loading when fetching slices', () => {
+  it('should set loading when fetching slices', () => {
     expect(
       sliceEntitiesReducer(
         { isLoading: false },
@@ -20,7 +20,7 @@ describe('sliceEntities reducer', () => {
     ).toBe(true);
   });
 
-  test('should set slices', () => {
+  it('should set slices', () => {
     const result = sliceEntitiesReducer(
       { slices: { a: {} } },
       { type: SET_ALL_SLICES, slices: { 1: {}, 2: {} } },
@@ -34,7 +34,7 @@ describe('sliceEntities reducer', () => {
     expect(result.isLoading).toBe(false);
   });
 
-  test('should set an error on error', () => {
+  it('should set an error on error', () => {
     const result = sliceEntitiesReducer(
       {},
       {

@@ -2,11 +2,11 @@ import { ADD_TOAST, REMOVE_TOAST } from '../../../../src/messageToasts/actions';
 import messageToastsReducer from '../../../../src/messageToasts/reducers';
 
 describe('messageToasts reducer', () => {
-  test('should return initial state', () => {
+  it('should return initial state', () => {
     expect(messageToastsReducer(undefined, {})).toEqual([]);
   });
 
-  test('should add a toast', () => {
+  it('should add a toast', () => {
     expect(
       messageToastsReducer([], {
         type: ADD_TOAST,
@@ -15,7 +15,7 @@ describe('messageToasts reducer', () => {
     ).toEqual([{ text: 'test', id: 'id', type: 'test_type' }]);
   });
 
-  test('should add a toast', () => {
+  it('should remove a toast', () => {
     expect(
       messageToastsReducer([{ id: 'id' }, { id: 'id2' }], {
         type: REMOVE_TOAST,

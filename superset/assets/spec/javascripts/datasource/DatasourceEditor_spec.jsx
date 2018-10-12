@@ -63,9 +63,9 @@ describe('DatasourceEditor', () => {
 
   it('merges columns', () => {
     const numCols = props.datasource.columns.length;
-    expect(inst.state.databaseColumns.length).toBe(numCols);
+    expect(inst.state.databaseColumns).toHaveLength(numCols);
     inst.mergeColumns([extraColumn]);
-    expect(inst.state.databaseColumns.length).toBe(numCols + 1);
+    expect(inst.state.databaseColumns).toHaveLength(numCols + 1);
   });
 
 });

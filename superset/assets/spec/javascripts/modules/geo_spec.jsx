@@ -6,7 +6,7 @@ describe('unitToRadius', () => {
   it('converts to square meters', () => {
     expect(unitToRadius('square_m', 4 * Math.PI)).toBe(2);
   });
-  it('converts to square meters', () => {
+  it('converts to square kilometers', () => {
     expect(unitToRadius('square_km', 25 * Math.PI)).toBe(5000);
   });
   it('converts to radius meters', () => {

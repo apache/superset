@@ -28,7 +28,7 @@ describe('getFormDataWithExtraFilters', () => {
     sliceId: chartId,
   };
 
-  test('should include filters from the passed filters', () => {
+  it('should include filters from the passed filters', () => {
     const result = getFormDataWithExtraFilters(mockArgs);
     expect(result.extra_filters).toHaveLength(2);
     expect(result.extra_filters[0]).toEqual({
@@ -43,7 +43,7 @@ describe('getFormDataWithExtraFilters', () => {
     });
   });
 
-  test('should not add additional filters if the slice is immune to them', () => {
+  it('should not add additional filters if the slice is immune to them', () => {
     const result = getFormDataWithExtraFilters({
       ...mockArgs,
       dashboardMetadata: {
@@ -53,7 +53,7 @@ describe('getFormDataWithExtraFilters', () => {
     expect(result.extra_filters).toHaveLength(0);
   });
 
-  test('should not add additional filters for fields to which the slice is immune', () => {
+  it('should not add additional filters for fields to which the slice is immune', () => {
     const result = getFormDataWithExtraFilters({
       ...mockArgs,
       dashboardMetadata: {

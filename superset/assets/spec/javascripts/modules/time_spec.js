@@ -2,7 +2,7 @@ import moment from 'moment';
 import { getPlaySliderParams, truncate } from '../../../src/modules/time';
 
 describe('truncate', () => {
-  test('truncates timestamps', () => {
+  it('truncates timestamps', () => {
     const timestamp = moment('2018-03-03T03:03:03.333');
     const isoDurations = [
       // basic units
@@ -26,11 +26,11 @@ describe('truncate', () => {
 });
 
 describe('getPlaySliderParams', () => {
-  test('is a function', () => {
+  it('is a function', () => {
     expect(typeof getPlaySliderParams).toBe('function');
   });
 
-  test('handles durations', () => {
+  it('handles durations', () => {
     const timestamps = [
       moment('2018-01-01T00:00:00'),
       moment('2018-01-02T00:00:00'),
@@ -54,7 +54,7 @@ describe('getPlaySliderParams', () => {
     expect(disabled).toBe(false);
   });
 
-  test('handles intervals', () => {
+  it('handles intervals', () => {
     const timestamps = [
       moment('2018-01-01T00:00:00'),
       moment('2018-01-02T00:00:00'),

@@ -18,23 +18,23 @@ describe('AddSliceContainer', () => {
     wrapper = shallow(<AddSliceContainer {...defaultProps} />);
   });
 
-  test('uses table as default visType', () => {
+  it('uses table as default visType', () => {
     expect(wrapper.state().visType).toBe('table');
   });
 
-  test('renders 2 selects', () => {
+  it('renders 2 selects', () => {
     expect(wrapper.find(Select)).toHaveLength(2);
   });
 
-  test('renders a button', () => {
+  it('renders a button', () => {
     expect(wrapper.find(Button)).toHaveLength(1);
   });
 
-  test('renders a disabled button if no datasource is selected', () => {
+  it('renders a disabled button if no datasource is selected', () => {
     expect(wrapper.find(Button).dive().find('.btn[disabled=true]')).toHaveLength(1);
   });
 
-  test('renders an enabled button if datasource is selected', () => {
+  it('renders an enabled button if datasource is selected', () => {
     const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
       datasourceValue,
@@ -44,7 +44,7 @@ describe('AddSliceContainer', () => {
     expect(wrapper.find(Button).dive().find('.btn[disabled=false]')).toHaveLength(1);
   });
 
-  test('formats explore url', () => {
+  it('formats explore url', () => {
     const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
       datasourceValue,

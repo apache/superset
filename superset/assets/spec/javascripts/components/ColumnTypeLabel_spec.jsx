@@ -43,7 +43,7 @@ describe('ColumnOption', () => {
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('?');
   });
-  it('unknown type shows question mark', () => {
+  it('datetime type displays', () => {
     const lbl = getWrapper({ type: 'datetime' }).find('.fa-clock-o');
     expect(lbl).toHaveLength(1);
   });

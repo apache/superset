@@ -2,19 +2,19 @@ import Preset from '../../../../src/visualizations/core/models/Preset';
 import Plugin from '../../../../src/visualizations/core/models/Plugin';
 
 describe('Preset', () => {
-  test('exists', () => {
+  it('exists', () => {
     expect(Preset).toBeDefined();
   });
 
   describe('new Preset()', () => {
-    test('creates new preset', () => {
+    it('creates new preset', () => {
       const preset = new Preset();
       expect(preset).toBeInstanceOf(Preset);
     });
   });
 
   describe('.register()', () => {
-    test('register all listed presets then plugins', () => {
+    it('register all listed presets then plugins', () => {
       const values = [];
       class Plugin1 extends Plugin {
         register() {
@@ -55,7 +55,7 @@ describe('Preset', () => {
       expect(values).toEqual([1, 2, 3, 'abc']);
     });
 
-    test('returns itself', () => {
+    it('returns itself', () => {
       const preset = new Preset();
       expect(preset.register()).toBe(preset);
     });

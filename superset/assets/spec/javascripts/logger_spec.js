@@ -4,12 +4,12 @@ import sinon from 'sinon';
 import { Logger, ActionLog } from '../../src/logger';
 
 describe('ActionLog', () => {
-  test('should be a constructor', () => {
+  it('should be a constructor', () => {
     const newLogger = new ActionLog({});
     expect(newLogger instanceof ActionLog).toBe(true);
   });
 
-  test(
+  it(
     'should set the eventNames, impressionId, source, sourceId, and sendNow init parameters',
     () => {
       const eventNames = [];
@@ -27,14 +27,14 @@ describe('ActionLog', () => {
     },
   );
 
-  test('should set attributes with the setAttribute method', () => {
+  it('should set attributes with the setAttribute method', () => {
     const log = new ActionLog({});
     expect(log.test).toBeUndefined();
     log.setAttribute('test', 'testValue');
     expect(log.test).toBe('testValue');
   });
 
-  test('should track added events', () => {
+  it('should track added events', () => {
     const log = new ActionLog({});
     const eventName = 'myEventName';
     const eventBody = { test: 'event' };
@@ -47,7 +47,7 @@ describe('ActionLog', () => {
 });
 
 describe('Logger', () => {
-  test('should add events when .append(eventName, eventBody) is called', () => {
+  it('should add events when .append(eventName, eventBody) is called', () => {
     const eventName = 'testEvent';
     const eventBody = { test: 'event' };
     const log = new ActionLog({ eventNames: [eventName] });
@@ -73,7 +73,7 @@ describe('Logger', () => {
       return log;
     }
 
-    test('should POST an event to /superset/log/ when called', () => {
+    it('should POST an event to /superset/log/ when called', () => {
       const log = setup();
       Logger.start(log);
       Logger.append(eventNames[0], { test: 'event' });
@@ -85,7 +85,7 @@ describe('Logger', () => {
       expect(args.method).toBe('POST');
     });
 
-    test("should flush the log's events", () => {
+    it("should flush the log's events", () => {
       const log = setup();
       Logger.start(log);
       Logger.append(eventNames[0], { test: 'event' });
@@ -95,7 +95,7 @@ describe('Logger', () => {
       expect(log.events).toEqual({});
     });
 
-    test(
+    it(
       'should include ts, start_offset, event_name, impression_id, source, and source_id in every event',
       () => {
         const config = {
@@ -136,7 +136,7 @@ describe('Logger', () => {
       },
     );
 
-    test(
+    it(
       'should send() a log immediately if .append() is called with sendNow=true',
       () => {
         const log = setup();

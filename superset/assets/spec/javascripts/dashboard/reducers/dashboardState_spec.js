@@ -15,11 +15,11 @@ import {
 import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardState';
 
 describe('dashboardState reducer', () => {
-  test('should return initial state', () => {
+  it('should return initial state', () => {
     expect(dashboardStateReducer(undefined, {})).toEqual({});
   });
 
-  test('should add a slice', () => {
+  it('should add a slice', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1] },
@@ -28,7 +28,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ sliceIds: [1, 2] });
   });
 
-  test('should remove a slice', () => {
+  it('should remove a slice', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1, 2], filters: {} },
@@ -37,7 +37,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ sliceIds: [1], refresh: false, filters: {} });
   });
 
-  test('should reset filters if a removed slice is a filter', () => {
+  it('should reset filters if a removed slice is a filter', () => {
     expect(
       dashboardStateReducer(
         { sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
@@ -46,7 +46,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ sliceIds: [1], filters: { 1: {} }, refresh: true });
   });
 
-  test('should toggle fav star', () => {
+  it('should toggle fav star', () => {
     expect(
       dashboardStateReducer(
         { isStarred: false },
@@ -55,7 +55,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ isStarred: true });
   });
 
-  test('should toggle edit mode', () => {
+  it('should toggle edit mode', () => {
     expect(
       dashboardStateReducer(
         { editMode: false },
@@ -64,7 +64,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ editMode: true, showBuilderPane: true });
   });
 
-  test('should toggle builder pane', () => {
+  it('should toggle builder pane', () => {
     expect(
       dashboardStateReducer(
         { showBuilderPane: false },
@@ -80,7 +80,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ showBuilderPane: false });
   });
 
-  test('should toggle expanded slices', () => {
+  it('should toggle expanded slices', () => {
     expect(
       dashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } },
@@ -96,7 +96,7 @@ describe('dashboardState reducer', () => {
     ).toEqual({ expandedSlices: { 1: true, 2: true } });
   });
 
-  test('should set hasUnsavedChanges', () => {
+  it('should set hasUnsavedChanges', () => {
     expect(dashboardStateReducer({}, { type: ON_CHANGE })).toEqual({
       hasUnsavedChanges: true,
     });
@@ -111,7 +111,7 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  test('should set maxUndoHistoryExceeded', () => {
+  it('should set maxUndoHistoryExceeded', () => {
     expect(
       dashboardStateReducer(
         {},
@@ -125,7 +125,7 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  test('should set unsaved changes, max undo history, and editMode to false on save', () => {
+  it('should set unsaved changes, max undo history, and editMode to false on save', () => {
     expect(
       dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
     ).toEqual({
@@ -136,7 +136,7 @@ describe('dashboardState reducer', () => {
   });
 
   describe('change filter', () => {
-    test('should add a new filter if it does not exist', () => {
+    it('should add a new filter if it does not exist', () => {
       expect(
         dashboardStateReducer(
           {
@@ -159,7 +159,7 @@ describe('dashboardState reducer', () => {
       });
     });
 
-    test('should overwrite a filter if merge is false', () => {
+    it('should overwrite a filter if merge is false', () => {
       expect(
         dashboardStateReducer(
           {
@@ -184,7 +184,7 @@ describe('dashboardState reducer', () => {
       });
     });
 
-    test('should merge a filter if merge is true', () => {
+    it('should merge a filter if merge is true', () => {
       expect(
         dashboardStateReducer(
           {
@@ -209,7 +209,7 @@ describe('dashboardState reducer', () => {
       });
     });
 
-    test('should remove the filter if values are empty', () => {
+    it('should remove the filter if values are empty', () => {
       expect(
         dashboardStateReducer(
           {

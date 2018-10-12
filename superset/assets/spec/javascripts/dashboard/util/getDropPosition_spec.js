@@ -62,7 +62,7 @@ describe('getDropPosition', () => {
   }
 
   describe('invalid child + invalid sibling', () => {
-    test('should return null', () => {
+    it('should return null', () => {
       const result = getDropPosition(
         // TAB is an invalid child + sibling of GRID > ROW
         ...getMocks({
@@ -76,7 +76,7 @@ describe('getDropPosition', () => {
   });
 
   describe('valid child + invalid sibling', () => {
-    test('should return DROP_LEFT if component has NO children, and orientation is "row"', () => {
+    it('should return DROP_LEFT if component has NO children, and orientation is "row"', () => {
       // HEADER is a valid child + invalid sibling of ROOT > GRID
       const result = getDropPosition(
         ...getMocks({
@@ -88,7 +88,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_LEFT);
     });
 
-    test('should return DROP_RIGHT if component HAS children, and orientation is "row"', () => {
+    it('should return DROP_RIGHT if component HAS children, and orientation is "row"', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_ROOT_TYPE,
@@ -100,7 +100,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_RIGHT);
     });
 
-    test('should return DROP_TOP if component has NO children, and orientation is "column"', () => {
+    it('should return DROP_TOP if component has NO children, and orientation is "column"', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_ROOT_TYPE,
@@ -112,7 +112,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_TOP);
     });
 
-    test('should return DROP_BOTTOM if component HAS children, and orientation is "column"', () => {
+    it('should return DROP_BOTTOM if component HAS children, and orientation is "column"', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_ROOT_TYPE,
@@ -127,7 +127,7 @@ describe('getDropPosition', () => {
   });
 
   describe('invalid child + valid sibling', () => {
-    test('should return DROP_TOP if orientation="row" and clientOffset is closer to component top than bottom', () => {
+    it('should return DROP_TOP if orientation="row" and clientOffset is closer to component top than bottom', () => {
       const result = getDropPosition(
         // HEADER is an invalid child but valid sibling of GRID > ROW
         ...getMocks({
@@ -144,7 +144,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_TOP);
     });
 
-    test('should return DROP_BOTTOM if orientation="row" and clientOffset is closer to component bottom than top', () => {
+    it('should return DROP_BOTTOM if orientation="row" and clientOffset is closer to component bottom than top', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -160,7 +160,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_BOTTOM);
     });
 
-    test('should return DROP_LEFT if orientation="column" and clientOffset is closer to component left than right', () => {
+    it('should return DROP_LEFT if orientation="column" and clientOffset is closer to component left than right', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -177,7 +177,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_LEFT);
     });
 
-    test('should return DROP_RIGHT if orientation="column" and clientOffset is closer to component right than left', () => {
+    it('should return DROP_RIGHT if orientation="column" and clientOffset is closer to component right than left', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -196,7 +196,7 @@ describe('getDropPosition', () => {
   });
 
   describe('child + valid sibling (row orientation)', () => {
-    test('should return DROP_LEFT if component has NO children, and clientOffset is NOT near top/bottom sibling boundary', () => {
+    it('should return DROP_LEFT if component has NO children, and clientOffset is NOT near top/bottom sibling boundary', () => {
       const result = getDropPosition(
         // CHART is a valid child + sibling of GRID > ROW
         ...getMocks({
@@ -215,7 +215,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_LEFT);
     });
 
-    test('should return DROP_RIGHT if component HAS children, and clientOffset is NOT near top/bottom sibling boundary', () => {
+    it('should return DROP_RIGHT if component HAS children, and clientOffset is NOT near top/bottom sibling boundary', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -234,7 +234,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_RIGHT);
     });
 
-    test('should return DROP_TOP regardless of component children if clientOffset IS near top sibling boundary', () => {
+    it('should return DROP_TOP regardless of component children if clientOffset IS near top sibling boundary', () => {
       const noChildren = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -268,7 +268,7 @@ describe('getDropPosition', () => {
       expect(withChildren).toBe(DROP_TOP);
     });
 
-    test('should return DROP_BOTTOM regardless of component children if clientOffset IS near bottom sibling boundary', () => {
+    it('should return DROP_BOTTOM regardless of component children if clientOffset IS near bottom sibling boundary', () => {
       const noChildren = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -304,7 +304,7 @@ describe('getDropPosition', () => {
   });
 
   describe('child + valid sibling (column orientation)', () => {
-    test('should return DROP_TOP if component has NO children, and clientOffset is NOT near left/right sibling boundary', () => {
+    it('should return DROP_TOP if component has NO children, and clientOffset is NOT near left/right sibling boundary', () => {
       const result = getDropPosition(
         // CHART is a valid child + sibling of GRID > ROW
         ...getMocks({
@@ -324,7 +324,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_TOP);
     });
 
-    test('should return DROP_BOTTOM if component HAS children, and clientOffset is NOT near left/right sibling boundary', () => {
+    it('should return DROP_BOTTOM if component HAS children, and clientOffset is NOT near left/right sibling boundary', () => {
       const result = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -344,7 +344,7 @@ describe('getDropPosition', () => {
       expect(result).toBe(DROP_BOTTOM);
     });
 
-    test('should return DROP_LEFT regardless of component children if clientOffset IS near left sibling boundary', () => {
+    it('should return DROP_LEFT regardless of component children if clientOffset IS near left sibling boundary', () => {
       const noChildren = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,
@@ -380,7 +380,7 @@ describe('getDropPosition', () => {
       expect(withChildren).toBe(DROP_LEFT);
     });
 
-    test('should return DROP_RIGHT regardless of component children if clientOffset IS near right sibling boundary', () => {
+    it('should return DROP_RIGHT regardless of component children if clientOffset IS near right sibling boundary', () => {
       const noChildren = getDropPosition(
         ...getMocks({
           parentType: DASHBOARD_GRID_TYPE,

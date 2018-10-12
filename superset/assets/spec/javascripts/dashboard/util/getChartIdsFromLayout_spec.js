@@ -23,16 +23,16 @@ describe('getChartIdsFromLayout', () => {
     },
   };
 
-  test('should return an array of chartIds', () => {
+  it('should return an array of chartIds', () => {
     const result = getChartIdsFromLayout(mockLayout);
     expect(Array.isArray(result)).toBe(true);
     expect(result.includes('A')).toBe(true);
     expect(result.includes('B')).toBe(true);
   });
 
-  test('should return ids only from CHART_TYPE components', () => {
+  it('should return ids only from CHART_TYPE components', () => {
     const result = getChartIdsFromLayout(mockLayout);
-    expect(result.length).toBe(2);
+    expect(result).toHaveLength(2);
     expect(result.includes('C')).toBe(false);
   });
 });

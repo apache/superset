@@ -17,13 +17,13 @@ describe('async actions', () => {
   });
 
   describe('saveQuery', () => {
-    test('makes the ajax request', () => {
+    it('makes the ajax request', () => {
       const thunk = actions.saveQuery(query);
       thunk((/* mockDispatch */) => {});
       expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    test('calls correct url', () => {
+    it('calls correct url', () => {
       const url = '/savedqueryviewapi/api/create';
       const thunk = actions.saveQuery(query);
       thunk((/* mockDispatch */) => {});
@@ -37,30 +37,30 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    test('makes the ajax request', () => {
+    it('makes the ajax request', () => {
       makeRequest();
       expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    test('calls correct url', () => {
+    it('calls correct url', () => {
       const url = `/superset/results/${query.resultsKey}/`;
       makeRequest();
       expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
 
-    test('calls requestQueryResults', () => {
+    it('calls requestQueryResults', () => {
       makeRequest();
       expect(dispatch.args[0][0].type).toBe(actions.REQUEST_QUERY_RESULTS);
     });
 
-    test('calls querySuccess on ajax success', () => {
+    it('calls querySuccess on ajax success', () => {
       ajaxStub.yieldsTo('success', '{ "data": "" }');
       makeRequest();
       expect(dispatch.callCount).toBe(2);
       expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
     });
 
-    test('calls queryFailed on ajax error', () => {
+    it('calls queryFailed on ajax error', () => {
       ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
       makeRequest();
       expect(dispatch.callCount).toBe(2);
@@ -74,17 +74,17 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    test('makes the ajax request', () => {
+    it('makes the ajax request', () => {
       makeRequest();
       expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    test('calls startQuery', () => {
+    it('calls startQuery', () => {
       makeRequest();
       expect(dispatch.args[0][0].type).toBe(actions.START_QUERY);
     });
 
-    test('calls queryFailed on ajax error', () => {
+    it('calls queryFailed on ajax error', () => {
       ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
       makeRequest();
       expect(dispatch.callCount).toBe(2);
@@ -98,23 +98,23 @@ describe('async actions', () => {
       request(dispatch);
     };
 
-    test('makes the ajax request', () => {
+    it('makes the ajax request', () => {
       makeRequest();
       expect(ajaxStub.calledOnce).toBe(true);
     });
 
-    test('calls stopQuery', () => {
+    it('calls stopQuery', () => {
       makeRequest();
       expect(dispatch.args[0][0].type).toBe(actions.STOP_QUERY);
     });
 
-    test('calls the correct url', () => {
+    it('calls the correct url', () => {
       const url = '/superset/stop_query/';
       makeRequest();
       expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
 
-    test('sends the correct data', () => {
+    it('sends the correct data', () => {
       const data = { client_id: query.id };
       makeRequest();
       expect(ajaxStub.getCall(0).args[0].data).toEqual(data);

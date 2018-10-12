@@ -21,7 +21,7 @@ describe('chart actions', () => {
     ajaxStub.restore();
   });
 
-  test('should handle query timeout', () => {
+  it('should handle query timeout', () => {
     ajaxStub.rejects({ statusText: 'timeout' });
     request = actions.runQuery({});
     const promise = request(dispatch, sinon.stub().returns({

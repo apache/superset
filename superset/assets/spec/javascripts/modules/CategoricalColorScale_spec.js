@@ -1,16 +1,16 @@
 import CategoricalColorScale from '../../../src/modules/CategoricalColorScale';
 
 describe('CategoricalColorScale', () => {
-  test('exists', () => {
+  it('exists', () => {
     expect(CategoricalColorScale !== undefined).toBe(true);
   });
 
   describe('new CategoricalColorScale(colors, parentForcedColors)', () => {
-    test('can create new scale when parentForcedColors is not given', () => {
+    it('can create new scale when parentForcedColors is not given', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale).toBeInstanceOf(CategoricalColorScale);
     });
-    test('can create new scale when parentForcedColors is given', () => {
+    it('can create new scale when parentForcedColors is given', () => {
       const parentForcedColors = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green'], parentForcedColors);
       expect(scale).toBeInstanceOf(CategoricalColorScale);
@@ -18,7 +18,7 @@ describe('CategoricalColorScale', () => {
     });
   });
   describe('.getColor(value)', () => {
-    test('returns same color for same value', () => {
+    it('returns same color for same value', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const c1 = scale.getColor('pig');
       const c2 = scale.getColor('horse');
@@ -29,7 +29,7 @@ describe('CategoricalColorScale', () => {
       expect(c1).toBe(c3);
       expect(c2).toBe(c5);
     });
-    test('returns different color for consecutive items', () => {
+    it('returns different color for consecutive items', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const c1 = scale.getColor('pig');
       const c2 = scale.getColor('horse');
@@ -39,7 +39,7 @@ describe('CategoricalColorScale', () => {
       expect(c2).not.toBe(c3);
       expect(c3).not.toBe(c1);
     });
-    test('recycles colors when number of items exceed available colors', () => {
+    it('recycles colors when number of items exceed available colors', () => {
       const colorSet = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const colors = [
@@ -57,19 +57,19 @@ describe('CategoricalColorScale', () => {
           colorSet[color] = 1;
         }
       });
-      expect(Object.keys(colorSet).length).toBe(3);
+      expect(Object.keys(colorSet)).toHaveLength(3);
       ['blue', 'red', 'green'].forEach((color) => {
         expect(colorSet[color]).toBe(2);
       });
     });
   });
   describe('.setColor(value, forcedColor)', () => {
-    test('overrides default color', () => {
+    it('overrides default color', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.setColor('pig', 'pink');
       expect(scale.getColor('pig')).toBe('pink');
     });
-    test('does not override parentForcedColors', () => {
+    it('does not override parentForcedColors', () => {
       const scale1 = new CategoricalColorScale(['blue', 'red', 'green']);
       scale1.setColor('pig', 'black');
       const scale2 = new CategoricalColorScale(['blue', 'red', 'green'], scale1.forcedColors);
@@ -77,14 +77,14 @@ describe('CategoricalColorScale', () => {
       expect(scale1.getColor('pig')).toBe('black');
       expect(scale2.getColor('pig')).toBe('black');
     });
-    test('returns the scale', () => {
+    it('returns the scale', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const output = scale.setColor('pig', 'pink');
       expect(scale).toBe(output);
     });
   });
   describe('.toFunction()', () => {
-    test('returns a function that wraps getColor', () => {
+    it('returns a function that wraps getColor', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const colorFn = scale.toFunction();
       expect(scale.getColor('pig')).toBe(colorFn('pig'));

@@ -1,7 +1,7 @@
 import getDashboardUrl from '../../../../src/dashboard/util/getDashboardUrl';
 
 describe('getChartIdsFromLayout', () => {
-  test('should encode filters', () => {
+  it('should encode filters', () => {
     const filters = { 35: { key: ['value'] } };
     const url = getDashboardUrl('path', filters);
     expect(url).toBe(
