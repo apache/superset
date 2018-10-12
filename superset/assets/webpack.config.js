@@ -138,15 +138,18 @@ const config = {
       /* for css linking images */
       {
         test: /\.png$/,
-        loader: 'url-loader?limit=100000',
+        loader: 'url-loader',
+        options: {
+          limit: 10000,
+          name: '[name].[hash:8].[ext]',
+        },
       },
       {
-        test: /\.jpg$/,
+        test: /\.(jpg|gif)$/,
         loader: 'file-loader',
-      },
-      {
-        test: /\.gif$/,
-        loader: 'file-loader',
+        options: {
+          name: '[name].[hash:8].[ext]',
+        },
       },
       /* for font-awesome */
       {
