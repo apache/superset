@@ -11,6 +11,8 @@ import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
+from mock import Mock
+import pandas as pd
 
 from superset import app, cli, db, security_manager, utils
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -147,6 +149,23 @@ class SupersetTestCase(unittest.TestCase):
         return db.session.query(DruidDatasource).filter_by(
             datasource_name=name).first()
 
+    def get_datasource_mock(self):
+        datasource = Mock()
+        results = Mock()
+        results.query = Mock()
+        results.status = Mock()
+        results.error_message = None
+        results.df = pd.DataFrame()
+        datasource.type = 'table'
+        datasource.query = Mock(return_value=results)
+        mock_dttm_col = Mock()
+        datasource.get_col = Mock(return_value=mock_dttm_col)
+        datasource.query = Mock(return_value=results)
+        datasource.database = Mock()
+        datasource.database.db_engine_spec = Mock()
+        datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
+        return datasource
+
     def get_resp(
             self, url, data=None, follow_redirects=True, raise_on_error=True):
         """Shortcut to get the parsed results while following redirects"""
@@ -204,7 +223,7 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
+    def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))

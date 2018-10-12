@@ -20,6 +20,7 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
+from superset.models.tags import QueryUpdater
 from superset.utils import QueryStatus, user_label
 
 install_aliases()
@@ -154,3 +155,13 @@ class SavedQuery(Model, AuditMixinNullable):
                 <i class="fa fa-link"></i>
             </a>
         """.format(**locals()))
+
+    @property
+    def url(self):
+        return '/superset/sqllab?savedQueryId={0}'.format(self.id)
+
+
+# events for updating tags
+sqla.event.listen(SavedQuery, 'after_insert', QueryUpdater.after_insert)
+sqla.event.listen(SavedQuery, 'after_update', QueryUpdater.after_update)
+sqla.event.listen(SavedQuery, 'after_delete', QueryUpdater.after_delete)

@@ -283,6 +283,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 value={adhocFilter.comparator || ''}
                 className="form-control input-sm"
                 placeholder={t('Filter value')}
+                disabled={adhocFilter.operator === 'IS NOT NULL' || adhocFilter.operator === 'IS NULL'}
               />
           }
         </FormGroup>

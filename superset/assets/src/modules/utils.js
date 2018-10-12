@@ -231,10 +231,17 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   });
 }
 
+export function getCSRFToken() {
+  if (document && document.getElementById('csrf_token')) {
+    return document.getElementById('csrf_token').value;
+  }
+  return '';
+}
+
 export function initJQueryAjax() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
-  const token = $('input#csrf_token').val();
+  const token = getCSRFToken();
   if (token) {
     $.ajaxSetup({
       beforeSend(xhr, settings) {

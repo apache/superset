@@ -49,6 +49,7 @@ export const VIZ_TYPES = {
   deck_multi: 'deck_multi',
   deck_arc: 'deck_arc',
   deck_polygon: 'deck_polygon',
+  deck_zipcodes: 'deck_zipcodes',
   rose: 'rose',
 };
 
@@ -89,7 +90,7 @@ const vizMap = {
   [VIZ_TYPES.line_multi]: () =>
     loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
-  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './mapbox.jsx')),
+  [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/MapBox.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './parallel_coordinates.js')),
@@ -136,6 +137,8 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/polygon.jsx')),
   [VIZ_TYPES.deck_multi]: () =>
     loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/multi.jsx')),
+  [VIZ_TYPES.deck_zipcodes]: () =>
+    loadVis(import(/* webpackChunkName: "deckgl/layers/zipcodes" */ './deckgl/layers/zipcodes.jsx')),
   [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './rose.js')),
 };
 

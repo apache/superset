@@ -11,7 +11,6 @@ import os
 import re
 import time
 import traceback
-from urllib import parse
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -25,6 +24,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 from six import text_type
+from six.moves.urllib import parse
 import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, or_, update
 from sqlalchemy.engine.url import make_url
@@ -55,7 +55,8 @@ from .base import (
     check_ownership,
     CsvResponse, DeleteMixin,
     generate_download_headers, get_error_msg,
-    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
+    json_error_response, json_success, SupersetFilter, SupersetModelView,
+    YamlExportMixin,
 )
 from .utils import bootstrap_user_data
 
@@ -86,8 +87,9 @@ def get_database_access_error_msg(database_name):
               '`all_datasource_access` permission', name=database_name)
 
 
-def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
+def get_datasource_access_error_msg(datasource_name):
+    return __('This endpoint requires the datasource %(name)s, database or '
+              '`all_datasource_access` permission', name=datasource_name)
 
 
 def is_owner(obj, user):
@@ -255,6 +257,13 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def pre_update(self, db):
         self.pre_add(db)
+
+    def pre_delete(self, obj):
+        if obj.tables:
+            raise SupersetException(Markup(
+                'Cannot delete a database that has tables attached. '
+                "Here's the list of associated tables: " +
+                ', '.join('{}'.format(o) for o in obj.tables)))
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
@@ -1694,16 +1703,16 @@ class Superset(BaseSupersetView):
                                                                   username),
                 )
 
-            connect_args = (
+            engine_params = (
                 request.json
                 .get('extras', {})
-                .get('engine_params', {})
-                .get('connect_args', {}))
+                .get('engine_params', {}))
+            connect_args = engine_params.get('connect_args')
 
             if configuration:
                 connect_args['configuration'] = configuration
 
-            engine = create_engine(uri, connect_args=connect_args)
+            engine = create_engine(uri, **engine_params)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
@@ -2340,9 +2349,20 @@ class Superset(BaseSupersetView):
             query.sql, query.database, query.schema)
         if rejected_tables:
             return json_error_response(security_manager.get_table_access_error_msg(
-                '{}'.format(rejected_tables)))
+                '{}'.format(rejected_tables)), status=403)
 
-        return json_success(utils.zlib_decompress_to_string(blob))
+        payload = utils.zlib_decompress_to_string(blob)
+        display_limit = app.config.get('DISPLAY_MAX_ROW', None)
+        if display_limit:
+            payload_json = json.loads(payload)
+            payload_json['data'] = payload_json['data'][:display_limit]
+        return json_success(
+            json.dumps(
+                payload_json,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            ),
+        )
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2364,6 +2384,9 @@ class Superset(BaseSupersetView):
     @expose('/sql_json/', methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
+        return self.sql_json_call(request)
+
+    def sql_json_call(self, request):
         """Runs arbitrary sql and returns and json"""
         async_ = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
@@ -2383,7 +2406,8 @@ class Superset(BaseSupersetView):
         if rejected_tables:
             return json_error_response(
                 security_manager.get_table_access_error_msg(rejected_tables),
-                link=security_manager.get_table_access_link(rejected_tables))
+                link=security_manager.get_table_access_link(rejected_tables),
+                status=403)
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
@@ -2393,6 +2417,8 @@ class Superset(BaseSupersetView):
                 mydb.force_ctas_schema,
                 tmp_table_name,
             )
+
+        client_id = request.form.get('client_id') or utils.shortid()[:10]
 
         query = Query(
             database_id=int(database_id),
@@ -2405,8 +2431,8 @@ class Superset(BaseSupersetView):
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=tmp_table_name,
-            user_id=int(g.user.get_id()),
-            client_id=request.form.get('client_id'),
+            user_id=g.user.get_id() if g.user else None,
+            client_id=client_id,
         )
         session.add(query)
         session.flush()

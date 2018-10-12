@@ -10,6 +10,7 @@ import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
+import NewTags from './gridComponents/new/NewTags';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
 import { t } from '../../locales';
@@ -93,6 +94,7 @@ class BuilderComponentPane extends React.PureComponent {
                         <NewHeader />
                         <NewMarkdown />
                         <NewDivider />
+                        <NewTags />
                       </div>
                       <div className="slices-layer slide-content">
                         <div

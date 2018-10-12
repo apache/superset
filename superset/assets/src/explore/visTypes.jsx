@@ -605,6 +605,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -695,33 +703,27 @@ export const visTypes = {
     ],
   },
 
-  deck_polygon: {
-    label: t('Deck.gl - Polygon'),
+  deck_zipcodes: {
+    label: t('Deck.gl - Zip codes'),
     requiresTime: true,
     controlPanelSections: [
       {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['line_column', 'line_type'],
-          ['row_limit', 'filter_nulls'],
+          ['groupby', 'size'],
+          ['autozoom', 'filter_nulls'],
+          ['color_picker', 'legend_position'],
+          ['num_categories', 'break_points'],
+          ['row_limit', null],
           ['adhoc_filters'],
+          ['propagate_filter', 'toggle_zipcodes'],
         ],
       },
       {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['reverse_long_lat', null],
-        ],
-      },
-      {
-        label: t('Polygon Settings'),
-        controlSetRows: [
-          ['fill_color_picker', 'stroke_color_picker'],
-          ['filled', 'stroked'],
-          ['extruded', null],
-          ['point_radius_scale', null],
         ],
       },
       {
@@ -734,6 +736,80 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      adhoc_filters: {
+        validators: [v.nonEmpty],
+      },
+      groupby: {
+        multi: false,
+        label: t('ZIP code'),
+        description: t('Column with ZIP codes'),
+      },
+      size: {
+        label: t('Weight'),
+        description: t("Metric used as a weight for the grid's coloring"),
+        validators: [v.nonEmpty],
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
+    },
+  },
+
+  deck_polygon: {
+    label: t('Deck.gl - Polygon'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['adhoc_filters'],
+          ['metric'],
+          ['row_limit', null],
+          ['line_column', 'line_type'],
+          ['reverse_long_lat', 'filter_nulls'],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['autozoom', null],
+        ],
+      },
+      {
+        label: t('Polygon Settings'),
+        expanded: true,
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['filled', 'stroked'],
+          ['extruded', null],
+          ['line_width', null],
+          ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      metric: {
+        validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
+      },
+    },
   },
 
   deck_arc: {
@@ -759,9 +835,9 @@ export const visTypes = {
       {
         label: t('Arc'),
         controlSetRows: [
-          ['color_picker', 'legend_position'],
+          ['color_picker', 'target_color_picker'],
           ['dimension', 'color_scheme'],
-          ['stroke_width', null],
+          ['stroke_width', 'legend_position'],
         ],
       },
       {
@@ -1077,6 +1153,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['row_limit'],
         ],
       },
       {
@@ -1718,6 +1795,7 @@ export const visTypes = {
       },
       {
         label: t('Viewport'),
+        expanded: true,
         controlSetRows: [
           ['viewport_longitude', 'viewport_latitude'],
           ['viewport_zoom', null],

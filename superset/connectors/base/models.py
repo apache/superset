@@ -188,7 +188,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'description': self.description,
             'database': self.database.data,  # pylint: disable=no-member
             'default_endpoint': self.default_endpoint,
-            'filter_select': self.filter_select_enabled,
+            'filter_select': self.filter_select_enabled,  # TODO deprecate
+            'filter_select_enabled': self.filter_select_enabled,
             'name': self.name,
             'datasource_name': self.datasource_name,
             'type': self.type,

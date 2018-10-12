@@ -24,7 +24,9 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
 
     list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm']
     edit_columns = [
-        'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm']
+        'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm',
+        'json_metadata']
+
     add_columns = edit_columns
 
     label_columns = {
@@ -33,6 +35,12 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
         'start_dttm': _('Start Dttm'),
         'end_dttm': _('End Dttm'),
         'long_descr': _('Long Descr'),
+        'json_metadata': _('JSON Metadata'),
+    }
+
+    description_columns = {
+        'json_metadata': 'This JSON represents any additional metadata this \
+         annotation needs to add more context.',
     }
 
     def pre_add(self, obj):

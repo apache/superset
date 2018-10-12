@@ -185,9 +185,12 @@ function tableVis(slice, payload) {
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
   let sortBy;
-  if (fd.timeseries_limit_metric) {
+  const limitMetric = Array.isArray(fd.timeseries_limit_metric)
+    ? fd.timeseries_limit_metric[0]
+    : fd.timeseries_limit_metric;
+  if (limitMetric) {
     // Sort by as specified
-    sortBy = fd.timeseries_limit_metric.label || fd.timeseries_limit_metric;
+    sortBy = limitMetric.label || limitMetric;
   } else if (metrics.length > 0) {
     // If not specified, use the first metric from the list
     sortBy = metrics[0];

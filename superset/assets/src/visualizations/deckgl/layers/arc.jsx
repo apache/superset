@@ -18,10 +18,15 @@ function getPoints(data) {
   return points;
 }
 
-function getLayer(fd, data, slice) {
+function getLayer(fd, payload, slice) {
+  const data = payload.data.features;
+  const sc = fd.color_picker;
+  const tc = fd.target_color_picker;
   return new ArcLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
+    getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
+    getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
     ...common.commonLayerProps(fd, slice),
   });
@@ -36,17 +41,17 @@ function deckArc(slice, payload, setControlValue) {
   };
 
   if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.arcs));
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
   }
 
   ReactDOM.render(
     <CategoricalDeckGLContainer
       slice={slice}
-      data={payload.data.arcs}
       mapboxApiKey={payload.data.mapboxApiKey}
       setControlValue={setControlValue}
       viewport={viewport}
       getLayer={getLayer}
+      payload={payload}
     />,
     document.getElementById(slice.containerId),
   );

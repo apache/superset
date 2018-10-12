@@ -7,6 +7,7 @@ import { getLayer as deck_scatter } from './scatter';
 import { getLayer as deck_geojson } from './geojson';
 import { getLayer as deck_arc } from './arc';
 import { getLayer as deck_polygon } from './polygon';
+import { getLayer as deck_zipcodes } from './zipcodes';
 
 const layerGenerators = {
   deck_grid,
@@ -17,5 +18,6 @@ const layerGenerators = {
   deck_geojson,
   deck_arc,
   deck_polygon,
+  deck_zipcodes,
 };
 export default layerGenerators;
