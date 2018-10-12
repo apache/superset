@@ -1,13 +1,7 @@
-/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
-
-import React from 'react';
-import ReactDOM from 'react-dom';
-
 import { ArcLayer } from 'deck.gl';
-
-import CategoricalDeckGLContainer from '../CategoricalDeckGLContainer';
-
-import * as common from './common';
+import { commonLayerProps } from './common';
+import createAdaptor from '../createAdaptor';
+import { createCategoricalDeckGLComponent } from '../factory';
 
 function getPoints(data) {
   const points = [];
@@ -18,7 +12,7 @@ function getPoints(data) {
   return points;
 }
 
-function getLayer(fd, payload, slice) {
+export function getLayer(fd, payload, onAddFilter, onTooltip) {
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -28,36 +22,8 @@ function getLayer(fd, payload, slice) {
     getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, onAddFilter, onTooltip),
   });
 }
 
-function deckArc(slice, payload, setControlValue) {
-  const fd = slice.formData;
-  let viewport = {
-    ...fd.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
-
-  if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
-  }
-
-  ReactDOM.render(
-    <CategoricalDeckGLContainer
-      slice={slice}
-      mapboxApiKey={payload.data.mapboxApiKey}
-      setControlValue={setControlValue}
-      viewport={viewport}
-      getLayer={getLayer}
-      payload={payload}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
-module.exports = {
-  default: deckArc,
-  getLayer,
-};
+export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));

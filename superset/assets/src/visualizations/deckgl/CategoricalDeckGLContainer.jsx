@@ -31,12 +31,14 @@ function getCategories(fd, data) {
 }
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  formData: PropTypes.object.isRequired,
   mapboxApiKey: PropTypes.string.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
   payload: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  onTooltip: PropTypes.func,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -49,7 +51,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const fd = props.slice.formData;
+    console.log(props);
+    const fd = props.formData;
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = props.payload.data.features.map(f => f.__timestamp);
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
@@ -73,8 +76,13 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState({ viewport });
   }
   getLayers(values) {
-    const { getLayer, payload, slice } = this.props;
-    const fd = slice.formData;
+    const {
+      getLayer,
+      payload,
+      formData: fd,
+      onAddFilter,
+      onTooltip,
+    } = this.props;
     let features = [...payload.data.features];
 
     // Add colors from categories or fixed color
@@ -103,7 +111,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data: { ...payload.data, features },
     };
 
-    return [getLayer(fd, filteredPayload, slice)];
+    return [getLayer(fd, filteredPayload, onAddFilter, onTooltip)];
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
@@ -151,14 +159,14 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
-          mapStyle={this.props.slice.formData.mapbox_style}
+          mapStyle={this.props.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
         >
           <Legend
             categories={this.state.categories}
             toggleCategory={this.toggleCategory}
             showSingleCategory={this.showSingleCategory}
-            position={this.props.slice.formData.legend_position}
+            position={this.props.formData.legend_position}
           />
         </AnimatableDeckGLContainer>
       </div>

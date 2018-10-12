@@ -1,22 +1,19 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
-
 import { ScreenGridLayer } from 'deck.gl';
-
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
-
-import * as common from './common';
 import { getPlaySliderParams } from '../../../modules/time';
 import sandboxedEval from '../../../modules/sandbox';
+import { commonLayerProps, fitViewport } from './common';
+import createAdaptor from '../createAdaptor';
 
 function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function getLayer(formData, payload, slice, filters) {
+export function getLayer(formData, payload, onAddFilter, onTooltip, filters) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -47,22 +44,28 @@ function getLayer(formData, payload, slice, filters) {
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: d => d.weight || 0,
-    ...common.commonLayerProps(fd, slice),
+    ...commonLayerProps(fd, onAddFilter, onTooltip),
   });
 }
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  formData: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
+  onAddFilter: PropTypes.func,
+  onTooltip: PropTypes.func,
+};
+const defaultProps = {
+  onAddFilter() {},
+  onTooltip() {},
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const fd = props.slice.formData;
+    const fd = props.formData;
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = props.payload.data.features.map(f => f.__timestamp);
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
@@ -93,14 +96,21 @@ class DeckGLScreenGrid extends React.PureComponent {
     }
 
     const layer = getLayer(
-      this.props.slice.formData,
+      this.props.formData,
       this.props.payload,
-      this.props.slice,
+      this.props.onAddFilter,
+      this.props.onTooltip,
       filters);
 
     return [layer];
   }
+
   render() {
+    const { formData, payload } = this.props;
+    const viewport = formData.autozoom
+      ? fitViewport(this.state.viewport, getPoints(payload.data.features))
+      : this.state.viewport;
+
     return (
       <div>
         <AnimatableDeckGLContainer
@@ -111,10 +121,10 @@ class DeckGLScreenGrid extends React.PureComponent {
           values={this.state.values}
           onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={this.state.viewport}
+          viewport={viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
-          mapStyle={this.props.slice.formData.mapbox_style}
+          mapStyle={this.props.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
           aggregation
         />
@@ -124,31 +134,6 @@ class DeckGLScreenGrid extends React.PureComponent {
 }
 
 DeckGLScreenGrid.propTypes = propTypes;
+DeckGLScreenGrid.defaultProps = defaultProps;
 
-function deckScreenGrid(slice, payload, setControlValue) {
-  const fd = slice.formData;
-  let viewport = {
-    ...fd.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
-
-  if (fd.autozoom) {
-    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
-  }
-
-  ReactDOM.render(
-    <DeckGLScreenGrid
-      slice={slice}
-      payload={payload}
-      setControlValue={setControlValue}
-      viewport={viewport}
-    />,
-    document.getElementById(slice.containerId),
-  );
-}
-
-module.exports = {
-  default: deckScreenGrid,
-  getLayer,
-};
+export default createAdaptor(DeckGLScreenGrid);
