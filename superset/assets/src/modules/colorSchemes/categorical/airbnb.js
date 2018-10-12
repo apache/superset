@@ -1,9 +1,8 @@
-import ColorScheme, { CATEGORICAL } from '../../ColorScheme';
+import CategoricalColorScheme from '../../CategoricalColorScheme';
 
-export default {
-  bnbColors: new ColorScheme({
+const schemes = [
+  {
     name: 'bnbColors',
-    type: CATEGORICAL,
     colors: [
       '#ff5a5f', // rausch
       '#7b0051', // hackb
@@ -27,5 +26,7 @@ export default {
       '#b37e00',
       '#988b4e',
     ],
-  }),
-};
+  },
+].map(s => new CategoricalColorScheme(s));
+
+export default schemes;

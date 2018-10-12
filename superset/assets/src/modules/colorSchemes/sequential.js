@@ -1,15 +1,4 @@
 export default {
-  blue_white_yellow: [
-    '#00d1c1',
-    'white',
-    '#ffb400',
-  ],
-  fire: [
-    'white',
-    'yellow',
-    'red',
-    'black',
-  ],
   white_black: [
     'white',
     'black',
