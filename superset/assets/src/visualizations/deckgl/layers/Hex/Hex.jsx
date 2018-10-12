@@ -1,8 +1,8 @@
 import { HexagonLayer } from 'deck.gl';
-import { commonLayerProps } from './common';
-import sandboxedEval from '../../../modules/sandbox';
-import createAdaptor from '../createAdaptor';
-import { createDeckGLComponent } from '../factory';
+import { commonLayerProps } from '../common';
+import sandboxedEval from '../../../../modules/sandbox';
+import createAdaptor from '../../createAdaptor';
+import { createDeckGLComponent } from '../../factory';
 
 export function getLayer(formData, payload, onAddFilter, onTooltip) {
   const fd = formData;

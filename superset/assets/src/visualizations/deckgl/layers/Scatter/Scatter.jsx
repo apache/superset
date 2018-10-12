@@ -1,8 +1,8 @@
 import { ScatterplotLayer } from 'deck.gl';
-import { commonLayerProps } from './common';
-import createAdaptor from '../createAdaptor';
-import { createCategoricalDeckGLComponent } from '../factory';
-import { unitToRadius } from '../../../modules/geo';
+import { commonLayerProps } from '../common';
+import createAdaptor from '../../createAdaptor';
+import { createCategoricalDeckGLComponent } from '../../factory';
+import { unitToRadius } from '../../../../modules/geo';
 
 function getPoints(data) {
   return data.map(d => d.position);
