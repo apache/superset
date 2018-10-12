@@ -1,7 +1,7 @@
 import { ArcLayer } from 'deck.gl';
-import { commonLayerProps } from './common';
-import createAdaptor from '../createAdaptor';
-import { createCategoricalDeckGLComponent } from '../factory';
+import { commonLayerProps } from '../common';
+import createAdaptor from '../../createAdaptor';
+import { createCategoricalDeckGLComponent } from '../../factory';
 
 function getPoints(data) {
   const points = [];
