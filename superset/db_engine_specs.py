@@ -316,8 +316,7 @@ class BaseEngineSpec(object):
         enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
         timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
-    )
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
     def get_table_names(cls, inspector, db_id, schema,
                         enable_cache, cache_timeout, force=False):
         return sorted(inspector.get_table_names(schema))
@@ -327,8 +326,7 @@ class BaseEngineSpec(object):
         enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
         timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
-    )
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
     def get_view_names(cls, inspector, db_id, schema,
                        enable_cache, cache_timeout, force=False):
         return sorted(inspector.get_view_names(schema))
@@ -460,8 +458,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
         timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
-    )
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
     def get_table_names(cls, inspector, db_id, schema,
                         enable_cache, cache_timeout, force=False):
         """Need to consider foreign tables for PostgreSQL"""
@@ -625,8 +622,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
         timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema'))
-    )
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
     def get_table_names(cls, inspector, db_id, schema,
                         enable_cache, cache_timeout, force=False):
         """Need to disregard the schema for Sqlite"""
