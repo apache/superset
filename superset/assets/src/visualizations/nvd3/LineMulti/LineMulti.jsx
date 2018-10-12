@@ -1,9 +1,9 @@
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { getExploreLongUrl } from '../../explore/exploreUtils';
-import ReactNVD3 from '../nvd3/ReactNVD3';
-import transformProps from '../nvd3/transformProps';
+import { getExploreLongUrl } from '../../../explore/exploreUtils';
+import ReactNVD3 from '../ReactNVD3';
+import transformProps from '../transformProps';
 
 const propTypes = {
   width: PropTypes.number,
