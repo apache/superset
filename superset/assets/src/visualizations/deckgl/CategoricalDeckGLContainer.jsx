@@ -51,7 +51,6 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    console.log(props);
     const fd = props.formData;
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = props.payload.data.features.map(f => f.__timestamp);

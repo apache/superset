@@ -31,9 +31,6 @@ export default class AnimatableDeckGLContainer extends React.Component {
     const { getLayers, start, end, getStep, values, disabled, viewport, ...other } = props;
     this.other = other;
   }
-  componentWillReceiveProps(nextProps) {
-    this.setState({ values: nextProps.values });
-  }
   render() {
     const {
       start,
@@ -45,6 +42,8 @@ export default class AnimatableDeckGLContainer extends React.Component {
       getLayers,
       values,
       viewport,
+      onViewportChange,
+      onValuesChange,
     } = this.props;
     const layers = getLayers(values);
     return (
@@ -53,7 +52,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           {...this.other}
           viewport={viewport}
           layers={layers}
-          onViewportChange={this.props.onViewportChange}
+          onViewportChange={onViewportChange}
         />
         {!disabled &&
         <PlaySlider
@@ -62,7 +61,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           step={getStep(start)}
           values={values}
           range={!aggregation}
-          onChange={this.props.onValuesChange}
+          onChange={onValuesChange}
         />
         }
         {children}
