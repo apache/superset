@@ -26,7 +26,7 @@ export default () => {
 
       cy.wait('@sqlLabQuery');
 
-      cy.get('.SouthPane .ReactVirtualized__Table')
+      selectResultsTab()
         .eq(0) // ensures results tab in case preview tab exists
         .then((tableNodes) => {
           const [header, bodyWrapper] = tableNodes[0].childNodes;
