@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
-import DeckGLContainer from './DeckGLContainer';
-import { getExploreLongUrl } from '../../explore/exploreUtils';
-import layerGenerators from './layers';
-import createAdaptor from './createAdaptor';
+import DeckGLContainer from '../DeckGLContainer';
+import { getExploreLongUrl } from '../../../explore/exploreUtils';
+import layerGenerators from '../layers';
+import createAdaptor from '../createAdaptor';
 
 const propTypes = {
   formData: PropTypes.object.isRequired,

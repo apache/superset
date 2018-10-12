@@ -1,11 +1,11 @@
 import d3 from 'd3';
 import { PolygonLayer } from 'deck.gl';
 import { flatten } from 'lodash';
-import { colorScalerFactory } from '../../../modules/colors';
-import { commonLayerProps } from './common';
-import sandboxedEval from '../../../modules/sandbox';
-import createAdaptor from '../createAdaptor';
-import { createDeckGLComponent } from '../factory';
+import { colorScalerFactory } from '../../../../modules/colors';
+import { commonLayerProps } from '../common';
+import sandboxedEval from '../../../../modules/sandbox';
+import createAdaptor from '../../createAdaptor';
+import { createDeckGLComponent } from '../../factory';
 
 function getPoints(features) {
   return flatten(features.map(d => d.polygon), true);

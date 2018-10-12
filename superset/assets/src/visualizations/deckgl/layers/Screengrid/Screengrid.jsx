@@ -3,11 +3,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ScreenGridLayer } from 'deck.gl';
-import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
-import { getPlaySliderParams } from '../../../modules/time';
-import sandboxedEval from '../../../modules/sandbox';
-import { commonLayerProps, fitViewport } from './common';
-import createAdaptor from '../createAdaptor';
+import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
+import { getPlaySliderParams } from '../../../../modules/time';
+import sandboxedEval from '../../../../modules/sandbox';
+import { commonLayerProps, fitViewport } from '../common';
+import createAdaptor from '../../createAdaptor';
 
 function getPoints(data) {
   return data.map(d => d.position);

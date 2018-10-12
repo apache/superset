@@ -117,25 +117,25 @@ const vizMap = {
   [VIZ_TYPES.partition]: () =>
     loadVis(import(/* webpackChunkName: "partition" */ './Partition/adaptor.jsx')),
   [VIZ_TYPES.deck_scatter]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/scatter.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/Scatter/Scatter.jsx')),
   [VIZ_TYPES.deck_screengrid]: () =>
     loadVis(
-      import(/* webpackChunkName: "deckgl/layers/screengrid" */ './deckgl/layers/screengrid.jsx'),
+      import(/* webpackChunkName: "deckgl/layers/screengrid" */ './deckgl/layers/Screengrid/Screengrid.jsx'),
     ),
   [VIZ_TYPES.deck_grid]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/grid" */ './deckgl/layers/grid.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/grid" */ './deckgl/layers/Grid/Grid.jsx')),
   [VIZ_TYPES.deck_hex]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/hex" */ './deckgl/layers/hex.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/hex" */ './deckgl/layers/Hex/Hex.jsx')),
   [VIZ_TYPES.deck_path]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/path" */ './deckgl/layers/path.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/path" */ './deckgl/layers/Path/Path.jsx')),
   [VIZ_TYPES.deck_geojson]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/geojson" */ './deckgl/layers/geojson.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/geojson" */ './deckgl/layers/Geojson/Geojson.jsx')),
   [VIZ_TYPES.deck_arc]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/arc" */ './deckgl/layers/arc.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/arc" */ './deckgl/layers/Arc/Arc.jsx')),
   [VIZ_TYPES.deck_polygon]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/polygon.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/Polygon/Polygon.jsx')),
   [VIZ_TYPES.deck_multi]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/multi.jsx')),
+    loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/Multi/Multi.jsx')),
   [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './Rose/adaptor.jsx')),
 };
 
