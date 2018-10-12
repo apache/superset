@@ -68,5 +68,14 @@ class Lyft(Superset):
             return json_error_response('{}'.format(e))
         return self.sql_json_call(request)
 
+    @expose('/queries/<last_updated_ms>')
+    @log_this
+    def queries(self, last_updated_ms):
+        try:
+            self.authorize()
+        except (UserDontExistException, SupersetException) as e:
+            return json_error_response('{}'.format(e))
+        return self.queries_call(last_updated_ms)
+
 
 appbuilder.add_view_no_menu(Lyft)

@@ -2702,6 +2702,9 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
+        return self.queries_call(last_updated_ms)
+
+    def queries_call(self, last_updated_ms):
         """Get the updated queries."""
         stats_logger.incr('queries')
         if not g.user.get_id():
