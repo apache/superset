@@ -73,19 +73,16 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    test(
-      'should dispatch a setUnsavedChanges action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-        });
-        const nextComponents = { 1: {} };
-        const thunk = updateComponents(nextComponents);
-        thunk(dispatch, getState);
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
-      }
-    );
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+      });
+      const nextComponents = { 1: {} };
+      const thunk = updateComponents(nextComponents);
+      thunk(dispatch, getState);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
+    });
   });
 
   describe('deleteComponents', () => {
@@ -100,45 +97,39 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    test(
-      'should dispatch a setUnsavedChanges action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-        });
-        const thunk = deleteComponent('id', 'parentId');
-        thunk(dispatch, getState);
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
-      }
-    );
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+      });
+      const thunk = deleteComponent('id', 'parentId');
+      thunk(dispatch, getState);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
+    });
   });
 
   describe('updateDashboardTitle', () => {
-    test(
-      'should dispatch an updateComponent action for the header component',
-      () => {
-        const { getState, dispatch } = setup();
-        const thunk1 = updateDashboardTitle('new text');
-        thunk1(dispatch, getState);
+    test('should dispatch an updateComponent action for the header component', () => {
+      const { getState, dispatch } = setup();
+      const thunk1 = updateDashboardTitle('new text');
+      thunk1(dispatch, getState);
 
-        const thunk2 = dispatch.getCall(0).args[0];
-        thunk2(dispatch, getState);
+      const thunk2 = dispatch.getCall(0).args[0];
+      thunk2(dispatch, getState);
 
-        expect(dispatch.getCall(1).args[0]).toEqual({
-          type: UPDATE_COMPONENTS,
-          payload: {
-            nextComponents: {
-              [DASHBOARD_HEADER_ID]: {
-                meta: { text: 'new text' },
-              },
+      expect(dispatch.getCall(1).args[0]).toEqual({
+        type: UPDATE_COMPONENTS,
+        payload: {
+          nextComponents: {
+            [DASHBOARD_HEADER_ID]: {
+              meta: { text: 'new text' },
             },
           },
-        });
+        },
+      });
 
-        expect(dispatch.callCount).toBe(2);
-      }
-    );
+      expect(dispatch.callCount).toBe(2);
+    });
   });
 
   describe('createTopLevelTabs', () => {
@@ -154,19 +145,16 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    test(
-      'should dispatch a setUnsavedChanges action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-        });
-        const dropResult = {};
-        const thunk = createTopLevelTabs(dropResult);
-        thunk(dispatch, getState);
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
-      }
-    );
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+      });
+      const dropResult = {};
+      const thunk = createTopLevelTabs(dropResult);
+      thunk(dispatch, getState);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
+    });
   });
 
   describe('deleteTopLevelTabs', () => {
@@ -182,19 +170,16 @@ describe('dashboardLayout actions', () => {
       });
     });
 
-    test(
-      'should dispatch a setUnsavedChanges action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-        });
-        const dropResult = {};
-        const thunk = deleteTopLevelTabs(dropResult);
-        thunk(dispatch, getState);
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
-      }
-    );
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+      });
+      const dropResult = {};
+      const thunk = deleteTopLevelTabs(dropResult);
+      thunk(dispatch, getState);
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
+    });
   });
 
   describe('resizeComponent', () => {
@@ -243,22 +228,19 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.callCount).toBe(2);
     });
 
-    test(
-      'should dispatch a setUnsavedChanges action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-          dashboardLayout,
-        });
-        const thunk1 = resizeComponent({ id: 1, width: 10, height: 3 });
-        thunk1(dispatch, getState);
+    test('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+        dashboardLayout,
+      });
+      const thunk1 = resizeComponent({ id: 1, width: 10, height: 3 });
+      thunk1(dispatch, getState);
 
-        const thunk2 = dispatch.getCall(0).args[0];
-        thunk2(dispatch, getState);
+      const thunk2 = dispatch.getCall(0).args[0];
+      thunk2(dispatch, getState);
 
-        expect(dispatch.callCount).toBe(3);
-      }
-    );
+      expect(dispatch.callCount).toBe(3);
+    });
   });
 
   describe('handleComponentDrop', () => {
@@ -339,48 +321,45 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.callCount).toBe(1);
     });
 
-    test(
-      'should delete a parent Row or Tabs if the moved child was the only child',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardLayout: {
-            present: {
-              parentId: { id: 'parentId', children: ['tabsId'] },
-              tabsId: { id: 'tabsId', type: TABS_TYPE, children: [] },
-              [DASHBOARD_GRID_ID]: {
-                id: DASHBOARD_GRID_ID,
-                type: DASHBOARD_GRID_TYPE,
-              },
-              tabId: { id: 'tabId', type: TAB_TYPE },
+    test('should delete a parent Row or Tabs if the moved child was the only child', () => {
+      const { getState, dispatch } = setup({
+        dashboardLayout: {
+          present: {
+            parentId: { id: 'parentId', children: ['tabsId'] },
+            tabsId: { id: 'tabsId', type: TABS_TYPE, children: [] },
+            [DASHBOARD_GRID_ID]: {
+              id: DASHBOARD_GRID_ID,
+              type: DASHBOARD_GRID_TYPE,
             },
+            tabId: { id: 'tabId', type: TAB_TYPE },
           },
-        });
+        },
+      });
 
-        const dropResult = {
-          source: { id: 'tabsId', type: TABS_TYPE },
-          destination: { id: DASHBOARD_GRID_ID, type: DASHBOARD_GRID_TYPE },
-          dragging: { id: 'tabId', type: TAB_TYPE },
-        };
+      const dropResult = {
+        source: { id: 'tabsId', type: TABS_TYPE },
+        destination: { id: DASHBOARD_GRID_ID, type: DASHBOARD_GRID_TYPE },
+        dragging: { id: 'tabId', type: TAB_TYPE },
+      };
 
-        const moveThunk = handleComponentDrop(dropResult);
-        moveThunk(dispatch, getState);
+      const moveThunk = handleComponentDrop(dropResult);
+      moveThunk(dispatch, getState);
 
-        // first call is move action which is not a thunk
-        const deleteThunk = dispatch.getCall(1).args[0];
-        deleteThunk(dispatch, getState);
+      // first call is move action which is not a thunk
+      const deleteThunk = dispatch.getCall(1).args[0];
+      deleteThunk(dispatch, getState);
 
-        expect(dispatch.getCall(2).args[0]).toEqual({
-          type: DELETE_COMPONENT,
-          payload: {
-            id: 'tabsId',
-            parentId: 'parentId',
-          },
-        });
+      expect(dispatch.getCall(2).args[0]).toEqual({
+        type: DELETE_COMPONENT,
+        payload: {
+          id: 'tabsId',
+          parentId: 'parentId',
+        },
+      });
 
-        // move thunk, delete thunk, delete result actions
-        expect(dispatch.callCount).toBe(3);
-      }
-    );
+      // move thunk, delete thunk, delete result actions
+      expect(dispatch.callCount).toBe(3);
+    });
 
     test('should create top-level tabs if dropped on root', () => {
       const { getState, dispatch } = setup();
@@ -419,19 +398,16 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.getCall(0).args[0]).toEqual(UndoActionCreators.undo());
     });
 
-    test(
-      'should dispatch a setUnsavedChanges(false) action history length is zero',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardLayout: { past: [] },
-        });
-        const thunk = undoLayoutAction();
-        thunk(dispatch, getState);
+    test('should dispatch a setUnsavedChanges(false) action history length is zero', () => {
+      const { getState, dispatch } = setup({
+        dashboardLayout: { past: [] },
+      });
+      const thunk = undoLayoutAction();
+      thunk(dispatch, getState);
 
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(false));
-      }
-    );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(false));
+    });
   });
 
   describe('redoLayoutAction', () => {
@@ -444,18 +420,15 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.getCall(0).args[0]).toEqual(UndoActionCreators.redo());
     });
 
-    test(
-      'should dispatch a setUnsavedChanges(true) action if hasUnsavedChanges=false',
-      () => {
-        const { getState, dispatch } = setup({
-          dashboardState: { hasUnsavedChanges: false },
-        });
-        const thunk = redoLayoutAction();
-        thunk(dispatch, getState);
+    test('should dispatch a setUnsavedChanges(true) action if hasUnsavedChanges=false', () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: false },
+      });
+      const thunk = redoLayoutAction();
+      thunk(dispatch, getState);
 
-        expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
-      }
-    );
+      expect(dispatch.callCount).toBe(2);
+      expect(dispatch.getCall(1).args[0]).toEqual(setUnsavedChanges(true));
+    });
   });
 });

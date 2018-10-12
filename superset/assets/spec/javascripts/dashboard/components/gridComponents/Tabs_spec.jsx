@@ -70,18 +70,24 @@ describe('Tabs', () => {
 
   it('should render a BootstrapTab for each child', () => {
     const wrapper = setup();
-    expect(wrapper.find(BootstrapTab)).toHaveLength(props.component.children.length);
+    expect(wrapper.find(BootstrapTab)).toHaveLength(
+      props.component.children.length,
+    );
   });
 
   it('should render an extra (+) BootstrapTab in editMode', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(BootstrapTab)).toHaveLength(props.component.children.length + 1);
+    expect(wrapper.find(BootstrapTab)).toHaveLength(
+      props.component.children.length + 1,
+    );
   });
 
   it('should render a DashboardComponent for each child', () => {
     // note: this does not test Tab content
     const wrapper = setup({ renderTabContent: false });
-    expect(wrapper.find(DashboardComponent)).toHaveLength(props.component.children.length);
+    expect(wrapper.find(DashboardComponent)).toHaveLength(
+      props.component.children.length,
+    );
   });
 
   it('should call createComponent if the (+) tab is clicked', () => {

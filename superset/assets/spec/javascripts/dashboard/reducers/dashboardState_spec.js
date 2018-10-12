@@ -125,18 +125,15 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  test(
-    'should set unsaved changes, max undo history, and editMode to false on save',
-    () => {
-      expect(
-        dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
-      ).toEqual({
-        hasUnsavedChanges: false,
-        maxUndoHistoryExceeded: false,
-        editMode: false,
-      });
-    }
-  );
+  test('should set unsaved changes, max undo history, and editMode to false on save', () => {
+    expect(
+      dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
+    ).toEqual({
+      hasUnsavedChanges: false,
+      maxUndoHistoryExceeded: false,
+      editMode: false,
+    });
+  });
 
   describe('change filter', () => {
     test('should add a new filter if it does not exist', () => {

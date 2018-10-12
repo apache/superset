@@ -53,7 +53,9 @@ describe('DashboardBuilder', () => {
   it('should add the "dashboard--editing" class if editMode=true', () => {
     const wrapper = setup({ editMode: true });
     const stickyContainer = wrapper.find(StickyContainer);
-    expect(stickyContainer.prop('className')).toBe('dashboard dashboard--editing');
+    expect(stickyContainer.prop('className')).toBe(
+      'dashboard dashboard--editing',
+    );
   });
 
   it('should render a DragDroppable DashboardHeader', () => {

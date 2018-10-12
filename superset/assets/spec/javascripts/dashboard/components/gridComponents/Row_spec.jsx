@@ -105,7 +105,9 @@ describe('Row', () => {
   it('should pass appropriate availableColumnCount to children', () => {
     const wrapper = setup();
     const dashboardComponent = wrapper.find(DashboardComponent).first();
-    expect(dashboardComponent.props().availableColumnCount).toBe(props.availableColumnCount - props.occupiedColumnCount);
+    expect(dashboardComponent.props().availableColumnCount).toBe(
+      props.availableColumnCount - props.occupiedColumnCount,
+    );
   });
 
   it('should increment the depth of its children', () => {

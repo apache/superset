@@ -43,31 +43,25 @@ describe('getFormDataWithExtraFilters', () => {
     });
   });
 
-  test(
-    'should not add additional filters if the slice is immune to them',
-    () => {
-      const result = getFormDataWithExtraFilters({
-        ...mockArgs,
-        dashboardMetadata: {
-          filter_immune_slices: [chartId],
-        },
-      });
-      expect(result.extra_filters).toHaveLength(0);
-    }
-  );
+  test('should not add additional filters if the slice is immune to them', () => {
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      dashboardMetadata: {
+        filter_immune_slices: [chartId],
+      },
+    });
+    expect(result.extra_filters).toHaveLength(0);
+  });
 
-  test(
-    'should not add additional filters for fields to which the slice is immune',
-    () => {
-      const result = getFormDataWithExtraFilters({
-        ...mockArgs,
-        dashboardMetadata: {
-          filter_immune_slice_fields: {
-            [chartId]: ['region'],
-          },
+  test('should not add additional filters for fields to which the slice is immune', () => {
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      dashboardMetadata: {
+        filter_immune_slice_fields: {
+          [chartId]: ['region'],
         },
-      });
-      expect(result.extra_filters).toHaveLength(1);
-    }
-  );
+      },
+    });
+    expect(result.extra_filters).toHaveLength(1);
+  });
 });

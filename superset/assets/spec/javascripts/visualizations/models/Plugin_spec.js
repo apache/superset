@@ -20,7 +20,7 @@ describe('Plugin', () => {
         plugin.configure({ key: 'abc', foo: 'bar' });
         plugin.configure({ key: 'def' });
         expect(plugin.config).toEqual({ key: 'def', foo: 'bar' });
-      }
+      },
     );
     test(
       'replaces the default config with given config when replace is true',
@@ -29,7 +29,7 @@ describe('Plugin', () => {
         plugin.configure({ key: 'abc', foo: 'bar' });
         plugin.configure({ key: 'def' }, true);
         expect(plugin.config).toEqual({ key: 'def' });
-      }
+      },
     );
     test('returns the plugin itself', () => {
       const plugin = new Plugin();

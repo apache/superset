@@ -162,7 +162,7 @@ describe('AdhocMetric', () => {
       });
       expect(adhocMetric2.inferSqlExpressionColumn()).toBeNull();
       expect(adhocMetric2.inferSqlExpressionAggregate()).toBeNull();
-    }
+    },
   );
 
   test(
@@ -187,6 +187,6 @@ describe('AdhocMetric', () => {
       });
       expect(adhocMetric3.aggregate).toBe(AGGREGATES.AVG);
       expect(adhocMetric3.column.column_name).toBe('value');
-    }
+    },
   );
 });

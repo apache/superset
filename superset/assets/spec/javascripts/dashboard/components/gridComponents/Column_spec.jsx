@@ -115,7 +115,9 @@ describe('Column', () => {
   it('should pass its own width as availableColumnCount to children', () => {
     const wrapper = setup();
     const dashboardComponent = wrapper.find(DashboardComponent).first();
-    expect(dashboardComponent.props().availableColumnCount).toBe(props.component.meta.width);
+    expect(dashboardComponent.props().availableColumnCount).toBe(
+      props.component.meta.width,
+    );
   });
 
   it('should pass appropriate dimensions to ResizableContainer', () => {
@@ -127,7 +129,9 @@ describe('Column', () => {
     expect(resizableProps.widthStep).toBe(props.columnWidth);
     expect(resizableProps.widthMultiple).toBe(columnWidth);
     expect(resizableProps.minWidthMultiple).toBe(props.minColumnWidth);
-    expect(resizableProps.maxWidthMultiple).toBe(props.availableColumnCount + columnWidth);
+    expect(resizableProps.maxWidthMultiple).toBe(
+      props.availableColumnCount + columnWidth,
+    );
   });
 
   it('should increment the depth of its children', () => {

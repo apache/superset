@@ -69,7 +69,7 @@ describe('Registry', () => {
         const registry = new Registry();
         registry.registerLoader('b', () => 'testValue2');
         expect(registry.get('b')).toBe('testValue2');
-      }
+      },
     );
     test('returns null if the item with specified key does not exist', () => {
       const registry = new Registry();
@@ -83,7 +83,7 @@ describe('Registry', () => {
         expect(registry.get('a')).toBe('testValue');
         registry.registerLoader('a', () => 'newValue');
         expect(registry.get('a')).toBe('newValue');
-      }
+      },
     );
   });
 
@@ -96,7 +96,7 @@ describe('Registry', () => {
         return registry.getAsPromise('a').then((value) => {
           expect(value).toBe('testValue');
         });
-      }
+      },
     );
     test(
       'given the key, returns a promise of result of the loader function if the item is a loader ',
@@ -106,7 +106,7 @@ describe('Registry', () => {
         return registry.getAsPromise('a').then((value) => {
           expect(value).toBe('testValue');
         });
-      }
+      },
     );
     test(
       'returns a rejected promise if the item with specified key does not exist',
@@ -115,7 +115,7 @@ describe('Registry', () => {
         return registry.getAsPromise('a').then(null, (err) => {
           expect(err).toBe('Item with key "a" is not registered.');
         });
-      }
+      },
     );
     test(
       'If the key was registered multiple times, returns a promise of the most recent item.',
@@ -130,7 +130,7 @@ describe('Registry', () => {
           expect(value).toBe('newValue');
         });
         return Promise.all([promise1, promise2]);
-      }
+      },
     );
   });
 

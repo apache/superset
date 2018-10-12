@@ -6,43 +6,40 @@ import {
 } from '../../../../src/dashboard/util/constants';
 
 describe('getDetailedComponentWidth', () => {
-  test(
-    'should return an object with width, minimumWidth, and occupiedWidth',
-    () => {
-      expect(Object.keys(getDetailedComponentWidth({ id: '_', components: {} }))).toEqual(
-          expect.arrayContaining(['minimumWidth', 'occupiedWidth', 'width']));
-    }
-  );
+  test('should return an object with width, minimumWidth, and occupiedWidth', () => {
+    expect(
+      Object.keys(getDetailedComponentWidth({ id: '_', components: {} })),
+    ).toEqual(
+      expect.arrayContaining(['minimumWidth', 'occupiedWidth', 'width']),
+    );
+  });
 
   describe('width', () => {
-    test(
-      'should be undefined if the component is not resizable and has no defined width',
-      () => {
-        const empty = {
-          width: undefined,
-          occupiedWidth: undefined,
-          minimumWidth: undefined,
-        };
+    test('should be undefined if the component is not resizable and has no defined width', () => {
+      const empty = {
+        width: undefined,
+        occupiedWidth: undefined,
+        minimumWidth: undefined,
+      };
 
-        expect(
-          getDetailedComponentWidth({
-            component: { id: '', type: types.HEADER_TYPE },
-          }),
-        ).toEqual(empty);
+      expect(
+        getDetailedComponentWidth({
+          component: { id: '', type: types.HEADER_TYPE },
+        }),
+      ).toEqual(empty);
 
-        expect(
-          getDetailedComponentWidth({
-            component: { id: '', type: types.DIVIDER_TYPE },
-          }),
-        ).toEqual(empty);
+      expect(
+        getDetailedComponentWidth({
+          component: { id: '', type: types.DIVIDER_TYPE },
+        }),
+      ).toEqual(empty);
 
-        expect(
-          getDetailedComponentWidth({
-            component: { id: '', type: types.TAB_TYPE },
-          }),
-        ).toEqual(empty);
-      }
-    );
+      expect(
+        getDetailedComponentWidth({
+          component: { id: '', type: types.TAB_TYPE },
+        }),
+      ).toEqual(empty);
+    });
 
     test('should match component meta width for resizeable components', () => {
       expect(
@@ -176,38 +173,35 @@ describe('getDetailedComponentWidth', () => {
       });
     });
 
-    test(
-      'should equal the width of row children for column components with row children',
-      () => {
-        expect(
-          getDetailedComponentWidth({
-            id: 'column',
-            components: {
-              column: {
-                id: 'column',
-                type: types.COLUMN_TYPE,
-                children: ['rowChild', 'ignoredChartChild'],
-                meta: { width: 12 },
-              },
-              rowChild: {
-                id: 'rowChild',
-                type: types.ROW_TYPE,
-                children: ['rowChildChild', 'rowChildChild'],
-              },
-              rowChildChild: {
-                id: 'rowChildChild',
-                meta: { width: 3.5 },
-              },
-              ignoredChartChild: {
-                id: 'ignoredChartChild',
-                meta: { width: 100 },
-              },
+    test('should equal the width of row children for column components with row children', () => {
+      expect(
+        getDetailedComponentWidth({
+          id: 'column',
+          components: {
+            column: {
+              id: 'column',
+              type: types.COLUMN_TYPE,
+              children: ['rowChild', 'ignoredChartChild'],
+              meta: { width: 12 },
             },
-          }),
-          // occupiedWidth is zero for colunns/see test below
-        ).toEqual({ width: 12, occupiedWidth: 0, minimumWidth: 7 });
-      }
-    );
+            rowChild: {
+              id: 'rowChild',
+              type: types.ROW_TYPE,
+              children: ['rowChildChild', 'rowChildChild'],
+            },
+            rowChildChild: {
+              id: 'rowChildChild',
+              meta: { width: 3.5 },
+            },
+            ignoredChartChild: {
+              id: 'ignoredChartChild',
+              meta: { width: 100 },
+            },
+          },
+        }),
+        // occupiedWidth is zero for colunns/see test below
+      ).toEqual({ width: 12, occupiedWidth: 0, minimumWidth: 7 });
+    });
 
     test('should equal occupiedWidth for row components', () => {
       expect(

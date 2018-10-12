@@ -131,14 +131,16 @@ describe('TabbedSqlEditors', () => {
     sinon.stub(wrapper.instance().props.actions, 'removeQueryEditor');
 
     wrapper.instance().removeQueryEditor(queryEditors[0]);
-    expect(wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0]).toBe(queryEditors[0]);
+    expect(wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0])
+        .toBe(queryEditors[0]);
   });
   it('should add new query editor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
 
     wrapper.instance().newQueryEditor();
-    expect(wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title).toContain('Untitled Query');
+    expect(wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title)
+        .toContain('Untitled Query');
   });
   it('should handle select', () => {
     wrapper = getWrapper();
@@ -149,7 +151,8 @@ describe('TabbedSqlEditors', () => {
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
     wrapper.instance().handleSelect('123');
-    expect(wrapper.instance().props.actions.setActiveQueryEditor.getCall(0).args[0].id).toContain(123);
+    expect(wrapper.instance().props.actions.setActiveQueryEditor.getCall(0).args[0].id)
+        .toContain(123);
     wrapper.instance().newQueryEditor.restore();
   });
   it('should render', () => {

@@ -17,7 +17,7 @@ describe('makeSingleton()', () => {
       () => {
         expect(typeof getInstance).toBe('function');
         expect(getInstance()).toBeInstanceOf(Dog);
-      }
+      },
     );
     test('returned function returns same instance across all calls', () => {
       expect(getInstance()).toBe(getInstance());
@@ -32,7 +32,7 @@ describe('makeSingleton()', () => {
         expect(typeof getInstance).toBe('function');
         expect(getInstance()).toBeInstanceOf(Dog);
         expect(getInstance().name).toBe('Doug');
-      }
+      },
     );
     test('returned function returns same instance across all calls', () => {
       expect(getInstance()).toBe(getInstance());

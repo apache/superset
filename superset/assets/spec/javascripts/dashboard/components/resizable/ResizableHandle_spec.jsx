@@ -11,7 +11,9 @@ describe('ResizableHandle', () => {
 
   it('should render a bottom resize handle', () => {
     const wrapper = shallow(<ResizableHandle.bottom />);
-    expect(wrapper.find('.resize-handle.resize-handle--bottom')).toHaveLength(1);
+    expect(wrapper.find('.resize-handle.resize-handle--bottom')).toHaveLength(
+      1,
+    );
   });
 
   it('should render a bottomRight resize handle', () => {

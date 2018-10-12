@@ -73,7 +73,9 @@ describe('Header', () => {
 
     const headerId = props.component.id;
     expect(updateComponents.callCount).toBe(1);
-    expect(updateComponents.getCall(0).args[0][headerId].meta.text).toBe('New title');
+    expect(updateComponents.getCall(0).args[0][headerId].meta.text).toBe(
+      'New title',
+    );
   });
 
   it('should render a DeleteComponentButton when focused in editMode', () => {

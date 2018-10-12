@@ -1,28 +1,25 @@
 import reorderItem from '../../../../src/dashboard/util/dnd-reorder';
 
 describe('dnd-reorderItem', () => {
-  test(
-    'should remove the item from its source entity and add it to its destination entity',
-    () => {
-      const result = reorderItem({
-        entitiesMap: {
-          a: {
-            id: 'a',
-            children: ['x', 'y', 'z'],
-          },
-          b: {
-            id: 'b',
-            children: ['banana'],
-          },
+  test('should remove the item from its source entity and add it to its destination entity', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          children: ['x', 'y', 'z'],
         },
-        source: { id: 'a', index: 2 },
-        destination: { id: 'b', index: 1 },
-      });
+        b: {
+          id: 'b',
+          children: ['banana'],
+        },
+      },
+      source: { id: 'a', index: 2 },
+      destination: { id: 'b', index: 1 },
+    });
 
-      expect(result.a.children).toEqual(['x', 'y']);
-      expect(result.b.children).toEqual(['banana', 'z']);
-    }
-  );
+    expect(result.a.children).toEqual(['x', 'y']);
+    expect(result.b.children).toEqual(['banana', 'z']);
+  });
 
   test('should correctly move elements within the same list', () => {
     const result = reorderItem({

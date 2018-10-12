@@ -24,7 +24,7 @@ describe('ActionLog', () => {
       expect(log.source).toBe(source);
       expect(log.sourceId).toBe(sourceId);
       expect(log.sendNow).toBe(sendNow);
-    }
+    },
   );
 
   test('should set attributes with the setAttribute method', () => {
@@ -133,7 +133,7 @@ describe('Logger', () => {
         expect(typeof events[1].ts).toBe('number');
         expect(typeof events[0].start_offset).toBe('number');
         expect(typeof events[1].start_offset).toBe('number');
-      }
+      },
     );
 
     test(
@@ -144,7 +144,7 @@ describe('Logger', () => {
         Logger.append(eventNames[0], { test: 'event' }, true);
         expect($.ajax.calledOnce).toBe(true);
         Logger.end(log);
-      }
+      },
     );
   });
 });

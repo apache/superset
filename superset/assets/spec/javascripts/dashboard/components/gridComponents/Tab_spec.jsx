@@ -72,7 +72,9 @@ describe('Tabs', () => {
       wrapper.find(EditableTitle).prop('onSaveTitle')('New title');
 
       expect(updateComponents.callCount).toBe(1);
-      expect(updateComponents.getCall(0).args[0].TAB_ID.meta.text).toBe('New title');
+      expect(updateComponents.getCall(0).args[0].TAB_ID.meta.text).toBe(
+        'New title',
+      );
     });
 
     it('should render a WithPopoverMenu', () => {

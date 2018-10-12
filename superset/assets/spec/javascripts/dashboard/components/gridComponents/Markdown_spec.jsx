@@ -68,7 +68,9 @@ describe('Markdown', () => {
     expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(true);
 
     wrapper = setup({ ...props, parentComponent: mockLayout.present.CHART_ID });
-    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(false);
+    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(
+      false,
+    );
   });
 
   it('should pass correct props to ResizableContainer', () => {
@@ -77,7 +79,9 @@ describe('Markdown', () => {
     expect(resizableProps.widthStep).toBe(props.columnWidth);
     expect(resizableProps.widthMultiple).toBe(props.component.meta.width);
     expect(resizableProps.heightMultiple).toBe(props.component.meta.height);
-    expect(resizableProps.maxWidthMultiple).toBe(props.component.meta.width + props.availableColumnCount);
+    expect(resizableProps.maxWidthMultiple).toBe(
+      props.component.meta.width + props.availableColumnCount,
+    );
   });
 
   it('should render an Markdown when NOT focused', () => {

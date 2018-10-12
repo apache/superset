@@ -51,7 +51,7 @@ describe('CategoricalColorNamespace', () => {
         const scale4 = namespace.getScale('testColors');
         expect(scale1).toBe(scale4);
         expect(scale2).toBe(scale3);
-      }
+      },
     );
   });
   describe('.setColor()', () => {
@@ -63,7 +63,7 @@ describe('CategoricalColorNamespace', () => {
         const scale = namespace.getScale('testColors');
         expect(scale.getColor('dog')).toBe('black');
         expect(scale.getColor('boy')).not.toBe('black');
-      }
+      },
     );
     test('can override forcedColors in each scale', () => {
       const namespace = getNamespace('test-set-scale2');
@@ -96,7 +96,7 @@ describe('CategoricalColorNamespace', () => {
         expect(scale).toBeDefined();
         const scale2 = getNamespace().getScale();
         expect(scale).toBe(scale2);
-      }
+      },
     );
     test(
       'getScale(scheme) returns a CategoricalColorScale with specified scheme in default namespace',
@@ -105,7 +105,7 @@ describe('CategoricalColorNamespace', () => {
         expect(scale).toBeDefined();
         const scale2 = getNamespace().getScale('testColors');
         expect(scale).toBe(scale2);
-      }
+      },
     );
     test(
       'getScale(scheme, namespace) returns a CategoricalColorScale with specified scheme in specified namespace',
@@ -114,7 +114,7 @@ describe('CategoricalColorNamespace', () => {
         expect(scale).toBeDefined();
         const scale2 = getNamespace('test-getScale').getScale('testColors');
         expect(scale).toBe(scale2);
-      }
+      },
     );
   });
   describe('static getColor()', () => {
@@ -125,7 +125,7 @@ describe('CategoricalColorNamespace', () => {
         const color = getColor(value);
         const color2 = getNamespace().getScale().getColor(value);
         expect(color).toBe(color2);
-      }
+      },
     );
     test(
       'getColor(value, scheme) returns a color from specified scheme in default namespace',
@@ -135,7 +135,7 @@ describe('CategoricalColorNamespace', () => {
         const color = getColor(value, scheme);
         const color2 = getNamespace().getScale(scheme).getColor(value);
         expect(color).toBe(color2);
-      }
+      },
     );
     test(
       'getColor(value, scheme, namespace) returns a color from specified scheme in specified namespace',
@@ -146,7 +146,7 @@ describe('CategoricalColorNamespace', () => {
         const color = getColor(value, scheme, namespace);
         const color2 = getNamespace(namespace).getScale(scheme).getColor(value);
         expect(color).toBe(color2);
-      }
+      },
     );
   });
 });

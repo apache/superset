@@ -31,82 +31,76 @@ describe('dashboardLayout reducer', () => {
     expect(layoutReducer(undefined, {})).toEqual({});
   });
 
-  test(
-    'should delete a component, remove its reference in its parent, and recursively all of its children',
-    () => {
-      expect(
-        layoutReducer(
-          {
-            toDelete: {
-              id: 'toDelete',
-              children: ['child1'],
-            },
-            child1: {
-              id: 'child1',
-              children: ['child2'],
-            },
-            child2: {
-              id: 'child2',
-              children: [],
-            },
-            parentId: {
-              id: 'parentId',
-              type: ROW_TYPE,
-              children: ['toDelete', 'anotherId'],
-            },
+  test('should delete a component, remove its reference in its parent, and recursively all of its children', () => {
+    expect(
+      layoutReducer(
+        {
+          toDelete: {
+            id: 'toDelete',
+            children: ['child1'],
           },
-          {
-            type: DELETE_COMPONENT,
-            payload: { id: 'toDelete', parentId: 'parentId' },
+          child1: {
+            id: 'child1',
+            children: ['child2'],
           },
-        ),
-      ).toEqual({
-        parentId: {
-          id: 'parentId',
-          children: ['anotherId'],
-          type: ROW_TYPE,
+          child2: {
+            id: 'child2',
+            children: [],
+          },
+          parentId: {
+            id: 'parentId',
+            type: ROW_TYPE,
+            children: ['toDelete', 'anotherId'],
+          },
         },
-      });
-    }
-  );
+        {
+          type: DELETE_COMPONENT,
+          payload: { id: 'toDelete', parentId: 'parentId' },
+        },
+      ),
+    ).toEqual({
+      parentId: {
+        id: 'parentId',
+        children: ['anotherId'],
+        type: ROW_TYPE,
+      },
+    });
+  });
 
-  test(
-    'should delete a parent if the parent was a row and no longer has children',
-    () => {
-      expect(
-        layoutReducer(
-          {
-            grandparentId: {
-              id: 'grandparentId',
-              children: ['parentId'],
-            },
-            parentId: {
-              id: 'parentId',
-              type: ROW_TYPE,
-              children: ['toDelete'],
-            },
-            toDelete: {
-              id: 'toDelete',
-              children: ['child1'],
-            },
-            child1: {
-              id: 'child1',
-              children: [],
-            },
+  test('should delete a parent if the parent was a row and no longer has children', () => {
+    expect(
+      layoutReducer(
+        {
+          grandparentId: {
+            id: 'grandparentId',
+            children: ['parentId'],
           },
-          {
-            type: DELETE_COMPONENT,
-            payload: { id: 'toDelete', parentId: 'parentId' },
+          parentId: {
+            id: 'parentId',
+            type: ROW_TYPE,
+            children: ['toDelete'],
           },
-        ),
-      ).toEqual({
-        grandparentId: {
-          id: 'grandparentId',
-          children: [],
+          toDelete: {
+            id: 'toDelete',
+            children: ['child1'],
+          },
+          child1: {
+            id: 'child1',
+            children: [],
+          },
         },
-      });
-    }
-  );
+        {
+          type: DELETE_COMPONENT,
+          payload: { id: 'toDelete', parentId: 'parentId' },
+        },
+      ),
+    ).toEqual({
+      grandparentId: {
+        id: 'grandparentId',
+        children: [],
+      },
+    });
+  });
 
   test('should update components', () => {
     expect(
@@ -248,109 +242,103 @@ describe('dashboardLayout reducer', () => {
     expect(Object.keys(result)).toHaveLength(4);
   });
 
-  test(
-    'should add top-level tabs from a new tabs component, moving grid children to new tab',
-    () => {
-      const layout = {
-        [DASHBOARD_ROOT_ID]: {
-          id: DASHBOARD_ROOT_ID,
-          children: [DASHBOARD_GRID_ID],
-        },
-        [DASHBOARD_GRID_ID]: {
-          id: DASHBOARD_GRID_ID,
-          children: ['child'],
-        },
-        child: {
-          id: 'child',
-          children: [],
-        },
-      };
+  test('should add top-level tabs from a new tabs component, moving grid children to new tab', () => {
+    const layout = {
+      [DASHBOARD_ROOT_ID]: {
+        id: DASHBOARD_ROOT_ID,
+        children: [DASHBOARD_GRID_ID],
+      },
+      [DASHBOARD_GRID_ID]: {
+        id: DASHBOARD_GRID_ID,
+        children: ['child'],
+      },
+      child: {
+        id: 'child',
+        children: [],
+      },
+    };
 
-      const dropResult = {
-        source: { id: NEW_COMPONENTS_SOURCE_ID, type: '' },
-        destination: {
-          id: DASHBOARD_ROOT_ID,
-          type: DASHBOARD_ROOT_TYPE,
-          index: 0,
-        },
-        dragging: { id: NEW_TABS_ID, type: TABS_TYPE },
-      };
+    const dropResult = {
+      source: { id: NEW_COMPONENTS_SOURCE_ID, type: '' },
+      destination: {
+        id: DASHBOARD_ROOT_ID,
+        type: DASHBOARD_ROOT_TYPE,
+        index: 0,
+      },
+      dragging: { id: NEW_TABS_ID, type: TABS_TYPE },
+    };
 
-      const result = layoutReducer(layout, {
-        type: CREATE_TOP_LEVEL_TABS,
-        payload: { dropResult },
-      });
+    const result = layoutReducer(layout, {
+      type: CREATE_TOP_LEVEL_TABS,
+      payload: { dropResult },
+    });
 
-      const tabComponent = Object.values(result).find(
-        component => component.type === TAB_TYPE,
-      );
+    const tabComponent = Object.values(result).find(
+      component => component.type === TAB_TYPE,
+    );
 
-      const tabsComponent = Object.values(result).find(
-        component => component.type === TABS_TYPE,
-      );
+    const tabsComponent = Object.values(result).find(
+      component => component.type === TABS_TYPE,
+    );
 
-      expect(Object.keys(result)).toHaveLength(5); // initial + Tabs + Tab
-      expect(result[DASHBOARD_ROOT_ID].children[0]).toBe(tabsComponent.id);
-      expect(result[tabsComponent.id].children[0]).toBe(tabComponent.id);
-      expect(result[tabComponent.id].children[0]).toBe('child');
-      expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
-    }
-  );
+    expect(Object.keys(result)).toHaveLength(5); // initial + Tabs + Tab
+    expect(result[DASHBOARD_ROOT_ID].children[0]).toBe(tabsComponent.id);
+    expect(result[tabsComponent.id].children[0]).toBe(tabComponent.id);
+    expect(result[tabComponent.id].children[0]).toBe('child');
+    expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
+  });
 
-  test(
-    'should add top-level tabs from an existing tabs component, moving grid children to new tab',
-    () => {
-      const layout = {
-        [DASHBOARD_ROOT_ID]: {
-          id: DASHBOARD_ROOT_ID,
-          children: [DASHBOARD_GRID_ID],
-        },
-        [DASHBOARD_GRID_ID]: {
-          id: DASHBOARD_GRID_ID,
-          children: ['child', 'tabs', 'child2'],
-        },
-        child: {
-          id: 'child',
-          children: [],
-        },
-        child2: {
-          id: 'child2',
-          children: [],
-        },
-        tabs: {
-          id: 'tabs',
-          type: TABS_TYPE,
-          children: ['tab'],
-        },
-        tab: {
-          id: 'tab',
-          type: TAB_TYPE,
-          children: [],
-        },
-      };
+  test('should add top-level tabs from an existing tabs component, moving grid children to new tab', () => {
+    const layout = {
+      [DASHBOARD_ROOT_ID]: {
+        id: DASHBOARD_ROOT_ID,
+        children: [DASHBOARD_GRID_ID],
+      },
+      [DASHBOARD_GRID_ID]: {
+        id: DASHBOARD_GRID_ID,
+        children: ['child', 'tabs', 'child2'],
+      },
+      child: {
+        id: 'child',
+        children: [],
+      },
+      child2: {
+        id: 'child2',
+        children: [],
+      },
+      tabs: {
+        id: 'tabs',
+        type: TABS_TYPE,
+        children: ['tab'],
+      },
+      tab: {
+        id: 'tab',
+        type: TAB_TYPE,
+        children: [],
+      },
+    };
 
-      const dropResult = {
-        source: { id: DASHBOARD_GRID_ID, type: DASHBOARD_GRID_TYPE, index: 1 },
-        destination: {
-          id: DASHBOARD_ROOT_ID,
-          type: DASHBOARD_ROOT_TYPE,
-          index: 0,
-        },
-        dragging: { id: 'tabs', type: TABS_TYPE },
-      };
+    const dropResult = {
+      source: { id: DASHBOARD_GRID_ID, type: DASHBOARD_GRID_TYPE, index: 1 },
+      destination: {
+        id: DASHBOARD_ROOT_ID,
+        type: DASHBOARD_ROOT_TYPE,
+        index: 0,
+      },
+      dragging: { id: 'tabs', type: TABS_TYPE },
+    };
 
-      const result = layoutReducer(layout, {
-        type: CREATE_TOP_LEVEL_TABS,
-        payload: { dropResult },
-      });
+    const result = layoutReducer(layout, {
+      type: CREATE_TOP_LEVEL_TABS,
+      payload: { dropResult },
+    });
 
-      expect(Object.keys(result)).toHaveLength(Object.keys(layout).length);
-      expect(result[DASHBOARD_ROOT_ID].children[0]).toBe('tabs');
-      expect(result.tabs.children[0]).toBe('tab');
-      expect(result.tab.children).toEqual(['child', 'child2']);
-      expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
-    }
-  );
+    expect(Object.keys(result)).toHaveLength(Object.keys(layout).length);
+    expect(result[DASHBOARD_ROOT_ID].children[0]).toBe('tabs');
+    expect(result.tabs.children[0]).toBe('tab');
+    expect(result.tab.children).toEqual(['child', 'child2']);
+    expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
+  });
 
   test('should remove top-level tabs, moving children to the grid', () => {
     const layout = {
