@@ -23,14 +23,21 @@ function getPoints(features) {
   return flatten(features.map(d => d.polygon), true);
 }
 
-function getLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice, selected, onSelect, filters) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
   let data = [...payload.data.features];
-  const mainMetric = payload.data.metricLabels.length ? payload.data.metricLabels[0] :  null;
+
+  if (filters != null) {
+    filters.forEach((f) => {
+      console.log(filters);
+      // data = data.filter(f);
+    });
+  }
 
   let colorScaler;
+  const mainMetric = payload.data.metricLabels.length ? payload.data.metricLabels[0] :  null;
   if (mainMetric) {
     const ext = d3.extent(data, d => d[mainMetric]);
     const scaler = colorScalerFactory(fd.linear_color_scheme, null, null, ext, true);
@@ -47,6 +54,7 @@ function getLayer(formData, payload, slice) {
     data = jsFnMutator(data);
   }
 
+  console.log(data);
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
@@ -112,26 +120,26 @@ class DeckGLPolygon extends React.PureComponent {
       this.setState(DeckGLPolygon.getDerivedStateFromProps(nextProps));
     }
   }
-  onSelect(zipcode) {
+  onSelect(polygon) {
     const { slice } = this.props;
     const fd = slice.formData;
 
     const now = new Date();
     const doubleClick = (now - this.state.lastClick) <= DOUBLE_CLICK_TRESHOLD;
 
-    // toggle selected zipcodes
+    // toggle selected polygons
     const selected = [...this.state.selected];
     if (doubleClick) {
-      selected.splice(0, selected.length, zipcode);
-    } else if (fd.toggle_zipcodes) {
-      const i = selected.indexOf(zipcode);
+      selected.splice(0, selected.length, polygon);
+    } else if (fd.toggle_polygons) {
+      const i = selected.indexOf(polygon);
       if (i === -1) {
-        selected.push(zipcode);
+        selected.push(polygon);
       } else {
         selected.splice(i, 1);
       }
     } else {
-      selected.splice(0, 1, zipcode);
+      selected.splice(0, 1, polygon);
     }
 
     this.setState({ selected, lastClick: now });
