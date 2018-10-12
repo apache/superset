@@ -69,19 +69,14 @@ class DeckGLScreenGrid extends React.PureComponent {
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = props.payload.data.features.map(f => f.__timestamp);
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    this.state = { start, end, getStep, values, disabled, viewport: props.viewport };
+    const viewport = fd.autozoom
+      ? fitViewport(props.viewport, getPoints(props.payload.data.features))
+      : props.viewport;
+    this.state = { start, end, getStep, values, disabled, viewport };
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
-  }
-  componentDidMount() {
-    const { formData, payload, viewport } = this.props;
-    if (formData.autozoom) {
-      this.setState({
-        viewport: fitViewport(viewport, getPoints(payload.data.features)),
-      });
-    }
   }
   onValuesChange(values) {
     this.setState({
