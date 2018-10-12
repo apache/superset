@@ -1,57 +1,87 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import $ from 'jquery';
-
 import DeckGLContainer from './DeckGLContainer';
 import { getExploreLongUrl } from '../../explore/exploreUtils';
 import layerGenerators from './layers';
+import createAdaptor from './createAdaptor';
 
+const propTypes = {
+  formData: PropTypes.object.isRequired,
+  payload: PropTypes.object.isRequired,
+  setControlValue: PropTypes.func.isRequired,
+  viewport: PropTypes.object.isRequired,
+};
 
-function deckMulti(slice, payload, setControlValue) {
-  const subSlicesLayers = {};
-  const fd = slice.formData;
-  const render = () => {
-    const viewport = {
-      ...fd.viewport,
-      width: slice.width(),
-      height: slice.height(),
-    };
+class DeckMulti extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = { subSlicesLayers: {} };
+  }
+
+  componentDidMount() {
+    const { formData, payload } = this.props;
+    this.loadLayers(formData, payload);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    const { formData, payload } = nextProps;
+    this.loadLayers(formData, payload);
+  }
+
+  loadLayers(formData, payload) {
+    this.setState({ subSlicesLayers: {} });
+    payload.data.slices.forEach((subslice) => {
+      // Filters applied to multi_deck are passed down to underlying charts
+      // note that dashboard contextual information (filter_immune_slices and such) aren't
+      // taken into consideration here
+      const filters = [
+        ...(subslice.form_data.filters || []),
+        ...(formData.filters || []),
+        ...(formData.extra_filters || []),
+      ];
+      const subsliceCopy = {
+        ...subslice,
+        form_data: {
+          ...subslice.form_data,
+          filters,
+        },
+      };
+
+      const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
+      $.get(url, (data) => {
+        const layer = layerGenerators[subsliceCopy.form_data.viz_type](
+          subsliceCopy.form_data,
+          data,
+        );
+        this.setState({
+          subSlicesLayers: {
+            ...this.state.subSlicesLayers,
+            [subsliceCopy.slice_id]: layer,
+          },
+        });
+      });
+    });
+  }
+
+  render() {
+    const { payload, viewport, formData, setControlValue } = this.props;
+    const { subSlicesLayers } = this.state;
+
     const layers = Object.keys(subSlicesLayers).map(k => subSlicesLayers[k]);
-    ReactDOM.render(
+
+    return (
       <DeckGLContainer
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={viewport}
         layers={layers}
-        mapStyle={fd.mapbox_style}
+        mapStyle={formData.mapbox_style}
         setControlValue={setControlValue}
-      />,
-      document.getElementById(slice.containerId),
+      />
     );
-  };
-  render();
-  payload.data.slices.forEach((subslice) => {
-    // Filters applied to multi_deck are passed down to underlying charts
-    // note that dashboard contextual information (filter_immune_slices and such) aren't
-    // taken into consideration here
-    const filters = [
-      ...(subslice.form_data.filters || []),
-      ...(fd.filters || []),
-      ...(fd.extra_filters || []),
-    ];
-    const subsliceCopy = {
-      ...subslice,
-      form_data: {
-        ...subslice.form_data,
-        filters,
-      },
-    };
-
-    const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
-    $.get(url, (data) => {
-      const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);
-      subSlicesLayers[subsliceCopy.slice_id] = layer;
-      render();
-    });
-  });
+  }
 }
-module.exports = deckMulti;
+
+DeckMulti.propTypes = propTypes;
+
+export default createAdaptor(DeckMulti);

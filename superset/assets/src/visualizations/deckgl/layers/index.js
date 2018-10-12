@@ -18,4 +18,5 @@ const layerGenerators = {
   deck_arc,
   deck_polygon,
 };
+
 export default layerGenerators;
