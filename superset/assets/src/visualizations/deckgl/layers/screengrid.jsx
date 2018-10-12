@@ -75,6 +75,14 @@ class DeckGLScreenGrid extends React.PureComponent {
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
   }
+  componentDidMount() {
+    const { formData, payload, viewport } = this.props;
+    if (formData.autozoom) {
+      this.setState({
+        viewport: fitViewport(viewport, getPoints(payload.data.features)),
+      });
+    }
+  }
   onValuesChange(values) {
     this.setState({
       values: Array.isArray(values)
@@ -106,7 +114,7 @@ class DeckGLScreenGrid extends React.PureComponent {
   }
 
   render() {
-    const { formData, payload } = this.props;
+    const { formData, payload, setControlValue } = this.props;
     return (
       <div>
         <AnimatableDeckGLContainer
@@ -119,9 +127,9 @@ class DeckGLScreenGrid extends React.PureComponent {
           disabled={this.state.disabled}
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
-          mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
-          mapStyle={this.props.formData.mapbox_style}
-          setControlValue={this.props.setControlValue}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
           aggregation
         />
       </div>
