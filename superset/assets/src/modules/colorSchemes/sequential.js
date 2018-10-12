@@ -1,19 +1,4 @@
 export default {
-  white_black: [
-    'white',
-    'black',
-  ],
-  black_white: [
-    'black',
-    'white',
-  ],
-  dark_blue: [
-    '#EBF5F8',
-    '#6BB1CC',
-    '#357E9B',
-    '#1B4150',
-    '#092935',
-  ],
   pink_grey: [
     '#E70B81',
     '#FAFAFA',

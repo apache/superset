@@ -32,6 +32,16 @@ const schemes = [
       'white',
     ],
   },
+  {
+    name: 'dark_blue',
+    colors: [
+      '#EBF5F8',
+      '#6BB1CC',
+      '#357E9B',
+      '#1B4150',
+      '#092935',
+    ],
+  },
 ].map(s => new SequentialColorScheme(s));
 
 export default schemes;
