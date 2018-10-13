@@ -14,6 +14,9 @@ const IDENTITY = x => x;
 const propTypes = {
   id: PropTypes.string,
   className: PropTypes.string,
+  width: PropTypes.number,
+  height: PropTypes.number,
+  chartProps: PropTypes.object.isRequired,
   vizType: PropTypes.string.isRequired,
   preTransformProps: PropTypes.func,
   overrideTransformProps: PropTypes.func,
@@ -104,13 +107,6 @@ class SuperChart extends React.PureComponent {
                 this.setState({
                   status: STATUS.FAILURE,
                   error,
-                  Renderer: () => (
-                    <div className="alert alert-warning" role="alert">
-                      <strong>ERROR</strong>
-                      Chart vizType: <code>{vizType}</code> &mdash;
-                      {error}
-                    </div>
-                  ),
                   transformProps: IDENTITY,
                 });
               }
@@ -122,33 +118,35 @@ class SuperChart extends React.PureComponent {
 
   renderContent() {
     const {
-      id,
-      className,
-      preTransformProps,
-      overrideTransformProps,
-      postTransformProps,
-      onRenderSuccess,
-      onRenderFailure,
-      ...otherProps
+      width,
+      height,
+      chartProps,
+      preTransformProps: pre,
+      postTransformProps: post,
+      vizType,
     } = this.props;
 
-    const vizType = this.props.vizType;
-
-    const { status, error, Renderer, transformProps } = this.state;
+    const {
+      status,
+      error,
+      Renderer,
+      transformProps,
+    } = this.state;
 
     switch (status) {
       case STATUS.SUCCESS:
         return (
           <Renderer
-            vizType={vizType}
-            {...postTransformProps(transformProps(preTransformProps(otherProps)))}
+            width={width}
+            height={height}
+            {...post(transformProps(pre(chartProps)))}
           />
         );
       case STATUS.FAILURE:
         return (
           <div className="alert alert-warning" role="alert">
-            <strong>ERROR</strong>
-            Chart vizType: <code>{vizType}</code> &mdash;
+            <strong>ERROR</strong>&nbsp;
+            <code>vizType="{vizType}"</code> &mdash;
             {error}
           </div>
         );
