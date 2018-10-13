@@ -6,7 +6,7 @@ from superset import sql_parse
 class SupersetTestCase(unittest.TestCase):
 
     def extract_tables(self, query):
-        sq = sql_parse.SupersetQuery(query)
+        sq = sql_parse.ParsedQuery(query)
         return sq.tables
 
     def test_simple_select(self):
@@ -294,12 +294,12 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
 
     def test_update_not_select(self):
-        sql = sql_parse.SupersetQuery('UPDATE t1 SET col1 = NULL')
+        sql = sql_parse.ParsedQuery('UPDATE t1 SET col1 = NULL')
         self.assertEquals(False, sql.is_select())
         self.assertEquals(False, sql.is_readonly())
 
     def test_explain(self):
-        sql = sql_parse.SupersetQuery('EXPLAIN SELECT 1')
+        sql = sql_parse.ParsedQuery('EXPLAIN SELECT 1')
 
         self.assertEquals(True, sql.is_explain())
         self.assertEquals(False, sql.is_select())
