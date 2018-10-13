@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """making audit nullable
 
 Revision ID: 18e88e1cc004

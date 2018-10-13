@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """saved_queries
 
 Revision ID: 2fcdcb35e487

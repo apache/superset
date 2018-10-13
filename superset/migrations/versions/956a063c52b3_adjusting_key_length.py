@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adjusting key length
 
 Revision ID: 956a063c52b3

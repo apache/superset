@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """d3format_by_metric
 
 Revision ID: f162a1dea4c4
