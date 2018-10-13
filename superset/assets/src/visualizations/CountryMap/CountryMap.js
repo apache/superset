@@ -25,7 +25,7 @@ function CountryMap(element, props) {
     height,
     country,
     linearColorScheme,
-    mapBaseUrl = '/static/assets/src/visualizations/countries',
+    mapBaseUrl = '/static/assets/src/visualizations/CountryMap/countries',
     numberFormat,
   } = props;
 
