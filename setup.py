@@ -91,7 +91,6 @@ setup(
         'pyyaml>=3.11',
         'requests',
         'simplejson>=3.15.0',
-        'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
