@@ -12,6 +12,7 @@ import os
 import re
 import time
 import traceback
+from urllib import parse
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -24,8 +25,6 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from six import text_type
-from six.moves.urllib import parse
 import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
@@ -373,7 +372,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+                form.name.data) if isinstance(e, IntegrityError) else e
             flash(
                 message,
                 'danger')
