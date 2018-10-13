@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Contains the logic to create cohesive forms on the explore view"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _

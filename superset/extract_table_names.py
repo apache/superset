@@ -12,11 +12,6 @@
 #
 # See:
 # http://groups.google.com/group/sqlparse/browse_thread/thread/b0bd9a022e9d4895
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import sqlparse
 from sqlparse.sql import Identifier, IdentifierList
 from sqlparse.tokens import DML, Keyword

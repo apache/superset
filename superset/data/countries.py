@@ -1,9 +1,4 @@
 """This module contains data related to countries and is used for geo mapping"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 countries = [
     {
         "name": "Angola",
