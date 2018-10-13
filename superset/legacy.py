@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Code related with dealing with legacy / change management"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import re
 
 from superset import frontend_config
