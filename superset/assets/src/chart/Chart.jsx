@@ -50,6 +50,7 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {};
     this.addFilter = this.addFilter.bind(this);
   }
 
