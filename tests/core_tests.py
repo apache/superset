@@ -15,7 +15,6 @@ import unittest
 import mock
 import pandas as pd
 import psycopg2
-from six import text_type
 import sqlalchemy as sqla
 
 from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
@@ -650,7 +649,7 @@ class CoreTests(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = '/* comment 1 */' + clean_query + '-- comment 2'
         table = SqlaTable(sql=commented_query)
-        rendered_query = text_type(table.get_from_clause())
+        rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_data(self):
