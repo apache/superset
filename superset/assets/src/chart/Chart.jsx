@@ -176,38 +176,38 @@ class Chart extends React.PureComponent {
     return null;
   }
 
-  renderVis() {
-    // const { chartStatus } = this.props;
-    // const hasVisPromise = !!this.state.renderVis;
-    // // check that we have the render function and data
-    // if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
-    //   const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
-    //   const renderStart = Logger.getTimestamp();
+  // renderVis() {
+  //   // const { chartStatus } = this.props;
+  //   // const hasVisPromise = !!this.state.renderVis;
+  //   // // check that we have the render function and data
+  //   // if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
+  //   //   const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
+  //   //   const renderStart = Logger.getTimestamp();
 
-    //   try {
-    //     // Executing user-defined data mutator function
-    //     if (formData.js_data) {
-    //       queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
-    //     }
-    //     // [re]rendering the visualization
-    //     this.state.renderVis(this, queryResponse, setControlValue);
+  //   //   try {
+  //   //     // Executing user-defined data mutator function
+  //   //     if (formData.js_data) {
+  //   //       queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
+  //   //     }
+  //   //     // [re]rendering the visualization
+  //   //     this.state.renderVis(this, queryResponse, setControlValue);
 
-    //     if (chartStatus !== 'rendered') {
-    //       this.props.actions.chartRenderingSucceeded(chartId);
-    //     }
+  //   //     if (chartStatus !== 'rendered') {
+  //   //       this.props.actions.chartRenderingSucceeded(chartId);
+  //   //     }
 
-    //     Logger.append(LOG_ACTIONS_RENDER_CHART, {
-    //       slice_id: chartId,
-    //       viz_type: vizType,
-    //       start_offset: renderStart,
-    //       duration: Logger.getTimestamp() - renderStart,
-    //     });
-    //   } catch (e) {
-    //     console.warn(e); // eslint-disable-line
-    //     this.props.actions.chartRenderingFailed(e, chartId);
-    //   }
-    // }
-  }
+  //   //     Logger.append(LOG_ACTIONS_RENDER_CHART, {
+  //   //       slice_id: chartId,
+  //   //       viz_type: vizType,
+  //   //       start_offset: renderStart,
+  //   //       duration: Logger.getTimestamp() - renderStart,
+  //   //     });
+  //   //   } catch (e) {
+  //   //     console.warn(e); // eslint-disable-line
+  //   //     this.props.actions.chartRenderingFailed(e, chartId);
+  //   //   }
+  //   // }
+  // }
 
   render() {
     const {
