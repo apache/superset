@@ -50,23 +50,15 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    // visualizations are lazy-loaded with promises that resolve to a renderVis function
-    this.state = {
-      renderVis: null,
-    };
 
-    // these properties are used by visualizations
-    this.annotationData = props.annotationData;
-    this.containerId = props.containerId;
-    this.selector = `#${this.containerId}`;
-    this.formData = props.formData;
-    this.datasource = props.datasource;
+    // // these properties are used by visualizations
+    // this.annotationData = props.annotationData;
+    // this.containerId = props.containerId;
+    // this.selector = `#${this.containerId}`;
+    // this.formData = props.formData;
+    // this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
-    this.getFilters = this.getFilters.bind(this);
     this.headerHeight = this.headerHeight.bind(this);
-    // this.height = this.height.bind(this);
-    // this.width = this.width.bind(this);
-    // this.visPromise = null;
   }
 
   componentDidMount() {
@@ -77,68 +69,39 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
       );
-    } else {
-      // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
-      this.renderVis();
     }
-
-    // this.loadAsyncVis(this.props.vizType);
-  }
-
-  componentWillReceiveProps(nextProps) {
-    this.annotationData = nextProps.annotationData;
-    this.containerId = nextProps.containerId;
-    this.selector = `#${this.containerId}`;
-    this.formData = nextProps.formData;
-    this.datasource = nextProps.datasource;
-    // if (nextProps.vizType !== this.props.vizType) {
-    //   this.setState(() => ({ renderVis: null }));
-    //   this.loadAsyncVis(nextProps.vizType);
+    // else {
+    //   // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
+    //   this.renderVis();
     // }
   }
 
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.queryResponse &&
-      ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
-      !this.props.queryResponse.error &&
-      (prevProps.annotationData !== this.props.annotationData ||
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height ||
-        prevProps.width !== this.props.width ||
-        prevProps.lastRendered !== this.props.lastRendered)
-    ) {
-      this.renderVis();
-    }
-  }
-
-  // componentWillUnmount() {
-  //   this.visPromise = null;
+  // componentWillReceiveProps(nextProps) {
+  //   this.annotationData = nextProps.annotationData;
+  //   this.containerId = nextProps.containerId;
+  //   this.selector = `#${this.containerId}`;
+  //   this.formData = nextProps.formData;
+  //   this.datasource = nextProps.datasource;
   // }
 
-  getFilters() {
-    return this.props.getFilters();
-  }
+  // componentDidUpdate(prevProps) {
+  //   if (
+  //     this.props.queryResponse &&
+  //     ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
+  //     !this.props.queryResponse.error &&
+  //     (prevProps.annotationData !== this.props.annotationData ||
+  //       prevProps.queryResponse !== this.props.queryResponse ||
+  //       prevProps.height !== this.props.height ||
+  //       prevProps.width !== this.props.width ||
+  //       prevProps.lastRendered !== this.props.lastRendered)
+  //   ) {
+  //     this.renderVis();
+  //   }
+  // }
 
   setTooltip(tooltip) {
     this.setState({ tooltip });
   }
-
-  // loadAsyncVis(visType) {
-  //   this.visPromise = visPromiseLookup[visType];
-
-  //   this.visPromise()
-  //     .then((renderVis) => {
-  //       // ensure Component is still mounted
-  //       if (this.visPromise) {
-  //         this.setState({ renderVis }, this.renderVis);
-  //       }
-  //     })
-  //     .catch((error) => {
-  //       console.warn(error); // eslint-disable-line
-  //       this.props.actions.chartRenderingFailed(error, this.props.chartId);
-  //     });
-  // }
 
   addFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
@@ -148,21 +111,9 @@ class Chart extends React.PureComponent {
     this.setState({ errorMsg: null });
   }
 
-  // width() {
-  //   return (
-  //     this.props.width || (this.container && this.container.el && this.container.el.offsetWidth)
-  //   );
-  // }
-
   headerHeight() {
     return this.props.headerHeight || 0;
   }
-
-  // height() {
-  //   return (
-  //     this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
-  //   );
-  // }
 
   error(e) {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
@@ -173,6 +124,7 @@ class Chart extends React.PureComponent {
       annotationData,
       datasource,
       formData,
+      getFilters,
       queryResponse,
       setControlValue,
     } = this.props;
@@ -187,7 +139,7 @@ class Chart extends React.PureComponent {
       annotationData,
       datasource: convertKeysToCamelCase(datasource),
       rawDatasource: datasource,
-      filters: this.getFilters(),
+      filters: getFilters(),
       formData: convertKeysToCamelCase(formData),
       onAddFilter: (...args) => {
         this.addFilter(...args);
@@ -330,22 +282,6 @@ class Chart extends React.PureComponent {
             }}
           />
         )}
-
-        {/* {!isLoading &&
-          !this.props.chartAlert && (
-            <ChartBody
-              containerId={this.containerId}
-              vizType={this.props.vizType}
-              height={this.height}
-              width={this.width}
-              faded={
-
-              }
-              ref={(inner) => {
-                this.container = inner;
-              }}
-            />
-          )} */}
       </div>
     );
   }
