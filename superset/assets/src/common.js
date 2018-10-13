@@ -5,6 +5,7 @@ import categoricalSchemes from './modules/colorSchemes/categorical';
 import lyft from './modules/colorSchemes/lyft';
 import { getInstance } from './modules/ColorSchemeManager';
 import { toggleCheckbox } from './modules/utils';
+import RoseChartPlugin from './visualizations/Rose/RoseChartPlugin';
 
 // Everything imported in this file ends up in the common entry file
 // be mindful of double-imports
@@ -35,6 +36,8 @@ getInstance()
   .registerMultipleSchemes(categoricalSchemes)
   .registerScheme('lyftColors', lyft.lyftColors)
   .setDefaultSchemeName('bnbColors');
+
+new RoseChartPlugin().configure({ key: 'rose' }).register();
 
 export function appSetup() {
     // A set of hacks to allow apps to run within a FAB template

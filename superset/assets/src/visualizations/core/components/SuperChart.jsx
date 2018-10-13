@@ -96,7 +96,7 @@ class SuperChart extends React.PureComponent {
               if (this.mounted) {
                 this.setState({
                   status: STATUS.SUCCESS,
-                  Renderer,
+                  Renderer: Renderer.default || Renderer,
                   transformProps,
                 });
               }

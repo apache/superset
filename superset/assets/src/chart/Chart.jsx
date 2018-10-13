@@ -1,15 +1,13 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Tooltip } from 'react-bootstrap';
 import dompurify from 'dompurify';
-
-import ChartBody from './ChartBody';
-import Loading from '../components/Loading';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
-import StackTraceMessage from '../components/StackTraceMessage';
+import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import visPromiseLookup from '../visualizations';
-import sandboxedEval from '../modules/sandbox';
+import StackTraceMessage from '../components/StackTraceMessage';
+import convertKeysToCamelCase from '../utils/convertKeysToCamelCase';
+import SuperChart from '../visualizations/core/components/SuperChart';
 import './chart.css';
 
 const propTypes = {
@@ -66,9 +64,9 @@ class Chart extends React.PureComponent {
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
     this.headerHeight = this.headerHeight.bind(this);
-    this.height = this.height.bind(this);
-    this.width = this.width.bind(this);
-    this.visPromise = null;
+    // this.height = this.height.bind(this);
+    // this.width = this.width.bind(this);
+    // this.visPromise = null;
   }
 
   componentDidMount() {
@@ -84,7 +82,7 @@ class Chart extends React.PureComponent {
       this.renderVis();
     }
 
-    this.loadAsyncVis(this.props.vizType);
+    // this.loadAsyncVis(this.props.vizType);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -93,10 +91,10 @@ class Chart extends React.PureComponent {
     this.selector = `#${this.containerId}`;
     this.formData = nextProps.formData;
     this.datasource = nextProps.datasource;
-    if (nextProps.vizType !== this.props.vizType) {
-      this.setState(() => ({ renderVis: null }));
-      this.loadAsyncVis(nextProps.vizType);
-    }
+    // if (nextProps.vizType !== this.props.vizType) {
+    //   this.setState(() => ({ renderVis: null }));
+    //   this.loadAsyncVis(nextProps.vizType);
+    // }
   }
 
   componentDidUpdate(prevProps) {
@@ -114,9 +112,9 @@ class Chart extends React.PureComponent {
     }
   }
 
-  componentWillUnmount() {
-    this.visPromise = null;
-  }
+  // componentWillUnmount() {
+  //   this.visPromise = null;
+  // }
 
   getFilters() {
     return this.props.getFilters();
@@ -126,21 +124,21 @@ class Chart extends React.PureComponent {
     this.setState({ tooltip });
   }
 
-  loadAsyncVis(visType) {
-    this.visPromise = visPromiseLookup[visType];
+  // loadAsyncVis(visType) {
+  //   this.visPromise = visPromiseLookup[visType];
 
-    this.visPromise()
-      .then((renderVis) => {
-        // ensure Component is still mounted
-        if (this.visPromise) {
-          this.setState({ renderVis }, this.renderVis);
-        }
-      })
-      .catch((error) => {
-        console.warn(error); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(error, this.props.chartId);
-      });
-  }
+  //   this.visPromise()
+  //     .then((renderVis) => {
+  //       // ensure Component is still mounted
+  //       if (this.visPromise) {
+  //         this.setState({ renderVis }, this.renderVis);
+  //       }
+  //     })
+  //     .catch((error) => {
+  //       console.warn(error); // eslint-disable-line
+  //       this.props.actions.chartRenderingFailed(error, this.props.chartId);
+  //     });
+  // }
 
   addFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
@@ -150,24 +148,56 @@ class Chart extends React.PureComponent {
     this.setState({ errorMsg: null });
   }
 
-  width() {
-    return (
-      this.props.width || (this.container && this.container.el && this.container.el.offsetWidth)
-    );
-  }
+  // width() {
+  //   return (
+  //     this.props.width || (this.container && this.container.el && this.container.el.offsetWidth)
+  //   );
+  // }
 
   headerHeight() {
     return this.props.headerHeight || 0;
   }
 
-  height() {
-    return (
-      this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
-    );
-  }
+  // height() {
+  //   return (
+  //     this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
+  //   );
+  // }
 
   error(e) {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
+  }
+
+  prepareChartProps() {
+    const {
+      annotationData,
+      datasource,
+      formData,
+      queryResponse,
+      setControlValue,
+    } = this.props;
+
+    // const payload = {
+    //   data: formData.js_data
+    //     ? sandboxedEval(formData.js_data)(queryResponse.data)
+    //     : queryResponse.data,
+    // };
+
+    return {
+      annotationData,
+      datasource: convertKeysToCamelCase(datasource),
+      rawDatasource: datasource,
+      filters: this.getFilters(),
+      formData: convertKeysToCamelCase(formData),
+      onAddFilter: (...args) => {
+        this.addFilter(...args);
+      },
+      onError: (...args) => {
+        this.error(...args);
+      },
+      payload: queryResponse,
+      setControlValue,
+    };
   }
 
   renderTooltip() {
@@ -195,70 +225,113 @@ class Chart extends React.PureComponent {
   }
 
   renderVis() {
-    const { chartStatus } = this.props;
-    const hasVisPromise = !!this.state.renderVis;
-    // check that we have the render function and data
-    if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
-      const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
-      const renderStart = Logger.getTimestamp();
+    // const { chartStatus } = this.props;
+    // const hasVisPromise = !!this.state.renderVis;
+    // // check that we have the render function and data
+    // if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
+    //   const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
+    //   const renderStart = Logger.getTimestamp();
 
-      try {
-        // Executing user-defined data mutator function
-        if (formData.js_data) {
-          queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
-        }
-        // [re]rendering the visualization
-        this.state.renderVis(this, queryResponse, setControlValue);
+    //   try {
+    //     // Executing user-defined data mutator function
+    //     if (formData.js_data) {
+    //       queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
+    //     }
+    //     // [re]rendering the visualization
+    //     this.state.renderVis(this, queryResponse, setControlValue);
 
-        if (chartStatus !== 'rendered') {
-          this.props.actions.chartRenderingSucceeded(chartId);
-        }
+    //     if (chartStatus !== 'rendered') {
+    //       this.props.actions.chartRenderingSucceeded(chartId);
+    //     }
 
-        Logger.append(LOG_ACTIONS_RENDER_CHART, {
-          slice_id: chartId,
-          viz_type: vizType,
-          start_offset: renderStart,
-          duration: Logger.getTimestamp() - renderStart,
-        });
-      } catch (e) {
-        console.warn(e); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(e, chartId);
-      }
-    }
+    //     Logger.append(LOG_ACTIONS_RENDER_CHART, {
+    //       slice_id: chartId,
+    //       viz_type: vizType,
+    //       start_offset: renderStart,
+    //       duration: Logger.getTimestamp() - renderStart,
+    //     });
+    //   } catch (e) {
+    //     console.warn(e); // eslint-disable-line
+    //     this.props.actions.chartRenderingFailed(e, chartId);
+    //   }
+    // }
   }
 
   render() {
-    const isLoading = this.props.chartStatus === 'loading' || !this.state.renderVis;
+    const {
+      width,
+      height,
+      actions,
+      chartAlert,
+      chartId,
+      chartStatus,
+      errorMessage,
+      onDismissRefreshOverlay,
+      onQuery,
+      queryResponse,
+      refreshOverlayVisible,
+      vizType,
+    } = this.props;
+
+    const isLoading = chartStatus === 'loading';
 
     // this allows <Loading /> to be positioned in the middle of the chart
-    const containerStyles = isLoading ? { height: this.height(), width: this.width() } : null;
+    const containerStyles = isLoading ? { height, width } : null;
+    const isFaded = refreshOverlayVisible && !errorMessage;
+    const renderStart = Logger.getTimestamp();
+
     return (
-      <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
+      <div
+        className={`chart-container ${isLoading ? 'is-loading' : ''}`}
+        style={containerStyles}
+      >
         {this.renderTooltip()}
 
         {isLoading && <Loading size={50} />}
 
         {this.props.chartAlert && (
           <StackTraceMessage
-            message={this.props.chartAlert}
-            queryResponse={this.props.queryResponse}
+            message={chartAlert}
+            queryResponse={queryResponse}
           />
         )}
 
-        {!isLoading &&
-          !this.props.chartAlert &&
-          this.props.refreshOverlayVisible &&
-          !this.props.errorMessage &&
-          this.container && (
-            <RefreshChartOverlay
-              height={this.height()}
-              width={this.width()}
-              onQuery={this.props.onQuery}
-              onDismiss={this.props.onDismissRefreshOverlay}
-            />
-          )}
+        {!isLoading && !chartAlert && isFaded && (
+          <RefreshChartOverlay
+            width={width}
+            height={height}
+            onQuery={onQuery}
+            onDismiss={onDismissRefreshOverlay}
+          />
+        )}
 
-        {!isLoading &&
+        {!isLoading && !chartAlert && (
+          <SuperChart
+            className={`slice_container ${isFaded ? ' faded' : ''}`}
+            width={width}
+            height={height}
+            chartProps={this.prepareChartProps()}
+            vizType={vizType}
+            onRenderSuccess={() => {
+              if (chartStatus !== 'rendered') {
+                actions.chartRenderingSucceeded(chartId);
+              }
+
+              Logger.append(LOG_ACTIONS_RENDER_CHART, {
+                slice_id: chartId,
+                viz_type: vizType,
+                start_offset: renderStart,
+                duration: Logger.getTimestamp() - renderStart,
+              });
+            }}
+            onRenderFailure={(e) => {
+              console.warn(e); // eslint-disable-line
+              actions.chartRenderingFailed(e, chartId);
+            }}
+          />
+        )}
+
+        {/* {!isLoading &&
           !this.props.chartAlert && (
             <ChartBody
               containerId={this.containerId}
@@ -266,13 +339,13 @@ class Chart extends React.PureComponent {
               height={this.height}
               width={this.width}
               faded={
-                this.props.refreshOverlayVisible && !this.props.errorMessage
+
               }
               ref={(inner) => {
                 this.container = inner;
               }}
             />
-          )}
+          )} */}
       </div>
     );
   }
