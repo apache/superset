@@ -6,6 +6,7 @@ import lyft from './modules/colorSchemes/lyft';
 import { getInstance } from './modules/ColorSchemeManager';
 import { toggleCheckbox } from './modules/utils';
 import RoseChartPlugin from './visualizations/Rose/RoseChartPlugin';
+import ClassicChartPreset from './visualizations/presets/ClassicChartPreset';
 
 // Everything imported in this file ends up in the common entry file
 // be mindful of double-imports
@@ -37,6 +38,7 @@ getInstance()
   .registerScheme('lyftColors', lyft.lyftColors)
   .setDefaultSchemeName('bnbColors');
 
+new ClassicChartPreset().register();
 new RoseChartPlugin().configure({ key: 'rose' }).register();
 
 export function appSetup() {
