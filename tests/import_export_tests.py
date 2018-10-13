@@ -4,12 +4,13 @@ import unittest
 
 from sqlalchemy.orm.session import make_transient
 
-from superset import db, utils
+from superset import db
 from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
+from superset.utils.core import decode_dashboards
 from .base_tests import SupersetTestCase
 
 

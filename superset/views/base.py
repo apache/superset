@@ -15,9 +15,10 @@ from flask_babel import lazy_gettext as _
 import simplejson as json
 import yaml
 
-from superset import conf, db, security_manager, utils
+from superset import conf, db, security_manager
 from superset.exceptions import SupersetSecurityException
 from superset.translations.utils import get_language_pack
+from superset.utils import core as utils
 
 FRONTEND_CONF_KEYS = (
     'SUPERSET_WEBSERVER_TIMEOUT',

@@ -31,9 +31,10 @@ from past.builtins import basestring
 import polyline
 import simplejson as json
 
-from superset import app, cache, get_css_manifest_files, utils
+from superset import app, cache, get_css_manifest_files
 from superset.exceptions import NullValueException, SpatialException
-from superset.utils import (
+from superset.utils import core as utils
+from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
     merge_extra_filters,

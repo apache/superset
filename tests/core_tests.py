@@ -16,12 +16,13 @@ import pandas as pd
 import psycopg2
 import sqlalchemy as sqla
 
-from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
-from superset.utils import get_main_database
+from superset.utils import core as utils
+from superset.utils.core import get_main_database, QueryStatus
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 

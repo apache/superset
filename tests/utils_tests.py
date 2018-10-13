@@ -7,7 +7,7 @@ from mock import patch
 import numpy
 
 from superset.exceptions import SupersetException
-from superset.utils import (
+from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,

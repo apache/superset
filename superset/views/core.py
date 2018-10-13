@@ -28,8 +28,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
-    security_manager, sql_lab, utils, viz)
+    app, appbuilder, cache, db, results_backend,
+    security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -40,9 +40,8 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
-    merge_extra_filters, merge_request_params, QueryStatus,
-)
+from superset.utils import core as utils
+from superset.utils import dashboard_import_export
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -56,6 +55,7 @@ config = app.config
 stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
+QueryStatus = utils.QueryStatus
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -945,7 +945,10 @@ class Superset(BaseSupersetView):
             return json_error_response(ACCESS_REQUEST_MISSING_ERR)
 
         # check if you can approve
-        if security_manager.all_datasource_access() or g.user.id == datasource.owner_id:
+        if (
+                security_manager.all_datasource_access() or
+                check_ownership(datasource, raise_if_false=False)
+        ):
             # can by done by admin only
             if role_to_grant:
                 role = security_manager.find_role(role_to_grant)
@@ -1254,7 +1257,7 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
-            dashboard_import_export_util.import_dashboards(db.session, f.stream)
+            dashboard_import_export.import_dashboards(db.session, f.stream)
             return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
@@ -1332,11 +1335,11 @@ class Superset(BaseSupersetView):
 
         # On explore, merge legacy and extra filters into the form data
         utils.convert_legacy_filters_into_adhoc(form_data)
-        merge_extra_filters(form_data)
+        utils.merge_extra_filters(form_data)
 
         # merge request url params
         if request.method == 'GET':
-            merge_request_params(form_data, request.args)
+            utils.merge_request_params(form_data, request.args)
 
         # handle save or overwrite
         action = request.args.get('action')
@@ -2451,7 +2454,7 @@ class Superset(BaseSupersetView):
                 db.session.query(Query)
                 .filter_by(client_id=client_id).one()
             )
-            query.status = utils.QueryStatus.STOPPED
+            query.status = QueryStatus.STOPPED
             db.session.commit()
         except Exception:
             pass
@@ -2673,8 +2676,8 @@ class Superset(BaseSupersetView):
         now = int(round(time.time() * 1000))
 
         unfinished_states = [
-            utils.QueryStatus.PENDING,
-            utils.QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.RUNNING,
         ]
 
         queries_to_timeout = [
@@ -2693,10 +2696,10 @@ class Superset(BaseSupersetView):
                     Query.user_id == g.user.get_id(),
                     Query.client_id in queries_to_timeout,
                 ),
-            ).values(state=utils.QueryStatus.TIMED_OUT)
+            ).values(state=QueryStatus.TIMED_OUT)
 
             for client_id in queries_to_timeout:
-                dict_queries[client_id]['status'] = utils.QueryStatus.TIMED_OUT
+                dict_queries[client_id]['status'] = QueryStatus.TIMED_OUT
 
         return json_success(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser))

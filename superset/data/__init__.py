@@ -12,10 +12,11 @@ from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
 import polyline
 
-from superset import app, db, utils
+from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import TableColumn
 from superset.models import core as models
+from superset.utils.core import get_or_create_main_db, readfile
 
 # Shortcuts
 DB = models.Database
@@ -77,7 +78,7 @@ def load_energy():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -183,9 +184,9 @@ def load_world_bank_health_n_pop():
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
+    tbl.description = readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
@@ -723,7 +724,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     obj.filter_select_enabled = True
 
     if not any(col.column_name == 'num_california' for col in obj.columns):
@@ -1256,7 +1257,7 @@ def load_unicode_test_data():
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'dttm'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1369,7 +1370,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1432,7 +1433,7 @@ def load_country_map_data():
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
     obj.main_dttm_col = 'dttm'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1507,7 +1508,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'datetime'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1568,7 +1569,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],
@@ -2391,7 +2392,7 @@ def load_flights():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Random set of flights in the US"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -2422,7 +2423,7 @@ def load_paris_iris_geojson():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Map of Paris"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -2452,7 +2453,7 @@ def load_sf_population_polygons():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Population density of San Francisco"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -2482,7 +2483,7 @@ def load_bart_lines():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "BART lines"
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
