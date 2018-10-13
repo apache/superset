@@ -50,15 +50,7 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-
-    // // these properties are used by visualizations
-    // this.annotationData = props.annotationData;
-    // this.containerId = props.containerId;
-    // this.selector = `#${this.containerId}`;
-    // this.formData = props.formData;
-    // this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
-    this.headerHeight = this.headerHeight.bind(this);
   }
 
   componentDidMount() {
@@ -70,19 +62,7 @@ class Chart extends React.PureComponent {
         this.props.chartId,
       );
     }
-    // else {
-    //   // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
-    //   this.renderVis();
-    // }
   }
-
-  // componentWillReceiveProps(nextProps) {
-  //   this.annotationData = nextProps.annotationData;
-  //   this.containerId = nextProps.containerId;
-  //   this.selector = `#${this.containerId}`;
-  //   this.formData = nextProps.formData;
-  //   this.datasource = nextProps.datasource;
-  // }
 
   // componentDidUpdate(prevProps) {
   //   if (
@@ -111,10 +91,6 @@ class Chart extends React.PureComponent {
     this.setState({ errorMsg: null });
   }
 
-  headerHeight() {
-    return this.props.headerHeight || 0;
-  }
-
   error(e) {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
   }
@@ -128,12 +104,6 @@ class Chart extends React.PureComponent {
       queryResponse,
       setControlValue,
     } = this.props;
-
-    // const payload = {
-    //   data: formData.js_data
-    //     ? sandboxedEval(formData.js_data)(queryResponse.data)
-    //     : queryResponse.data,
-    // };
 
     return {
       annotationData,
@@ -181,31 +151,6 @@ class Chart extends React.PureComponent {
   //   // const hasVisPromise = !!this.state.renderVis;
   //   // // check that we have the render function and data
   //   // if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
-  //   //   const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
-  //   //   const renderStart = Logger.getTimestamp();
-
-  //   //   try {
-  //   //     // Executing user-defined data mutator function
-  //   //     if (formData.js_data) {
-  //   //       queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
-  //   //     }
-  //   //     // [re]rendering the visualization
-  //   //     this.state.renderVis(this, queryResponse, setControlValue);
-
-  //   //     if (chartStatus !== 'rendered') {
-  //   //       this.props.actions.chartRenderingSucceeded(chartId);
-  //   //     }
-
-  //   //     Logger.append(LOG_ACTIONS_RENDER_CHART, {
-  //   //       slice_id: chartId,
-  //   //       viz_type: vizType,
-  //   //       start_offset: renderStart,
-  //   //       duration: Logger.getTimestamp() - renderStart,
-  //   //     });
-  //   //   } catch (e) {
-  //   //     console.warn(e); // eslint-disable-line
-  //   //     this.props.actions.chartRenderingFailed(e, chartId);
-  //   //   }
   //   // }
   // }
 
