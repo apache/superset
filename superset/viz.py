@@ -13,11 +13,13 @@ from __future__ import unicode_literals
 from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
+from functools import reduce
 import hashlib
 import inspect
 from itertools import product
 import logging
 import math
+import pickle as pkl
 import re
 import traceback
 import uuid
@@ -34,8 +36,6 @@ from pandas.tseries.frequencies import to_offset
 from past.builtins import basestring
 import polyline
 import simplejson as json
-from six import string_types, text_type
-from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
@@ -120,7 +120,7 @@ class BaseViz(object):
         self.metric_labels = list(self.metric_dict.keys())
 
     def get_metric_label(self, metric):
-        if isinstance(metric, string_types):
+        if isinstance(metric, str):
             return metric
 
         if isinstance(metric, dict):
@@ -139,7 +139,7 @@ class BaseViz(object):
                     # if an int is too big for Java Script to handle
                     # convert it to a string
                     if abs(v) > JS_MAX_INTEGER:
-                        d[k] = text_type(v)
+                        d[k] = str(v)
         return data
 
     def run_extra_queries(self):
@@ -789,7 +789,7 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                text_type(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
                 for obj in records
             }
 
@@ -1089,11 +1089,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in 'biufc':
                 continue
             if isinstance(name, list):
-                series_title = [text_type(title) for title in name]
+                series_title = [str(title) for title in name]
             elif isinstance(name, tuple):
-                series_title = tuple(text_type(title) for title in name)
+                series_title = tuple(str(title) for title in name)
             else:
-                series_title = text_type(name)
+                series_title = str(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
@@ -1101,7 +1101,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
             if title_suffix:
-                if isinstance(series_title, string_types):
+                if isinstance(series_title, str):
                     series_title = (series_title, title_suffix)
                 elif isinstance(series_title, (list, tuple)):
                     series_title = series_title + (title_suffix,)
@@ -1526,18 +1526,18 @@ class DistributionBarViz(DistributionPieViz):
         for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
-            if isinstance(name, string_types):
+            if isinstance(name, str):
                 series_title = name
             else:
                 offset = 0 if len(metrics) > 1 else 1
-                series_title = ', '.join([text_type(s) for s in name[offset:]])
+                series_title = ', '.join([str(s) for s in name[offset:]])
             values = []
             for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
-                    x = ', '.join([text_type(s) for s in x])
+                    x = ', '.join([str(s) for s in x])
                 else:
-                    x = text_type(x)
+                    x = str(x)
                 values.append({
                     'x': x,
                     'y': v,
@@ -1753,7 +1753,7 @@ class WorldMapViz(BaseViz):
         d = df.to_dict(orient='records')
         for row in d:
             country = None
-            if isinstance(row['country'], string_types):
+            if isinstance(row['country'], str):
                 country = countries.get(
                     fd.get('country_fieldtype'), row['country'])
 
@@ -2509,7 +2509,7 @@ class PairedTTestViz(BaseViz):
         series = df.to_dict('series')
         for nameSet in df.columns:
             # If no groups are defined, nameSet will be the metric name
-            hasGroup = not isinstance(nameSet, string_types)
+            hasGroup = not isinstance(nameSet, str)
             Y = series[nameSet]
             d = {
                 'group': nameSet[1:] if hasGroup else 'All',

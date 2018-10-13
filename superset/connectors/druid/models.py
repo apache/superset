@@ -30,7 +30,6 @@ from pydruid.utils.postaggregator import (
     Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
 )
 import requests
-from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
@@ -775,7 +774,7 @@ class DruidDatasource(Model, BaseDatasource):
             if period_name in ('week_ending_saturday', 'week_starting_sunday'):
                 # use Sunday as start of the week
                 granularity['origin'] = '2016-01-03T00:00:00'
-        elif not isinstance(period_name, string_types):
+        elif not isinstance(period_name, str):
             granularity['type'] = 'duration'
             granularity['duration'] = period_name
         elif period_name.startswith('P'):

@@ -21,7 +21,6 @@ from flask_appbuilder.security.sqla.models import User
 from future.standard_library import install_aliases
 import numpy
 import pandas as pd
-import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -777,7 +776,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
@@ -814,7 +813,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def compile_sqla_query(self, qry, schema=None):
         engine = self.get_sqla_engine(schema=schema)
 
-        sql = six.text_type(
+        sql = str(
             qry.compile(
                 engine,
                 compile_kwargs={'literal_binds': True},
