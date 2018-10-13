@@ -89,15 +89,13 @@ meets these guidelines:
 3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-4.  The pull request should work for Python 2.7 and Python 3.6.
-    ``from __future__ import`` will be required in every `.py` file soon.
-5.  If the pull request adds a Python dependency include it in `setup.py`
-    denoting any specific restrictions and run `pip-compile` to update the
-    `requirements.txt` file which ensures that the application build is deterministic.
-6.  Please rebase and resolve all conflicts before submitting.
-7.  Please ensure the necessary checks pass and that code coverage does not
+4.  If the pull request adds a Python dependency include it in `setup.py`
+    denoting any specific restrictions and in `requirements.txt` pinned to a
+    specific version which ensures that the application build is deterministic.
+5.  Please rebase and resolve all conflicts before submitting.
+6.  Please ensure the necessary checks pass and that code coverage does not
     decrease.
-8.  If you are asked to update your pull request with some changes there's
+7.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
 ## Local development

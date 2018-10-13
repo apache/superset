@@ -13,11 +13,6 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import defaultdict, namedtuple
 import inspect
 import logging

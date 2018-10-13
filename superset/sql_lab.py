@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from datetime import datetime
 import logging
 from time import sleep
