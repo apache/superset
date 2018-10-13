@@ -42,13 +42,13 @@ class ExploreChartPanel extends React.PureComponent {
     const { chart } = this.props;
     return (
       <ParentSize>
-        {({ width }) => (
+        {({ width, height }) => (width > 0 && height > 0) && (
           <ChartContainer
             chartId={chart.id}
             containerId={this.props.containerId}
             datasource={this.props.datasource}
             formData={this.props.form_data}
-            width={width}
+            width={Math.floor(width)}
             height={this.getHeight()}
             slice={this.props.slice}
             setControlValue={this.props.actions.setControlValue}
@@ -93,7 +93,8 @@ class ExploreChartPanel extends React.PureComponent {
         form_data={this.props.form_data}
         timeout={this.props.timeout}
         chart={this.props.chart}
-      />);
+      />
+    );
     return (
       <div className="chart-container">
         <Panel
