@@ -6,7 +6,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
-import convertKeysToCamelCase from '../utils/convertKeysToCamelCase';
+import ChartProps from '../visualizations/core/models/ChartProps';
 import SuperChart from '../visualizations/core/components/SuperChart';
 import './chart.css';
 
@@ -106,12 +106,11 @@ class Chart extends React.PureComponent {
       setControlValue,
     } = this.props;
 
-    return {
+    return new ChartProps({
       annotationData,
-      datasource: convertKeysToCamelCase(datasource),
-      rawDatasource: datasource,
+      datasource,
       filters: getFilters(),
-      formData: convertKeysToCamelCase(formData),
+      formData,
       onAddFilter: (...args) => {
         this.addFilter(...args);
       },
@@ -120,7 +119,10 @@ class Chart extends React.PureComponent {
       },
       payload: queryResponse,
       setControlValue,
-    };
+      setTooltip: (...args) => {
+        this.setTooltip(...args);
+      },
+    });
   }
 
   renderTooltip() {
