@@ -6,13 +6,6 @@ import Adapter from 'enzyme-adapter-react-16';
 
 configure({ adapter: new Adapter() });
 
-require('babel-register')({
-  // NOTE: If `dynamic-import-node` is in .babelrc alongside
-  // `syntax-dynamic-import` it breaks webpack's bundle splitting capability.
-  // So only load during runtime on the node-side (in tests)
-  plugins: ['dynamic-import-node'],
-});
-
 const exposedProperties = ['window', 'navigator', 'document'];
 
 global.jsdom = jsdom.jsdom;
