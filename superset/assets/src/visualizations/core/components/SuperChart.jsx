@@ -156,11 +156,7 @@ class SuperChart extends React.PureComponent {
         );
       default:
       case STATUS.IDLE:
-        return (
-          <div className="alert alert-warning" role="alert">
-            <code>vizType</code> is not specified.
-          </div>
-        );
+        return null;
     }
   }
 
