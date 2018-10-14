@@ -49,10 +49,11 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
 }
 
 const propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
   formData: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
-  viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
   setTooltip: PropTypes.func,
 };
@@ -102,10 +103,17 @@ class DeckGLScreenGrid extends React.PureComponent {
   }
 
   render() {
-    const { formData, payload } = this.props;
+    const { width, height, formData, payload } = this.props;
+
+    const originalViewport = {
+      ...formData.viewport,
+      width,
+      height,
+    };
+
     const viewport = formData.autozoom
-      ? fitViewport(this.props.viewport, getPoints(payload.data.features))
-      : this.props.viewport;
+      ? fitViewport(originalViewport, getPoints(payload.data.features))
+      : originalViewport;
 
     return (
       <div>

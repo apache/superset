@@ -7,6 +7,8 @@ import layerGenerators from '../layers';
 import createAdaptor from '../createAdaptor';
 
 const propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
   formData: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
@@ -65,10 +67,15 @@ class DeckMulti extends React.PureComponent {
   }
 
   render() {
-    const { payload, viewport, formData, setControlValue } = this.props;
+    const { width, height, payload, formData, setControlValue } = this.props;
     const { subSlicesLayers } = this.state;
 
     const layers = Object.keys(subSlicesLayers).map(k => subSlicesLayers[k]);
+    const viewport = {
+      ...formData.viewport,
+      width,
+      height,
+    };
 
     return (
       <DeckGLContainer

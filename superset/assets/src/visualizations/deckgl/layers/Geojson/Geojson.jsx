@@ -94,6 +94,8 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
 }
 
 const propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
   formData: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
@@ -108,13 +110,20 @@ const defaultProps = {
 
 function deckGeoJson(props) {
   const {
+    width,
+    height,
     formData,
     payload,
     setControlValue,
     onAddFilter,
     setTooltip,
-    viewport,
   } = props;
+
+  const viewport = {
+    ...formData.viewport,
+    width,
+    height,
+  };
 
   // TODO get this to work
   // if (formData.autozoom) {

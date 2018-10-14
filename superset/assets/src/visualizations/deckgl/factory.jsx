@@ -5,10 +5,11 @@ import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import { fitViewport } from './layers/common';
 
 const propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
   formData: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
-  viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
   setTooltip: PropTypes.func,
 };
@@ -20,13 +21,20 @@ const defaultProps = {
 export function createDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
     const {
+      width,
+      height,
       formData,
       payload,
       setControlValue,
       onAddFilter,
       setTooltip,
-      viewport: originalViewport,
     } = props;
+
+    const originalViewport = {
+      ...formData.viewport,
+      width,
+      height,
+    };
 
     const viewport = formData.autozoom
       ? fitViewport(originalViewport, getPoints(payload.data.features))
@@ -54,13 +62,20 @@ export function createDeckGLComponent(getLayer, getPoints) {
 export function createCategoricalDeckGLComponent(getLayer, getPoints) {
   function Component(props) {
     const {
+      width,
+      height,
       formData,
       payload,
       setControlValue,
       onAddFilter,
       setTooltip,
-      viewport: originalViewport,
     } = props;
+
+    const originalViewport = {
+      ...formData.viewport,
+      width,
+      height,
+    };
 
     const viewport = formData.autozoom
       ? fitViewport(originalViewport, getPoints(payload.data.features))
