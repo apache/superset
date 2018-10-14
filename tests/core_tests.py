@@ -22,7 +22,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import get_main_database, QueryStatus
+from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 

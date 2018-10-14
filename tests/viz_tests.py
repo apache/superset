@@ -996,7 +996,7 @@ class BaseDeckGLVizTestCase(SupersetTestCase):
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates('fldkjsalkj,fdlaskjfjadlksj')
 
-    @patch('superset.utils.uuid.uuid4')
+    @patch('superset.utils.core.uuid.uuid4')
     def test_filter_nulls(self, mock_uuid4):
         mock_uuid4.return_value = uuid.UUID('12345678123456781234567812345678')
         test_form_data = {

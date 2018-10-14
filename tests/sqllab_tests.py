@@ -9,7 +9,7 @@ from superset import db, security_manager
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.utils.core import get_main_database, datetime_to_epoch
+from superset.utils.core import datetime_to_epoch, get_main_database
 from .base_tests import SupersetTestCase
 
 

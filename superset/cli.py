@@ -417,6 +417,7 @@ def load_test_users():
 
     Syncs permissions for those users/roles
     """
+    print(Fore.GREEN + 'Loading a set of users for unit tests')
     load_test_users_run()
 
 

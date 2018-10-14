@@ -10,7 +10,7 @@ from superset.connectors.druid.models import (
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
-from superset.utils.core import decode_dashboards
+from superset.utils import core as utils
 from .base_tests import SupersetTestCase
 
 
@@ -18,9 +18,6 @@ class ImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
     requires_examples = True
-
-    def __init__(self, *args, **kwargs):
-        super(ImportExportTests, self).__init__(*args, **kwargs)
 
     @classmethod
     def delete_imports(cls):
@@ -43,6 +40,7 @@ class ImportExportTests(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         cls.delete_imports()
+        cls.create_druid_test_objects()
 
     @classmethod
     def tearDownClass(cls):
