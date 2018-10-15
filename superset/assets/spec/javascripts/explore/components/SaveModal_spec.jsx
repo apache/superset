@@ -117,12 +117,6 @@ describe('SaveModal', () => {
 
   describe('saveOrOverwrite', () => {
     beforeEach(() => {
-      // this must be non-null when saveOrOverwrite(gotodash = true) is called
-      Object.defineProperty(window.location, 'origin', {
-        writable: true,
-        value: 'http://localhost',
-      });
-
       sinon
         .stub(exploreUtils, 'getExploreUrlAndPayload')
         .callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
@@ -135,10 +129,6 @@ describe('SaveModal', () => {
     });
 
     afterEach(() => {
-      Object.defineProperty(window.location, 'origin', {
-        writable: true,
-        value: null,
-      });
       exploreUtils.getExploreUrlAndPayload.restore();
       saveModalActions.saveSlice.restore();
     });
