@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
 import * as exploreUtils from '../../../src/explore/exploreUtils';
@@ -31,8 +30,8 @@ describe('chart actions', () => {
       },
     }));
     promise.then(() => {
-      expect(dispatch.callCount).to.equal(3);
-      expect(dispatch.args[0][0].type).to.equal(actions.CHART_UPDATE_TIMEOUT);
+      expect(dispatch.callCount).toBe(3);
+      expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
     });
   });
 });

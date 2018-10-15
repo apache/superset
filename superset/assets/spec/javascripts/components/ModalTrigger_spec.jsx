@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 
 import ModalTrigger from '../../../src/components/ModalTrigger';
 
@@ -13,6 +12,6 @@ describe('ModalTrigger', () => {
   it('is a valid element', () => {
     expect(
       React.isValidElement(<ModalTrigger {...defaultProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 });

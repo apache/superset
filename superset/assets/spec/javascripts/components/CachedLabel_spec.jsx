@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
@@ -14,12 +13,12 @@ describe('CachedLabel', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<CachedLabel {...defaultProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders', () => {
     const wrapper = shallow(
       <CachedLabel {...defaultProps} />,
     );
-    expect(wrapper.find(Label)).to.have.length(1);
+    expect(wrapper.find(Label)).toHaveLength(1);
   });
 });

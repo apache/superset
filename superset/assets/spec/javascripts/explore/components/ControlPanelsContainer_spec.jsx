@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { getFormDataFromControls, defaultControls }
   from '../../../../src/explore/store';
@@ -25,6 +24,6 @@ describe('ControlPanelsContainer', () => {
   });
 
   it('renders ControlPanelSections', () => {
-    expect(wrapper.find(ControlPanelSection)).to.have.lengthOf(6);
+    expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
   });
 });

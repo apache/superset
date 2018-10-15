@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
@@ -14,12 +13,12 @@ describe('RowCountLabel', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<RowCountLabel {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<RowCountLabel {...defaultProps} />)).toBe(true);
   });
   it('renders a Label and a TooltipWrapper', () => {
     const wrapper = shallow(<RowCountLabel {...defaultProps} />);
-    expect(wrapper.find(Label)).to.have.lengthOf(1);
-    expect(wrapper.find(TooltipWrapper)).to.have.lengthOf(1);
+    expect(wrapper.find(Label)).toHaveLength(1);
+    expect(wrapper.find(TooltipWrapper)).toHaveLength(1);
   });
   it('renders a warning when limit is reached', () => {
     const props = {
@@ -27,6 +26,6 @@ describe('RowCountLabel', () => {
       limit: 100,
     };
     const wrapper = shallow(<RowCountLabel {...props} />);
-    expect(wrapper.find(Label).first().props().bsStyle).to.equal('warning');
+    expect(wrapper.find(Label).first().props().bsStyle).toBe('warning');
   });
 });

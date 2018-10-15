@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
@@ -10,7 +8,7 @@ import sliceEntitiesReducer from '../../../../src/dashboard/reducers/sliceEntiti
 
 describe('sliceEntities reducer', () => {
   it('should return initial state', () => {
-    expect(sliceEntitiesReducer({}, {})).to.deep.equal({});
+    expect(sliceEntitiesReducer({}, {})).toEqual({});
   });
 
   it('should set loading when fetching slices', () => {
@@ -19,7 +17,7 @@ describe('sliceEntities reducer', () => {
         { isLoading: false },
         { type: FETCH_ALL_SLICES_STARTED },
       ).isLoading,
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('should set slices', () => {
@@ -28,12 +26,12 @@ describe('sliceEntities reducer', () => {
       { type: SET_ALL_SLICES, slices: { 1: {}, 2: {} } },
     );
 
-    expect(result.slices).to.deep.equal({
+    expect(result.slices).toEqual({
       1: {},
       2: {},
       a: {},
     });
-    expect(result.isLoading).to.equal(false);
+    expect(result.isLoading).toBe(false);
   });
 
   it('should set an error on error', () => {
@@ -44,7 +42,7 @@ describe('sliceEntities reducer', () => {
         error: { responseJSON: { message: 'errorrr' } },
       },
     );
-    expect(result.isLoading).to.equal(false);
-    expect(result.errorMessage.indexOf('errorrr')).to.be.above(-1);
+    expect(result.isLoading).toBe(false);
+    expect(result.errorMessage.indexOf('errorrr')).toBeGreaterThan(-1);
   });
 });

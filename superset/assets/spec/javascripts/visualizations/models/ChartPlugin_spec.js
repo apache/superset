@@ -1,5 +1,3 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import ChartPlugin from '../../../../src/visualizations/core/models/ChartPlugin';
 import ChartMetadata from '../../../../src/visualizations/core/models/ChartMetadata';
 
@@ -7,7 +5,7 @@ describe('ChartPlugin', () => {
   const metadata = new ChartMetadata({});
 
   it('exists', () => {
-    expect(ChartPlugin).to.not.equal(undefined);
+    expect(ChartPlugin).toBeDefined();
   });
 
   describe('new ChartPlugin()', () => {
@@ -16,13 +14,13 @@ describe('ChartPlugin', () => {
         metadata,
         Chart() {},
       });
-      expect(plugin).to.be.instanceof(ChartPlugin);
+      expect(plugin).toBeInstanceOf(ChartPlugin);
     });
     it('throws an error if metadata is not specified', () => {
-      expect(() => new ChartPlugin()).to.throw(Error);
+      expect(() => new ChartPlugin()).toThrowError(Error);
     });
     it('throws an error if none of Chart or loadChart is specified', () => {
-      expect(() => new ChartPlugin({ metadata })).to.throw(Error);
+      expect(() => new ChartPlugin({ metadata })).toThrowError(Error);
     });
   });
 
@@ -32,11 +30,11 @@ describe('ChartPlugin', () => {
       Chart() {},
     });
     it('throws an error if key is not provided', () => {
-      expect(() => plugin.register()).to.throw(Error);
-      expect(() => plugin.configure({ key: 'abc' }).register()).to.not.throw(Error);
+      expect(() => plugin.register()).toThrowError(Error);
+      expect(() => plugin.configure({ key: 'abc' }).register()).not.toThrowError(Error);
     });
     it('returns itself', () => {
-      expect(plugin.configure({ key: 'abc' }).register()).to.equal(plugin);
+      expect(plugin.configure({ key: 'abc' }).register()).toBe(plugin);
     });
   });
 });

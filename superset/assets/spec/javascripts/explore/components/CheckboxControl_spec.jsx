@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
@@ -24,9 +23,9 @@ describe('CheckboxControl', () => {
 
   it('renders a Checkbox', () => {
     const controlHeader = wrapper.find(ControlHeader);
-    expect(controlHeader).to.have.lengthOf(1);
+    expect(controlHeader).toHaveLength(1);
 
     const headerWrapper = controlHeader.shallow();
-    expect(headerWrapper.find(Checkbox)).to.have.length(1);
+    expect(headerWrapper.find(Checkbox)).toHaveLength(1);
   });
 });

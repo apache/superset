@@ -1,6 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 
 import { user } from './fixtures';
 import Favorites from '../../../src/profile/components/Favorites';
@@ -13,14 +12,14 @@ describe('Favorites', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<Favorites {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders 2 TableLoader', () => {
     const wrapper = mount(<Favorites {...mockedProps} />);
-    expect(wrapper.find(TableLoader)).to.have.length(2);
+    expect(wrapper.find(TableLoader)).toHaveLength(2);
   });
   it('renders 2 titles', () => {
     const wrapper = mount(<Favorites {...mockedProps} />);
-    expect(wrapper.find('h3')).to.have.length(2);
+    expect(wrapper.find('h3')).toHaveLength(2);
   });
 });

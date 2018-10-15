@@ -1,6 +1,5 @@
 import React from 'react';
 import { Tabs } from 'react-bootstrap';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import $ from 'jquery';
@@ -47,26 +46,26 @@ describe('DatasourceEditor', () => {
   });
 
   it('is valid', () => {
-    expect(React.isValidElement(el)).to.equal(true);
+    expect(React.isValidElement(el)).toBe(true);
   });
 
   it('renders Tabs', () => {
-    expect(wrapper.find(Tabs)).to.have.lengthOf(1);
+    expect(wrapper.find(Tabs)).toHaveLength(1);
   });
 
   it('makes an async request', () => {
     wrapper.setState({ activeTabKey: 2 });
     const syncButton = wrapper.find('.sync-from-source');
-    expect(syncButton).to.have.lengthOf(1);
+    expect(syncButton).toHaveLength(1);
     syncButton.simulate('click');
-    expect(ajaxStub.calledOnce).to.equal(true);
+    expect(ajaxStub.calledOnce).toBe(true);
   });
 
   it('merges columns', () => {
     const numCols = props.datasource.columns.length;
-    expect(inst.state.databaseColumns.length).to.equal(numCols);
+    expect(inst.state.databaseColumns).toHaveLength(numCols);
     inst.mergeColumns([extraColumn]);
-    expect(inst.state.databaseColumns.length).to.equal(numCols + 1);
+    expect(inst.state.databaseColumns).toHaveLength(numCols + 1);
   });
 
 });

@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import CollectionTable from '../../../src/CRUD/CollectionTable';
@@ -21,13 +20,13 @@ describe('CollectionTable', () => {
   });
 
   it('is valid', () => {
-    expect(React.isValidElement(el)).to.equal(true);
+    expect(React.isValidElement(el)).toBe(true);
   });
 
   it('renders a table', () => {
     const length = mockDatasource['7__table'].columns.length;
-    expect(wrapper.find('table')).to.have.lengthOf(1);
-    expect(wrapper.find('tbody tr.row')).to.have.lengthOf(length);
+    expect(wrapper.find('table')).toHaveLength(1);
+    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
   });
 
 });
