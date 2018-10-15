@@ -372,7 +372,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 4
+        assert len(data) > 0
 
     def test_shortner(self):
         self.login(username='admin')

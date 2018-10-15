@@ -7,10 +7,10 @@ import os
 import random
 import textwrap
 
-import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
+import pandas as pd
 import polyline
+from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 
 from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -27,7 +27,7 @@ TBL = ConnectorRegistry.sources['table']
 
 config = app.config
 
-DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
+DATA_FOLDER = os.path.join(config.get('BASE_DIR'), 'data')
 
 misc_dash_slices = set()  # slices assembled in a "Misc Chart" dashboard
 
@@ -39,7 +39,8 @@ def update_slice_ids(layout_dict, slices):
     ]
     sorted_charts = sorted(charts, key=lambda k: k['meta']['chartId'])
     for i, chart_component in enumerate(sorted_charts):
-        chart_component['meta']['chartId'] = int(slices[i].id)
+        if i < len(slices):
+            chart_component['meta']['chartId'] = int(slices[i].id)
 
 
 def merge_slice(slc):
