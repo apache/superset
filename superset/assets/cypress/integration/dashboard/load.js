@@ -1,3 +1,4 @@
+import readResponseBlob from '../../utils/readResponseBlob';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () => describe('load', () => {
@@ -24,9 +25,10 @@ export default () => describe('load', () => {
   it('should load dashboard', () => {
     // wait and verify one-by-one
     cy.wait(aliases).then((requests) => {
-      requests.forEach((xhr) => {
+      requests.forEach(async (xhr) => {
         expect(xhr.status).to.eq(200);
-        expect(xhr.response.body).to.have.property('error', null);
+        const responseBody = await readResponseBlob(xhr.response.body);
+        expect(responseBody).to.have.property('error', null);
         cy.get(`#slice-container-${xhr.response.body.form_data.slice_id}`);
       });
     });

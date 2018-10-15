@@ -62,7 +62,7 @@ class ExploreChartPanel extends React.PureComponent {
         latestQueryFormData={chart.latestQueryFormData}
         lastRendered={chart.lastRendered}
         queryResponse={chart.queryResponse}
-        queryRequest={chart.queryRequest}
+        queryController={chart.queryController}
         triggerQuery={chart.triggerQuery}
       />
     );

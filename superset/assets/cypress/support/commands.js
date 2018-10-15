@@ -24,6 +24,8 @@
 // -- This is will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
+import readResponseBlob from '../utils/readResponseBlob';
+
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
 Cypress.Commands.add('login', () => {
@@ -50,11 +52,14 @@ Cypress.Commands.add('visitChartByParams', (params) => {
   cy.visit(`${BASE_EXPLORE_URL}${params}`);
 });
 
-Cypress.Commands.add('verifyResponseCodes', (data) => {
+Cypress.Commands.add('verifyResponseCodes', async (xhr) => {
   // After a wait response check for valid response
-  expect(data.status).to.eq(200);
-  if (data.response.body.error) {
-    expect(data.response.body.error).to.eq(null);
+  expect(xhr.status).to.eq(200);
+
+  const responseBody = await readResponseBlob(xhr.response.body);
+
+  if (responseBody.error) {
+    expect(responseBody.error).to.eq(null);
   }
 });
 
@@ -72,11 +77,12 @@ Cypress.Commands.add('verifySliceContainer', (chartSelector) => {
 });
 
 Cypress.Commands.add('verifySliceSuccess', ({ waitAlias, querySubstring, chartSelector }) => {
-  cy.wait(waitAlias).then((data) => {
-    cy.verifyResponseCodes(data);
+  cy.wait(waitAlias).then(async (xhr) => {
+    cy.verifyResponseCodes(xhr);
 
+    const responseBody = await readResponseBlob(xhr.response.body);
     if (querySubstring) {
-      expect(data.response.body.query).contains(querySubstring);
+      expect(responseBody.query).contains(querySubstring);
     }
 
     cy.verifySliceContainer(chartSelector);

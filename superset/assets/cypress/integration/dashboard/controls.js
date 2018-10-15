@@ -1,4 +1,5 @@
 import { WORLD_HEALTH_DASHBOARD, CHECK_DASHBOARD_FAVORITE_ENDPOINT } from './dashboard.helper';
+import readResponseBlob from '../../utils/readResponseBlob';
 
 export default () => describe('top-level controls', () => {
   let sliceIds = [];
@@ -61,8 +62,9 @@ export default () => describe('top-level controls', () => {
 
     cy.wait(forceRefreshRequests).then((xhrs) => {
       // is_cached in response should be false
-      xhrs.forEach((xhr) => {
-        expect(xhr.response.body.is_cached).to.equal(false);
+      xhrs.forEach(async (xhr) => {
+        const responseBody = await readResponseBlob(xhr.response.body);
+        expect(responseBody.is_cached).to.equal(false);
       });
     });
   });
