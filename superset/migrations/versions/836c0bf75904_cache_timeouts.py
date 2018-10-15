@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """cache_timeouts
 
 Revision ID: 836c0bf75904

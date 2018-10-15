@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Fixtures for test_datasource.py"""
 datasource_post = {
     'id': None,

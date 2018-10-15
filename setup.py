@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import io
 import json
 import os
@@ -91,7 +85,6 @@ setup(
         'pyyaml>=3.11',
         'requests',
         'simplejson>=3.15.0',
-        'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',

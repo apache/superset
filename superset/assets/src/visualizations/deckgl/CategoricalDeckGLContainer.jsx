@@ -38,7 +38,7 @@ const propTypes = {
   getLayer: PropTypes.func.isRequired,
   payload: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  onTooltip: PropTypes.func,
+  setTooltip: PropTypes.func,
 };
 
 export default class CategoricalDeckGLContainer extends React.PureComponent {
@@ -80,7 +80,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       payload,
       formData: fd,
       onAddFilter,
-      onTooltip,
+      setTooltip,
     } = this.props;
     let features = [...payload.data.features];
 
@@ -110,7 +110,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       data: { ...payload.data, features },
     };
 
-    return [getLayer(fd, filteredPayload, onAddFilter, onTooltip)];
+    return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
