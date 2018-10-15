@@ -68,6 +68,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     };
 
     this.changeCss = this.changeCss.bind(this);
+    this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
   }
 
   componentWillMount() {
@@ -97,14 +98,17 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.props.updateCss(css);
   }
 
+  changeRefreshInterval(refreshInterval) {
+    this.props.setRefreshFrequency(refreshInterval);
+    this.props.startPeriodicRender(refreshInterval * 1000);
+  }
+
   render() {
     const {
       dashboardTitle,
       dashboardId,
-      startPeriodicRender,
       forceRefreshAllCharts,
       refreshFrequency,
-      setRefreshFrequency,
       editMode,
       css,
       hasUnsavedChanges,
@@ -166,10 +170,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         </MenuItem>
         <RefreshIntervalModal
           refreshFrequency={refreshFrequency}
-          onChange={refreshInterval => {
-            setRefreshFrequency(refreshInterval);
-            startPeriodicRender(refreshInterval * 1000);
-          }}
+          onChange={this.changeRefreshInterval}
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
         {editMode && (
