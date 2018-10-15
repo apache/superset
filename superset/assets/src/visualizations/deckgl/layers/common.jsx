@@ -31,7 +31,7 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, onAddFilter, onTooltip) {
+export function commonLayerProps(formData, onAddFilter, setTooltip) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
@@ -48,13 +48,13 @@ export function commonLayerProps(formData, onAddFilter, onTooltip) {
   if (tooltipContentGenerator) {
     onHover = (o) => {
       if (o.picked) {
-        onTooltip({
+        setTooltip({
           content: tooltipContentGenerator(o),
           x: o.x,
           y: o.y,
         });
       } else {
-        onTooltip(null);
+        setTooltip(null);
       }
     };
   }

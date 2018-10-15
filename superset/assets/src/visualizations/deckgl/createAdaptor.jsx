@@ -15,7 +15,7 @@ class DeckGlChartInput {
     };
 
     this.onAddFilter = ((...args) => { slice.addFilter(...args); });
-    this.onTooltip = ((...args) => { slice.tooltip(...args); });
+    this.setTooltip = ((...args) => { slice.setTooltip(...args); });
   }
 }
 
