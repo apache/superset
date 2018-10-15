@@ -13,7 +13,7 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-export function getLayer(formData, payload, onAddFilter, onTooltip, filters) {
+export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -44,7 +44,7 @@ export function getLayer(formData, payload, onAddFilter, onTooltip, filters) {
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: d => d.weight || 0,
-    ...commonLayerProps(fd, onAddFilter, onTooltip),
+    ...commonLayerProps(fd, onAddFilter, setTooltip),
   });
 }
 
@@ -54,11 +54,11 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  onTooltip: PropTypes.func,
+  setTooltip: PropTypes.func,
 };
 const defaultProps = {
   onAddFilter() {},
-  onTooltip() {},
+  setTooltip() {},
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
@@ -95,7 +95,7 @@ class DeckGLScreenGrid extends React.PureComponent {
       this.props.formData,
       this.props.payload,
       this.props.onAddFilter,
-      this.props.onTooltip,
+      this.props.setTooltip,
       filters);
 
     return [layer];
