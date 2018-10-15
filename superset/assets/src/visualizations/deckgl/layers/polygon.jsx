@@ -31,8 +31,7 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
 
   if (filters != null) {
     filters.forEach((f) => {
-      console.log(filters);
-      // data = data.filter(f);
+      data = data.filter(f);
     });
   }
 
@@ -54,7 +53,11 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     data = jsFnMutator(data);
   }
 
-  console.log(data);
+  const layerProps = common.commonLayerProps(fd, slice);
+  if (layerProps.onClick === undefined) {
+    layerProps.onClick = o => onSelect(o.object);
+  }
+
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,

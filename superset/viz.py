@@ -2324,6 +2324,7 @@ class DeckPathViz(BaseDeckGLViz):
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
     deck_viz_key = 'path'
+    is_timeseries = True
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -2331,10 +2332,11 @@ class DeckPathViz(BaseDeckGLViz):
     }
 
     def query_obj(self):
-        form_data = self.form_data
+        fd = self.form_data
         d = super(DeckPathViz, self).query_obj()
-        self.metric = form_data.get('metric')
-        line_col = self.form_data.get('line_column')
+        self.metric = fd.get('metric')
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        line_col = fd.get('line_column')
         if d['metrics']:
             self.has_metrics = True
             d['groupby'].append(line_col)
@@ -2355,6 +2357,7 @@ class DeckPathViz(BaseDeckGLViz):
         if line_type != 'geohash':
             del d[line_column]
         d['metric'] = d.get(self.metric_label)
+        d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time'),
         return d
 
     def get_data(self, df):
