@@ -1,6 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
@@ -41,29 +40,29 @@ describe('Divider', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render a div with class "dashboard-component-divider"', () => {
     const wrapper = setup();
-    expect(wrapper.find('.dashboard-component-divider')).to.have.length(1);
+    expect(wrapper.find('.dashboard-component-divider')).toHaveLength(1);
   });
 
   it('should render a HoverMenu with DeleteComponentButton in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
 
     // we cannot set props on the Divider because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
     const deleteComponent = sinon.spy();
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find(DeleteComponentButton).simulate('click');
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 });

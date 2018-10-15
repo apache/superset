@@ -1,7 +1,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import { expect } from 'chai';
 
 import EditableTable from '../../../src/components/EditableTitle';
 
@@ -22,22 +21,22 @@ describe('EditableTitle', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<EditableTable {...mockProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('should render title', () => {
     const titleElement = editableWrapper.find('input');
-    expect(titleElement.props().value).to.equal('my title');
-    expect(titleElement.props().type).to.equal('button');
+    expect(titleElement.props().value).toBe('my title');
+    expect(titleElement.props().type).toBe('button');
   });
 
   describe('should handle click', () => {
     it('should change title', () => {
       editableWrapper.find('input').simulate('click');
-      expect(editableWrapper.find('input').props().type).to.equal('text');
+      expect(editableWrapper.find('input').props().type).toBe('text');
     });
     it('should not change title', () => {
       notEditableWrapper.find('input').simulate('click');
-      expect(notEditableWrapper.find('input').props().type).to.equal('button');
+      expect(notEditableWrapper.find('input').props().type).toBe('button');
     });
   });
 
@@ -48,18 +47,18 @@ describe('EditableTitle', () => {
     });
     it('should change title', () => {
       editableWrapper.find('input').simulate('change', mockEvent);
-      expect(editableWrapper.find('input').props().value).to.equal('new title');
+      expect(editableWrapper.find('input').props().value).toBe('new title');
     });
     it('should not change title', () => {
       notEditableWrapper.find('input').simulate('change', mockEvent);
-      expect(editableWrapper.find('input').props().value).to.equal('my title');
+      expect(editableWrapper.find('input').props().value).toBe('my title');
     });
   });
 
   describe('should handle blur', () => {
     beforeEach(() => {
       editableWrapper.find('input').simulate('click');
-      expect(editableWrapper.find('input').props().type).to.equal('text');
+      expect(editableWrapper.find('input').props().type).toBe('text');
     });
     afterEach(() => {
       callback.reset();
@@ -70,22 +69,22 @@ describe('EditableTitle', () => {
     it('should trigger callback', () => {
       editableWrapper.setState({ title: 'new title' });
       editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).to.equal('button');
-      expect(callback.callCount).to.equal(1);
-      expect(callback.getCall(0).args[0]).to.equal('new title');
+      expect(editableWrapper.find('input').props().type).toBe('button');
+      expect(callback.callCount).toBe(1);
+      expect(callback.getCall(0).args[0]).toBe('new title');
     });
     it('should not trigger callback', () => {
       editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).to.equal('button');
+      expect(editableWrapper.find('input').props().type).toBe('button');
       // no change
-      expect(callback.callCount).to.equal(0);
+      expect(callback.callCount).toBe(0);
     });
     it('should not save empty title', () => {
       editableWrapper.setState({ title: '' });
       editableWrapper.find('input').simulate('blur');
-      expect(editableWrapper.find('input').props().type).to.equal('button');
-      expect(editableWrapper.find('input').props().value).to.equal('my title');
-      expect(callback.callCount).to.equal(0);
+      expect(editableWrapper.find('input').props().type).toBe('button');
+      expect(editableWrapper.find('input').props().value).toBe('my title');
+      expect(callback.callCount).toBe(0);
     });
   });
 });

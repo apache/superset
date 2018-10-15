@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import findParentId from '../../../../src/dashboard/util/findParentId';
 
 describe('findParentId', () => {
@@ -18,11 +16,11 @@ describe('findParentId', () => {
     },
   };
   it('should return the correct parentId', () => {
-    expect(findParentId({ childId: 'b', layout })).to.equal('a');
-    expect(findParentId({ childId: 'z', layout })).to.equal('b');
+    expect(findParentId({ childId: 'b', layout })).toBe('a');
+    expect(findParentId({ childId: 'z', layout })).toBe('b');
   });
 
   it('should return null if the parent cannot be found', () => {
-    expect(findParentId({ childId: 'a', layout })).to.equal(null);
+    expect(findParentId({ childId: 'a', layout })).toBeNull();
   });
 });

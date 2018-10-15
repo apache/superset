@@ -1,7 +1,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import { expect } from 'chai';
 
 import $ from 'jquery';
 import { table, defaultQueryEditor, databases, tables } from './fixtures';
@@ -36,10 +35,10 @@ describe('SqlEditorLeftBar', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<SqlEditorLeftBar {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders a TableElement', () => {
-    expect(wrapper.find(TableElement)).to.have.length(1);
+    expect(wrapper.find(TableElement)).toHaveLength(1);
   });
   describe('onDatabaseChange', () => {
     it('should fetch tables', () => {
@@ -47,21 +46,21 @@ describe('SqlEditorLeftBar', () => {
       sinon.stub(wrapper.instance(), 'fetchSchemas');
       wrapper.instance().onDatabaseChange({ value: 1, label: 'main' });
 
-      expect(wrapper.instance().fetchTables.getCall(0).args[0]).to.equal(1);
-      expect(wrapper.instance().fetchSchemas.getCall(0).args[0]).to.equal(1);
+      expect(wrapper.instance().fetchTables.getCall(0).args[0]).toBe(1);
+      expect(wrapper.instance().fetchSchemas.getCall(0).args[0]).toBe(1);
       wrapper.instance().fetchTables.restore();
       wrapper.instance().fetchSchemas.restore();
     });
     it('should clear tableOptions', () => {
       wrapper.instance().onDatabaseChange();
-      expect(wrapper.state().tableOptions).to.deep.equal([]);
+      expect(wrapper.state().tableOptions).toEqual([]);
     });
   });
   describe('getTableNamesBySubStr', () => {
     it('should handle empty', () => (
       wrapper.instance().getTableNamesBySubStr('')
         .then((data) => {
-          expect(data).to.deep.equal({ options: [] });
+          expect(data).toEqual({ options: [] });
         })
     ));
     it('should handle table name', () => {
@@ -80,14 +79,14 @@ describe('SqlEditorLeftBar', () => {
 
       return wrapper.instance().getTableNamesBySubStr('my table')
         .then((data) => {
-          expect(ajaxStub.getCall(0).args[0]).to.equal('/superset/tables/1/main/my table');
-          expect(data).to.deep.equal(mockTableOptions);
+          expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/my table');
+          expect(data).toEqual(mockTableOptions);
         });
     });
   });
   it('dbMutator should build databases options', () => {
     const options = wrapper.instance().dbMutator(databases);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       { value: 1, label: 'main' },
       { value: 208, label: 'Presto - Gold' },
     ]);
@@ -95,8 +94,8 @@ describe('SqlEditorLeftBar', () => {
   describe('fetchTables', () => {
     it('should clear table options', () => {
       wrapper.instance().fetchTables(1);
-      expect(wrapper.state().tableOptions).to.deep.equal([]);
-      expect(wrapper.state().filterOptions).to.be.a('null');
+      expect(wrapper.state().tableOptions).toEqual([]);
+      expect(wrapper.state().filterOptions).toBeNull();
     });
     it('should fetch table options', () => {
       ajaxStub.callsFake(() => {
@@ -106,8 +105,8 @@ describe('SqlEditorLeftBar', () => {
       });
       wrapper.instance().fetchTables(1, 'main', 'birth_names');
 
-      expect(ajaxStub.getCall(0).args[0]).to.equal('/superset/tables/1/main/birth_names/');
-      expect(wrapper.state().tableLength).to.equal(3);
+      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/birth_names/');
+      expect(wrapper.state().tableLength).toBe(3);
     });
     it('should handle error', () => {
       ajaxStub.callsFake(() => {
@@ -116,8 +115,8 @@ describe('SqlEditorLeftBar', () => {
         return d.promise();
       });
       wrapper.instance().fetchTables(1, 'main', 'birth_names');
-      expect(wrapper.state().tableOptions).to.deep.equal([]);
-      expect(wrapper.state().tableLength).to.equal(0);
+      expect(wrapper.state().tableOptions).toEqual([]);
+      expect(wrapper.state().tableLength).toBe(0);
     });
   });
   describe('fetchSchemas', () => {
@@ -131,8 +130,8 @@ describe('SqlEditorLeftBar', () => {
         return d.promise();
       });
       wrapper.instance().fetchSchemas(1);
-      expect(ajaxStub.getCall(0).args[0]).to.equal('/superset/schemas/1/false/');
-      expect(wrapper.state().schemaOptions).to.have.length(3);
+      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/schemas/1/false/');
+      expect(wrapper.state().schemaOptions).toHaveLength(3);
     });
     it('should handle error', () => {
       ajaxStub.callsFake(() => {
@@ -141,7 +140,7 @@ describe('SqlEditorLeftBar', () => {
         return d.promise();
       });
       wrapper.instance().fetchSchemas(123);
-      expect(wrapper.state().schemaOptions).to.deep.equal([]);
+      expect(wrapper.state().schemaOptions).toEqual([]);
     });
   });
   describe('changeTable', () => {
@@ -156,23 +155,23 @@ describe('SqlEditorLeftBar', () => {
         value: 'birth_names',
         label: 'birth_names',
       });
-      expect(wrapper.state().tableName).to.equal('birth_names');
+      expect(wrapper.state().tableName).toBe('birth_names');
     });
     it('test 2', () => {
       wrapper.instance().changeTable({
         value: 'main.my_table',
         label: 'my_table',
       });
-      expect(wrapper.instance().fetchTables.getCall(0).args[1]).to.equal('main');
+      expect(wrapper.instance().fetchTables.getCall(0).args[1]).toBe('main');
     });
   });
   it('changeSchema', () => {
     sinon.stub(wrapper.instance(), 'fetchTables');
 
     wrapper.instance().changeSchema({ label: 'main', value: 'main' });
-    expect(wrapper.instance().fetchTables.getCall(0).args[1]).to.equal('main');
+    expect(wrapper.instance().fetchTables.getCall(0).args[1]).toBe('main');
     wrapper.instance().changeSchema();
-    expect(wrapper.instance().fetchTables.getCall(1).args[1]).to.be.a('null');
+    expect(wrapper.instance().fetchTables.getCall(1).args[1]).toBeNull();
 
     wrapper.instance().fetchTables.restore();
   });

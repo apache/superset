@@ -1,6 +1,5 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import URLShortLinkModal from '../../../src/components/URLShortLinkModal';
@@ -21,6 +20,6 @@ describe('URLShortLinkModal', () => {
 
   it('renders ModalTrigger', () => {
     const wrapper = setup();
-    expect(wrapper.find(ModalTrigger)).have.length(1);
+    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
   });
 });
