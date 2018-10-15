@@ -58,7 +58,7 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
-export function getLayer(formData, payload, onAddFilter, onTooltip) {
+export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -89,7 +89,7 @@ export function getLayer(formData, payload, onAddFilter, onTooltip) {
     stroked: fd.stroked,
     extruded: fd.extruded,
     pointRadiusScale: fd.point_radius_scale,
-    ...commonLayerProps(fd, onAddFilter, onTooltip),
+    ...commonLayerProps(fd, onAddFilter, setTooltip),
   });
 }
 
@@ -99,11 +99,11 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
-  onTooltip: PropTypes.func,
+  setTooltip: PropTypes.func,
 };
 const defaultProps = {
   onAddFilter() {},
-  onTooltip() {},
+  setTooltip() {},
 };
 
 function deckGeoJson(props) {
@@ -112,7 +112,7 @@ function deckGeoJson(props) {
     payload,
     setControlValue,
     onAddFilter,
-    onTooltip,
+    setTooltip,
     viewport,
   } = props;
 
@@ -121,7 +121,7 @@ function deckGeoJson(props) {
   //   viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
   // }
 
-  const layer = getLayer(formData, payload, onAddFilter, onTooltip);
+  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
 
   return (
     <DeckGLContainer
