@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import textwrap
 
 from sqlalchemy.engine.url import make_url

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Adding extra field to Database model
 
 Revision ID: 867bf4f117f9

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
 from builtins import object

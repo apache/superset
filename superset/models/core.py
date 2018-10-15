@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from contextlib import closing

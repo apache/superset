@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Contains the logic to create cohesive forms on the explore view"""
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
 from datetime import datetime

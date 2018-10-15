@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
 from datetime import datetime

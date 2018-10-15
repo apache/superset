@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """empty message
 
 Revision ID: 8e80a26a31db
