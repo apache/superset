@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """smaller_grid
 Revision ID: e866bd2d4976
 Revises: 21e88bc06c02

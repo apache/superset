@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit tests for email service in Superset"""
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart

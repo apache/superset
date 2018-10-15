@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from flask import json
 
 from superset import app

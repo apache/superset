@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # superset documentation build configuration file, created by
 # sphinx-quickstart on Thu Dec 17 15:42:06 2015.
 #
