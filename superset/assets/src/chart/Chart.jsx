@@ -1,10 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Mustache from 'mustache';
 import { Tooltip } from 'react-bootstrap';
 import dompurify from 'dompurify';
 
-import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
@@ -167,28 +165,8 @@ class Chart extends React.PureComponent {
     );
   }
 
-  d3format(col, number) {
-    const { datasource } = this.props;
-    const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
-
-    return d3format(format, number);
-  }
-
   error(e) {
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
-  }
-
-  verboseMetricName(metric) {
-    return this.props.datasource.verbose_map[metric] || metric;
-  }
-
-  // eslint-disable-next-line camelcase
-  render_template(s) {
-    const context = {
-      width: this.width(),
-      height: this.height(),
-    };
-    return Mustache.render(s, context);
   }
 
   renderTooltip() {
@@ -198,7 +176,7 @@ class Chart extends React.PureComponent {
           className="chart-tooltip"
           id="chart-tooltip"
           placement="right"
-          positionTop={this.state.tooltip.y - 10}
+          positionTop={this.state.tooltip.y + 30}
           positionLeft={this.state.tooltip.x + 30}
           arrowOffsetTop={10}
         >
