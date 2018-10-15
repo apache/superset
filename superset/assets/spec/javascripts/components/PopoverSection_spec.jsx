@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import PopoverSection from '../../../src/components/PopoverSection';
@@ -22,12 +21,12 @@ describe('PopoverSection', () => {
     wrapper = factory();
   });
   it('renders', () => {
-    expect(React.isValidElement(<PopoverSection {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<PopoverSection {...defaultProps} />)).toBe(true);
   });
   it('is show an icon when selected', () => {
-    expect(wrapper.find('.fa-check')).to.have.length(1);
+    expect(wrapper.find('.fa-check')).toHaveLength(1);
   });
   it('is show no icon when not selected', () => {
-    expect(factory({ isSelected: false }).find('.fa-check')).to.have.length(0);
+    expect(factory({ isSelected: false }).find('.fa-check')).toHaveLength(0);
   });
 });

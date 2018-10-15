@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { expect } from 'chai';
 import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
 
@@ -19,6 +18,6 @@ describe('ColorSchemeControl', () => {
   });
 
   it('renders a Creatable', () => {
-    expect(wrapper.find(Creatable)).to.have.length(1);
+    expect(wrapper.find(Creatable)).toHaveLength(1);
   });
 });

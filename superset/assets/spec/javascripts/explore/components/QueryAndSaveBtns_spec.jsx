@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
@@ -14,7 +13,7 @@ describe('QueryAndSaveButtons', () => {
 
   // It must render
   it('renders', () => {
-    expect(React.isValidElement(<QueryAndSaveButtons {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<QueryAndSaveButtons {...defaultProps} />)).toBe(true);
   });
 
   // Test the output
@@ -26,18 +25,18 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('renders 2 buttons', () => {
-      expect(wrapper.find(Button)).to.have.lengthOf(2);
+      expect(wrapper.find(Button)).toHaveLength(2);
     });
 
     it('renders buttons with correct text', () => {
-      expect(wrapper.find(Button).contains(' Run Query')).to.eql(true);
-      expect(wrapper.find(Button).contains(' Save')).to.eql(true);
+      expect(wrapper.find(Button).contains(' Run Query')).toBe(true);
+      expect(wrapper.find(Button).contains(' Save')).toBe(true);
     });
 
     it('calls onQuery when query button is clicked', () => {
       const queryButton = wrapper.find('.query');
       queryButton.simulate('click');
-      expect(defaultProps.onQuery.called).to.eql(true);
+      expect(defaultProps.onQuery.called).toBe(true);
     });
   });
 });

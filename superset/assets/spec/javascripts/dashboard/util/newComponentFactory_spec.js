@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';
 
 import {
@@ -35,16 +33,16 @@ describe('newEntityFactory', () => {
     it(`returns a new ${type}`, () => {
       const result = newComponentFactory(type);
 
-      expect(result.type).to.equal(type);
-      expect(typeof result.id).to.equal('string');
-      expect(typeof result.meta).to.equal('object');
-      expect(Array.isArray(result.children)).to.equal(true);
+      expect(result.type).toBe(type);
+      expect(typeof result.id).toBe('string');
+      expect(typeof result.meta).toBe('object');
+      expect(Array.isArray(result.children)).toBe(true);
     });
   });
 
   it('adds passed meta data to the entity', () => {
     const banana = 'banana';
     const result = newComponentFactory(CHART_TYPE, { banana });
-    expect(result.meta.banana).to.equal(banana);
+    expect(result.meta.banana).toBe(banana);
   });
 });

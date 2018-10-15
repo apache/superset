@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
@@ -26,18 +25,12 @@ describe('ColorPickerControl', () => {
 
   it('renders a OverlayTrigger', () => {
     const controlHeader = wrapper.find(ControlHeader);
-    expect(controlHeader).to.have.lengthOf(1);
-    expect(wrapper.find(OverlayTrigger)).to.have.length(1);
-  });
-
-  it('renders a OverlayTrigger', () => {
-    const controlHeader = wrapper.find(ControlHeader);
-    expect(controlHeader).to.have.lengthOf(1);
-    expect(wrapper.find(OverlayTrigger)).to.have.length(1);
+    expect(controlHeader).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
   });
 
   it('renders a Popover with a SketchPicker', () => {
     const popOver = shallow(inst.renderPopover());
-    expect(popOver.find(SketchPicker)).to.have.lengthOf(1);
+    expect(popOver.find(SketchPicker)).toHaveLength(1);
   });
 });

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Modal } from 'react-bootstrap';
-import { expect } from 'chai';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import $ from 'jquery';
@@ -40,19 +39,19 @@ describe('DatasourceModal', () => {
   });
 
   it('is valid', () => {
-    expect(React.isValidElement(el)).to.equal(true);
+    expect(React.isValidElement(el)).toBe(true);
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).to.have.lengthOf(1);
+    expect(wrapper.find(Modal)).toHaveLength(1);
   });
 
   it('renders a DatasourceEditor', () => {
-    expect(wrapper.find(DatasourceEditor)).to.have.lengthOf(1);
+    expect(wrapper.find(DatasourceEditor)).toHaveLength(1);
   });
 
   it('saves on confirm', () => {
     inst.onConfirmSave();
-    expect(ajaxStub.calledOnce).to.equal(true);
+    expect(ajaxStub.calledOnce).toBe(true);
   });
 });

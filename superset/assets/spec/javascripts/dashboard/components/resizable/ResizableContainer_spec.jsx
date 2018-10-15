@@ -1,7 +1,6 @@
 import React from 'react';
 import Resizable from 're-resizable';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import ResizableContainer from '../../../../../src/dashboard/components/resizable/ResizableContainer';
 
@@ -14,6 +13,6 @@ describe('ResizableContainer', () => {
 
   it('should render a Resizable', () => {
     const wrapper = setup();
-    expect(wrapper.find(Resizable)).to.have.length(1);
+    expect(wrapper.find(Resizable)).toHaveLength(1);
   });
 });

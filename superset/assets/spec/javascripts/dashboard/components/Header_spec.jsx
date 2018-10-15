@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import Header from '../../../../src/dashboard/components/Header';
 import EditableTitle from '../../../../src/components/EditableTitle';
@@ -56,27 +55,27 @@ describe('Header', () => {
 
     it('should render the EditableTitle', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+      expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
     it('should render the FaveStar', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+      expect(wrapper.find(FaveStar)).toHaveLength(1);
     });
 
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+      expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
     });
 
     it('should render one Button', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).to.have.lengthOf(1);
+      expect(wrapper.find(Button)).toHaveLength(1);
     });
 
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+      expect(wrapper.find(UndoRedoKeylisteners)).toHaveLength(0);
     });
   });
 
@@ -88,27 +87,27 @@ describe('Header', () => {
 
     it('should render the EditableTitle', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+      expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
     it('should render the FaveStar', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+      expect(wrapper.find(FaveStar)).toHaveLength(1);
     });
 
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+      expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
     });
 
     it('should render one Button', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).to.have.lengthOf(1);
+      expect(wrapper.find(Button)).toHaveLength(1);
     });
 
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(0);
+      expect(wrapper.find(UndoRedoKeylisteners)).toHaveLength(0);
     });
   });
 
@@ -120,27 +119,27 @@ describe('Header', () => {
 
     it('should render the EditableTitle', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
+      expect(wrapper.find(EditableTitle)).toHaveLength(1);
     });
 
     it('should render the FaveStar', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(FaveStar)).to.have.lengthOf(1);
+      expect(wrapper.find(FaveStar)).toHaveLength(1);
     });
 
     it('should render the HeaderActionsDropdown', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(HeaderActionsDropdown)).to.have.lengthOf(1);
+      expect(wrapper.find(HeaderActionsDropdown)).toHaveLength(1);
     });
 
     it('should render four Buttons', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(Button)).to.have.lengthOf(4);
+      expect(wrapper.find(Button)).toHaveLength(4);
     });
 
     it('should set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).to.have.lengthOf(1);
+      expect(wrapper.find(UndoRedoKeylisteners)).toHaveLength(1);
     });
   });
 });
