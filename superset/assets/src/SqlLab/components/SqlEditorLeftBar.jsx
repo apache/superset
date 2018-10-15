@@ -40,8 +40,7 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   onDatabaseChange(db, force) {
     const val = db ? db.value : null;
-    this.setState({ schemaOptions: [] });
-    this.setState({ tableOptions: [] });
+    this.setState({ schemaOptions: [], tableOptions: [] });
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, null);
     this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
     if (db) {
@@ -195,7 +194,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               <RefreshLabel
                 onClick={this.onDatabaseChange.bind(
                     this, { value: database.id }, true)}
-                tooltipContent="force refresh table list"
+                tooltipContent={t('force refresh schema list')}
               />
             </div>
           </div>
@@ -244,7 +243,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               <RefreshLabel
                 onClick={this.changeSchema.bind(
                     this, { value: this.props.queryEditor.schema }, true)}
-                tooltipContent="force refresh schema list"
+                tooltipContent={t('force refresh table list')}
               />
             </div>
           </div>
