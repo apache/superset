@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from superset import app, security_manager
 from .base_tests import SupersetTestCase
 

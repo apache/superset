@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 from pyhive import hive
 from TCLIService import ttypes

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import inspect
 
 from superset import db_engine_specs

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Sync DB with the models.py.
 
 Sqlite doesn't support alter on tables, that's why most of the operations

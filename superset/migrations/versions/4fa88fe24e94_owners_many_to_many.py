@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """owners_many_to_many
 
 Revision ID: 4fa88fe24e94

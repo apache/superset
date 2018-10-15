@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
 from collections import OrderedDict

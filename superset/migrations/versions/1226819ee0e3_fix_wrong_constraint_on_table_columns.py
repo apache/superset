@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Fix wrong constraint on table columns
 
 Revision ID: 1226819ee0e3

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """fixing audit fk
 
 Revision ID: 763d4b211ec9

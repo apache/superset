@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from wtforms.form import Form
 
 from superset.forms import (

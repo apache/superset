@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import warnings
 import click
 from flask.cli import FlaskGroup

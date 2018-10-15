@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
 from flask import flash, Markup, redirect

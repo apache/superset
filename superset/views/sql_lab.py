@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 from flask import g, redirect
 from flask_appbuilder import expose
