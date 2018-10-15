@@ -327,7 +327,7 @@ commands are invoked.
 
 ### JavaScript testing
 
-We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
 cd superset/assets/spec

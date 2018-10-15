@@ -2,7 +2,6 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
-import { expect } from 'chai';
 import { shallow, mount } from 'enzyme';
 import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
@@ -51,25 +50,25 @@ describe('SaveModal', () => {
 
   it('renders a Modal with 7 inputs and 2 buttons', () => {
     const wrapper = getWrapper();
-    expect(wrapper.find(Modal)).to.have.lengthOf(1);
-    expect(wrapper.find('input')).to.have.lengthOf(2);
-    expect(wrapper.find(Button)).to.have.lengthOf(2);
-    expect(wrapper.find(Radio)).to.have.lengthOf(5);
+    expect(wrapper.find(Modal)).toHaveLength(1);
+    expect(wrapper.find('input')).toHaveLength(2);
+    expect(wrapper.find(Button)).toHaveLength(2);
+    expect(wrapper.find(Radio)).toHaveLength(5);
   });
 
   it('does not show overwrite option for new slice', () => {
     const wrapperNewSlice = getWrapper();
     wrapperNewSlice.setProps({ slice: null });
-    expect(wrapperNewSlice.find('#overwrite-radio')).to.have.lengthOf(0);
-    expect(wrapperNewSlice.find('#saveas-radio')).to.have.lengthOf(1);
+    expect(wrapperNewSlice.find('#overwrite-radio')).toHaveLength(0);
+    expect(wrapperNewSlice.find('#saveas-radio')).toHaveLength(1);
   });
 
   it('disable overwrite option for non-owner', () => {
     const wrapperForNonOwner = getWrapper();
     wrapperForNonOwner.setProps({ can_overwrite: false });
     const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
-    expect(overwriteRadio).to.have.lengthOf(1);
-    expect(overwriteRadio.prop('disabled')).to.equal(true);
+    expect(overwriteRadio).toHaveLength(1);
+    expect(overwriteRadio.prop('disabled')).toBe(true);
   });
 
   it('saves a new slice', () => {
@@ -78,14 +77,14 @@ describe('SaveModal', () => {
     wrapperForNewSlice.instance().changeAction('saveas');
     const saveasRadio = wrapperForNewSlice.find('#saveas-radio');
     saveasRadio.simulate('click');
-    expect(wrapperForNewSlice.state().action).to.equal('saveas');
+    expect(wrapperForNewSlice.state().action).toBe('saveas');
   });
 
   it('overwrite a slice', () => {
     const wrapperForOverwrite = getWrapper();
     const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
     overwriteRadio.simulate('click');
-    expect(wrapperForOverwrite.state().action).to.equal('overwrite');
+    expect(wrapperForOverwrite.state().action).toBe('overwrite');
   });
 
   it('componentDidMount', () => {
@@ -94,8 +93,8 @@ describe('SaveModal', () => {
     mount(<SaveModal {...defaultProps} />, {
       context: { store },
     });
-    expect(SaveModal.prototype.componentDidMount.calledOnce).to.equal(true);
-    expect(saveModalActions.fetchDashboards.calledOnce).to.equal(true);
+    expect(SaveModal.prototype.componentDidMount.calledOnce).toBe(true);
+    expect(saveModalActions.fetchDashboards.calledOnce).toBe(true);
 
     SaveModal.prototype.componentDidMount.restore();
     saveModalActions.fetchDashboards.restore();
@@ -105,13 +104,13 @@ describe('SaveModal', () => {
     const wrapper = getWrapper();
 
     wrapper.instance().onChange('newSliceName', mockEvent);
-    expect(wrapper.state().newSliceName).to.equal(mockEvent.target.value);
+    expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
     wrapper.instance().onChange('saveToDashboardId', mockEvent);
-    expect(wrapper.state().saveToDashboardId).to.equal(mockEvent.value);
+    expect(wrapper.state().saveToDashboardId).toBe(mockEvent.value);
 
     wrapper.instance().onChange('newDashboardName', mockEvent);
-    expect(wrapper.state().newDashboardName).to.equal(mockEvent.target.value);
+    expect(wrapper.state().newDashboardName).toBe(mockEvent.target.value);
   });
 
   describe('saveOrOverwrite', () => {
@@ -132,7 +131,7 @@ describe('SaveModal', () => {
       const wrapper = getWrapper();
       wrapper.instance().saveOrOverwrite(true);
       const args = saveModalActions.saveSlice.getCall(0).args;
-      expect(args[0]).to.deep.equal(defaultProps.form_data);
+      expect(args[0]).toEqual(defaultProps.form_data);
     });
     it('existing dashboard', () => {
       const wrapper = getWrapper();
@@ -140,12 +139,12 @@ describe('SaveModal', () => {
 
       wrapper.setState({ addToDash: 'existing' });
       wrapper.instance().saveOrOverwrite(true);
-      expect(wrapper.state().alert).to.equal('Please select a dashboard');
+      expect(wrapper.state().alert).toBe('Please select a dashboard');
 
       wrapper.setState({ saveToDashboardId });
       wrapper.instance().saveOrOverwrite(true);
       const args = saveModalActions.saveSlice.getCall(0).args;
-      expect(args[1].save_to_dashboard_id).to.equal(saveToDashboardId);
+      expect(args[1].save_to_dashboard_id).toBe(saveToDashboardId);
     });
     it('new dashboard', () => {
       const wrapper = getWrapper();
@@ -153,12 +152,12 @@ describe('SaveModal', () => {
 
       wrapper.setState({ addToDash: 'new' });
       wrapper.instance().saveOrOverwrite(true);
-      expect(wrapper.state().alert).to.equal('Please enter a dashboard name');
+      expect(wrapper.state().alert).toBe('Please enter a dashboard name');
 
       wrapper.setState({ newDashboardName });
       wrapper.instance().saveOrOverwrite(true);
       const args = saveModalActions.saveSlice.getCall(0).args;
-      expect(args[1].new_dashboard_name).to.equal(newDashboardName);
+      expect(args[1].new_dashboard_name).toBe(newDashboardName);
     });
   });
 
@@ -187,28 +186,27 @@ describe('SaveModal', () => {
 
     it('makes the ajax request', () => {
       makeRequest();
-      expect(ajaxStub.callCount).to.equal(1);
+      expect(ajaxStub.callCount).toBe(1);
     });
 
     it('calls correct url', () => {
       const url = '/dashboardasync/api/read?_flt_0_owners=' + userID;
       makeRequest();
-      expect(ajaxStub.getCall(0).args[0].url).to.be.equal(url);
+      expect(ajaxStub.getCall(0).args[0].url).toBe(url);
     });
 
     it('calls correct actions on error', () => {
       ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
       makeRequest();
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0].type).to.equal(saveModalActions.FETCH_DASHBOARDS_FAILED);
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0].type).toBe(saveModalActions.FETCH_DASHBOARDS_FAILED);
     });
 
     it('calls correct actions on success', () => {
       ajaxStub.yieldsTo('success', mockDashboardData);
       makeRequest();
-      expect(dispatch.callCount).to.equal(1);
-      expect(dispatch.getCall(0).args[0].type)
-        .to.equal(saveModalActions.FETCH_DASHBOARDS_SUCCEEDED);
+      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.getCall(0).args[0].type).toBe(saveModalActions.FETCH_DASHBOARDS_SUCCEEDED);
     });
   });
 
@@ -218,8 +216,8 @@ describe('SaveModal', () => {
     wrapper.setProps({ alert: 'old alert' });
 
     wrapper.instance().removeAlert();
-    expect(saveModalActions.removeSaveModalAlert.callCount).to.equal(1);
-    expect(wrapper.state().alert).to.be.a('null');
+    expect(saveModalActions.removeSaveModalAlert.callCount).toBe(1);
+    expect(wrapper.state().alert).toBeNull();
     saveModalActions.removeSaveModalAlert.restore();
   });
 });

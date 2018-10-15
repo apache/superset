@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import RunQueryActionButton
@@ -25,10 +24,10 @@ describe('RunQueryActionButton', () => {
   it('is a valid react element', () => {
     expect(
       React.isValidElement(<RunQueryActionButton {...defaultProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('renders a single Button', () => {
-    expect(wrapper.find(Button)).to.have.lengthOf(1);
+    expect(wrapper.find(Button)).toHaveLength(1);
   });
 });

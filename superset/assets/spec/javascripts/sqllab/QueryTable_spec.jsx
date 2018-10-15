@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 import { Table } from 'reactable';
 
 import { queries } from './fixtures';
@@ -11,17 +10,17 @@ describe('QueryTable', () => {
     queries,
   };
   it('is valid', () => {
-    expect(React.isValidElement(<QueryTable />)).to.equal(true);
+    expect(React.isValidElement(<QueryTable />)).toBe(true);
   });
   it('is valid with props', () => {
     expect(
       React.isValidElement(<QueryTable {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders a proper table', () => {
     const wrapper = shallow(<QueryTable {...mockedProps} />);
-    expect(wrapper.find(Table)).to.have.length(1);
-    expect(wrapper.find(Table).shallow().find('table')).to.have.length(1);
-    expect(wrapper.find(Table).shallow().find('table').find('Tr')).to.have.length(2);
+    expect(wrapper.find(Table)).toHaveLength(1);
+    expect(wrapper.find(Table).shallow().find('table')).toHaveLength(1);
+    expect(wrapper.find(Table).shallow().find('table').find('Tr')).toHaveLength(2);
   });
 });

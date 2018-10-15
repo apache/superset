@@ -1,7 +1,6 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import getInitialState from '../../../../src/explore/reducers/getInitialState';
@@ -20,7 +19,7 @@ describe('ExploreViewContainer', () => {
   let store;
   let wrapper;
 
-  before(() => {
+  beforeAll(() => {
     const bootstrapData = {
       common: {
         feature_flags: {
@@ -46,24 +45,24 @@ describe('ExploreViewContainer', () => {
   });
 
   it('should set feature flags', () => {
-    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).to.equal(true);
+    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).toBe(true);
   });
 
   it('renders', () => {
     expect(
       React.isValidElement(<ExploreViewContainer />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('renders QueryAndSaveButtons', () => {
-    expect(wrapper.dive().find(QueryAndSaveBtns)).to.have.length(1);
+    expect(wrapper.dive().find(QueryAndSaveBtns)).toHaveLength(1);
   });
 
   it('renders ControlPanelsContainer', () => {
-    expect(wrapper.dive().find(ControlPanelsContainer)).to.have.length(1);
+    expect(wrapper.dive().find(ControlPanelsContainer)).toHaveLength(1);
   });
 
   it('renders ChartContainer', () => {
-    expect(wrapper.dive().find(ChartContainer)).to.have.length(1);
+    expect(wrapper.dive().find(ChartContainer)).toHaveLength(1);
   });
 });
