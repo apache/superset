@@ -42,7 +42,10 @@ export function appSetup() {
   window.jQuery = $;
   require('bootstrap');
 
-  SupersetClient.configure({ host: (window.location && window.location.host) || '' })
+  SupersetClient.configure({
+    protocol: (window.location && window.location.protocol) || '',
+    host: (window.location && window.location.host) || '',
+  })
     .init()
     .catch((error) => {
       console.warn('Error initializing SupersetClient', error);
