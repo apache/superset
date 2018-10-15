@@ -15,7 +15,7 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
     enable_cache is treated as True by default,
     except enable_cache = False is passed to the decorated function.
 
-    force is treated as False by default,
+    force means whether to force refresh the cache and is treated as False by default,
     except force = True is passed to the decorated function.
 
     timeout of cache is set to 600 seconds by default,
