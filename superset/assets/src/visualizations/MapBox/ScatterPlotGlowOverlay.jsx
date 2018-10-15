@@ -3,10 +3,10 @@ import Immutable from 'immutable';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ViewportMercator from 'viewport-mercator-project';
+import { isFinite } from 'lodash';
 import {
   kmToPixels,
   rgbLuminance,
-  isNumeric,
   MILES_PER_KM,
 } from '../../utils/common';
 
@@ -154,7 +154,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (isNumeric(clusterLabel)) {
+            if (isFinite(parseFloat(clusterLabel))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = Math.round(clusterLabel / 1000) + 'k';
               } else if (clusterLabel >= 1000) {
@@ -187,7 +187,9 @@ class ScatterPlotGlowOverlay extends React.Component {
             }
 
             if (pointMetric !== null) {
-              pointLabel = isNumeric(pointMetric) ? d3.round(pointMetric, 2) : pointMetric;
+              pointLabel = isFinite(parseFloat(pointMetric))
+                ? d3.round(pointMetric, 2)
+                : pointMetric;
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column
