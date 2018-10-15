@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
@@ -76,7 +75,11 @@ class ExploreChartPanel extends React.PureComponent {
   render() {
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
-      $('body').addClass('background-transparent');
+      const standaloneClass = 'background-transparent';
+      const bodyClasses = document.body.className.split(' ');
+      if (bodyClasses.indexOf(standaloneClass) === -1) {
+        document.body.className += ` ${standaloneClass}`;
+      }
       return this.renderChart();
     }
 
