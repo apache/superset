@@ -3,7 +3,6 @@ import Immutable from 'immutable';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ViewportMercator from 'viewport-mercator-project';
-import { isFinite } from 'lodash';
 import {
   kmToPixels,
   rgbLuminance,
@@ -154,7 +153,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (isFinite(parseFloat(clusterLabel))) {
+            if (Number.isFinite(parseFloat(clusterLabel))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = Math.round(clusterLabel / 1000) + 'k';
               } else if (clusterLabel >= 1000) {
@@ -187,7 +186,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             }
 
             if (pointMetric !== null) {
-              pointLabel = isFinite(parseFloat(pointMetric))
+              pointLabel = Number.isFinite(parseFloat(pointMetric))
                 ? d3.round(pointMetric, 2)
                 : pointMetric;
             }
