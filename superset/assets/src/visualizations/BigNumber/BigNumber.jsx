@@ -67,7 +67,7 @@ const defaultProps = {
   renderTooltip: renderTooltipFactory(identity),
 };
 
-class BigNumberVis extends React.Component {
+class BigNumberVis extends React.PureComponent {
   constructor(props) {
     super(props);
     this.gradientId = shortid.generate();
