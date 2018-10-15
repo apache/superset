@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Defines the templating context for SQL Lab"""
 from datetime import datetime, timedelta

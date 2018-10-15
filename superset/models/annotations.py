@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """a collection of Annotation-related models"""
 from flask_appbuilder import Model

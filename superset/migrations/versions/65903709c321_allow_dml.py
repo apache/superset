@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """allow_dml
 
 Revision ID: 65903709c321

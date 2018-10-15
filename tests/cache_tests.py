@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset with caching"""
 import json
 

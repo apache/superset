@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Adding metric warning_text
 
 Revision ID: 19a814813610

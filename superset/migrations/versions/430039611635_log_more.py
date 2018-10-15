@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """log more
 
 Revision ID: 430039611635
