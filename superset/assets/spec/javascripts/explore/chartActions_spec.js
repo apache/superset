@@ -7,7 +7,7 @@ import * as exploreUtils from '../../../src/explore/exploreUtils';
 import * as actions from '../../../src/chart/chartAction';
 
 describe('chart actions', () => {
-  const MOCK_URL = 'mockURL';
+  const MOCK_URL = '/mockURL';
   let dispatch;
   let urlStub;
   let loggerStub;
