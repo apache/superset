@@ -2,7 +2,7 @@
 import cx from 'classnames';
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import ParentSize from '@vx/responsive/build/components/ParentSize';
+import { ParentSize } from '@vx/responsive';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
