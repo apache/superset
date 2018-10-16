@@ -31,9 +31,11 @@ describe('SqlEditorLeftBar', () => {
   it('is valid', () => {
     expect(React.isValidElement(<SqlEditorLeftBar {...mockedProps} />)).toBe(true);
   });
+
   it('renders a TableElement', () => {
     expect(wrapper.find(TableElement)).toHaveLength(1);
   });
+
   describe('onDatabaseChange', () => {
     it('should fetch schemas', () => {
       sinon.stub(wrapper.instance(), 'fetchSchemas');
@@ -102,7 +104,7 @@ describe('SqlEditorLeftBar', () => {
     });
 
     it('should fetch table options', () => {
-      expect.asseertions(2);
+      expect.assertions(2);
       fetchMock.get(FETCH_TABLES_GLOB, tables, { overwriteRoutes: true });
 
       return wrapper
@@ -113,9 +115,22 @@ describe('SqlEditorLeftBar', () => {
           expect(wrapper.state().tableLength).toBe(3);
         });
     });
+<<<<<<< HEAD
 
     it('should handle error', () => {
       expect.asseertions(3);
+=======
+    it('should dispatch a danger toast on error', () => {
+      const dangerToastSpy = sinon.spy();
+
+      wrapper.setProps({
+        actions: {
+          addDangerToast: dangerToastSpy,
+        },
+      });
+
+      expect.assertions(4);
+>>>>>>> [sqllab][superset-client] fix eslint and tests, add better error handling tests.
       fetchMock.get(FETCH_TABLES_GLOB, { throws: 'error' }, { overwriteRoutes: true });
 
       return wrapper
@@ -125,6 +140,7 @@ describe('SqlEditorLeftBar', () => {
           expect(fetchMock.calls(FETCH_TABLES_GLOB)).toHaveLength(1);
           expect(wrapper.state().tableOptions).toEqual([]);
           expect(wrapper.state().tableLength).toBe(0);
+          expect(dangerToastSpy.callCount).toBe(1);
         });
     });
   });
@@ -135,7 +151,7 @@ describe('SqlEditorLeftBar', () => {
     afterAll(fetchMock.reset);
 
     it('should fetch schema options', () => {
-      expect.asseertions(2);
+      expect.assertions(2);
       const schemaOptions = {
         schemas: ['main', 'erf', 'superset'],
       };
@@ -150,8 +166,17 @@ describe('SqlEditorLeftBar', () => {
         });
     });
 
-    it('should handle error', () => {
-      expect.asseertions(2);
+    it('should dispatch a danger toast on error', () => {
+      const dangerToastSpy = sinon.spy();
+
+      wrapper.setProps({
+        actions: {
+          addDangerToast: dangerToastSpy,
+        },
+      });
+
+      expect.assertions(3);
+
       fetchMock.get(FETCH_SCHEMAS_GLOB, { throws: 'error' }, { overwriteRoutes: true });
 
       return wrapper
@@ -160,6 +185,7 @@ describe('SqlEditorLeftBar', () => {
         .then(() => {
           expect(fetchMock.calls(FETCH_SCHEMAS_GLOB)).toHaveLength(1);
           expect(wrapper.state().schemaOptions).toEqual([]);
+          expect(dangerToastSpy.callCount).toBe(1);
         });
     });
   });
@@ -168,9 +194,11 @@ describe('SqlEditorLeftBar', () => {
     beforeEach(() => {
       sinon.stub(wrapper.instance(), 'fetchTables');
     });
+
     afterEach(() => {
       wrapper.instance().fetchTables.restore();
     });
+
     it('test 1', () => {
       wrapper.instance().changeTable({
         value: 'birth_names',
@@ -178,6 +206,7 @@ describe('SqlEditorLeftBar', () => {
       });
       expect(wrapper.state().tableName).toBe('birth_names');
     });
+
     it('test 2', () => {
       wrapper.instance().changeTable({
         value: 'main.my_table',
@@ -186,6 +215,7 @@ describe('SqlEditorLeftBar', () => {
       expect(wrapper.instance().fetchTables.getCall(0).args[1]).toBe('main');
     });
   });
+
   it('changeSchema', () => {
     sinon.stub(wrapper.instance(), 'fetchTables');
 

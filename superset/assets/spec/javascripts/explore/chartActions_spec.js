@@ -2,7 +2,6 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import { Logger } from '../../../src/logger';
-import setupSupersetClient from '../../helpers/setupSupersetClient';
 import * as exploreUtils from '../../../src/explore/exploreUtils';
 import * as actions from '../../../src/chart/chartAction';
 
@@ -17,7 +16,6 @@ describe('chart actions', () => {
   };
 
   beforeAll(() => {
-    setupSupersetClient();
     setupDefaultFetchMock();
   });
 

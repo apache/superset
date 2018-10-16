@@ -102,7 +102,7 @@ class QuerySearch extends React.PureComponent {
     const val = user ? user.value : null;
     this.setState({ from: val });
   }
-  
+
   changeTo(status) {
     const val = status ? status.value : null;
     this.setState({ to: val });

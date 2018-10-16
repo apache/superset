@@ -133,7 +133,8 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (actualDbId) {
       this.setState({ schemaLoading: true });
       const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
-      SupersetClient.get({ endpoint })
+
+      return SupersetClient.get({ endpoint })
         .then(({ json }) => {
           const schemaOptions = json.schemas.map(s => ({ value: s, label: s }));
           this.setState({ schemaOptions, schemaLoading: false });
