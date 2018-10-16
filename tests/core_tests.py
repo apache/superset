@@ -29,8 +29,6 @@ from .base_tests import SupersetTestCase
 
 class CoreTests(SupersetTestCase):
 
-    requires_examples = True
-
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
 

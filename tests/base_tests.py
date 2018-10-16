@@ -16,8 +16,6 @@ BASE_DIR = app.config.get('BASE_DIR')
 
 
 class SupersetTestCase(unittest.TestCase):
-    requires_examples = False
-    examples_loaded = False
 
     def __init__(self, *args, **kwargs):
         super(SupersetTestCase, self).__init__(*args, **kwargs)

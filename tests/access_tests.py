@@ -80,8 +80,6 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 
 class RequestAccessTests(SupersetTestCase):
 
-    requires_examples = False
-
     @classmethod
     def setUpClass(cls):
         security_manager.add_role('override_me')

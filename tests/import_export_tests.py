@@ -17,8 +17,6 @@ from .base_tests import SupersetTestCase
 class ImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
-    requires_examples = True
-
     @classmethod
     def delete_imports(cls):
         # Imported data clean up
