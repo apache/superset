@@ -1,6 +1,7 @@
 import ChartPlugin from '../../../core/models/ChartPlugin';
 import ChartMetadata from '../../../core/models/ChartMetadata';
 import thumbnail from './images/thumbnail.png';
+import transformProps from '../../transformProps';
 
 const metadata = new ChartMetadata({
   name: 'deck.gl Arc',
@@ -14,6 +15,7 @@ export default class ArcChartPlugin extends ChartPlugin {
     super({
       metadata,
       loadChart: () => import('./Arc.jsx'),
+      transformProps,
     });
   }
 }
