@@ -14,7 +14,6 @@ import logging
 import os
 import signal
 import smtplib
-import sys
 import uuid
 import zlib
 
@@ -42,7 +41,6 @@ from superset.exceptions import SupersetException, SupersetTimeoutException
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
-PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 ADHOC_METRIC_EXPRESSION_TYPES = {
@@ -668,33 +666,29 @@ def setup_cache(app, cache_config):
 
 def zlib_compress(data):
     """
-    Compress things in a py2/3 safe fashion
+    Compress things
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
     """
-    if PY3K:
-        if isinstance(data, str):
-            return zlib.compress(bytes(data, 'utf-8'))
-        return zlib.compress(data)
+    if isinstance(data, str):
+        return zlib.compress(bytes(data, 'utf-8'))
     return zlib.compress(data)
 
 
 def zlib_decompress_to_string(blob):
     """
-    Decompress things to a string in a py2/3 safe fashion
+    Decompress things to a string
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
     >>> got_str = zlib_decompress_to_string(blob)
     >>> got_str == json_str
     True
     """
-    if PY3K:
-        if isinstance(blob, bytes):
-            decompressed = zlib.decompress(blob)
-        else:
-            decompressed = zlib.decompress(bytes(blob, 'utf-8'))
-        return decompressed.decode('utf-8')
-    return zlib.decompress(blob)
+    if not isinstance(blob, bytes):
+        decompressed = zlib.decompress(blob)
+    else:
+        decompressed = zlib.decompress(str(blob, 'utf-8'))
+    return decompressed.decode('utf-8')
 
 
 _celery_app = None
