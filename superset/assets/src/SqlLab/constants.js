@@ -9,14 +9,13 @@ export const STATE_BSSTYLE_MAP = {
   success: 'success',
 };
 
-export const STATUS_OPTIONS = [
-  'success',
-  'failed',
-  'running',
-  'pending',
-];
-
-export const OFFLINE_STATE = 'offline';
+export const STATUS_OPTIONS = {
+  success: 'success',
+  failed: 'failed',
+  running: 'running',
+  offline: 'offline',
+  pending: 'pending',
+};
 
 export const TIME_OPTIONS = [
   'now',

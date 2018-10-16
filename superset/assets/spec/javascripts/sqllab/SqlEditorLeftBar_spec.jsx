@@ -3,9 +3,8 @@ import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk'
+import thunk from 'redux-thunk';
 
-import $ from 'jquery';
 import { table, defaultQueryEditor, databases, initialState, tables } from './fixtures';
 import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
 import TableElement from '../../../src/SqlLab/components/TableElement';
@@ -31,7 +30,6 @@ describe('SqlEditorLeftBar', () => {
   let wrapper;
 
   beforeEach(() => {
-    ajaxStub = sinon.stub($, 'get');
     wrapper = shallow(<SqlEditorLeftBar {...mockedProps} />, {
       context: { store },
     }).dive();

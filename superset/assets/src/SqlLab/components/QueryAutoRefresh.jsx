@@ -9,6 +9,7 @@ import * as Actions from '../actions';
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
+const QUERY_TIMEOUT_LIMIT = 7000;
 
 class QueryAutoRefresh extends React.PureComponent {
   componentWillMount() {
@@ -44,34 +45,17 @@ class QueryAutoRefresh extends React.PureComponent {
     if (this.shouldCheckForQueries()) {
       SupersetClient.get({
         endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
-        timeout: '7000',
+        timeout: QUERY_TIMEOUT_LIMIT,
       }).then(({ json }) => {
         if (Object.keys(json).length > 0) {
           this.props.actions.refreshQueries(json);
         }
-        }).catch((err) => {
-          console.log(err);
+        this.props.actions.setUserOffline(false);
+        }).catch(() => {
+          this.props.actions.setUserOffline(true);
         });
     }
   }
-/*=======
-      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
-      $.ajax({
-        dataType: 'json',
-        timeout: 7000,
-        url,
-        success: (data) => {
-          if (Object.keys(data).length > 0) {
-            this.props.actions.refreshQueries(data);
-          }
-          this.props.actions.setUserOffline(false);
-        },
-        error: (XMLHttpRequest) => {
-          if (XMLHttpRequest.readyState === 0) {
-            this.props.actions.setUserOffline(true);
-          }
-        },
->>>>>>> add timeout and refresh for failed backend*/
   render() {
     return null;
   }

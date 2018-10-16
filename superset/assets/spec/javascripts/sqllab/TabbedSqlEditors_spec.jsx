@@ -53,7 +53,6 @@ describe('TabbedSqlEditors', () => {
     getHeight: () => ('100px'),
     database: {},
   };
-
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {
       context: { store },
@@ -169,7 +168,8 @@ describe('TabbedSqlEditors', () => {
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
-    wrapper.setProps( { offline: true });
+    expect(wrapper.find(Tab).last().props().disabled).toBe(false);
+    wrapper.setProps({ offline: true });
     expect(wrapper.find(Tab).last().props().disabled).toBe(true);
   });
 });

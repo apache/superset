@@ -79,11 +79,8 @@ class SqlEditorLeftBar extends React.PureComponent {
 
   fetchTables(dbId, schema, force, substr) {
     // This can be large so it shouldn't be put in the Redux store
-    if (this.props.offline) {
-      return;
-    }
     const forceRefresh = force || false;
-    if (dbId && schema) {
+    if (!this.props.offline && dbId && schema) {
       this.setState(() => ({ tableLoading: true, tableOptions: [] }));
       const endpoint = `/superset/tables/${dbId}/${schema}/${substr}/${forceRefresh}/`;
 
@@ -134,12 +131,9 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
 
   fetchSchemas(dbId, force) {
-    if (this.props.offline) {
-      return;
-    }
     const actualDbId = dbId || this.props.queryEditor.dbId;
     const forceRefresh = force || false;
-    if (actualDbId) {
+    if (!this.props.offline && actualDbId) {
       this.setState({ schemaLoading: true });
       const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
 

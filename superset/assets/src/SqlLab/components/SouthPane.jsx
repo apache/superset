@@ -8,7 +8,7 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { OFFLINE_STATE, STATE_BSSTYLE_MAP } from '../constants';
+import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
 import { t } from '../../locales';
 
 /*
@@ -37,8 +37,8 @@ class SouthPane extends React.PureComponent {
   render() {
     if (this.props.offline) {
       return (
-        <Label className="m-r-3" bsStyle={STATE_BSSTYLE_MAP[OFFLINE_STATE]}>
-          { OFFLINE_STATE }
+        <Label className="m-r-3" bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}>
+          { STATUS_OPTIONS.offline }
         </Label>);
     }
     const innerTabHeight = this.props.height - 55;

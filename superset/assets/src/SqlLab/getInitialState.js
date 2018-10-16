@@ -25,7 +25,6 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       tabHistory: [defaultQueryEditor.id],
       tables: [],
       queriesLastUpdate: Date.now(),
-      activeSouthPaneTab: 'Results',
       ...restBootstrapData,
     },
     messageToasts: getToastsFromPyFlashMessages(
