@@ -132,6 +132,7 @@ export function saveDashboardRequest(data, id, saveType) {
     SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
+      parseMethod: null,
     })
       .then(response =>
         Promise.all([
@@ -146,7 +147,7 @@ export function saveDashboardRequest(data, id, saveType) {
         dispatch(
           addDangerToast(
             `${t('Sorry, there was an error saving this dashboard: ')}
-          ${getAjaxErrorMsg(error)}`,
+          ${getAjaxErrorMsg(error) || error}`,
           ),
         ),
       );
