@@ -27,7 +27,7 @@ export const chartPropShape = PropTypes.shape({
   chartUpdateEndTime: PropTypes.number,
   chartUpdateStartTime: PropTypes.number,
   latestQueryFormData: PropTypes.object,
-  queryRequest: PropTypes.object,
+  queryController: PropTypes.shape({ abort: PropTypes.func }),
   queryResponse: PropTypes.object,
   triggerQuery: PropTypes.bool,
   lastRendered: PropTypes.number,

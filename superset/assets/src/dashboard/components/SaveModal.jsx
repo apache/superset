@@ -93,9 +93,14 @@ class SaveModal extends React.PureComponent {
         t('You must pick a name for the new dashboard'),
       );
     } else {
-      this.onSave(data, dashboardId, saveType).done(resp => {
-        if (saveType === SAVE_TYPE_NEWDASHBOARD) {
-          window.location = `/superset/dashboard/${resp.id}/`;
+      this.onSave(data, dashboardId, saveType).then(([resp]) => {
+        if (
+          saveType === SAVE_TYPE_NEWDASHBOARD &&
+          resp &&
+          resp.json &&
+          resp.json.id
+        ) {
+          window.location = `/superset/dashboard/${resp.json.id}/`;
         }
       });
       this.modal.close();
