@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
@@ -26,13 +25,13 @@ describe('FixedOrMetricControl', () => {
 
   it('renders a OverlayTrigger', () => {
     const controlHeader = wrapper.find(ControlHeader);
-    expect(controlHeader).to.have.lengthOf(1);
-    expect(wrapper.find(OverlayTrigger)).to.have.length(1);
+    expect(controlHeader).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
   });
 
   it('renders a TextControl and a SelectControl', () => {
     const popOver = shallow(inst.renderPopover());
-    expect(popOver.find(TextControl)).to.have.lengthOf(1);
-    expect(popOver.find(SelectControl)).to.have.lengthOf(1);
+    expect(popOver.find(TextControl)).toHaveLength(1);
+    expect(popOver.find(SelectControl)).toHaveLength(1);
   });
 });

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Panel, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import Welcome from '../../../src/welcome/Welcome';
 
@@ -10,12 +9,12 @@ describe('Welcome', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<Welcome {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders 4 Tab, Panel, and Row components', () => {
     const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).to.have.length(3);
-    expect(wrapper.find(Panel)).to.have.length(3);
-    expect(wrapper.find(Row)).to.have.length(3);
+    expect(wrapper.find(Tab)).toHaveLength(3);
+    expect(wrapper.find(Panel)).toHaveLength(3);
+    expect(wrapper.find(Row)).toHaveLength(3);
   });
 });

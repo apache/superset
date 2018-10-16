@@ -1,6 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 
 import RefreshIntervalModal from '../../../../src/dashboard/components/RefreshIntervalModal';
 
@@ -11,10 +10,10 @@ describe('RefreshIntervalModal', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<RefreshIntervalModal {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('renders the trigger node', () => {
     const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
-    expect(wrapper.find('.fa-edit')).to.have.length(1);
+    expect(wrapper.find('.fa-edit')).toHaveLength(1);
   });
 });

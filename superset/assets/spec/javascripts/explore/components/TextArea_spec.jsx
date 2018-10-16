@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import AceEditor from 'react-ace';
 
@@ -21,20 +20,20 @@ describe('SelectControl', () => {
   });
 
   it('renders a FormControl', () => {
-    expect(wrapper.find(FormControl)).to.have.lengthOf(1);
+    expect(wrapper.find(FormControl)).toHaveLength(1);
   });
 
   it('calls onChange when toggled', () => {
     const select = wrapper.find(FormControl);
     select.simulate('change', { target: { value: 'x' } });
-    expect(defaultProps.onChange.calledWith('x')).to.be.true;
+    expect(defaultProps.onChange.calledWith('x')).toBe(true);
   });
 
   it('renders a AceEditor when language is specified', () => {
     const props = Object.assign({}, defaultProps);
     props.language = 'markdown';
     wrapper = shallow(<TextAreaControl {...props} />);
-    expect(wrapper.find(FormControl)).to.have.lengthOf(0);
-    expect(wrapper.find(AceEditor)).to.have.lengthOf(1);
+    expect(wrapper.find(FormControl)).toHaveLength(0);
+    expect(wrapper.find(AceEditor)).toHaveLength(1);
   });
 });

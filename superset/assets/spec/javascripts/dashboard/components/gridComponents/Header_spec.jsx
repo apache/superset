@@ -1,6 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
@@ -44,29 +43,27 @@ describe('Header', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render a WithPopoverMenu', () => {
     const wrapper = setup();
-    expect(wrapper.find(WithPopoverMenu)).to.have.length(1);
+    expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
 
     // we cannot set props on the Header because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
   });
 
   it('should render an EditableTitle with meta.text', () => {
     const wrapper = setup();
-    expect(wrapper.find(EditableTitle)).to.have.length(1);
-    expect(wrapper.find('input').prop('value')).to.equal(
-      props.component.meta.text,
-    );
+    expect(wrapper.find(EditableTitle)).toHaveLength(1);
+    expect(wrapper.find('input').prop('value')).toBe(props.component.meta.text);
   });
 
   it('should call updateComponents when EditableTitle changes', () => {
@@ -75,8 +72,8 @@ describe('Header', () => {
     wrapper.find(EditableTitle).prop('onSaveTitle')('New title');
 
     const headerId = props.component.id;
-    expect(updateComponents.callCount).to.equal(1);
-    expect(updateComponents.getCall(0).args[0][headerId].meta.text).to.equal(
+    expect(updateComponents.callCount).toBe(1);
+    expect(updateComponents.getCall(0).args[0][headerId].meta.text).toBe(
       'New title',
     );
   });
@@ -85,7 +82,7 @@ describe('Header', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
 
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
@@ -94,6 +91,6 @@ describe('Header', () => {
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
     wrapper.find(DeleteComponentButton).simulate('click');
 
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 });
