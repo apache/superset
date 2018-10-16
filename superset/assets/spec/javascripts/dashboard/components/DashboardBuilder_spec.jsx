@@ -1,6 +1,7 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow, mount } from 'enzyme';
+import sinon from 'sinon';
 
 import ParentSize from '@vx/responsive/build/components/ParentSize';
 import { Sticky, StickyContainer } from 'react-sticky';
@@ -11,6 +12,8 @@ import DashboardBuilder from '../../../../src/dashboard/components/DashboardBuil
 import DashboardComponent from '../../../../src/dashboard/containers/DashboardComponent';
 import DashboardHeader from '../../../../src/dashboard/containers/DashboardHeader';
 import DashboardGrid from '../../../../src/dashboard/containers/DashboardGrid';
+import * as dashboardStateActions from '../../../../src/dashboard/actions/dashboardState';
+
 import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
   dashboardLayout as undoableDashboardLayout,
@@ -23,6 +26,19 @@ const dashboardLayout = undoableDashboardLayout.present;
 const layoutWithTabs = undoableDashboardLayoutWithTabs.present;
 
 describe('DashboardBuilder', () => {
+  let favStarStub;
+
+  beforeAll(() => {
+    // this is invoked on mount, so we stub it instead of making a request
+    favStarStub = sinon
+      .stub(dashboardStateActions, 'fetchFaveStar')
+      .returns({ type: 'mock-action' });
+  });
+
+  afterAll(() => {
+    favStarStub.restore();
+  });
+
   const props = {
     dashboardLayout,
     deleteTopLevelTabs() {},
