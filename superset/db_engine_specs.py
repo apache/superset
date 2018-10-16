@@ -228,7 +228,6 @@ class BaseEngineSpec(object):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
         use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
@@ -295,8 +294,6 @@ class BaseEngineSpec(object):
 
     @classmethod
     @cache_util.memoized_func(
-        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
     def get_schema_names(cls, inspector, db_id,
                          enable_cache, cache_timeout, force=False):
@@ -312,8 +309,20 @@ class BaseEngineSpec(object):
         return inspector.get_schema_names()
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_view_names(cls, inspector, db_id, schema,
+                       enable_cache, cache_timeout, force=False):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -438,7 +447,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -570,7 +583,6 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
         use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
@@ -596,7 +608,11 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
@@ -721,7 +737,6 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
         use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
@@ -1003,7 +1018,6 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
         use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
@@ -1461,8 +1475,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
         key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
     def get_schema_names(cls, inspector, db_id,
                          enable_cache, cache_timeout, force=False):

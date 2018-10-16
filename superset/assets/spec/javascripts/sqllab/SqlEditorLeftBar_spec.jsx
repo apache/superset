@@ -41,14 +41,10 @@ describe('SqlEditorLeftBar', () => {
     expect(wrapper.find(TableElement)).toHaveLength(1);
   });
   describe('onDatabaseChange', () => {
-    it('should fetch tables', () => {
-      sinon.stub(wrapper.instance(), 'fetchTables');
+    it('should fetch schemas', () => {
       sinon.stub(wrapper.instance(), 'fetchSchemas');
       wrapper.instance().onDatabaseChange({ value: 1, label: 'main' });
-
-      expect(wrapper.instance().fetchTables.getCall(0).args[0]).toBe(1);
       expect(wrapper.instance().fetchSchemas.getCall(0).args[0]).toBe(1);
-      wrapper.instance().fetchTables.restore();
       wrapper.instance().fetchSchemas.restore();
     });
     it('should clear tableOptions', () => {
@@ -103,9 +99,9 @@ describe('SqlEditorLeftBar', () => {
         d.resolve(tables);
         return d.promise();
       });
-      wrapper.instance().fetchTables(1, 'main', 'birth_names');
+      wrapper.instance().fetchTables(1, 'main', 'true', 'birth_names');
 
-      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/birth_names/');
+      expect(ajaxStub.getCall(0).args[0]).toBe('/superset/tables/1/main/birth_names/true/');
       expect(wrapper.state().tableLength).toBe(3);
     });
     it('should handle error', () => {
