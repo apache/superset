@@ -51,7 +51,7 @@ class Lyft(Superset):
             self.authorize()
         except Exception as e:
             return json_error_response('{}'.format(e))
-        return self.queries(last_updated_ms)
+        return self.queries_call(last_updated_ms)
 
 
 appbuilder.add_view_no_menu(Lyft)
