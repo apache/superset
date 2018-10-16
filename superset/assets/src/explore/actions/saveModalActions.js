@@ -1,6 +1,5 @@
+import { SupersetClient } from '@superset-ui/core';
 import { getExploreUrlAndPayload } from '../exploreUtils';
-
-const $ = window.$ = require('jquery');
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -13,22 +12,19 @@ export function fetchDashboardsFailed(userId) {
 }
 
 export function fetchDashboards(userId) {
-  return function (dispatch) {
-    const url = '/dashboardasync/api/read?_flt_0_owners=' + userId;
-    return $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        const choices = [];
-        for (let i = 0; i < data.pks.length; i++) {
-          choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
-        }
-        dispatch(fetchDashboardsSucceeded(choices));
-      },
-      error: () => {
-        dispatch(fetchDashboardsFailed(userId));
-      },
-    });
+  return function fetchDashboardsThunk(dispatch) {
+    return SupersetClient.get({
+      endpoint: `/dashboardasync/api/read?_flt_0_owners=${userId}`,
+    })
+      .then(({ json }) => {
+        const choices = json.pks.map((id, index) => ({
+          value: id,
+          label: (json.result[index] || {}).dashboard_title,
+        }));
+
+        return dispatch(fetchDashboardsSucceeded(choices));
+      })
+      .catch(() => dispatch(fetchDashboardsFailed(userId)));
   };
 }
 
@@ -55,18 +51,9 @@ export function saveSlice(formData, requestParams) {
       curUrl: null,
       requestParams,
     });
-    return $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        form_data: JSON.stringify(payload),
-      },
-      success: ((data) => {
-        dispatch(saveSliceSuccess(data));
-      }),
-      error: (() => {
-        dispatch(saveSliceFailed());
-      }),
-    });
+
+    return SupersetClient.post({ url, postPayload: { form_data: payload } })
+      .then(({ json }) => dispatch(saveSliceSuccess(json)))
+      .catch(() => dispatch(saveSliceFailed()));
   };
 }
