@@ -1,7 +1,7 @@
 import { isTruthy } from '../../utils/common';
 import { formatLabel } from './utils';
 
-export default function transformProps(basicChartInput) {
+export default function transformProps(chartProps) {
   const {
     annotationData,
     datasource,
@@ -9,7 +9,7 @@ export default function transformProps(basicChartInput) {
     onError,
     onAddFilter,
     payload,
-  } = basicChartInput;
+  } = chartProps;
 
   const {
     annotationLayers,

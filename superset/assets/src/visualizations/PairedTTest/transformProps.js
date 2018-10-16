@@ -1,5 +1,5 @@
-export default function transformProps(basicChartInput) {
-  const { formData, payload } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { formData, payload } = chartProps;
   const {
     groupby,
     liftvaluePrecision,

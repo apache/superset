@@ -5,8 +5,8 @@ import {
   ENTITY_ID,
 } from '@data-ui/event-flow';
 
-export default function transformProps(basicChartInput) {
-  const { formData, payload } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { formData, payload } = chartProps;
   const {
     allColumnsX,
     entity,

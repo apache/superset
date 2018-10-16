@@ -1,8 +1,8 @@
 import supercluster from 'supercluster';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
-export default function transformProps(basicChartInput) {
-  const { formData, onError, payload, setControlValue } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { formData, onError, payload, setControlValue } = chartProps;
   const {
     bounds,
     geoJSON,

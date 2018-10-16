@@ -1,5 +1,5 @@
-export default function transformProps(basicChartInput) {
-  const { formData, payload, datasource } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { formData, payload, datasource } = chartProps;
   const {
     cellPadding,
     cellRadius,

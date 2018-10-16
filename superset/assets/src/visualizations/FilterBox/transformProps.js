@@ -1,4 +1,4 @@
-export default function transformProps(basicChartInput) {
+export default function transformProps(chartProps) {
   const {
     datasource,
     filters,
@@ -6,7 +6,7 @@ export default function transformProps(basicChartInput) {
     onAddFilter,
     payload,
     rawDatasource,
-  } = basicChartInput;
+  } = chartProps;
   const {
     dateFilter,
     groupby,

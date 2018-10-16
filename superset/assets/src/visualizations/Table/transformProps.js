@@ -1,11 +1,11 @@
-export default function transformProps(basicChartInput) {
+export default function transformProps(chartProps) {
   const {
     datasource,
     filters,
     formData,
     onAddFilter,
     payload,
-  } = basicChartInput;
+  } = chartProps;
   const {
     alignPn,
     colorPn,
