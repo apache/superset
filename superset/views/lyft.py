@@ -47,7 +47,6 @@ class Lyft(Superset):
     @expose('/queries/<last_updated_ms>')
     @log_this
     def queries(self, last_updated_ms):
-        
         try:
             self.authorize()
         except Exception as e:
