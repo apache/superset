@@ -1,6 +1,4 @@
 import React from 'react';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import { mount } from 'enzyme';
 import FilterableTable from '../../../../src/components/FilterableTable/FilterableTable';
 
@@ -18,11 +16,11 @@ describe('FilterableTable', () => {
     wrapper = mount(<FilterableTable {...mockedProps} />);
   });
   it('is valid element', () => {
-    expect(React.isValidElement(<FilterableTable {...mockedProps} />)).to.equal(true);
+    expect(React.isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
   it('renders a grid with 2 rows', () => {
-    expect(wrapper.find('.ReactVirtualized__Grid')).to.have.length(1);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).to.have.length(2);
+    expect(wrapper.find('.ReactVirtualized__Grid')).toHaveLength(1);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(2);
   });
   it('filters on a string', () => {
     const props = {
@@ -30,7 +28,7 @@ describe('FilterableTable', () => {
       filterText: 'b1',
     };
     wrapper = mount(<FilterableTable {...props} />);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).to.have.length(1);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(1);
   });
   it('filters on a number', () => {
     const props = {
@@ -38,6 +36,6 @@ describe('FilterableTable', () => {
       filterText: '100',
     };
     wrapper = mount(<FilterableTable {...props} />);
-    expect(wrapper.find('.ReactVirtualized__Table__row')).to.have.length(1);
+    expect(wrapper.find('.ReactVirtualized__Table__row')).toHaveLength(1);
   });
 });

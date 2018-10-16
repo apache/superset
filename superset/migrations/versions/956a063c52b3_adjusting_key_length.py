@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adjusting key length
 
 Revision ID: 956a063c52b3
@@ -6,13 +5,12 @@ Revises: f0fbf6129e13
 Create Date: 2016-05-11 17:28:32.407340
 
 """
+from alembic import op
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '956a063c52b3'
 down_revision = 'f0fbf6129e13'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

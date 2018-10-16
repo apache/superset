@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import defaultdict
 
 from flask import g
@@ -30,7 +24,7 @@ def bootstrap_user_data(username=None, include_perms=False):
         'firstName': user.first_name,
         'lastName': user.last_name,
         'userId': user.id,
-        'isActive': user.is_active(),
+        'isActive': user.is_active,
         'createdOn': user.created_on.isoformat(),
         'email': user.email,
     }

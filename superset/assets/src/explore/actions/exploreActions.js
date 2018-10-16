@@ -34,6 +34,12 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
+export const FETCH_DATASOURCES_FAILED = 'FETCH_DATASOURCES_FAILED';
+export function fetchDatasourcesFailed(error) {
+  return { type: FETCH_DATASOURCES_FAILED, error };
+}
+
+
 export const POST_DATASOURCES_FAILED = 'POST_DATASOURCES_FAILED';
 export function postDatasourcesFailed(error) {
   return { type: POST_DATASOURCES_FAILED, error };

@@ -189,7 +189,6 @@ export class DatasourceEditor extends React.PureComponent {
     super(props);
     this.state = {
       datasource: props.datasource,
-      showAlert: true,
       errors: [],
       isDruid: props.datasource.type === 'druid',
       isSqla: props.datasource.type === 'table',
@@ -202,7 +201,6 @@ export class DatasourceEditor extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.hideAlert = this.hideAlert.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
@@ -307,9 +305,6 @@ export class DatasourceEditor extends React.PureComponent {
 
     this.setState({ errors }, callback);
   }
-  hideAlert() {
-    this.setState({ showAlert: false });
-  }
   handleTabSelect(activeTabKey) {
     this.setState({ activeTabKey });
   }
@@ -394,7 +389,8 @@ export class DatasourceEditor extends React.PureComponent {
       </Fieldset>);
   }
   renderSpatialTab() {
-    const spatials = this.state.datasource.spatials;
+    const { datasource } = this.state;
+    const { spatials, all_cols: allCols } = datasource;
     return (
       <Tab
         title={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
@@ -414,7 +410,7 @@ export class DatasourceEditor extends React.PureComponent {
             name: (d, onChange) => (
               <EditableTitle canEdit title={d} onSaveTitle={onChange} />),
             config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={datasource.all_cols} />
+              <SpatialControl value={v} onChange={onChange} choices={allCols} />
             ),
           }}
         />

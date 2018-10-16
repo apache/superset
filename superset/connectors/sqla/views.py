@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -160,7 +154,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     edit_title = _('Edit Table')
 
     list_columns = [
-        'link', 'database',
+        'link', 'database_name',
         'changed_by_', 'modified']
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
@@ -229,6 +223,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'link': _('Table'),
         'changed_by_': _('Changed By'),
         'database': _('Database'),
+        'database_name': _('Database'),
         'changed_on_': _('Last Changed'),
         'filter_select_enabled': _('Enable Filter Select'),
         'schema': _('Schema'),

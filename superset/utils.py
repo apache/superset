@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from builtins import object
 from datetime import date, datetime, time, timedelta
 import decimal
@@ -420,7 +414,7 @@ def markdown(s, markup_wrap=False):
                           'li', 'dd', 'dt', 'img', 'a']
     safe_markdown_attrs = {'img': ['src', 'alt', 'title'],
                            'a': ['href', 'alt', 'title']}
-    s = md.markdown(s or '', [
+    s = md.markdown(s or '', extensions=[
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
@@ -842,6 +836,7 @@ def get_or_create_main_db():
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
+    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj

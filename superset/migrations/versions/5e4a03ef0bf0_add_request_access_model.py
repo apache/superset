@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Add access_request table to manage requests to access datastores.
 
 Revision ID: 5e4a03ef0bf0

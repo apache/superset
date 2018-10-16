@@ -332,6 +332,9 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      metric: {
+        clearable: false,
+      },
     },
   },
 
@@ -1102,6 +1105,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['row_limit'],
         ],
       },
       {

@@ -1,6 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import ExploreChartHeader from '../../../../src/explore/components/ExploreChartHeader';
@@ -30,11 +28,11 @@ describe('ExploreChartHeader', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<ExploreChartHeader {...mockProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('renders', () => {
-    expect(wrapper.find(EditableTitle)).to.have.lengthOf(1);
-    expect(wrapper.find(ExploreActionButtons)).to.have.lengthOf(1);
+    expect(wrapper.find(EditableTitle)).toHaveLength(1);
+    expect(wrapper.find(ExploreActionButtons)).toHaveLength(1);
   });
 });

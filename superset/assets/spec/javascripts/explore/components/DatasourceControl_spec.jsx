@@ -1,8 +1,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import DatasourceModal from '../../../../src/datasource/DatasourceModal';
 import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
@@ -35,6 +33,6 @@ describe('DatasourceControl', () => {
 
   it('renders a Modal', () => {
     const wrapper = setup();
-    expect(wrapper.find(DatasourceModal)).to.have.lengthOf(1);
+    expect(wrapper.find(DatasourceModal)).toHaveLength(1);
   });
 });

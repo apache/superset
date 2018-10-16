@@ -4,6 +4,7 @@ export const STATE_BSSTYLE_MAP = {
   fetching: 'info',
   running: 'warning',
   stopped: 'danger',
+  rendering: 'info',
   success: 'success',
 };
 

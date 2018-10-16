@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import with_statement
-
 import logging
 from logging.config import fileConfig
 

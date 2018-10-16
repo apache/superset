@@ -11,6 +11,7 @@ import {
 } from '../../utils/common';
 
 const propTypes = {
+  aggregation: PropTypes.string,
   locations: PropTypes.instanceOf(Immutable.List).isRequired,
   lngLatAccessor: PropTypes.func,
   renderWhileDragging: PropTypes.bool,
@@ -33,6 +34,30 @@ const defaultProps = {
 const contextTypes = {
   viewport: PropTypes.object,
   isDragging: PropTypes.bool,
+};
+
+const computeClusterLabel = (properties, aggregation) => {
+  const count = properties.get('point_count');
+  if (!aggregation) {
+    return count;
+  }
+  if (aggregation === 'sum' || aggregation === 'min' || aggregation === 'max') {
+    return properties.get(aggregation);
+  }
+  const sum = properties.get('sum');
+  const mean = sum / count;
+  if (aggregation === 'mean') {
+    return Math.round(100 * mean) / 100;
+  }
+    const squaredSum = properties.get('squaredSum');
+    const variance = (squaredSum / count) - Math.pow(sum / count, 2);
+    if (aggregation === 'var') {
+      return Math.round(100 * variance) / 100;
+    } else if (aggregation === 'stdev') {
+      return Math.round(100 * Math.sqrt(variance)) / 100;
+    }
+    // fallback to point_count, this really shouldn't happen
+    return count;
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
@@ -90,34 +115,14 @@ class ScatterPlotGlowOverlay extends React.Component {
     const mercator = new ViewportMercator(props);
     const rgb = props.rgb;
     const clusterLabelMap = [];
-    let maxLabel = -1;
 
     props.locations.forEach(function (location, i) {
       if (location.get('properties').get('cluster')) {
-        let clusterLabel = location.get('properties').get('metric')
-          ? location.get('properties').get('metric')
-          : location.get('properties').get('point_count');
-
-        if (clusterLabel instanceof Immutable.List) {
-          clusterLabel = clusterLabel.toArray();
-          if (props.aggregatorName === 'mean') {
-            clusterLabel = d3.mean(clusterLabel);
-          } else if (props.aggregatorName === 'median') {
-            clusterLabel = d3.median(clusterLabel);
-          } else if (props.aggregatorName === 'stdev') {
-            clusterLabel = d3.deviation(clusterLabel);
-          } else {
-            clusterLabel = d3.variance(clusterLabel);
-          }
-        }
-
-        clusterLabel = isNumeric(clusterLabel)
-          ? d3.round(clusterLabel, 2)
-          : location.get('properties').get('point_count');
-        maxLabel = Math.max(clusterLabel, maxLabel);
-        clusterLabelMap[i] = clusterLabel;
+        clusterLabelMap[i] = computeClusterLabel(location.get('properties'),
+            props.aggregation);
       }
     }, this);
+    const maxLabel = Math.max(...Object.values(clusterLabelMap));
 
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);

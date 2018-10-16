@@ -1,7 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import Dashboard from '../../../../src/dashboard/components/Dashboard';
@@ -45,7 +43,7 @@ describe('Dashboard', () => {
 
   it('should render a DashboardBuilder', () => {
     const wrapper = setup();
-    expect(wrapper.find(DashboardBuilder)).to.have.length(1);
+    expect(wrapper.find(DashboardBuilder)).toHaveLength(1);
   });
 
   describe('refreshExcept', () => {
@@ -70,7 +68,7 @@ describe('Dashboard', () => {
       const spy = sinon.spy(props.actions, 'runQuery');
       wrapper.instance().refreshExcept('1001');
       spy.restore();
-      expect(spy.callCount).to.equal(Object.keys(overrideCharts).length - 1);
+      expect(spy.callCount).toBe(Object.keys(overrideCharts).length - 1);
     });
 
     it('should not call runQuery for filter_immune_slices', () => {
@@ -89,7 +87,7 @@ describe('Dashboard', () => {
       const spy = sinon.spy(props.actions, 'runQuery');
       wrapper.instance().refreshExcept();
       spy.restore();
-      expect(spy.callCount).to.equal(0);
+      expect(spy.callCount).toBe(0);
     });
   });
 
@@ -107,7 +105,7 @@ describe('Dashboard', () => {
         layout: layoutWithExtraChart,
       });
       spy.restore();
-      expect(spy.callCount).to.equal(1);
+      expect(spy.callCount).toBe(1);
     });
 
     it('should call removeSliceFromDashboard if a slice is removed from the layout', () => {
@@ -121,7 +119,7 @@ describe('Dashboard', () => {
         layout: nextLayout,
       });
       spy.restore();
-      expect(spy.callCount).to.equal(1);
+      expect(spy.callCount).toBe(1);
     });
   });
 
@@ -146,7 +144,7 @@ describe('Dashboard', () => {
       });
       wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(0);
+      expect(refreshExceptSpy.callCount).toBe(0);
     });
 
     it('should call refresh if a filter is added', () => {
@@ -162,7 +160,7 @@ describe('Dashboard', () => {
         },
       });
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.callCount).toBe(1);
     });
 
     it('should call refresh if a filter is removed', () => {
@@ -175,7 +173,7 @@ describe('Dashboard', () => {
         },
       });
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.callCount).toBe(1);
     });
 
     it('should call refresh if a filter is changed', () => {
@@ -191,7 +189,7 @@ describe('Dashboard', () => {
         },
       });
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.callCount).toBe(1);
     });
 
     it('should not call refresh if filters change and refresh is false', () => {
@@ -208,7 +206,7 @@ describe('Dashboard', () => {
         },
       });
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(0);
+      expect(refreshExceptSpy.callCount).toBe(0);
     });
 
     it('should not refresh filter_immune_slices', () => {
@@ -236,7 +234,7 @@ describe('Dashboard', () => {
       });
       wrapper.instance().componentDidUpdate(prevProps);
       refreshExceptSpy.restore();
-      expect(refreshExceptSpy.callCount).to.equal(0);
+      expect(refreshExceptSpy.callCount).toBe(0);
     });
   });
 });

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """update_slice_model_json
 
 Revision ID: db0c65b146bd

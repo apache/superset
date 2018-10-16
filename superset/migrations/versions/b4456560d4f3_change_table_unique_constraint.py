@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """change_table_unique_constraint
 
 Revision ID: b4456560d4f3
@@ -6,12 +5,11 @@ Revises: bb51420eaf83
 Create Date: 2016-04-15 08:31:26.249591
 
 """
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'b4456560d4f3'
 down_revision = 'bb51420eaf83'
-
-from alembic import op
 
 
 def upgrade():

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """query.start_running_time
 
 Revision ID: a6c18f869a4e
@@ -17,9 +16,12 @@ down_revision = '979c03af3341'
 def upgrade():
     op.add_column(
         'query',
-        sa.Column('start_running_time',
-        sa.Numeric(precision=20, scale=6),
-        nullable=True))
+        sa.Column(
+            'start_running_time',
+            sa.Numeric(precision=20, scale=6),
+            nullable=True,
+        ),
+    )
 
 
 def downgrade():

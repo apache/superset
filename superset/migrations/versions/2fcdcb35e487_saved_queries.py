@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """saved_queries
 
 Revision ID: 2fcdcb35e487
@@ -6,7 +5,6 @@ Revises: a6c18f869a4e
 Create Date: 2017-03-29 15:04:35.734190
 
 """
-
 from alembic import op
 import sqlalchemy as sa
 

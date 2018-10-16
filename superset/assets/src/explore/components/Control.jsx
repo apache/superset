@@ -11,7 +11,10 @@ const propTypes = {
   type: PropTypes.oneOf(controlTypes).isRequired,
   hidden: PropTypes.bool,
   label: PropTypes.string.isRequired,
-  choices: PropTypes.arrayOf(PropTypes.array),
+  choices: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.array),
+    PropTypes.func,
+  ]),
   description: PropTypes.string,
   tooltipOnClick: PropTypes.func,
   places: PropTypes.number,
@@ -26,7 +29,8 @@ const propTypes = {
     PropTypes.object,
     PropTypes.bool,
     PropTypes.array,
-    PropTypes.func]),
+    PropTypes.func,
+  ]),
 };
 
 const defaultProps = {

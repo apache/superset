@@ -1,7 +1,5 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import { OverlayTrigger } from 'react-bootstrap';
@@ -22,6 +20,6 @@ describe('URLShortLinkButton', () => {
 
   it('renders OverlayTrigger', () => {
     const wrapper = setup();
-    expect(wrapper.find(OverlayTrigger)).have.length(1);
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
   });
 });

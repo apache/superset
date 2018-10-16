@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """allow_run_sync_async
 
 Revision ID: 4500485bde7d
