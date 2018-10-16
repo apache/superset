@@ -48,28 +48,31 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    * The container will have an interactive legend, populated from the
    * categories present in the data.
    */
-
-  /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps) {
-    const fd = nextProps.formData;
-
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.payload.data.features);
-
-    return { start, end, getStep, values, disabled, categories };
-  }
   constructor(props) {
     super(props);
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props);
+
+    const fd = props.formData;
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
+    const timestamps = props.payload.data.features.map(f => f.__timestamp);
+    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+    const categories = getCategories(fd, props.payload.data.features);
+    this.state = { start, end, getStep, values, disabled, categories, viewport: props.viewport };
 
     this.getLayers = this.getLayers.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
-    this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
   }
   getLayers(values) {
     const {
@@ -79,31 +82,35 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       onAddFilter,
       setTooltip,
     } = this.props;
-    let data = [...payload.data.features];
+    let features = [...payload.data.features];
 
     // Add colors from categories or fixed color
-    data = this.addColor(data, fd);
+    features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {
       const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      data = jsFnMutator(data);
+      features = jsFnMutator(features);
     }
 
     // Filter by time
     if (values[0] === values[1] || values[1] === this.end) {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
     } else {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
     }
 
     // Show only categories selected in the legend
     if (fd.dimension) {
-      data = data.filter(d => this.state.categories[d.cat_color].enabled);
+      features = features.filter(d => this.state.categories[d.cat_color].enabled);
     }
 
-    payload.data.features = data;
-    return [getLayer(fd, payload, onAddFilter, setTooltip)];
+    const filteredPayload = {
+      ...payload,
+      data: { ...payload.data, features },
+    };
+
+    return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
@@ -146,8 +153,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
+          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
           mapStyle={this.props.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
