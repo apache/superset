@@ -97,16 +97,16 @@ class LineMulti extends React.Component {
       // add null values at the edges to fix multiChart bug when series with
       // different x values use different y axes
       if (lineCharts.length && lineCharts2.length) {
-        let minx = Infinity;
-        let maxx = -Infinity;
+        let minX = Infinity;
+        let maxX = -Infinity;
         payloadCopy.data.forEach((datum) => {
-          minx = Math.min(minx, ...datum.values.map(v => v.x));
-          maxx = Math.max(maxx, ...datum.values.map(v => v.x));
+          minX = Math.min(minX, ...datum.values.map(v => v.x));
+          maxX = Math.max(maxX, ...datum.values.map(v => v.x));
         });
         // add null values at the edges
         payloadCopy.data.forEach((datum) => {
-          datum.values.push({ x: minx, y: null });
-          datum.values.push({ x: maxx, y: null });
+          datum.values.push({ x: minX, y: null });
+          datum.values.push({ x: maxX, y: null });
         });
       }
 
