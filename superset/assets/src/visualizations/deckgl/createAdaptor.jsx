@@ -1,4 +1,4 @@
-import createAdaptor from'../../utils/createAdaptor';
+import createAdaptor from '../../utils/createAdaptor';
 import transformProps from './transformProps';
 
 export default function createDeckGLAdaptor(Component) {
