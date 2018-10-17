@@ -5,11 +5,11 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import db, security_manager, utils
+from superset import db, security_manager
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.utils import get_main_database
+from superset.utils.core import datetime_to_epoch, get_main_database
 from .base_tests import SupersetTestCase
 
 
@@ -115,7 +115,7 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/queries/{}'.format(
-                int(utils.datetime_to_epoch(now)) - 1000))
+                int(datetime_to_epoch(now)) - 1000))
         self.assertEquals(1, len(data))
 
         self.logout()
