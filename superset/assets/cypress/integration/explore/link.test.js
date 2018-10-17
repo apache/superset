@@ -25,7 +25,7 @@ describe('Test explore links', () => {
     });
   });
 
-  it.only('Visit short link', () => {
+  it('Visit short link', () => {
     cy.route('POST', 'r/shortner/').as('getShortUrl');
 
     cy.visitChartByName('Growth Rate');
