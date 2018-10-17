@@ -1,3 +1,6 @@
+import createAdaptor from '../utils/createAdaptor';
+import transformProps from './deckgl/transformProps';
+
 /* eslint-disable global-require */
 
 // You ***should*** use these to reference viz_types in code
@@ -55,10 +58,13 @@ export const VIZ_TYPES = {
 const loadVis = promise =>
   promise.then((module) => {
     const defaultExport = module.default || module;
-
     // deckgl visualizations don't use esModules, fix it?
     return defaultExport.default || defaultExport;
   });
+
+const loadDeckGLVis = promise =>
+  loadVis(promise).then(module => createAdaptor(module, transformProps));
+
 const loadNvd3 = () => loadVis(import(/* webpackChunkName: "nvd3_vis" */ './nvd3/adaptor.jsx'));
 
 const vizMap = {
@@ -117,25 +123,25 @@ const vizMap = {
   [VIZ_TYPES.partition]: () =>
     loadVis(import(/* webpackChunkName: "partition" */ './Partition/adaptor.jsx')),
   [VIZ_TYPES.deck_scatter]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/Scatter/Scatter.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/scatter" */ './deckgl/layers/Scatter/Scatter.jsx')),
   [VIZ_TYPES.deck_screengrid]: () =>
-    loadVis(
+    loadDeckGLVis(
       import(/* webpackChunkName: "deckgl/layers/screengrid" */ './deckgl/layers/Screengrid/Screengrid.jsx'),
     ),
   [VIZ_TYPES.deck_grid]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/grid" */ './deckgl/layers/Grid/Grid.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/grid" */ './deckgl/layers/Grid/Grid.jsx')),
   [VIZ_TYPES.deck_hex]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/hex" */ './deckgl/layers/Hex/Hex.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/hex" */ './deckgl/layers/Hex/Hex.jsx')),
   [VIZ_TYPES.deck_path]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/path" */ './deckgl/layers/Path/Path.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/path" */ './deckgl/layers/Path/Path.jsx')),
   [VIZ_TYPES.deck_geojson]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/geojson" */ './deckgl/layers/Geojson/Geojson.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/geojson" */ './deckgl/layers/Geojson/Geojson.jsx')),
   [VIZ_TYPES.deck_arc]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/arc" */ './deckgl/layers/Arc/Arc.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/arc" */ './deckgl/layers/Arc/Arc.jsx')),
   [VIZ_TYPES.deck_polygon]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/Polygon/Polygon.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/layers/polygon" */ './deckgl/layers/Polygon/Polygon.jsx')),
   [VIZ_TYPES.deck_multi]: () =>
-    loadVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/Multi/Multi.jsx')),
+    loadDeckGLVis(import(/* webpackChunkName: "deckgl/multi" */ './deckgl/Multi/Multi.jsx')),
   [VIZ_TYPES.rose]: () => loadVis(import(/* webpackChunkName: "rose" */ './Rose/adaptor.jsx')),
 };
 

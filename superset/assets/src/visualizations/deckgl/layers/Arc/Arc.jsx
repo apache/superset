@@ -1,6 +1,5 @@
 import { ArcLayer } from 'deck.gl';
 import { commonLayerProps } from '../common';
-import createAdaptor from '../../createAdaptor';
 import { createCategoricalDeckGLComponent } from '../../factory';
 
 function getPoints(data) {
@@ -26,4 +25,4 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
   });
 }
 
-export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));
+export default createCategoricalDeckGLComponent(getLayer, getPoints);
