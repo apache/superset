@@ -1,9 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import { SupersetClient } from '@superset-ui/core';
 import { t } from '../locales';
-
-const $ = window.$ = require('jquery');
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -33,30 +32,38 @@ class AsyncSelect extends React.PureComponent {
       options: [],
     };
   }
+
   componentDidMount() {
     this.fetchOptions();
   }
+
   onChange(opt) {
     this.props.onChange(opt);
   }
-  fetchOptions() {
-    this.setState({ isLoading: true });
-    const mutator = this.props.mutator;
-    $.get(this.props.dataEndpoint)
-      .done((data) => {
-        this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
 
-        if (!this.props.value && this.props.autoSelect && this.state.options.length) {
-          this.onChange(this.state.options[0]);
+  fetchOptions() {
+    this.setState(() => ({ isLoading: true }));
+    const { mutator, dataEndpoint } = this.props;
+
+    SupersetClient.get({ endpoint: dataEndpoint })
+      .then(({ json }) => {
+        const options = mutator ? mutator(json) : json;
+
+        this.setState(() => ({
+          options,
+          isLoading: false,
+        }));
+
+        if (!this.props.value && this.props.autoSelect && options.length > 0) {
+          this.onChange(options[0]);
         }
       })
-      .fail((xhr) => {
-        this.props.onAsyncError(xhr.responseText);
-      })
-      .always(() => {
-        this.setState({ isLoading: false });
+      .catch((response) => {
+        this.props.onAsyncError(response.responseText);
+        this.setState(() => ({ isLoading: false }));
       });
   }
+
   render() {
     return (
       <div>
