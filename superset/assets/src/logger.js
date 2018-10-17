@@ -65,6 +65,7 @@ export const Logger = {
     SupersetClient.post({
       endpoint,
       postPayload: { events: eventData },
+      parseMethod: null,
     });
 
     // flush events for this logger
@@ -82,7 +83,7 @@ export class ActionLog {
     this.impressionId = impressionId;
     this.source = source;
     this.sourceId = sourceId;
-    this.eventNames = eventNames;
+    this.eventNames = eventNames || [];
     this.sendNow = sendNow || false;
     this.events = {};
 

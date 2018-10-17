@@ -42,13 +42,14 @@ describe('ActionLog', () => {
     log.addEvent(eventName, eventBody);
     expect(log.events[eventName]).toHaveLength(1);
     expect(log.events[eventName][0]).toMatchObject(eventBody);
+    Logger.end(log);
   });
 });
 
 describe('Logger', () => {
   const logEndpoint = 'glob:*/superset/log/*';
   fetchMock.post(logEndpoint, 'success');
-  afterEach(fetchMock.reset);
+  afterEach(fetchMock.resetHistory);
 
   it('should add events when .append(eventName, eventBody) is called', () => {
     const eventName = 'testEvent';
@@ -79,7 +80,7 @@ describe('Logger', () => {
       setTimeout(() => {
         expect(fetchMock.calls(logEndpoint)).toHaveLength(1);
         done();
-      });
+      }, 0);
     });
 
     it("should flush the log's events", () => {
@@ -138,7 +139,7 @@ describe('Logger', () => {
           expect(typeof events[1].start_offset).toBe('number');
 
           done();
-        });
+        }, 0);
       },
     );
 
