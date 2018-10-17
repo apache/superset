@@ -69,7 +69,8 @@ export function getShortUrl(longUrl) {
     endpoint: '/r/shortner/',
     postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
     parseMethod: 'text',
-  }).then(({ text }) => console.log(text) || text);
+    stringify: false, // the url saves with an extra set of string quotes without this
+  }).then(({ text }) => text);
 }
 
 export function supersetURL(rootUrl, getParams = {}) {
