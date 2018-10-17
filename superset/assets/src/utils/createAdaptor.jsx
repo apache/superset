@@ -27,11 +27,7 @@ export default function createAdaptor(Component, transformProps = IDENTITY) {
     });
 
     ReactDOM.render(
-      <Component
-        width={slice.width()}
-        height={slice.height()}
-        {...transformProps(chartProps)}
-      />,
+      <Component {...transformProps(chartProps)} />,
       document.querySelector(slice.selector),
     );
   };
