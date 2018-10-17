@@ -8,7 +8,7 @@ Create Date: 2018-03-20 19:47:54.991259
 from alembic import op
 import sqlalchemy as sa
 
-from superset.utils import generic_find_uq_constraint_name
+from superset.utils.core import generic_find_uq_constraint_name
 
 # revision identifiers, used by Alembic.
 revision = 'f231d82b9b26'
