@@ -1881,7 +1881,7 @@ export const controls = {
   },
 
   filters: {
-    type: 'FilterPanel'
+    type: 'FilterPanel',
   },
 
   slice_id: {

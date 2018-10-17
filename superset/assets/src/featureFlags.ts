@@ -6,7 +6,7 @@ export enum FeatureFlag {
 
 export type FeatureFlagMap = {
   [key in FeatureFlag]?: boolean;
-}
+};
 
 declare global {
   interface Window {

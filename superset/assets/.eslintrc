@@ -18,7 +18,6 @@
     "func-names": 0,
     "react/jsx-no-bind": 0,
     "no-confusing-arrow": 0,
-
     "jsx-a11y/no-static-element-interactions": 0,
     "jsx-a11y/anchor-has-content": 0,
     "react/require-default-props": 0,
@@ -40,6 +39,10 @@
     "react/no-string-refs": 0,
     "indent": 0,
     "no-multi-spaces": 0,
-    "padded-blocks": 0
+    "padded-blocks": 0,
+    "import/extensions": [".js", ".jsx", ".ts", ".tsx", ".json"]
+  },
+  "settings": {
+    "import/resolver": "webpack"
   }
 }

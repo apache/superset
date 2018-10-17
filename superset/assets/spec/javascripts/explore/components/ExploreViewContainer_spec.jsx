@@ -34,7 +34,7 @@ describe('ExploreViewContainer', () => {
 
   afterAll(() => {
     isFeatureEnabledMock.mockRestore();
-  })
+  });
 
   beforeEach(() => {
     wrapper = shallow(<ExploreViewContainer />, {

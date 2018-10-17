@@ -1,3 +1,4 @@
+const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -131,7 +132,7 @@ const config = {
             loader: 'thread-loader',
             options: {
                 // there should be 1 cpu for the fork-ts-checker-webpack-plugin
-              workers: require('os').cpus().length - 1,
+              workers: os.cpus().length - 1,
             },
           },
           {

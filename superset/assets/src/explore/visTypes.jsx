@@ -3,10 +3,10 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
+import { isFeatureEnabled, FeatureFlag } from '@/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';
-import { isFeatureEnabled, FeatureFlag } from '@/featureFlags';
 
 export const sections = {
   druidTimeSeries: {
@@ -46,7 +46,7 @@ export const sections = {
     label: t('Filters'),
     expanded: true,
     controlSetRows: [
-      ['filters']
+      ['filters'],
     ],
   },
   annotations: {
