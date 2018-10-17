@@ -150,9 +150,7 @@ class Chart extends React.PureComponent {
   }
 
   width() {
-    return (
-      this.props.width || (this.container && this.container.el && this.container.el.offsetWidth)
-    );
+    return this.props.width;
   }
 
   headerHeight() {
@@ -160,9 +158,7 @@ class Chart extends React.PureComponent {
   }
 
   height() {
-    return (
-      this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
-    );
+    return this.props.height;
   }
 
   error(e) {
