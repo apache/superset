@@ -13,9 +13,11 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
-from superset import config, utils
+from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
+from superset.utils.core import (
+    get_update_perms_flag, pessimistic_connection_handling, setup_cache)
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -112,10 +114,10 @@ if conf.get('WTF_CSRF_ENABLED'):
     for ex in csrf_exempt_list:
         csrf.exempt(ex)
 
-utils.pessimistic_connection_handling(db.engine)
+pessimistic_connection_handling(db.engine)
 
-cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
-tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
+cache = setup_cache(app, conf.get('CACHE_CONFIG'))
+tables_cache = setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + '/migrations')
 
@@ -183,7 +185,7 @@ appbuilder = AppBuilder(
     base_template='superset/base.html',
     indexview=MyIndexView,
     security_manager_class=custom_sm,
-    update_perms=utils.get_update_perms_flag(),
+    update_perms=get_update_perms_flag(),
 )
 
 security_manager = appbuilder.sm

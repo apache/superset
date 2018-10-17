@@ -17,13 +17,13 @@ from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 
-from superset import app, db, import_util, security_manager, utils
+from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import QueryResult
-from superset.utils import DTTM_ALIAS, QueryStatus
+from superset.utils import core as utils, import_datasource
 
 config = app.config
 
@@ -44,11 +44,11 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.start_dttm >= query_obj['from_dttm'])
         if query_obj['to_dttm']:
             qry = qry.filter(Annotation.end_dttm <= query_obj['to_dttm'])
-        status = QueryStatus.SUCCESS
+        status = utils.QueryStatus.SUCCESS
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = utils.QueryStatus.FAILED
             logging.exception(e)
             error_message = (
                 utils.error_msg_from_exception(e))
@@ -120,7 +120,7 @@ class TableColumn(Model, BaseColumn):
         pdf = self.python_date_format
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not self.expression and not time_grain and not is_epoch:
-            return column(self.column_name, type_=DateTime).label(DTTM_ALIAS)
+            return column(self.column_name, type_=DateTime).label(utils.DTTM_ALIAS)
 
         expr = self.expression or self.column_name
         if is_epoch:
@@ -134,7 +134,7 @@ class TableColumn(Model, BaseColumn):
             grain = self.table.database.grains_dict().get(time_grain)
             if grain:
                 expr = grain.function.format(col=expr)
-        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
+        return literal_column(expr, type_=DateTime).label(utils.DTTM_ALIAS)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -142,7 +142,7 @@ class TableColumn(Model, BaseColumn):
             return db.session.query(TableColumn).filter(
                 TableColumn.table_id == lookup_column.table_id,
                 TableColumn.column_name == lookup_column.column_name).first()
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to a SQL expression string
@@ -243,7 +243,7 @@ class SqlMetric(Model, BaseMetric):
             return db.session.query(SqlMetric).filter(
                 SqlMetric.table_id == lookup_metric.table_id,
                 SqlMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class SqlaTable(Model, BaseDatasource):
@@ -776,13 +776,13 @@ class SqlaTable(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         sql = self.get_query_str(query_obj)
-        status = QueryStatus.SUCCESS
+        status = utils.QueryStatus.SUCCESS
         error_message = None
         df = None
         try:
             df = self.database.get_df(sql, self.schema)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = utils.QueryStatus.FAILED
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
@@ -881,7 +881,7 @@ class SqlaTable(Model, BaseDatasource):
         def lookup_database(table):
             return db.session.query(Database).filter_by(
                 database_name=table.params_dict['database_name']).one()
-        return import_util.import_datasource(
+        return import_datasource.import_datasource(
             db.session, i_datasource, lookup_database, lookup_sqlatable,
             import_time)
 

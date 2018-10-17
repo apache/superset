@@ -15,7 +15,7 @@ from pandas.core.common import _maybe_box_datetimelike
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from past.builtins import basestring
 
-from superset.utils import JS_MAX_INTEGER
+from superset.utils.core import JS_MAX_INTEGER
 
 INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
