@@ -68,7 +68,8 @@ export function getShortUrl(longUrl) {
   return SupersetClient.post({
     endpoint: '/r/shortner/',
     postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-  }).then(({ text }) => text);
+    parseMethod: 'text',
+  }).then(({ text }) => console.log(text) || text);
 }
 
 export function supersetURL(rootUrl, getParams = {}) {
