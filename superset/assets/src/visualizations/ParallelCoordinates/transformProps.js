@@ -1,5 +1,5 @@
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { width, height, formData, payload } = chartProps;
   const {
     includeSeries,
     linearColorScheme,
@@ -10,6 +10,8 @@ export default function transformProps(chartProps) {
   } = formData;
 
   return {
+    width,
+    height,
     data: payload.data,
     includeSeries,
     linearColorScheme,

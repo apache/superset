@@ -1,5 +1,6 @@
 export default function transformProps(chartProps) {
   const {
+    height,
     datasource,
     filters,
     formData,
@@ -40,6 +41,7 @@ export default function transformProps(chartProps) {
   });
 
   return {
+    height,
     data: records,
     alignPositiveNegative: alignPn,
     colorPositiveNegative: colorPn,

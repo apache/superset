@@ -1,5 +1,5 @@
 export default function transformProps(chartProps) {
-  const { datasource, formData, payload } = chartProps;
+  const { width, height, datasource, formData, payload } = chartProps;
   const {
     colorScheme,
     dateTimeFormat,
@@ -16,6 +16,8 @@ export default function transformProps(chartProps) {
   const { verboseMap } = datasource;
 
   return {
+    width,
+    height,
     data: payload.data,
     colorScheme,
     dateTimeFormat,

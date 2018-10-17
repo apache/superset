@@ -6,7 +6,7 @@ import { renderTooltipFactory } from './BigNumber';
 const TIME_COLUMN = '__timestamp';
 
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { width, height, formData, payload } = chartProps;
   const {
     colorPicker,
     compareLag: compareLagInput,
@@ -65,6 +65,8 @@ export default function transformProps(chartProps) {
   const formatValue = d3FormatPreset(yAxisFormat);
 
   return {
+    width,
+    height,
     bigNumber,
     className,
     formatBigNumber: formatValue,

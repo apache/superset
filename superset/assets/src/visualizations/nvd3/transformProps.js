@@ -3,6 +3,8 @@ import { formatLabel } from './utils';
 
 export default function transformProps(chartProps) {
   const {
+    width,
+    height,
     annotationData,
     datasource,
     formData,
@@ -63,6 +65,8 @@ export default function transformProps(chartProps) {
     : rawData;
 
   return {
+    width,
+    height,
     data,
     annotationData,
     annotationLayers,

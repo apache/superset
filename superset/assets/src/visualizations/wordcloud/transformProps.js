@@ -10,7 +10,7 @@ function transformData(data, formData) {
 }
 
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { width, height, formData, payload } = chartProps;
   const {
     colorScheme,
     rotation,
@@ -19,6 +19,8 @@ export default function transformProps(chartProps) {
   } = formData;
 
   return {
+    width,
+    height,
     data: transformData(payload.data, formData),
     colorScheme,
     rotation,

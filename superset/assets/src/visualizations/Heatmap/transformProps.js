@@ -1,5 +1,5 @@
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { width, height, formData, payload } = chartProps;
   const {
     bottomMargin,
     canvasImageRendering,
@@ -21,6 +21,8 @@ export default function transformProps(chartProps) {
   } = formData;
 
   return {
+    width,
+    height,
     data: payload.data,
     bottomMargin,
     canvasImageRendering,

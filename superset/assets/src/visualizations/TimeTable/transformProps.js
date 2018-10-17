@@ -1,5 +1,5 @@
 export default function transformProps(chartProps) {
-  const { datasource, formData, payload } = chartProps;
+  const { height, datasource, formData, payload } = chartProps;
   const {
     columnCollection,
     groupby,
@@ -40,6 +40,7 @@ export default function transformProps(chartProps) {
   });
 
   return {
+    height,
     data: records,
     columnConfigs: columnCollection,
     rows,

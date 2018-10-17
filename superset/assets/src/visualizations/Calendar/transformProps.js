@@ -1,5 +1,5 @@
 export default function transformProps(chartProps) {
-  const { formData, payload, datasource } = chartProps;
+  const { height, formData, payload, datasource } = chartProps;
   const {
     cellPadding,
     cellRadius,
@@ -16,6 +16,7 @@ export default function transformProps(chartProps) {
   const { verboseMap } = datasource;
 
   return {
+    height,
     data: payload.data,
     cellPadding,
     cellRadius,
