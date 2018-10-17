@@ -73,7 +73,6 @@ class DatasourceModal extends React.PureComponent {
           actions: [
             Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
           ],
-          // @TODO replace this with a util function to read body and pull error
           body: error.error || error.statusText || t('An error has occurred'),
         });
       });

@@ -269,7 +269,6 @@ export class DatasourceEditor extends React.PureComponent {
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState(() => ({ metadataLoading: false }));
     }).catch((error) => {
-      // @TODO replace this with a util function to read body and pull error
       const msg = error.error || error.statusText || t('An error has occurred');
       this.props.addDangerToast(msg);
       this.setState(() => ({ metadataLoading: false }));

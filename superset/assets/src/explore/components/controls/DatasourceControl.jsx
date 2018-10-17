@@ -43,8 +43,6 @@ class DatasourceControl extends React.PureComponent {
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
-    this.setSearchRef = this.setSearchRef.bind(this);
-    this.selectDatasource = this.selectDatasource.bind(this);
   }
 
   onChange(vizType) {
@@ -52,57 +50,17 @@ class DatasourceControl extends React.PureComponent {
     this.setState(() => ({ showModal: false }));
   }
 
-  onEnterModal() {
-    if (this.searchRef) {
-      this.searchRef.focus();
-    }
-    if (!this.state.datasources) {
-      SupersetClient.get({ endpoint: '/superset/datasources/' })
-        .then(({ json }) => {
-          const datasources = json.map(ds => ({
-            rawName: ds.name,
-            connection: ds.connection,
-            schema: ds.schema,
-             name: (
-               <a
-                 href="#"
-                 onClick={this.selectDatasource.bind(this, ds.uid)}
-                 className="datasource-link"
-               >
-                 {ds.name}
-               </a>
-             ),
-            type: ds.type,
-          }));
-
-          this.setState(() => ({ loading: false, datasources }));
-        })
-        .catch(() => {
-          this.setState(() => ({ loading: false }));
-          this.props.addDangerToast(t('Something went wrong while fetching the datasource list'));
-        });
-    }
-  }
-
-  setSearchRef(searchRef) {
-    this.searchRef = searchRef;
-  }
-
   toggleShowDatasource() {
-    this.setState({ showDatasource: !this.state.showDatasource });
+    this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
 
   toggleModal() {
-    this.setState({ showModal: !this.state.showModal });
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
   }
-
-  selectDatasource(datasourceId) {
-    this.setState({ showModal: false });
-    this.props.onChange(datasourceId);
-  }
-
   toggleEditDatasourceModal() {
-    this.setState({ showEditDatasourceModal: !this.state.showEditDatasourceModal });
+    this.setState(({ showEditDatasourceModal }) => ({
+      showEditDatasourceModal: !showEditDatasourceModal,
+    }));
   }
 
   renderDatasource() {
