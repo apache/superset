@@ -9,20 +9,16 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
-import { SupersetClient } from '@superset-ui/core';
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
-import withToasts from '../../../messageToasts/enhancers/withToasts';
-
 
 const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
   datasource: PropTypes.object.isRequired,
   onDatasourceSave: PropTypes.func,
 };
@@ -154,4 +150,4 @@ class DatasourceControl extends React.PureComponent {
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
 
-export default withToasts(DatasourceControl);
+export default DatasourceControl;
