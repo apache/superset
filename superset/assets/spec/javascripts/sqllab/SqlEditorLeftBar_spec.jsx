@@ -115,11 +115,7 @@ describe('SqlEditorLeftBar', () => {
           expect(wrapper.state().tableLength).toBe(3);
         });
     });
-<<<<<<< HEAD
 
-    it('should handle error', () => {
-      expect.asseertions(3);
-=======
     it('should dispatch a danger toast on error', () => {
       const dangerToastSpy = sinon.spy();
 
@@ -130,12 +126,11 @@ describe('SqlEditorLeftBar', () => {
       });
 
       expect.assertions(4);
->>>>>>> [sqllab][superset-client] fix eslint and tests, add better error handling tests.
       fetchMock.get(FETCH_TABLES_GLOB, { throws: 'error' }, { overwriteRoutes: true });
 
       return wrapper
         .instance()
-        .fetchTables(1, 'main', 'birth_names')
+        .fetchTables(1, 'main', true, 'birth_names')
         .then(() => {
           expect(fetchMock.calls(FETCH_TABLES_GLOB)).toHaveLength(1);
           expect(wrapper.state().tableOptions).toEqual([]);
