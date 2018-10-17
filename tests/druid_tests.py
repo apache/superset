@@ -77,8 +77,9 @@ class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
 
-    def __init__(self, *args, **kwargs):
-        super(DruidTests, self).__init__(*args, **kwargs)
+    @classmethod
+    def setUpClass(cls):
+        cls.create_druid_test_objects()
 
     def get_test_cluster_obj(self):
         return DruidCluster(

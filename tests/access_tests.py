@@ -80,8 +80,6 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 
 class RequestAccessTests(SupersetTestCase):
 
-    requires_examples = False
-
     @classmethod
     def setUpClass(cls):
         security_manager.add_role('override_me')
@@ -317,7 +315,7 @@ class RequestAccessTests(SupersetTestCase):
 
         session.commit()
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_approve(self, mock_send_mime):
         if app.config.get('ENABLE_ACCESS_REQUEST'):
             session = db.session

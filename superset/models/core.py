@@ -29,12 +29,12 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, security_manager, utils
+from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import MediumText
+from superset.utils import core as utils
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -358,7 +358,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(MediumText())
+    position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)

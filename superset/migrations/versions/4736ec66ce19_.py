@@ -11,7 +11,7 @@ import logging
 from alembic import op
 import sqlalchemy as sa
 
-from superset.utils import (
+from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_fk_constraint_names,
     generic_find_uq_constraint_name,
@@ -203,8 +203,8 @@ def downgrade():
 
         # Re-create the foreign key associated with the cluster_name column.
         batch_op.create_foreign_key(
-                'fk_{}_datasource_id_datasources'.format(foreign),
-                'clusters',
-                ['cluster_name'],
-                ['cluster_name'],
-            )
+            'fk_{}_datasource_id_datasources'.format(foreign),
+            'clusters',
+            ['cluster_name'],
+            ['cluster_name'],
+        )

@@ -30,13 +30,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset import conf, db, import_util, security_manager, utils
+from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult,
 )
-from superset.utils import (
+from superset.utils import core as utils, import_datasource
+from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
 
@@ -392,7 +393,7 @@ class DruidColumn(Model, BaseColumn):
                 DruidColumn.datasource_id == lookup_column.datasource_id,
                 DruidColumn.column_name == lookup_column.column_name).first()
 
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
 
 class DruidMetric(Model, BaseMetric):
@@ -444,7 +445,7 @@ class DruidMetric(Model, BaseMetric):
             return db.session.query(DruidMetric).filter(
                 DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class DruidDatasource(Model, BaseDatasource):
@@ -580,7 +581,7 @@ class DruidDatasource(Model, BaseDatasource):
         def lookup_cluster(d):
             return db.session.query(DruidCluster).filter_by(
                 cluster_name=d.cluster_name).one()
-        return import_util.import_datasource(
+        return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 
