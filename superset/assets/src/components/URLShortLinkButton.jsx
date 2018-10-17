@@ -38,7 +38,7 @@ class URLShortLinkButton extends React.Component {
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard
-          text={this.state.shortUrl || 'Loading ...'}
+          text={this.state.shortUrl}
           copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
         />
         &nbsp;&nbsp;

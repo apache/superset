@@ -51,7 +51,7 @@ class URLShortLinkModal extends React.Component {
         modalBody={
           <div>
             <CopyToClipboard
-              text={this.state.shortUrl || 'Loading ...'}
+              text={this.state.shortUrl}
               copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
             />
             &nbsp;&nbsp;
