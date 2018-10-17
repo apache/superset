@@ -21,10 +21,10 @@ $(document).ready(function () {
   $('#language-picker a').click(function (ev) {
     ev.preventDefault();
 
-    const targetUrl = ev.currentTarget.href;
-    $.ajax(targetUrl).then(() => {
-      location.reload();
-    });
+    SupersetClient.get({ endpoint: ev.currentTarget.href })
+      .then(() => {
+        location.reload();
+      });
   });
 });
 
