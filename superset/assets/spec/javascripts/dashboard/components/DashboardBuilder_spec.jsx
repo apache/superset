@@ -3,7 +3,7 @@ import React from 'react';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
 
-import ParentSize from '@vx/responsive/build/components/ParentSize';
+import { ParentSize } from '@vx/responsive';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
