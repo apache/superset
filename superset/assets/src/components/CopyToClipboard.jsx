@@ -96,12 +96,9 @@ export default class CopyToClipboard extends React.Component {
   renderLink() {
     return (
       <span>
-        {this.props.shouldShowText &&
-          <span>
-            {this.props.text}
-            &nbsp;&nbsp;&nbsp;&nbsp;
-          </span>
-        }
+        {this.props.shouldShowText && this.props.text && (
+          <span className="m-r-5" data-test="short-url">{this.props.text}</span>
+        )}
         <OverlayTrigger
           placement="top"
           style={{ cursor: 'pointer' }}

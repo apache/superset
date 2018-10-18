@@ -26,19 +26,22 @@ describe('Test explore links', () => {
   });
 
   it('Visit short link', () => {
+    cy.route('POST', 'r/shortner/').as('getShortUrl');
+
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
 
     cy.get('[data-test=short-link-button]').click();
-    cy.get('#shorturl-popover').within(() => {
-      cy.get('i[title="Copy to clipboard"]')
-        .siblings()
-        .first()
-        .invoke('text')
-        .then((text) => {
-          cy.visit(text);
+
+    // explicitly wait for the url response
+    cy.wait('@getShortUrl');
+
+    cy.wait(100);
+
+    cy.get('#shorturl-popover [data-test="short-url"]').invoke('text')
+      .then((text) => {
+        cy.visit(text);
       });
-    });
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   });
 
