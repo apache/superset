@@ -8,7 +8,7 @@ const metadata = new ChartMetadata({
   name: 'Area Chart',
   description: '',
   credits: ['http://nvd3.org'],
-  supportedAnnotations: [
+  supportedAnnotationTypes: [
     ANNOTATION_TYPES.INTERVAL,
     ANNOTATION_TYPES.EVENT,
   ],

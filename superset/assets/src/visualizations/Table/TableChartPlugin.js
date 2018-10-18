@@ -7,7 +7,7 @@ import { ANNOTATION_TYPES } from '../../modules/AnnotationTypes';
 const metadata = new ChartMetadata({
   name: 'Table',
   description: '',
-  canBeAnnotation: [
+  canBeAnnotationTypes: [
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.INTERVAL,
   ],

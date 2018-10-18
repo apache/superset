@@ -8,10 +8,10 @@ const metadata = new ChartMetadata({
   name: 'Line Chart',
   description: '',
   credits: ['http://nvd3.org'],
-  canBeAnnotation: [
+  canBeAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,
   ],
-  supportedAnnotations: [
+  supportedAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,
     ANNOTATION_TYPES.INTERVAL,
     ANNOTATION_TYPES.EVENT,

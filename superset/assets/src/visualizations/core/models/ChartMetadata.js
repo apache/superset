@@ -4,20 +4,24 @@ export default class ChartMetadata {
     credits = [],
     description = '',
     show = true,
-    canBeAnnotation = [],
-    supportedAnnotations = [],
+    canBeAnnotationTypes = [],
+    supportedAnnotationTypes = [],
     thumbnail,
   }) {
     this.name = name;
     this.credits = credits;
     this.description = description;
     this.show = show;
-    this.canBeAnnotation = canBeAnnotation.reduce((prev, type) => {
+    this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce((prev, type) => {
       const lookup = prev;
       lookup[type] = true;
       return lookup;
     }, {});
-    this.supportedAnnotations = supportedAnnotations;
+    this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
+  }
+
+  canBeAnnotationType(type) {
+    return this.canBeAnnotationTypesLookup[type] || false;
   }
 }
