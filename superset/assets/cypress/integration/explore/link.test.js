@@ -52,7 +52,7 @@ describe('Test explore links', () => {
     });
   });
 
-  it('Test chart save as', () => {
+  xit('Test chart save as', () => {
     const formData = {
       ...HEALTH_POP_FORM_DATA_DEFAULTS,
       viz_type: 'table',
@@ -76,7 +76,7 @@ describe('Test explore links', () => {
     });
   });
 
-  it('Test chart save', () => {
+  xit('Test chart save', () => {
     const chartName = 'Test chart';
     cy.visitChartByName(chartName);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
