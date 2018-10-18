@@ -56,12 +56,12 @@ class DeckMulti extends React.PureComponent {
             subsliceCopy.form_data,
             json,
           );
-          this.setState(() => ({
+          this.setState({
             subSlicesLayers: {
               ...this.state.subSlicesLayers,
               [subsliceCopy.slice_id]: layer,
             },
-          }));
+          });
         })
         .catch(() => {});
     });

@@ -30,10 +30,10 @@ class TableLoader extends React.PureComponent {
     SupersetClient.get({ endpoint: dataEndpoint })
       .then(({ json }) => {
         const data = mutator ? mutator(json) : json;
-        this.setState(() => ({ data, isLoading: false }));
+        this.setState({ data, isLoading: false });
       })
       .catch(() => {
-        this.setState(() => ({ isLoading: false }));
+        this.setState({ isLoading: false });
         this.props.addDangerToast(t('An error occurred'));
       });
   }

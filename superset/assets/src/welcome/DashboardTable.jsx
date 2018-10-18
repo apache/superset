@@ -26,7 +26,7 @@ class DashboardTable extends React.PureComponent {
       endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
     })
       .then(({ json }) => {
-         this.setState(() => ({ dashboards: json.result }));
+         this.setState({ dashboards: json.result });
       })
       .catch(() => {
         this.props.addDangerToast(t('An error occurred while fethching Dashboards'));

@@ -59,7 +59,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           css: row.css,
           label: row.template_name,
         }));
-        this.setState(() => ({ cssTemplates }));
+        this.setState({ cssTemplates });
       })
       .catch(() => {
         this.props.addDangerToast(
