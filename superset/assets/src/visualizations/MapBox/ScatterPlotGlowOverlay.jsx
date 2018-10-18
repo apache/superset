@@ -6,7 +6,6 @@ import ViewportMercator from 'viewport-mercator-project';
 import {
   kmToPixels,
   rgbLuminance,
-  isNumeric,
   MILES_PER_KM,
 } from '../../utils/common';
 
@@ -154,7 +153,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (isNumeric(clusterLabel)) {
+            if (Number.isFinite(parseFloat(clusterLabel))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = Math.round(clusterLabel / 1000) + 'k';
               } else if (clusterLabel >= 1000) {
@@ -187,7 +186,9 @@ class ScatterPlotGlowOverlay extends React.Component {
             }
 
             if (pointMetric !== null) {
-              pointLabel = isNumeric(pointMetric) ? d3.round(pointMetric, 2) : pointMetric;
+              pointLabel = Number.isFinite(parseFloat(pointMetric))
+                ? d3.round(pointMetric, 2)
+                : pointMetric;
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column
