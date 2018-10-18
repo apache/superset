@@ -5,6 +5,8 @@ import jsdom from 'jsdom';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 
+import setupSupersetClient from './setupSupersetClient';
+
 configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
@@ -45,3 +47,5 @@ global.window.XMLHttpRequest = global.XMLHttpRequest;
 global.window.location = { href: 'about:blank' };
 global.window.performance = { now: () => new Date().getTime() };
 global.$ = require('jquery')(global.window);
+
+setupSupersetClient();

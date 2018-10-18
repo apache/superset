@@ -1,6 +1,6 @@
-import $ from 'jquery';
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
+import { SupersetClient } from '@superset-ui/core';
 
 import { now } from '../modules/dates';
 import { t } from '../locales';
@@ -43,7 +43,6 @@ export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
-export const SAVE_QUERY = 'SAVE_QUERY';
 
 export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
@@ -58,22 +57,14 @@ export function resetState() {
 }
 
 export function saveQuery(query) {
-  return (dispatch) => {
-    const url = '/savedqueryviewapi/api/create';
-    $.ajax({
-      type: 'POST',
-      url,
-      data: query,
-      success: () => {
-        dispatch(addSuccessToast(t('Your query was saved')));
-      },
-      error: () => {
-        dispatch(addDangerToast(t('Your query could not be saved')));
-      },
-      dataType: 'json',
-    });
-    return { type: SAVE_QUERY };
-  };
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: query,
+      stringify: false,
+    })
+      .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
+      .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
 }
 
 export function startQuery(query) {
@@ -81,7 +72,7 @@ export function startQuery(query) {
     id: query.id ? query.id : shortid.generate(),
     progress: 0,
     startDttm: now(),
-    state: (query.runAsync) ? 'pending' : 'running',
+    state: query.runAsync ? 'pending' : 'running',
     cached: false,
   });
   return { type: START_QUERY, query };
@@ -111,41 +102,30 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-function getErrorLink(err) {
-  let link = '';
-  if (err.responseJSON && err.responseJSON.link) {
-    link = err.responseJSON.link;
-  }
-  return link;
-}
-
 export function fetchQueryResults(query) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
-    const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;
-    $.ajax({
-      type: 'GET',
-      dataType: 'text',
-      url: sqlJsonUrl,
-      success(results) {
-        const parsedResults = JSONbig.parse(results);
-        dispatch(querySuccess(query, parsedResults));
-      },
-      error(err) {
-        let msg = t('Failed at retrieving results from the results backend');
-        if (err.responseJSON && err.responseJSON.error) {
-          msg = err.responseJSON.error;
-        }
-        dispatch(queryFailed(query, msg, getErrorLink(err)));
-      },
-    });
+
+    return SupersetClient.get({
+      endpoint: `/superset/results/${query.resultsKey}/`,
+      parseMethod: 'text',
+    })
+      .then(({ text = '{}' }) => {
+        const bigIntJson = JSONbig.parse(text);
+        dispatch(querySuccess(query, bigIntJson));
+      })
+      .catch((error) => {
+        const message = error.error || error.statusText || t('Failed at retrieving results');
+
+        return dispatch(queryFailed(query, message, error.link));
+      });
   };
 }
 
 export function runQuery(query) {
   return function (dispatch) {
     dispatch(startQuery(query));
-    const sqlJsonRequest = {
+    const postPayload = {
       client_id: query.id,
       database_id: query.dbId,
       json: true,
@@ -158,59 +138,38 @@ export function runQuery(query) {
       select_as_cta: query.ctas,
       templateParams: query.templateParams,
     };
-    const sqlJsonUrl = '/superset/sql_json/' + window.location.search;
-    $.ajax({
-      type: 'POST',
-      dataType: 'json',
-      url: sqlJsonUrl,
-      data: sqlJsonRequest,
-      success(results) {
+
+    return SupersetClient.post({
+      endpoint: `/superset/sql_json/${window.location.search}`,
+      postPayload,
+      stringify: false,
+    })
+      .then(({ json }) => {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, results));
+          dispatch(querySuccess(query, json));
         }
-      },
-      error(err, textStatus, errorThrown) {
-        let msg;
-        try {
-          msg = err.responseJSON.error;
-        } catch (e) {
-          if (err.responseText !== undefined) {
-            msg = err.responseText;
-          }
+      })
+      .catch((error) => {
+        let message = error.error || error.statusText || t('Unknown error');
+        if (message.includes('CSRF token')) {
+          message = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
         }
-        if (msg === null) {
-          if (errorThrown) {
-            msg = `[${textStatus}] ${errorThrown}`;
-          } else {
-            msg = t('Unknown error');
-          }
-        }
-        if (msg.indexOf('CSRF token') > 0) {
-          msg = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
-        }
-        dispatch(queryFailed(query, msg, getErrorLink(err)));
-      },
-    });
+        // @TODO how to verify link?
+        dispatch(queryFailed(query, message, error.link));
+      });
   };
 }
 
 export function postStopQuery(query) {
   return function (dispatch) {
-    const stopQueryUrl = '/superset/stop_query/';
-    const stopQueryRequestData = { client_id: query.id };
-    dispatch(stopQuery(query));
-    $.ajax({
-      type: 'POST',
-      dataType: 'json',
-      url: stopQueryUrl,
-      data: stopQueryRequestData,
-      success() {
-        dispatch(addSuccessToast(t('Query was stopped.')));
-      },
-      error() {
-        dispatch(addDangerToast(t('Failed at stopping query.')));
-      },
-    });
+    return SupersetClient.post({
+      endpoint: '/superset/stop_query/',
+      postPayload: { client_id: query.id },
+      stringify: false,
+    })
+      .then(() => dispatch(stopQuery(query)))
+      .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
+      .catch(() => dispatch(addDangerToast(t('Failed at stopping query. ') + `'${query.id}'`)));
   };
 }
 
@@ -280,59 +239,69 @@ export function mergeTable(table, query) {
 
 export function addTable(query, tableName, schemaName) {
   return function (dispatch) {
-    let table = {
+    const table = {
       dbId: query.dbId,
       queryEditorId: query.id,
       schema: schemaName,
       name: tableName,
     };
-    dispatch(mergeTable(Object.assign({}, table, {
-      isMetadataLoading: true,
-      isExtraMetadataLoading: true,
-      expanded: false,
-    })));
+    dispatch(
+      mergeTable({
+        ...table,
+        isMetadataLoading: true,
+        isExtraMetadataLoading: true,
+        expanded: false,
+      }),
+    );
 
-    let url = `/superset/table/${query.dbId}/${tableName}/${schemaName}/`;
-    $.get(url, (data) => {
-      const dataPreviewQuery = {
-        id: shortid.generate(),
-        dbId: query.dbId,
-        sql: data.selectStar,
-        tableName,
-        sqlEditorId: null,
-        tab: '',
-        runAsync: false,
-        ctas: false,
-      };
-      // Merge table to tables in state
-      const newTable = Object.assign({}, table, data, {
-        expanded: true,
-        isMetadataLoading: false,
-      });
-      dispatch(mergeTable(newTable, dataPreviewQuery));
-      // Run query to get preview data for table
-      dispatch(runQuery(dataPreviewQuery));
-    })
-    .fail(() => {
-      const newTable = Object.assign({}, table, {
-        isMetadataLoading: false,
-      });
-      dispatch(mergeTable(newTable));
-      dispatch(addDangerToast(t('Error occurred while fetching table metadata')));
-    });
+    SupersetClient.get({ endpoint: `/superset/table/${query.dbId}/${tableName}/${schemaName}/` })
+      .then(({ json }) => {
+        const dataPreviewQuery = {
+          id: shortid.generate(),
+          dbId: query.dbId,
+          sql: json.selectStar,
+          tableName,
+          sqlEditorId: null,
+          tab: '',
+          runAsync: false,
+          ctas: false,
+        };
+        const newTable = {
+          ...table,
+          ...json,
+          expanded: true,
+          isMetadataLoading: false,
+        };
 
-    url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`;
-    $.get(url, (data) => {
-      table = Object.assign({}, table, data, { isExtraMetadataLoading: false });
-      dispatch(mergeTable(table));
+        return Promise.all([
+          dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
+          dispatch(runQuery(dataPreviewQuery)), // Run query to get preview data for table
+        ]);
+      })
+      .catch(() =>
+        Promise.all([
+          dispatch(
+            mergeTable({
+              ...table,
+              isMetadataLoading: false,
+            }),
+          ),
+          dispatch(addDangerToast(t('Error occurred while fetching table metadata'))),
+        ]),
+      );
+
+    SupersetClient.get({
+      endpoint: `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`,
     })
-    .fail(() => {
-      const newTable = Object.assign({}, table, {
-        isExtraMetadataLoading: false,
-      });
-      dispatch(mergeTable(newTable));
-      dispatch(addDangerToast(t('Error occurred while fetching table metadata')));
-    });
+      .then(({ json }) =>
+        dispatch(mergeTable({ ...table, ...json, isExtraMetadataLoading: false })),
+      )
+      .catch(() =>
+        Promise.all([
+          dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
+          dispatch(addDangerToast(t('Error occurred while fetching table metadata'))),
+        ]),
+      );
   };
 }
 
@@ -379,74 +348,61 @@ export function persistEditorHeight(queryEditor, currentHeight) {
 
 export function popStoredQuery(urlId) {
   return function (dispatch) {
-    $.ajax({
-      type: 'GET',
-      url: `/kv/${urlId}`,
-      success: (data) => {
-        const newQuery = JSON.parse(data);
-        const queryEditorProps = {
-          title: newQuery.title ? newQuery.title : t('shared query'),
-          dbId: newQuery.dbId ? parseInt(newQuery.dbId, 10) : null,
-          schema: newQuery.schema ? newQuery.schema : null,
-          autorun: newQuery.autorun ? newQuery.autorun : false,
-          sql: newQuery.sql ? newQuery.sql : 'SELECT ...',
-        };
-        dispatch(addQueryEditor(queryEditorProps));
-      },
-      error: () => {
-        dispatch(addDangerToast(t('The query couldn\'t be loaded')));
-      },
-    });
+    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
+      .then(({ json }) =>
+        dispatch(
+          addQueryEditor({
+            title: json.title ? json.title : t('Sjsonhared query'),
+            dbId: json.dbId ? parseInt(json.dbId, 10) : null,
+            schema: json.schema ? json.schema : null,
+            autorun: json.autorun ? json.autorun : false,
+            sql: json.sql ? json.sql : 'SELECT ...',
+          }),
+        ),
+      )
+      .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
   };
 }
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
-    $.ajax({
-      type: 'GET',
-      url: `/savedqueryviewapi/api/get/${saveQueryId}`,
-      success: (data) => {
-        const sq = data.result;
+    return SupersetClient.get({ endpoint: `/savedqueryviewapi/api/get/${saveQueryId}` })
+      .then(({ json }) => {
+        const { result } = json;
         const queryEditorProps = {
-          title: sq.label,
-          dbId: sq.db_id ? parseInt(sq.db_id, 10) : null,
-          schema: sq.schema,
+          title: result.label,
+          dbId: result.db_id ? parseInt(result.db_id, 10) : null,
+          schema: result.schema,
           autorun: false,
-          sql: sq.sql,
+          sql: result.sql,
         };
-        dispatch(addQueryEditor(queryEditorProps));
-      },
-      error: () => {
-        dispatch(addDangerToast(t('The query couldn\'t be loaded')));
-      },
-    });
+        return dispatch(addQueryEditor(queryEditorProps));
+      })
+      .catch(() => dispatch(addDangerToast(t("The query couldn't be loaded"))));
   };
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
-    $.ajax({
-      type: 'GET',
-      url: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
-      success: (metadata) => {
-        const queryEditorProps = {
-          title: 'Query ' + metadata.name,
-          dbId: metadata.database.id,
-          schema: metadata.schema,
-          autorun: sql !== undefined,
-          sql: sql || metadata.select_star,
-        };
-        dispatch(addQueryEditor(queryEditorProps));
-      },
-      error: () => {
-        dispatch(addDangerToast(t("The datasource couldn't be loaded")));
-      },
-    });
+    return SupersetClient.get({
+      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    })
+      .then(({ json }) =>
+        dispatch(
+          addQueryEditor({
+            title: 'Query ' + json.name,
+            dbId: json.database.id,
+            schema: json.schema,
+            autorun: sql !== undefined,
+            sql: sql || json.select_star,
+          }),
+        ),
+      )
+      .catch(() => dispatch(addDangerToast(t("The datasource couldn't be loaded"))));
   };
 }
 export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
-export function createDatasourceSuccess(response) {
-  const data = JSON.parse(response);
+export function createDatasourceSuccess(data) {
   const datasource = `${data.table_id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
@@ -454,25 +410,23 @@ export function createDatasourceFailed(err) {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }
 
-export function createDatasource(vizOptions, context) {
+export function createDatasource(vizOptions) {
   return (dispatch) => {
     dispatch(createDatasourceStarted());
+    return SupersetClient.post({
+      endpoint: '/superset/sqllab_viz/',
+      postPayload: { data: vizOptions },
+    })
+      .then(({ json }) => {
+        const data = JSON.parse(json);
+        dispatch(createDatasourceSuccess(data));
 
-    return $.ajax({
-      type: 'POST',
-      url: '/superset/sqllab_viz/',
-      async: false,
-      data: {
-        data: JSON.stringify(vizOptions),
-      },
-      context,
-      dataType: 'json',
-      success: (resp) => {
-        dispatch(createDatasourceSuccess(resp));
-      },
-      error: () => {
+        return Promise.resolve(data);
+      })
+      .catch(() => {
         dispatch(createDatasourceFailed(t('An error occurred while creating the data source')));
-      },
-    });
+
+        return Promise.reject();
+      });
   };
 }

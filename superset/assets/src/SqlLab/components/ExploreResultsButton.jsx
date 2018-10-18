@@ -54,9 +54,7 @@ class ExploreResultsButton extends React.PureComponent {
       this.dialog.show({
         title: t('Explore'),
         body: msg,
-        actions: [
-          Dialog.DefaultAction('Ok', () => {}, 'btn-primary'),
-        ],
+        actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-primary')],
         bsSize: 'large',
         bsStyle: 'warning',
         onHide: (dialog) => {
@@ -106,10 +104,10 @@ class ExploreResultsButton extends React.PureComponent {
     };
   }
   visualize() {
-    this.props.actions.createDatasource(this.buildVizOptions(), this)
-      .done((resp) => {
+    this.props.actions
+      .createDatasource(this.buildVizOptions())
+      .then((data) => {
         const columns = this.getColumns();
-        const data = JSON.parse(resp);
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: [],
@@ -119,28 +117,28 @@ class ExploreResultsButton extends React.PureComponent {
           all_columns: columns.map(c => c.name),
           row_limit: 1000,
         };
+
         this.props.actions.addInfoToast(t('Creating a data source and creating a new tab'));
 
         // open new window for data visualization
         exportChart(formData);
       })
-      .fail(() => {
-        this.props.actions.addDangerToast(this.props.errorMessage);
+      .catch(() => {
+        this.props.actions.addDangerToast(this.props.errorMessage || t('An error occurred'));
       });
   }
   renderTimeoutWarning() {
     return (
       <Alert bsStyle="warning">
-        {
-          t('This query took %s seconds to run, ', Math.round(this.getQueryDuration())) +
+        {t('This query took %s seconds to run, ', Math.round(this.getQueryDuration())) +
           t('and the explore view times out at %s seconds ', this.props.timeout) +
           t('following this flow will most likely lead to your query timing out. ') +
           t('We recommend your summarize your data further before following that flow. ') +
-          t('If activated you can use the ')
-        }
+          t('If activated you can use the ')}
         <strong>CREATE TABLE AS </strong>
         {t('feature to store a summarized data set that you can then explore.')}
-      </Alert>);
+      </Alert>
+    );
   }
   renderInvalidColumnMessage() {
     const invalidColumns = this.getInvalidColumns();
@@ -150,15 +148,20 @@ class ExploreResultsButton extends React.PureComponent {
     return (
       <div>
         {t('Column name(s) ')}
-        <code><strong>{invalidColumns.join(', ')} </strong></code>
+        <code>
+          <strong>{invalidColumns.join(', ')} </strong>
+        </code>
         {t('cannot be used as a column name. Please use aliases (as in ')}
-        <code>SELECT count(*)
+        <code>
+          SELECT count(*)
           <strong>AS my_alias</strong>
         </code>){' '}
-        {t('limited to alphanumeric characters and underscores. Column aliases ending with ' +
-          'double underscores followed by a numeric value are not allowed for reasons ' +
-          'discussed in Github issue #5739.')}
-      </div>);
+        {t(`limited to alphanumeric characters and underscores. Column aliases ending with
+          double underscores followed by a numeric value are not allowed for reasons
+          discussed in Github issue #5739.
+          `)}
+      </div>
+    );
   }
   render() {
     return (
@@ -173,12 +176,9 @@ class ExploreResultsButton extends React.PureComponent {
             this.dialog = el;
           }}
         />
-        <InfoTooltipWithTrigger
-          icon="line-chart"
-          placement="top"
-          label="explore"
-        /> {t('Explore')}
-      </Button>);
+        <InfoTooltipWithTrigger icon="line-chart" placement="top" label="explore" /> {t('Explore')}
+      </Button>
+    );
   }
 }
 ExploreResultsButton.propTypes = propTypes;
@@ -198,4 +198,7 @@ function mapDispatchToProps(dispatch) {
 }
 
 export { ExploreResultsButton };
-export default connect(mapStateToProps, mapDispatchToProps)(ExploreResultsButton);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(ExploreResultsButton);
