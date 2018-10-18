@@ -4629,12 +4629,6 @@ fast-levenshtein@^2.0.6, fast-levenshtein@~2.0.4:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
 
-fastdom@^1.0.6:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/fastdom/-/fastdom-1.0.8.tgz#10f9d36998fd6efae30e529597d788e750c9febb"
-  dependencies:
-    strictdom "^1.0.1"
-
 fastparse@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/fastparse/-/fastparse-1.1.1.tgz#d1e2643b38a94d7583b479060e6c4affc94071f8"
@@ -9733,9 +9727,9 @@ react@^16.4.1:
     prop-types "^15.6.2"
     schedule "^0.3.0"
 
-reactable@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/reactable/-/reactable-1.1.0.tgz#2f84bb8b3808df8ac64694b539be416438db8498"
+reactable@1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/reactable/-/reactable-1.0.2.tgz#67a579fee3af68b991b5f04df921a4a40ece0b72"
 
 reactcss@^1.2.0:
   version "1.2.3"
@@ -11034,10 +11028,6 @@ stream-to@~0.2.0:
 strict-uri-encode@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/strict-uri-encode/-/strict-uri-encode-1.1.0.tgz#279b225df1d582b1f54e65addd4352e18faa0713"
-
-strictdom@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/strictdom/-/strictdom-1.0.1.tgz#189de91649f73d44d59b8432efa68ef9d2659460"
 
 string-hash@^1.1.3:
   version "1.1.3"
