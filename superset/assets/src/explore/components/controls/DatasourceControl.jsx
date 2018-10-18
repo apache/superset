@@ -43,7 +43,7 @@ class DatasourceControl extends React.PureComponent {
 
   onChange(vizType) {
     this.props.onChange(vizType);
-    this.setState(() => ({ showModal: false }));
+    this.setState({ showModal: false });
   }
 
   toggleShowDatasource() {

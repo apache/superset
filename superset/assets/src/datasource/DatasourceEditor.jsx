@@ -260,18 +260,18 @@ export class DatasourceEditor extends React.PureComponent {
   }
   syncMetadata() {
     const { datasource } = this.state;
-    this.setState(() => ({ metadataLoading: true }));
+    this.setState({ metadataLoading: true });
 
     SupersetClient.get({
       endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
     }).then(({ json }) => {
       this.mergeColumns(json);
       this.props.addSuccessToast(t('Metadata has been synced'));
-      this.setState(() => ({ metadataLoading: false }));
+      this.setState({ metadataLoading: false });
     }).catch((error) => {
       const msg = error.error || error.statusText || t('An error has occurred');
       this.props.addDangerToast(msg);
-      this.setState(() => ({ metadataLoading: false }));
+      this.setState({ metadataLoading: false });
     });
   }
 
