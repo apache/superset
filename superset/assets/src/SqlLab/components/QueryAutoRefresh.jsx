@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import * as Actions from '../actions';
+import { SupersetClient } from '@superset-ui/core';
 
-const $ = require('jquery');
+import * as Actions from '../actions';
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
@@ -19,16 +19,19 @@ class QueryAutoRefresh extends React.PureComponent {
   }
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
-    const { queries } = this.props;
+    const { queries, queriesLastUpdate } = this.props;
     const now = new Date().getTime();
-    return Object.values(queries)
-      .some(
+
+    return (
+      queriesLastUpdate > 0 &&
+      Object.values(queries).some(
         q => ['running', 'started', 'pending', 'fetching', 'rendering'].indexOf(q.state) >= 0 &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
-      );
+      )
+    );
   }
   startTimer() {
-    if (!(this.timer)) {
+    if (!this.timer) {
       this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
     }
   }
@@ -39,10 +42,11 @@ class QueryAutoRefresh extends React.PureComponent {
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
-      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
-      $.getJSON(url, (data) => {
-        if (Object.keys(data).length > 0) {
-          this.props.actions.refreshQueries(data);
+      SupersetClient.get({
+        endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
+      }).then(({ json }) => {
+        if (Object.keys(json).length > 0) {
+          this.props.actions.refreshQueries(json);
         }
       });
     }
@@ -70,4 +74,7 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(QueryAutoRefresh);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(QueryAutoRefresh);
