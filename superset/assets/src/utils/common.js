@@ -21,10 +21,6 @@ export function kmToPixels(kilometers, latitude, zoomLevel) {
   return d3.round(kilometers / kmPerPixel, 2);
 }
 
-export function isNumeric(num) {
-  return !isNaN(parseFloat(num)) && isFinite(num);
-}
-
 export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance
   return LUMINANCE_RED_WEIGHT * r + LUMINANCE_GREEN_WEIGHT * g + LUMINANCE_BLUE_WEIGHT * b;
