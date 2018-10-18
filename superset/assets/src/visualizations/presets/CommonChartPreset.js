@@ -5,11 +5,8 @@ import BigNumberChartPlugin from '../BigNumber/BigNumberChartPlugin';
 import BigNumberTotalChartPlugin from '../BigNumberTotal/BigNumberTotalChartPlugin';
 import BoxPlotChartPlugin from '../nvd3/BoxPlot/BoxPlotChartPlugin';
 import BubbleChartPlugin from '../nvd3/Bubble/BubbleChartPlugin';
-import CompareChartPlugin from '../nvd3/Compare/CompareChartPlugin';
 import DistBarChartPlugin from '../nvd3/DistBar/DistBarChartPlugin';
-import DualLineChartPlugin from '../nvd3/DualLine/DualLineChartPlugin';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import HeatmapChartPlugin from '../Heatmap/HeatmapChartPlugin';
 import HistogramChartPlugin from '../Histogram/HistogramChartPlugin';
 import LineChartPlugin from '../nvd3/Line/LineChartPlugin';
 import PieChartPlugin from '../nvd3/Pie/PieChartPlugin';
@@ -29,11 +26,8 @@ export default class CommonChartPreset extends Preset {
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
         new BubbleChartPlugin().configure({ key: 'bubble' }),
-        new CompareChartPlugin().configure({ key: 'compare' }),
         new DistBarChartPlugin().configure({ key: 'dist_bar' }),
-        new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
-        new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new LineChartPlugin().configure({ key: 'line' }),
         new PieChartPlugin().configure({ key: 'pie' }),
