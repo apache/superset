@@ -31,21 +31,23 @@ class AsyncSelect extends React.PureComponent {
       isLoading: false,
       options: [],
     };
+
+    this.onChange = this.onChange.bind(this);
   }
 
   componentDidMount() {
     this.fetchOptions();
   }
 
-  onChange(opt) {
-    this.props.onChange(opt);
+  onChange(option) {
+    this.props.onChange(option);
   }
 
   fetchOptions() {
     this.setState(() => ({ isLoading: true }));
     const { mutator, dataEndpoint } = this.props;
 
-    SupersetClient.get({ endpoint: dataEndpoint })
+    return SupersetClient.get({ endpoint: dataEndpoint })
       .then(({ json }) => {
         const options = mutator ? mutator(json) : json;
 
@@ -58,8 +60,8 @@ class AsyncSelect extends React.PureComponent {
           this.onChange(options[0]);
         }
       })
-      .catch((response) => {
-        this.props.onAsyncError(response.responseText);
+      .catch((error) => {
+        this.props.onAsyncError(error.error || error.statusText || error);
         this.setState(() => ({ isLoading: false }));
       });
   }
@@ -72,7 +74,7 @@ class AsyncSelect extends React.PureComponent {
           options={this.state.options}
           value={this.props.value}
           isLoading={this.state.isLoading}
-          onChange={this.onChange.bind(this)}
+          onChange={this.onChange}
           valueRenderer={this.props.valueRenderer}
           {...this.props}
         />

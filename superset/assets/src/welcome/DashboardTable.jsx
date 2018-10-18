@@ -65,6 +65,7 @@ class DashboardTable extends React.PureComponent {
         </Table>
       );
     }
+
     return <Loading />;
   }
 }
