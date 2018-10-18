@@ -4,7 +4,6 @@ import $ from 'jquery';
 import DeckGLContainer from '../DeckGLContainer';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
 import layerGenerators from '../layers';
-import createAdaptor from '../createAdaptor';
 
 const propTypes = {
   formData: PropTypes.object.isRequired,
@@ -84,4 +83,4 @@ class DeckMulti extends React.PureComponent {
 
 DeckMulti.propTypes = propTypes;
 
-export default createAdaptor(DeckMulti);
+export default DeckMulti;
