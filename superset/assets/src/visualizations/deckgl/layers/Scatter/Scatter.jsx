@@ -1,6 +1,5 @@
 import { ScatterplotLayer } from 'deck.gl';
 import { commonLayerProps } from '../common';
-import createAdaptor from '../../createAdaptor';
 import { createCategoricalDeckGLComponent } from '../../factory';
 import { unitToRadius } from '../../../../modules/geo';
 
@@ -33,4 +32,4 @@ export function getLayer(fd, payload, slice) {
   });
 }
 
-export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));
+export default createCategoricalDeckGLComponent(getLayer, getPoints);
