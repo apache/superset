@@ -1,7 +1,6 @@
 import { HexagonLayer } from 'deck.gl';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
-import createAdaptor from '../../createAdaptor';
 import { createDeckGLComponent } from '../../factory';
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
@@ -37,4 +36,4 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-export default createAdaptor(createDeckGLComponent(getLayer, getPoints));
+export default createDeckGLComponent(getLayer, getPoints);
