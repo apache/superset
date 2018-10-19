@@ -12,7 +12,7 @@ class SupersetClient {
       csrfToken = null,
     } = config;
 
-    this.headers = headers;
+    this.headers = { ...headers, 'X-CSRFToken': csrfToken };
     this.host = host;
     this.mode = mode;
     this.timeout = timeout;
