@@ -1,14 +1,12 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
-import { VIZ_TYPES } from '../../../visualizations';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -39,7 +37,7 @@ const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop => prop !== 'width' && prop !== 'height',
 );
-const OVERFLOWABLE_VIZ_TYPES = new Set([VIZ_TYPES.filter_box]);
+const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 
 class Chart extends React.Component {
   constructor(props) {
