@@ -1,139 +1,64 @@
-import ColorSchemeManager, {
-  getInstance,
-  getScheme,
-  getAllSchemes,
-  getDefaultSchemeName,
-  setDefaultSchemeName,
-  registerScheme,
-  registerMultipleSchemes,
-} from '../../../src/modules/ColorSchemeManager';
+import ColorSchemeManager from '../../../src/modules/colors/ColorSchemeManager';
+import CategoricalScheme from '../../../src/modules/colors/CategoricalScheme';
 
 describe('ColorSchemeManager', () => {
+  const manager = new ColorSchemeManager();
+  const SCHEME1 = new CategoricalScheme({
+    name: 'test',
+    colors: ['red', 'green', 'blue'],
+  });
+  const SCHEME2 = new CategoricalScheme({
+    name: 'test2',
+    colors: ['orange', 'yellow', 'pink'],
+  });
+  const SCHEME3 = new CategoricalScheme({
+    name: 'test3',
+    colors: ['cyan', 'magenta'],
+  });
+
   beforeEach(() => {
-    const m = getInstance();
-    m.clearScheme();
-    m.registerScheme('test', ['red', 'green', 'blue']);
-    m.registerScheme('test2', ['orange', 'yellow', 'pink']);
-    m.setDefaultSchemeName('test');
+    manager.clear();
+    manager.registerValue('test', SCHEME1);
+    manager.registerValue('test2', SCHEME2);
+    manager.setDefaultSchemeName('test');
   });
-  it('The class constructor cannot be accessed directly', () => {
-    expect(typeof ColorSchemeManager).not.toBe('Function');
-  });
-  describe('static getInstance()', () => {
-    it('returns a singleton instance', () => {
-      const m1 = getInstance();
-      const m2 = getInstance();
-      expect(m1).toBeDefined();
-      expect(m1).toBe(m2);
+  describe('.get()', () => {
+    it('.get() returns default color scheme', () => {
+      const scheme = manager.get();
+      expect(scheme).toEqual(SCHEME1);
     });
-  });
-  describe('.getScheme()', () => {
-    it('.getScheme() returns default color scheme', () => {
-      const scheme = getInstance().getScheme();
-      expect(scheme).toEqual(['red', 'green', 'blue']);
-    });
-    it('.getScheme(name) returns color scheme with specified name', () => {
-      const scheme = getInstance().getScheme('test2');
-      expect(scheme).toEqual(['orange', 'yellow', 'pink']);
-    });
-  });
-  describe('.getAllSchemes()', () => {
-    it('returns all registered schemes', () => {
-      const schemes = getInstance().getAllSchemes();
-      expect(schemes).toEqual({
-        test: ['red', 'green', 'blue'],
-        test2: ['orange', 'yellow', 'pink'],
-      });
+    it('.get(name) returns color scheme with specified name', () => {
+      const scheme = manager.get('test2');
+      expect(scheme).toEqual(SCHEME2);
     });
   });
   describe('.getDefaultSchemeName()', () => {
     it('returns default scheme name', () => {
-      const name = getInstance().getDefaultSchemeName();
+      const name = manager.getDefaultSchemeName();
       expect(name).toBe('test');
     });
   });
   describe('.setDefaultSchemeName()', () => {
     it('set default scheme name', () => {
-      getInstance().setDefaultSchemeName('test2');
-      const name = getInstance().getDefaultSchemeName();
+      manager.setDefaultSchemeName('test2');
+      const name = manager.getDefaultSchemeName();
       expect(name).toBe('test2');
-      getInstance().setDefaultSchemeName('test');
+      manager.setDefaultSchemeName('test');
     });
     it('returns the ColorSchemeManager instance', () => {
-      const instance = getInstance().setDefaultSchemeName('test');
-      expect(instance).toBe(getInstance());
+      const instance = manager.setDefaultSchemeName('test');
+      expect(instance).toBe(manager);
     });
   });
-  describe('.registerScheme(name, colors)', () => {
+  describe('.registerValue(name, colors)', () => {
     it('sets schemename and color', () => {
-      getInstance().registerScheme('test3', ['cyan', 'magenta']);
-      const scheme = getInstance().getScheme('test3');
-      expect(scheme).toEqual(['cyan', 'magenta']);
+      manager.registerValue('test3', SCHEME3);
+      const scheme = manager.get('test3');
+      expect(scheme).toEqual(SCHEME3);
     });
     it('returns the ColorSchemeManager instance', () => {
-      const instance = getInstance().registerScheme('test3', ['cyan', 'magenta']);
-      expect(instance).toBe(getInstance());
-    });
-  });
-  describe('.registerMultipleSchemes(object)', () => {
-    it('sets multiple schemes at once', () => {
-      getInstance().registerMultipleSchemes({
-        test4: ['cyan', 'magenta'],
-        test5: ['brown', 'purple'],
-      });
-      const scheme1 = getInstance().getScheme('test4');
-      expect(scheme1).toEqual(['cyan', 'magenta']);
-      const scheme2 = getInstance().getScheme('test5');
-      expect(scheme2).toEqual(['brown', 'purple']);
-    });
-    it('returns the ColorSchemeManager instance', () => {
-      const instance = getInstance().registerMultipleSchemes({
-        test4: ['cyan', 'magenta'],
-        test5: ['brown', 'purple'],
-      });
-      expect(instance).toBe(getInstance());
-    });
-  });
-  describe('static getScheme()', () => {
-    it('is equivalent to getInstance().getScheme()', () => {
-      expect(getInstance().getScheme()).toBe(getScheme());
-    });
-  });
-  describe('static getAllSchemes()', () => {
-    it('is equivalent to getInstance().getAllSchemes()', () => {
-      expect(getInstance().getAllSchemes()).toBe(getAllSchemes());
-    });
-  });
-  describe('static getDefaultSchemeName()', () => {
-    it('is equivalent to getInstance().getDefaultSchemeName()', () => {
-      expect(getInstance().getDefaultSchemeName()).toBe(getDefaultSchemeName());
-    });
-  });
-  describe('static setDefaultSchemeName()', () => {
-    it('is equivalent to getInstance().setDefaultSchemeName()', () => {
-      setDefaultSchemeName('test2');
-      const name = getInstance().getDefaultSchemeName();
-      expect(name).toBe('test2');
-      setDefaultSchemeName('test');
-    });
-  });
-  describe('static registerScheme()', () => {
-    it('is equivalent to getInstance().registerScheme()', () => {
-      registerScheme('test3', ['cyan', 'magenta']);
-      const scheme = getInstance().getScheme('test3');
-      expect(scheme).toEqual(['cyan', 'magenta']);
-    });
-  });
-  describe('static registerMultipleSchemes()', () => {
-    it('is equivalent to getInstance().registerMultipleSchemes()', () => {
-      registerMultipleSchemes({
-        test4: ['cyan', 'magenta'],
-        test5: ['brown', 'purple'],
-      });
-      const scheme1 = getInstance().getScheme('test4');
-      expect(scheme1).toEqual(['cyan', 'magenta']);
-      const scheme2 = getInstance().getScheme('test5');
-      expect(scheme2).toEqual(['brown', 'purple']);
+      const instance = manager.registerValue('test3', SCHEME3);
+      expect(instance).toBe(manager);
     });
   });
 });

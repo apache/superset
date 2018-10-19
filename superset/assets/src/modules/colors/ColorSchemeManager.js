@@ -1,22 +1,6 @@
-class ColorSchemeManager {
-  constructor() {
-    this.schemes = {};
-    this.defaultSchemeName = undefined;
-  }
+import Registry from '../Registry';
 
-  clearScheme() {
-    this.schemes = {};
-    return this;
-  }
-
-  getScheme(schemeName) {
-    return this.schemes[schemeName || this.defaultSchemeName];
-  }
-
-  getAllSchemes() {
-    return this.schemes;
-  }
-
+class ColorSchemeManager extends Registry {
   getDefaultSchemeName() {
     return this.defaultSchemeName;
   }
@@ -26,8 +10,12 @@ class ColorSchemeManager {
     return this;
   }
 
-  registerScheme(schemeName, colors) {
-    this.schemes[schemeName] = colors;
+  get(schemeName) {
+    return super.get(schemeName || this.defaultSchemeName);
+  }
+
+  registerValue(schemeName, colors) {
+    super.registerValue(schemeName, colors);
     // If there is no default, set as default
     if (!this.defaultSchemeName) {
       this.defaultSchemeName = schemeName;
@@ -35,54 +23,14 @@ class ColorSchemeManager {
     return this;
   }
 
-  registerMultipleSchemes(multipleSchemes) {
-    Object.assign(this.schemes, multipleSchemes);
-    // If there is no default, set the first scheme as default
-    const keys = Object.keys(multipleSchemes);
-    if (!this.defaultSchemeName && keys.length > 0) {
-      this.defaultSchemeName = keys[0];
+  registerLoader(schemeName, loader) {
+    super.registerLoader(schemeName, loader);
+    // If there is no default, set as default
+    if (!this.defaultSchemeName) {
+      this.defaultSchemeName = schemeName;
     }
     return this;
   }
 }
 
 export default ColorSchemeManager;
-
-// let singleton;
-
-// export function getInstance() {
-//   if (!singleton) {
-//     singleton = new ColorSchemeManager();
-//   }
-//   return singleton;
-// }
-
-// const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
-//   .filter(fn => fn !== 'constructor')
-//   .reduce((all, fn) => {
-//     const functions = all;
-//     functions[fn] = function (...args) {
-//       return getInstance()[fn](...args);
-//     };
-//     return functions;
-//   }, { getInstance });
-
-// const {
-//   clearScheme,
-//   getScheme,
-//   getAllSchemes,
-//   getDefaultSchemeName,
-//   setDefaultSchemeName,
-//   registerScheme,
-//   registerMultipleSchemes,
-// } = staticFunctions;
-
-// export {
-//   clearScheme,
-//   getScheme,
-//   getAllSchemes,
-//   getDefaultSchemeName,
-//   setDefaultSchemeName,
-//   registerScheme,
-//   registerMultipleSchemes,
-// };
