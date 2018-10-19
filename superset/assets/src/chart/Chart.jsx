@@ -38,6 +38,7 @@ const propTypes = {
 const defaultProps = {
   addFilter: () => ({}),
   getFilters: () => ({}),
+  setControlValue() {},
 };
 
 class Chart extends React.PureComponent {
@@ -168,7 +169,7 @@ class Chart extends React.PureComponent {
 
         {!isLoading && !chartAlert && (
           <SuperChart
-            className={`slice_container ${isFaded ? ' faded' : ''}`}
+            className={`slice_container ${vizType} ${isFaded ? ' faded' : ''}`}
             chartType={vizType}
             chartProps={this.prepareChartProps()}
             onRenderSuccess={() => {
