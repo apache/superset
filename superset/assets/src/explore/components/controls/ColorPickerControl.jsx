@@ -54,9 +54,9 @@ export default class ColorPickerControl extends React.Component {
   }
   renderPopover() {
     const presetColors = getCategoricalSchemeRegistry()
-      .entries()
-      .filter((s, i) => i < 7)
-      .map(scheme => scheme.value.colors);
+      .get()
+      .colors
+      .filter((s, i) => i < 7);
     return (
       <Popover id="filter-popover" className="color-popover">
         <SketchPicker
