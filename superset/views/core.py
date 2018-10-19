@@ -212,7 +212,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'A timeout of 0 indicates that the cache never expires.<br/>'
             '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
             'of schemas that CSVs are allowed to upload to. '
-            'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
+            'Specify it as **"schemas_allowed_for_csv_upload": ["public", "csv_upload"]**. '
             'If database flavor does not support schema or any schema is allowed '
             'to be accessed, just leave the list empty', True),
         'impersonate_user': _(
