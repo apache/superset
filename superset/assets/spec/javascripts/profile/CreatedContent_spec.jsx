@@ -1,25 +1,28 @@
 import React from 'react';
-import { mount } from 'enzyme';
+import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+
 import { user } from './fixtures';
 import CreatedContent from '../../../src/profile/components/CreatedContent';
 import TableLoader from '../../../src/components/TableLoader';
 
+// store needed for withToasts(TableLoader)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('CreatedContent', () => {
   const mockedProps = {
     user,
   };
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<CreatedContent {...mockedProps} />),
-    ).toBe(true);
-  });
+
   it('renders 2 TableLoader', () => {
-    const wrapper = mount(<CreatedContent {...mockedProps} />);
+    const wrapper = shallow(<CreatedContent {...mockedProps} />, { context: { store } });
     expect(wrapper.find(TableLoader)).toHaveLength(2);
   });
+
   it('renders 2 titles', () => {
-    const wrapper = mount(<CreatedContent {...mockedProps} />);
+    const wrapper = shallow(<CreatedContent {...mockedProps} />, { context: { store } });
     expect(wrapper.find('h3')).toHaveLength(2);
   });
 });

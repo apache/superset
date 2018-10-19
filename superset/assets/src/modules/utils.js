@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 import d3 from 'd3';
 import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
 import { formatDate, UTC } from './dates';
 
 const siFormatter = d3.format('.3s');
@@ -119,13 +120,15 @@ function showApiMessage(resp) {
 }
 
 export function toggleCheckbox(apiUrlPrefix, selector) {
-  const apiUrl = apiUrlPrefix + $(selector)[0].checked;
-  $.get(apiUrl).fail(function (xhr) {
-    const resp = xhr.responseJSON;
-    if (resp && resp.message) {
-      showApiMessage(resp);
-    }
-  });
+  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
+    .then(() => {})
+    .catch((response) => {
+      // @TODO utility function to read this
+      const resp = response.responseJSON;
+      if (resp && resp.message) {
+        showApiMessage(resp);
+      }
+    });
 }
 
 /**
