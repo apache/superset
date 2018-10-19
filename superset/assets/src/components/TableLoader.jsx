@@ -1,7 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td } from 'reactable';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
+
+import withToasts from '../messageToasts/enhancers/withToasts';
+import { t } from '../locales';
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
@@ -9,9 +12,10 @@ const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
   mutator: PropTypes.func,
   columns: PropTypes.arrayOf(PropTypes.string),
+  addDangerToast: PropTypes.func.isRequired,
 };
 
-export default class TableLoader extends React.PureComponent {
+class TableLoader extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -19,20 +23,34 @@ export default class TableLoader extends React.PureComponent {
       data: [],
     };
   }
+
   componentWillMount() {
-    $.get(this.props.dataEndpoint, (data) => {
-      let actualData = data;
-      if (this.props.mutator) {
-        actualData = this.props.mutator(data);
-      }
-      this.setState({ data: actualData, isLoading: false });
-    });
+    const { dataEndpoint, mutator } = this.props;
+
+    SupersetClient.get({ endpoint: dataEndpoint })
+      .then(({ json }) => {
+        const data = mutator ? mutator(json) : json;
+        this.setState({ data, isLoading: false });
+      })
+      .catch(() => {
+        this.setState({ isLoading: false });
+        this.props.addDangerToast(t('An error occurred'));
+      });
   }
+
   render() {
     if (this.state.isLoading) {
       return <Loading />;
     }
-    const tableProps = Object.assign({}, this.props);
+
+    const {
+      addDangerToast,
+      addInfoToast,
+      addSuccessToast,
+      addWarningToast,
+      ...tableProps
+    } = this.props;
+
     let { columns } = this.props;
     if (!columns && this.state.data.length > 0) {
       columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
@@ -70,4 +88,7 @@ export default class TableLoader extends React.PureComponent {
     );
   }
 }
+
 TableLoader.propTypes = propTypes;
+
+export default withToasts(TableLoader);
