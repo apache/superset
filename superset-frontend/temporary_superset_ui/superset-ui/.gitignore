@@ -12,6 +12,7 @@
 *.map
 *.min.js
 
+babel.config.js
 build/
 coverage/
 esm/

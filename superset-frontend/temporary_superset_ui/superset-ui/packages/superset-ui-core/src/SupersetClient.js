@@ -9,6 +9,7 @@ class SupersetClient {
       mode = 'same-origin',
       timeout,
       credentials,
+      csrfToken = null,
     } = config;
 
     this.headers = headers;
@@ -17,16 +18,20 @@ class SupersetClient {
     this.timeout = timeout;
     this.protocol = `${protocol}${protocol.slice(-1) === ':' ? '' : ':'}`;
     this.credentials = credentials;
-    this.csrfToken = null;
-    this.didAuthSuccessfully = false;
-    this.csrfPromise = null;
+    this.csrfToken = csrfToken;
+    this.csrfPromise = this.isAuthenticated() ? Promise.resolve(this.csrfToken) : null;
   }
 
   isAuthenticated() {
-    return this.didAuthSuccessfully;
+    // if CSRF protection is disabled in the Superset app, the token may be an empty string
+    return this.csrfToken !== null && this.csrfToken !== undefined;
   }
 
-  init() {
+  init(force = false) {
+    if (this.isAuthenticated() && !force) {
+      return this.csrfPromise;
+    }
+
     return this.getCSRFToken();
   }
 
@@ -48,14 +53,13 @@ class SupersetClient {
       if (response.json) {
         this.csrfToken = response.json.csrf_token;
         this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
-        this.didAuthSuccessfully = this.csrfToken !== null && this.csrfPromise !== undefined;
       }
 
-      if (!this.didAuthSuccessfully) {
+      if (!this.isAuthenticated()) {
         return Promise.reject({ error: 'Failed to fetch CSRF token' });
       }
 
-      return response;
+      return this.csrfToken;
     });
 
     return this.csrfPromise;
@@ -140,10 +144,10 @@ const PublicAPI = {
     return singletonClient;
   },
   get: (...args) => hasInstance() && singletonClient.get(...args),
-  init: () => hasInstance() && singletonClient.init(),
+  init: force => hasInstance() && singletonClient.init(force),
   isAuthenticated: () => hasInstance() && singletonClient.isAuthenticated(),
   post: (...args) => hasInstance() && singletonClient.post(...args),
-  reAuthenticate: () => hasInstance() && singletonClient.getCSRFToken(),
+  reAuthenticate: () => hasInstance() && singletonClient.init(/* force = */ true),
   reset: () => {
     singletonClient = null;
   },

@@ -51,7 +51,10 @@ describe('SupersetClient', () => {
       const csrfSpy = jest.spyOn(SupersetClient.prototype, 'getCSRFToken');
 
       PublicAPI.configure({});
+      expect(authenticatedSpy).toHaveBeenCalledTimes(1);
+
       PublicAPI.init();
+      expect(initSpy).toHaveBeenCalledTimes(1);
       expect(csrfSpy).toHaveBeenCalledTimes(1);
 
       PublicAPI.get({ url: mockGetUrl });
@@ -59,10 +62,9 @@ describe('SupersetClient', () => {
       PublicAPI.isAuthenticated();
       PublicAPI.reAuthenticate({});
 
-      expect(initSpy).toHaveBeenCalledTimes(1);
+      expect(initSpy).toHaveBeenCalledTimes(2);
       expect(getSpy).toHaveBeenCalledTimes(1);
       expect(postSpy).toHaveBeenCalledTimes(1);
-      expect(authenticatedSpy).toHaveBeenCalledTimes(1);
       expect(csrfSpy).toHaveBeenCalledTimes(2); // from init() + reAuthenticate()
 
       initSpy.mockRestore();
@@ -79,7 +81,7 @@ describe('SupersetClient', () => {
     describe('CSRF', () => {
       afterEach(fetchMock.reset);
 
-      it('calls superset/csrf_token/ upon initialization', () => {
+      it('calls superset/csrf_token/ when init() is called if no CSRF token is passed', () => {
         expect.assertions(1);
         const client = new SupersetClient({});
 
@@ -87,6 +89,35 @@ describe('SupersetClient', () => {
           expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
 
           return Promise.resolve();
+        });
+      });
+
+      it('does NOT call superset/csrf_token/ when init() is called if a CSRF token is passed', () => {
+        expect.assertions(1);
+        const client = new SupersetClient({ csrfToken: 'abc' });
+
+        return client.init().then(() => {
+          expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
+
+          return Promise.resolve();
+        });
+      });
+
+      it('calls superset/csrf_token/ when init(force=true) is called even if a CSRF token is passed', () => {
+        expect.assertions(4);
+        const initialToken = 'inital_token';
+        const client = new SupersetClient({ csrfToken: initialToken });
+
+        return client.init().then(() => {
+          expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
+          expect(client.csrfToken).toBe(initialToken);
+
+          return client.init(true).then(() => {
+            expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
+            expect(client.csrfToken).not.toBe(initialToken);
+
+            return Promise.resolve();
+          });
         });
       });
 
@@ -100,6 +131,15 @@ describe('SupersetClient', () => {
 
           return Promise.resolve();
         });
+      });
+
+      it('isAuthenticated() returns true if a token is passed at configuration', () => {
+        expect.assertions(2);
+        const clientWithoutToken = new SupersetClient({ csrfToken: null });
+        const clientWithToken = new SupersetClient({ csrfToken: 'token' });
+
+        expect(clientWithoutToken.isAuthenticated()).toBe(false);
+        expect(clientWithToken.isAuthenticated()).toBe(true);
       });
 
       it('init() throws if superset/csrf_token/ returns an error', () => {
@@ -120,7 +160,7 @@ describe('SupersetClient', () => {
             // reset
             fetchMock.get(
               LOGIN_GLOB,
-              { csrf_token: 1234 },
+              { csrf_token: '1234' },
               {
                 overwriteRoutes: true,
               },
@@ -167,7 +207,7 @@ describe('SupersetClient', () => {
           .then(throwIfCalled)
           .catch(error => {
             expect(error).toEqual(expect.objectContaining({ error: expect.any(String) }));
-            expect(client.didAuthSuccessfully).toBe(false);
+            expect(client.isAuthenticated()).toBe(false);
 
             return Promise.resolve();
           });
@@ -183,7 +223,7 @@ describe('SupersetClient', () => {
             .ensureAuth()
             .then(throwIfCalled)
             .catch(() => {
-              expect(client.didAuthSuccessfully).toBe(true);
+              expect(client.isAuthenticated()).toBe(true);
 
               return Promise.resolve();
             }),
@@ -211,7 +251,7 @@ describe('SupersetClient', () => {
               .then(throwIfCalled)
               .catch(error2 => {
                 expect(error2).toEqual(expect.objectContaining(rejectValue));
-                expect(client.didAuthSuccessfully).toBe(false);
+                expect(client.isAuthenticated()).toBe(false);
 
                 // reset
                 fetchMock.get(
