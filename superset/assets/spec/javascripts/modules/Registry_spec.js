@@ -17,6 +17,20 @@ describe('Registry', () => {
     });
   });
 
+  describe('.clear()', () => {
+    it('clears all registered items', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'testValue');
+      registry.clear();
+      expect(Object.keys(registry.items)).toHaveLength(0);
+      expect(Object.keys(registry.promises)).toHaveLength(0);
+    });
+    it('returns the registry itself', () => {
+      const registry = new Registry();
+      expect(registry.clear()).toBe(registry);
+    });
+  });
+
   describe('.has(key)', () => {
     it('returns true if an item with the given key exists', () => {
       const registry = new Registry();
@@ -132,6 +146,34 @@ describe('Registry', () => {
         return Promise.all([promise1, promise2]);
       },
     );
+  });
+
+  describe('.getMap()', () => {
+    it('returns key-value map as plain object', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'cat');
+      registry.registerLoader('b', () => 'dog');
+      expect(registry.getMap()).toEqual({
+        a: 'cat',
+        b: 'dog',
+      });
+    });
+  });
+
+  describe('.getMapAsPromise()', () => {
+    it('returns a promise of key-value map', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      registry.registerLoader('c', () => Promise.resolve('test3'));
+      return registry.getMapAsPromise().then((map) => {
+        expect(map).toEqual({
+          a: 'test1',
+          b: 'test2',
+          c: 'test3',
+        });
+      });
+    });
   });
 
   describe('.keys()', () => {

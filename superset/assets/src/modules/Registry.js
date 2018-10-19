@@ -51,7 +51,21 @@ export default class Registry {
   }
 
   getMap() {
-    return { ...this.items };
+    return this.keys().reduce((prev, key) => {
+      const map = prev;
+      map[key] = this.get(key);
+      return map;
+    }, {});
+  }
+
+  getMapAsPromise() {
+    const keys = this.keys();
+    return Promise.all(keys.map(key => this.getAsPromise(key)))
+      .then(values => values.reduce((prev, value, i) => {
+        const map = prev;
+        map[keys[i]] = value;
+        return map;
+      }, {}));
   }
 
   keys() {
