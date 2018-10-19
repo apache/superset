@@ -15,7 +15,7 @@ class CategoricalColorNamespace {
       return scale;
     }
     const newScale = new CategoricalColorScale(
-      getCategoricalSchemeRegistry().getScheme(name).colors,
+      getCategoricalSchemeRegistry().get(name).colors,
       this.forcedItems,
     );
     this.scales[name] = newScale;

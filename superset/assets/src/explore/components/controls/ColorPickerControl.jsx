@@ -53,14 +53,19 @@ export default class ColorPickerControl extends React.Component {
     this.props.onChange(col.rgb);
   }
   renderPopover() {
+    const presetColors = getCategoricalSchemeRegistry()
+      .entries()
+      .filter((s, i) => i < 7)
+      .map(scheme => scheme.colors);
     return (
       <Popover id="filter-popover" className="color-popover">
         <SketchPicker
           color={this.props.value}
           onChange={this.onChange}
-          presetColors={getCategoricalSchemeRegistry().getScheme().filter((s, i) => i < 7)}
+          presetColors={presetColors}
         />
-      </Popover>);
+      </Popover>
+    );
   }
   render() {
     const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };

@@ -11,13 +11,13 @@ export default function setupColors() {
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   [airbnb, d3, google, lyft].forEach((group) => {
     group.forEach((scheme) => {
-      categoricalSchemeRegistry.registerScheme(scheme.name, scheme);
+      categoricalSchemeRegistry.registerValue(scheme.name, scheme);
     });
   });
   categoricalSchemeRegistry.setDefaultSchemeName('bnbColors');
 
   const sequentialSchemeRegistry = getSequentialSchemeRegistry();
   sequentialCommon.forEach((scheme) => {
-    sequentialSchemeRegistry.registerScheme(scheme.name, scheme);
+    sequentialSchemeRegistry.registerValue(scheme.name, scheme);
   });
 }

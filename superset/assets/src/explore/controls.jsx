@@ -377,7 +377,7 @@ export const controls = {
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: sequentialSchemes,
+    schemes: () => sequentialSchemeRegistry.getMap(),
     isLinear: true,
   },
 
@@ -1970,7 +1970,7 @@ export const controls = {
     renderTrigger: true,
     choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
-    schemes: () => categoricalSchemeRegistry.items,
+    schemes: () => categoricalSchemeRegistry.getMap(),
   },
 
   significance_level: {

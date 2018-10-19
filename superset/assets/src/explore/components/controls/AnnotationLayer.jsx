@@ -484,7 +484,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderDisplayConfiguration() {
     const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
-    const colorScheme = [...getCategoricalSchemeRegistry().getScheme(this.props.colorScheme)];
+    const colorScheme = [...getCategoricalSchemeRegistry().get(this.props.colorScheme)];
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
