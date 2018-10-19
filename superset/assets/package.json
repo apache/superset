@@ -51,7 +51,7 @@
     "@data-ui/sparkline": "^0.0.54",
     "@data-ui/theme": "^0.0.62",
     "@data-ui/xy-chart": "^0.0.61",
-    "@superset-ui/core": "^0.0.5",
+    "@superset-ui/core": "^0.0.7",
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",
     "@vx/scale": "^0.0.165",
