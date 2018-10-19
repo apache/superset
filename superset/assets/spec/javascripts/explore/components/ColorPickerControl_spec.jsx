@@ -7,7 +7,7 @@ import { SketchPicker } from 'react-color';
 import ColorPickerControl from
   '../../../../src/explore/components/controls/ColorPickerControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
-import { registerScheme } from '../../../../src/modules/ColorSchemeManager';
+import { registerScheme } from '../../../../src/modules/ColorSchemeRegistry';
 
 const defaultProps = {
   value: { },

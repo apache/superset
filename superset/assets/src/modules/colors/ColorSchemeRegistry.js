@@ -1,6 +1,6 @@
 import Registry from '../Registry';
 
-class ColorSchemeManager extends Registry {
+class ColorSchemeRegistry extends Registry {
   getDefaultSchemeName() {
     return this.defaultSchemeName;
   }
@@ -33,4 +33,4 @@ class ColorSchemeManager extends Registry {
   }
 }
 
-export default ColorSchemeManager;
+export default ColorSchemeRegistry;

@@ -50,8 +50,11 @@ import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
-import { getAllSchemes } from '../modules/ColorSchemeManager';
-import sequentialSchemes from '../modules/colorSchemes/sequential';
+import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
+import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
+
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -1965,9 +1968,9 @@ export const controls = {
     label: t('Color Scheme'),
     default: 'bnbColors',
     renderTrigger: true,
-    choices: () => Object.keys(getAllSchemes()).map(s => ([s, s])),
+    choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
-    schemes: () => getAllSchemes(),
+    schemes: () => categoricalSchemeRegistry.items,
   },
 
   significance_level: {

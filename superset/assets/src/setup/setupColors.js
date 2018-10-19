@@ -3,21 +3,21 @@ import d3 from '../modules/colors/colorSchemes/categorical/d3';
 import google from '../modules/colors/colorSchemes/categorical/google';
 import lyft from '../modules/colors/colorSchemes/categorical/lyft';
 import sequentialCommon from '../modules/colors/colorSchemes/sequential/common';
-import getCategoricalSchemeManager from '../modules/colors/CategoricalSchemeManagerSingleton';
-import getSequentialSchemeManager from '../modules/colors/SequentialSchemeManagerSingleton';
+import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
+import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
 export default function setupColors() {
   // Register color schemes
-  const categoricalSchemeManager = getCategoricalSchemeManager();
+  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   [airbnb, d3, google, lyft].forEach((group) => {
     group.forEach((scheme) => {
-      categoricalSchemeManager.registerScheme(scheme.name, scheme);
+      categoricalSchemeRegistry.registerScheme(scheme.name, scheme);
     });
   });
-  categoricalSchemeManager.setDefaultSchemeName('bnbColors');
+  categoricalSchemeRegistry.setDefaultSchemeName('bnbColors');
 
-  const sequentialSchemeManager = getSequentialSchemeManager();
+  const sequentialSchemeRegistry = getSequentialSchemeRegistry();
   sequentialCommon.forEach((scheme) => {
-    sequentialSchemeManager.registerScheme(scheme.name, scheme);
+    sequentialSchemeRegistry.registerScheme(scheme.name, scheme);
   });
 }

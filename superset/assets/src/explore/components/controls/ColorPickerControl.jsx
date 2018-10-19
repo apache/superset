@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 import ControlHeader from '../ControlHeader';
-import getCategoricalSchemeManager from '../../../modules/colors/CategoricalSchemeManagerSingleton';
+import getCategoricalSchemeRegistry from '../../../modules/colors/CategoricalSchemeRegistrySingleton';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -58,7 +58,7 @@ export default class ColorPickerControl extends React.Component {
         <SketchPicker
           color={this.props.value}
           onChange={this.onChange}
-          presetColors={getCategoricalSchemeManager().getScheme().filter((s, i) => i < 7)}
+          presetColors={getCategoricalSchemeRegistry().getScheme().filter((s, i) => i < 7)}
         />
       </Popover>);
   }

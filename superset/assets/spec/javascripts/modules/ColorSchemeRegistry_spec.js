@@ -1,8 +1,8 @@
-import ColorSchemeManager from '../../../src/modules/colors/ColorSchemeManager';
+import ColorSchemeRegistry from '../../../src/modules/colors/ColorSchemeRegistry';
 import CategoricalScheme from '../../../src/modules/colors/CategoricalScheme';
 
-describe('ColorSchemeManager', () => {
-  const manager = new ColorSchemeManager();
+describe('ColorSchemeRegistry', () => {
+  const manager = new ColorSchemeRegistry();
   const SCHEME1 = new CategoricalScheme({
     name: 'test',
     colors: ['red', 'green', 'blue'],
@@ -45,7 +45,7 @@ describe('ColorSchemeManager', () => {
       expect(name).toBe('test2');
       manager.setDefaultSchemeName('test');
     });
-    it('returns the ColorSchemeManager instance', () => {
+    it('returns the ColorSchemeRegistry instance', () => {
       const instance = manager.setDefaultSchemeName('test');
       expect(instance).toBe(manager);
     });
@@ -56,7 +56,7 @@ describe('ColorSchemeManager', () => {
       const scheme = manager.get('test3');
       expect(scheme).toEqual(SCHEME3);
     });
-    it('returns the ColorSchemeManager instance', () => {
+    it('returns the ColorSchemeRegistry instance', () => {
       const instance = manager.registerValue('test3', SCHEME3);
       expect(instance).toBe(manager);
     });

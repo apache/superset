@@ -3,8 +3,8 @@ import CategoricalColorNamespace, {
   getScale,
   getColor,
   DEFAULT_NAMESPACE,
-} from '../../../src/modules/CategoricalColorNamespace';
-import { registerScheme } from '../../../src/modules/ColorSchemeManager';
+} from '../../../src/modules/colors/CategoricalColorNamespace';
+import { registerScheme } from '../../../src/modules/colors/ColorSchemeRegistry';
 
 describe('CategoricalColorNamespace', () => {
   beforeAll(() => {
