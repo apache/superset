@@ -42,7 +42,15 @@ class TableLoader extends React.PureComponent {
     if (this.state.isLoading) {
       return <Loading />;
     }
-    const tableProps = Object.assign({}, this.props);
+
+    const {
+      addDangerToast,
+      addInfoToast,
+      addSuccessToast,
+      addWarningToast,
+      ...tableProps
+    } = this.props;
+
     let { columns } = this.props;
     if (!columns && this.state.data.length > 0) {
       columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
