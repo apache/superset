@@ -54,28 +54,6 @@ export function getSupportedSourceTypes(annotationType) {
   return SUPPORTED_SOURCE_TYPE_MAP[annotationType] || [];
 }
 
-// Map from viz type to supported annotation
-const SUPPORTED_ANNOTATIONS = {
-  [VIZ_TYPES.line]: [
-    ANNOTATION_TYPES.TIME_SERIES,
-    ANNOTATION_TYPES.INTERVAL,
-    ANNOTATION_TYPES.EVENT,
-    ANNOTATION_TYPES.FORMULA,
-  ],
-  [VIZ_TYPES.bar]: [
-    ANNOTATION_TYPES.INTERVAL,
-    ANNOTATION_TYPES.EVENT,
-  ],
-  [VIZ_TYPES.area]: [
-    ANNOTATION_TYPES.INTERVAL,
-    ANNOTATION_TYPES.EVENT,
-  ],
-};
-
-export function getSupportedAnnotationTypes(vizType) {
-  return SUPPORTED_ANNOTATIONS[vizType] || [];
-}
-
 const NATIVE_COLUMN_NAMES = {
   timeColumn: 'start_dttm',
   intervalEndColumn: 'end_dttm',

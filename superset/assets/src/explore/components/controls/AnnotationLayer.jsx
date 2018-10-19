@@ -23,6 +23,7 @@ import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
 import vizTypes from '../../visTypes';
+import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
 
 import { t } from '../../../locales';
 import getCategoricalSchemeRegistry from '../../../modules/colors/CategoricalSchemeRegistrySingleton';
@@ -580,6 +581,11 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
+    const metadata = getChartMetadataRegistry().get(this.props.vizType);
+    const supportedAnnotationTypes = metadata
+      ? metadata.supportedAnnotationTypes
+      : [];
+
     return (
       <div>
         {this.props.error && <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>}
@@ -610,7 +616,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 description={t('Choose the Annotation Layer Type')}
                 label={t('Annotation Layer Type')}
                 name="annotation-layer-type"
-                options={getSupportedAnnotationTypes(this.props.vizType).map(x => ({
+                options={supportedAnnotationTypes.map(x => ({
                   value: x,
                   label: getAnnotationTypeLabel(x),
                 }))}
