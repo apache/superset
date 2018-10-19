@@ -20,7 +20,6 @@
     "lint:fix": "yarn run prettier --write && yarn run eslint --fix",
     "test": "yarn run jest",
     "prettier": "beemo prettier \"./{src,test}/**/*.{js,jsx,json,md}\"",
-    "sync:gitignore": "beemo sync-dotfiles --filter=gitignore",
     "prepublish": "yarn run build"
   },
   "repository": {
@@ -40,12 +39,12 @@
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.14",
+    "@data-ui/build-config": "^0.0.23",
     "fetch-mock": "^6.5.2",
     "node-fetch": "^2.2.0"
   },
   "dependencies": {
-    "babel-runtime": "^6.26.0",
+    "@babel/runtime": "^7.1.2",
     "whatwg-fetch": "^2.0.4"
   },
   "beemo": {
@@ -65,7 +64,6 @@
       "rules": {
         "prefer-promise-reject-errors": "off"
       }
-    },
-    "jest": {}
+    }
   }
 }
