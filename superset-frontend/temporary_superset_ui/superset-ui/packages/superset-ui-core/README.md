@@ -14,9 +14,11 @@ for use within the Superset application, or used to issue `CORS` requests in oth
 a high-level it supports:
 
 - `CSRF` token authentication
-  - queues requests in the case that another request is made before the token is received
-  - it checks for a token before every request, an external app that uses this can detect this by
-    catching errors, or explicitly checking `SupersetClient.isAuthorized()`
+  - a token may be passed at configuration time, else the client will handle fetching and passing
+    the token in all subsequent requests.
+  - queues requests in the case that another request is made before the token is received.
+  - it checks for a token before every request, and will fail if no token was received or if it has
+    expired. In either case the user should be directed to re-authenticate.
 - supports `GET` and `POST` requests (no `PUT` or `DELETE`)
 - timeouts
 - query aborts through the `AbortController` API
@@ -46,12 +48,14 @@ SupersetClient.post(...requestConfig)
 The following flags can be passed in the client config call
 `SupersetClient.configure(...clientConfig);`
 
-- `protocol = 'http'`
+- `protocol = 'http:'`
 - `host`
 - `headers`
 - `credentials = 'same-origin'` (set to `include` for non-Superset apps)
 - `mode = 'same-origin'` (set to `cors` for non-Superset apps)
 - `timeout`
+- `csrfToken` you can configure the client with a CSRF token at configuration time, else the client
+  will attempt to fetch this before any other requests are issued
 
 ##### Per-request Configuration
 
