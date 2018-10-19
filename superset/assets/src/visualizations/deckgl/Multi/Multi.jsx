@@ -71,7 +71,7 @@ class DeckMulti extends React.PureComponent {
     const { payload, viewport, formData, setControlValue } = this.props;
     const { subSlicesLayers } = this.state;
 
-    const layers = Object.keys(subSlicesLayers).map(k => subSlicesLayers[k]);
+    const layers = Object.values(subSlicesLayers);
 
     return (
       <DeckGLContainer
