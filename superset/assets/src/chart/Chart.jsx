@@ -1,6 +1,7 @@
 import dompurify from 'dompurify';
-import React from 'react';
+import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
+import React from 'react';
 import { Tooltip } from 'react-bootstrap';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
@@ -169,7 +170,7 @@ class Chart extends React.PureComponent {
 
         {!isLoading && !chartAlert && (
           <SuperChart
-            className={`slice_container ${vizType} ${isFaded ? ' faded' : ''}`}
+            className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
             chartType={vizType}
             chartProps={this.prepareChartProps()}
             onRenderSuccess={() => {
