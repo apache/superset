@@ -185,6 +185,34 @@ describe('Registry', () => {
     });
   });
 
+  describe('.values()', () => {
+    it('returns an array of values', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      expect(registry.values()).toEqual([
+        'test1',
+        'test2',
+      ]);
+    });
+  });
+
+  describe('.valuesAsPromise()', () => {
+    it('returns a Promise of an array { key, value }', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      registry.registerLoader('c', () => Promise.resolve('test3'));
+      return registry.valuesAsPromise().then((entries) => {
+        expect(entries).toEqual([
+          'test1',
+          'test2',
+          'test3',
+        ]);
+      });
+    });
+  });
+
   describe('.entries()', () => {
     it('returns an array of { key, value }', () => {
       const registry = new Registry();

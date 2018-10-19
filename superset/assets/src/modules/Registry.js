@@ -72,6 +72,14 @@ export default class Registry {
     return Object.keys(this.items);
   }
 
+  values() {
+    return this.keys().map(key => this.get(key));
+  }
+
+  valuesAsPromise() {
+    return Promise.all(this.keys().map(key => this.getAsPromise(key)));
+  }
+
   entries() {
     return this.keys().map(key => ({
       key,
