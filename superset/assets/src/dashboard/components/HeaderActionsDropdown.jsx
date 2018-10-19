@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
 import CssEditor from './CssEditor';
@@ -52,14 +52,20 @@ class HeaderActionsDropdown extends React.PureComponent {
   componentWillMount() {
     injectCustomCss(this.state.css);
 
-    $.get('/csstemplateasyncmodelview/api/read', data => {
-      const cssTemplates = data.result.map(row => ({
-        value: row.template_name,
-        css: row.css,
-        label: row.template_name,
-      }));
-      this.setState({ cssTemplates });
-    });
+    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+      .then(({ json }) => {
+        const cssTemplates = json.result.map(row => ({
+          value: row.template_name,
+          css: row.css,
+          label: row.template_name,
+        }));
+        this.setState({ cssTemplates });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      });
   }
 
   changeCss(css) {
