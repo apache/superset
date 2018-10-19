@@ -9,20 +9,16 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
-import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
-import withToasts from '../../../messageToasts/enhancers/withToasts';
-
 
 const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
   datasource: PropTypes.object.isRequired,
   onDatasourceSave: PropTypes.func,
 };
@@ -39,70 +35,30 @@ class DatasourceControl extends React.PureComponent {
       showEditDatasourceModal: false,
       loading: true,
       showDatasource: false,
+      datasources: null,
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
-    this.setSearchRef = this.setSearchRef.bind(this);
-    this.selectDatasource = this.selectDatasource.bind(this);
   }
+
   onChange(vizType) {
     this.props.onChange(vizType);
     this.setState({ showModal: false });
   }
-  onEnterModal() {
-    if (this.searchRef) {
-      this.searchRef.focus();
-    }
-    const url = '/superset/datasources/';
-    const that = this;
-    if (!this.state.datasources) {
-      $.ajax({
-        type: 'GET',
-        url,
-        success: (data) => {
-          const datasources = data.map(ds => ({
-            rawName: ds.name,
-            connection: ds.connection,
-            schema: ds.schema,
-            name: (
-              <a
-                href="#"
-                onClick={this.selectDatasource.bind(this, ds.uid)}
-                className="datasource-link"
-              >
-                {ds.name}
-              </a>
-            ),
-            type: ds.type,
-          }));
 
-          that.setState({ loading: false, datasources });
-        },
-        error() {
-          that.setState({ loading: false });
-          this.props.addDangerToast(t('Something went wrong while fetching the datasource list'));
-        },
-      });
-    }
-  }
-  setSearchRef(searchRef) {
-    this.searchRef = searchRef;
-  }
   toggleShowDatasource() {
-    this.setState({ showDatasource: !this.state.showDatasource });
+    this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
+
   toggleModal() {
-    this.setState({ showModal: !this.state.showModal });
-  }
-  selectDatasource(datasourceId) {
-    this.setState({ showModal: false });
-    this.props.onChange(datasourceId);
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
   }
   toggleEditDatasourceModal() {
-    this.setState({ showEditDatasourceModal: !this.state.showEditDatasourceModal });
+    this.setState(({ showEditDatasourceModal }) => ({
+      showEditDatasourceModal: !showEditDatasourceModal,
+    }));
   }
-  renderModal() {
-  }
+
   renderDatasource() {
     const datasource = this.props.datasource;
     return (
@@ -136,6 +92,7 @@ class DatasourceControl extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     return (
       <div>
@@ -193,4 +150,4 @@ class DatasourceControl extends React.PureComponent {
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
 
-export default withToasts(DatasourceControl);
+export default DatasourceControl;
