@@ -1,6 +1,6 @@
 import ColorScheme from './ColorScheme';
 
-export default class SequentialColorScheme extends ColorScheme {
+export default class SequentialScheme extends ColorScheme {
   constructor({
     name,
     colors,

@@ -46,41 +46,43 @@ class ColorSchemeManager {
   }
 }
 
-let singleton;
+export default ColorSchemeManager;
 
-export function getInstance() {
-  if (!singleton) {
-    singleton = new ColorSchemeManager();
-  }
-  return singleton;
-}
+// let singleton;
 
-const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
-  .filter(fn => fn !== 'constructor')
-  .reduce((all, fn) => {
-    const functions = all;
-    functions[fn] = function (...args) {
-      return getInstance()[fn](...args);
-    };
-    return functions;
-  }, { getInstance });
+// export function getInstance() {
+//   if (!singleton) {
+//     singleton = new ColorSchemeManager();
+//   }
+//   return singleton;
+// }
 
-const {
-  clearScheme,
-  getScheme,
-  getAllSchemes,
-  getDefaultSchemeName,
-  setDefaultSchemeName,
-  registerScheme,
-  registerMultipleSchemes,
-} = staticFunctions;
+// const staticFunctions = Object.getOwnPropertyNames(ColorSchemeManager.prototype)
+//   .filter(fn => fn !== 'constructor')
+//   .reduce((all, fn) => {
+//     const functions = all;
+//     functions[fn] = function (...args) {
+//       return getInstance()[fn](...args);
+//     };
+//     return functions;
+//   }, { getInstance });
 
-export {
-  clearScheme,
-  getScheme,
-  getAllSchemes,
-  getDefaultSchemeName,
-  setDefaultSchemeName,
-  registerScheme,
-  registerMultipleSchemes,
-};
+// const {
+//   clearScheme,
+//   getScheme,
+//   getAllSchemes,
+//   getDefaultSchemeName,
+//   setDefaultSchemeName,
+//   registerScheme,
+//   registerMultipleSchemes,
+// } = staticFunctions;
+
+// export {
+//   clearScheme,
+//   getScheme,
+//   getAllSchemes,
+//   getDefaultSchemeName,
+//   setDefaultSchemeName,
+//   registerScheme,
+//   registerMultipleSchemes,
+// };

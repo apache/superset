@@ -1,4 +1,4 @@
-import CategoricalColorScheme from '../../CategoricalColorScheme';
+import CategoricalScheme from '../../CategoricalScheme';
 
 const schemes = [
   {
@@ -27,6 +27,6 @@ const schemes = [
       '#988b4e',
     ],
   },
-].map(s => new CategoricalColorScheme(s));
+].map(s => new CategoricalScheme(s));
 
 export default schemes;

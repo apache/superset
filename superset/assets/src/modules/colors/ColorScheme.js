@@ -1,4 +1,4 @@
-import isRequired from '../utils/isRequired';
+import isRequired from '../../utils/isRequired';
 
 export default class ColorScheme {
   constructor({

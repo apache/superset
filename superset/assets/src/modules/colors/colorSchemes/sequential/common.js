@@ -1,4 +1,4 @@
-import SequentialColorScheme from '../../SequentialColorScheme';
+import SequentialScheme from '../../SequentialScheme';
 
 const schemes = [
   {
@@ -579,6 +579,6 @@ const schemes = [
       '#800026',
     ],
   },
-].map(s => new SequentialColorScheme(s));
+].map(s => new SequentialScheme(s));
 
 export default schemes;

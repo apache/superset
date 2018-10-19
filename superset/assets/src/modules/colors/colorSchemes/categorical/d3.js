@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import CategoricalColorScheme from '../../CategoricalColorScheme';
+import CategoricalScheme from '../../CategoricalScheme';
 
 const schemes = [
   {
@@ -18,6 +18,6 @@ const schemes = [
     name: 'd3Category20c',
     colors: d3.scale.category20c().range(),
   },
-].map(s => new CategoricalColorScheme(s));
+].map(s => new CategoricalScheme(s));
 
 export default schemes;
