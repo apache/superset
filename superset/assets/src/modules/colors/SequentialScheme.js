@@ -1,13 +1,9 @@
 import ColorScheme from './ColorScheme';
 
 export default class SequentialScheme extends ColorScheme {
-  constructor({
-    name,
-    colors,
-    description,
-    isDiverging = false,
-  }) {
-    super({ name, colors, description });
+  constructor(input) {
+    super(input);
+    const { isDiverging = false } = input;
     this.isDiverging = isDiverging;
   }
 }
