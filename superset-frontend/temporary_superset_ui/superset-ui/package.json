@@ -9,7 +9,7 @@
     "lint:fix": "lerna run lint:fix",
     "prerelease": "yarn run build",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run lint && yarn run test",
-    "release": "yarn run prepare-release && lerna publish && lerna run gh-pages",
+    "release": "yarn run prepare-release && lerna publish",
     "test": "lerna run test"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
