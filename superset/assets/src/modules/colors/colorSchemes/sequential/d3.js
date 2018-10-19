@@ -3,6 +3,7 @@ import SequentialScheme from '../../SequentialScheme';
 const schemes = [
   {
     name: 'schemeBrBG',
+    label: 'brown/green',
     colors: [
       '#543005',
       '#8c510a',
@@ -19,6 +20,7 @@ const schemes = [
   },
   {
     name: 'schemePRGn',
+    label: 'purple/green',
     colors: [
       '#40004b',
       '#762a83',
@@ -35,6 +37,7 @@ const schemes = [
   },
   {
     name: 'schemePiYG',
+    label: 'pink/green',
     colors: [
       '#8e0152',
       '#c51b7d',
@@ -51,6 +54,7 @@ const schemes = [
   },
   {
     name: 'schemePuOr',
+    label: 'purple/orange',
     colors: [
       '#2d004b',
       '#542788',
@@ -67,6 +71,7 @@ const schemes = [
   },
   {
     name: 'schemeRdBu',
+    label: 'red/blue',
     colors: [
       '#67001f',
       '#b2182b',
@@ -83,6 +88,7 @@ const schemes = [
   },
   {
     name: 'schemeRdGy',
+    label: 'red/gray/black',
     colors: [
       '#67001f',
       '#b2182b',
@@ -99,6 +105,7 @@ const schemes = [
   },
   {
     name: 'schemeRdYlBu',
+    label: 'red/yellow/blue',
     colors: [
       '#a50026',
       '#d73027',
@@ -115,6 +122,7 @@ const schemes = [
   },
   {
     name: 'schemeRdYlGn',
+    label: 'red/yellow/green',
     colors: [
       '#a50026',
       '#d73027',
@@ -131,6 +139,7 @@ const schemes = [
   },
   {
     name: 'schemeSpectral',
+    label: 'rainbow',
     colors: [
       '#9e0142',
       '#d53e4f',
@@ -146,6 +155,7 @@ const schemes = [
   },
   {
     name: 'schemeBlues',
+    label: 'blues',
     colors: [
       '#b5d4e9',
       '#93c3df',
@@ -159,6 +169,7 @@ const schemes = [
   },
   {
     name: 'schemeGreens',
+    label: 'greens',
     colors: [
       '#b7e2b1',
       '#97d494',
@@ -172,6 +183,7 @@ const schemes = [
   },
   {
     name: 'schemeGrays',
+    label: 'grays',
     colors: [
       '#cecece',
       '#b4b4b4',
@@ -185,6 +197,7 @@ const schemes = [
   },
   {
     name: 'schemeOranges',
+    label: 'oranges',
     colors: [
       '#fdc28c',
       '#fda762',
@@ -198,6 +211,7 @@ const schemes = [
   },
   {
     name: 'schemePurples',
+    label: 'purples',
     colors: [
       '#cecee5',
       '#b6b5d8',
@@ -211,6 +225,7 @@ const schemes = [
   },
   {
     name: 'schemeReds',
+    label: 'reds',
     colors: [
       '#fcaa8e',
       '#fc8a6b',
@@ -224,6 +239,7 @@ const schemes = [
   },
   {
     name: 'schemeViridis',
+    label: 'Viridis',
     colors: [
       '#482475',
       '#414487',
@@ -239,6 +255,7 @@ const schemes = [
   },
   {
     name: 'schemeInferno',
+    label: 'Inferno',
     colors: [
       '#160b39',
       '#420a68',
@@ -254,6 +271,7 @@ const schemes = [
   },
   {
     name: 'schemeMagma',
+    label: 'Magma',
     colors: [
       '#140e36',
       '#3b0f70',
@@ -269,6 +287,7 @@ const schemes = [
   },
   {
     name: 'schemeWarm',
+    label: 'Warm',
     colors: [
       '#963db3',
       '#bf3caf',
@@ -284,6 +303,7 @@ const schemes = [
   },
   {
     name: 'schemeCool',
+    label: 'Cool',
     colors: [
       '#6054c8',
       '#4c6edb',
@@ -299,6 +319,7 @@ const schemes = [
   },
   {
     name: 'schemeCubehelixDefault',
+    label: 'Cube Helix',
     colors: [
       '#1a1530',
       '#163d4e',
@@ -314,6 +335,7 @@ const schemes = [
   },
   {
     name: 'schemeBuGn',
+    label: 'blue/green',
     colors: [
       '#b7e4da',
       '#8fd3c1',
@@ -327,6 +349,7 @@ const schemes = [
   },
   {
     name: 'schemeBuPu',
+    label: 'blue/purple',
     colors: [
       '#b2cae1',
       '#9cb3d5',
@@ -340,6 +363,7 @@ const schemes = [
   },
   {
     name: 'schemeGnBu',
+    label: 'green/blue',
     colors: [
       '#bde5bf',
       '#9ed9bb',
@@ -353,6 +377,7 @@ const schemes = [
   },
   {
     name: 'schemeOrRd',
+    label: 'orange/red',
     colors: [
       '#fdca94',
       '#fdb07a',
@@ -366,6 +391,7 @@ const schemes = [
   },
   {
     name: 'schemePuBuGn',
+    label: 'purple/blue/green',
     colors: [
       '#bec9e2',
       '#98b9d9',
@@ -379,6 +405,7 @@ const schemes = [
   },
   {
     name: 'schemePuBu',
+    label: 'purple/blue',
     colors: [
       '#bfc9e2',
       '#9bb9d9',
@@ -392,6 +419,7 @@ const schemes = [
   },
   {
     name: 'schemePuRd',
+    label: 'purple/red',
     colors: [
       '#d0aad2',
       '#d08ac2',
@@ -405,6 +433,7 @@ const schemes = [
   },
   {
     name: 'schemeRdPu',
+    label: 'red/purple',
     colors: [
       '#fbb5bc',
       '#f993b0',
@@ -418,6 +447,7 @@ const schemes = [
   },
   {
     name: 'schemeYlGnBu',
+    label: 'yellow/green/blue',
     colors: [
       '#d5eeb3',
       '#a9ddb7',
@@ -432,6 +462,7 @@ const schemes = [
   },
   {
     name: 'schemeYlGn',
+    label: 'yellow/green',
     colors: [
       '#e4f4ac',
       '#c7e89b',
@@ -446,6 +477,7 @@ const schemes = [
   },
   {
     name: 'schemeYlOrBr',
+    label: 'yellow/orange/brown',
     colors: [
       '#feeaa1',
       '#fed676',
@@ -460,6 +492,7 @@ const schemes = [
   },
   {
     name: 'schemeYlOrRd',
+    label: 'yellow/orange/red',
     colors: [
       '#fee087',
       '#fec965',

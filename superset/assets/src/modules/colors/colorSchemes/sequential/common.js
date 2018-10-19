@@ -82,6 +82,7 @@ const schemes = [
   },
   {
     name: 'red_yellow_blue',
+    label: 'red/yellow/blue',
     colors: [
       '#d7191c',
       '#fdae61',
@@ -93,6 +94,7 @@ const schemes = [
   },
   {
     name: 'brown_white_green',
+    label: 'brown/white/green',
     colors: [
       '#a6611a',
       '#dfc27d',
@@ -104,6 +106,7 @@ const schemes = [
   },
   {
     name: 'purple_white_green',
+    label: 'purple/white/green',
     colors: [
       '#7b3294',
       '#c2a5cf',
