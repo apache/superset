@@ -3,6 +3,7 @@
 import logging
 
 from flask import g
+from flask_appbuilder.const import LOGMSG_WAR_SEC_LOGIN_FAILED
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
@@ -72,8 +73,32 @@ OBJECT_SPEC_PERMISSIONS = set([
     'metric_access',
 ])
 
+log = logging.getLogger(__name__)
+
 
 class SupersetSecurityManager(SecurityManager):
+
+    def __init__(self, appbuilder):
+        super().__init__(appbuilder)
+        app = appbuilder.get_app
+        app.config.setdefault('JWT_LOGIN_ENABLED', False)
+
+        if app.config['JWT_LOGIN_ENABLED']:
+            try:
+                import jwt
+            except ImportError:
+                raise Exception('No PyJWT library for python.')
+
+            if not any([app.config.get('JWT_AUTH_COOKIE_NAME'), app.config.get('JWT_AUTH_HEADER_NAME')]):
+                raise Exception('Missing JWT_AUTH_COOKIE_NAME or JWT_AUTH_HEADER_NAME')
+            empty_jwt_values = [
+                k for k in ['JWT_AUTH_PUBLIC_CERTS_URL', 'JWT_AUTH_AUDIENCE', 'JWT_AUTH_ISSUER', 'JWT_AUTH_ALGORITHMS']
+                if not app.config.get(k)
+            ]
+            if empty_jwt_values:
+                raise Exception('Missing JWT config {0}'.format(empty_jwt_values))
+
+            self.lm.request_loader(self.load_user_from_jwt_token)
 
     def get_schema_perm(self, database, schema):
         if schema:
@@ -425,3 +450,67 @@ class SupersetSecurityManager(SecurityManager):
                     view_menu_id=view_menu.id,
                 ),
             )
+
+    def auth_user_jwt(self, payload):
+        if 'email' in payload:
+            user = self.find_user(email=payload['email'])
+        else:
+            log.error('User info does not have email {0}'.format(payload))
+            return None
+
+        # User is disabled
+        if user and not user.is_active:
+            log.info(LOGMSG_WAR_SEC_LOGIN_FAILED.format(payload))
+            return None
+        # If user does not exist on the DB and not self user registration, go away
+        if not user and not self.auth_user_registration:
+            return None
+        # User does not exist, create one if self registration.
+        if not user:
+            user = self.add_user(
+                username=payload['email'].replace('@', '_'),
+                first_name=payload.get('first_name', ''),
+                last_name=payload.get('last_name', ''),
+                email=payload['email'],
+                role=self.find_role(self.auth_user_registration_role)
+            )
+
+            if not user:
+                log.error("Error creating a new JWT user {0}".format(payload))
+                return None
+        return user
+
+    def jwt_token_load_user_from_request(self, request):
+        from werkzeug.exceptions import Unauthorized
+        from superset.jwt_auth import verify_jwt_token
+        app = self.appbuilder.get_app
+
+        payload = None
+
+        if app.config['JWT_AUTH_COOKIE_NAME']:
+            jwt_token = request.cookies.get(app.config['JWT_AUTH_COOKIE_NAME'], None)
+        elif app.config['JWT_AUTH_HEADER_NAME']:
+            jwt_token = request.headers.get(app.config['JWT_AUTH_HEADER_NAME'], None)
+        else:
+            return None
+
+        if jwt_token:
+            payload, token_is_valid = verify_jwt_token(
+                jwt_token,
+                expected_issuer=app.config['JWT_AUTH_ISSUER'],
+                expected_audience=app.config['JWT_AUTH_AUDIENCE'],
+                algorithms=app.config['JWT_AUTH_ALGORITHMS'],
+                public_certs_url=app.config['JWT_AUTH_PUBLIC_CERTS_URL'],
+            )
+            if not token_is_valid:
+                raise Unauthorized('Invalid JWT token')
+
+        if payload:
+            return self.auth_user_jwt(payload)
+
+    def load_user_from_jwt_token(self, request):
+        if self.appbuilder.app.config['JWT_LOGIN_ENABLED'] and not getattr(request, '_load_user_from_jwt_token_lock', False):
+            request._load_user_from_jwt_token_lock = True
+            user = self.jwt_token_load_user_from_request(request)
+            request._load_user_from_jwt_token_lock = False
+            return user

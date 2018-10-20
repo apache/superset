@@ -137,6 +137,15 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'Flickr', 'url': 'http://www.flickr.com/<username>' },
 #    { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
 
+# Setup use JWT token from JWT provider for authentication
+# JWT_LOGIN_ENABLED = False
+# JWT_AUTH_ALGORITHMS = ['HS256', 'RS256', 'ES256']
+# JWT_AUTH_ISSUER = 'https://issuer'
+# JWT_AUTH_PUBLIC_CERTS_URL = 'https://certs'
+# JWT_AUTH_AUDIENCE = 'aud'
+# JWT_AUTH_COOKIE_NAME = 'CF_Authorization'
+# AUTH_USER_REGISTRATION = True
+
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
