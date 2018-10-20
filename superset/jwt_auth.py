@@ -1,5 +1,6 @@
 import json
 import logging
+
 import jwt
 import requests
 
@@ -53,7 +54,7 @@ def verify_jwt_token(jwt_token, expected_issuer, expected_audience, algorithms,
                 jwt_token,
                 key=key,
                 audience=expected_audience,
-                algorithms=algorithms
+                algorithms=algorithms,
             )
             issuer = payload['iss']
             if issuer != expected_issuer:

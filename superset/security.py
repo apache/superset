@@ -84,10 +84,6 @@ class SupersetSecurityManager(SecurityManager):
         app.config.setdefault('JWT_LOGIN_ENABLED', False)
 
         if app.config['JWT_LOGIN_ENABLED']:
-            try:
-                import jwt
-            except ImportError:
-                raise Exception('No PyJWT library for python.')
 
             if not any([app.config.get('JWT_AUTH_COOKIE_NAME'),
                         app.config.get('JWT_AUTH_HEADER_NAME')]):
@@ -474,11 +470,11 @@ class SupersetSecurityManager(SecurityManager):
                 first_name=payload.get('first_name', ''),
                 last_name=payload.get('last_name', ''),
                 email=payload['email'],
-                role=self.find_role(self.auth_user_registration_role)
+                role=self.find_role(self.auth_user_registration_role),
             )
 
             if not user:
-                log.error("Error creating a new JWT user {0}".format(payload))
+                log.error('Error creating a new JWT user {0}'.format(payload))
                 return None
         return user
 
