@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
 
 import { t } from '../locales';
 import DatasourceEditor from '../datasource/DatasourceEditor';
@@ -40,6 +40,7 @@ class DatasourceModal extends React.PureComponent {
     this.onConfirmSave = this.onConfirmSave.bind(this);
     this.setDialogRef = this.setDialogRef.bind(this);
   }
+
   onClickSave() {
     this.dialog.show({
       title: t('Confirm save'),
@@ -51,49 +52,48 @@ class DatasourceModal extends React.PureComponent {
       body: this.renderSaveDialog(),
     });
   }
+
   onConfirmSave() {
-    const url = '/datasource/save/';
-    const that = this;
-    $.ajax({
-      url,
-      type: 'POST',
-      data: {
-        data: JSON.stringify(this.state.datasource),
+    SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: this.state.datasource,
       },
-      success: (data) => {
+    })
+      .then(({ json }) => {
         this.props.addSuccessToast(t('The datasource has been saved'));
-        this.props.onDatasourceSave(data);
+        this.props.onDatasourceSave(json);
         this.props.onHide();
-      },
-      error(err) {
-        let msg = t('An error has occurred');
-        if (err.responseJSON && err.responseJSON.error) {
-          msg = err.responseJSON.error;
-        }
-        that.dialog.show({
+      })
+      .catch((error) => {
+        this.dialog.show({
           title: 'Error',
           bsSize: 'medium',
           bsStyle: 'danger',
           actions: [
             Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
           ],
-          body: msg,
+          body: error.error || error.statusText || t('An error has occurred'),
         });
-      },
-    });
+      });
   }
+
   onDatasourceChange(datasource, errors) {
     this.setState({ datasource, errors });
   }
+
   setSearchRef(searchRef) {
     this.searchRef = searchRef;
   }
+
   setDialogRef(ref) {
     this.dialog = ref;
   }
+
   toggleShowDatasource() {
     this.setState({ showDatasource: !this.state.showDatasource });
   }
+
   renderSaveDialog() {
     return (
       <div>
@@ -111,6 +111,7 @@ class DatasourceModal extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     return (
       <Modal
@@ -156,4 +157,5 @@ class DatasourceModal extends React.PureComponent {
 
 DatasourceModal.propTypes = propTypes;
 DatasourceModal.defaultProps = defaultProps;
+
 export default withToasts(DatasourceModal);

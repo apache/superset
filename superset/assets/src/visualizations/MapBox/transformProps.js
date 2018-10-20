@@ -1,8 +1,8 @@
 import supercluster from 'supercluster';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 
-export default function transformProps(basicChartInput) {
-  const { formData, onError, payload, setControlValue } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { width, height, formData, onError, payload, setControlValue } = chartProps;
   const {
     bounds,
     geoJSON,
@@ -59,6 +59,8 @@ export default function transformProps(basicChartInput) {
   clusterer.load(geoJSON.features);
 
   return {
+    width,
+    height,
     aggregatorName: pandasAggfunc,
     bounds,
     clusterer,

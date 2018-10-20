@@ -1,9 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import { SupersetClient } from '@superset-ui/core';
 import { t } from '../locales';
-
-const $ = window.$ = require('jquery');
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -32,31 +31,38 @@ class AsyncSelect extends React.PureComponent {
       isLoading: false,
       options: [],
     };
+
+    this.onChange = this.onChange.bind(this);
   }
+
   componentDidMount() {
     this.fetchOptions();
   }
-  onChange(opt) {
-    this.props.onChange(opt);
+
+  onChange(option) {
+    this.props.onChange(option);
   }
+
   fetchOptions() {
     this.setState({ isLoading: true });
-    const mutator = this.props.mutator;
-    $.get(this.props.dataEndpoint)
-      .done((data) => {
-        this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
+    const { mutator, dataEndpoint } = this.props;
 
-        if (!this.props.value && this.props.autoSelect && this.state.options.length) {
-          this.onChange(this.state.options[0]);
+    return SupersetClient.get({ endpoint: dataEndpoint })
+      .then(({ json }) => {
+        const options = mutator ? mutator(json) : json;
+
+        this.setState({ options, isLoading: false });
+
+        if (!this.props.value && this.props.autoSelect && options.length > 0) {
+          this.onChange(options[0]);
         }
       })
-      .fail((xhr) => {
-        this.props.onAsyncError(xhr.responseText);
-      })
-      .always(() => {
+      .catch((error) => {
+        this.props.onAsyncError(error.error || error.statusText || error);
         this.setState({ isLoading: false });
       });
   }
+
   render() {
     return (
       <div>
@@ -65,7 +71,7 @@ class AsyncSelect extends React.PureComponent {
           options={this.state.options}
           value={this.props.value}
           isLoading={this.state.isLoading}
-          onChange={this.onChange.bind(this)}
+          onChange={this.onChange}
           valueRenderer={this.props.valueRenderer}
           {...this.props}
         />

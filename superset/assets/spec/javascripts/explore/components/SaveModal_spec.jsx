@@ -10,7 +10,6 @@ import fetchMock from 'fetch-mock';
 import * as exploreUtils from '../../../../src/explore/exploreUtils';
 import * as saveModalActions from '../../../../src/explore/actions/saveModalActions';
 import SaveModal from '../../../../src/explore/components/SaveModal';
-import setupSupersetClient from '../../../helpers/setupSupersetClient';
 
 describe('SaveModal', () => {
   const middlewares = [thunk];
@@ -182,7 +181,6 @@ describe('SaveModal', () => {
     const saveEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 
     beforeAll(() => {
-      setupSupersetClient();
       fetchMock.get(saveEndpoint, mockDashboardData);
     });
 
