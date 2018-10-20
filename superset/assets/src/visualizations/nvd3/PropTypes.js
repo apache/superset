@@ -49,7 +49,8 @@ export const bulletDataType = PropTypes.shape({
 });
 
 export const annotationLayerType = PropTypes.shape({
-  annotationType: PropTypes.oneOf(Object.keys(ANNOTATION_TYPES)),
+  annotationType: PropTypes.oneOf(Object.keys(ANNOTATION_TYPES)
+    .map(key => ANNOTATION_TYPES[key].value)),
   color: PropTypes.string,
   name: PropTypes.string,
   hideLine: PropTypes.bool,

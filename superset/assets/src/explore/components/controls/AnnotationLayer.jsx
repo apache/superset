@@ -10,19 +10,15 @@ import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
 
 import AnnotationTypes, {
+  ANNOTATION_TYPES,
   DEFAULT_ANNOTATION_TYPE,
   ANNOTATION_SOURCE_TYPES,
-  getAnnotationSourceTypeLabels,
-  getAnnotationTypeLabel,
-  getSupportedSourceTypes,
-  getSupportedAnnotationTypes,
   requiresQuery,
 } from '../../../modules/AnnotationTypes';
 
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
-import vizTypes from '../../visTypes';
 import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
 
 import { t } from '../../../locales';
@@ -59,7 +55,7 @@ const propTypes = {
 
 const defaultProps = {
   name: '',
-  annotationType: DEFAULT_ANNOTATION_TYPE,
+  annotationType: DEFAULT_ANNOTATION_TYPE.value,
   sourceType: '',
   color: AUTOMATIC_COLOR,
   opacity: '',
@@ -149,6 +145,25 @@ export default class AnnotationLayer extends React.PureComponent {
     }
   }
 
+  getSupportedSourceTypes(annotationType) {
+    // Get vis types that can be source.
+    const sources = getChartMetadataRegistry().entries()
+      .filter(({ value }) => value.canBeAnnotationType(annotationType))
+      .map(({ key, value }) => ({
+        value: key,
+        label: value.name,
+      }));
+    // Prepend native source if applicable
+    const supportNativeSource = ANNOTATION_TYPES[annotationType].supportNativeSource;
+    if (supportNativeSource) {
+      sources.unshift({
+        value: ANNOTATION_SOURCE_TYPES.NATIVE,
+        label: 'Superset annotation',
+      });
+    }
+    return sources;
+  }
+
   isValidFormula(value, annotationType) {
     if (annotationType === AnnotationTypes.FORMULA) {
       try {
@@ -224,14 +239,18 @@ export default class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(({ json }) =>
+        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(({ json }) => {
+          const registry = getChartMetadataRegistry();
           this.setState({
             isLoadingOptions: false,
             valueOptions: json
-              .filter(x => getSupportedSourceTypes(annotationType).find(v => v === x.viz_type))
+              .filter((x) => {
+                const metadata = registry.get(x.viz_type);
+                return metadata && metadata.canBeAnnotationType(annotationType);
+              })
               .map(x => ({ value: x.id, label: x.title, slice: x })),
-          }),
-        );
+          });
+        });
       } else {
         this.setState({
           isLoadingOptions: false,
@@ -283,8 +302,8 @@ export default class AnnotationLayer extends React.PureComponent {
         label = label = t('Chart');
         description = `Use a pre defined Superset Chart as a source for annotations and overlays.
         your chart must be one of these visualization types:
-        [${getSupportedSourceTypes(annotationType)
-          .map(x => (x in vizTypes && 'label' in vizTypes[x] ? vizTypes[x].label : ''))
+        [${this.getSupportedSourceTypes(annotationType)
+          .map(x => x.label)
           .join(', ')}]`;
       }
     } else if (annotationType === AnnotationTypes.FORMULA) {
@@ -581,10 +600,13 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
-    const metadata = getChartMetadataRegistry().get(this.props.vizType);
+
+    const registry = getChartMetadataRegistry();
+    const metadata = registry.get(this.props.vizType);
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes
       : [];
+    const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
 
     return (
       <div>
@@ -616,23 +638,17 @@ export default class AnnotationLayer extends React.PureComponent {
                 description={t('Choose the Annotation Layer Type')}
                 label={t('Annotation Layer Type')}
                 name="annotation-layer-type"
-                options={supportedAnnotationTypes.map(x => ({
-                  value: x,
-                  label: getAnnotationTypeLabel(x),
-                }))}
+                options={supportedAnnotationTypes}
                 value={annotationType}
                 onChange={this.handleAnnotationType}
               />
-              {!!getSupportedSourceTypes(annotationType).length && (
+              {!!supportedSourceTypes.length && (
                 <SelectControl
                   hovered
                   description="Choose the source of your annotations"
                   label="Annotation Source"
                   name="annotation-source-type"
-                  options={getSupportedSourceTypes(annotationType).map(x => ({
-                    value: x,
-                    label: getAnnotationSourceTypeLabels(x),
-                  }))}
+                  options={supportedSourceTypes}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                 />
