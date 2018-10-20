@@ -1254,7 +1254,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     self.to_series(
                         diff, classed='time-shift-{}'.format(i), title_suffix=label))
 
-        return sorted(chart_data, key=lambda x: tuple(x['key']))
+        if not self.sort_series:
+            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
+        return chart_data
 
 
 class MultiLineViz(NVD3Viz):
