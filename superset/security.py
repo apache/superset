@@ -89,10 +89,12 @@ class SupersetSecurityManager(SecurityManager):
             except ImportError:
                 raise Exception('No PyJWT library for python.')
 
-            if not any([app.config.get('JWT_AUTH_COOKIE_NAME'), app.config.get('JWT_AUTH_HEADER_NAME')]):
+            if not any([app.config.get('JWT_AUTH_COOKIE_NAME'),
+                        app.config.get('JWT_AUTH_HEADER_NAME')]):
                 raise Exception('Missing JWT_AUTH_COOKIE_NAME or JWT_AUTH_HEADER_NAME')
             empty_jwt_values = [
-                k for k in ['JWT_AUTH_PUBLIC_CERTS_URL', 'JWT_AUTH_AUDIENCE', 'JWT_AUTH_ISSUER', 'JWT_AUTH_ALGORITHMS']
+                k for k in ['JWT_AUTH_PUBLIC_CERTS_URL', 'JWT_AUTH_AUDIENCE',
+                            'JWT_AUTH_ISSUER', 'JWT_AUTH_ALGORITHMS']
                 if not app.config.get(k)
             ]
             if empty_jwt_values:
@@ -509,7 +511,8 @@ class SupersetSecurityManager(SecurityManager):
             return self.auth_user_jwt(payload)
 
     def load_user_from_jwt_token(self, request):
-        if self.appbuilder.app.config['JWT_LOGIN_ENABLED'] and not getattr(request, '_load_user_from_jwt_token_lock', False):
+        if self.appbuilder.app.config['JWT_LOGIN_ENABLED'] and \
+                not getattr(request, '_load_user_from_jwt_token_lock', False):
             request._load_user_from_jwt_token_lock = True
             user = self.jwt_token_load_user_from_request(request)
             request._load_user_from_jwt_token_lock = False
