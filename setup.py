@@ -80,6 +80,7 @@ setup(
         'polyline',
         'pydruid>=0.4.3',
         'pyhive>=0.4.0',
+        'PyJWT>=1.6.4',
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.11',
