@@ -1,4 +1,3 @@
-/* eslint no-undef: 2 */
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -28,9 +27,6 @@ const defaultProps = {
 class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      hints: [],
-    };
     this.visualize = this.visualize.bind(this);
     this.onClick = this.onClick.bind(this);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);
@@ -58,9 +54,7 @@ class ExploreResultsButton extends React.PureComponent {
       this.dialog.show({
         title: t('Explore'),
         body: msg,
-        actions: [
-          Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
-        ],
+        actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-primary')],
         bsSize: 'large',
         bsStyle: 'warning',
         onHide: (dialog) => {
@@ -82,8 +76,11 @@ class ExploreResultsButton extends React.PureComponent {
     return moment.duration(this.props.query.endDttm - this.props.query.startDttm).asSeconds();
   }
   getInvalidColumns() {
-    const re = /^[A-Za-z_]\w*$/;
-    return this.props.query.results.columns.map(col => col.name).filter(col => !re.test(col));
+    const re1 = /^[A-Za-z_]\w*$/;  // starts with char or _, then only alphanum
+    const re2 = /__\d+$/;  // does not finish with __ and then a number which screams dup col name
+
+    return this.props.query.results.columns.map(col => col.name)
+      .filter(col => !re1.test(col) || re2.test(col));
   }
   datasourceName() {
     const { query } = this.props;
@@ -107,10 +104,10 @@ class ExploreResultsButton extends React.PureComponent {
     };
   }
   visualize() {
-    this.props.actions.createDatasource(this.buildVizOptions(), this)
-      .done((resp) => {
+    this.props.actions
+      .createDatasource(this.buildVizOptions())
+      .then((data) => {
         const columns = this.getColumns();
-        const data = JSON.parse(resp);
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: [],
@@ -120,28 +117,28 @@ class ExploreResultsButton extends React.PureComponent {
           all_columns: columns.map(c => c.name),
           row_limit: 1000,
         };
+
         this.props.actions.addInfoToast(t('Creating a data source and creating a new tab'));
 
         // open new window for data visualization
         exportChart(formData);
       })
-      .fail(() => {
-        this.props.actions.addDangerToast(this.props.errorMessage);
+      .catch(() => {
+        this.props.actions.addDangerToast(this.props.errorMessage || t('An error occurred'));
       });
   }
   renderTimeoutWarning() {
     return (
       <Alert bsStyle="warning">
-        {
-          t('This query took %s seconds to run, ', Math.round(this.getQueryDuration())) +
+        {t('This query took %s seconds to run, ', Math.round(this.getQueryDuration())) +
           t('and the explore view times out at %s seconds ', this.props.timeout) +
           t('following this flow will most likely lead to your query timing out. ') +
           t('We recommend your summarize your data further before following that flow. ') +
-          t('If activated you can use the ')
-        }
+          t('If activated you can use the ')}
         <strong>CREATE TABLE AS </strong>
         {t('feature to store a summarized data set that you can then explore.')}
-      </Alert>);
+      </Alert>
+    );
   }
   renderInvalidColumnMessage() {
     const invalidColumns = this.getInvalidColumns();
@@ -151,13 +148,20 @@ class ExploreResultsButton extends React.PureComponent {
     return (
       <div>
         {t('Column name(s) ')}
-        <code><strong>{invalidColumns.join(', ')} </strong></code>
+        <code>
+          <strong>{invalidColumns.join(', ')} </strong>
+        </code>
         {t('cannot be used as a column name. Please use aliases (as in ')}
-        <code>SELECT count(*)
+        <code>
+          SELECT count(*)
           <strong>AS my_alias</strong>
         </code>){' '}
-        {t('limited to alphanumeric characters and underscores')}
-      </div>);
+        {t(`limited to alphanumeric characters and underscores. Column aliases ending with
+          double underscores followed by a numeric value are not allowed for reasons
+          discussed in Github issue #5739.
+          `)}
+      </div>
+    );
   }
   render() {
     return (
@@ -172,12 +176,9 @@ class ExploreResultsButton extends React.PureComponent {
             this.dialog = el;
           }}
         />
-        <InfoTooltipWithTrigger
-          icon="line-chart"
-          placement="top"
-          label="explore"
-        /> {t('Explore')}
-      </Button>);
+        <InfoTooltipWithTrigger icon="line-chart" placement="top" label="explore" /> {t('Explore')}
+      </Button>
+    );
   }
 }
 ExploreResultsButton.propTypes = propTypes;
@@ -197,4 +198,7 @@ function mapDispatchToProps(dispatch) {
 }
 
 export { ExploreResultsButton };
-export default connect(mapStateToProps, mapDispatchToProps)(ExploreResultsButton);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(ExploreResultsButton);

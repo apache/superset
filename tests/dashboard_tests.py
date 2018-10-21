@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
@@ -17,8 +11,6 @@ from .base_tests import SupersetTestCase
 
 
 class DashboardTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(DashboardTests, self).__init__(*args, **kwargs)

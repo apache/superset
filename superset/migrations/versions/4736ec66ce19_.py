@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """empty message
 
 Revision ID: 4736ec66ce19
@@ -7,20 +6,20 @@ Create Date: 2017-10-03 14:37:01.376578
 
 """
 
-# revision identifiers, used by Alembic.
-revision = '4736ec66ce19'
-down_revision = 'f959a6652acd'
+import logging
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.exc import OperationalError
 
-from superset.utils import (
+from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_fk_constraint_names,
     generic_find_uq_constraint_name,
 )
 
+# revision identifiers, used by Alembic.
+revision = '4736ec66ce19'
+down_revision = 'f959a6652acd'
 
 conv = {
     'fk': 'fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s',
@@ -101,16 +100,24 @@ def upgrade():
 
             batch_op.drop_column('datasource_name')
 
-    # Drop the old more restrictive uniqueness constraint.
-    with op.batch_alter_table('datasources', naming_convention=conv) as batch_op:
-        batch_op.drop_constraint(
-            generic_find_uq_constraint_name(
-                'datasources',
-                {'datasource_name'},
-                insp,
-            ) or 'uq_datasources_datasource_name',
-            type_='unique',
-        )
+    try:
+        # Drop the old more restrictive uniqueness constraint.
+        with op.batch_alter_table('datasources', naming_convention=conv) as batch_op:
+            batch_op.drop_constraint(
+                generic_find_uq_constraint_name(
+                    'datasources',
+                    {'datasource_name'},
+                    insp,
+                ) or 'uq_datasources_datasource_name',
+                type_='unique',
+            )
+    except Exception as e:
+        logging.warning(
+            'Constraint drop failed, you may want to do this '
+            'manually on your database. For context, this is a known '
+            'issue around undeterministic contraint names on Postgres '
+            'and perhaps more databases through SQLAlchemy.')
+        logging.exception(e)
 
 
 def downgrade():
@@ -196,8 +203,8 @@ def downgrade():
 
         # Re-create the foreign key associated with the cluster_name column.
         batch_op.create_foreign_key(
-                'fk_{}_datasource_id_datasources'.format(foreign),
-                'clusters',
-                ['cluster_name'],
-                ['cluster_name'],
-            )
+            'fk_{}_datasource_id_datasources'.format(foreign),
+            'clusters',
+            ['cluster_name'],
+            ['cluster_name'],
+        )

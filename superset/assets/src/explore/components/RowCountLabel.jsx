@@ -10,12 +10,15 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 const propTypes = {
   rowcount: PropTypes.number,
   limit: PropTypes.number,
+  rows: PropTypes.string,
+  suffix: PropTypes.string,
 };
 
 const defaultProps = {
+  suffix: t('rows'),
 };
 
-export default function RowCountLabel({ rowcount, limit }) {
+export default function RowCountLabel({ rowcount, limit, suffix }) {
   const limitReached = rowcount === limit;
   const bsStyle = (limitReached || rowcount === 0) ? 'warning' : 'default';
   const formattedRowCount = defaultNumberFormatter(rowcount);
@@ -32,7 +35,7 @@ export default function RowCountLabel({ rowcount, limit }) {
         bsStyle={bsStyle}
         style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
       >
-        {formattedRowCount} rows
+        {formattedRowCount}{' '}{suffix}
       </Label>
     </TooltipWrapper>
   );

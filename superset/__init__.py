@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Package's main module!"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -19,9 +13,11 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
-from superset import config, utils
+from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
+from superset.utils.core import (
+    get_update_perms_flag, pessimistic_connection_handling, setup_cache)
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -69,12 +65,21 @@ def get_css_manifest_files(filename):
     return entry_files.get('css', [])
 
 
+def get_unloaded_chunks(files, loaded_chunks):
+    filtered_files = [f for f in files if f not in loaded_chunks]
+    for f in filtered_files:
+        loaded_chunks.add(f)
+    return filtered_files
+
+
 parse_manifest_json()
 
 
 @app.context_processor
 def get_manifest():
     return dict(
+        loaded_chunks=set(),
+        get_unloaded_chunks=get_unloaded_chunks,
         js_manifest=get_js_manifest_files,
         css_manifest=get_css_manifest_files,
     )
@@ -109,10 +114,10 @@ if conf.get('WTF_CSRF_ENABLED'):
     for ex in csrf_exempt_list:
         csrf.exempt(ex)
 
-utils.pessimistic_connection_handling(db.engine)
+pessimistic_connection_handling(db.engine)
 
-cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
-tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
+cache = setup_cache(app, conf.get('CACHE_CONFIG'))
+tables_cache = setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + '/migrations')
 
@@ -180,7 +185,7 @@ appbuilder = AppBuilder(
     base_template='superset/base.html',
     indexview=MyIndexView,
     security_manager_class=custom_sm,
-    update_perms=utils.get_update_perms_flag(),
+    update_perms=get_update_perms_flag(),
 )
 
 security_manager = appbuilder.sm

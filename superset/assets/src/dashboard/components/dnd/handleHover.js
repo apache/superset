@@ -1,4 +1,4 @@
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import getDropPosition from '../../util/getDropPosition';
 
 const HOVER_THROTTLE_MS = 100;

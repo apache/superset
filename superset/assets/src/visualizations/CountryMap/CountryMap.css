@@ -1,0 +1,42 @@
+.country_map svg {
+  background-color: #feffff;
+}
+
+.country_map {
+  position: relative;
+}
+
+.country_map .background {
+  fill: rgba(255,255,255,0);
+  pointer-events: all;
+}
+
+.country_map .map-layer {
+  fill: #fff;
+  stroke: #aaa;
+}
+
+.country_map .effect-layer {
+  pointer-events: none;
+}
+
+.country_map .text-layer {
+  color: #333333;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.country_map text.result-text {
+  font-weight: 300;
+  font-size: 24px;
+}
+
+.country_map text.big-text {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.country_map path.region {
+  cursor: pointer;
+  stroke: #eee;
+}

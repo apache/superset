@@ -1,7 +1,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState from 'redux-localstorage';
-import { isEqual } from 'underscore';
+import { isEqual } from 'lodash';
 
 export function addToObject(state, arrKey, obj) {
   const newObject = Object.assign({}, state[arrKey]);
@@ -70,7 +70,7 @@ export function addToArr(state, arrKey, obj, prepend = false) {
 
 export function initEnhancer(persist = true) {
   let enhancer = persist ? compose(persistState()) : compose();
-  if (process.env.NODE_ENV === 'dev') {
+  if (process.env.WEBPACK_MODE === 'development') {
     /* eslint-disable-next-line no-underscore-dangle */
     const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
     enhancer = persist ? composeEnhancers(persistState()) : composeEnhancers();

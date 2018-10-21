@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
 """Fixtures for test_datasource.py"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 datasource_post = {
     'id': None,
     'column_formats': {'ratio': '.2%'},
     'description': 'Adding a DESCRip',
     'default_endpoint': '',
-    'filter_select': True,
+    'filter_select_enabled': True,
     'name': 'birth_names',
     'datasource_name': 'birth_names',
     'type': 'table',

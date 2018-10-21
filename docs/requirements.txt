@@ -1,3 +1,2 @@
 sphinx==1.7.1
 sphinx-rtd-theme==0.2.4
-sphinxcontrib.youtube==0.1.2

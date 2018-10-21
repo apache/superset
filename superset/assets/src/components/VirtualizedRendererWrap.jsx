@@ -35,7 +35,7 @@ export default function VirtualizedRendererWrap(renderer) {
       <div
         className={className.join(' ')}
         key={key}
-        style={Object.assign(option.style || {}, style)}
+        style={{ ...(option.style || {}), ...style }}
         title={option.title}
         {...events}
       >

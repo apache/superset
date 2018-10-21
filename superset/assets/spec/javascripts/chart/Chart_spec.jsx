@@ -1,7 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { chart as initChart } from '../../../src/chart/chartReducer';
@@ -53,7 +51,7 @@ describe('Chart', () => {
         height: 100,
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      expect(stub.callCount).to.equals(0);
+      expect(stub.callCount).toBe(0);
     });
 
     it('should call after chart stop loading', () => {
@@ -62,24 +60,22 @@ describe('Chart', () => {
         chartStatus: 'success',
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      expect(stub.callCount).to.equals(1);
+      expect(stub.callCount).toBe(1);
     });
 
     it('should call after resize', () => {
-      const prevProp = wrapper.props();
       wrapper.setProps({
         chartStatus: 'rendered',
         height: 100,
       });
-      wrapper.instance().componentDidUpdate(prevProp);
-      expect(stub.callCount).to.equals(1);
+      expect(stub.callCount).toBe(1);
     });
   });
 
   describe('render', () => {
     it('should render ChartBody after loading is completed', () => {
-      expect(wrapper.find(Loading)).to.have.length(1);
-      expect(wrapper.find(ChartBody)).to.have.length(0);
+      expect(wrapper.find(Loading)).toHaveLength(1);
+      expect(wrapper.find(ChartBody)).toHaveLength(0);
     });
   });
 });

@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {
   Row, Col, Button, Label, OverlayTrigger, Popover,
 } from 'react-bootstrap';
-import 'react-datetime/css/react-datetime.css';
 
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';

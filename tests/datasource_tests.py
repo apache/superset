@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from .base_tests import SupersetTestCase
@@ -12,8 +6,6 @@ from .fixtures.datasource import datasource_post
 
 
 class DatasourceTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(DatasourceTests, self).__init__(*args, **kwargs)

@@ -114,8 +114,8 @@ never be affected by any dashboard level filtering.
         "filter_immune_slices": [324, 65, 92],
         "expanded_slices": {},
         "filter_immune_slice_fields": {
-            "177": ["country_name", "__from", "__to"],
-            "32": ["__from", "__to"]
+            "177": ["country_name", "__time_range"],
+            "32": ["__time_range"]
         },
         "timed_refresh_immune_slices": [324]
     }
@@ -127,8 +127,8 @@ Now note the ``filter_immune_slice_fields`` key. This one allows you to
 be more specific and define for a specific slice_id, which filter fields
 should be disregarded.
 
-Note the use of the ``__from`` and ``__to`` keywords, those are reserved
-for dealing with the time boundary filtering mentioned above.
+Note the use of the ``__time_range`` keyword, which is reserved for dealing
+with the time boundary filtering mentioned above.
 
 But what happens with filtering when dealing with slices coming from
 different tables or databases? If the column name is shared, the filter will
@@ -246,3 +246,55 @@ labels to colors in the ``JSON Metadata`` attribute using the
             "Boys": "#ADD8E6"
         }
     }
+
+Does Superset work with [insert database engine here]?
+------------------------------------------------------
+
+The community over time has curated a list of databases that work well with
+Superset in the :ref:`ref_database_deps` section of the docs. Database
+engines not listed in this page may work too. We rely on the
+community to contribute to this knowledge base.
+
+.. _SQLAlchemy dialect: http://docs.sqlalchemy.org/en/latest/dialects/
+.. _DBAPI driver: https://www.python.org/dev/peps/pep-0249/
+
+For a database engine to be supported in Superset through the
+SQLAlchemy connector, it requires having a Python compliant
+`SQLAlchemy dialect`_ as well as a
+`DBAPI driver`_ defined.
+Database that have limited SQL support may
+work as well. For instance it's possible to connect
+to Druid through the SQLAlchemy connector even though Druid does not support
+joins and subqueries. Another key element for a database to be supported is through
+the Superset `Database Engine Specification
+<https://github.com/apache/incubator-superset/blob/master/superset/db_engine_specs.py>`_
+interface. This interface allows for defining database-specific configurations
+and logic
+that go beyond the SQLAlchemy and DBAPI scope. This includes features like:
+
+
+* date-related SQL function that allow Superset to fetch different
+  time granularities when running time-series queries
+* whether the engine supports subqueries. If false, Superset may run 2-phase
+  queries to compensate for the limitation
+* methods around processing logs and inferring the percentage of completion
+  of a query
+* technicalities as to how to handle cursors and connections if the driver
+  is not standard DBAPI
+* more, read the code for more details
+
+Beyond the SQLAlchemy connector, it's also possible, though much more
+involved, to extend Superset and write
+your own connector. The only example of this at the moment is the Druid
+connector, which is getting superseded by Druid's growing SQL support and
+the recent availability of a DBAPI and SQLAlchemy driver. If the database
+you are considering integrating has any kind of of SQL support, it's probably
+preferable to go the SQLAlchemy route. Note that for a native connector to
+be possible the database needs to have support for running OLAP-type queries
+and should be able to things that are typical in basic SQL:
+
+- aggregate data
+- apply filters (==, !=, >, <, >=, <=, IN, ...)
+- apply HAVING-type filters
+- be schema-aware, expose columns and types
+

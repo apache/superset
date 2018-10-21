@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { kebabCase } from 'lodash';
 import { Button as BootstrapButton, Tooltip, OverlayTrigger } from 'react-bootstrap';
-import { slugify } from '../modules/utils';
 
 const propTypes = {
   tooltip: PropTypes.node,
@@ -41,7 +41,7 @@ export default function Button(props) {
     return (
       <OverlayTrigger
         placement={placement}
-        overlay={<Tooltip id={`${slugify(tooltip)}-tooltip`}>{tooltip}</Tooltip>}
+        overlay={<Tooltip id={`${kebabCase(tooltip)}-tooltip`}>{tooltip}</Tooltip>}
       >
         {button}
       </OverlayTrigger>

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
-import ParentSize from '@vx/responsive/build/components/ParentSize';
+import { ParentSize } from '@vx/responsive';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -68,7 +68,7 @@ class BuilderComponentPane extends React.PureComponent {
                     >
                       <div className="component-layer slide-content">
                         <div className="dashboard-builder-sidepane-header">
-                          <span>{t('Insert')}</span>
+                          <span>{t('Insert components')}</span>
                           <i
                             className="fa fa-times trigger"
                             onClick={this.props.toggleBuilderPane}
@@ -101,7 +101,7 @@ class BuilderComponentPane extends React.PureComponent {
                           role="none"
                         >
                           <i className="fa fa-arrow-left trigger" />
-                          <span>{t('All components')}</span>
+                          <span>{t('Your charts and filters')}</span>
                         </div>
                         <SliceAdder
                           height={

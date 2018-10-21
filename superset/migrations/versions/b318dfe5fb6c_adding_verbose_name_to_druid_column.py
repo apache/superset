@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adding verbose_name to druid column
 
 Revision ID: b318dfe5fb6c

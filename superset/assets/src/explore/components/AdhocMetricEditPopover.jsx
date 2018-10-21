@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, ControlLabel, FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
+import ace from 'brace';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
@@ -86,10 +87,12 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onColumnChange(column) {
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({
-      column,
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-    }) });
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        column,
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+      }),
+    });
   }
 
   onAggregateChange(aggregate) {
@@ -221,7 +224,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             </FormGroup>
             <FormGroup>
               <ControlLabel><strong>aggregate</strong></ControlLabel>
-              <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
+              <OnPasteSelect autoFocus {...this.selectProps} {...aggregateSelectProps} />
             </FormGroup>
           </Tab>
           <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">

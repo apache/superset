@@ -1,6 +1,3 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
-
 import reorderItem from '../../../../src/dashboard/util/dnd-reorder';
 
 describe('dnd-reorderItem', () => {
@@ -20,8 +17,8 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'b', index: 1 },
     });
 
-    expect(result.a.children).to.deep.equal(['x', 'y']);
-    expect(result.b.children).to.deep.equal(['banana', 'z']);
+    expect(result.a.children).toEqual(['x', 'y']);
+    expect(result.b.children).toEqual(['banana', 'z']);
   });
 
   it('should correctly move elements within the same list', () => {
@@ -36,7 +33,7 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'a', index: 0 },
     });
 
-    expect(result.a.children).to.deep.equal(['z', 'x', 'y']);
+    expect(result.a.children).toEqual(['z', 'x', 'y']);
   });
 
   it('should copy items that do not move into the result', () => {
@@ -57,6 +54,6 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'b', index: 1 },
     });
 
-    expect(result.iAmExtra === extraEntity).to.equal(true);
+    expect(result.iAmExtra === extraEntity).toBe(true);
   });
 });

@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from tests.base_tests import SupersetTestCase
 from wtforms.form import Form
 
 from superset.forms import (
     CommaSeparatedListField, filter_not_empty_values)
+from tests.base_tests import SupersetTestCase
 
 
 class FormTestCase(SupersetTestCase):

@@ -1,6 +1,3 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
-
 import getDetailedComponentWidth from '../../../../src/dashboard/util/getDetailedComponentWidth';
 import * as types from '../../../../src/dashboard/util/componentTypes';
 import {
@@ -11,8 +8,10 @@ import {
 describe('getDetailedComponentWidth', () => {
   it('should return an object with width, minimumWidth, and occupiedWidth', () => {
     expect(
-      getDetailedComponentWidth({ id: '_', components: {} }),
-    ).to.have.all.keys(['minimumWidth', 'occupiedWidth', 'width']);
+      Object.keys(getDetailedComponentWidth({ id: '_', components: {} })),
+    ).toEqual(
+      expect.arrayContaining(['minimumWidth', 'occupiedWidth', 'width']),
+    );
   });
 
   describe('width', () => {
@@ -27,19 +26,19 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.HEADER_TYPE },
         }),
-      ).to.deep.equal(empty);
+      ).toEqual(empty);
 
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.DIVIDER_TYPE },
         }),
-      ).to.deep.equal(empty);
+      ).toEqual(empty);
 
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.TAB_TYPE },
         }),
-      ).to.deep.equal(empty);
+      ).toEqual(empty);
     });
 
     it('should match component meta width for resizeable components', () => {
@@ -47,20 +46,20 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.CHART_TYPE, meta: { width: 1 } },
         }),
-      ).to.deep.equal({ width: 1, occupiedWidth: 1, minimumWidth: 1 });
+      ).toEqual({ width: 1, occupiedWidth: 1, minimumWidth: 1 });
 
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.MARKDOWN_TYPE, meta: { width: 2 } },
         }),
-      ).to.deep.equal({ width: 2, occupiedWidth: 2, minimumWidth: 1 });
+      ).toEqual({ width: 2, occupiedWidth: 2, minimumWidth: 1 });
 
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.COLUMN_TYPE, meta: { width: 3 } },
         }),
         // note: occupiedWidth is zero for colunns/see test below
-      ).to.deep.equal({ width: 3, occupiedWidth: 0, minimumWidth: 1 });
+      ).toEqual({ width: 3, occupiedWidth: 0, minimumWidth: 1 });
     });
 
     it('should be GRID_COLUMN_COUNT for row components WITHOUT parents', () => {
@@ -69,7 +68,7 @@ describe('getDetailedComponentWidth', () => {
           id: 'row',
           components: { row: { id: 'row', type: types.ROW_TYPE } },
         }),
-      ).to.deep.equal({
+      ).toEqual({
         width: GRID_COLUMN_COUNT,
         occupiedWidth: 0,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
@@ -90,7 +89,7 @@ describe('getDetailedComponentWidth', () => {
             },
           },
         }),
-      ).to.deep.equal({
+      ).toEqual({
         width: 7,
         occupiedWidth: 0,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
@@ -105,13 +104,13 @@ describe('getDetailedComponentWidth', () => {
             id: { id: 'id', type: types.CHART_TYPE, meta: { width: 6 } },
           },
         }).width,
-      ).to.equal(6);
+      ).toBe(6);
 
       expect(
         getDetailedComponentWidth({
           component: { id: 'id', type: types.CHART_TYPE, meta: { width: 6 } },
         }).width,
-      ).to.equal(6);
+      ).toBe(6);
     });
   });
 
@@ -129,7 +128,7 @@ describe('getDetailedComponentWidth', () => {
             child: { id: 'child', meta: { width: 3.5 } },
           },
         }),
-      ).to.deep.equal({ width: 12, occupiedWidth: 7, minimumWidth: 7 });
+      ).toEqual({ width: 12, occupiedWidth: 7, minimumWidth: 7 });
     });
 
     it('should always be zero for column components', () => {
@@ -137,7 +136,7 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.COLUMN_TYPE, meta: { width: 2 } },
         }),
-      ).to.deep.equal({ width: 2, occupiedWidth: 0, minimumWidth: 1 });
+      ).toEqual({ width: 2, occupiedWidth: 0, minimumWidth: 1 });
     });
   });
 
@@ -147,7 +146,7 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.CHART_TYPE, meta: { width: 1 } },
         }),
-      ).to.deep.equal({
+      ).toEqual({
         width: 1,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
         occupiedWidth: 1,
@@ -157,7 +156,7 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.MARKDOWN_TYPE, meta: { width: 2 } },
         }),
-      ).to.deep.equal({
+      ).toEqual({
         width: 2,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
         occupiedWidth: 2,
@@ -167,7 +166,7 @@ describe('getDetailedComponentWidth', () => {
         getDetailedComponentWidth({
           component: { id: '', type: types.COLUMN_TYPE, meta: { width: 3 } },
         }),
-      ).to.deep.equal({
+      ).toEqual({
         width: 3,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
         occupiedWidth: 0,
@@ -201,7 +200,7 @@ describe('getDetailedComponentWidth', () => {
           },
         }),
         // occupiedWidth is zero for colunns/see test below
-      ).to.deep.equal({ width: 12, occupiedWidth: 0, minimumWidth: 7 });
+      ).toEqual({ width: 12, occupiedWidth: 0, minimumWidth: 7 });
     });
 
     it('should equal occupiedWidth for row components', () => {
@@ -217,7 +216,7 @@ describe('getDetailedComponentWidth', () => {
             child: { id: 'child', meta: { width: 3.5 } },
           },
         }),
-      ).to.deep.equal({ width: 12, occupiedWidth: 7, minimumWidth: 7 });
+      ).toEqual({ width: 12, occupiedWidth: 7, minimumWidth: 7 });
     });
   });
 });

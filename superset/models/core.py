@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
@@ -21,7 +15,6 @@ from flask_appbuilder.security.sqla.models import User
 from future.standard_library import install_aliases
 import numpy
 import pandas as pd
-import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -36,12 +29,12 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, security_manager, utils
+from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
-from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import MediumText
+from superset.utils import core as utils
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -365,7 +358,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(MediumText())
+    position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -638,7 +631,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     expose_in_sqllab = Column(Boolean, default=False)
     allow_run_sync = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=True)
+    allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
@@ -646,11 +639,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
-        "engine_params": {}
+        "engine_params": {},
+        "metadata_cache_timeout": {},
+        "schemas_allowed_for_csv_upload": []
     }
     """))
     perm = Column(String(1000))
-
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -776,7 +770,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
@@ -813,7 +807,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def compile_sqla_query(self, qry, schema=None):
         engine = self.get_sqla_engine(schema=schema)
 
-        sql = six.text_type(
+        sql = str(
             qry.compile(
                 engine,
                 compile_kwargs={'literal_binds': True},
@@ -853,8 +847,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get('', [])
-        return sorted(
-            self.db_engine_spec.get_table_names(schema, self.inspector))
+
+        extra = self.get_extra()
+        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
+        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
+        return sorted(self.db_engine_spec.get_table_names(
+            inspector=self.inspector,
+            db_id=self.id,
+            schema=schema,
+            enable_cache=enable_cache,
+            cache_timeout=table_cache_timeout,
+            force=force))
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
@@ -865,13 +869,32 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             return views_dict.get('', [])
         views = []
         try:
-            views = self.inspector.get_view_names(schema)
+            extra = self.get_extra()
+            medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+            table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
+            enable_cache = 'table_cache_timeout' in medatada_cache_timeout
+            views = self.db_engine_spec.get_view_names(
+                inspector=self.inspector,
+                db_id=self.id,
+                schema=schema,
+                enable_cache=enable_cache,
+                cache_timeout=table_cache_timeout,
+                force=force)
         except Exception:
             pass
         return views
 
-    def all_schema_names(self):
-        return sorted(self.db_engine_spec.get_schema_names(self.inspector))
+    def all_schema_names(self, force_refresh=False):
+        extra = self.get_extra()
+        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
+        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
+        return sorted(self.db_engine_spec.get_schema_names(
+            inspector=self.inspector,
+            enable_cache=enable_cache,
+            cache_timeout=schema_cache_timeout,
+            db_id=self.id,
+            force=force_refresh))
 
     @property
     def db_engine_spec(self):
@@ -908,6 +931,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 extra = json.loads(self.extra)
             except Exception as e:
                 logging.error(e)
+                raise e
         return extra
 
     def get_table(self, table_name, schema=None):
@@ -930,6 +954,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_foreign_keys(self, table_name, schema=None):
         return self.inspector.get_foreign_keys(table_name, schema)
+
+    def get_schema_access_for_csv_upload(self):
+        return self.get_extra().get('schemas_allowed_for_csv_upload', [])
 
     @property
     def sqlalchemy_uri_decrypted(self):
@@ -959,8 +986,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return sqla_url.get_dialect()()
 
 
-sqla.event.listen(Database, 'after_insert', set_perm)
-sqla.event.listen(Database, 'after_update', set_perm)
+sqla.event.listen(Database, 'after_insert', security_manager.set_perm)
+sqla.event.listen(Database, 'after_update', security_manager.set_perm)
 
 
 class Log(Model):
