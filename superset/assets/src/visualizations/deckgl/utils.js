@@ -49,6 +49,9 @@ export function getBreakPointColorScaler(fd, features) {
   const colorScaler = colorScalerFactory(colors);
   const n = breakPoints.length - 1;
   colors = [...Array(n + 1).keys()].map(d => colorScaler(d / n));
+  // repeat last color, since the last point does not fall in the last bucket
+  // since ranges are [start, end)
+  colors.push(colors[colors.length - 1]);
 
   const points = breakPoints.map(p => parseFloat(p));
   const scaler = d3.scale.threshold().domain(points).range(colors);
