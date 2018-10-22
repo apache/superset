@@ -1,4 +1,4 @@
-import CategoricalColorScale from '../../../src/modules/CategoricalColorScale';
+import CategoricalColorScale from '../../../../src/modules/colors/CategoricalColorScale';
 
 describe('CategoricalColorScale', () => {
   it('exists', () => {

@@ -2,7 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 import './Sankey.css';
 
 const propTypes = {

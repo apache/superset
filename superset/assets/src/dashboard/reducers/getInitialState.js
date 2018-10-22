@@ -18,7 +18,7 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;

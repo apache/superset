@@ -1,5 +1,5 @@
 import CategoricalColorScale from './CategoricalColorScale';
-import { getScheme, getDefaultSchemeName } from './ColorSchemeManager';
+import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
 
 class CategoricalColorNamespace {
   constructor(name) {
@@ -9,13 +9,13 @@ class CategoricalColorNamespace {
   }
 
   getScale(schemeName) {
-    const name = schemeName || getDefaultSchemeName();
+    const name = schemeName || getCategoricalSchemeRegistry().getDefaultSchemeName();
     const scale = this.scales[name];
     if (scale) {
       return scale;
     }
     const newScale = new CategoricalColorScale(
-      getScheme(name),
+      getCategoricalSchemeRegistry().get(name).colors,
       this.forcedItems,
     );
     this.scales[name] = newScale;
