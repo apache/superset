@@ -6,13 +6,11 @@ import { hot } from 'react-hot-loader';
 
 import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
-import { initJQueryAjax } from '../modules/utils';
 import DashboardContainer from './containers/Dashboard';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
 appSetup();
-initJQueryAjax();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
