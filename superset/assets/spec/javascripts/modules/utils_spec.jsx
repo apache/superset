@@ -107,28 +107,33 @@ describe('utils', () => {
 
     it('Returns a Promise that resolves to an object with an error key', () => {
       const error = 'error';
-      getClientErrorObject(error).then((errorObj) => {
+
+      return getClientErrorObject(error).then((errorObj) => {
         expect(errorObj).toMatchObject({ error });
       });
     });
 
     it('Handles Repsonse that can be parsed as json', () => {
-      const jsonError = JSON.stringify({ a: 123, b: 'abc', c: ['error'] });
-      getClientErrorObject(new Response(jsonError)).then((errorObj) => {
-        expect(errorObj).toMatchObject({ error: jsonError });
+      const jsonError = { something: 'something', error: 'Error message' };
+      const jsonErrorString = JSON.stringify(jsonError);
+
+      return getClientErrorObject(new Response(jsonErrorString)).then((errorObj) => {
+        expect(errorObj).toMatchObject(jsonError);
       });
     });
 
     it('Handles Repsonse that can be parsed as text', () => {
       const textError = 'Hello I am a text error';
-      getClientErrorObject(new Response(textError)).then((errorObj) => {
+
+      return getClientErrorObject(new Response(textError)).then((errorObj) => {
         expect(errorObj).toMatchObject({ error: textError });
       });
     });
 
     it('Handles plain text as input', () => {
       const error = 'error';
-      getClientErrorObject(error).then((errorObj) => {
+
+      return getClientErrorObject(error).then((errorObj) => {
         expect(errorObj).toMatchObject({ error });
       });
     });

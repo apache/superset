@@ -130,7 +130,7 @@ export function getClientErrorObject(response) {
     } else if (response && response.constructor === Response && !response.bodyUsed) {
       // attempt to read the body as json, and fallback to text. we must clone the
       // response in order to fallback to .text() because Response is single-read
-      response.clone().json((errorJson) => {
+      response.clone().json().then((errorJson) => {
         let error = { ...response, ...errorJson };
         if (error.stack) {
           error = {
@@ -152,10 +152,10 @@ export function getClientErrorObject(response) {
           resolve({ ...response, error: errorText });
         });
       });
+    } else {
+      // fall back to Response.statusText or generic error of we cannot read the response
+      resolve({ ...response, error: response.statusText || t('An error occurred') });
     }
-
-    // fall back to Response.statusText or generic error of we cannot read the response
-    resolve({ ...response, error: response.statusText || t('An error occurred') });
   });
 
 }
