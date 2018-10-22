@@ -2840,7 +2840,7 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose('/schema_access_for_csv_upload')
+    @expose('/schemas_access_for_csv_upload')
     def schemas_access_for_csv_upload(self):
         """
         This method exposes an API endpoint to
