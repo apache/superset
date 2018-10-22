@@ -2,11 +2,9 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
-
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';

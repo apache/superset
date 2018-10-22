@@ -8,7 +8,7 @@ import 'nvd3/build/nv.d3.min.css';
 
 import { t } from '../../locales';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/CategoricalColorNamespace';
+import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
