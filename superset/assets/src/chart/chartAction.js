@@ -171,6 +171,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
         });
+
         if (response.statusText === 'timeout') {
           return dispatch(chartUpdateTimeout(response.statusText, timeout, key));
         } else if (response.statusText === 'AbortError') {
