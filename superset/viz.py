@@ -2383,7 +2383,7 @@ class DeckPolygon(DeckPathViz):
         metrics = [self.form_data.get('metric')]
         if self.elevation.get('type') == 'metric':
             metrics.append(self.elevation.get('value'))
-        return metrics
+        return [metric for metric in metrics if metric]
 
     def get_properties(self, d):
         super(DeckPolygon, self).get_properties(d) 

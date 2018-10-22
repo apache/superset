@@ -49,7 +49,9 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     data = jsFnMutator(data);
   }
 
-  const colorScaler = getBreakPointColorScaler(fd, data);
+  const colorScaler = fd.metric === null
+    ? d => [fc.r, fc.g, fc.b, 255 * fc.a]
+    : getBreakPointColorScaler(fd, data);
 
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
@@ -58,7 +60,7 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     filled: fd.filled,
     stroked: fd.stroked,
     getPolygon: d => d.polygon,
-    getFillColor: colorScaler || [fc.r, fc.g, fc.b, 255 * fc.a],
+    getFillColor: colorScaler,
     getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
@@ -190,10 +192,11 @@ class DeckGLPolygon extends React.PureComponent {
           setControlValue={this.props.setControlValue}
           aggregation
         >
+          {this.props.slice.formData.metric !== null &&
           <Legend
             categories={this.state.categories}
             position={this.props.slice.formData.legend_position}
-          />
+          />}
         </AnimatableDeckGLContainer>
       </div>
     );
