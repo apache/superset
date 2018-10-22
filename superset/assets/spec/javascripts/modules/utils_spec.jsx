@@ -113,7 +113,7 @@ describe('utils', () => {
       });
     });
 
-    it('Handles Repsonse that can be parsed as json', () => {
+    it('Handles Response that can be parsed as json', () => {
       const jsonError = { something: 'something', error: 'Error message' };
       const jsonErrorString = JSON.stringify(jsonError);
 
@@ -122,7 +122,7 @@ describe('utils', () => {
       });
     });
 
-    it('Handles Repsonse that can be parsed as text', () => {
+    it('Handles Response that can be parsed as text', () => {
       const textError = 'Hello I am a text error';
 
       return getClientErrorObject(new Response(textError)).then((errorObj) => {
