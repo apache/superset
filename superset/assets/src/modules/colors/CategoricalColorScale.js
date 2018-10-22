@@ -1,4 +1,4 @@
-import { TIME_SHIFT_PATTERN } from '../utils/common';
+import { TIME_SHIFT_PATTERN } from '../../utils/common';
 
 export function cleanValue(value) {
   // for superset series that should have the same color

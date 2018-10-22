@@ -5,10 +5,10 @@ import { Creatable } from 'react-select';
 
 import ColorSchemeControl from
   '../../../../src/explore/components/controls/ColorSchemeControl';
-import { getAllSchemes } from '../../../../src/modules/ColorSchemeManager';
+import getCategoricalSchemeRegistry from '../../../../src/modules/colors/CategoricalSchemeRegistrySingleton';
 
 const defaultProps = {
-  options: Object.keys(getAllSchemes()).map(s => ([s, s])),
+  options: getCategoricalSchemeRegistry().keys().map(s => ([s, s])),
 };
 
 describe('ColorSchemeControl', () => {

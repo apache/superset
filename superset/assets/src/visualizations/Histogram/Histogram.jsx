@@ -5,7 +5,7 @@ import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
 import WithLegend from '../WithLegend';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 
 const propTypes = {
   className: PropTypes.string,

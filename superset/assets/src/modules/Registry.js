@@ -5,6 +5,12 @@ export default class Registry {
     this.promises = {};
   }
 
+  clear() {
+    this.items = {};
+    this.promises = {};
+    return this;
+  }
+
   has(key) {
     const item = this.items[key];
     return item !== null && item !== undefined;
@@ -44,8 +50,34 @@ export default class Registry {
     return Promise.reject(`Item with key "${key}" is not registered.`);
   }
 
+  getMap() {
+    return this.keys().reduce((prev, key) => {
+      const map = prev;
+      map[key] = this.get(key);
+      return map;
+    }, {});
+  }
+
+  getMapAsPromise() {
+    const keys = this.keys();
+    return Promise.all(keys.map(key => this.getAsPromise(key)))
+      .then(values => values.reduce((prev, value, i) => {
+        const map = prev;
+        map[keys[i]] = value;
+        return map;
+      }, {}));
+  }
+
   keys() {
     return Object.keys(this.items);
+  }
+
+  values() {
+    return this.keys().map(key => this.get(key));
+  }
+
+  valuesAsPromise() {
+    return Promise.all(this.keys().map(key => this.getAsPromise(key)));
   }
 
   entries() {
