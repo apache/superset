@@ -21,6 +21,16 @@ function getPoints(features) {
   return flatten(features.map(d => d.polygon), true);
 }
 
+function getElevation(d, colorScaler) {
+  /* in deck.gl, if a polygon has opacity zero it will make everything behind
+   * it have opacity zero, effectly showing the map layer no matter what other
+   * polygons are behind it.
+   */
+  return colorScaler(d)[3] === 0
+    ? 0
+    : d.elevation;
+}
+
 function getLayer(formData, payload, slice, selected, onSelect, filters) {
   const fd = formData;
   const fc = fd.fill_color_picker;
@@ -52,7 +62,7 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
-    getElevation: d => d.elevation,
+    getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...common.commonLayerProps(fd, slice, onSelect),

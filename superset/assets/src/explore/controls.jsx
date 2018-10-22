@@ -1520,10 +1520,10 @@ export const controls = {
     type: 'SelectControl',
     multi: false,
     freeForm: true,
-    label: t('Number of categories for legend'),
+    label: t('Number of categories to bucket data'),
     default: 5,
     choices: formatSelectOptions([2, 3, 5, 10]),
-    description: t('How many categories should be shown in the legend.'),
+    description: t('How many categories should the data be bucketed in.'),
     renderTrigger: true,
   },
 
