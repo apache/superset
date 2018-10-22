@@ -6,14 +6,12 @@ import PropTypes from 'prop-types';
 
 import { PolygonLayer } from 'deck.gl';
 import { flatten } from 'lodash';
-import d3 from 'd3';
 
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
 import Legend from '../../Legend';
-import { getCategories } from '../utils';
+import { getCategories, getBreakPointColorScaler } from '../utils';
 
 import * as common from './common';
-import { colorScalerFactory } from '../../../modules/colors';
 import { getPlaySliderParams } from '../../../modules/time';
 import sandboxedEval from '../../../modules/sandbox';
 
@@ -35,32 +33,18 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     });
   }
 
-  let colorScaler;
-  const mainMetric = payload.data.metricLabels.length ? payload.data.metricLabels[0] :  null;
-  if (mainMetric) {
-    const ext = d3.extent(data, d => d[mainMetric]);
-    const scaler = colorScalerFactory(fd.linear_color_scheme, null, null, ext, true);
-    colorScaler = (d) => {
-      const c = scaler(d[mainMetric]);
-      c[3] = (fd.opacity / 100.0) * 255;
-      return c;
-    };
-  }
-
   if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
 
-  const layerProps = common.commonLayerProps(fd, slice);
-  if (layerProps.onClick === undefined) {
-    layerProps.onClick = o => onSelect(o.object);
-  }
+  const colorScaler = getBreakPointColorScaler(fd, data);
 
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
+    pickable: true,
     filled: fd.filled,
     stroked: fd.stroked,
     getPolygon: d => d.polygon,
@@ -68,8 +52,10 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
+    getElevation: d => d.elevation,
+    elevationScale: fd.multiplier,
     fp64: true,
-    ...common.commonLayerProps(fd, slice),
+    ...common.commonLayerProps(fd, slice, onSelect),
   });
 }
 
@@ -146,8 +132,8 @@ class DeckGLPolygon extends React.PureComponent {
     }
 
     this.setState({ selected, lastClick: now });
-    if (fd.propagate_filter) {
-      slice.addFilter(fd.groupby, selected, false, true);
+    if (fd.table_filter) {
+      slice.addFilter(fd.line_column, selected, false, true);
     }
   }
   onViewportChange(viewport) {

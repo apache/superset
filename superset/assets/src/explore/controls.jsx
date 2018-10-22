@@ -1508,6 +1508,35 @@ export const controls = {
     description: t('Send range filter events to other charts'),
   },
 
+  toggle_polygons: {
+    type: 'CheckboxControl',
+    label: t('Multiple filtering'),
+    renderTrigger: true,
+    default: true,
+    description: t('Allow sending multiple polygons as a filter event'),
+  },
+
+  num_categories: {
+    type: 'SelectControl',
+    multi: false,
+    freeForm: true,
+    label: t('Number of categories for legend'),
+    default: 5,
+    choices: formatSelectOptions([2, 3, 5, 10]),
+    description: t('How many categories should be shown in the legend.'),
+    renderTrigger: true,
+  },
+
+  break_points: {
+    type: 'SelectControl',
+    multi: true,
+    freeForm: true,
+    label: t('Category break points'),
+    choices: formatSelectOptions([]),
+    description: t('List of values for categorizing metric.'),
+    renderTrigger: true,
+  },
+
   show_labels: {
     type: 'CheckboxControl',
     label: t('Show Labels'),
