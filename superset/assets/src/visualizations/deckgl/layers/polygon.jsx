@@ -49,9 +49,19 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
     data = jsFnMutator(data);
   }
 
-  const colorScaler = fd.metric === null
+  // base color for the polygons
+  const baseColorScaler = fd.metric === null
     ? d => [fc.r, fc.g, fc.b, 255 * fc.a]
     : getBreakPointColorScaler(fd, data);
+
+  // when polygons are selected, reduce the opacity of non-selected polygons
+  const colorScaler = (d) => {
+    const baseColor = baseColorScaler(d);
+    if (selected.length > 0 && selected.indexOf(d[fd.line_column]) === -1) {
+      baseColor[3] /= 2;
+    }
+    return baseColor;
+  };
 
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,

@@ -65,7 +65,7 @@ export function commonLayerProps(formData, slice, onSelect) {
       const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
     };
-  } else if (fd.table_filter && fd.line_type === 'geohash') {
+  } else if (fd.table_filter && onSelect !== undefined) {
     onClick = o => onSelect(o.object[fd.line_column]);
   }
   return {

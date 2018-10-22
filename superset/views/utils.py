@@ -34,7 +34,6 @@ def bootstrap_user_data(username=None, include_perms=False):
         'createdOn': user.created_on.isoformat(),
         'email': user.email,
     }
-    print(payload)
 
     if include_perms:
         roles, permissions = get_permissions(user)
