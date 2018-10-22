@@ -13,7 +13,7 @@ export function getBreakPoints(fd, features) {
     if (!Array.isArray(colors)) {
       colors = sequentialSchemes[colors];
     }
-    const numCategories = fd.num_categories === undefined
+    const numCategories = fd.num_categories === null 
       ? colors.length
       : parseInt(fd.num_categories, 10);
     const [minValue, maxValue] = d3.extent(features, d => d[fd.metric]);
