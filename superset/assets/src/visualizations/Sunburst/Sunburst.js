@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 import { wrapSvgText } from '../../modules/utils';
 import './Sunburst.css';
 
