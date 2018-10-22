@@ -501,6 +501,10 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
     force_column_alias_quotes = True
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
@@ -524,6 +528,10 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
+
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
 
 
 class Db2EngineSpec(BaseEngineSpec):
