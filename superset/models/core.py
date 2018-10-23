@@ -37,7 +37,7 @@ from superset.utils import (
     cache as cache_util,
     core as utils,
 )
-from superset.viz import viz_types
+from superset.viz import METRIC_KEYS, viz_types
 from urllib import parse  # noqa
 
 config = app.config
@@ -86,6 +86,37 @@ def copy_dashboard(mapper, connection, target):
     )
     session.add(extra_attributes)
     session.commit()
+
+
+def query_obj_backfill(form_data, datasource_id=None, datasource_type=None):
+    # Backfill query_obj. This will be generated on the client in the future.
+    # Note we unpack the metrics on the viz here so we can create the metrics
+    # dictionary during viz initialization without leveraging form_data.
+    #
+    # TODO: Note structure of the backfilled query_obj is temporary. It will be
+    # restructured as we build out the query object on the client side.
+    # The fields included are necessary to load a table viz without form_data
+    query_obj = {
+        'viz_type': form_data.get('viz_type', 'table'),
+        'time_range': form_data.get('time_range'),
+        'include_time': form_data.get('include_time'),
+        'token': form_data.get('token'),
+        'metrics': form_data.get('metrics'),
+        'percent_metrics': form_data.get('percent_metrics'),
+        'granularity_sqla': form_data.get('granularity_sqla'),
+        'time_grain_sqla': form_data.get('time_grain_sqla'),
+        'query': {
+            'groupby': form_data.get('groupby'),
+            'metrics': [form_data.get(mkey) for mkey in METRIC_KEYS if mkey in form_data],
+            'granularity': form_data.get('granularity'),
+        },
+    }
+    if datasource_type and datasource_id:
+        query_obj['datasource'] = {
+            'id': datasource_id,
+            'type': datasource_type,
+        }
+    return query_obj
 
 
 sqla.event.listen(User, 'after_insert', copy_dashboard)
@@ -198,7 +229,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
         # pylint: disable=no-member
-        return viz_class(self.datasource, form_data=d)
+        query_obj = query_obj_backfill(d)
+        return viz_class(datasource=self.datasource, form_data=d, query_obj=query_obj)
 
     @property
     def description_markeddown(self):
@@ -296,6 +328,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
             form_data=slice_params,
+            query_obj=query_obj_backfill(slice_params),
             force=force,
         )
 

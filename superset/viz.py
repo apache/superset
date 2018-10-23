@@ -31,7 +31,8 @@ from past.builtins import basestring
 import polyline
 import simplejson as json
 
-from superset import app, cache, get_css_manifest_files
+from superset import app, cache, db, get_css_manifest_files
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -63,22 +64,39 @@ class BaseViz(object):
     cache_type = 'df'
     enforce_numerical_metrics = True
 
-    def __init__(self, datasource, form_data, force=False):
-        if not datasource:
-            raise Exception(_('Viz is missing a datasource'))
+    def __init__(self, datasource, form_data, query_obj, force=False):
+        if datasource:
+            self.datasource = datasource
+        else:
+            datasource_dict=query_obj.get('datasource', {})
+            ds = ConnectorRegistry.get_datasource(
+                datasource_dict.get('type'), datasource_dict.get('id'), db.session)
+            if not ds:
+                raise Exception(_('Viz is missing a datasource'))
+            else:
+                self.datasource = ds
 
-        self.datasource = datasource
         self.request = request
-        self.viz_type = form_data.get('viz_type')
+
+        self.viz_type = query_obj.get('viz_type')
+        self.time_range = query_obj.get('time_range')
+        self.include_time = query_obj.get('include_time')
+        self.token = query_obj.get('token', 'token_' + uuid.uuid4().hex[:8])
+        self.metrics = query_obj.get('metrics')
+        self.percent_metrics = query_obj.get('percent_metrics')
+        self.granularity_sqla = query_obj.get('granularity_sqla')
+        self.time_grain_sqla = query_obj.get('time_grain_sqla')
+        self.q_obj = query_obj.get('query')
+        self.groupby = self.q_obj.get('groupby') or []
+
+        # TODO: sunset form_data and move all fields we're currently retrieving
+        # from form_data to query_obj generated on the client. Temporarily set
+        # form_data as it is used extensively in viz.py.
         self.form_data = form_data
 
-        self.query = ''
-        self.token = self.form_data.get(
-            'token', 'token_' + uuid.uuid4().hex[:8])
-
-        self.groupby = self.form_data.get('groupby') or []
         self.time_shift = timedelta()
 
+        self.query = ''
         self.status = None
         self.error_message = None
         self.force = force
@@ -92,23 +110,20 @@ class BaseViz(object):
         self._any_cached_dttm = None
         self._extra_chart_data = []
 
-        self.process_metrics()
+        self.process_metrics(self.q_obj.get('metrics'))
 
-    def process_metrics(self):
+    def process_metrics(self, metrics):
         # metrics in TableViz is order sensitive, so metric_dict should be
         # OrderedDict
         self.metric_dict = OrderedDict()
-        fd = self.form_data
-        for mkey in METRIC_KEYS:
-            val = fd.get(mkey)
-            if val:
-                if not isinstance(val, list):
-                    val = [val]
-                for o in val:
-                    label = self.get_metric_label(o)
-                    if isinstance(o, dict):
-                        o['label'] = label
-                    self.metric_dict[label] = o
+        for val in metrics:
+            if not isinstance(val, list):
+                val = [val]
+            for o in val:
+                label = self.get_metric_label(o)
+                if isinstance(o, dict):
+                    o['label'] = label
+                self.metric_dict[label] = o
 
         # Cast to list needed to return serializable object in py3
         self.all_metrics = list(self.metric_dict.values())
@@ -320,7 +335,9 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
-        if self.form_data.get('cache_timeout') is not None:
+        if self.q_obj and self.q_obj.get('cache_timeout') is not None:
+            return int(self.query_obj.get('cache_timeout'))
+        if self.form_data and self.form_data.get('cache_timeout') is not None:
             return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
@@ -354,7 +371,7 @@ class BaseViz(object):
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
 
-        cache_dict['time_range'] = self.form_data.get('time_range')
+        cache_dict['time_range'] = self.time_range
         cache_dict['datasource'] = self.datasource.uid
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
@@ -373,6 +390,19 @@ class BaseViz(object):
         if 'df' in payload:
             del payload['df']
         return payload
+
+    def get_payload_json_and_error(self, query_obj=None):
+        """
+        Returns the json dump of the payload data and metadata
+        and whether the query resulted in errors
+        """
+        payload = self.get_payload(query_obj)
+        has_error = payload.get('status') == utils.QueryStatus.FAILED or \
+            payload.get('error') is not None
+        return {
+            'json': self.json_dumps(payload),
+            'has_error': has_error
+        }
 
     def get_df_payload(self, query_obj=None, **kwargs):
         """Handles caching around the df payload retrieval"""
@@ -501,17 +531,17 @@ class TableViz(BaseViz):
     enforce_numerical_metrics = False
 
     def should_be_timeseries(self):
-        fd = self.form_data
+        granularity = self.q_obj.get('granularity')
         # TODO handle datasource-type-specific code in datasource
         conditions_met = (
-            (fd.get('granularity') and fd.get('granularity') != 'all') or
-            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+            (granularity and granularity != 'all') or
+            (self.granularity_sqla and self.time_grain_sqla)
         )
-        if fd.get('include_time') and not conditions_met:
+        if self.include_time and not conditions_met:
             raise Exception(_(
                 'Pick a granularity in the Time section or '
                 "uncheck 'Include Time'"))
-        return fd.get('include_time')
+        return self.include_time
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -545,7 +575,6 @@ class TableViz(BaseViz):
         return d
 
     def get_data(self, df):
-        fd = self.form_data
         if (
                 not self.should_be_timeseries() and
                 df is not None and
@@ -554,7 +583,7 @@ class TableViz(BaseViz):
             del df[DTTM_ALIAS]
 
         # Sum up and compute percentages for all percent metrics
-        percent_metrics = fd.get('percent_metrics') or []
+        percent_metrics = self.percent_metrics or []
         percent_metrics = [self.get_metric_label(m) for m in percent_metrics]
 
         if len(percent_metrics):
@@ -572,7 +601,7 @@ class TableViz(BaseViz):
                 m_name = '%' + m
                 df[m_name] = pd.Series(metric_percents[m], name=m_name)
             # Remove metrics that are not in the main metrics list
-            metrics = fd.get('metrics') or []
+            metrics = self.metrics or []
             metrics = [self.get_metric_label(m) for m in metrics]
             for m in filter(
                 lambda m: m not in metrics and m in df.columns,
@@ -589,7 +618,8 @@ class TableViz(BaseViz):
         return data
 
     def json_dumps(self, obj, sort_keys=False):
-        if self.form_data.get('all_columns'):
+        if (self.q_obj and self.q_obj.get('all_columns')) or \
+           (self.form_data and self.form_data.get('all_columns')):
             return json.dumps(
                 obj,
                 default=utils.json_iso_dttm_ser,
@@ -1263,7 +1293,6 @@ class MultiLineViz(NVD3Viz):
         fd = self.form_data
         # Late imports to avoid circular import issues
         from superset.models.core import Slice
-        from superset import db
         slice_ids1 = fd.get('line_charts')
         slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
         slice_ids2 = fd.get('line_charts_2')
@@ -2045,7 +2074,6 @@ class DeckGLMultiLayer(BaseViz):
         fd = self.form_data
         # Late imports to avoid circular import issues
         from superset.models.core import Slice
-        from superset import db
         slice_ids = fd.get('deck_slices')
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
         return {

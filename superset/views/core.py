@@ -46,7 +46,7 @@ from .base import (
     api, BaseSupersetView,
     check_ownership,
     CsvResponse, DeleteMixin,
-    generate_download_headers, get_error_msg,
+    generate_download_headers, get_error_msg, handle_superset_exception,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
@@ -789,6 +789,12 @@ appbuilder.add_view_no_menu(R)
 
 
 class Superset(BaseSupersetView):
+    def payload_response(self, payload_json_and_error):
+        payload_json = payload_json_and_error.get('json')
+        has_error = payload_json_and_error.get('has_error')
+        status = 400 if has_error else 200
+        return json_success(payload_json, status=status)
+
     """The base views for Superset!"""
     @has_access_api
     @expose('/datasources/')
@@ -1052,9 +1058,8 @@ class Superset(BaseSupersetView):
     def get_viz(
             self,
             slice_id=None,
+            query_obj=None,
             form_data=None,
-            datasource_type=None,
-            datasource_id=None,
             force=False,
     ):
         if slice_id:
@@ -1065,12 +1070,14 @@ class Superset(BaseSupersetView):
             )
             return slc.get_viz()
         else:
-            viz_type = form_data.get('viz_type', 'table')
-            datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, db.session)
+            if query_obj:
+                viz_type = query_obj.get('viz_type', 'table')
+            else:
+                viz_type = form_data.get('viz_type', 'table')
             viz_obj = viz.viz_types[viz_type](
-                datasource,
+                datasource=None,
                 form_data=form_data,
+                query_obj=query_obj,
                 force=force,
             )
             return viz_obj
@@ -1119,29 +1126,25 @@ class Superset(BaseSupersetView):
             'data': viz_obj.get_samples(),
         })
 
+    def check_datasource_permission(self, datasource, user=None):
+        if not security_manager.datasource_access(datasource, user):
+            return json_error_response(
+                security_manager.get_datasource_access_error_msg(datasource),
+                status=401,
+                link=security_manager.get_datasource_access_link(datasource))
+
+    @handle_superset_exception
     def generate_json(
             self, datasource_type, datasource_id, form_data,
             csv=False, query=False, force=False, results=False,
             samples=False,
     ):
-        try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force=force,
-            )
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
-
-        if not security_manager.datasource_access(viz_obj.datasource, g.user):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
-                status=404,
-                link=security_manager.get_datasource_access_link(viz_obj.datasource))
+        viz_obj = self.get_viz(
+            query_obj=models.query_obj_backfill(form_data, datasource_id, datasource_type),
+            form_data=form_data,
+            force=force,
+        )
+        self.check_datasource_permission(viz_obj.datasource, g.user)
 
         if csv:
             return CsvResponse(
@@ -1159,43 +1162,24 @@ class Superset(BaseSupersetView):
         if samples:
             return self.get_samples(viz_obj)
 
-        try:
-            payload = viz_obj.get_payload()
-        except SupersetException as se:
-            logging.exception(se)
-            return json_error_response(utils.error_msg_from_exception(se),
-                                       status=se.status)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-
-        status = 200
-        if (
-            payload.get('status') == QueryStatus.FAILED or
-            payload.get('error') is not None
-        ):
-            status = 400
-
-        return json_success(viz_obj.json_dumps(payload), status=status)
+        payload_json_and_error = viz_obj.get_payload_json_and_error()
+        return self.payload_response(payload_json_and_error)
 
     @log_this
+    @api
     @has_access_api
     @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
-        try:
-            form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
-            datasource_type = slc.datasource.type
-            datasource_id = slc.datasource.id
+        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        datasource_type = slc.datasource.type
+        datasource_id = slc.datasource.id
 
-        except Exception as e:
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data)
 
     @log_this
+    @api
     @has_access_api
     @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
@@ -1210,17 +1194,30 @@ class Superset(BaseSupersetView):
             form_data=form_data,
             force=False,
         )
-        try:
-            payload = viz_obj.get_payload()
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-        status = 200
-        if payload.get('status') == QueryStatus.FAILED:
-            status = 400
-        return json_success(viz_obj.json_dumps(payload), status=status)
+        payload_json_and_error = viz_obj.get_payload_json_and_error()
+        return self.payload_response(payload_json_and_error)
 
     @log_this
+    @api
+    @handle_superset_exception
+    @has_access_api
+    @expose('/api/v1/query/', methods=['POST'])
+    def query(self):
+        """
+        Takes a query_obj constructed in the client and returns payload data response
+        for the given query_obj. We assume the datasource for the query is provided
+        as part of the query_obj and datasource contains the type and the id field.
+        We also assume the viz_type is provided as part of the query_obj.
+        """
+        query_obj = json.loads(request.form.get('query_obj'),
+                               object_hook=utils.decode_iso_dttm)
+        viz_obj = self.get_viz(query_obj=query_obj)
+        self.check_datasource_permission(viz_obj.datasource, g.user)
+        payload_json_and_error = viz_obj.get_payload_json_and_error(query_obj.get('query'))
+        return self.payload_response(payload_json_and_error)
+
+    @log_this
+    @api
     @has_access_api
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
@@ -1240,15 +1237,10 @@ class Superset(BaseSupersetView):
         samples = request.args.get('samples') == 'true'
         force = request.args.get('force') == 'true'
 
-        try:
-            form_data = self.get_form_data()[0]
-            datasource_id, datasource_type = self.datasource_info(
-                datasource_id, datasource_type, form_data)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
+        form_data = self.get_form_data()[0]
+        datasource_id, datasource_type = self.datasource_info(
+            datasource_id, datasource_type, form_data)
+
         return self.generate_json(
             datasource_type=datasource_type,
             datasource_id=datasource_id,
@@ -1420,10 +1412,7 @@ class Superset(BaseSupersetView):
             datasource_type, datasource_id, db.session)
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
-        if not security_manager.datasource_access(datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(datasource))
-
+        self.check_datasource_permission(datasource)
         payload = json.dumps(
             datasource.values_for_column(
                 column,
@@ -2668,10 +2657,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         # Check permission for datasource
-        if not security_manager.datasource_access(datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(datasource),
-                link=security_manager.get_datasource_access_link(datasource))
+        self.check_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2856,11 +2842,7 @@ class Superset(BaseSupersetView):
         get the database query string for this slice
         """
         viz_obj = self.get_viz(slice_id)
-        if not security_manager.datasource_access(viz_obj.datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
-                status=401,
-                link=security_manager.get_datasource_access_link(viz_obj.datasource))
+        self.check_datasource_permission(viz_obj.datasource)
         return self.get_query_string_response(viz_obj)
 
     @api

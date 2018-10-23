@@ -213,6 +213,29 @@ def dttm_from_timtuple(d):
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
 
+def decode_iso_dttm(o):
+    """
+    Function to be passed into json.loads object_hook parameter
+    to decode ISO datetime.
+    """
+    if not isinstance(o, dict):
+        return o
+
+    for k, v in o.items():
+        if isinstance(v, list):
+            for a in v:
+                decode_iso_dttm(a)
+        elif isinstance(v, dict):
+            decode_iso_dttm(v)
+        elif isinstance(v, basestring):
+            try:
+                o[k] = parse(v, ignoretz=True)
+            except:
+                pass
+
+    return o
+
+
 def decode_dashboards(o):
     """
     Function to be passed into json.loads obj_hook parameter

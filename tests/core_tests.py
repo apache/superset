@@ -86,6 +86,17 @@ class CoreTests(SupersetTestCase):
         qobj['groupby'] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
 
+    def test_api_v1_query_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        query_obj = models.query_obj_backfill(slc.form_data,
+                                              slc.datasource_id, slc.datasource_type)
+        query_obj.get('query').update(slc.viz.query_obj())
+        data = json.dumps(query_obj, default=utils.json_iso_dttm_ser)
+
+        resp = self.get_resp('/superset/api/v1/query/', {'query_obj': data})
+        assert '"Jennifer"' in resp
+
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
