@@ -227,7 +227,7 @@ class QuerySearch extends React.PureComponent {
             <Select
               name="select-status"
               placeholder={t('[Query Status]')}
-              options={STATUS_OPTIONS.map(s => ({ value: s, label: s }))}
+              options={Object.keys(STATUS_OPTIONS).map(s => ({ value: s, label: s }))}
               value={this.state.status}
               isLoading={false}
               autosize={false}
