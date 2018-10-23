@@ -1,9 +1,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { getFormDataFromControls, defaultControls } from '@/explore/store';
-import { ControlPanelsContainer } from '@/explore/components/ControlPanelsContainer';
-import ControlPanelSection from '@/explore/components/ControlPanelSection';
-import * as featureFlags from '@/featureFlags';
+import { getFormDataFromControls, defaultControls } from 'src/explore/store';
+import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
+import ControlPanelSection from 'src/explore/components/ControlPanelSection';
+import * as featureFlags from 'src/featureFlags';
 
 const defaultProps = {
   datasource_type: 'table',

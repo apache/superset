@@ -4,7 +4,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
-import { initFeatureFlags } from '@/featureFlags';
+import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import ExploreViewContainer from './components/ExploreViewContainer';

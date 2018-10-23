@@ -4,7 +4,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader';
 
-import { initFeatureFlags } from '@/featureFlags';
+import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
 import DashboardContainer from './containers/Dashboard';

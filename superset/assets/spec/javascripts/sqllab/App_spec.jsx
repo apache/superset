@@ -5,9 +5,9 @@ import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import App from '@/SqlLab/components/App';
-import TabbedSqlEditors from '@/SqlLab/components/TabbedSqlEditors';
-import { sqlLabReducer } from '@/SqlLab/reducers';
+import App from 'src/SqlLab/components/App';
+import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
+import { sqlLabReducer } from 'src/SqlLab/reducers';
 
 describe('SqlLab App', () => {
   const middlewares = [thunk];

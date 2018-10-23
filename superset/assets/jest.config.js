@@ -3,7 +3,7 @@ module.exports = {
   moduleNameMapper: {
     '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
     '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^src/(.*)$': '<rootDir>/src/$1',
   },
   setupTestFrameworkScriptFile: '<rootDir>/spec/helpers/shim.js',
   testURL: 'http://localhost',

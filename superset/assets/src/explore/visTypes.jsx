@@ -3,7 +3,7 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
-import { isFeatureEnabled, FeatureFlag } from '@/featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';

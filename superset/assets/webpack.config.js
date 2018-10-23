@@ -110,7 +110,7 @@ const config = {
   },
   resolve: {
     alias: {
-      '@': path.resolve(APP_DIR, './src'),
+      src: path.resolve(APP_DIR, './src'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },

@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
 
-import { initFeatureFlags } from '@/featureFlags';
+import { initFeatureFlags } from 'src/featureFlags';
 import getInitialState from './getInitialState';
 import rootReducer from './reducers';
 import { initEnhancer } from '../reduxUtils';
