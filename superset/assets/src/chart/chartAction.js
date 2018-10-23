@@ -5,7 +5,7 @@ import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/explor
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { COMMON_ERR_MESSAGES } from '../utils/common';
+import { getClientErrorObject } from '../modules/utils';
 import { t } from '../locales';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -163,7 +163,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         });
         return dispatch(chartUpdateSucceeded(json, key));
       })
-      .catch((err) => {
+      .catch((response) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
           has_err: true,
@@ -171,28 +171,15 @@ export function runQuery(formData, force = false, timeout = 60, key) {
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
         });
-        if (err.statusText === 'timeout') {
-          dispatch(chartUpdateTimeout(err.statusText, timeout, key));
-        } else if (err.statusText === 'AbortError') {
-          dispatch(chartUpdateStopped(key));
-        } else {
-          let errObject = err;
-          if (err.responseJSON) {
-            errObject = err.responseJSON;
-          } else if (err.stack) {
-            errObject = {
-              error:
-                t('Unexpected error: ') +
-                (err.description || t('(no description, click to see stack trace)')),
-              stacktrace: err.stack,
-            };
-          } else if (err.responseText && err.responseText.indexOf('CSRF') >= 0) {
-            errObject = {
-              error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
-            };
-          }
-          dispatch(chartUpdateFailed(errObject, key));
+
+        if (response.statusText === 'timeout') {
+          return dispatch(chartUpdateTimeout(response.statusText, timeout, key));
+        } else if (response.statusText === 'AbortError') {
+          return dispatch(chartUpdateStopped(key));
         }
+        return getClientErrorObject(response).then(parsedResponse =>
+          dispatch(chartUpdateFailed(parsedResponse, key)),
+        );
       });
 
     const annotationLayers = formData.annotation_layers || [];
