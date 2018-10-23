@@ -1,5 +1,4 @@
-import $ from 'jquery';
-import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
 
 import { Logger, ActionLog } from '../../src/logger';
 
@@ -43,10 +42,15 @@ describe('ActionLog', () => {
     log.addEvent(eventName, eventBody);
     expect(log.events[eventName]).toHaveLength(1);
     expect(log.events[eventName][0]).toMatchObject(eventBody);
+    Logger.end(log);
   });
 });
 
 describe('Logger', () => {
+  const logEndpoint = 'glob:*/superset/log/*';
+  fetchMock.post(logEndpoint, 'success');
+  afterEach(fetchMock.resetHistory);
+
   it('should add events when .append(eventName, eventBody) is called', () => {
     const eventName = 'testEvent';
     const eventBody = { test: 'event' };
@@ -59,13 +63,6 @@ describe('Logger', () => {
   });
 
   describe('.send()', () => {
-    beforeEach(() => {
-      sinon.spy($, 'ajax');
-    });
-    afterEach(() => {
-      $.ajax.restore();
-    });
-
     const eventNames = ['test'];
 
     function setup(overrides = {}) {
@@ -73,16 +70,17 @@ describe('Logger', () => {
       return log;
     }
 
-    it('should POST an event to /superset/log/ when called', () => {
+    it('should POST an event to /superset/log/ when called', (done) => {
       const log = setup();
       Logger.start(log);
       Logger.append(eventNames[0], { test: 'event' });
       expect(log.events[eventNames[0]]).toHaveLength(1);
       Logger.end(log);
-      expect($.ajax.calledOnce).toBe(true);
-      const args = $.ajax.getCall(0).args[0];
-      expect(args.url).toBe('/superset/log/');
-      expect(args.method).toBe('POST');
+
+      setTimeout(() => {
+        expect(fetchMock.calls(logEndpoint)).toHaveLength(1);
+        done();
+      }, 0);
     });
 
     it("should flush the log's events", () => {
@@ -97,7 +95,7 @@ describe('Logger', () => {
 
     it(
       'should include ts, start_offset, event_name, impression_id, source, and source_id in every event',
-      () => {
+      (done) => {
         const config = {
           eventNames: ['event1', 'event2'],
           impressionId: 'impress_me',
@@ -111,39 +109,52 @@ describe('Logger', () => {
         Logger.append('event2', { foo: 'bar' });
         Logger.end(log);
 
-        const args = $.ajax.getCall(0).args[0];
-        const events = JSON.parse(args.data.events);
+        setTimeout(() => {
+          const calls = fetchMock.calls(logEndpoint);
+          expect(calls).toHaveLength(1);
+          const options = calls[0][1];
+          const events = JSON.parse(options.body.get('events'));
 
-        expect(events).toHaveLength(2);
-        expect(events[0]).toMatchObject({
-          key: 'value',
-          event_name: 'event1',
-          impression_id: config.impressionId,
-          source: config.source,
-          source_id: config.sourceId,
-        });
-        expect(events[1]).toMatchObject({
-          foo: 'bar',
-          event_name: 'event2',
-          impression_id: config.impressionId,
-          source: config.source,
-          source_id: config.sourceId,
-        });
-        expect(typeof events[0].ts).toBe('number');
-        expect(typeof events[1].ts).toBe('number');
-        expect(typeof events[0].start_offset).toBe('number');
-        expect(typeof events[1].start_offset).toBe('number');
+          expect(events).toHaveLength(2);
+
+          expect(events[0]).toMatchObject({
+            key: 'value',
+            event_name: 'event1',
+            impression_id: config.impressionId,
+            source: config.source,
+            source_id: config.sourceId,
+          });
+
+          expect(events[1]).toMatchObject({
+            foo: 'bar',
+            event_name: 'event2',
+            impression_id: config.impressionId,
+            source: config.source,
+            source_id: config.sourceId,
+          });
+
+          expect(typeof events[0].ts).toBe('number');
+          expect(typeof events[1].ts).toBe('number');
+          expect(typeof events[0].start_offset).toBe('number');
+          expect(typeof events[1].start_offset).toBe('number');
+
+          done();
+        }, 0);
       },
     );
 
     it(
       'should send() a log immediately if .append() is called with sendNow=true',
-      () => {
+      (done) => {
         const log = setup();
         Logger.start(log);
         Logger.append(eventNames[0], { test: 'event' }, true);
-        expect($.ajax.calledOnce).toBe(true);
-        Logger.end(log);
+
+        setTimeout(() => {
+          expect(fetchMock.calls(logEndpoint)).toHaveLength(1);
+          Logger.end(log); // flush logs
+          done();
+        }, 0);
       },
     );
   });
