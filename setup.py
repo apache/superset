@@ -61,7 +61,7 @@ setup(
         'contextlib2',
         'cryptography',
         'flask<1.0.0',
-        'flask-appbuilder>=1.12.0',
+        'flask-appbuilder>=1.12.1',
         'flask-caching',
         'flask-compress',
         'flask-migrate',
