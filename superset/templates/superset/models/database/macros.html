@@ -57,3 +57,9 @@
     });
   </script>
 {% endmacro %}
+
+{% macro expand_extra_textarea() %}
+  <script>
+    $('#extra').attr('rows', '5');
+  </script>
+{% endmacro %}

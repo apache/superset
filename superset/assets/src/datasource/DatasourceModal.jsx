@@ -29,15 +29,11 @@ class DatasourceModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      showEditDatasource: false,
-      filter: '',
-      loading: true,
       errors: [],
       showDatasource: false,
       datasource: props.datasource,
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
-    this.changeSearch = this.changeSearch.bind(this);
     this.setSearchRef = this.setSearchRef.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
     this.onClickSave = this.onClickSave.bind(this);
@@ -97,9 +93,6 @@ class DatasourceModal extends React.PureComponent {
   }
   toggleShowDatasource() {
     this.setState({ showDatasource: !this.state.showDatasource });
-  }
-  changeSearch(event) {
-    this.setState({ filter: event.target.value });
   }
   renderSaveDialog() {
     return (

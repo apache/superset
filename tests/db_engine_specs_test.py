@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import inspect
-
-from six import text_type
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
@@ -103,8 +95,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
         e = Exception("Some string that doesn't match the regex")
         self.assertEquals(
-            text_type(e),
-            HiveEngineSpec.extract_error_message(e))
+            str(e), HiveEngineSpec.extract_error_message(e))
 
         msg = (
             'errorCode=10001, '

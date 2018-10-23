@@ -1,6 +1,5 @@
 
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
 import React from 'react';
 import TTestTable, { dataPropType } from './TTestTable';
 import './PairedTTest.css';
@@ -56,28 +55,4 @@ class PairedTTest extends React.PureComponent {
 PairedTTest.propTypes = propTypes;
 PairedTTest.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { formData, selector } = slice;
-  const element = document.querySelector(selector);
-  const {
-    groupby: groups,
-    metrics,
-    liftvalue_precision: liftValPrec,
-    pvalue_precision: pValPrec,
-    significance_level: alpha,
-  } = formData;
-
-  ReactDOM.render(
-    <PairedTTest
-      metrics={metrics}
-      groups={groups}
-      data={payload.data}
-      alpha={alpha}
-      pValPrec={parseInt(pValPrec, 10)}
-      liftValPrec={parseInt(liftValPrec, 10)}
-    />,
-    element,
-  );
-}
-
-export default adaptor;
+export default PairedTTest;

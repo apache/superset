@@ -7,7 +7,7 @@ const propTypes = {
   categories: PropTypes.object,
   toggleCategory: PropTypes.func,
   showSingleCategory: PropTypes.func,
-  position: PropTypes.oneOf(['tl', 'tr', 'bl', 'br']),
+  position: PropTypes.oneOf([null, 'tl', 'tr', 'bl', 'br']),
 };
 
 const defaultProps = {
@@ -19,7 +19,7 @@ const defaultProps = {
 
 export default class Legend extends React.PureComponent {
   render() {
-    if (Object.keys(this.props.categories).length === 0) {
+    if (Object.keys(this.props.categories).length === 0 || this.props.position === null) {
       return null;
     }
 
@@ -27,7 +27,7 @@ export default class Legend extends React.PureComponent {
       const style = { color: 'rgba(' + v.color.join(', ') + ')' };
       const icon = v.enabled ? '\u25CF' : '\u25CB';
       return (
-        <li>
+        <li key={k}>
           <a
             href="#"
             onClick={() => this.props.toggleCategory(k)}

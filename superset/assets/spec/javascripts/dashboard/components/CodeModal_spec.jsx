@@ -1,7 +1,5 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 
 import CodeModal from '../../../../src/dashboard/components/CodeModal';
 
@@ -10,10 +8,10 @@ describe('CodeModal', () => {
     triggerNode: <i className="fa fa-edit" />,
   };
   it('is valid', () => {
-    expect(React.isValidElement(<CodeModal {...mockedProps} />)).to.equal(true);
+    expect(React.isValidElement(<CodeModal {...mockedProps} />)).toBe(true);
   });
   it('renders the trigger node', () => {
     const wrapper = mount(<CodeModal {...mockedProps} />);
-    expect(wrapper.find('.fa-edit')).to.have.length(1);
+    expect(wrapper.find('.fa-edit')).toHaveLength(1);
   });
 });

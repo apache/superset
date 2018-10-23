@@ -200,7 +200,7 @@ export default class ResultSet extends React.PureComponent {
     }
     let progressBar;
     let trackingUrl;
-    if (query.progress > 0 && query.state === 'running') {
+    if (query.progress > 0) {
       progressBar = (
         <ProgressBar
           striped

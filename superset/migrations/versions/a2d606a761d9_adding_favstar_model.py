@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adding favstar model
 
 Revision ID: a2d606a761d9

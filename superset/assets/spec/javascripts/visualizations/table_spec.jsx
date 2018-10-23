@@ -1,8 +1,6 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import $ from 'jquery';
 import '../../helpers/shim';
-import tableVis from '../../../src/visualizations/table';
+import tableVis from '../../../src/visualizations/Table/adaptor';
 
 describe('table viz', () => {
   const div = '<div id="slice-container"><div class="dataTables_wrapper"></div></div>';
@@ -18,6 +16,7 @@ describe('table viz', () => {
     getFilters: () => ({}),
     removeFilter() {},
     addFilter() {},
+    width: () => 0,
     height: () => 0,
   };
   const basePayload = {
@@ -33,24 +32,24 @@ describe('table viz', () => {
   it('renders into a container', () => {
     $('body').html(div);
     const container = $(baseSlice.selector);
-    expect(container.length).to.equal(1);
+    expect(container).toHaveLength(1);
   });
 
   it('renders header and body datatables in container', () => {
     $('body').html(div);
     const container = $(baseSlice.selector);
 
-    expect(container.find('.dataTable').length).to.equal(0);
+    expect(container.find('.dataTable')).toHaveLength(0);
     tableVis(baseSlice, basePayload);
-    expect(container.find('.dataTable').length).to.equal(2);
+    expect(container.find('.dataTable')).toHaveLength(2);
 
     const tableHeader = container.find('.dataTable')[0];
-    expect($(tableHeader).find('thead tr').length).to.equal(1);
-    expect($(tableHeader).find('th').length).to.equal(2);
+    expect($(tableHeader).find('thead tr')).toHaveLength(1);
+    expect($(tableHeader).find('th')).toHaveLength(2);
 
     const tableBody = container.find('.dataTable')[1];
-    expect($(tableBody).find('tbody tr').length).to.equal(2);
-    expect($(tableBody).find('th').length).to.equal(2);
+    expect($(tableBody).find('tbody tr')).toHaveLength(2);
+    expect($(tableBody).find('th')).toHaveLength(2);
   });
 
   it('hides the sort by column', () => {
@@ -74,7 +73,7 @@ describe('table viz', () => {
 
     const container = $(slice.selector);
     const tableHeader = container.find('.dataTable')[0];
-    expect($(tableHeader).find('th').length).to.equal(2);
+    expect($(tableHeader).find('th')).toHaveLength(2);
   });
 
   it('works with empty list for sort by', () => {
@@ -96,6 +95,6 @@ describe('table viz', () => {
 
     const container = $(slice.selector);
     const tableBody = container.find('.dataTable')[1];
-    expect($(tableBody).find('th').length).to.equal(3);
+    expect($(tableBody).find('th')).toHaveLength(3);
   });
 });

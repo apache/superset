@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import io
 import json
 import os
 import subprocess
+import sys
 
 from setuptools import find_packages, setup
+
+if sys.version_info < (3, 6):
+    sys.exit('Sorry, Python < 3.6 is not supported')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
@@ -59,11 +57,12 @@ setup(
         'boto3==1.4.7',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0',
-        'colorama',
+        'click==6.7',
+        'colorama==0.3.9',
         'contextlib2',
         'cryptography',
         'flask<1.0.0',
-        'flask-appbuilder==1.10.0',  # known db migration with 1.11+
+        'flask-appbuilder>=1.12.1',
         'flask-caching',
         'flask-compress',
         'flask-migrate',
@@ -75,7 +74,7 @@ setup(
         'humanize',
         'idna',
         'isodate',
-        'markdown',
+        'markdown>=3.0',
         'pandas>=0.18.0',
         'parsedatetime',
         'pathlib2',
@@ -87,7 +86,6 @@ setup(
         'pyyaml>=3.11',
         'requests',
         'simplejson>=3.15.0',
-        'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
@@ -109,8 +107,6 @@ setup(
         '/apache/incubator-superset/tarball/' + version_string
     ),
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
 )

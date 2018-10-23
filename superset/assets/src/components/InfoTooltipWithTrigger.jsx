@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { kebabCase } from 'lodash';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
-import { slugify } from '../modules/utils';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
@@ -36,7 +36,7 @@ export default function InfoTooltipWithTrigger({
     <OverlayTrigger
       placement={placement}
       overlay={
-        <Tooltip id={`${slugify(label)}-tooltip`} style={tooltipStyle}>
+        <Tooltip id={`${kebabCase(label)}-tooltip`} style={tooltipStyle}>
           {tooltip}
         </Tooltip>
       }

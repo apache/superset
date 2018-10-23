@@ -21,9 +21,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
-function wordCloud(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WordCloud');
-
+function WordCloud(element, props) {
   const {
     data,
     width,
@@ -35,7 +33,7 @@ function wordCloud(element, props) {
 
   const chart = d3.select(element);
   const size = [width, height];
-  const rotationFn = ROTATION[rotation] || ROTATION.random;
+  const rotationFn = ROTATION[rotation] || ROTATION.flat;
 
   const scale = d3.scale.linear()
     .range(sizeRange)
@@ -78,43 +76,7 @@ function wordCloud(element, props) {
   layout.on('end', draw).start();
 }
 
-wordCloud.propTypes = propTypes;
+WordCloud.displayName = 'WordCloud';
+WordCloud.propTypes = propTypes;
 
-function transform(data, formData) {
-  const {
-    metric,
-    series,
-  } = formData;
-
-  const transformedData = data.map(datum => ({
-    text: datum[series],
-    size: datum[metric],
-  }));
-
-  return transformedData;
-}
-
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-
-  const {
-    rotation,
-    size_to: sizeTo,
-    size_from: sizeFrom,
-    color_scheme: colorScheme,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  const data = transform(payload.data, formData);
-
-  return wordCloud(element, {
-    data,
-    width: slice.width(),
-    height: slice.height(),
-    rotation,
-    sizeRange: [sizeFrom, sizeTo],
-    colorScheme,
-  });
-}
-
-export default adaptor;
+export default WordCloud;

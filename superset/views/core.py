@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
+import inspect
 import logging
 import os
 import re
 import time
 import traceback
+from urllib import parse
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -23,10 +19,8 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from six import text_type
-from six.moves.urllib import parse
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, or_, update
+from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -34,9 +28,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend, security_manager, sql_lab, utils,
-    viz,
-)
+    app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
+    security_manager, sql_lab, utils, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -154,10 +147,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'modified', 'allow_csv_upload',
     ]
     add_columns = [
-        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
-        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
+        'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
-        'allow_multi_schema_metadata_fetch',
+        'allow_multi_schema_metadata_fetch', 'extra',
     ]
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
@@ -203,14 +196,24 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'When allowing CREATE TABLE AS option in SQL Lab, '
             'this option forces the table to be created in this schema'),
         'extra': utils.markdown(
-            'JSON string containing extra configuration elements. '
-            'The ``engine_params`` object gets unpacked into the '
+            'JSON string containing extra configuration elements.<br/>'
+            '1. The ``engine_params`` object gets unpacked into the '
             '[sqlalchemy.create_engine]'
             '(http://docs.sqlalchemy.org/en/latest/core/engines.html#'
             'sqlalchemy.create_engine) call, while the ``metadata_params`` '
             'gets unpacked into the [sqlalchemy.MetaData]'
             '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
-            '#sqlalchemy.schema.MetaData) call. ', True),
+            '#sqlalchemy.schema.MetaData) call.<br/>'
+            '2. The ``metadata_cache_timeout`` is a cache timeout setting '
+            'in seconds for metadata fetch of this database. Specify it as '
+            '**"metadata_cache_timeout": {"schema_cache_timeout": 600}**. '
+            'If unset, cache will not be enabled for the functionality. '
+            'A timeout of 0 indicates that the cache never expires.<br/>'
+            '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
+            'of schemas that CSVs are allowed to upload to. '
+            'Specify it as **"schemas_allowed": ["public", "csv_upload"]**. '
+            'If database flavor does not support schema or any schema is allowed '
+            'to be accessed, just leave the list empty', True),
         'impersonate_user': _(
             'If Presto, all the queries in SQL Lab are going to be executed as the '
             'currently logged on user who must have permission to run them.<br/>'
@@ -222,9 +225,11 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'all database schemas. For large data warehouse with thousands of '
             'tables, this can be expensive and put strain on the system.'),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this database. '
+            'Duration (in seconds) of the caching timeout for charts of this database. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
+        'allow_csv_upload': _(
+            'If selected, please set the schemas allowed for csv upload in Extra.'),
     }
     label_columns = {
         'expose_in_sqllab': _('Expose in SQL Lab'),
@@ -235,7 +240,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'creator': _('Creator'),
         'changed_on_': _('Last Changed'),
         'sqlalchemy_uri': _('SQLAlchemy URI'),
-        'cache_timeout': _('Cache Timeout'),
+        'cache_timeout': _('Chart Cache Timeout'),
         'extra': _('Extra'),
         'allow_run_sync': _('Allow Run Sync'),
         'allow_run_async': _('Allow Run Async'),
@@ -247,9 +252,11 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     }
 
     def pre_add(self, db):
+        self.check_extra(db)
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.merge_perm('database_access', db.perm)
-        for schema in db.all_schema_names():
+        # adding a new database we always want to force refresh schema list
+        for schema in db.all_schema_names(force_refresh=True):
             security_manager.merge_perm(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
@@ -265,6 +272,21 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
+
+    def check_extra(self, db):
+        # this will check whether json.loads(extra) can succeed
+        try:
+            extra = db.get_extra()
+        except Exception as e:
+            raise Exception('Extra field cannot be decoded by JSON. {}'.format(str(e)))
+
+        # this will check whether 'metadata_params' is configured correctly
+        metadata_signature = inspect.signature(MetaData)
+        for key in extra.get('metadata_params', {}):
+            if key not in metadata_signature.parameters:
+                raise Exception('The metadata_params in Extra field '
+                                'is not configured correctly. The key '
+                                '{} is invalid.'.format(key))
 
 
 appbuilder.add_link(
@@ -302,6 +324,7 @@ appbuilder.add_view_no_menu(DatabaseAsync)
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
+    form_template = 'superset/form_view/csv_to_database_view/edit.html'
     form_title = _('CSV to Database configuration')
     add_columns = ['database', 'schema', 'table_name']
 
@@ -313,9 +336,19 @@ class CsvToDatabaseView(SimpleFormView):
         form.skip_blank_lines.data = True
         form.infer_datetime_format.data = True
         form.decimal.data = '.'
-        form.if_exists.data = 'append'
+        form.if_exists.data = 'fail'
 
     def form_post(self, form):
+        database = form.con.data
+        schema_name = form.schema.data or ''
+
+        if not self.is_schema_allowed(database, schema_name):
+            message = _('Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+                        'Please contact Superset Admin'.format(database.database_name,
+                                                               schema_name))
+            flash(message, 'danger')
+            return redirect('/csvtodatabaseview/form')
+
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
@@ -333,7 +366,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+                form.name.data) if isinstance(e, IntegrityError) else e
             flash(
                 message,
                 'danger')
@@ -348,6 +381,15 @@ class CsvToDatabaseView(SimpleFormView):
                                             db_name))
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
+
+    def is_schema_allowed(self, database, schema):
+        if not database.allow_csv_upload:
+            return False
+        schemas = database.get_schema_access_for_csv_upload()
+        if schemas:
+            return schema in schemas
+        return (security_manager.database_access(database) or
+                security_manager.all_datasource_access())
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
@@ -1048,17 +1090,26 @@ class Superset(BaseSupersetView):
         else:
             query = 'No query.'
 
-        return Response(
-            json.dumps({
-                'query': query,
-                'language': viz_obj.datasource.query_language,
-                'data': viz_obj.get_df().to_dict('records'),  # TODO, split into endpoint
-            }, default=utils.json_iso_dttm_ser),
-            status=200,
-            mimetype='application/json')
+        return self.json_response({
+            'query': query,
+            'language': viz_obj.datasource.query_language,
+        })
 
-    def generate_json(self, datasource_type, datasource_id, form_data,
-                      csv=False, query=False, force=False):
+    def get_raw_results(self, viz_obj):
+        return self.json_response({
+            'data': viz_obj.get_df().to_dict('records'),
+        })
+
+    def get_samples(self, viz_obj):
+        return self.json_response({
+            'data': viz_obj.get_samples(),
+        })
+
+    def generate_json(
+            self, datasource_type, datasource_id, form_data,
+            csv=False, query=False, force=False, results=False,
+            samples=False,
+    ):
         try:
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
@@ -1087,6 +1138,12 @@ class Superset(BaseSupersetView):
 
         if query:
             return self.get_query_string_response(viz_obj)
+
+        if results:
+            return self.get_raw_results(viz_obj)
+
+        if samples:
+            return self.get_samples(viz_obj)
 
         try:
             payload = viz_obj.get_payload()
@@ -1154,10 +1211,22 @@ class Superset(BaseSupersetView):
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
     def explore_json(self, datasource_type=None, datasource_id=None):
+        """Serves all request that GET or POST form_data
+
+        This endpoint evolved to be the entry point of many different
+        requests that GETs or POSTs a form_data.
+
+        `self.generate_json` receives this input and returns different
+        payloads based on the request args in the first block
+
+        TODO: break into one endpoint for each return shape"""
+        csv = request.args.get('csv') == 'true'
+        query = request.args.get('query') == 'true'
+        results = request.args.get('results') == 'true'
+        samples = request.args.get('samples') == 'true'
+        force = request.args.get('force') == 'true'
+
         try:
-            csv = request.args.get('csv') == 'true'
-            query = request.args.get('query') == 'true'
-            force = request.args.get('force') == 'true'
             form_data = self.get_form_data()[0]
             datasource_id, datasource_type = self.datasource_info(
                 datasource_id, datasource_type, form_data)
@@ -1166,12 +1235,16 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
-        return self.generate_json(datasource_type=datasource_type,
-                                  datasource_id=datasource_id,
-                                  form_data=form_data,
-                                  csv=csv,
-                                  query=query,
-                                  force=force)
+        return self.generate_json(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            csv=csv,
+            query=query,
+            results=results,
+            force=force,
+            samples=samples,
+        )
 
     @log_this
     @has_access
@@ -1180,16 +1253,7 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
-            current_tt = int(time.time())
-            data = json.loads(f.stream.read(), object_hook=utils.decode_dashboards)
-            # TODO: import DRUID datasources
-            for table in data['datasources']:
-                type(table).import_obj(table, import_time=current_tt)
-            db.session.commit()
-            for dashboard in data['dashboards']:
-                models.Dashboard.import_obj(
-                    dashboard, import_time=current_tt)
-            db.session.commit()
+            dashboard_import_export_util.import_dashboards(db.session, f.stream)
             return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
@@ -1473,15 +1537,17 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/schemas/<db_id>/')
-    def schemas(self, db_id):
+    @expose('/schemas/<db_id>/<force_refresh>/')
+    def schemas(self, db_id, force_refresh='true'):
         db_id = int(db_id)
+        force_refresh = force_refresh.lower() == 'true'
         database = (
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
             .one()
         )
-        schemas = database.all_schema_names()
+        schemas = database.all_schema_names(force_refresh=force_refresh)
         schemas = security_manager.schemas_accessible_by_user(database, schemas)
         return Response(
             json.dumps({'schemas': schemas}),
@@ -2274,7 +2340,7 @@ class Superset(BaseSupersetView):
             'columns': payload_columns,
             'selectStar': mydb.select_star(
                 table_name, schema=schema, show_cols=True, indent=True,
-                cols=columns, latest_partition=False),
+                cols=columns, latest_partition=True),
             'primaryKey': primary_key,
             'foreignKeys': foreign_keys,
             'indexes': keys,
@@ -2292,14 +2358,19 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(payload))
 
     @has_access
-    @expose('/select_star/<database_id>/<table_name>/')
+    @expose('/select_star/<database_id>/<table_name>')
+    @expose('/select_star/<database_id>/<table_name>/<schema>')
     @log_this
-    def select_star(self, database_id, table_name):
+    def select_star(self, database_id, table_name, schema=None):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
-        return self.render_template(
-            'superset/ajah.html',
-            content=mydb.select_star(table_name, show_cols=True),
+        return json_success(
+            mydb.select_star(
+                table_name,
+                schema,
+                latest_partition=True,
+                show_cols=True,
+            ),
         )
 
     @expose('/theme/')
@@ -2354,7 +2425,18 @@ class Superset(BaseSupersetView):
             return json_error_response(security_manager.get_table_access_error_msg(
                 '{}'.format(rejected_tables)), status=403)
 
-        return json_success(utils.zlib_decompress_to_string(blob))
+        payload = utils.zlib_decompress_to_string(blob)
+        display_limit = app.config.get('DISPLAY_MAX_ROW', None)
+        if display_limit:
+            payload_json = json.loads(payload)
+            payload_json['data'] = payload_json['data'][:display_limit]
+        return json_success(
+            json.dumps(
+                payload_json,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            ),
+        )
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2407,7 +2489,7 @@ class Superset(BaseSupersetView):
                 tmp_table_name,
             )
 
-        client_id = request.form.get('client_id') or utils.shortid()
+        client_id = request.form.get('client_id') or utils.shortid()[:10]
 
         query = Query(
             database_id=int(database_id),
@@ -2451,7 +2533,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=False,
                     store_results=not query.select_as_cta,
-                    user_name=g.user.username,
+                    user_name=g.user.username if g.user else None,
                     start_time=utils.now_as_float())
             except Exception as e:
                 logging.exception(e)
@@ -2483,7 +2565,8 @@ class Superset(BaseSupersetView):
                 data = sql_lab.get_sql_results(
                     query_id,
                     rendered_query,
-                    return_results=True)
+                    return_results=True,
+                    user_name=g.user.username if g.user else None)
             payload = json.dumps(
                 data,
                 default=utils.pessimistic_json_iso_dttm_ser,
@@ -2748,6 +2831,44 @@ class Superset(BaseSupersetView):
                 status=401,
                 link=security_manager.get_datasource_access_link(viz_obj.datasource))
         return self.get_query_string_response(viz_obj)
+
+    @api
+    @has_access_api
+    @expose('/schema_access_for_csv_upload')
+    def schemas_access_for_csv_upload(self):
+        """
+        This method exposes an API endpoint to
+        get the schema access control settings for csv upload in this database
+        """
+        if not request.args.get('db_id'):
+            return json_error_response(
+                'No database is allowed for your csv upload')
+
+        db_id = int(request.args.get('db_id'))
+        database = (
+            db.session
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
+        try:
+            schemas_allowed = database.get_schema_access_for_csv_upload()
+            if (security_manager.database_access(database) or
+                    security_manager.all_datasource_access()):
+                return self.json_response(schemas_allowed)
+            # the list schemas_allowed should not be empty here
+            # and the list schemas_allowed_processed returned from security_manager
+            # should not be empty either,
+            # otherwise the database should have been filtered out
+            # in CsvToDatabaseForm
+            schemas_allowed_processed = security_manager.schemas_accessible_by_user(
+                database, schemas_allowed, False)
+            return self.json_response(schemas_allowed_processed)
+        except Exception:
+            return json_error_response((
+                'Failed to fetch schemas allowed for csv upload in this database! '
+                'Please contact Superset Admin!\n\n'
+                'The error message returned was:\n{}').format(traceback.format_exc()))
 
 
 appbuilder.add_view_no_menu(Superset)

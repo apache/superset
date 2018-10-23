@@ -1,11 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
-import * as color from 'd3-color';
+import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
-
-import { brandColor } from '../../modules/colors';
-import { d3FormatPreset } from '../../modules/utils';
+import { BRAND_COLOR } from '../../modules/colors';
 import { formatDateVerbose } from '../../modules/dates';
 import { computeMaxFontSize } from '../../modules/visUtils';
 
@@ -26,7 +23,7 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-function renderTooltipFactory(formatValue) {
+export function renderTooltipFactory(formatValue) {
   return function renderTooltip({ datum }) { // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
     const formattedDate = formatDateVerbose(rawDate);
@@ -53,30 +50,33 @@ const propTypes = {
   bigNumber: PropTypes.number.isRequired,
   formatBigNumber: PropTypes.func,
   subheader: PropTypes.string,
-  showTrendline: PropTypes.bool,
+  showTrendLine: PropTypes.bool,
   startYAxisAtZero: PropTypes.bool,
-  trendlineData: PropTypes.array,
+  trendLineData: PropTypes.array,
   mainColor: PropTypes.string,
-  gradientId: PropTypes.string,
   renderTooltip: PropTypes.func,
 };
 const defaultProps = {
   className: '',
   formatBigNumber: identity,
   subheader: '',
-  showTrendline: false,
+  showTrendLine: false,
   startYAxisAtZero: true,
-  trendlineData: null,
-  mainColor: brandColor,
-  gradientId: '',
+  trendLineData: null,
+  mainColor: BRAND_COLOR,
   renderTooltip: renderTooltipFactory(identity),
 };
 
-class BigNumberVis extends React.Component {
+class BigNumberVis extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.gradientId = shortid.generate();
+  }
+
   getClassName() {
-    const { className, showTrendline } = this.props;
+    const { className, showTrendLine } = this.props;
     const names = `big_number ${className}`;
-    if (showTrendline) {
+    if (showTrendLine) {
       return names;
     }
     return `${names} no_trendline`;
@@ -150,11 +150,10 @@ class BigNumberVis extends React.Component {
   renderTrendline(maxHeight) {
     const {
       width,
-      trendlineData,
+      trendLineData,
       mainColor,
       subheader,
       renderTooltip,
-      gradientId,
       startYAxisAtZero,
     } = this.props;
     return (
@@ -172,13 +171,13 @@ class BigNumberVis extends React.Component {
         snapTooltipToDataX
       >
         <LinearGradient
-          id={gradientId}
+          id={this.gradientId}
           from={mainColor}
           to="#fff"
         />
         <AreaSeries
-          data={trendlineData}
-          fill={`url(#${gradientId})`}
+          data={trendLineData}
+          fill={`url(#${this.gradientId})`}
           stroke={mainColor}
         />
         <CrossHair
@@ -194,10 +193,10 @@ class BigNumberVis extends React.Component {
   }
 
   render() {
-    const { showTrendline, height } = this.props;
+    const { showTrendLine, height } = this.props;
     const className = this.getClassName();
 
-    if (showTrendline) {
+    if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
       return (
@@ -228,61 +227,4 @@ class BigNumberVis extends React.Component {
 BigNumberVis.propTypes = propTypes;
 BigNumberVis.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { formData, containerId } = slice;
-  const { data, subheader, compare_suffix: compareSuffix } = payload.data;
-  const compareLag = Number(payload.data.compare_lag);
-  const supportTrendline = formData.viz_type === 'big_number';
-  const showTrendline = supportTrendline && formData.show_trend_line;
-  const startYAxisAtZero = formData.start_y_axis_at_zero;
-  const formatValue = d3FormatPreset(formData.y_axis_format);
-  const bigNumber = supportTrendline ? data[data.length - 1][1] : data[0][0];
-  let userColor;
-  if (formData.color_picker) {
-    const { r, g, b } = formData.color_picker;
-    userColor = color.rgb(r, g, b).hex();
-  }
-
-  let percentChange = 0;
-  let formattedSubheader = subheader;
-
-  if (supportTrendline && compareLag > 0) {
-    const compareIndex = data.length - (compareLag + 1);
-    if (compareIndex >= 0) {
-      const compareValue = data[compareIndex][1];
-      percentChange = compareValue === 0
-        ? 0 : (bigNumber - compareValue) / Math.abs(compareValue);
-      const formatPercentChange = d3.format('+.1%');
-      formattedSubheader = `${formatPercentChange(percentChange)} ${compareSuffix}`;
-    }
-  }
-
-  const trendlineData = showTrendline ? data.map(([x, y]) => ({ x, y })) : null;
-
-  let className = '';
-  if (percentChange > 0) {
-    className = 'positive';
-  } else if (percentChange < 0) {
-    className = 'negative';
-  }
-
-  ReactDOM.render(
-    <BigNumberVis
-      className={className}
-      width={slice.width()}
-      height={slice.height()}
-      bigNumber={bigNumber}
-      formatBigNumber={formatValue}
-      subheader={formattedSubheader}
-      showTrendline={showTrendline}
-      startYAxisAtZero={startYAxisAtZero}
-      trendlineData={trendlineData}
-      mainColor={userColor}
-      gradientId={`big_number_${containerId}`}
-      renderTooltip={renderTooltipFactory(formatValue)}
-    />,
-    document.getElementById(containerId),
-  );
-}
-
-export default adaptor;
+export default BigNumberVis;
