@@ -1106,6 +1106,7 @@ class DruidDatasource(Model, BaseDatasource):
             order_desc=True,
             prequeries=None,
             is_prequery=False,
+            params={},
         ):
         """Runs a query against Druid and returns a dataframe.
         """
