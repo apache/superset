@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
+import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
 import { t } from '../../locales';
 
 /*
@@ -21,10 +22,12 @@ const propTypes = {
   activeSouthPaneTab: PropTypes.string,
   height: PropTypes.number,
   databases: PropTypes.object.isRequired,
+  offline: PropTypes.bool,
 };
 
 const defaultProps = {
   activeSouthPaneTab: 'Results',
+  offline: false,
 };
 
 class SouthPane extends React.PureComponent {
@@ -32,6 +35,12 @@ class SouthPane extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab(id);
   }
   render() {
+    if (this.props.offline) {
+      return (
+        <Label className="m-r-3" bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}>
+          { STATUS_OPTIONS.offline }
+        </Label>);
+    }
     const innerTabHeight = this.props.height - 55;
     let latestQuery;
     const props = this.props;
@@ -103,6 +112,7 @@ function mapStateToProps({ sqlLab }) {
   return {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
+    offline: sqlLab.offline,
   };
 }
 

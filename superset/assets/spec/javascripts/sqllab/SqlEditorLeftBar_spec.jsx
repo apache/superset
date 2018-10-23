@@ -1,9 +1,11 @@
 import React from 'react';
+import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
+import thunk from 'redux-thunk';
 
-import { table, defaultQueryEditor, databases, tables } from './fixtures';
+import { table, defaultQueryEditor, databases, initialState, tables } from './fixtures';
 import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
 import TableElement from '../../../src/SqlLab/components/TableElement';
 
@@ -21,11 +23,16 @@ describe('SqlEditorLeftBar', () => {
     database: {},
     height: 0,
   };
+  const middlewares = [thunk];
+  const mockStore = configureStore(middlewares);
+  const store = mockStore(initialState);
 
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<SqlEditorLeftBar {...mockedProps} />);
+    wrapper = shallow(<SqlEditorLeftBar {...mockedProps} />, {
+      context: { store },
+    }).dive();
   });
 
   it('is valid', () => {
