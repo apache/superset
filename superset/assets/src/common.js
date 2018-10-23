@@ -3,8 +3,8 @@ import $ from 'jquery';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import { SupersetClient } from '@superset-ui/core';
 import { toggleCheckbox } from './modules/utils';
-import setupColors from './setup/setupColors';
 import setupClient from './setup/setupClient';
+import setupColors from './setup/setupColors';
 
 setupClient();
 setupColors();
