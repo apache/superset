@@ -1,6 +1,5 @@
 /* eslint no-console: 0 */
-
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
 
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance
@@ -41,13 +40,13 @@ export const Logger = {
 
   send(log) {
     const { impressionId, source, sourceId, events } = log;
-    let url = '/superset/log/';
+    let endpoint = '/superset/log/?explode=events';
 
     // backend logs treat these request params as first-class citizens
     if (source === 'dashboard') {
-      url += `?dashboard_id=${sourceId}`;
+      endpoint += `&dashboard_id=${sourceId}`;
     } else if (source === 'slice') {
-      url += `?slice_id=${sourceId}`;
+      endpoint += `&slice_id=${sourceId}`;
     }
 
     const eventData = [];
@@ -63,14 +62,10 @@ export const Logger = {
       });
     }
 
-    $.ajax({
-      url,
-      method: 'POST',
-      dataType: 'json',
-      data: {
-        explode: 'events',
-        events: JSON.stringify(eventData),
-      },
+    SupersetClient.post({
+      endpoint,
+      postPayload: { events: eventData },
+      parseMethod: null,
     });
 
     // flush events for this logger
@@ -88,7 +83,7 @@ export class ActionLog {
     this.impressionId = impressionId;
     this.source = source;
     this.sourceId = sourceId;
-    this.eventNames = eventNames;
+    this.eventNames = eventNames || [];
     this.sendNow = sendNow || false;
     this.events = {};
 
