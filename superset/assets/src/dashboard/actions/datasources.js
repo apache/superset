@@ -1,5 +1,5 @@
 import { SupersetClient } from '@superset-ui/core';
-import { getAjaxErrorMsg } from '../../modules/utils';
+import { getClientErrorObject } from '../../modules/utils';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export function setDatasource(datasource, key) {
@@ -29,8 +29,10 @@ export function fetchDatasourceMetadata(key) {
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
     })
       .then(data => dispatch(data, key))
-      .catch(error =>
-        dispatch(fetchDatasourceFailed(getAjaxErrorMsg(error), key)),
+      .catch(response =>
+        getClientErrorObject(response).then(({ error }) =>
+          dispatch(fetchDatasourceFailed(error, key)),
+        ),
       );
   };
 }

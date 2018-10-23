@@ -34,6 +34,7 @@ export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
+export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
 export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
@@ -340,6 +341,10 @@ export function removeTable(table) {
 
 export function refreshQueries(alteredQueries) {
   return { type: REFRESH_QUERIES, alteredQueries };
+}
+
+export function setUserOffline(offline) {
+  return { type: SET_USER_OFFLINE, offline };
 }
 
 export function persistEditorHeight(queryEditor, currentHeight) {

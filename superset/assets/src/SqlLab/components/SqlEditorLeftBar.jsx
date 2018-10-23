@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ControlLabel, Button } from 'react-bootstrap';
+import { connect } from 'react-redux';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
 import { SupersetClient } from '@superset-ui/core';
@@ -16,11 +17,13 @@ const propTypes = {
   tables: PropTypes.array,
   actions: PropTypes.object,
   database: PropTypes.object,
+  offline: PropTypes.bool,
 };
 
 const defaultProps = {
   tables: [],
   actions: {},
+  offline: false,
 };
 
 class SqlEditorLeftBar extends React.PureComponent {
@@ -50,7 +53,7 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
 
   getTableNamesBySubStr(input) {
-    if (!this.props.queryEditor.dbId || !input) {
+    if (this.props.offline || !this.props.queryEditor.dbId || !input) {
       return Promise.resolve({ options: [] });
     }
 
@@ -77,7 +80,7 @@ class SqlEditorLeftBar extends React.PureComponent {
   fetchTables(dbId, schema, force, substr) {
     // This can be large so it shouldn't be put in the Redux store
     const forceRefresh = force || false;
-    if (dbId && schema) {
+    if (!this.props.offline && dbId && schema) {
       this.setState(() => ({ tableLoading: true, tableOptions: [] }));
       const endpoint = `/superset/tables/${dbId}/${schema}/${substr}/${forceRefresh}/`;
 
@@ -130,7 +133,7 @@ class SqlEditorLeftBar extends React.PureComponent {
   fetchSchemas(dbId, force) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
     const forceRefresh = force || false;
-    if (actualDbId) {
+    if (!this.props.offline && actualDbId) {
       this.setState({ schemaLoading: true });
       const endpoint = `/superset/schemas/${actualDbId}/${forceRefresh}/`;
 
@@ -286,7 +289,13 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
 }
 
+function mapStateToProps({ sqlLab }) {
+  return {
+    offline: sqlLab.offline,
+  };
+}
+
 SqlEditorLeftBar.propTypes = propTypes;
 SqlEditorLeftBar.defaultProps = defaultProps;
 
-export default SqlEditorLeftBar;
+export default connect(mapStateToProps)(SqlEditorLeftBar);

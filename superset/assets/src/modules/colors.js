@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import sequentialSchemes from './colorSchemes/sequential';
+import getSequentialSchemeRegistry from './colors/SequentialSchemeRegistrySingleton';
 
 export const BRAND_COLOR = '#00A699';
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
@@ -18,7 +18,7 @@ export const colorScalerFactory = function (colors, data, accessor, extents, out
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
-    colors = sequentialSchemes[colors];
+    colors = getSequentialSchemeRegistry().get(colors).colors;
   }
   let ext = [0, 1];
   if (extents) {

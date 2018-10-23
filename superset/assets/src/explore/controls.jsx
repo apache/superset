@@ -50,8 +50,11 @@ import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
-import { getAllSchemes } from '../modules/ColorSchemeManager';
-import sequentialSchemes from '../modules/colorSchemes/sequential';
+import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
+import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
+
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -323,58 +326,14 @@ export const controls = {
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Linear Color Scheme'),
-    choices: [
-      ['fire', 'fire'],
-      ['white_black', 'white/black'],
-      ['black_white', 'black/white'],
-      ['dark_blue', 'light/dark blue'],
-      ['pink_grey', 'pink/white/grey'],
-      ['greens', 'greens'],
-      ['purples', 'purples'],
-      ['oranges', 'oranges'],
-      ['blue_white_yellow', 'blue/white/yellow'],
-      ['red_yellow_blue', 'red/yellowish/blue'],
-      ['brown_white_green', 'brown/white/green'],
-      ['purple_white_green', 'purple/white/green'],
-      ['schemeBrBG', 'brown/green'],
-      ['schemePRGn', 'purple/green'],
-      ['schemePiYG', 'pink/green'],
-      ['schemePuOr', 'purple/orange'],
-      ['schemeRdBu', 'red/blue'],
-      ['schemeRdGy', 'red/gray/black'],
-      ['schemeRdYlBu', 'red/yellow/blue'],
-      ['schemeRdYlGn', 'red/yellow/green'],
-      ['schemeSpectral', 'rainbow'],
-      ['schemeBlues', 'd3/blues'],
-      ['schemeGreens', 'd3/greens'],
-      ['schemeGrays', 'd3/grays'],
-      ['schemeOranges', 'd3/oranges'],
-      ['schemePurples', 'd3/purples'],
-      ['schemeReds', 'd3/reds'],
-      ['schemeViridis', 'd3/purple/blue/green/yellow'],
-      ['schemeInferno', 'd3/purple/red/orange/yellow'],
-      ['schemeMagma', 'd3/purple/pink/peach'],
-      ['schemeWarm', 'd3/warm/purple/pink/yellow/green'],
-      ['schemeCool', 'd3/cool/blue/green'],
-      ['schemeCubehelixDefault', 'd3/black/green/brown/pink/blue'],
-      ['schemeBuGn', 'd3/blue/green'],
-      ['schemeBuPu', 'd3/blue/purple'],
-      ['schemeGnBu', 'd3/green/blue'],
-      ['schemeOrRd', 'd3/orange/red'],
-      ['schemePuBuGn', 'd3/purple/blue/green'],
-      ['schemePuBu', 'd3/purple/blue'],
-      ['schemePuRd', 'd3/purple/red'],
-      ['schemeRdPu', 'd3/red/purple'],
-      ['schemeYlGnBu', 'd3/yellow/green/blue'],
-      ['schemeYlGn', 'd3/yellow/green'],
-      ['schemeYlOrBr', 'd3/yellow/brown'],
-      ['schemeYlOrRd', 'd3/yellow/orange/red'],
-    ],
+    choices: () => sequentialSchemeRegistry
+      .values()
+      .map(value => [value.name, value.label]),
     default: 'blue_white_yellow',
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: sequentialSchemes,
+    schemes: () => sequentialSchemeRegistry.getMap(),
     isLinear: true,
   },
 
@@ -1965,9 +1924,9 @@ export const controls = {
     label: t('Color Scheme'),
     default: 'bnbColors',
     renderTrigger: true,
-    choices: () => Object.keys(getAllSchemes()).map(s => ([s, s])),
+    choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
-    schemes: () => getAllSchemes(),
+    schemes: () => categoricalSchemeRegistry.getMap(),
   },
 
   significance_level: {

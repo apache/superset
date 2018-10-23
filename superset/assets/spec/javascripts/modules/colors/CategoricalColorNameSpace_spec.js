@@ -3,13 +3,21 @@ import CategoricalColorNamespace, {
   getScale,
   getColor,
   DEFAULT_NAMESPACE,
-} from '../../../src/modules/CategoricalColorNamespace';
-import { registerScheme } from '../../../src/modules/ColorSchemeManager';
+} from '../../../../src/modules/colors/CategoricalColorNamespace';
+import getCategoricalSchemeRegistry from '../../../../src/modules/colors/CategoricalSchemeRegistrySingleton';
+import CategoricalScheme from '../../../../src/modules/colors/CategoricalScheme';
 
 describe('CategoricalColorNamespace', () => {
   beforeAll(() => {
-    registerScheme('testColors', ['red', 'green', 'blue']);
-    registerScheme('testColors2', ['red', 'green', 'blue']);
+    getCategoricalSchemeRegistry()
+      .registerValue('testColors', new CategoricalScheme({
+        name: 'testColors',
+        colors: ['red', 'green', 'blue'],
+      }))
+      .registerValue('testColors2', new CategoricalScheme({
+        name: 'testColors2',
+        colors: ['red', 'green', 'blue'],
+      }));
   });
   it('The class constructor cannot be accessed directly', () => {
     expect(typeof CategoricalColorNamespace).not.toBe('Function');
