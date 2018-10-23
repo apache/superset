@@ -9,11 +9,12 @@ import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
 
-import AnnotationTypes, {
-  ANNOTATION_TYPES,
-  DEFAULT_ANNOTATION_TYPE,
+import ANNOTATION_TYPES, {
   ANNOTATION_SOURCE_TYPES,
+  ANNOTATION_TYPES_METADATA,
+  DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
+  ANNOTATION_SOURCE_TYPES_METADATA,
 } from '../../../modules/AnnotationTypes';
 
 import PopoverSection from '../../../components/PopoverSection';
@@ -55,7 +56,7 @@ const propTypes = {
 
 const defaultProps = {
   name: '',
-  annotationType: DEFAULT_ANNOTATION_TYPE.value,
+  annotationType: DEFAULT_ANNOTATION_TYPE,
   sourceType: '',
   color: AUTOMATIC_COLOR,
   opacity: '',
@@ -148,24 +149,20 @@ export default class AnnotationLayer extends React.PureComponent {
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
     const sources = getChartMetadataRegistry().entries()
-      .filter(({ value }) => value.canBeAnnotationType(annotationType))
-      .map(({ key, value }) => ({
+      .filter(({ value: chartMetadata }) => chartMetadata.canBeAnnotationType(annotationType))
+      .map(({ key, value: chartMetadata }) => ({
         value: key,
-        label: value.name,
+        label: chartMetadata.name,
       }));
     // Prepend native source if applicable
-    const supportNativeSource = ANNOTATION_TYPES[annotationType].supportNativeSource;
-    if (supportNativeSource) {
-      sources.unshift({
-        value: ANNOTATION_SOURCE_TYPES.NATIVE,
-        label: 'Superset annotation',
-      });
+    if (ANNOTATION_TYPES_METADATA[annotationType].supportNativeSource) {
+      sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
     }
     return sources;
   }
 
   isValidFormula(value, annotationType) {
-    if (annotationType === AnnotationTypes.FORMULA) {
+    if (annotationType === ANNOTATION_TYPES.FORMULA) {
       try {
         mathjs
           .parse(value)
@@ -182,10 +179,10 @@ export default class AnnotationLayer extends React.PureComponent {
     const { name, annotationType, sourceType, value, timeColumn, intervalEndColumn } = this.state;
     const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
-      if (annotationType === AnnotationTypes.EVENT) {
+      if (annotationType === ANNOTATION_TYPES.EVENT) {
         errors.push(nonEmpty(timeColumn));
       }
-      if (annotationType === AnnotationTypes.INTERVAL) {
+      if (annotationType === ANNOTATION_TYPES.INTERVAL) {
         errors.push(nonEmpty(timeColumn));
         errors.push(nonEmpty(intervalEndColumn));
       }
@@ -306,7 +303,7 @@ export default class AnnotationLayer extends React.PureComponent {
           .map(x => x.label)
           .join(', ')}]`;
       }
-    } else if (annotationType === AnnotationTypes.FORMULA) {
+    } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
       label = 'Formula';
       description = `Expects a formula with depending time parameter 'x'
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
@@ -329,7 +326,7 @@ export default class AnnotationLayer extends React.PureComponent {
         />
       );
     }
-    if (annotationType === AnnotationTypes.FORMULA) {
+    if (annotationType === ANNOTATION_TYPES.FORMULA) {
       return (
         <TextControl
           name="annotation-layer-value"
@@ -376,13 +373,13 @@ export default class AnnotationLayer extends React.PureComponent {
             info={`This section allows you to configure how to use the slice
                to generate annotations.`}
           >
-            {(annotationType === AnnotationTypes.EVENT ||
-              annotationType === AnnotationTypes.INTERVAL) && (
+            {(annotationType === ANNOTATION_TYPES.EVENT ||
+              annotationType === ANNOTATION_TYPES.INTERVAL) && (
               <SelectControl
                 hovered
                 name="annotation-layer-time-column"
                 label={
-                  annotationType === AnnotationTypes.INTERVAL
+                  annotationType === ANNOTATION_TYPES.INTERVAL
                     ? 'Interval Start column'
                     : 'Event Time Column'
                 }
@@ -394,7 +391,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 onChange={v => this.setState({ timeColumn: v })}
               />
             )}
-            {annotationType === AnnotationTypes.INTERVAL && (
+            {annotationType === ANNOTATION_TYPES.INTERVAL && (
               <SelectControl
                 hovered
                 name="annotation-layer-intervalEnd"
@@ -415,7 +412,7 @@ export default class AnnotationLayer extends React.PureComponent {
               value={titleColumn}
               onChange={v => this.setState({ titleColumn: v })}
             />
-            {annotationType !== AnnotationTypes.TIME_SERIES && (
+            {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
                 hovered
                 name="annotation-layer-title"
@@ -573,7 +570,7 @@ export default class AnnotationLayer extends React.PureComponent {
           value={width}
           onChange={v => this.setState({ width: v })}
         />
-        {annotationType === AnnotationTypes.TIME_SERIES && (
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
           <CheckboxControl
             hovered
             name="annotation-layer-show-markers"
@@ -583,7 +580,7 @@ export default class AnnotationLayer extends React.PureComponent {
             onChange={v => this.setState({ showMarkers: v })}
           />
         )}
-        {annotationType === AnnotationTypes.TIME_SERIES && (
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
           <CheckboxControl
             hovered
             name="annotation-layer-hide-line"
@@ -601,10 +598,9 @@ export default class AnnotationLayer extends React.PureComponent {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
 
-    const registry = getChartMetadataRegistry();
-    const metadata = registry.get(this.props.vizType);
+    const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
-      ? metadata.supportedAnnotationTypes
+      ? metadata.supportedAnnotationTypes.map(type => ANNOTATION_TYPES_METADATA[type])
       : [];
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
 

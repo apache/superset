@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import 'nvd3/build/nv.d3.min.css';
 
 import { t } from '../../locales';
-import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
+import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
 import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
@@ -646,7 +646,7 @@ function nvd3Vis(element, props) {
         // Time series annotations add additional data
         const timeSeriesAnnotations = annotationLayers
           .filter(layer => layer.show)
-          .filter(layer => layer.annotationType === AnnotationTypes.TIME_SERIES)
+          .filter(layer => layer.annotationType === ANNOTATION_TYPES.TIME_SERIES)
           .reduce((bushel, a) =>
             bushel.concat((annotationData[a.name] || []).map((series) => {
               if (!series) {
@@ -680,7 +680,7 @@ function nvd3Vis(element, props) {
       if (isTimeSeries && annotationLayers.length > 0) {
         // Formula annotations
         const formulas = annotationLayers
-          .filter(a => a.annotationType === AnnotationTypes.FORMULA)
+          .filter(a => a.annotationType === ANNOTATION_TYPES.FORMULA)
           .map(a => ({ ...a, formula: mathjs.parse(a.value) }));
 
         let xMax;
@@ -750,7 +750,7 @@ function nvd3Vis(element, props) {
         if (annotationData) {
           // Event annotations
           annotationLayers.filter(x => (
-            x.annotationType === AnnotationTypes.EVENT &&
+            x.annotationType === ANNOTATION_TYPES.EVENT &&
             annotationData && annotationData[x.name]
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
@@ -809,7 +809,7 @@ function nvd3Vis(element, props) {
 
           // Interval annotations
           annotationLayers.filter(x => (
-            x.annotationType === AnnotationTypes.INTERVAL &&
+            x.annotationType === ANNOTATION_TYPES.INTERVAL &&
             annotationData && annotationData[x.name]
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);

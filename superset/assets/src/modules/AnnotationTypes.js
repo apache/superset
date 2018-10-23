@@ -1,4 +1,13 @@
-export const ANNOTATION_TYPES = {
+function extractTypes(metadata) {
+  return Object.keys(metadata)
+    .reduce((prev, key) => {
+      const result = prev;
+      result[key] = key;
+      return result;
+    }, {});
+}
+
+export const ANNOTATION_TYPES_METADATA = {
   FORMULA: {
     value: 'FORMULA',
     label: 'Formula',
@@ -19,15 +28,22 @@ export const ANNOTATION_TYPES = {
   },
 };
 
+export const ANNOTATION_TYPES = extractTypes(ANNOTATION_TYPES_METADATA);
+
 export const DEFAULT_ANNOTATION_TYPE = ANNOTATION_TYPES.FORMULA;
+
+export const ANNOTATION_SOURCE_TYPES_METADATA = {
+  NATIVE: {
+    value: 'NATIVE',
+    label: 'Superset annotation',
+  },
+};
+
+export const ANNOTATION_SOURCE_TYPES = extractTypes(ANNOTATION_SOURCE_TYPES_METADATA);
 
 export function requiresQuery(annotationSourceType) {
   return !!annotationSourceType;
 }
-
-export const ANNOTATION_SOURCE_TYPES = {
-  NATIVE: 'NATIVE',
-};
 
 const NATIVE_COLUMN_NAMES = {
   timeColumn: 'start_dttm',

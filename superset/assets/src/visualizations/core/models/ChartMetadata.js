@@ -14,7 +14,7 @@ export default class ChartMetadata {
     this.show = show;
     this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce((prev, type) => {
       const lookup = prev;
-      lookup[type.value] = true;
+      lookup[type] = true;
       return lookup;
     }, {});
     this.supportedAnnotationTypes = supportedAnnotationTypes;
