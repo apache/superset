@@ -57,9 +57,10 @@ export default () => describe('top-level controls', () => {
   });
 
   it('should allow dashboard level force refresh', () => {
-    // should not show dashobard level force refresh
+    // when charts are not start loading, for example, under a secondary tab,
+    // should allow force refresh
     cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard').parent().should('have.class', 'disabled');
+    cy.contains('Force refresh dashboard').parent().not('have.class', 'disabled');
 
     // wait the all dash finish loading.
     cy.wait(sliceRequests);
