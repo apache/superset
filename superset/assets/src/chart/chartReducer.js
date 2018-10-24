@@ -8,7 +8,7 @@ export const chart = {
   chartAlert: null,
   chartStatus: 'loading',
   chartUpdateEndTime: null,
-  chartUpdateStartTime: now(),
+  chartUpdateStartTime: 0,
   latestQueryFormData: {},
   queryRequest: null,
   queryResponse: null,

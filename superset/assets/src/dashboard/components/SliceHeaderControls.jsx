@@ -88,11 +88,13 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   refreshChart() {
-    this.props.forceRefresh(this.props.slice.slice_id);
-    Logger.append(LOG_ACTIONS_REFRESH_CHART, {
-      slice_id: this.props.slice.slice_id,
-      is_cached: this.props.isCached,
-    });
+    if (this.props.updatedDttm) {
+      this.props.forceRefresh(this.props.slice.slice_id);
+      Logger.append(LOG_ACTIONS_REFRESH_CHART, {
+        slice_id: this.props.slice.slice_id,
+        is_cached: this.props.isCached,
+      });
+    }
   }
 
   toggleControls() {
@@ -122,7 +124,7 @@ class SliceHeaderControls extends React.PureComponent {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
-          <MenuItem onClick={this.refreshChart}>
+          <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
             {t('Force refresh')}
             <div className="refresh-tooltip">{refreshTooltip}</div>
           </MenuItem>
