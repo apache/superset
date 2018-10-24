@@ -1,7 +1,6 @@
 import React from 'react';
 import { fitBounds } from 'viewport-mercator-project';
 import d3 from 'd3';
-
 import sandboxedEval from '../../../modules/sandbox';
 
 export function getBounds(points) {
@@ -32,7 +31,7 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, slice, onSelect) {
+export function commonLayerProps(formData, setTooltip, onSelect) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
@@ -49,13 +48,13 @@ export function commonLayerProps(formData, slice, onSelect) {
   if (tooltipContentGenerator) {
     onHover = (o) => {
       if (o.picked) {
-        slice.setTooltip({
+        setTooltip({
           content: tooltipContentGenerator(o),
           x: o.x,
           y: o.y,
         });
       } else {
-        slice.setTooltip(null);
+        setTooltip(null);
       }
     };
   }

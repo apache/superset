@@ -16,14 +16,15 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   return {
     featureFlags: restBootstrapData.common.feature_flags,
     sqlLab: {
+      activeSouthPaneTab: 'Results',
       alerts: [],
-      queries: {},
       databases: {},
+      offline: false,
+      queries: {},
       queryEditors: [defaultQueryEditor],
       tabHistory: [defaultQueryEditor.id],
       tables: [],
-      queriesLastUpdate: 0,
-      activeSouthPaneTab: 'Results',
+      queriesLastUpdate: Date.now(),
       ...restBootstrapData,
     },
     messageToasts: getToastsFromPyFlashMessages(

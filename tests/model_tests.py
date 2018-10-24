@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import textwrap
 
 from sqlalchemy.engine.url import make_url
 
 from superset import app, db
 from superset.models.core import Database
-from superset.utils import get_main_database
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 

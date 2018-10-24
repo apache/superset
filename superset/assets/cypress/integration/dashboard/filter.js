@@ -40,11 +40,11 @@ export default () => describe('dashboard filter', () => {
       .type('South Asia{enter}', { force: true });
 
     cy.wait(aliases).then((requests) => {
-      requests.forEach((request) => {
-        const requestBody = request.request.body.substring('form_data='.length);
-        const requestParams = JSON.parse(decodeURIComponent(requestBody));
+      requests.forEach((xhr) => {
+        const requestFormData = xhr.request.body;
+        const requestParams = JSON.parse(requestFormData.get('form_data'));
         expect(requestParams.extra_filters[0])
-          .deep.eq({ col: 'region', op: 'in', val: ['South+Asia'] });
+          .deep.eq({ col: 'region', op: 'in', val: ['South Asia'] });
       });
     });
   });

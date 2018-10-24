@@ -1,26 +1,28 @@
 import React from 'react';
-import { mount } from 'enzyme';
-import { expect } from 'chai';
+import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 
 import { user } from './fixtures';
 import Favorites from '../../../src/profile/components/Favorites';
 import TableLoader from '../../../src/components/TableLoader';
 
+// store needed for withToasts(TableLoader)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
 describe('Favorites', () => {
   const mockedProps = {
     user,
   };
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<Favorites {...mockedProps} />),
-    ).to.equal(true);
-  });
+
   it('renders 2 TableLoader', () => {
-    const wrapper = mount(<Favorites {...mockedProps} />);
-    expect(wrapper.find(TableLoader)).to.have.length(2);
+    const wrapper = shallow(<Favorites {...mockedProps} />, { context: { store } });
+    expect(wrapper.find(TableLoader)).toHaveLength(2);
   });
+
   it('renders 2 titles', () => {
-    const wrapper = mount(<Favorites {...mockedProps} />);
-    expect(wrapper.find('h3')).to.have.length(2);
+    const wrapper = shallow(<Favorites {...mockedProps} />, { context: { store } });
+    expect(wrapper.find('h3')).toHaveLength(2);
   });
 });

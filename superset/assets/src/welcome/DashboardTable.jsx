@@ -1,33 +1,40 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, unsafe } from 'reactable';
+import { SupersetClient } from '@superset-ui/core';
+import withToasts from '../messageToasts/enhancers/withToasts';
+import { t } from '../locales';
+
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
-const $ = window.$ = require('jquery');
-
 const propTypes = {
   search: PropTypes.string,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
-export default class DashboardTable extends React.PureComponent {
+class DashboardTable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      dashboards: false,
+      dashboards: [],
     };
   }
+
   componentDidMount() {
-    const url = (
-      '/dashboardasync/api/read' +
-      '?_oc_DashboardModelViewAsync=changed_on' +
-      '&_od_DashboardModelViewAsync=desc');
-    $.getJSON(url, (data) => {
-      this.setState({ dashboards: data.result });
-    });
+    SupersetClient.get({
+      endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
+    })
+      .then(({ json }) => {
+         this.setState({ dashboards: json.result });
+      })
+      .catch(() => {
+        this.props.addDangerToast(t('An error occurred while fethching Dashboards'));
+      });
   }
+
   render() {
-    if (this.state.dashboards) {
+    if (this.state.dashboards.length > 0) {
       return (
         <Table
           className="table"
@@ -58,8 +65,11 @@ export default class DashboardTable extends React.PureComponent {
         </Table>
       );
     }
+
     return <Loading />;
   }
 }
 
 DashboardTable.propTypes = propTypes;
+
+export default withToasts(DashboardTable);

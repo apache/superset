@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Add index on the result key to the query table.
 
 Revision ID: f18570e03440

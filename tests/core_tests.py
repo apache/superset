@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
 import csv
 import datetime
@@ -15,22 +14,20 @@ import unittest
 import mock
 import pandas as pd
 import psycopg2
-from six import text_type
 import sqlalchemy as sqla
 
-from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
-from superset.utils import get_main_database
+from superset.utils import core as utils
+from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
 
 class CoreTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
@@ -373,7 +370,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 4
+        assert len(data) > 0
 
     def test_shortner(self):
         self.login(username='admin')
@@ -650,7 +647,7 @@ class CoreTests(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = '/* comment 1 */' + clean_query + '-- comment 2'
         table = SqlaTable(sql=commented_query)
-        rendered_query = text_type(table.get_from_clause())
+        rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_data(self):

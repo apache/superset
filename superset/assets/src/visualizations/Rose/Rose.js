@@ -2,7 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 import { d3TimeFormatPreset } from '../../modules/utils';
 import './Rose.css';
 

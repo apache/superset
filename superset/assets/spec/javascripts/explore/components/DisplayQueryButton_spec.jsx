@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { mount } from 'enzyme';
 import ModalTrigger from './../../../../src/components/ModalTrigger';
 
@@ -20,10 +19,10 @@ describe('DisplayQueryButton', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(true);
   });
   it('renders a dropdown', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
-    expect(wrapper.find(ModalTrigger)).to.have.lengthOf(3);
+    expect(wrapper.find(ModalTrigger)).toHaveLength(3);
   });
 });

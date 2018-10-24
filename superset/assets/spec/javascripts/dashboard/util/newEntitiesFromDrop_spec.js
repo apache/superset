@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import newEntitiesFromDrop from '../../../../src/dashboard/util/newEntitiesFromDrop';
 import {
   CHART_TYPE,
@@ -27,9 +25,9 @@ describe('newEntitiesFromDrop', () => {
     });
 
     const newId = result.a.children[0];
-    expect(result.a.children.length).to.equal(1);
-    expect(Object.keys(result).length).to.equal(2);
-    expect(result[newId].type).to.equal(CHART_TYPE);
+    expect(result.a.children).toHaveLength(1);
+    expect(Object.keys(result)).toHaveLength(2);
+    expect(result[newId].type).toBe(CHART_TYPE);
   });
 
   it('should create Tab AND Tabs components if the drag entity is Tabs', () => {
@@ -51,10 +49,10 @@ describe('newEntitiesFromDrop', () => {
     const newTabsId = result.a.children[0];
     const newTabId = result[newTabsId].children[0];
 
-    expect(result.a.children.length).to.equal(1);
-    expect(Object.keys(result).length).to.equal(3);
-    expect(result[newTabsId].type).to.equal(TABS_TYPE);
-    expect(result[newTabId].type).to.equal(TAB_TYPE);
+    expect(result.a.children).toHaveLength(1);
+    expect(Object.keys(result)).toHaveLength(3);
+    expect(result[newTabsId].type).toBe(TABS_TYPE);
+    expect(result[newTabId].type).toBe(TAB_TYPE);
   });
 
   it('should create a Row if the drag entity should be wrapped in a row', () => {
@@ -76,9 +74,9 @@ describe('newEntitiesFromDrop', () => {
     const newRowId = result.a.children[0];
     const newChartId = result[newRowId].children[0];
 
-    expect(result.a.children.length).to.equal(1);
-    expect(Object.keys(result).length).to.equal(3);
-    expect(result[newRowId].type).to.equal(ROW_TYPE);
-    expect(result[newChartId].type).to.equal(CHART_TYPE);
+    expect(result.a.children).toHaveLength(1);
+    expect(Object.keys(result)).toHaveLength(3);
+    expect(result[newRowId].type).toBe(ROW_TYPE);
+    expect(result[newChartId].type).toBe(CHART_TYPE);
   });
 });

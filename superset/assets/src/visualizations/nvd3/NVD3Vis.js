@@ -8,7 +8,7 @@ import 'nvd3/build/nv.d3.min.css';
 
 import { t } from '../../locales';
 import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/CategoricalColorNamespace';
+import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
@@ -322,6 +322,9 @@ function nvd3Vis(element, props) {
           });
         }
         if (showBarValue) {
+          // Add more margin to avoid label colliding with legend.
+          const top = chart.margin().top;
+          chart.margin({ top: top + 24 });
           setTimeout(function () {
             drawBarValues(svg, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);

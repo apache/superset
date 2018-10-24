@@ -169,7 +169,7 @@ the world know they are using Superset. Join our growing community!
  - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://maieuticallabs.it)
- - [Myra Labs] (http://www.myralabs.com/)
+ - [Myra Labs](http://www.myralabs.com/)
  - [PeopleDoc](https://www.people-doc.com)
  - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)

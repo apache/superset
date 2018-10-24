@@ -75,7 +75,6 @@ rfc3986==1.1.0            # via tableschema
 s3transfer==0.1.13        # via boto3
 sasl==0.2.1               # via thrift-sasl
 simplejson==3.15.0
-six==1.11.0
 sqlalchemy-utils==0.32.21
 sqlalchemy==1.2.2
 sqlparse==0.2.4

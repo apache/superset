@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
 import inspect
 import logging
@@ -12,6 +6,7 @@ import os
 import re
 import time
 import traceback
+from urllib import parse
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -24,8 +19,6 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
-from six import text_type
-from six.moves.urllib import parse
 import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
@@ -35,8 +28,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
-    security_manager, sql_lab, utils, viz)
+    app, appbuilder, cache, db, results_backend,
+    security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -47,9 +40,8 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
-    merge_extra_filters, merge_request_params, QueryStatus,
-)
+from superset.utils import core as utils
+from superset.utils import dashboard_import_export
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -63,6 +55,7 @@ config = app.config
 stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
+QueryStatus = utils.QueryStatus
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -213,7 +206,8 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             '#sqlalchemy.schema.MetaData) call.<br/>'
             '2. The ``metadata_cache_timeout`` is a cache timeout setting '
             'in seconds for metadata fetch of this database. Specify it as '
-            '**"metadata_cache_timeout": {"schema_cache_timeout": 600}**. '
+            '**"metadata_cache_timeout": {"schema_cache_timeout": 600, '
+            '"table_cache_timeout": 600}**. '
             'If unset, cache will not be enabled for the functionality. '
             'A timeout of 0 indicates that the cache never expires.<br/>'
             '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
@@ -373,7 +367,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+                form.name.data) if isinstance(e, IntegrityError) else e
             flash(
                 message,
                 'danger')
@@ -951,7 +945,10 @@ class Superset(BaseSupersetView):
             return json_error_response(ACCESS_REQUEST_MISSING_ERR)
 
         # check if you can approve
-        if security_manager.all_datasource_access() or g.user.id == datasource.owner_id:
+        if (
+                security_manager.all_datasource_access() or
+                check_ownership(datasource, raise_if_false=False)
+        ):
             # can by done by admin only
             if role_to_grant:
                 role = security_manager.find_role(role_to_grant)
@@ -1260,7 +1257,7 @@ class Superset(BaseSupersetView):
         """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
-            dashboard_import_export_util.import_dashboards(db.session, f.stream)
+            dashboard_import_export.import_dashboards(db.session, f.stream)
             return redirect('/dashboard/list/')
         return self.render_template('superset/import_dashboards.html')
 
@@ -1338,11 +1335,11 @@ class Superset(BaseSupersetView):
 
         # On explore, merge legacy and extra filters into the form data
         utils.convert_legacy_filters_into_adhoc(form_data)
-        merge_extra_filters(form_data)
+        utils.merge_extra_filters(form_data)
 
         # merge request url params
         if request.method == 'GET':
-            merge_request_params(form_data, request.args)
+            utils.merge_request_params(form_data, request.args)
 
         # handle save or overwrite
         action = request.args.get('action')
@@ -1545,7 +1542,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/schemas/<db_id>/')
     @expose('/schemas/<db_id>/<force_refresh>/')
-    def schemas(self, db_id, force_refresh='true'):
+    def schemas(self, db_id, force_refresh='false'):
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
         database = (
@@ -1563,16 +1560,18 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/tables/<db_id>/<schema>/<substr>/')
-    def tables(self, db_id, schema, substr):
+    @expose('/tables/<db_id>/<schema>/<substr>/<force_refresh>/')
+    def tables(self, db_id, schema, substr, force_refresh='false'):
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
+        force_refresh = force_refresh.lower() == 'true'
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
         table_names = security_manager.accessible_by_user(
-            database, database.all_table_names(schema), schema)
+            database, database.all_table_names(schema, force_refresh), schema)
         view_names = security_manager.accessible_by_user(
-            database, database.all_view_names(schema), schema)
+            database, database.all_view_names(schema, force_refresh), schema)
 
         if substr:
             table_names = [tn for tn in table_names if substr in tn]
@@ -2455,7 +2454,7 @@ class Superset(BaseSupersetView):
                 db.session.query(Query)
                 .filter_by(client_id=client_id).one()
             )
-            query.status = utils.QueryStatus.STOPPED
+            query.status = QueryStatus.STOPPED
             db.session.commit()
         except Exception:
             pass
@@ -2540,7 +2539,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=False,
                     store_results=not query.select_as_cta,
-                    user_name=g.user.username,
+                    user_name=g.user.username if g.user else None,
                     start_time=utils.now_as_float())
             except Exception as e:
                 logging.exception(e)
@@ -2572,7 +2571,8 @@ class Superset(BaseSupersetView):
                 data = sql_lab.get_sql_results(
                     query_id,
                     rendered_query,
-                    return_results=True)
+                    return_results=True,
+                    user_name=g.user.username if g.user else None)
             payload = json.dumps(
                 data,
                 default=utils.pessimistic_json_iso_dttm_ser,
@@ -2676,8 +2676,8 @@ class Superset(BaseSupersetView):
         now = int(round(time.time() * 1000))
 
         unfinished_states = [
-            utils.QueryStatus.PENDING,
-            utils.QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.RUNNING,
         ]
 
         queries_to_timeout = [
@@ -2696,10 +2696,10 @@ class Superset(BaseSupersetView):
                     Query.user_id == g.user.get_id(),
                     Query.client_id in queries_to_timeout,
                 ),
-            ).values(state=utils.QueryStatus.TIMED_OUT)
+            ).values(state=QueryStatus.TIMED_OUT)
 
             for client_id in queries_to_timeout:
-                dict_queries[client_id]['status'] = utils.QueryStatus.TIMED_OUT
+                dict_queries[client_id]['status'] = QueryStatus.TIMED_OUT
 
         return json_success(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser))

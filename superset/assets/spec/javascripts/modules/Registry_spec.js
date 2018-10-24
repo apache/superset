@@ -1,21 +1,33 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import Registry from '../../../src/modules/Registry';
 
 describe('Registry', () => {
   it('exists', () => {
-    expect(Registry !== undefined).to.equal(true);
+    expect(Registry !== undefined).toBe(true);
   });
 
   describe('new Registry(name)', () => {
     it('can create a new registry when name is not given', () => {
       const registry = new Registry();
-      expect(registry).to.be.instanceOf(Registry);
+      expect(registry).toBeInstanceOf(Registry);
     });
     it('can create a new registry when name is given', () => {
       const registry = new Registry('abc');
-      expect(registry).to.be.instanceOf(Registry);
-      expect(registry.name).to.equal('abc');
+      expect(registry).toBeInstanceOf(Registry);
+      expect(registry.name).toBe('abc');
+    });
+  });
+
+  describe('.clear()', () => {
+    it('clears all registered items', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'testValue');
+      registry.clear();
+      expect(Object.keys(registry.items)).toHaveLength(0);
+      expect(Object.keys(registry.promises)).toHaveLength(0);
+    });
+    it('returns the registry itself', () => {
+      const registry = new Registry();
+      expect(registry.clear()).toBe(registry);
     });
   });
 
@@ -23,13 +35,13 @@ describe('Registry', () => {
     it('returns true if an item with the given key exists', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
-      expect(registry.has('a')).to.equal(true);
+      expect(registry.has('a')).toBe(true);
       registry.registerLoader('b', () => 'testValue2');
-      expect(registry.has('b')).to.equal(true);
+      expect(registry.has('b')).toBe(true);
     });
     it('returns false if an item with the given key does not exist', () => {
       const registry = new Registry();
-      expect(registry.has('a')).to.equal(false);
+      expect(registry.has('a')).toBe(false);
     });
   });
 
@@ -37,12 +49,12 @@ describe('Registry', () => {
     it('registers the given value with the given key', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
-      expect(registry.has('a')).to.equal(true);
-      expect(registry.get('a')).to.equal('testValue');
+      expect(registry.has('a')).toBe(true);
+      expect(registry.get('a')).toBe('testValue');
     });
     it('returns the registry itself', () => {
       const registry = new Registry();
-      expect(registry.registerValue('a', 'testValue')).to.equal(registry);
+      expect(registry.registerValue('a', 'testValue')).toBe(registry);
     });
   });
 
@@ -50,12 +62,12 @@ describe('Registry', () => {
     it('registers the given loader with the given key', () => {
       const registry = new Registry();
       registry.registerLoader('a', () => 'testValue');
-      expect(registry.has('a')).to.equal(true);
-      expect(registry.get('a')).to.equal('testValue');
+      expect(registry.has('a')).toBe(true);
+      expect(registry.get('a')).toBe('testValue');
     });
     it('returns the registry itself', () => {
       const registry = new Registry();
-      expect(registry.registerLoader('a', () => 'testValue')).to.equal(registry);
+      expect(registry.registerLoader('a', () => 'testValue')).toBe(registry);
     });
   });
 
@@ -63,58 +75,104 @@ describe('Registry', () => {
     it('given the key, returns the value if the item is a value', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
-      expect(registry.get('a')).to.equal('testValue');
+      expect(registry.get('a')).toBe('testValue');
     });
-    it('given the key, returns the result of the loader function if the item is a loader', () => {
-      const registry = new Registry();
-      registry.registerLoader('b', () => 'testValue2');
-      expect(registry.get('b')).to.equal('testValue2');
-    });
+    it(
+      'given the key, returns the result of the loader function if the item is a loader',
+      () => {
+        const registry = new Registry();
+        registry.registerLoader('b', () => 'testValue2');
+        expect(registry.get('b')).toBe('testValue2');
+      },
+    );
     it('returns null if the item with specified key does not exist', () => {
       const registry = new Registry();
-      expect(registry.get('a')).to.equal(null);
+      expect(registry.get('a')).toBeNull();
     });
-    it('If the key was registered multiple times, returns the most recent item.', () => {
-      const registry = new Registry();
-      registry.registerValue('a', 'testValue');
-      expect(registry.get('a')).to.equal('testValue');
-      registry.registerLoader('a', () => 'newValue');
-      expect(registry.get('a')).to.equal('newValue');
-    });
+    it(
+      'If the key was registered multiple times, returns the most recent item.',
+      () => {
+        const registry = new Registry();
+        registry.registerValue('a', 'testValue');
+        expect(registry.get('a')).toBe('testValue');
+        registry.registerLoader('a', () => 'newValue');
+        expect(registry.get('a')).toBe('newValue');
+      },
+    );
   });
 
   describe('.getAsPromise(key)', () => {
-    it('given the key, returns a promise of item value if the item is a value', () => {
+    it(
+      'given the key, returns a promise of item value if the item is a value',
+      () => {
+        const registry = new Registry();
+        registry.registerValue('a', 'testValue');
+        return registry.getAsPromise('a').then((value) => {
+          expect(value).toBe('testValue');
+        });
+      },
+    );
+    it(
+      'given the key, returns a promise of result of the loader function if the item is a loader ',
+      () => {
+        const registry = new Registry();
+        registry.registerLoader('a', () => 'testValue');
+        return registry.getAsPromise('a').then((value) => {
+          expect(value).toBe('testValue');
+        });
+      },
+    );
+    it(
+      'returns a rejected promise if the item with specified key does not exist',
+      () => {
+        const registry = new Registry();
+        return registry.getAsPromise('a').then(null, (err) => {
+          expect(err).toBe('Item with key "a" is not registered.');
+        });
+      },
+    );
+    it(
+      'If the key was registered multiple times, returns a promise of the most recent item.',
+      () => {
+        const registry = new Registry();
+        registry.registerValue('a', 'testValue');
+        const promise1 = registry.getAsPromise('a').then((value) => {
+          expect(value).toBe('testValue');
+        });
+        registry.registerLoader('a', () => 'newValue');
+        const promise2 = registry.getAsPromise('a').then((value) => {
+          expect(value).toBe('newValue');
+        });
+        return Promise.all([promise1, promise2]);
+      },
+    );
+  });
+
+  describe('.getMap()', () => {
+    it('returns key-value map as plain object', () => {
       const registry = new Registry();
-      registry.registerValue('a', 'testValue');
-      return registry.getAsPromise('a').then((value) => {
-        expect(value).to.equal('testValue');
+      registry.registerValue('a', 'cat');
+      registry.registerLoader('b', () => 'dog');
+      expect(registry.getMap()).toEqual({
+        a: 'cat',
+        b: 'dog',
       });
     });
-    it('given the key, returns a promise of result of the loader function if the item is a loader ', () => {
+  });
+
+  describe('.getMapAsPromise()', () => {
+    it('returns a promise of key-value map', () => {
       const registry = new Registry();
-      registry.registerLoader('a', () => 'testValue');
-      return registry.getAsPromise('a').then((value) => {
-        expect(value).to.equal('testValue');
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      registry.registerLoader('c', () => Promise.resolve('test3'));
+      return registry.getMapAsPromise().then((map) => {
+        expect(map).toEqual({
+          a: 'test1',
+          b: 'test2',
+          c: 'test3',
+        });
       });
-    });
-    it('returns a rejected promise if the item with specified key does not exist', () => {
-      const registry = new Registry();
-      return registry.getAsPromise('a').then(null, (err) => {
-        expect(err).to.equal('Item with key "a" is not registered.');
-      });
-    });
-    it('If the key was registered multiple times, returns a promise of the most recent item.', () => {
-      const registry = new Registry();
-      registry.registerValue('a', 'testValue');
-      const promise1 = registry.getAsPromise('a').then((value) => {
-        expect(value).to.equal('testValue');
-      });
-      registry.registerLoader('a', () => 'newValue');
-      const promise2 = registry.getAsPromise('a').then((value) => {
-        expect(value).to.equal('newValue');
-      });
-      return Promise.all([promise1, promise2]);
     });
   });
 
@@ -123,7 +181,35 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
       registry.registerLoader('b', () => 'test2');
-      expect(registry.keys()).to.deep.equal(['a', 'b']);
+      expect(registry.keys()).toEqual(['a', 'b']);
+    });
+  });
+
+  describe('.values()', () => {
+    it('returns an array of values', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      expect(registry.values()).toEqual([
+        'test1',
+        'test2',
+      ]);
+    });
+  });
+
+  describe('.valuesAsPromise()', () => {
+    it('returns a Promise of an array { key, value }', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'test1');
+      registry.registerLoader('b', () => 'test2');
+      registry.registerLoader('c', () => Promise.resolve('test3'));
+      return registry.valuesAsPromise().then((entries) => {
+        expect(entries).toEqual([
+          'test1',
+          'test2',
+          'test3',
+        ]);
+      });
     });
   });
 
@@ -132,7 +218,7 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'test1');
       registry.registerLoader('b', () => 'test2');
-      expect(registry.entries()).to.deep.equal([
+      expect(registry.entries()).toEqual([
         { key: 'a', value: 'test1' },
         { key: 'b', value: 'test2' },
       ]);
@@ -146,7 +232,7 @@ describe('Registry', () => {
       registry.registerLoader('b', () => 'test2');
       registry.registerLoader('c', () => Promise.resolve('test3'));
       return registry.entriesAsPromise().then((entries) => {
-        expect(entries).to.deep.equal([
+        expect(entries).toEqual([
           { key: 'a', value: 'test1' },
           { key: 'b', value: 'test2' },
           { key: 'c', value: 'test3' },
@@ -160,16 +246,16 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
       registry.remove('a');
-      expect(registry.get('a')).to.equal(null);
+      expect(registry.get('a')).toBeNull();
     });
     it('does not throw error if the key does not exist', () => {
       const registry = new Registry();
-      expect(() => registry.remove('a')).to.not.throw();
+      expect(() => registry.remove('a')).not.toThrowError();
     });
     it('returns itself', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
-      expect(registry.remove('a')).to.equal(registry);
+      expect(registry.remove('a')).toBe(registry);
     });
   });
 });

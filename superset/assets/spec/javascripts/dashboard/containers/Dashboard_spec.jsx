@@ -2,7 +2,6 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import Dashboard from '../../../../src/dashboard/containers/Dashboard';
 import getInitialState from '../../../../src/dashboard/reducers/getInitialState';
@@ -13,7 +12,7 @@ describe('Dashboard Container', () => {
   let store;
   let wrapper;
 
-  before(() => {
+  beforeAll(() => {
     const bootstrapData = {
       dashboard_data: {
         slices: [],
@@ -34,6 +33,6 @@ describe('Dashboard Container', () => {
   });
 
   it('should set feature flags', () => {
-    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).to.equal(true);
+    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).toBe(true);
   });
 });

@@ -1,13 +1,13 @@
-/* eslint-disable global-require */
+/* eslint global-require: 0 */
 import $ from 'jquery';
-import airbnb from './modules/colorSchemes/airbnb';
-import categoricalSchemes from './modules/colorSchemes/categorical';
-import lyft from './modules/colorSchemes/lyft';
-import { getInstance } from './modules/ColorSchemeManager';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+import { SupersetClient } from '@superset-ui/core';
 import { toggleCheckbox } from './modules/utils';
+import setupClient from './setup/setupClient';
+import setupColors from './setup/setupColors';
 
-// Everything imported in this file ends up in the common entry file
-// be mindful of double-imports
+setupClient();
+setupColors();
 
 $(document).ready(function () {
   $(':checkbox[data-checkbox-api-prefix]').change(function () {
@@ -20,24 +20,18 @@ $(document).ready(function () {
   // for language picker dropdown
   $('#language-picker a').click(function (ev) {
     ev.preventDefault();
-
-    const targetUrl = ev.currentTarget.href;
-    $.ajax(targetUrl)
+    SupersetClient.get({
+      endpoint: ev.currentTarget.getAttribute('href'),
+      parseMethod: null,
+    })
       .then(() => {
         location.reload();
       });
   });
 });
 
-// Register color schemes
-getInstance()
-  .registerScheme('bnbColors', airbnb.bnbColors)
-  .registerMultipleSchemes(categoricalSchemes)
-  .registerScheme('lyftColors', lyft.lyftColors)
-  .setDefaultSchemeName('bnbColors');
-
 export function appSetup() {
-    // A set of hacks to allow apps to run within a FAB template
+  // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;

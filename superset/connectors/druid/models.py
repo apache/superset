@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -30,20 +24,20 @@ from pydruid.utils.postaggregator import (
     Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
 )
 import requests
-from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset import conf, db, import_util, security_manager, utils
+from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult,
 )
-from superset.utils import (
+from superset.utils import core as utils, import_datasource
+from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
 
@@ -399,7 +393,7 @@ class DruidColumn(Model, BaseColumn):
                 DruidColumn.datasource_id == lookup_column.datasource_id,
                 DruidColumn.column_name == lookup_column.column_name).first()
 
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
 
 class DruidMetric(Model, BaseMetric):
@@ -451,7 +445,7 @@ class DruidMetric(Model, BaseMetric):
             return db.session.query(DruidMetric).filter(
                 DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class DruidDatasource(Model, BaseDatasource):
@@ -587,7 +581,7 @@ class DruidDatasource(Model, BaseDatasource):
         def lookup_cluster(d):
             return db.session.query(DruidCluster).filter_by(
                 cluster_name=d.cluster_name).one()
-        return import_util.import_datasource(
+        return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 
@@ -775,7 +769,7 @@ class DruidDatasource(Model, BaseDatasource):
             if period_name in ('week_ending_saturday', 'week_starting_sunday'):
                 # use Sunday as start of the week
                 granularity['origin'] = '2016-01-03T00:00:00'
-        elif not isinstance(period_name, string_types):
+        elif not isinstance(period_name, str):
             granularity['type'] = 'duration'
             granularity['duration'] = period_name
         elif period_name.startswith('P'):

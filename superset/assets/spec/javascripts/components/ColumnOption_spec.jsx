@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import ColumnOption from '../../../src/components/ColumnOption';
@@ -25,25 +24,25 @@ describe('ColumnOption', () => {
     props = Object.assign({}, defaultProps);
   });
   it('is a valid element', () => {
-    expect(React.isValidElement(<ColumnOption {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<ColumnOption {...defaultProps} />)).toBe(true);
   });
   it('shows a label with verbose_name', () => {
     const lbl = wrapper.find('.option-label');
-    expect(lbl).to.have.length(1);
-    expect(lbl.first().text()).to.equal('Foo');
+    expect(lbl).toHaveLength(1);
+    expect(lbl.first().text()).toBe('Foo');
   });
   it('shows 2 InfoTooltipWithTrigger', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(2);
+    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(2);
   });
   it('shows only 1 InfoTooltipWithTrigger when no descr', () => {
     props.column.description = null;
     wrapper = shallow(factory(props));
-    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(1);
+    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
   });
   it('shows a label with column_name when no verbose_name', () => {
     props.column.verbose_name = null;
     wrapper = shallow(factory(props));
-    expect(wrapper.find('.option-label').first().text()).to.equal('foo');
+    expect(wrapper.find('.option-label').first().text()).toBe('foo');
   });
   it('shows a column type label when showType is true', () => {
     wrapper = shallow(factory({
@@ -54,13 +53,13 @@ describe('ColumnOption', () => {
         type: 'str',
       },
     }));
-    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
   });
   it('column with expression has correct column label if showType is true', () => {
     props.showType = true;
     wrapper = shallow(factory(props));
-    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
-    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('expression');
+    expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).toBe('expression');
   });
   it('shows no column type label when type is null', () => {
     wrapper = shallow(factory({
@@ -71,13 +70,13 @@ describe('ColumnOption', () => {
         type: null,
       },
     }));
-    expect(wrapper.find(ColumnTypeLabel)).to.have.length(0);
+    expect(wrapper.find(ColumnTypeLabel)).toHaveLength(0);
   });
   it('dttm column has correct column label if showType is true', () => {
     props.showType = true;
     props.column.is_dttm = true;
     wrapper = shallow(factory(props));
-    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
-    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('time');
+    expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).toBe('time');
   });
 });

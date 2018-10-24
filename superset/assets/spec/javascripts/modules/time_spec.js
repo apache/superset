@@ -1,5 +1,3 @@
-import { expect, assert } from 'chai';
-
 import moment from 'moment';
 import { getPlaySliderParams, truncate } from '../../../src/modules/time';
 
@@ -22,14 +20,14 @@ describe('truncate', () => {
     let result;
     isoDurations.forEach(([step, expected]) => {
       result = truncate(timestamp, step);
-      expect(result.format()).to.equal(expected.format());
+      expect(result.format()).toBe(expected.format());
     });
   });
 });
 
 describe('getPlaySliderParams', () => {
   it('is a function', () => {
-    assert.isFunction(getPlaySliderParams);
+    expect(typeof getPlaySliderParams).toBe('function');
   });
 
   it('handles durations', () => {
@@ -46,14 +44,14 @@ describe('getPlaySliderParams', () => {
       moment('2018-01-10T00:00:00'),
     ].map(d => parseInt(d.format('x'), 10));
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, 'P2D');
-    expect(moment(start).format()).to.equal(moment('2018-01-01T00:00:00').format());
-    expect(moment(end).format()).to.equal(moment('2018-01-11T00:00:00').format());
-    expect(getStep(start)).to.equal(2 * 24 * 60 * 60 * 1000);
-    expect(values.map(v => moment(v).format())).to.eql([
+    expect(moment(start).format()).toBe(moment('2018-01-01T00:00:00').format());
+    expect(moment(end).format()).toBe(moment('2018-01-11T00:00:00').format());
+    expect(getStep(start)).toBe(2 * 24 * 60 * 60 * 1000);
+    expect(values.map(v => moment(v).format())).toEqual([
       moment('2018-01-01T00:00:00').format(),
       moment('2018-01-03T00:00:00').format(),
     ]);
-    expect(disabled).to.equal(false);
+    expect(disabled).toBe(false);
   });
 
   it('handles intervals', () => {
@@ -71,13 +69,13 @@ describe('getPlaySliderParams', () => {
     ].map(d => parseInt(d.format('x'), 10));
     // 1970-01-03 was a Saturday
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, 'P1W/1970-01-03T00:00:00Z');
-    expect(moment(start).format()).to.equal(moment('2017-12-30T00:00:00Z').format());  // Saturday
-    expect(moment(end).format()).to.equal(moment('2018-01-13T00:00:00Z').format());  // Saturday
-    expect(getStep(start)).to.equal(7 * 24 * 60 * 60 * 1000);
-    expect(values.map(v => moment(v).format())).to.eql([
+    expect(moment(start).format()).toBe(moment('2017-12-30T00:00:00Z').format());  // Saturday
+    expect(moment(end).format()).toBe(moment('2018-01-13T00:00:00Z').format());  // Saturday
+    expect(getStep(start)).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(values.map(v => moment(v).format())).toEqual([
       moment('2017-12-30T00:00:00Z').format(),
       moment('2018-01-06T00:00:00Z').format(),
     ]);
-    expect(disabled).to.equal(false);
+    expect(disabled).toBe(false);
   });
 });

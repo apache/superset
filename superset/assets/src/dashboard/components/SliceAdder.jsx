@@ -226,8 +226,6 @@ class SliceAdder extends React.Component {
 
         {this.props.isLoading && <Loading />}
 
-        {this.props.errorMessage && <div>{this.props.errorMessage}</div>}
-
         {!this.props.isLoading &&
           this.state.filteredSlices.length > 0 && (
             <List
@@ -242,6 +240,10 @@ class SliceAdder extends React.Component {
               selectedSliceIds={this.props.selectedSliceIds}
             />
           )}
+
+        {this.props.errorMessage && (
+          <div className="error-message">{this.props.errorMessage}</div>
+        )}
 
         {/* Drag preview is just a single fixed-position element */}
         <AddSliceDragPreview slices={this.state.filteredSlices} />

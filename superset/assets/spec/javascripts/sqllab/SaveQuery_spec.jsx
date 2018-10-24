@@ -1,7 +1,6 @@
 import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 import SaveQuery from '../../../src/SqlLab/components/SaveQuery';
 import ModalTrigger from '../../../src/components/ModalTrigger';
 
@@ -16,25 +15,25 @@ describe('SavedQuery', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<SaveQuery />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('is valid with props', () => {
     expect(
       React.isValidElement(<SaveQuery {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('has a ModalTrigger', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
-    expect(wrapper.find(ModalTrigger)).to.have.length(1);
+    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
   });
   it('has a cancel button', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
     const modal = shallow(wrapper.instance().renderModalBody());
-    expect(modal.find('.cancelQuery')).to.have.length(1);
+    expect(modal.find('.cancelQuery')).toHaveLength(1);
   });
   it('has 2 FormControls', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
     const modal = shallow(wrapper.instance().renderModalBody());
-    expect(modal.find(FormControl)).to.have.length(2);
+    expect(modal.find(FormControl)).toHaveLength(2);
   });
 });

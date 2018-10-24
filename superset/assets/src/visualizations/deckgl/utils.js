@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import sequentialSchemes from '../../modules/colorSchemes/sequential';
+import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
 import { colorScalerFactory } from '../../modules/colors';
 
 export function getBreakPoints(fd, features) {
@@ -36,7 +36,7 @@ export function getBreakPointColorScaler(fd, features) {
     : null;
   const colors = Array.isArray(fd.linear_color_scheme)
     ? fd.linear_color_scheme
-    : sequentialSchemes[fd.linear_color_scheme];
+    : getSequentialSchemeRegistry().get(fd.linear_color_scheme).colors;
 
   let scaler;
   let maskPoint;
@@ -44,7 +44,9 @@ export function getBreakPointColorScaler(fd, features) {
     // bucket colors into discrete colors
     const colorScaler = colorScalerFactory(colors);
     const n = breakPoints.length - 1;
-    const bucketedColors = [...Array(n).keys()].map(d => colorScaler(d / (n - 1)));
+    const bucketedColors = n > 1
+      ? [...Array(n).keys()].map(d => colorScaler(d / (n - 1)))
+      : [colors[colors.length - 1]];
 
     // repeat ends
     bucketedColors.unshift(bucketedColors[0]);

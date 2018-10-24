@@ -33,4 +33,5 @@ export default class RecentActivity extends React.PureComponent {
     );
   }
 }
+
 RecentActivity.propTypes = propTypes;
