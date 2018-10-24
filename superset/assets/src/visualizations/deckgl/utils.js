@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
-import { colorScalerFactory } from '../../modules/colors';
+import { colorScalerFactory, hexToRGB } from '../../modules/colors';
 
 export function getBreakPoints(fd, features) {
   if (fd.break_points === undefined || fd.break_points.length === 0) {
@@ -18,16 +18,6 @@ export function getBreakPoints(fd, features) {
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
   return fd.break_points.sort((a, b) => parseFloat(a) - parseFloat(b));
-}
-
-export function hexToRGB(hex, alpha = 255) {
-  if (!hex) {
-    return [0, 0, 0, alpha];
-  }
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b, alpha];
 }
 
 export function getBreakPointColorScaler(fd, features) {

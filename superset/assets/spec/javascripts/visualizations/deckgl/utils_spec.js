@@ -2,7 +2,6 @@ import {
   getBreakPoints,
   getBreakPointColorScaler,
   getBuckets,
-  hexToRGB,
 } from '../../../../src/visualizations/deckgl/utils';
 
 describe('getBreakPoints', () => {
@@ -39,30 +38,6 @@ describe('getBreakPoints', () => {
     const result = getBreakPoints(fd, features);
     const expected = ['1', '1'];
     expect(result).toEqual(expected);
-  });
-});
-
-describe('hexToRGB', () => {
-  it('is a function', () => {
-    expect(typeof hexToRGB).toBe('function');
-  });
-
-  it('works with falsy values', () => {
-    expect(hexToRGB()).toEqual([0, 0, 0, 255]);
-    /* eslint-disable quotes */
-    [false, 0, -0, 0.0, '', "", ``, null, undefined, NaN].forEach((value) => {
-      expect(hexToRGB(value)).toEqual([0, 0, 0, 255]);
-    });
-  });
-
-  it('parses hex colors', () => {
-    expect(hexToRGB('#000000')).toEqual([0, 0, 0, 255]);
-    expect(hexToRGB('#ffffff')).toEqual([255, 255, 255, 255]);
-  });
-
-  it('takes and alpha argument', () => {
-    expect(hexToRGB('#000000', 100)).toEqual([0, 0, 0, 100]);
-    expect(hexToRGB('#ffffff', 0)).toEqual([255, 255, 255, 0]);
   });
 });
 
