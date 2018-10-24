@@ -542,4 +542,8 @@ To fix it:
 
     ```bash
     superset db upgrade
+    Name: "Kannnan"  
+   Place: "kerala"  
+   Github: [kannanvg10](https://github.com/kannanvg10)  
+
     ```
