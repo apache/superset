@@ -2381,7 +2381,7 @@ class DeckPolygon(DeckPathViz):
         return [metric for metric in metrics if metric]
 
     def get_properties(self, d):
-        super(DeckPolygon, self).get_properties(d) 
+        super(DeckPolygon, self).get_properties(d)
         fd = self.form_data
         elevation = fd['point_radius_fixed']['value']
         type_ = fd['point_radius_fixed']['type']
