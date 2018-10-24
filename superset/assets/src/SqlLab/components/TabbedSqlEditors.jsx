@@ -8,7 +8,6 @@ import URI from 'urijs';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
-import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { t } from '../../locales';
 import TabStatusIcon from './TabStatusIcon';
 
