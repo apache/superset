@@ -746,7 +746,7 @@ export const visTypes = {
           ['extruded', 'multiplier'],
           ['line_width', null],
           ['linear_color_scheme', 'opacity'],
-          ['num_categories', 'break_points'],
+          ['num_buckets', 'break_points'],
           ['table_filter', 'toggle_polygons'],
           ['legend_position', null],
         ],

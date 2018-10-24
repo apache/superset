@@ -1490,9 +1490,9 @@ export const controls = {
     type: 'SelectControl',
     multi: true,
     freeForm: true,
-    label: t('Category break points'),
+    label: t('Bucket break points'),
     choices: formatSelectOptions([]),
-    description: t('List of values for bucketing metric.'),
+    description: t('List of n+1 values for bucketing metric into n buckets.'),
     renderTrigger: true,
   },
 
