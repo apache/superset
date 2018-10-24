@@ -15,7 +15,7 @@
     "build": "yarn run build:cjs && yarn run build:esm",
     "dev": "beemo babel --watch ./src --out-dir esm/ --esm",
     "jest": "beemo jest --color --coverage",
-    "eslint": "beemo eslint \"./{src,test}/**/*.{js,jsx,json,md}\"",
+    "eslint": "beemo eslint \"./{src,test}/**/*.{js,jsx,md}\"",
     "lint": "yarn run prettier && yarn run eslint",
     "lint:fix": "yarn run prettier --write && yarn run eslint --fix",
     "test": "yarn run jest",

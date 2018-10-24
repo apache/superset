@@ -24,6 +24,7 @@ export default class Translator {
       return input;
     }
     const text = this.i18n.gettext(input);
-    return (args.length > 0) ? sprintf(text, ...args) : text;
+
+    return args.length > 0 ? sprintf(text, ...args) : text;
   }
 }
