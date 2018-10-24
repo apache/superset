@@ -34,7 +34,10 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import core as utils
+from superset.utils import (
+    cache as cache_util,
+    core as utils,
+)
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -840,61 +843,95 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
-    def all_table_names(self, schema=None, force=False):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')),
+        use_tables_cache=True)
+    def all_table_names(self, enable_cache=False, cache_timeout=None,
+                        force=False, db_id=None, schema=None):
+        """
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator
+
+        :param enable_cache: whether cache is enabled for the function
+        :type enable_cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :param db_id: database id
+        :type db_id: int
+        :param schema: schema name
+        :type schema: str
+        :return: table list
+        :rtype: list
+        """
         if not schema:
             if not self.allow_multi_schema_metadata_fetch:
                 return []
-            tables_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'table', force=force)
+            tables_dict = self.db_engine_spec.fetch_result_sets(self, 'table')
             return tables_dict.get('', [])
 
-        extra = self.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
-        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
         return sorted(self.db_engine_spec.get_table_names(
-            inspector=self.inspector,
-            db_id=self.id,
-            schema=schema,
-            enable_cache=enable_cache,
-            cache_timeout=table_cache_timeout,
-            force=force))
+            inspector=self.inspector, schema=schema))
 
-    def all_view_names(self, schema=None, force=False):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')),
+        use_tables_cache=True)
+    def all_view_names(self, enable_cache=False, cache_timeout=None,
+                       force=False, db_id=None, schema=None):
+        """
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator
+
+        :param enable_cache: whether cache is enabled for the function
+        :type enable_cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :param db_id: database id
+        :type db_id: int
+        :param schema: schema name
+        :type schema: str
+        :return: view list
+        :rtype: list
+        """
         if not schema:
             if not self.allow_multi_schema_metadata_fetch:
                 return []
-            views_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'view', force=force)
+            views_dict = self.db_engine_spec.fetch_result_sets(self, 'view')
             return views_dict.get('', [])
         views = []
         try:
-            extra = self.get_extra()
-            medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-            table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
-            enable_cache = 'table_cache_timeout' in medatada_cache_timeout
             views = self.db_engine_spec.get_view_names(
-                inspector=self.inspector,
-                db_id=self.id,
-                schema=schema,
-                enable_cache=enable_cache,
-                cache_timeout=table_cache_timeout,
-                force=force)
+                inspector=self.inspector, schema=schema)
         except Exception:
             pass
         return views
 
-    def all_schema_names(self, force_refresh=False):
-        extra = self.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
-        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
-        return sorted(self.db_engine_spec.get_schema_names(
-            inspector=self.inspector,
-            enable_cache=enable_cache,
-            cache_timeout=schema_cache_timeout,
-            db_id=self.id,
-            force=force_refresh))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')),
+        use_tables_cache=True)
+    def all_schema_names(self, enable_cache=False, cache_timeout=None,
+                         force=False, db_id=None):
+        """
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator
+
+        :param enable_cache: whether cache is enabled for the function
+        :type enable_cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :param db_id: database id
+        :type db_id: int
+        :return: schema list
+        :rtype: list
+        """
+        return self.db_engine_spec.get_schema_names(self.inspector)
 
     @property
     def db_engine_spec(self):

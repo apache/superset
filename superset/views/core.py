@@ -212,7 +212,8 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'A timeout of 0 indicates that the cache never expires.<br/>'
             '3. The ``schemas_allowed_for_csv_upload`` is a comma separated list '
             'of schemas that CSVs are allowed to upload to. '
-            'Specify it as **"schemas_allowed_for_csv_upload": ["public", "csv_upload"]**. '
+            'Specify it as **"schemas_allowed_for_csv_upload": '
+            '["public", "csv_upload"]**. '
             'If database flavor does not support schema or any schema is allowed '
             'to be accessed, just leave the list empty', True),
         'impersonate_user': _(
@@ -257,7 +258,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security_manager.merge_perm('database_access', db.perm)
         # adding a new database we always want to force refresh schema list
-        for schema in db.all_schema_names(force_refresh=True):
+        for schema in db.all_schema_names():
             security_manager.merge_perm(
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
@@ -1551,7 +1552,14 @@ class Superset(BaseSupersetView):
             .filter_by(id=db_id)
             .one()
         )
-        schemas = database.all_schema_names(force_refresh=force_refresh)
+        extra = database.get_extra()
+        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
+        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
+        schemas = database.all_schema_names(enable_cache=enable_cache,
+                                            cache_timeout=schema_cache_timeout,
+                                            db_id=db_id,
+                                            force=force_refresh)
         schemas = security_manager.schemas_accessible_by_user(database, schemas)
         return Response(
             json.dumps({'schemas': schemas}),
@@ -1568,10 +1576,25 @@ class Superset(BaseSupersetView):
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
-        table_names = security_manager.accessible_by_user(
-            database, database.all_table_names(schema, force_refresh), schema)
-        view_names = security_manager.accessible_by_user(
-            database, database.all_view_names(schema, force_refresh), schema)
+
+        extra = database.get_extra()
+        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
+        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
+
+        table_names = database.all_table_names(enable_cache=enable_cache,
+                                               cache_timeout=table_cache_timeout,
+                                               db_id=db_id,
+                                               force=force_refresh,
+                                               schema=schema)
+        table_names = security_manager.accessible_by_user(database, table_names, schema)
+
+        view_names = database.all_view_names(enable_cache=enable_cache,
+                                             cache_timeout=table_cache_timeout,
+                                             db_id=db_id,
+                                             force=force_refresh,
+                                             schema=schema)
+        view_names = security_manager.accessible_by_user(database, view_names, schema)
 
         if substr:
             table_names = [tn for tn in table_names if substr in tn]
