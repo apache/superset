@@ -17,6 +17,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data = jsFnMutator(data);
   }
 
+  let aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}`,
     data,
@@ -26,8 +27,8 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     extruded: fd.extruded,
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    getElevationValue: points => points.reduce((sum, point) => sum + point.weight, 0),
-    getColorValue: points => points.reduce((sum, point) => sum + point.weight, 0),
+    getElevationValue: aggFunc,
+    getColorValue: aggFunc,
     ...commonLayerProps(fd, setTooltip),
   });
 }
