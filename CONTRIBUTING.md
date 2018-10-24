@@ -292,6 +292,21 @@ npm run dev-server -- --supersetPort=8081
 
 After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
 
+#### Feature flags
+
+Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
+```
+FEATURE_FLAGS = {
+    'SCOPED_FILTER': True,
+}
+```
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset/assets/src/featureFlags.ts`. For example,
+```
+export enum FeatureFlag {
+  SCOPED_FILTER = 'SCOPED_FILTER',
+}
+```
+
 ## Testing
 
 All tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)

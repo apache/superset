@@ -5,33 +5,18 @@ import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import App from '../../../src/SqlLab/components/App';
-import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
-import getInitialState from '../../../src/SqlLab/getInitialState';
+import App from 'src/SqlLab/components/App';
+import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
+import { sqlLabReducer } from 'src/SqlLab/reducers';
 
 describe('SqlLab App', () => {
   const middlewares = [thunk];
   const mockStore = configureStore(middlewares);
-  let store;
+  const store = mockStore(sqlLabReducer(undefined, {}), {});
   let wrapper;
-
-  beforeAll(() => {
-    const bootstrapData = {
-      common: {
-        feature_flags: {
-          FOO_BAR: true,
-        },
-      },
-    };
-    store = mockStore(getInitialState(bootstrapData), {});
-  });
 
   beforeEach(() => {
     wrapper = shallow(<App />, { context: { store } });
-  });
-
-  it('should set feature flags', () => {
-    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).toBe(true);
   });
 
   it('is valid', () => {
