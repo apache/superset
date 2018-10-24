@@ -31,7 +31,6 @@ export default function getInitialState(bootstrapData) {
   const chartKey = getChartKey(bootstrappedState);
 
   return {
-    featureFlags: bootstrapData.common.feature_flags,
     charts: {
       [chartKey]: {
         id: chartKey,

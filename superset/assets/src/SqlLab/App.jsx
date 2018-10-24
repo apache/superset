@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
 
+import { initFeatureFlags } from 'src/featureFlags';
 import getInitialState from './getInitialState';
 import rootReducer from './reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -18,6 +19,7 @@ appSetup();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+initFeatureFlags(bootstrapData.common.feature_flags);
 const state = getInitialState(bootstrapData);
 
 const store = createStore(

@@ -181,6 +181,7 @@ the world know they are using Superset. Join our growing community!
  - [THEICONIC](http://theiconic.com.au/)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
+ - [TrustMedis](https://trustmedis.com)
  - [Twitter](https://twitter.com/)
  - [Udemy](https://www.udemy.com/)
  - [VIPKID](https://www.vipkid.com.cn/)

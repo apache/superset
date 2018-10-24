@@ -1,3 +1,4 @@
+const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -7,6 +8,7 @@ const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
@@ -44,6 +46,11 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+  }),
+
+  // runs type checking on a separate process to speed up the build
+  new ForkTsCheckerWebpackPlugin({
+    checkSyntacticErrors: true,
   }),
 ];
 
@@ -102,8 +109,12 @@ const config = {
     },
   },
   resolve: {
-    extensions: ['.js', '.jsx'],
+    alias: {
+      src: path.resolve(APP_DIR, './src'),
+    },
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },
+  context: APP_DIR, // to automatically find tsconfig.json
   module: {
     // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
@@ -112,6 +123,27 @@ const config = {
       {
         test: /datatables\.net.*/,
         loader: 'imports-loader?define=>false',
+      },
+      {
+        test: /\.tsx?$/,
+        use: [
+          { loader: 'cache-loader' },
+          {
+            loader: 'thread-loader',
+            options: {
+                // there should be 1 cpu for the fork-ts-checker-webpack-plugin
+              workers: os.cpus().length - 1,
+            },
+          },
+          {
+            loader: 'ts-loader',
+            options: {
+              // transpile only in happyPack mode
+              // type checking is done via fork-ts-checker-webpack-plugin
+              happyPackMode: true,
+            },
+          },
+        ],
       },
       {
         test: /\.jsx?$/,
