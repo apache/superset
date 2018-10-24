@@ -3,6 +3,7 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';
@@ -39,6 +40,13 @@ export const sections = {
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
       ['time_range'],
+    ],
+  },
+  filters: {
+    label: t('Filters'),
+    expanded: true,
+    controlSetRows: [
+      ['filters'],
     ],
   },
   annotations: {
@@ -1919,6 +1927,7 @@ export function sectionsToRender(vizType, datasourceType) {
   return [].concat(
     sectionsCopy.datasourceAndVizType,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
     viz.controlPanelSections,
   ).filter(section => section);
 }

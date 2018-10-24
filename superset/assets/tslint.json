@@ -1,0 +1,10 @@
+{
+    "extends": ["tslint:recommended", "tslint-react"],
+    "jsRules": {
+    },
+    "rules": {
+      "interface-name" : [true, "never-prefix"],
+      "quotemark": [true, "single"]
+    },
+    "rulesDirectory": []
+}
