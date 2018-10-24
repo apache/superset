@@ -4,16 +4,16 @@ import { colorScalerFactory } from '../../modules/colors';
 
 export function getBreakPoints(fd, features) {
   if (fd.break_points === undefined || fd.break_points.length === 0) {
-    // compute evenly distributed break points based on number of categories
-    const numCategories = fd.num_categories
-      ? parseInt(fd.num_categories, 10)
+    // compute evenly distributed break points based on number of buckets
+    const numBuckets = fd.num_buckets
+      ? parseInt(fd.num_buckets, 10)
       : 10;
     const [minValue, maxValue] = d3.extent(features, d => d[fd.metric]);
-    const delta = (maxValue - minValue) / numCategories;
+    const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0
       : Math.max(0, Math.ceil(Math.log10(1 / delta)));
-    return Array(numCategories + 1)
+    return Array(numBuckets + 1)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
@@ -31,7 +31,7 @@ export function hexToRGB(hex, alpha = 255) {
 }
 
 export function getBreakPointColorScaler(fd, features) {
-  const breakPoints = fd.break_points || fd.num_categories
+  const breakPoints = fd.break_points || fd.num_buckets
     ? getBreakPoints(fd, features)
     : null;
   const colors = Array.isArray(fd.linear_color_scheme)
@@ -72,17 +72,17 @@ export function getBreakPointColorScaler(fd, features) {
   };
 }
 
-export function getCategories(features, fd) {
+export function getBuckets(features, fd) {
   const breakPoints = getBreakPoints(fd, features, true);
   const colorScaler = getBreakPointColorScaler(fd, features);
-  const categories = {};
+  const buckets = {};
   breakPoints.slice(1).forEach((value, i) => {
     const range = breakPoints[i] + ' - ' + breakPoints[i + 1];
     const mid = 0.5 * (parseInt(breakPoints[i], 10) + parseInt(breakPoints[i + 1], 10));
-    categories[range] = {
+    buckets[range] = {
       color: colorScaler({ [fd.metric]: mid }),
       enabled: true,
     };
   });
-  return categories;
+  return buckets;
 }

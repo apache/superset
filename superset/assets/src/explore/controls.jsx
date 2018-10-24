@@ -1475,14 +1475,14 @@ export const controls = {
     description: t('Allow sending multiple polygons as a filter event'),
   },
 
-  num_categories: {
+  num_buckets: {
     type: 'SelectControl',
     multi: false,
     freeForm: true,
-    label: t('Number of categories to bucket data'),
+    label: t('Number of buckets to group data'),
     default: 5,
     choices: formatSelectOptions([2, 3, 5, 10]),
-    description: t('How many categories should the data be bucketed in.'),
+    description: t('How many buckets should the data be grouped in.'),
     renderTrigger: true,
   },
 
@@ -1492,7 +1492,7 @@ export const controls = {
     freeForm: true,
     label: t('Category break points'),
     choices: formatSelectOptions([]),
-    description: t('List of values for categorizing metric.'),
+    description: t('List of values for bucketing metric.'),
     renderTrigger: true,
   },
 

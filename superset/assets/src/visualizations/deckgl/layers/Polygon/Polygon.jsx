@@ -7,7 +7,7 @@ import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
-import { getCategories, getBreakPointColorScaler } from '../../utils';
+import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import * as common from '../common';
 import { getPlaySliderParams } from '../../../../modules/time';
@@ -176,7 +176,7 @@ class DeckGLPolygon extends React.PureComponent {
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { start, end, getStep, values, disabled, viewport } = this.state;
-    const categories = getCategories(payload.data.features, formData);
+    const buckets = getBuckets(payload.data.features, formData);
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
@@ -196,7 +196,7 @@ class DeckGLPolygon extends React.PureComponent {
         >
           {formData.metric !== null &&
           <Legend
-            categories={categories}
+            categories={buckets}
             position={formData.legend_position}
           />}
         </AnimatableDeckGLContainer>
