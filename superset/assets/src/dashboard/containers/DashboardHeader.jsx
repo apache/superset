@@ -2,6 +2,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import DashboardHeader from '../components/Header';
+import isDashboardLoading from '../util/isDashboardLoading';
 
 import {
   setEditMode,
@@ -51,6 +52,7 @@ function mapStateToProps({
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboardState.isStarred,
+    isLoading: isDashboardLoading(charts),
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     editMode: !!dashboardState.editMode,
