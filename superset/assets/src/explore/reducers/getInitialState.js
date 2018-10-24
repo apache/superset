@@ -1,7 +1,6 @@
 import shortid from 'shortid';
 
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
-import { now } from '../../modules/dates';
 import { getChartKey } from '../exploreUtils';
 import { getControlsState, getFormDataFromControls } from '../store';
 
@@ -37,7 +36,7 @@ export default function getInitialState(bootstrapData) {
         chartAlert: null,
         chartStatus: 'loading',
         chartUpdateEndTime: null,
-        chartUpdateStartTime: now(),
+        chartUpdateStartTime: 0,
         latestQueryFormData: getFormDataFromControls(controls),
         sliceFormData,
         queryController: null,
