@@ -2351,7 +2351,6 @@ class DeckPathViz(BaseDeckGLViz):
         d[self.deck_viz_key] = path
         if line_type != 'geohash':
             del d[line_column]
-        d['metric'] = d.get(self.metric_label)
         d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time')
         return d
 

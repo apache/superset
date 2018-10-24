@@ -774,6 +774,7 @@ export const visTypes = {
       point_radius_fixed: {
         label: t('Elevation'),
       },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 

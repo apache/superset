@@ -16,9 +16,10 @@ import sandboxedEval from '../../../../modules/sandbox';
 const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
 
 function getElevation(d, colorScaler) {
-  /* in deck.gl, if a polygon has opacity zero it will make everything behind
-   * it have opacity zero, effectively showing the map layer no matter what
-   * other polygons are behind it.
+  /* in deck.gl 5.3.4 (used in Superset as of 2018-10-24), if a polygon has
+   * opacity zero it will make everything behind it have opacity zero,
+   * effectively showing the map layer no matter what other polygons are
+   * behind it.
    */
   return colorScaler(d)[3] === 0
     ? 0

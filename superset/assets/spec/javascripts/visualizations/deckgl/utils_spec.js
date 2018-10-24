@@ -1,5 +1,3 @@
-import { expect, assert } from 'chai';
-
 import {
   getBreakPoints,
   getBreakPointColorScaler,
@@ -9,14 +7,14 @@ import {
 
 describe('getBreakPoints', () => {
   it('is a function', () => {
-    assert.isFunction(getBreakPoints);
+    expect(typeof getBreakPoints).toBe('function');
   });
 
   it('returns sorted break points', () => {
     const fd = { break_points: ['0', '10', '100', '50', '1000'] };
     const result = getBreakPoints(fd);
     const expected = ['0', '10', '50', '100', '1000'];
-    expect(result).to.eql(expected);
+    expect(result).toEqual(expected);
   });
 
   it('returns evenly distributed break points when no break points are specified', () => {
@@ -24,7 +22,7 @@ describe('getBreakPoints', () => {
     const features = [0, 1, 2, 10].map(count => ({ count }));
     const result = getBreakPoints(fd, features);
     const expected = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-    expect(result).to.eql(expected);
+    expect(result).toEqual(expected);
   });
 
   it('formats number with proper precision', () => {
@@ -32,7 +30,7 @@ describe('getBreakPoints', () => {
     const features = [0, 1 / 3, 2 / 3, 1].map(count => ({ count }));
     const result = getBreakPoints(fd, features);
     const expected = ['0.0', '0.5', '1.0'];
-    expect(result).to.eql(expected);
+    expect(result).toEqual(expected);
   });
 
   it('works with a zero range', () => {
@@ -40,37 +38,37 @@ describe('getBreakPoints', () => {
     const features = [1, 1, 1].map(count => ({ count }));
     const result = getBreakPoints(fd, features);
     const expected = ['1', '1'];
-    expect(result).to.eql(expected);
+    expect(result).toEqual(expected);
   });
 });
 
 describe('hexToRGB', () => {
   it('is a function', () => {
-    assert.isFunction(hexToRGB);
+    expect(typeof hexToRGB).toBe('function');
   });
 
   it('works with falsy values', () => {
-    expect(hexToRGB()).to.eql([0, 0, 0, 255]);
+    expect(hexToRGB()).toEqual([0, 0, 0, 255]);
     /* eslint-disable quotes */
     [false, 0, -0, 0.0, '', "", ``, null, undefined, NaN].forEach((value) => {
-      expect(hexToRGB(value)).to.eql([0, 0, 0, 255]);
+      expect(hexToRGB(value)).toEqual([0, 0, 0, 255]);
     });
   });
 
   it('parses hex colors', () => {
-    expect(hexToRGB('#000000')).to.eql([0, 0, 0, 255]);
-    expect(hexToRGB('#ffffff')).to.eql([255, 255, 255, 255]);
+    expect(hexToRGB('#000000')).toEqual([0, 0, 0, 255]);
+    expect(hexToRGB('#ffffff')).toEqual([255, 255, 255, 255]);
   });
 
   it('takes and alpha argument', () => {
-    expect(hexToRGB('#000000', 100)).to.eql([0, 0, 0, 100]);
-    expect(hexToRGB('#ffffff', 0)).to.eql([255, 255, 255, 0]);
+    expect(hexToRGB('#000000', 100)).toEqual([0, 0, 0, 100]);
+    expect(hexToRGB('#ffffff', 0)).toEqual([255, 255, 255, 0]);
   });
 });
 
 describe('getBreakPointColorScaler', () => {
   it('is a function', () => {
-    assert.isFunction(getBreakPointColorScaler);
+    expect(typeof getBreakPointColorScaler).toBe('function');
   });
 
   it('returns linear color scaler if there are no break points', () => {
@@ -81,9 +79,9 @@ describe('getBreakPointColorScaler', () => {
     };
     const features = [10, 20, 30].map(count => ({ count }));
     const scaler = getBreakPointColorScaler(fd, features);
-    expect(scaler({ count: 10 })).to.eql([0, 0, 0, 255]);
-    expect(scaler({ count: 15 })).to.eql([64, 64, 64, 255]);
-    expect(scaler({ count: 30 })).to.eql([255, 255, 255, 255]);
+    expect(scaler({ count: 10 })).toEqual([0, 0, 0, 255]);
+    expect(scaler({ count: 15 })).toEqual([64, 64, 64, 255]);
+    expect(scaler({ count: 30 })).toEqual([255, 255, 255, 255]);
   });
 
   it('returns bucketing scaler if there are break points', () => {
@@ -95,10 +93,10 @@ describe('getBreakPointColorScaler', () => {
     };
     const features = [];
     const scaler = getBreakPointColorScaler(fd, features);
-    expect(scaler({ count: 0 })).to.eql([0, 0, 0, 255]);
-    expect(scaler({ count: 0.5 })).to.eql([0, 0, 0, 255]);
-    expect(scaler({ count: 1 })).to.eql([255, 255, 255, 255]);
-    expect(scaler({ count: 5 })).to.eql([255, 255, 255, 255]);
+    expect(scaler({ count: 0 })).toEqual([0, 0, 0, 255]);
+    expect(scaler({ count: 0.5 })).toEqual([0, 0, 0, 255]);
+    expect(scaler({ count: 1 })).toEqual([255, 255, 255, 255]);
+    expect(scaler({ count: 5 })).toEqual([255, 255, 255, 255]);
   });
 
   it('mask values outside the break points', () => {
@@ -110,14 +108,14 @@ describe('getBreakPointColorScaler', () => {
     };
     const features = [];
     const scaler = getBreakPointColorScaler(fd, features);
-    expect(scaler({ count: -1 })).to.eql([0, 0, 0, 0]);
-    expect(scaler({ count: 11 })).to.eql([0, 0, 0, 0]);
+    expect(scaler({ count: -1 })).toEqual([0, 0, 0, 0]);
+    expect(scaler({ count: 11 })).toEqual([0, 0, 0, 0]);
   });
 });
 
 describe('getBuckets', () => {
   it('is a function', () => {
-    assert.isFunction(getBuckets);
+    expect(typeof getBuckets).toBe('function');
   });
 
   it('computes buckets for break points', () => {
@@ -133,6 +131,6 @@ describe('getBuckets', () => {
       '0 - 1': { color: [0, 0, 0, 255], enabled: true },
       '1 - 10': { color: [255, 255, 255, 255], enabled: true },
     };
-    expect(result).to.eql(expected);
+    expect(result).toEqual(expected);
   });
 });
