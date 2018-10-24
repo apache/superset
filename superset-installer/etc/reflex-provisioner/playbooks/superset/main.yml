@@ -9,6 +9,18 @@
     - 'always'
   tasks: []
 
+
+- name: "Set superset psql host IP"
+  hosts:
+    - management-nodes
+  tags:
+    - always
+  tasks:
+    - set_fact:
+        site_floating_ip:
+          ip: "{{ hostvars[groups['management-nodes'][0]]['ansible_default_ipv4']['address'] }}"
+      when: site_deployment_type == 'NONHA'
+
 # This play permits to use a hierarchy of variables. The
 # variables are loaded form the vars inventory dir. It
 # respects the following order:
@@ -26,25 +38,11 @@
     - reflex-provisionner/load_vars
 
 
-- name: SQL prepare
+- name: Superset db creation
   hosts:
     - management-nodes
   roles:
     - role: superset/data_model
-
-- name: SQL install
-  hosts:
-    - management-nodes
-  vars:
-    - sql_history_logfile: "{{superset_host_sql_dir}}/sql_history.log"
-  roles:
-      - { role: sql-runner,
-         sql_scripts_dir: "{{superset_host_sql_dir}}/postgres/createdb/",
-         sql_conn_creds: "{{superset_sql_conn_creds['admin']['postgres']}}",
-         sql_conn_targets: "{{superset_sql_conn_targets['postgres']}}",
-         sql_db: 'postgres',
-         sql_autocommit: true
-         }
 
 
 - name: Superset role deployment
