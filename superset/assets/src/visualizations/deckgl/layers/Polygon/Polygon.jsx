@@ -9,7 +9,7 @@ import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
-import * as common from '../common';
+import { commonLayerProps } from '../common';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 
@@ -72,7 +72,7 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...common.commonLayerProps(fd, setTooltip, onSelect),
+    ...commonLayerProps(fd, setTooltip, onSelect),
   });
 }
 
