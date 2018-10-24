@@ -5,14 +5,14 @@ import { colorScalerFactory } from '../../modules/colors';
 export function getBreakPoints(fd, features) {
   if (fd.break_points === undefined || fd.break_points.length === 0) {
     // compute evenly distributed break points based on number of categories
-    const numCategories = fd.num_categories === null
-      ? 10
-      : parseInt(fd.num_categories, 10);
+    const numCategories = fd.num_categories
+      ? parseInt(fd.num_categories, 10)
+      : 10;
     const [minValue, maxValue] = d3.extent(features, d => d[fd.metric]);
     const delta = (maxValue - minValue) / numCategories;
     const precision = delta === 0
       ? 0
-      : Math.max(0, Math.floor(Math.log10(numCategories / delta)));
+      : Math.max(0, Math.ceil(Math.log10(1 / delta)));
     return Array(numCategories + 1)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
@@ -44,18 +44,18 @@ export function getBreakPointColorScaler(fd, features) {
     // bucket colors into discrete colors
     const colorScaler = colorScalerFactory(colors);
     const n = breakPoints.length - 1;
-    const bucketedColors = [...Array(n + 1).keys()].map(d => colorScaler(d / n));
+    const bucketedColors = [...Array(n).keys()].map(d => colorScaler(d / (n - 1)));
 
-    // repeat last color, since the last point does not fall in the last bucket
-    // because ranges are [start, end)
-    bucketedColors.push(bucketedColors[bucketedColors.length - 1]);
+    // repeat ends
+    bucketedColors.unshift(bucketedColors[0]);
+    bucketedColors.push(bucketedColors[n - 1]);
 
     const points = breakPoints.map(p => parseFloat(p));
     scaler = d3.scale.threshold().domain(points).range(bucketedColors);
     maskPoint = value => value > breakPoints[n] || value < breakPoints[0];
   } else {
     // interpolate colors linearly
-    scaler = colorScalerFactory(colors);
+    scaler = colorScalerFactory(colors, features, d => d[fd.metric]);
     maskPoint = () => false;
   }
 

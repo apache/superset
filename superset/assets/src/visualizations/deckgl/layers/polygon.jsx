@@ -23,8 +23,8 @@ function getPoints(features) {
 
 function getElevation(d, colorScaler) {
   /* in deck.gl, if a polygon has opacity zero it will make everything behind
-   * it have opacity zero, effectly showing the map layer no matter what other
-   * polygons are behind it.
+   * it have opacity zero, effectively showing the map layer no matter what
+   * other polygons are behind it.
    */
   return colorScaler(d)[3] === 0
     ? 0
@@ -51,7 +51,7 @@ function getLayer(formData, payload, slice, selected, onSelect, filters) {
 
   // base color for the polygons
   const baseColorScaler = fd.metric === null
-    ? d => [fc.r, fc.g, fc.b, 255 * fc.a]
+    ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
     : getBreakPointColorScaler(fd, data);
 
   // when polygons are selected, reduce the opacity of non-selected polygons
