@@ -36,8 +36,8 @@ superset_docker_images:
 #                      Configurations                              #
 #------------------------------------------------------------------#
 
-superset_owner_user: 'postgres'
-superset_owner_password: 'postgres'
+superset_owner_user: 'superset'
+superset_owner_password: 'superset'
 
 superset_postgres_access_ip: "{{ platform_loadbalancer_vip_01 }}"
 superset_postgres_access_port: "{{ platform_postgresql_port }}"
@@ -56,7 +56,7 @@ superset_sql_conn_targets:
 
 superset_postgres_db: "superset"
 superset_postgres_db_user: "{{ superset_sql_conn_creds['admin']['postgres']['user'] }}"
-superset_postgres_db_passwd: "{{ superset_sql_conn_creds['admin']['postgres']['password'] }}"
+superset_postgres_db_password: "{{ superset_sql_conn_creds['admin']['postgres']['password'] }}"
 
 
 superset_host_port: "8888"
