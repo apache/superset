@@ -8,6 +8,7 @@ import URI from 'urijs';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
+import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { t } from '../../locales';
 import TabStatusIcon from './TabStatusIcon';
 
@@ -188,7 +189,7 @@ class TabbedSqlEditors extends React.PureComponent {
               </div>
               {t('Rename tab')}
             </MenuItem>
-            <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
+            <MenuItem eventKey="3" onClick={this.toggleLeftBar.bind(this)}>
               <div className="icon-container">
                 <i className="fa fa-cogs" />
               </div>

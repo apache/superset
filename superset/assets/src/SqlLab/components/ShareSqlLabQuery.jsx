@@ -1,26 +1,3 @@
-// import React from 'react';
-
-// import CopyToClipboard from '../../components/CopyToClipboard';
-// import CopyQueryTabUrl from './CopyQueryTabUrl';
-// import Button from '../../components/Button';
-// import { t } from '../../locales';
-//
-// export default class ShareQuery extends CopyQueryTabUrl {
-//   render() {
-//     return (
-//       <CopyToClipboard
-//         copyNode={(
-//           <Button bsSize="small" className="toggleSave">
-//             <i className="fa fa-clipboard" /> {t('Share Query')}
-//           </Button>
-//       )}
-//         tooltipText={t('copy URL to clipboard')}
-//         shouldShowText={false}
-//         getText={this.getUrl}
-//       />);
-//   }
-// }
-
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
@@ -65,7 +42,7 @@ class ShareSqlLabQuery extends React.Component {
 
   renderPopover() {
     return (
-      <Popover key={Math.random()} id="sqllab-shareurl-popover">
+      <Popover id="sqllab-shareurl-popover">
         <CopyToClipboard
           text={this.state.shortUrl || 'Loading ...'}
           copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
