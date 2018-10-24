@@ -2,13 +2,17 @@ import d3 from 'd3';
 import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
 import { colorScalerFactory, hexToRGB } from '../../modules/colors';
 
-export function getBreakPoints(fd, features) {
-  if (fd.break_points === undefined || fd.break_points.length === 0) {
+export function getBreakPoints({
+    break_points: formDataBreakPoints,
+    num_buckets: formDataNumBuckets,
+    metric,
+  }, features) {
+  if (formDataBreakPoints === undefined || formDataBreakPoints.length === 0) {
     // compute evenly distributed break points based on number of buckets
-    const numBuckets = fd.num_buckets
-      ? parseInt(fd.num_buckets, 10)
+    const numBuckets = formDataNumBuckets
+      ? parseInt(formDataNumBuckets, 10)
       : 10;
-    const [minValue, maxValue] = d3.extent(features, d => d[fd.metric]);
+    const [minValue, maxValue] = d3.extent(features, d => d[metric]);
     const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0
@@ -17,16 +21,26 @@ export function getBreakPoints(fd, features) {
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
-  return fd.break_points.sort((a, b) => parseFloat(a) - parseFloat(b));
+  return formDataBreakPoints.sort((a, b) => parseFloat(a) - parseFloat(b));
 }
 
-export function getBreakPointColorScaler(fd, features) {
-  const breakPoints = fd.break_points || fd.num_buckets
-    ? getBreakPoints(fd, features)
+export function getBreakPointColorScaler({
+    break_points: formDataBreakPoints,
+    num_buckets: formDataNumBuckets,
+    linear_color_scheme: linearColorScheme,
+    metric,
+    opacity,
+  }, features) {
+  const breakPoints = formDataBreakPoints || formDataNumBuckets
+    ? getBreakPoints({
+      break_points: formDataBreakPoints,
+      num_buckets: formDataNumBuckets,
+      metric,
+    }, features)
     : null;
-  const colors = Array.isArray(fd.linear_color_scheme)
-    ? fd.linear_color_scheme
-    : getSequentialSchemeRegistry().get(fd.linear_color_scheme).colors;
+  const colors = Array.isArray(linearColorScheme)
+    ? linearColorScheme
+    : getSequentialSchemeRegistry().get(linearColorScheme).colors;
 
   let scaler;
   let maskPoint;
@@ -47,16 +61,16 @@ export function getBreakPointColorScaler(fd, features) {
     maskPoint = value => value > breakPoints[n] || value < breakPoints[0];
   } else {
     // interpolate colors linearly
-    scaler = colorScalerFactory(colors, features, d => d[fd.metric]);
+    scaler = colorScalerFactory(colors, features, d => d[metric]);
     maskPoint = () => false;
   }
 
   return (d) => {
-    const c = hexToRGB(scaler(d[fd.metric]));
-    if (maskPoint(d[fd.metric])) {
+    const c = hexToRGB(scaler(d[metric]));
+    if (maskPoint(d[metric])) {
       c[3] = 0;
     } else {
-      c[3] = (fd.opacity / 100.0) * 255;
+      c[3] = (opacity / 100.0) * 255;
     }
     return c;
   };
