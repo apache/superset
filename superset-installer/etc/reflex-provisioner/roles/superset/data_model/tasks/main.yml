@@ -1,36 +1,22 @@
 ---
+- name: create {{ superset_owner_user }} owner in postgres for {{ superset_postgres_db }} database
+  postgresql_user:
+    name: "{{ superset_owner_user }}"
+    login_host: "{{ superset_postgres_access_ip }}"
+    login_password: "{{ superset_postgres_db_password }}"
+    password: "{{ superset_owner_password }}"
+    role_attr_flags: CREATEDB
+    port: "{{ superset_postgres_access_port }}"
+  become: yes  
+  become_user: postgres
 
-# create sql dirs
-- name: Create base directories
-  file:
-    path: "{{superset_host_sql_dir}}/{{item}}/createdb"
-    state: directory
-    recurse: true
-    owner: root
-    group: root
-    mode: 0755
-  with_items: ["postgres"]
-
-
-# copy/templatize all SQL template files for all DB types
-
-- name: check if db template dir exists
-  local_action: stat path="{{role_path}}/templates/{{item}}/"
-  with_items: [ "postgres"]
-  register: sql_template_dir
-
-- name: Listing template files
-  local_action: find path="{{item.stat.path}}/createdb"
-  register: sql_template_files_createdb
-  with_items: "{{sql_template_dir.results}}"
-
-- name: Copy template SQL files to {{ superset_host_sql_dir }}
-  template:
-      src: "{{item.1.path}}"
-      dest: "{{superset_host_sql_dir}}/{{ item.0.item.item }}/createdb/{{ (item.1.path|basename) | splitext | first }}"
-      owner: root
-      group: root
-      mode: 0644
-  with_subelements:
-     - "{{ sql_template_files_createdb.results }}"
-     - "files"
+- name: create {{ superset_postgres_db }} database in postgres for {{ superset_owner_user }} owner
+  postgresql_db:
+    name: "{{ superset_postgres_db }}"
+    login_host: "{{ superset_postgres_access_ip }}"
+    login_user: "{{ superset_owner_user }}"
+    login_password: "{{ superset_owner_password }}"
+    encoding: "UTF-8"
+    owner: "{{ superset_owner_user }}"
+    port: "{{ superset_postgres_access_port }}"
+   
