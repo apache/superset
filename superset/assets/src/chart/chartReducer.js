@@ -10,7 +10,7 @@ export const chart = {
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
-  queryRequest: null,
+  queryController: null,
   queryResponse: null,
   triggerQuery: true,
   lastRendered: 0,
@@ -32,12 +32,13 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'loading',
         chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
-        queryRequest: action.queryRequest,
+        queryController: action.queryController,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
