@@ -3,38 +3,37 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
 
-import getInitialState from '../../../../src/explore/reducers/getInitialState';
-import ExploreViewContainer
-  from '../../../../src/explore/components/ExploreViewContainer';
-import QueryAndSaveBtns
-  from '../../../../src/explore/components/QueryAndSaveBtns';
-import ControlPanelsContainer
-  from '../../../../src/explore/components/ControlPanelsContainer';
-import ChartContainer
-  from '../../../../src/explore/components/ExploreChartPanel';
+import getInitialState from 'src/explore/reducers/getInitialState';
+import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
+import QueryAndSaveBtns from 'src/explore/components/QueryAndSaveBtns';
+import ControlPanelsContainer from 'src/explore/components/ControlPanelsContainer';
+import ChartContainer from 'src/explore/components/ExploreChartPanel';
+import * as featureFlags from 'src/featureFlags';
 
 describe('ExploreViewContainer', () => {
   const middlewares = [thunk];
   const mockStore = configureStore(middlewares);
   let store;
   let wrapper;
+  let isFeatureEnabledMock;
 
   beforeAll(() => {
+    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')
+        .mockReturnValue(false);
+
     const bootstrapData = {
       common: {
-        feature_flags: {
-          FOO_BAR: true,
-        },
         conf: {},
       },
       datasource: {
         columns: [],
       },
-      form_data: {
-        datasource: {},
-      },
     };
     store = mockStore(getInitialState(bootstrapData), {});
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.mockRestore();
   });
 
   beforeEach(() => {
@@ -42,10 +41,6 @@ describe('ExploreViewContainer', () => {
       context: { store },
       disableLifecycleMethods: true,
     });
-  });
-
-  it('should set feature flags', () => {
-    expect(wrapper.prop('isFeatureEnabled')('FOO_BAR')).toBe(true);
   });
 
   it('renders', () => {

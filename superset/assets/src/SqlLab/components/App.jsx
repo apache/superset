@@ -9,7 +9,6 @@ import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import * as Actions from '../actions';
-import { isFeatureEnabledCreator } from '../../featureFlags';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -84,10 +83,6 @@ App.propTypes = {
   actions: PropTypes.object,
 };
 
-const mapStateToProps = state => ({
-  isFeatureEnabled: isFeatureEnabledCreator(state),
-});
-
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(Actions, dispatch),
@@ -96,6 +91,6 @@ function mapDispatchToProps(dispatch) {
 
 export { App };
 export default connect(
-  mapStateToProps,
+  null,
   mapDispatchToProps,
 )(App);
