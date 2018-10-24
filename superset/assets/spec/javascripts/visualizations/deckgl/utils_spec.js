@@ -101,7 +101,7 @@ describe('getBuckets', () => {
       opacity: 100,
     };
     const features = [];
-    const result = getBuckets(features, fd);
+    const result = getBuckets(fd, features);
     const expected = {
       '0 - 1': { color: [0, 0, 0, 255], enabled: true },
       '1 - 10': { color: [255, 255, 255, 255], enabled: true },

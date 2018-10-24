@@ -62,7 +62,7 @@ export function getBreakPointColorScaler(fd, features) {
   };
 }
 
-export function getBuckets(features, fd) {
+export function getBuckets(fd, features) {
   const breakPoints = getBreakPoints(fd, features, true);
   const colorScaler = getBreakPointColorScaler(fd, features);
   const buckets = {};

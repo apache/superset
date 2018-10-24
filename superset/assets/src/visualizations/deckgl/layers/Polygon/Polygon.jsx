@@ -177,7 +177,7 @@ class DeckGLPolygon extends React.PureComponent {
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { start, end, getStep, values, disabled, viewport } = this.state;
-    const buckets = getBuckets(payload.data.features, formData);
+    const buckets = getBuckets(formData, payload.data.features);
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
