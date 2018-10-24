@@ -13,9 +13,11 @@ describe('Translator', () => {
       expect(new Translator({})).toBeInstanceOf(Translator);
     });
     it('initializes when config is specified', () => {
-      expect(new Translator({
-        languagePack: languagePackZh,
-      })).toBeInstanceOf(Translator);
+      expect(
+        new Translator({
+          languagePack: languagePackZh,
+        }),
+      ).toBeInstanceOf(Translator);
     });
   });
   describe('.translate(input, ...args)', () => {
