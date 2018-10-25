@@ -164,22 +164,28 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: key,
-          has_err: true,
-          datasource: formData.datasource,
-          start_offset: logStart,
-          duration: Logger.getTimestamp() - logStart,
-        });
+        const appendErrorLog = (errorDetails) => {
+          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+            slice_id: key,
+            has_err: true,
+            error_details: errorDetails,
+            datasource: formData.datasource,
+            start_offset: logStart,
+            duration: Logger.getTimestamp() - logStart,
+          });
+        };
 
         if (response.statusText === 'timeout') {
+          appendErrorLog('timeout');
           return dispatch(chartUpdateTimeout(response.statusText, timeout, key));
         } else if (response.name === 'AbortError') {
+          appendErrorLog('abort');
           return dispatch(chartUpdateStopped(key));
         }
-        return getClientErrorObject(response).then(parsedResponse =>
-          dispatch(chartUpdateFailed(parsedResponse, key)),
-        );
+        return getClientErrorObject(response).then((parsedResponse) => {
+          appendErrorLog(parsedResponse.error);
+          return dispatch(chartUpdateFailed(parsedResponse, key));
+        });
       });
 
     const annotationLayers = formData.annotation_layers || [];
