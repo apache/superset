@@ -723,7 +723,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['adhoc_filters'],
-          ['metric'],
+          ['metric', 'point_radius_fixed'],
           ['row_limit', null],
           ['line_column', 'line_type'],
           ['reverse_long_lat', 'filter_nulls'],
@@ -743,10 +743,12 @@ export const visTypes = {
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
-          ['extruded', null],
+          ['extruded', 'multiplier'],
           ['line_width', null],
           ['linear_color_scheme', 'opacity'],
-          ['table_filter', null],
+          ['num_buckets', 'break_points'],
+          ['table_filter', 'toggle_polygons'],
+          ['legend_position', null],
         ],
       },
       {
@@ -769,6 +771,10 @@ export const visTypes = {
       line_type: {
         label: t('Polygon Encoding'),
       },
+      point_radius_fixed: {
+        label: t('Elevation'),
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
