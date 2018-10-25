@@ -65,5 +65,8 @@
         "prefer-promise-reject-errors": "off"
       }
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
