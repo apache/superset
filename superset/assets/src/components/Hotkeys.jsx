@@ -26,7 +26,7 @@ export default class Hotkeys extends React.PureComponent {
     const { header, hotkeys } = this.props;
 
     return (
-      <Popover title={header} style={{ width: '300px' }}>
+      <Popover id="hotkey-popover" title={header} style={{ width: '300px' }}>
         <table className="table table-condensed">
           <thead>
             <tr>
@@ -36,7 +36,7 @@ export default class Hotkeys extends React.PureComponent {
           </thead>
           <tbody>
             {hotkeys.map(({ key, descr }) => (
-              <tr>
+              <tr key={key}>
                 <td><code>{key}</code></td>
                 <td>{descr}</td>
               </tr>
