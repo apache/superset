@@ -28,7 +28,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     outline: false,
     getElevationValue: points => points.reduce((sum, point) => sum + point.weight, 0),
     getColorValue: points => points.reduce((sum, point) => sum + point.weight, 0),
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 

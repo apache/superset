@@ -15,7 +15,7 @@ export function hexToRGB(hex, alpha = 255) {
 }
 
 export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
-  // Returns a linear scaler our of an array of color
+  // Returns a linear scaler out of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
     colors = getSequentialSchemeRegistry().get(colors).colors;

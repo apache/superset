@@ -1467,6 +1467,35 @@ export const controls = {
     description: t('Send range filter events to other charts'),
   },
 
+  toggle_polygons: {
+    type: 'CheckboxControl',
+    label: t('Multiple filtering'),
+    renderTrigger: true,
+    default: true,
+    description: t('Allow sending multiple polygons as a filter event'),
+  },
+
+  num_buckets: {
+    type: 'SelectControl',
+    multi: false,
+    freeForm: true,
+    label: t('Number of buckets to group data'),
+    default: 5,
+    choices: formatSelectOptions([2, 3, 5, 10]),
+    description: t('How many buckets should the data be grouped in.'),
+    renderTrigger: true,
+  },
+
+  break_points: {
+    type: 'SelectControl',
+    multi: true,
+    freeForm: true,
+    label: t('Bucket break points'),
+    choices: formatSelectOptions([]),
+    description: t('List of n+1 values for bucketing metric into n buckets.'),
+    renderTrigger: true,
+  },
+
   show_labels: {
     type: 'CheckboxControl',
     label: t('Show Labels'),
