@@ -122,6 +122,7 @@
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
+    "reselect": "^4.0.0",
     "shortid": "^2.2.6",
     "sprintf-js": "^1.1.1",
     "srcdoc-polyfill": "^1.0.0",
