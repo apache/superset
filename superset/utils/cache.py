@@ -1,6 +1,4 @@
 # pylint: disable=C,R,W
-import logging
-
 from flask import request
 
 from superset import cache, tables_cache
@@ -37,15 +35,12 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
         if selected_cache:
             def wrapped_f(cls, *args, **kwargs):
                 if not kwargs.get('cache', True):
-                    logging.info('dont use cache per function call')
                     return f(cls, *args, **kwargs)
 
                 cache_key = key(*args, **kwargs)
                 o = selected_cache.get(cache_key)
                 if not kwargs.get('force') and o is not None:
-                    logging.info('use cache')
                     return o
-                logging.info('cache is expired and/or force refresh')
                 o = f(cls, *args, **kwargs)
                 selected_cache.set(cache_key, o,
                                    timeout=kwargs.get('cache_timeout'))
@@ -53,7 +48,6 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
         else:
             # noop
             def wrapped_f(cls, *args, **kwargs):
-                logging.info('no cache is configured or selected')
                 return f(cls, *args, **kwargs)
         return wrapped_f
     return wrap
