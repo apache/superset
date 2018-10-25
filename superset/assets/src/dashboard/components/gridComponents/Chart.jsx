@@ -51,7 +51,6 @@ class Chart extends React.Component {
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.getFilters = this.getFilters.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
@@ -88,10 +87,6 @@ class Chart extends React.Component {
 
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
-  }
-
-  getFilters() {
-    return this.props.filters;
   }
 
   getChartHeight() {
@@ -145,6 +140,7 @@ class Chart extends React.Component {
       datasource,
       isExpanded,
       editMode,
+      filters,
       formData,
       updateSliceName,
       sliceName,
@@ -219,8 +215,8 @@ class Chart extends React.Component {
             chartId={id}
             chartStatus={chart.chartStatus}
             datasource={datasource}
+            filters={filters}
             formData={formData}
-            getFilters={this.getFilters}
             queryResponse={chart.queryResponse}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}

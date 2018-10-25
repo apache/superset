@@ -16,6 +16,7 @@ const propTypes = {
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object.isRequired,
+  filters: PropTypes.object,
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
   width: PropTypes.number,
@@ -31,7 +32,6 @@ const propTypes = {
   errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
-  getFilters: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
 };
@@ -40,7 +40,7 @@ const BLANK = {};
 
 const defaultProps = {
   addFilter: () => BLANK,
-  getFilters: () => BLANK,
+  filters: BLANK,
   setControlValue() {},
 };
 
@@ -50,9 +50,9 @@ class Chart extends React.PureComponent {
     this.state = {};
 
     this.createChartProps = ChartProps.createSelector();
-    this.onAddFilter = this.onAddFilter.bind(this);
-    this.onRenderSuccess = this.onRenderSuccess.bind(this);
-    this.onRenderFailure = this.onRenderFailure.bind(this);
+    this.handleAddFilter = this.handleAddFilter.bind(this);
+    this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
+    this.handleRenderFailure = this.handleRenderFailure.bind(this);
     this.setTooltip = this.setTooltip.bind(this);
   }
 
@@ -67,11 +67,15 @@ class Chart extends React.PureComponent {
     }
   }
 
-  onAddFilter(col, vals, merge = true, refresh = true) {
+  setTooltip(tooltip) {
+    this.setState({ tooltip });
+  }
+
+  handleAddFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
   }
 
-  onRenderSuccess() {
+  handleRenderSuccess() {
     const { actions, chartStatus, chartId, vizType } = this.props;
     if (chartStatus !== 'rendered') {
       actions.chartRenderingSucceeded(chartId);
@@ -85,14 +89,10 @@ class Chart extends React.PureComponent {
     });
   }
 
-  onRenderFailure(e) {
+  handleRenderFailure(e) {
     const { actions, chartId } = this.props;
     console.warn(e); // eslint-disable-line
     actions.chartRenderingFailed(e, chartId);
-  }
-
-  setTooltip(tooltip) {
-    this.setState({ tooltip });
   }
 
   prepareChartProps() {
@@ -101,8 +101,8 @@ class Chart extends React.PureComponent {
       height,
       annotationData,
       datasource,
+      filters,
       formData,
-      getFilters,
       queryResponse,
       setControlValue,
     } = this.props;
@@ -112,10 +112,10 @@ class Chart extends React.PureComponent {
       height,
       annotationData,
       datasource,
-      filters: getFilters(),
+      filters,
       formData,
-      onAddFilter: this.onAddFilter,
-      onError: this.onRenderFailure,
+      onAddFilter: this.handleAddFilter,
+      onError: this.handleRenderFailure,
       payload: queryResponse,
       setControlValue,
       setTooltip: this.setTooltip,
@@ -198,8 +198,8 @@ class Chart extends React.PureComponent {
             className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
             chartType={vizType}
             chartProps={this.prepareChartProps()}
-            onRenderSuccess={this.onRenderSuccess}
-            onRenderFailure={this.onRenderFailure}
+            onRenderSuccess={this.handleRenderSuccess}
+            onRenderFailure={this.handleRenderFailure}
           />
         )}
       </div>
