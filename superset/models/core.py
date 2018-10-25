@@ -638,7 +638,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
