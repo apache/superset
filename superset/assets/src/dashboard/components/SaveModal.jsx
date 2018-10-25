@@ -93,7 +93,7 @@ class SaveModal extends React.PureComponent {
         t('You must pick a name for the new dashboard'),
       );
     } else {
-      this.onSave(data, dashboardId, saveType).then(([resp]) => {
+      this.onSave(data, dashboardId, saveType).then(resp => {
         if (
           saveType === SAVE_TYPE_NEWDASHBOARD &&
           resp &&
