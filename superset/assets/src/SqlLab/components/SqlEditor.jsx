@@ -19,7 +19,7 @@ import Button from '../../components/Button';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
-import ShareQuery from './ShareQuery';
+import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
@@ -235,7 +235,7 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             <span className="m-r-5">
-              <ShareQuery queryEditor={qe} />
+              <ShareSqlLabQuery queryEditor={qe} />
             </span>
             {ctasControls}
             <span className="m-l-5">
