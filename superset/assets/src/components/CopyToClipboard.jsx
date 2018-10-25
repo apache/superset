@@ -32,6 +32,7 @@ export default class CopyToClipboard extends React.Component {
     this.copyToClipboard = this.copyToClipboard.bind(this);
     this.resetTooltipText = this.resetTooltipText.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
+    this.onClick = this.onClick.bind(this);
   }
 
   onMouseOut() {
@@ -105,7 +106,7 @@ export default class CopyToClipboard extends React.Component {
           overlay={this.renderTooltip()}
           trigger={['hover']}
           bsStyle="link"
-          onClick={this.onClick.bind(this)}
+          onClick={this.onClick}
           onMouseOut={this.onMouseOut}
         >
           {this.props.copyNode}
@@ -119,7 +120,7 @@ export default class CopyToClipboard extends React.Component {
       <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
         <MenuItem>
           <span
-            onClick={this.onClick.bind(this)}
+            onClick={this.onClick}
             onMouseOut={this.onMouseOut}
           >
             {this.props.copyNode}
@@ -138,13 +139,7 @@ export default class CopyToClipboard extends React.Component {
   }
 
   render() {
-    let html;
-    if (this.props.inMenu) {
-      html = this.renderInMenu();
-    } else {
-      html = this.renderLink();
-    }
-    return html;
+    return this.props.inMenu ? this.renderInMenu() : this.renderLink();
   }
 }
 
