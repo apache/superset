@@ -54,6 +54,7 @@ class URLShortLinkButton extends React.Component {
       <OverlayTrigger
         trigger="click"
         rootClose
+        shouldUpdatePosition
         placement="left"
         onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}
