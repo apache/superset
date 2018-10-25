@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
+import ChartProps from '../models/ChartProps';
 
 const STATUS = {
   IDLE: 1,
@@ -14,7 +15,7 @@ const IDENTITY = x => x;
 const propTypes = {
   id: PropTypes.string,
   className: PropTypes.string,
-  chartProps: PropTypes.object.isRequired,
+  chartProps: PropTypes.instanceOf(ChartProps).isRequired,
   chartType: PropTypes.string.isRequired,
   preTransformProps: PropTypes.func,
   overrideTransformProps: PropTypes.func,
@@ -94,6 +95,9 @@ class SuperChart extends React.PureComponent {
               if (this.mounted) {
                 this.setState({
                   status: STATUS.SUCCESS,
+                  // This is to provide backward-compatibility
+                  // for modules that are not exported with "export default"
+                  // such as module.exports = xxx
                   Renderer: Renderer.default || Renderer,
                   transformProps,
                 });
