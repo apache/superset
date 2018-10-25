@@ -3,10 +3,10 @@ import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Tooltip } from 'react-bootstrap';
-import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
-import StackTraceMessage from '../components/StackTraceMessage';
+import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
+import StackTraceMessage from '../components/StackTraceMessage';
 import ChartProps from '../visualizations/core/models/ChartProps';
 import SuperChart from '../visualizations/core/components/SuperChart';
 import './chart.css';
@@ -46,6 +46,9 @@ class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {};
+
+    this.onRenderSuccess = this.onRenderSuccess.bind(this);
+    this.onRenderFailure = this.onRenderFailure.bind(this);
   }
 
   componentDidMount() {
@@ -57,6 +60,26 @@ class Chart extends React.PureComponent {
         this.props.chartId,
       );
     }
+  }
+
+  onRenderSuccess() {
+    const { actions, chartStatus, chartId, vizType } = this.props;
+    if (chartStatus !== 'rendered') {
+      actions.chartRenderingSucceeded(chartId);
+    }
+
+    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: chartId,
+      viz_type: vizType,
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+  }
+
+  onRenderFailure(e) {
+    const { actions, chartId } = this.props;
+    console.warn(e); // eslint-disable-line
+    actions.chartRenderingFailed(e, chartId);
   }
 
   prepareChartProps() {
@@ -124,9 +147,7 @@ class Chart extends React.PureComponent {
     const {
       width,
       height,
-      actions,
       chartAlert,
-      chartId,
       chartStatus,
       errorMessage,
       onDismissRefreshOverlay,
@@ -141,7 +162,7 @@ class Chart extends React.PureComponent {
     // this allows <Loading /> to be positioned in the middle of the chart
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
-    const renderStart = Logger.getTimestamp();
+    this.renderStartTime = Logger.getTimestamp();
 
     return (
       <div
@@ -173,22 +194,8 @@ class Chart extends React.PureComponent {
             className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
             chartType={vizType}
             chartProps={this.prepareChartProps()}
-            onRenderSuccess={() => {
-              if (chartStatus !== 'rendered') {
-                actions.chartRenderingSucceeded(chartId);
-              }
-
-              Logger.append(LOG_ACTIONS_RENDER_CHART, {
-                slice_id: chartId,
-                viz_type: vizType,
-                start_offset: renderStart,
-                duration: Logger.getTimestamp() - renderStart,
-              });
-            }}
-            onRenderFailure={(e) => {
-              console.warn(e); // eslint-disable-line
-              actions.chartRenderingFailed(e, chartId);
-            }}
+            onRenderSuccess={this.onRenderSuccess}
+            onRenderFailure={this.onRenderFailure}
           />
         )}
       </div>
