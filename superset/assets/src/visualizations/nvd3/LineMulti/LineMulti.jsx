@@ -128,9 +128,9 @@ class LineMulti extends React.Component {
 
     return (
       <ReactNVD3
-        width={width}
-        height={height}
         {...transformProps({
+          width,
+          height,
           annotationData,
           datasource,
           formData,
