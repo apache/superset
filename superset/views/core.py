@@ -398,7 +398,7 @@ appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
 class DatabaseTablesAsync(DatabaseView):
-    list_columns = ['id', 'all_table_names', 'all_schema_names']
+    list_columns = ['id', 'all_table_names_in_database', 'all_schema_names']
 
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)

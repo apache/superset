@@ -933,7 +933,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             db_id=kwargs.get('db_id'), schema=kwargs.get('schema')),
         use_tables_cache=True)
     def all_view_names_in_schema(self, schema, db_id=None, cache=False,
-                                  cache_timeout=None, force=False):
+                                 cache_timeout=None, force=False):
         """
         Parameters need to be passed as keyword arguments.
         If cache=True, db_id must be passed in for setting cache key
