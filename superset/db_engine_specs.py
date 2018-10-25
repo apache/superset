@@ -525,6 +525,10 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
+class HanaEngineSpec(BaseEngineSpec):
+    engine = 'hana'
+    utils.DTTM_ALIAS = '"_timestamp"'
+    force_column_alias_quotes = True
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
