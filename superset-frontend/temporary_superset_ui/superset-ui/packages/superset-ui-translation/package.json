@@ -58,5 +58,8 @@
       },
       "prettier"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
