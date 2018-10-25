@@ -2319,6 +2319,7 @@ class DeckPathViz(BaseDeckGLViz):
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
     deck_viz_key = 'path'
+    is_timeseries = True
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -2326,8 +2327,11 @@ class DeckPathViz(BaseDeckGLViz):
     }
 
     def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
         d = super(DeckPathViz, self).query_obj()
-        line_col = self.form_data.get('line_column')
+        self.metric = fd.get('metric')
+        line_col = fd.get('line_column')
         if d['metrics']:
             self.has_metrics = True
             d['groupby'].append(line_col)
@@ -2347,7 +2351,12 @@ class DeckPathViz(BaseDeckGLViz):
         d[self.deck_viz_key] = path
         if line_type != 'geohash':
             del d[line_column]
+        d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time')
         return d
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckPathViz, self).get_data(df)
 
 
 class DeckPolygon(DeckPathViz):
@@ -2357,6 +2366,26 @@ class DeckPolygon(DeckPathViz):
     viz_type = 'deck_polygon'
     deck_viz_key = 'polygon'
     verbose_name = _('Deck.gl - Polygon')
+
+    def query_obj(self):
+        fd = self.form_data
+        self.elevation = (
+            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
+        return super(DeckPolygon, self).query_obj()
+
+    def get_metrics(self):
+        metrics = [self.form_data.get('metric')]
+        if self.elevation.get('type') == 'metric':
+            metrics.append(self.elevation.get('value'))
+        return [metric for metric in metrics if metric]
+
+    def get_properties(self, d):
+        super(DeckPolygon, self).get_properties(d)
+        fd = self.form_data
+        elevation = fd['point_radius_fixed']['value']
+        type_ = fd['point_radius_fixed']['type']
+        d['elevation'] = d.get(elevation) if type_ == 'metric' else elevation
+        return d
 
 
 class DeckHex(BaseDeckGLViz):

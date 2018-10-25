@@ -88,7 +88,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     stroked: fd.stroked,
     extruded: fd.extruded,
     pointRadiusScale: fd.point_radius_scale,
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 
