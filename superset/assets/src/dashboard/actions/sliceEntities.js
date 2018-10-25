@@ -3,7 +3,10 @@ import { SupersetClient } from '@superset-ui/core';
 
 import { addDangerToast } from '../../messageToasts/actions';
 import { t } from '../../locales';
-import { getDatasourceParameter } from '../../modules/utils';
+import {
+  getDatasourceParameter,
+  getClientErrorObject,
+} from '../../modules/utils';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {
@@ -64,22 +67,21 @@ export function fetchAllSlices(userId) {
 
           return dispatch(setAllSlices(slices));
         })
-        .catch(error =>
-          Promise.all([
-            dispatch(
-              fetchAllSlicesFailed(
-                error.error ||
-                  error.statusText ||
-                  t('Could not fetch all saved charts'),
+        .catch(errorResponse =>
+          getClientErrorObject(errorResponse).then(({ error }) =>
+            Promise.all([
+              dispatch(
+                fetchAllSlicesFailed(
+                  error || t('Could not fetch all saved charts'),
+                ),
               ),
-            ),
-            dispatch(
-              addDangerToast(
-                t('Sorry there was an error fetching saved charts: ') +
-                  error.error || error.statusText,
+              dispatch(
+                addDangerToast(
+                  t('Sorry there was an error fetching saved charts: ') + error,
+                ),
               ),
-            ),
-          ]),
+            ]),
+          ),
         );
     }
 
