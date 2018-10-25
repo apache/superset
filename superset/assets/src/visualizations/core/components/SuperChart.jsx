@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import ChartProps from '../models/ChartProps';
@@ -42,6 +43,13 @@ class SuperChart extends React.PureComponent {
       Renderer: null,
       transformProps: null,
     };
+    this.fullyTransformProps = createSelector(
+      input => input.preTransformProps,
+      input => input.transformProps,
+      input => input.postTransformProps,
+      input => input.chartProps,
+      (pre, transform, post, chartProps) => post(transform(pre(chartProps))),
+    );
   }
 
   componentDidMount() {
@@ -121,8 +129,8 @@ class SuperChart extends React.PureComponent {
   renderContent() {
     const {
       chartProps,
-      preTransformProps: pre,
-      postTransformProps: post,
+      preTransformProps,
+      postTransformProps,
       chartType,
     } = this.props;
 
@@ -136,7 +144,14 @@ class SuperChart extends React.PureComponent {
     switch (status) {
       case STATUS.SUCCESS:
         return (
-          <Renderer {...post(transformProps(pre(chartProps)))} />
+          <Renderer
+            {...this.fullyTransformProps({
+              preTransformProps,
+              transformProps,
+              postTransformProps,
+              chartProps,
+            })}
+          />
         );
       case STATUS.FAILURE:
         return (
