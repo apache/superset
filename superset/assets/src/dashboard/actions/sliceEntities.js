@@ -68,20 +68,18 @@ export function fetchAllSlices(userId) {
           return dispatch(setAllSlices(slices));
         })
         .catch(errorResponse =>
-          getClientErrorObject(errorResponse).then(({ error }) =>
-            Promise.all([
-              dispatch(
-                fetchAllSlicesFailed(
-                  error || t('Could not fetch all saved charts'),
-                ),
+          getClientErrorObject(errorResponse).then(({ error }) => {
+            dispatch(
+              fetchAllSlicesFailed(
+                error || t('Could not fetch all saved charts'),
               ),
-              dispatch(
-                addDangerToast(
-                  t('Sorry there was an error fetching saved charts: ') + error,
-                ),
+            );
+            dispatch(
+              addDangerToast(
+                t('Sorry there was an error fetching saved charts: ') + error,
               ),
-            ]),
-          ),
+            );
+          }),
         );
     }
 
