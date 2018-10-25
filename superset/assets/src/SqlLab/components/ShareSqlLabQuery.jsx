@@ -5,6 +5,7 @@ import { Popover, OverlayTrigger } from 'react-bootstrap';
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
+import { getClientErrorObject } from '../../modules/utils';
 import { t } from '../../locales';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
@@ -23,7 +24,7 @@ class ShareSqlLabQuery extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      shortUrl: '',
+      shortUrl: 'Loading ...',
       showOverlay: false,
     };
     this.getCopyUrl = this.getCopyUrl.bind(this);
@@ -33,11 +34,16 @@ class ShareSqlLabQuery extends React.Component {
     const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
-    storeQuery(sharedQuery)
+    return storeQuery(sharedQuery)
       .then((shortUrl) => {
         this.setState({ shortUrl });
       })
-      .catch(this.props.addDangerToast);
+      .catch((response) => {
+        getClientErrorObject(response).then(({ error }) => {
+          this.props.addDangerToast(error);
+          this.setState({ shortUrl: t('Error') });
+        });
+      });
   }
 
   renderPopover() {
