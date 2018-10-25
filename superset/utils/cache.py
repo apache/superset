@@ -53,7 +53,7 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
         else:
             # noop
             def wrapped_f(cls, *args, **kwargs):
-                logging.info('no cache is selected')
+                logging.info('no cache is configured or selected')
                 return f(cls, *args, **kwargs)
         return wrapped_f
     return wrap
