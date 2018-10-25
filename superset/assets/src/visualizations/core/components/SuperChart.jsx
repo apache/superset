@@ -1,4 +1,5 @@
 import React from 'react';
+import Loadable from 'react-loadable';
 import PropTypes from 'prop-types';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
@@ -38,10 +39,11 @@ class SuperChart extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      status: STATUS.IDLE,
-      error: null,
-      Renderer: null,
-      transformProps: null,
+      LoadableRenderer: null,
+      // status: STATUS.IDLE,
+      // error: null,
+      // Renderer: null,
+      // transformProps: null,
     };
     this.fullyTransformProps = createSelector(
       input => input.preTransformProps,
@@ -50,6 +52,7 @@ class SuperChart extends React.PureComponent {
       input => input.chartProps,
       (pre, transform, post, chartProps) => post(transform(pre(chartProps))),
     );
+    this.renderLoading = this.renderLoading.bind(this);
   }
 
   componentDidMount() {
@@ -66,117 +69,200 @@ class SuperChart extends React.PureComponent {
     }
   }
 
-  componentDidUpdate() {
-    const { onRenderSuccess, onRenderFailure } = this.props;
-    const { status, error } = this.state;
-    if (status === STATUS.SUCCESS) {
-      onRenderSuccess();
-    } else if (status === STATUS.FAILURE) {
-      onRenderFailure(error);
-    }
-  }
+  // componentDidUpdate() {
+  //   const { onRenderSuccess, onRenderFailure } = this.props;
+  //   const { status, error } = this.state;
+  //   if (status === STATUS.SUCCESS) {
+  //     onRenderSuccess();
+  //   } else if (status === STATUS.FAILURE) {
+  //     onRenderFailure(error);
+  //   }
+  // }
 
   componentWillUnmount() {
     this.mounted = false;
   }
 
   loadChartType({ chartType, overrideTransformProps }) {
+    const fullyTransformProps = this.fullyTransformProps;
     if (this.mounted) {
-      // Clear state
-      this.setState({
-        status: chartType ? STATUS.IDLE : STATUS.LOADING,
-        error: null,
-        Renderer: null,
-        transformProps: null,
-      });
-
       if (chartType) {
         const componentPromise = getChartComponentRegistry().getAsPromise(chartType);
         const transformPropsPromise = overrideTransformProps
           ? Promise.resolve(overrideTransformProps)
           : getChartTransformPropsRegistry().getAsPromise(chartType);
+        const LoadableRenderer = Loadable.Map({
+          loader: {
+            Renderer: () => componentPromise,
+            transformProps: () => transformPropsPromise,
+          },
+          loading: this.renderLoading,
+          render(loaded, props) {
+            const Renderer = loaded.Renderer.default || loaded.Renderer;
+            const transformProps = loaded.transformProps;
+            const {
+              chartProps,
+              preTransformProps,
+              postTransformProps,
+            } = props;
 
-        Promise.all([componentPromise, transformPropsPromise])
-          .then(
-            // on success
-            ([Renderer, transformProps]) => {
-              if (this.mounted) {
-                this.setState({
-                  status: STATUS.SUCCESS,
-                  // This is to provide backward-compatibility
-                  // for modules that are not exported with "export default"
-                  // such as module.exports = xxx
-                  Renderer: Renderer.default || Renderer,
+            return (
+              <Renderer
+                {...fullyTransformProps({
+                  preTransformProps,
                   transformProps,
-                });
-              }
-            },
-            // on failure
-            (error) => {
-              if (this.mounted) {
-                this.setState({
-                  status: STATUS.FAILURE,
-                  error,
-                  transformProps: IDENTITY,
-                });
-              }
-            },
-          );
+                  postTransformProps,
+                  chartProps,
+                })}
+              />
+            );
+          },
+        });
+        this.setState({ LoadableRenderer });
+      } else {
+        this.setState({ LoadableRenderer: null });
       }
+      // // Clear state
+      // this.setState({
+      //   status: chartType ? STATUS.IDLE : STATUS.LOADING,
+      //   error: null,
+      //   Renderer: null,
+      //   transformProps: null,
+      // });
     }
   }
 
-  renderContent() {
-    const {
-      chartProps,
-      preTransformProps,
-      postTransformProps,
-      chartType,
-    } = this.props;
+  // loadChartType({ chartType, overrideTransformProps }) {
+  //   if (this.mounted) {
+  //     // Clear state
+  //     this.setState({
+  //       status: chartType ? STATUS.IDLE : STATUS.LOADING,
+  //       error: null,
+  //       Renderer: null,
+  //       transformProps: null,
+  //     });
 
-    const {
-      status,
-      error,
-      Renderer,
-      transformProps,
-    } = this.state;
+  //     if (chartType) {
+  //       const componentPromise = getChartComponentRegistry().getAsPromise(chartType);
+  //       const transformPropsPromise = overrideTransformProps
+  //         ? Promise.resolve(overrideTransformProps)
+  //         : getChartTransformPropsRegistry().getAsPromise(chartType);
 
-    switch (status) {
-      case STATUS.SUCCESS:
-        return (
-          <Renderer
-            {...this.fullyTransformProps({
-              preTransformProps,
-              transformProps,
-              postTransformProps,
-              chartProps,
-            })}
-          />
-        );
-      case STATUS.FAILURE:
-        return (
-          <div className="alert alert-warning" role="alert">
-            <strong>ERROR</strong>&nbsp;
-            <code>chartType="{chartType}"</code> &mdash;
-            {error}
-          </div>
-        );
-      case STATUS.LOADING:
-        return (
-          <span>Loading...</span>
-        );
-      default:
-      case STATUS.IDLE:
-        return null;
+  //       Promise.all([componentPromise, transformPropsPromise])
+  //         .then(
+  //           // on success
+  //           ([Renderer, transformProps]) => {
+  //             if (this.mounted) {
+  //               this.setState({
+  //                 status: STATUS.SUCCESS,
+  //                 // This is to provide backward-compatibility
+  //                 // for modules that are not exported with "export default"
+  //                 // such as module.exports = xxx
+  //                 Renderer: Renderer.default || Renderer,
+  //                 transformProps,
+  //               });
+  //             }
+  //           },
+  //           // on failure
+  //           (error) => {
+  //             if (this.mounted) {
+  //               this.setState({
+  //                 status: STATUS.FAILURE,
+  //                 error,
+  //                 transformProps: IDENTITY,
+  //               });
+  //             }
+  //           },
+  //         );
+  //     }
+  //   }
+  // }
+
+  // renderContent() {
+  //   const {
+  //     chartProps,
+  //     preTransformProps,
+  //     postTransformProps,
+  //     chartType,
+  //   } = this.props;
+
+  //   const {
+  //     status,
+  //     error,
+  //     Renderer,
+  //     transformProps,
+  //   } = this.state;
+
+  //   switch (status) {
+  //     case STATUS.SUCCESS:
+  //       return (
+  //         <Renderer
+  //           {...this.fullyTransformProps({
+  //             preTransformProps,
+  //             transformProps,
+  //             postTransformProps,
+  //             chartProps,
+  //           })}
+  //         />
+  //       );
+  //     case STATUS.FAILURE:
+  //       return (
+  //         <div className="alert alert-warning" role="alert">
+  //           <strong>ERROR</strong>&nbsp;
+  //           <code>chartType="{chartType}"</code> &mdash;
+  //           {error}
+  //         </div>
+  //       );
+  //     case STATUS.LOADING:
+  //       return (
+  //         <span>Loading...</span>
+  //       );
+  //     default:
+  //     case STATUS.IDLE:
+  //       return null;
+  //   }
+  // }
+
+  renderLoading(loadableProps) {
+    const { chartType } = this.props;
+    const { error, pastDelay } = loadableProps;
+
+    if (error) {
+      return (
+        <div className="alert alert-warning" role="alert">
+          <strong>ERROR</strong>&nbsp;
+          <code>chartType="{chartType}"</code> &mdash;
+          {JSON.stringify(error)}
+        </div>
+      );
+    } else if (pastDelay) {
+      return (
+        <span>Loading...</span>
+      );
     }
+
+    return null;
   }
 
   render() {
-    const { id, className } = this.props;
+    const {
+      id,
+      className,
+      preTransformProps,
+      postTransformProps,
+      chartProps,
+    } = this.props;
+    const { LoadableRenderer } = this.state;
 
     return (
       <div id={id} className={className}>
-        {this.renderContent()}
+        {LoadableRenderer && (
+          <LoadableRenderer
+            preTransformProps={preTransformProps}
+            postTransformProps={postTransformProps}
+            chartProps={chartProps}
+          />
+        )}
       </div>
     );
   }
