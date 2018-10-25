@@ -100,7 +100,7 @@ class DatasourceControl extends React.PureComponent {
         <OverlayTrigger
           placement="right"
           overlay={
-            <Tooltip id={'error-tooltip'}>{t('Click to point to another datasource')}</Tooltip>
+            <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
           }
         >
           <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }} className="m-r-5">
