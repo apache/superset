@@ -2264,6 +2264,7 @@ export const controls = {
       ['polyline', 'Polyline'],
       ['json', 'JSON'],
       ['geohash', 'geohash (square)'],
+      ['zipcode', 'ZIP code'],
     ],
   },
 
