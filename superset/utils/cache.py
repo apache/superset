@@ -36,8 +36,8 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
 
         if selected_cache:
             def wrapped_f(cls, *args, **kwargs):
-                if not kwargs.get('enable_cache', True):
-                    logging.info('cache is not enabled')
+                if not kwargs.get('cache', True):
+                    logging.info('dont use cache per function call')
                     return f(cls, *args, **kwargs)
 
                 cache_key = key(*args, **kwargs)
@@ -48,7 +48,7 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
                 logging.info('cache is expired and/or force refresh')
                 o = f(cls, *args, **kwargs)
                 selected_cache.set(cache_key, o,
-                                   timeout=kwargs.get('cache_timeout', 600))
+                                   timeout=kwargs.get('cache_timeout'))
                 return o
         else:
             # noop

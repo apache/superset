@@ -1552,13 +1552,9 @@ class Superset(BaseSupersetView):
             .filter_by(id=db_id)
             .one()
         )
-        extra = database.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
-        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
-        schemas = database.all_schema_names(enable_cache=enable_cache,
-                                            cache_timeout=schema_cache_timeout,
-                                            db_id=db_id,
+        schemas = database.all_schema_names(db_id=db_id,
+                                            cache=database.schema_cache_enabled,
+                                            cache_timeout=database.schema_cache_timeout,
                                             force=force_refresh)
         schemas = security_manager.schemas_accessible_by_user(database, schemas)
         return Response(
@@ -1577,23 +1573,21 @@ class Superset(BaseSupersetView):
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
 
-        extra = database.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
-        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
-
-        table_names = database.all_table_names(enable_cache=enable_cache,
-                                               cache_timeout=table_cache_timeout,
-                                               db_id=db_id,
-                                               force=force_refresh,
-                                               schema=schema)
+        if schema:
+            table_names = database.all_table_names_in_schema(
+                db_id=db_id, schema=schema, force=force_refresh,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout)
+            view_names = database.all_view_names_in_schema(
+                db_id=db_id, schema=schema, force=force_refresh,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout)
+        else:
+            table_names = database.all_table_names_in_database(
+                db_id=db_id, cache=True, force=False, cache_timeout=24 * 60 * 60)
+            view_names = database.all_view_names_in_database(
+                db_id=db_id, cache=True, force=False, cache_timeout=24 * 60 * 60)
         table_names = security_manager.accessible_by_user(database, table_names, schema)
-
-        view_names = database.all_view_names(enable_cache=enable_cache,
-                                             cache_timeout=table_cache_timeout,
-                                             db_id=db_id,
-                                             force=force_refresh,
-                                             schema=schema)
         view_names = security_manager.accessible_by_user(database, view_names, schema)
 
         if substr:

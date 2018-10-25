@@ -235,16 +235,23 @@ class BaseEngineSpec(object):
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.inspector.get_schema_names()
+        schemas = db.all_schema_names(db_id=db.id,
+                                      cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         result_sets = {}
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = sorted(
-                    db.inspector.get_table_names(schema))
+                result_sets[schema] = db.all_table_names_in_schema(
+                    db_id=db.id, schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = sorted(
-                    db.inspector.get_view_names(schema))
+                result_sets[schema] = db.all_view_names_in_schema(
+                    db_id=db.id, schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             all_result_sets += [
                 '{}.{}'.format(schema, t) for t in result_sets[schema]]
         if all_result_sets:
@@ -557,14 +564,23 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_result_sets(cls, db, datasource_type):
-        schemas = db.inspector.get_schema_names()
+        schemas = db.all_schema_names(db_id=db.id,
+                                      cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         result_sets = {}
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = sorted(db.inspector.get_table_names())
+            result_sets[schema] = db.all_table_names_in_schema(
+                db_id=db.id, schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = sorted(db.inspector.get_view_names())
+            result_sets[schema] = db.all_view_names_in_schema(
+                db_id=db.id, schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         all_result_sets += [
             '{}.{}'.format(schema, t) for t in result_sets[schema]]
         if all_result_sets:

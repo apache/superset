@@ -689,6 +689,26 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
 
+    @property
+    def metadata_cache_timeout(self):
+        return self.get_extra().get('metadata_cache_timeout', {})
+
+    @property
+    def schema_cache_enabled(self):
+        return 'schema_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def schema_cache_timeout(self):
+        return self.metadata_cache_timeout.get('schema_cache_timeout')
+
+    @property
+    def table_cache_enabled(self):
+        return 'table_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def table_cache_timeout(self):
+        return self.metadata_cache_timeout.get('table_cache_timeout')
+
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
         url = make_url(uri)
@@ -844,14 +864,47 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return sqla.inspect(engine)
 
     @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:None:table_list'.format(
+            db_id=kwargs.get('db_id')),
+        use_tables_cache=True)
+    def all_table_names_in_database(self, db_id=None, cache=False,
+                                    cache_timeout=None, force=False):
+        """
+        Parameters need to be passed as keyword arguments.
+        If cache=True, db_id must be passed in for setting cache key
+        """
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        tables_dict = self.db_engine_spec.fetch_result_sets(self, 'table')
+        return tables_dict.get('', [])
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:None:view_list'.format(
+            db_id=kwargs.get('db_id')),
+        use_tables_cache=True)
+    def all_view_names_in_database(self, db_id=None, cache=False,
+                                   cache_timeout=None, force=False):
+        """
+        Parameters need to be passed as keyword arguments.
+        If cache=True, db_id must be passed in for setting cache key
+        """
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        views_dict = self.db_engine_spec.fetch_result_sets(self, 'view')
+        return views_dict.get('', [])
+
+    @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
             db_id=kwargs.get('db_id'), schema=kwargs.get('schema')),
         use_tables_cache=True)
-    def all_table_names(self, enable_cache=False, cache_timeout=None,
-                        force=False, db_id=None, schema=None):
+    def all_table_names_in_schema(self, schema, db_id=None, cache=False,
+                                  cache_timeout=None, force=False):
         """
+        Parameters need to be passed as keyword arguments.
+        If cache=True, db_id must be passed in for setting cache key
+
         For unused parameters, they are referenced in
-        cache_util.memoized_func decorator
+        cache_util.memoized_func decorator.
 
         :param enable_cache: whether cache is enabled for the function
         :type enable_cache: bool
@@ -866,24 +919,27 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         :return: table list
         :rtype: list
         """
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            tables_dict = self.db_engine_spec.fetch_result_sets(self, 'table')
-            return tables_dict.get('', [])
-
-        return sorted(self.db_engine_spec.get_table_names(
-            inspector=self.inspector, schema=schema))
+        tables = []
+        try:
+            tables = self.db_engine_spec.get_table_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
+            pass
+        return tables
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
             db_id=kwargs.get('db_id'), schema=kwargs.get('schema')),
         use_tables_cache=True)
-    def all_view_names(self, enable_cache=False, cache_timeout=None,
-                       force=False, db_id=None, schema=None):
+    def all_view_names_in_schema(self, schema, db_id=None, cache=False,
+                                  cache_timeout=None, force=False):
         """
+        Parameters need to be passed as keyword arguments.
+        If cache=True, db_id must be passed in for setting cache key
+
         For unused parameters, they are referenced in
-        cache_util.memoized_func decorator
+        cache_util.memoized_func decorator.
 
         :param enable_cache: whether cache is enabled for the function
         :type enable_cache: bool
@@ -898,27 +954,26 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         :return: view list
         :rtype: list
         """
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            views_dict = self.db_engine_spec.fetch_result_sets(self, 'view')
-            return views_dict.get('', [])
         views = []
         try:
             views = self.db_engine_spec.get_view_names(
                 inspector=self.inspector, schema=schema)
-        except Exception:
+        except Exception as e:
+            logging.exception(e)
             pass
         return views
 
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')),
         use_tables_cache=True)
-    def all_schema_names(self, enable_cache=False, cache_timeout=None,
-                         force=False, db_id=None):
+    def all_schema_names(self, db_id=None, cache=False,
+                         cache_timeout=None, force=False):
         """
+        Parameters need to be passed as keyword arguments.
+        If cache=True, db_id must be passed in for setting cache key
+
         For unused parameters, they are referenced in
-        cache_util.memoized_func decorator
+        cache_util.memoized_func decorator.
 
         :param enable_cache: whether cache is enabled for the function
         :type enable_cache: bool
