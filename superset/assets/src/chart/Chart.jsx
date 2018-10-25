@@ -47,8 +47,10 @@ class Chart extends React.PureComponent {
     super(props);
     this.state = {};
 
+    this.onAddFilter = this.onAddFilter.bind(this);
     this.onRenderSuccess = this.onRenderSuccess.bind(this);
     this.onRenderFailure = this.onRenderFailure.bind(this);
+    this.setTooltip = this.setTooltip.bind(this);
   }
 
   componentDidMount() {
@@ -60,6 +62,10 @@ class Chart extends React.PureComponent {
         this.props.chartId,
       );
     }
+  }
+
+  onAddFilter(col, vals, merge = true, refresh = true) {
+    this.props.addFilter(col, vals, merge, refresh);
   }
 
   onRenderSuccess() {
@@ -82,14 +88,15 @@ class Chart extends React.PureComponent {
     actions.chartRenderingFailed(e, chartId);
   }
 
+  setTooltip(tooltip) {
+    this.setState({ tooltip });
+  }
+
   prepareChartProps() {
     const {
       width,
       height,
-      actions,
-      addFilter,
       annotationData,
-      chartId,
       datasource,
       formData,
       getFilters,
@@ -104,17 +111,11 @@ class Chart extends React.PureComponent {
       datasource,
       filters: getFilters(),
       formData,
-      onAddFilter: (col, vals, merge = true, refresh = true) => {
-        addFilter(col, vals, merge, refresh);
-      },
-      onError: (e) => {
-        actions.chartRenderingFailed(e, chartId);
-      },
+      onAddFilter: this.onAddFilter,
+      onError: this.onRenderFailure,
       payload: queryResponse,
       setControlValue,
-      setTooltip: (tooltip) => {
-        this.setState({ tooltip });
-      },
+      setTooltip: this.setTooltip,
     });
   }
 
