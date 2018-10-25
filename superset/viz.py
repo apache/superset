@@ -13,6 +13,7 @@ import inspect
 from itertools import product
 import logging
 import math
+import os
 import pickle as pkl
 import re
 import traceback
@@ -30,6 +31,7 @@ from pandas.tseries.frequencies import to_offset
 from past.builtins import basestring
 import polyline
 import simplejson as json
+import sqlalchemy
 
 from superset import app, cache, get_css_manifest_files
 from superset.exceptions import NullValueException, SpatialException
@@ -2100,6 +2102,8 @@ class BaseDeckGLViz(BaseViz):
             return [spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
             return [spatial.get('geohashCol')]
+        elif spatial.get('type') == 'zipcode':
+            return [spatial.get('zipcodeCol')]
 
     @staticmethod
     def parse_coordinates(s):
@@ -2116,6 +2120,11 @@ class BaseDeckGLViz(BaseViz):
     def reverse_geohash_decode(geohash_code):
         lat, lng = geohash.decode(geohash_code)
         return (lng, lat)
+
+    @staticmethod
+    def reverse_zipcode_decode(zipcode):
+        raise NotImplementedError(
+            'No mapping from ZIP code to single latitude/longitude')
 
     @staticmethod
     def reverse_latlong(df, key):
@@ -2142,6 +2151,9 @@ class BaseDeckGLViz(BaseViz):
         elif spatial.get('type') == 'geohash':
             df[key] = df[spatial.get('geohashCol')].map(self.reverse_geohash_decode)
             del df[spatial.get('geohashCol')]
+        elif spatial.get('type') == 'zipcode':
+            df[key] = df[spatial.get('zipcodeCol')].map(self.reverse_zipcode_decode)
+            del df[spatial.get('zipcodeCol')]
 
         if spatial.get('reverseCheckbox'):
             self.reverse_latlong(df, key)
@@ -2332,6 +2344,57 @@ def geohash_to_json(geohash_code):
     ]
 
 
+def zipcode_deser(zipcodes):
+    geojson = zipcodes_to_json(zipcodes)
+
+    def deser(zipcode):
+        return geojson[str(zipcode)]['coordinates'][0]
+    return deser
+
+
+def zipcodes_to_json(zipcodes):
+    user = os.environ.get('CREDENTIALS_LYFTPG_USER', '')
+    password = os.environ.get('CREDENTIALS_LYFTPG_PASSWORD', '')
+    url = (
+        'postgresql+psycopg2://'
+        '{user}:{password}'
+        '@analytics-platform-vpc.c067nfzisc99.us-east-1.rds.amazonaws.com:5432'
+        '/platform'.format(user=user, password=password)
+    )
+
+    out = {}
+    missing = set()
+    for zipcode in zipcodes:
+        cache_key = 'zipcode_geojson_{}'.format(zipcode)
+        geojson = cache and cache.get(cache_key)
+        if geojson:
+            out[zipcode] = geojson
+        else:
+            missing.add(str(zipcode))
+
+    if not missing:
+        return out
+
+    # fetch missing geojson from lyftpg
+    in_clause = ', '.join(['%s'] * len(missing))
+    query = (
+        'SELECT zipcode, geojson FROM zip_codes WHERE zipcode IN ({0})'
+        .format(in_clause))
+    conn = sqlalchemy.create_engine(url, client_encoding='utf8')
+    results = conn.execute(query, tuple(missing)).fetchall()
+
+    for zipcode, geojson in results:
+        out[zipcode] = geojson
+        if cache and len(results) < 10000:  # avoid storing too much
+            cache_key = 'zipcode_geojson_{}'.format(zipcode)
+            try:
+                cache.set(cache_key, geojson, timeout=86400)
+            except Exception:
+                pass
+
+    return out
+
+
 class DeckPathViz(BaseDeckGLViz):
 
     """deck.gl's PathLayer"""
@@ -2344,6 +2407,7 @@ class DeckPathViz(BaseDeckGLViz):
         'json': json.loads,
         'polyline': polyline.decode,
         'geohash': geohash_to_json,
+        'zipcode': None,  # per request
     }
 
     def query_obj(self):
@@ -2369,12 +2433,18 @@ class DeckPathViz(BaseDeckGLViz):
         if fd.get('reverse_long_lat'):
             path = [(o[1], o[0]) for o in path]
         d[self.deck_viz_key] = path
-        if line_type != 'geohash':
+        if line_type not in ['geohash', 'zipcode']:
             del d[line_column]
         d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time')
         return d
 
     def get_data(self, df):
+        fd = self.form_data
+        line_type = fd.get('line_type')
+        if line_type == 'zipcode':
+            zipcodes = df[fd['line_column']].unique()
+            self.deser_map['zipcode'] = zipcode_deser(zipcodes)
+
         self.metric_label = self.get_metric_label(self.metric)
         return super(DeckPathViz, self).get_data(df)
 
