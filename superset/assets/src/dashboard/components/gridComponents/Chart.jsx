@@ -149,7 +149,6 @@ class Chart extends React.Component {
       updateSliceName,
       sliceName,
       toggleExpandSlice,
-      timeout,
       supersetCanExplore,
       sliceCanEdit,
     } = this.props;
@@ -212,27 +211,19 @@ class Chart extends React.Component {
           )}
         >
           <ChartContainer
-            containerId={`slice-container-${id}`}
-            chartId={id}
-            datasource={datasource}
-            formData={formData}
-            headerHeight={this.getHeaderHeight()}
-            height={this.getChartHeight()}
             width={width}
-            timeout={timeout}
-            vizType={slice.viz_type}
+            height={this.getChartHeight()}
             addFilter={this.addFilter}
-            getFilters={this.getFilters}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
+            chartId={id}
             chartStatus={chart.chartStatus}
-            chartUpdateEndTime={chart.chartUpdateEndTime}
-            chartUpdateStartTime={chart.chartUpdateStartTime}
-            latestQueryFormData={chart.latestQueryFormData}
-            lastRendered={chart.lastRendered}
+            datasource={datasource}
+            formData={formData}
+            getFilters={this.getFilters}
             queryResponse={chart.queryResponse}
-            queryController={chart.queryController}
             triggerQuery={chart.triggerQuery}
+            vizType={slice.viz_type}
           />
         </div>
       </div>
