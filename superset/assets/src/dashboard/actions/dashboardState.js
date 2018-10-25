@@ -132,16 +132,14 @@ export function saveDashboardRequest(data, id, saveType) {
     SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
-      parseMethod: null,
     })
       .then(response =>
         Promise.all([
-          Promise.resolve(response),
           dispatch(saveDashboardRequestSuccess()),
           dispatch(
             addSuccessToast(t('This dashboard was saved successfully.')),
           ),
-        ]),
+        ]).then(() => Promise.resolve(response)),
       )
       .catch(response =>
         getClientErrorObject(response).then(({ error }) =>
