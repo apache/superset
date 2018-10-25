@@ -32,6 +32,7 @@ const spatialTypes = {
   latlong: 'latlong',
   delimited: 'delimited',
   geohash: 'geohash',
+  zipcode: 'zipcode',
 };
 
 const propTypes = {
@@ -63,6 +64,7 @@ export default class SpatialControl extends React.Component {
       lonlatCol: v.lonlatCol || defaultCol,
       reverseCheckbox: v.reverseCheckbox || false,
       geohashCol: v.geohashCol || defaultCol,
+      zipcodeCol: v.zipcodeCol || defaultCol,
       value: null,
       errors: [],
     };
@@ -97,6 +99,12 @@ export default class SpatialControl extends React.Component {
       if (!value.geohashCol) {
         errors.push(errMsg);
       }
+    } else if (type === spatialTypes.zipcode) {
+      value.zipcodeCol = this.state.zipcodeCol;
+      value.reverseCheckbox = this.state.reverseCheckbox;
+      if (!value.zipcodeCol) {
+        errors.push(errMsg);
+      }
     }
     this.setState({ value, errors });
     this.props.onChange(value, errors);
@@ -120,6 +128,8 @@ export default class SpatialControl extends React.Component {
       return `${this.state.lonlatCol}`;
     } else if (this.state.type === spatialTypes.geohash) {
       return `${this.state.geohashCol}`;
+    } else if (this.state.type === spatialTypes.zipcode) {
+      return `${this.state.zipcodeCol}`;
     }
     return null;
   }
@@ -193,6 +203,21 @@ export default class SpatialControl extends React.Component {
               <Col md={6}>
                 Column
                 {this.renderSelect('geohashCol', spatialTypes.geohash)}
+              </Col>
+              <Col md={6}>
+                {this.renderReverseCheckbox()}
+              </Col>
+            </Row>
+          </PopoverSection>
+          <PopoverSection
+            title={t('ZIP code')}
+            isSelected={this.state.type === spatialTypes.zipcode}
+            onSelect={this.setType.bind(this, spatialTypes.zipcode)}
+          >
+            <Row>
+              <Col md={6}>
+                Column
+                {this.renderSelect('zipcodeCol', spatialTypes.zipcode)}
               </Col>
               <Col md={6}>
                 {this.renderReverseCheckbox()}

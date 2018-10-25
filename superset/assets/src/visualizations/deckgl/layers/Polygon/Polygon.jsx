@@ -100,7 +100,6 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
-    pickable: true,
     filled: fd.filled,
     stroked: fd.stroked,
     getPolygon: d => d.polygon,
