@@ -36,9 +36,11 @@ const propTypes = {
   onDismissRefreshOverlay: PropTypes.func,
 };
 
+const BLANK = {};
+
 const defaultProps = {
-  addFilter: () => ({}),
-  getFilters: () => ({}),
+  addFilter: () => BLANK,
+  getFilters: () => BLANK,
   setControlValue() {},
 };
 
@@ -47,6 +49,7 @@ class Chart extends React.PureComponent {
     super(props);
     this.state = {};
 
+    this.createChartProps = ChartProps.createSelector();
     this.onAddFilter = this.onAddFilter.bind(this);
     this.onRenderSuccess = this.onRenderSuccess.bind(this);
     this.onRenderFailure = this.onRenderFailure.bind(this);
@@ -104,7 +107,7 @@ class Chart extends React.PureComponent {
       setControlValue,
     } = this.props;
 
-    return new ChartProps({
+    return this.createChartProps({
       width,
       height,
       annotationData,
