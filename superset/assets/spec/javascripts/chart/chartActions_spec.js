@@ -79,6 +79,7 @@ describe('chart actions', () => {
       expect(dispatch.callCount).toBe(4);
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
       expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
+      expect(loggerStub.callCount).toBe(1);
 
       return Promise.resolve();
     });
@@ -95,6 +96,8 @@ describe('chart actions', () => {
       // chart update, trigger query, update form data, fail
       expect(dispatch.callCount).toBe(4);
       expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
+      expect(loggerStub.callCount).toBe(1);
+      expect(loggerStub.args[0][1].error_details).toBe('timeout');
       setupDefaultFetchMock();
 
       return Promise.resolve();
@@ -113,6 +116,9 @@ describe('chart actions', () => {
       const updateFailedAction = dispatch.args[3][0];
       expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
       expect(updateFailedAction.queryResponse.error).toBe('misc error');
+
+      expect(loggerStub.callCount).toBe(1);
+      expect(loggerStub.args[0][1].error_details).toBe('misc error');
       setupDefaultFetchMock();
 
       return Promise.resolve();
