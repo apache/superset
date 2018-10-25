@@ -138,7 +138,6 @@ export default function(bootstrapData) {
   };
 
   return {
-    featureFlags: common.feature_flags,
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts: chartQueries,

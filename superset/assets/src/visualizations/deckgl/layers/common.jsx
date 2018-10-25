@@ -31,7 +31,7 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, onAddFilter, setTooltip) {
+export function commonLayerProps(formData, setTooltip, onSelect) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
@@ -64,8 +64,8 @@ export function commonLayerProps(formData, onAddFilter, setTooltip) {
       const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
     };
-  } else if (fd.table_filter && fd.line_type === 'geohash') {
-    onClick = o => onAddFilter(fd.line_column, [o.object[fd.line_column]], false);
+  } else if (fd.table_filter && onSelect !== undefined) {
+    onClick = o => onSelect(o.object[fd.line_column]);
   }
   return {
     onClick,

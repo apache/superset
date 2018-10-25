@@ -26,6 +26,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -91,6 +92,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       onSave,
       userCanEdit,
       userCanSave,
+      isLoading,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
@@ -137,7 +139,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {userCanSave && <MenuItem divider />}
 
-        <MenuItem onClick={forceRefreshAllCharts}>
+        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
         <RefreshIntervalModal
