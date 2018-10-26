@@ -120,10 +120,6 @@ class SuperChart extends React.PureComponent {
       );
       setTimeout(() => this.props.onRenderFailure(error), 0);
       return result;
-    } else if (pastDelay) {
-      return (
-        <span>Loading...</span>
-      );
     }
 
     return null;
