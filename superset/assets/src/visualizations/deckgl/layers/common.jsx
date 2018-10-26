@@ -75,12 +75,32 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
   };
 }
 
+const percentiles = {
+  p1: 0.01,
+  p5: 0.05,
+  p95: 0.95,
+  p99: 0.99,
+};
+
 /* Get an a stat function that operates on arrays, aligns with control=js_agg_function  */
 export function getAggFunc(type = 'sum', accessor = null) {
   if (type === 'count'){
     return arr => arr.length;
   }
-  const d3func = d3array[type];
+  let d3func;
+  if (type in percentiles) {
+    d3func = (arr, acc) => {
+      let sortedArr;
+      if (accessor) {
+        sortedArr = arr.sort((o1, o2) => d3.ascending(accessor(o1), accessor(o2)));
+      } else {
+        sortedArr = arr.sort(d3.ascending)
+      }
+      return d3array.quantile(sortedArr, percentiles[type], acc);
+    };
+  } else {
+    d3func = d3array[type];
+  }
   if (!accessor) {
     return arr => d3func(arr);
   }

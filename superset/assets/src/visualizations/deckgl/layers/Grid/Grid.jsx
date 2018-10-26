@@ -1,5 +1,6 @@
 import { GridLayer } from 'deck.gl';
-import { commonLayerProps } from '../common';
+
+import { commonLayerProps, getAggFunc  } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
 
@@ -17,7 +18,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data = jsFnMutator(data);
   }
 
-  let aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}`,
     data,

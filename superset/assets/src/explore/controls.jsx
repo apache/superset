@@ -1333,6 +1333,10 @@ export const controls = {
       'count',
       'variance',
       'deviation',
+      'p1',
+      'p5',
+      'p95',
+      'p99',
     ]),
   },
 

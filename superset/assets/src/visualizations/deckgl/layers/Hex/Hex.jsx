@@ -1,9 +1,8 @@
 import { HexagonLayer } from 'deck.gl';
 
-import { commonLayerProps } from '../common';
+import { commonLayerProps, getAggFunc  } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
-import { getAggFunc } from '../common';
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
@@ -18,7 +17,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-  let aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}`,
     data,
