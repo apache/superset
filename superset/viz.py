@@ -483,7 +483,7 @@ class BaseViz(object):
         query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
-        df = None
+        df = self.get_df() 
 
         if cache_key and cache:
             cache_value = cache.get(cache_key)
@@ -500,10 +500,6 @@ class BaseViz(object):
                     logging.exception(e)
                     logging.error('Error reading cache: ' +
                                   utils.error_msg_from_exception(e))
-                logging.info('Serving from cache')        
-        else:
-            """ Cache Miss, perform query """
-            df = self.get_df()
 
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
