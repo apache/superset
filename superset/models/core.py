@@ -866,7 +866,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema:None:table_list',
         attribute_in_key='id')
-    def all_table_names_in_database(self, cache=False, cache_timeout=None, force=False):
+    def all_table_names_in_database(self, cache=False,
+                                    cache_timeout=None, force=False):
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
@@ -875,16 +876,19 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @cache_util.memoized_func(
         key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
         attribute_in_key='id')
-    def all_view_names_in_database(self, cache=False, cache_timeout=None, force=False):
+    def all_view_names_in_database(self, cache=False,
+                                   cache_timeout=None, force=False):
         """Parameters need to be passed as keyword arguments."""
         if not self.allow_multi_schema_metadata_fetch:
             return []
         return self.db_engine_spec.fetch_result_sets(self, 'view')
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(kwargs.get('schema')),
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
         attribute_in_key='id')
-    def all_table_names_in_schema(self, schema, cache=False, cache_timeout=None, force=False):
+    def all_table_names_in_schema(self, schema, cache=False,
+                                  cache_timeout=None, force=False):
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -910,9 +914,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return tables
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(kwargs.get('schema')),
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
         attribute_in_key='id')
-    def all_view_names_in_schema(self, schema, cache=False, cache_timeout=None, force=False):
+    def all_view_names_in_schema(self, schema, cache=False,
+                                 cache_timeout=None, force=False):
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in

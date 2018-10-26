@@ -32,7 +32,8 @@ def memoized_func(key=view_cache_key, attribute_in_key=None):
                     return f(self, *args, **kwargs)
 
                 if attribute_in_key:
-                    cache_key = key(*args, **kwargs).format(getattr(self, attribute_in_key))
+                    cache_key = key(*args, **kwargs).format(
+                        getattr(self, attribute_in_key))
                 else:
                     cache_key = key(*args, **kwargs)
                 o = tables_cache.get(cache_key)
