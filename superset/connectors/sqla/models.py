@@ -11,6 +11,7 @@ from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Text,
 )
+from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
@@ -377,7 +378,10 @@ class SqlaTable(Model, BaseDatasource):
     def external_metadata(self):
         cols = self.database.get_columns(self.table_name, schema=self.schema)
         for col in cols:
-            col['type'] = '{}'.format(col['type'])
+            try:
+                col['type'] = str(col['type'])
+            except CompileError:
+                col['type'] = 'UNKNOWN'
         return cols
 
     @property
