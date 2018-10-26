@@ -45,6 +45,7 @@ export default function chartReducer(charts = {}, action) {
       return { ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
@@ -68,6 +69,7 @@ export default function chartReducer(charts = {}, action) {
             'or you are simply querying a data source that is too large ' +
             'to be processed within the timeout range. ' +
             'If that is the case, we recommend that you summarize your data further.')),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
