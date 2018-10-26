@@ -9,19 +9,6 @@
     "esm",
     "lib"
   ],
-  "scripts": {
-    "build:cjs": "beemo babel ./src --out-dir lib/ --minify",
-    "build:esm": "beemo babel ./src --out-dir esm/ --esm --minify",
-    "build": "yarn run build:cjs && yarn run build:esm",
-    "dev": "beemo babel --watch ./src --out-dir esm/ --esm",
-    "jest": "beemo jest --color --coverage",
-    "eslint": "beemo eslint \"./{src,test}/**/*.{js,jsx,md}\"",
-    "lint": "yarn run prettier && yarn run eslint",
-    "lint:fix": "yarn run prettier --write && yarn run eslint --fix",
-    "test": "yarn run jest",
-    "prettier": "beemo prettier \"./{src,test}/**/*.{js,jsx,json,md}\"",
-    "prepublish": "yarn run build"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache-superset/superset-ui.git"

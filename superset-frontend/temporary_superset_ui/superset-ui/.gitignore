@@ -4,7 +4,6 @@
 .eslintrc.js
 .idea
 .npm
-.npmrc
 .prettierignore
 .yarnclean
 

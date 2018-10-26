@@ -1,0 +1,5 @@
+{
+  "rules": {
+    "prefer-promise-reject-errors": "off"
+  }
+}
