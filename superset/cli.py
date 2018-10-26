@@ -355,11 +355,9 @@ def update_datasources_cache():
             print('Fetching {} datasources ...'.format(database.name))
             try:
                 database.all_table_names_in_database(
-                    db_id=database.id, force=True,
-                    cache=True, cache_timeout=24 * 60 * 60)
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
                 database.all_view_names_in_database(
-                    db_id=database.id, force=True,
-                    cache=True, cache_timeout=24 * 60 * 60)
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
             except Exception as e:
                 print('{}'.format(str(e)))
 

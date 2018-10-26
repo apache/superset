@@ -229,34 +229,30 @@ class BaseEngineSpec(object):
 
     @classmethod
     def fetch_result_sets(cls, db, datasource_type):
-        """Returns the dictionary {schema : [result_set_name]}.
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.all_schema_names(db_id=db.id,
-                                      cache=db.schema_cache_enabled,
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
                                       cache_timeout=db.schema_cache_timeout,
                                       force=True)
-        result_sets = {}
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = db.all_table_names_in_schema(
-                    db_id=db.id, schema=schema, force=True,
+                all_datasource_names = db.all_table_names_in_schema(
+                    schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = db.all_view_names_in_schema(
-                    db_id=db.id, schema=schema, force=True,
+                all_datasource_names = db.all_view_names_in_schema(
+                    schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
             all_result_sets += [
-                '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+                '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -564,28 +560,24 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_result_sets(cls, db, datasource_type):
-        schemas = db.all_schema_names(db_id=db.id,
-                                      cache=db.schema_cache_enabled,
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
                                       cache_timeout=db.schema_cache_timeout,
                                       force=True)
-        result_sets = {}
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = db.all_table_names_in_schema(
-                db_id=db.id, schema=schema, force=True,
+            all_datasource_names = db.all_table_names_in_schema(
+                schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = db.all_view_names_in_schema(
-                db_id=db.id, schema=schema, force=True,
+            all_datasource_names = db.all_view_names_in_schema(
+                schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
         all_result_sets += [
-            '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+            '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -720,7 +712,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_result_sets(cls, db, datasource_type):
-        """Returns the dictionary {schema : [result_set_name]}.
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -732,10 +724,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 datasource_type.upper(),
             ),
             None)
-        result_sets = defaultdict(list)
+        result_sets = []
         for unused, row in result_set_df.iterrows():
-            result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[''].append('{}.{}'.format(
+            result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
