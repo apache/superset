@@ -37,12 +37,12 @@ Exporting Datasources to YAML
 -----------------------------
 You can print your current datasources to stdout by running: ::
 
-    superset export_datasources
+    superset export-datasources
 
 
 To save your datasources to a file run: ::
 
-    superset export_datasources -f <filename>
+    superset export-datasources -f <filename>
 
 
 By default, default (null) values will be omitted. Use the ``-d`` flag to include them.
@@ -65,7 +65,7 @@ Exporting the complete supported YAML schema
 --------------------------------------------
 In order to obtain an exhaustive list of all fields you can import using the YAML import run: ::
 
-    superset export_datasource_schema
+    superset export-datasource-schema
 
 Again, you can use the ``-b`` flag to include back references.
 
@@ -74,19 +74,19 @@ Importing Datasources from YAML
 -------------------------------
 In order to import datasources from a YAML file(s), run: ::
 
-    superset import_datasources -p <path or filename>
+    superset import-datasources -p <path or filename>
 
 If you supply a path all files ending with ``*.yaml`` or ``*.yml`` will be parsed.
 You can apply additional flags e.g.: ::
 
-    superset import_datasources -p <path> -r
+    superset import-datasources -p <path> -r
 
 Will search the supplied path recursively.
 
 The sync flag ``-s`` takes parameters in order to sync the supplied elements with
 your file. Be careful this can delete the contents of your meta database. Example:
 
-   superset import_datasources -p <path / filename> -s columns,metrics
+   superset import-datasources -p <path / filename> -s columns,metrics
 
 This will sync all ``metrics`` and ``columns`` for all datasources found in the
 ``<path / filename>`` in the Superset meta database. This means columns and metrics
@@ -96,7 +96,7 @@ those would be synchronised as well.
 
 If you don't supply the sync flag (``-s``) importing will only add and update (override) fields.
 E.g. you can add a ``verbose_name`` to the the column ``ds`` in the table ``random_time_series`` from the example datasets
-by saving the following YAML to file and then running the ``import_datasources`` command. ::
+by saving the following YAML to file and then running the ``import-datasources`` command. ::
 
     databases:
     - database_name: main

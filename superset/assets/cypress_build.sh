@@ -2,8 +2,8 @@
 set -e
 
 superset/bin/superset db upgrade
-superset/bin/superset load_test_users
-superset/bin/superset load_examples
+superset/bin/superset load-test-users
+superset/bin/superset load-examples
 superset/bin/superset init
 superset/bin/superset runserver &
 

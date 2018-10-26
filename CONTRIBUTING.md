@@ -219,7 +219,7 @@ superset db upgrade
 superset init
 
 # Load some data to play with
-superset load_examples
+superset load-examples
 
 # Start the Flask web server (but see below for frontend asset compilation)
 superset runserver -d
@@ -358,8 +358,8 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 export SUPERSET_CONFIG=tests.superset_test_config
 superset db upgrade
 superset init
-superset load_test_users
-superset load_examples
+superset load-test-users
+superset load-examples
 superset runserver
 ```
 

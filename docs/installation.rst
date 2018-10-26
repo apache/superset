@@ -532,7 +532,7 @@ Druid
 
 * Navigate to your datasources
 
-Note that you can run the ``superset refresh_druid`` command to refresh the
+Note that you can run the ``superset refresh-druid`` command to refresh the
 metadata from your Druid cluster(s)
 
 
