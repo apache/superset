@@ -48,6 +48,9 @@ class CsvToDatabaseForm(DynamicForm):
         csv_enabled_dbs = db.session.query(
             models.Database).filter_by(
             allow_csv_upload=True).all()
+        if not config.get('ENABLE_CSV_UPLOAD_SCHEMA_LEVEL_CONTROLS'):
+            return csv_enabled_dbs
+
         for csv_enabled_db in csv_enabled_dbs:
             if CsvToDatabaseForm.at_least_one_schema_is_allowed(csv_enabled_db):
                 csv_allowed_dbs.append(csv_enabled_db)

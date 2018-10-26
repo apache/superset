@@ -450,6 +450,10 @@ SQL_QUERY_MUTATOR = None
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
 
+# This determines if schema level access control will be enabled for
+# CSV upload.
+ENABLE_CSV_UPLOAD_SCHEMA_LEVEL_CONTROLS = False
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
