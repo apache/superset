@@ -84,7 +84,7 @@ const percentiles = {
 
 /* Get an a stat function that operates on arrays, aligns with control=js_agg_function  */
 export function getAggFunc(type = 'sum', accessor = null) {
-  if (type === 'count'){
+  if (type === 'count') {
     return arr => arr.length;
   }
   let d3func;
@@ -92,9 +92,9 @@ export function getAggFunc(type = 'sum', accessor = null) {
     d3func = (arr, acc) => {
       let sortedArr;
       if (accessor) {
-        sortedArr = arr.sort((o1, o2) => d3.ascending(accessor(o1), accessor(o2)));
+        sortedArr = arr.sort((o1, o2) => d3array.ascending(accessor(o1), accessor(o2)));
       } else {
-        sortedArr = arr.sort(d3.ascending)
+        sortedArr = arr.sort(d3array.ascending);
       }
       return d3array.quantile(sortedArr, percentiles[type], acc);
     };
