@@ -29,8 +29,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
-    "jed": "^1.1.1",
-    "sprintf-js": "^1.1.1"
+    "jed": "^1.1.1"
   },
   "beemo": {
     "module": "@data-ui/build-config",

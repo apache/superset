@@ -1,1 +1,1 @@
-export { configure, t } from './TranslatorSingleton';
+export { configure, t, tn } from './TranslatorSingleton';
