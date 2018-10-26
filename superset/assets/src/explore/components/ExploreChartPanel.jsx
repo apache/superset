@@ -39,30 +39,23 @@ class ExploreChartPanel extends React.PureComponent {
       <ParentSize>
         {({ width, height }) => (width > 0 && height > 0) && (
           <ChartContainer
-            chartId={chart.id}
-            containerId={this.props.containerId}
-            datasource={this.props.datasource}
-            formData={this.props.form_data}
             width={Math.floor(width)}
             height={parseInt(this.props.height, 10) - headerHeight}
-            slice={this.props.slice}
-            setControlValue={this.props.actions.setControlValue}
-            timeout={this.props.timeout}
-            vizType={this.props.vizType}
-            refreshOverlayVisible={this.props.refreshOverlayVisible}
-            errorMessage={this.props.errorMessage}
-            onQuery={this.props.onQuery}
-            onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
+            chartId={chart.id}
             chartStatus={chart.chartStatus}
-            chartUpdateEndTime={chart.chartUpdateEndTime}
-            chartUpdateStartTime={chart.chartUpdateStartTime}
-            latestQueryFormData={chart.latestQueryFormData}
-            lastRendered={chart.lastRendered}
+            datasource={this.props.datasource}
+            errorMessage={this.props.errorMessage}
+            formData={this.props.form_data}
+            onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
+            onQuery={this.props.onQuery}
             queryResponse={chart.queryResponse}
-            queryController={chart.queryController}
+            refreshOverlayVisible={this.props.refreshOverlayVisible}
+            setControlValue={this.props.actions.setControlValue}
+            timeout={this.props.timeout}
             triggerQuery={chart.triggerQuery}
+            vizType={this.props.vizType}
           />
         )}
       </ParentSize>

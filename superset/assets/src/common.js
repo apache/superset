@@ -5,6 +5,10 @@ import { SupersetClient } from '@superset-ui/core';
 import { toggleCheckbox } from './modules/utils';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
+import setupPlugins from './setup/setupPlugins';
+
+setupColors();
+setupPlugins();
 
 $(document).ready(function () {
   $(':checkbox[data-checkbox-api-prefix]').change(function () {
@@ -29,7 +33,6 @@ $(document).ready(function () {
 
 export function appSetup() {
   setupClient();
-  setupColors();
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function

@@ -199,20 +199,6 @@ export function d3format(format, number) {
   }
 }
 
-// Slice objects interact with their context through objects that implement
-// this controllerInterface (dashboard, explore, standalone)
-export const controllerInterface = {
-  type: null,
-  done: () => {},
-  error: () => {},
-  always: () => {},
-  addFiler: () => {},
-  setFilter: () => {},
-  getFilters: () => false,
-  removeFilter: () => {},
-  filters: {},
-};
-
 export function formatSelectOptionsForRange(start, end) {
   // outputs array of arrays
   // formatSelectOptionsForRange(1, 5)
