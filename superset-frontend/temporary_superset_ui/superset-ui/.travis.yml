@@ -14,13 +14,8 @@ install:
   - npm install
   - npm install -g codecov
 
-env:
-  - PACKAGE=superset-ui-core
-
 script:
-  - cd ./packages/$PACKAGE
   - yarn install
-  - yarn run lint
   - yarn run test
 
 after_script:

@@ -9,19 +9,6 @@
     "esm",
     "lib"
   ],
-  "scripts": {
-    "build:cjs": "beemo babel ./src --out-dir lib/ --minify",
-    "build:esm": "beemo babel ./src --out-dir esm/ --esm --minify",
-    "build": "yarn run build:cjs && yarn run build:esm",
-    "dev": "beemo babel --watch ./src --out-dir esm/ --esm",
-    "jest": "beemo jest --color --coverage",
-    "eslint": "beemo eslint \"./{src,test}/**/*.{js,jsx,json,md}\"",
-    "lint": "yarn run prettier && yarn run eslint",
-    "lint:fix": "yarn run prettier --write && yarn run eslint --fix",
-    "test": "yarn run jest",
-    "prettier": "beemo prettier \"./{src,test}/**/*.{js,jsx,json,md}\"",
-    "prepublish": "yarn run build"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache-superset/superset-ui.git"
@@ -32,39 +19,19 @@
     "core",
     "data"
   ],
-  "author": "",
+  "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/apache-superset/superset-ui/issues"
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.23",
     "fetch-mock": "^6.5.2",
     "node-fetch": "^2.2.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
     "whatwg-fetch": "^2.0.4"
-  },
-  "beemo": {
-    "module": "@data-ui/build-config",
-    "drivers": [
-      "babel",
-      "eslint",
-      {
-        "driver": "jest",
-        "env": {
-          "NODE_ENV": "test"
-        }
-      },
-      "prettier"
-    ],
-    "eslint": {
-      "rules": {
-        "prefer-promise-reject-errors": "off"
-      }
-    }
   },
   "publishConfig": {
     "access": "public"
