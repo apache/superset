@@ -85,6 +85,7 @@ const config = {
   },
   entry: {
     theme: APP_DIR + '/src/theme.js',
+    translation: APP_DIR + '/src/translation.js',
     common: APP_DIR + '/src/common.js',
     addSlice: ['babel-polyfill', APP_DIR + '/src/addSlice/index.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/src/explore/index.jsx'],
