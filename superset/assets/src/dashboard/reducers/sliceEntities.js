@@ -1,10 +1,10 @@
+import { t } from '@superset-ui/translation';
+
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
   SET_ALL_SLICES,
 } from '../actions/sliceEntities';
-
-import { t } from '../../locales';
 
 export const initSliceEntities = {
   slices: {},

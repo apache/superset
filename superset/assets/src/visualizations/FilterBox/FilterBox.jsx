@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import DateFilterControl from '../../explore/components/controls/DateFilterControl';
 import ControlRow from '../../explore/components/ControlRow';
@@ -10,7 +11,6 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import { t } from '../../locales';
 import './FilterBox.css';
 
 // maps control names to their key in extra_filters

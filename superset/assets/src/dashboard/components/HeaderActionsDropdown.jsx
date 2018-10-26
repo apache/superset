@@ -2,13 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { SupersetClient } from '@superset-ui/core';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import { t } from '../../locales';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
 

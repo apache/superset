@@ -1,6 +1,6 @@
 /* eslint global-require: 0 */
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
 
 const d3 = require('d3');
 

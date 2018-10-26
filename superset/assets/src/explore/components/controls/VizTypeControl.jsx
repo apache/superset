@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import {
   Label, Row, Col, FormControl, Modal, OverlayTrigger,
   Tooltip } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import visTypes from '../../visTypes';
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 
 const propTypes = {
   description: PropTypes.string,

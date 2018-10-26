@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
@@ -13,7 +14,6 @@ import {
   LOG_ACTIONS_REFRESH_DASHBOARD,
 } from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
-import { t } from '../../locales';
 import {
   addSuccessToast,
   addWarningToast,

@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
+import { t } from '@superset-ui/translation';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { t } from '../locales';
 
 export const chart = {
   id: 0,

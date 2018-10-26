@@ -1,9 +1,9 @@
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import { now } from '../modules/dates';
-import { t } from '../locales';
 import {
   addSuccessToast as addSuccessToastAction,
   addDangerToast as addDangerToastAction,

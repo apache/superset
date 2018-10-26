@@ -3,8 +3,9 @@ import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import { Button } from 'react-bootstrap';
 import mathjs from 'mathjs';
-
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
+
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
 import CheckboxControl from './CheckboxControl';
@@ -21,8 +22,6 @@ import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
 import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
-
-import { t } from '../../../locales';
 import getCategoricalSchemeRegistry from '../../../modules/colors/CategoricalSchemeRegistrySingleton';
 
 const AUTOMATIC_COLOR = '';

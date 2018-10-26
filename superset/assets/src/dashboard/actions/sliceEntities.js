@@ -1,8 +1,8 @@
 /* eslint camelcase: 0 */
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import { addDangerToast } from '../../messageToasts/actions';
-import { t } from '../../locales';
 import {
   getDatasourceParameter,
   getClientErrorObject,

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import { t } from '@superset-ui/translation';
 
 import Loading from '../../components/Loading';
-import { t } from '../../locales';
 
 const propTypes = {
   height: PropTypes.number.isRequired,
