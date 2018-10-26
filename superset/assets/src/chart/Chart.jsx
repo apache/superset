@@ -1,25 +1,23 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Tooltip } from 'react-bootstrap';
 import dompurify from 'dompurify';
-
-import ChartBody from './ChartBody';
-import Loading from '../components/Loading';
+import { snakeCase } from 'lodash';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
-import StackTraceMessage from '../components/StackTraceMessage';
+import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import visPromiseLookup from '../visualizations';
-import sandboxedEval from '../modules/sandbox';
+import StackTraceMessage from '../components/StackTraceMessage';
+import ChartProps from '../visualizations/core/models/ChartProps';
+import SuperChart from '../visualizations/core/components/SuperChart';
 import './chart.css';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
+  filters: PropTypes.object,
   formData: PropTypes.object.isRequired,
-  headerHeight: PropTypes.number,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -28,46 +26,34 @@ const propTypes = {
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
-  chartUpdateEndTime: PropTypes.number,
-  chartUpdateStartTime: PropTypes.number,
-  latestQueryFormData: PropTypes.object,
   queryResponse: PropTypes.object,
-  lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
-  getFilters: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
 };
 
+const BLANK = {};
+
 const defaultProps = {
-  addFilter: () => ({}),
-  getFilters: () => ({}),
+  addFilter: () => BLANK,
+  filters: BLANK,
+  setControlValue() {},
 };
 
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    // visualizations are lazy-loaded with promises that resolve to a renderVis function
-    this.state = {
-      renderVis: null,
-    };
+    this.state = {};
 
-    // these properties are used by visualizations
-    this.annotationData = props.annotationData;
-    this.containerId = props.containerId;
-    this.selector = `#${this.containerId}`;
-    this.formData = props.formData;
-    this.datasource = props.datasource;
-    this.addFilter = this.addFilter.bind(this);
-    this.getFilters = this.getFilters.bind(this);
-    this.headerHeight = this.headerHeight.bind(this);
-    this.height = this.height.bind(this);
-    this.width = this.width.bind(this);
-    this.visPromise = null;
+    this.createChartProps = ChartProps.createSelector();
+    this.handleAddFilter = this.handleAddFilter.bind(this);
+    this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
+    this.handleRenderFailure = this.handleRenderFailure.bind(this);
+    this.setTooltip = this.setTooltip.bind(this);
   }
 
   componentDidMount() {
@@ -78,110 +64,82 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
       );
-    } else {
-      // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
-      this.renderVis();
     }
-
-    this.loadAsyncVis(this.props.vizType);
-  }
-
-  componentWillReceiveProps(nextProps) {
-    this.annotationData = nextProps.annotationData;
-    this.containerId = nextProps.containerId;
-    this.selector = `#${this.containerId}`;
-    this.formData = nextProps.formData;
-    this.datasource = nextProps.datasource;
-    if (nextProps.vizType !== this.props.vizType) {
-      this.setState(() => ({ renderVis: null }));
-      this.loadAsyncVis(nextProps.vizType);
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.queryResponse &&
-      ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
-      !this.props.queryResponse.error &&
-      (prevProps.annotationData !== this.props.annotationData ||
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height ||
-        prevProps.width !== this.props.width ||
-        prevProps.lastRendered !== this.props.lastRendered)
-    ) {
-      this.renderVis();
-    }
-  }
-
-  componentWillUnmount() {
-    this.visPromise = null;
-  }
-
-  getFilters() {
-    return this.props.getFilters();
   }
 
   setTooltip(tooltip) {
     this.setState({ tooltip });
   }
 
-  loadAsyncVis(visType) {
-    this.visPromise = visPromiseLookup[visType];
-
-    this.visPromise()
-      .then((renderVis) => {
-        // ensure Component is still mounted
-        if (this.visPromise) {
-          this.setState({ renderVis }, this.renderVis);
-        }
-      })
-      .catch((error) => {
-        console.warn(error); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(error, this.props.chartId);
-      });
-  }
-
-  addFilter(col, vals, merge = true, refresh = true) {
+  handleAddFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
   }
 
-  clearError() {
-    this.setState({ errorMsg: null });
+  handleRenderSuccess() {
+    const { actions, chartStatus, chartId, vizType } = this.props;
+    if (chartStatus !== 'rendered') {
+      actions.chartRenderingSucceeded(chartId);
+    }
+
+    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: chartId,
+      viz_type: vizType,
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
   }
 
-  width() {
-    return this.props.width;
+  handleRenderFailure(e) {
+    const { actions, chartId } = this.props;
+    console.warn(e); // eslint-disable-line
+    actions.chartRenderingFailed(e, chartId);
   }
 
-  headerHeight() {
-    return this.props.headerHeight || 0;
-  }
+  prepareChartProps() {
+    const {
+      width,
+      height,
+      annotationData,
+      datasource,
+      filters,
+      formData,
+      queryResponse,
+      setControlValue,
+    } = this.props;
 
-  height() {
-    return this.props.height;
-  }
-
-  error(e) {
-    this.props.actions.chartRenderingFailed(e, this.props.chartId);
+    return this.createChartProps({
+      width,
+      height,
+      annotationData,
+      datasource,
+      filters,
+      formData,
+      onAddFilter: this.handleAddFilter,
+      onError: this.handleRenderFailure,
+      payload: queryResponse,
+      setControlValue,
+      setTooltip: this.setTooltip,
+    });
   }
 
   renderTooltip() {
-    if (this.state.tooltip) {
+    const { tooltip } = this.state;
+
+    if (tooltip) {
       return (
         <Tooltip
           className="chart-tooltip"
           id="chart-tooltip"
           placement="right"
-          positionTop={this.state.tooltip.y + 30}
-          positionLeft={this.state.tooltip.x + 30}
+          positionTop={tooltip.y + 30}
+          positionLeft={tooltip.x + 30}
           arrowOffsetTop={10}
         >
-          {typeof (this.state.tooltip.content) === 'string' ?
+          {typeof (tooltip.content) === 'string' ?
             <div // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: dompurify.sanitize(this.state.tooltip.content) }}
+              dangerouslySetInnerHTML={{ __html: dompurify.sanitize(tooltip.content) }}
             />
-            :
-            this.state.tooltip.content
+            : tooltip.content
           }
         </Tooltip>
       );
@@ -189,85 +147,61 @@ class Chart extends React.PureComponent {
     return null;
   }
 
-  renderVis() {
-    const { chartStatus } = this.props;
-    const hasVisPromise = !!this.state.renderVis;
-    // check that we have the render function and data
-    if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
-      const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
-      const renderStart = Logger.getTimestamp();
-
-      try {
-        // Executing user-defined data mutator function
-        if (formData.js_data) {
-          queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
-        }
-        // [re]rendering the visualization
-        this.state.renderVis(this, queryResponse, setControlValue);
-
-        if (chartStatus !== 'rendered') {
-          this.props.actions.chartRenderingSucceeded(chartId);
-        }
-
-        Logger.append(LOG_ACTIONS_RENDER_CHART, {
-          slice_id: chartId,
-          viz_type: vizType,
-          start_offset: renderStart,
-          duration: Logger.getTimestamp() - renderStart,
-        });
-      } catch (e) {
-        console.warn(e); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(e, chartId);
-      }
-    }
-  }
-
   render() {
-    const isLoading = this.props.chartStatus === 'loading' || !this.state.renderVis;
+    const {
+      width,
+      height,
+      chartAlert,
+      chartStatus,
+      errorMessage,
+      onDismissRefreshOverlay,
+      onQuery,
+      queryResponse,
+      refreshOverlayVisible,
+      vizType,
+    } = this.props;
+
+    const isLoading = chartStatus === 'loading';
 
     // this allows <Loading /> to be positioned in the middle of the chart
-    const containerStyles = isLoading ? { height: this.height(), width: this.width() } : null;
+    const containerStyles = isLoading ? { height, width } : null;
+    const isFaded = refreshOverlayVisible && !errorMessage;
+    const skipChartRendering = isLoading || !!chartAlert;
+    this.renderStartTime = Logger.getTimestamp();
+
     return (
-      <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
+      <div
+        className={`chart-container ${isLoading ? 'is-loading' : ''}`}
+        style={containerStyles}
+      >
         {this.renderTooltip()}
 
         {isLoading && <Loading size={50} />}
 
-        {this.props.chartAlert && (
+        {chartAlert && (
           <StackTraceMessage
-            message={this.props.chartAlert}
-            queryResponse={this.props.queryResponse}
+            message={chartAlert}
+            queryResponse={queryResponse}
           />
         )}
 
-        {!isLoading &&
-          !this.props.chartAlert &&
-          this.props.refreshOverlayVisible &&
-          !this.props.errorMessage &&
-          this.container && (
-            <RefreshChartOverlay
-              height={this.height()}
-              width={this.width()}
-              onQuery={this.props.onQuery}
-              onDismiss={this.props.onDismissRefreshOverlay}
-            />
-          )}
+        {!isLoading && !chartAlert && isFaded && (
+          <RefreshChartOverlay
+            width={width}
+            height={height}
+            onQuery={onQuery}
+            onDismiss={onDismissRefreshOverlay}
+          />
+        )}
 
-        {!isLoading &&
-          !this.props.chartAlert && (
-            <ChartBody
-              containerId={this.containerId}
-              vizType={this.props.vizType}
-              height={this.height}
-              width={this.width}
-              faded={
-                this.props.refreshOverlayVisible && !this.props.errorMessage
-              }
-              ref={(inner) => {
-                this.container = inner;
-              }}
-            />
-          )}
+        <SuperChart
+          className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
+          chartType={vizType}
+          chartProps={skipChartRendering ? null : this.prepareChartProps()}
+          onRenderSuccess={this.handleRenderSuccess}
+          onRenderFailure={this.handleRenderFailure}
+          skipRendering={skipChartRendering}
+        />
       </div>
     );
   }

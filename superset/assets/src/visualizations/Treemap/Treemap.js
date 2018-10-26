@@ -48,10 +48,17 @@ const DEFAULT_MARGIN = {
   left: 0,
 };
 
+function clone(children) {
+  return children.map(x => ({
+    ...x,
+    children: x.children ? clone(x.children) : null,
+  }));
+}
+
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
 function Treemap(element, props) {
   const {
-    data,
+    data: rawData,
     width,
     height,
     margin = DEFAULT_MARGIN,
@@ -62,6 +69,7 @@ function Treemap(element, props) {
   const div = d3.select(element);
   const formatNumber = d3.format(numberFormat);
   const colorFn = getScale(colorScheme).toFunction();
+  const data = clone(rawData);
 
   function draw(data, eltWidth, eltHeight) {
     const navBarHeight = 36;
