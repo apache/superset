@@ -4,13 +4,18 @@
   "description": "Superset UI",
   "private": true,
   "scripts": {
-    "build": "lerna run build",
-    "lint": "lerna run lint",
-    "lint:fix": "lerna run lint:fix",
+    "build": "yarn run build:cjs && yarn run build:esm",
+    "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=*",
+    "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=*",
+    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test}/**/*.{js,jsx}\"",
+    "jest": "beemo jest --color --coverage",
+    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
     "prerelease": "yarn run build",
-    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run lint && yarn run test",
+    "pretest": "yarn run lint",
+    "prettier": "beemo prettier \"./packages/*/{src,test}/**/*.{js,jsx,json,md}\"",
     "release": "yarn run prepare-release && lerna publish",
-    "test": "lerna run test"
+    "test": "yarn run jest",
+    "test:watch": "beemo create-config jest && jest --watch"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
   "keywords": [
@@ -27,13 +32,41 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
+    "@data-ui/build-config": "^0.0.25",
+    "husky": "^1.1.2",
     "lerna": "^3.2.1",
+    "lint-staged": "^7.3.0",
     "yarn": "^1.9.4"
   },
   "engines": {
     "node": ">=8.10.0"
   },
-  "publishConfig": {
-    "access": "public"
+  "beemo": {
+    "module": "@data-ui/build-config",
+    "drivers": [
+      "babel",
+      "eslint",
+      {
+        "driver": "jest",
+        "env": {
+          "NODE_ENV": "test"
+        }
+      },
+      "prettier"
+    ]
+  },
+  "workspaces": [
+    "./packages/*"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "./packages/*/{src,test}/**/*.{js,jsx,json,md}": [
+      "yarn run prettier --write",
+      "git add"
+    ]
   }
 }
