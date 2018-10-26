@@ -82,7 +82,7 @@ setup(
         'pyhive>=0.4.0',
         'python-dateutil',
         'python-geohash',
-        'pyyaml>=3.11',
+        'pyyaml>=3.13',
         'requests',
         'simplejson>=3.15.0',
         'sqlalchemy',
