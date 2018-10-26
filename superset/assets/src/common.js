@@ -6,6 +6,7 @@ import { toggleCheckbox } from './modules/utils';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupPlugins from './setup/setupPlugins';
+import setupTranslation from './setup/setupTranslation';
 
 setupColors();
 setupPlugins();
@@ -33,6 +34,7 @@ $(document).ready(function () {
 
 export function appSetup() {
   setupClient();
+  setupTranslation();
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
