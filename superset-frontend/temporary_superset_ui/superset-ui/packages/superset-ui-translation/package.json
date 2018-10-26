@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/translation",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Superset UI translation",
   "sideEffects": false,
   "main": "lib/index.js",
