@@ -4,7 +4,7 @@ import Table from '../../../src/visualizations/Table/Table';
 import transformProps from '../../../src/visualizations/Table/transformProps';
 
 describe('table viz', () => {
-  const div = '<div id="slice-container"><div class="dataTables_wrapper"></div></div>';
+  const div = '<div id="slice-container"></div>';
   const BASE_CHART_PROPS = {
     height: 100,
     datasource: {
@@ -47,7 +47,9 @@ describe('table viz', () => {
   });
 
   it('renders into a container', () => {
-    expect($container).toHaveLength(1);
+    expect($container.children()).toHaveLength(0);
+    Table(container, transformProps(BASE_CHART_PROPS));
+    expect($container.children()).toHaveLength(1);
   });
 
   it('renders header and body datatables in container', () => {
