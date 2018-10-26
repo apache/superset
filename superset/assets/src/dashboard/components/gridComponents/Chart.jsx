@@ -145,6 +145,7 @@ class Chart extends React.Component {
       updateSliceName,
       sliceName,
       toggleExpandSlice,
+      timeout,
       supersetCanExplore,
       sliceCanEdit,
     } = this.props;
@@ -218,6 +219,7 @@ class Chart extends React.Component {
             filters={filters}
             formData={formData}
             queryResponse={chart.queryResponse}
+            timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
           />

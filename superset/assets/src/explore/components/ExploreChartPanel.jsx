@@ -53,6 +53,7 @@ class ExploreChartPanel extends React.PureComponent {
             queryResponse={chart.queryResponse}
             refreshOverlayVisible={this.props.refreshOverlayVisible}
             setControlValue={this.props.actions.setControlValue}
+            timeout={this.props.timeout}
             triggerQuery={chart.triggerQuery}
             vizType={this.props.vizType}
           />
