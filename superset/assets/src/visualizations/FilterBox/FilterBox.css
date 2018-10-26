@@ -26,7 +26,7 @@ ul.select2-results div.filter_box{
     border-width: 1px;
     border-color: transparent;
 }
-.filter_box.slice_container {
+.filter_box {
     padding: 10px;
     overflow: visible !important;
 }
