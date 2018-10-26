@@ -166,6 +166,7 @@ class Chart extends React.PureComponent {
     // this allows <Loading /> to be positioned in the middle of the chart
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
+    const skipChartRendering = isLoading || !!chartAlert;
     this.renderStartTime = Logger.getTimestamp();
 
     return (
@@ -193,15 +194,14 @@ class Chart extends React.PureComponent {
           />
         )}
 
-        {!isLoading && !chartAlert && (
-          <SuperChart
-            className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
-            chartType={vizType}
-            chartProps={this.prepareChartProps()}
-            onRenderSuccess={this.handleRenderSuccess}
-            onRenderFailure={this.handleRenderFailure}
-          />
-        )}
+        <SuperChart
+          className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
+          chartType={vizType}
+          chartProps={skipChartRendering ? null : this.prepareChartProps()}
+          onRenderSuccess={this.handleRenderSuccess}
+          onRenderFailure={this.handleRenderFailure}
+          skipRendering={skipChartRendering}
+        />
       </div>
     );
   }
