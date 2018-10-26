@@ -1,4 +1,4 @@
-import { configure, t } from '../src/index';
+import { configure, t, tn } from '../src/index';
 
 describe('index', () => {
   it('exports configure()', () => {
@@ -8,5 +8,9 @@ describe('index', () => {
   it('exports t()', () => {
     expect(t).toBeDefined();
     expect(t).toBeInstanceOf(Function);
+  });
+  it('exports tn()', () => {
+    expect(tn).toBeDefined();
+    expect(tn).toBeInstanceOf(Function);
   });
 });

@@ -20,4 +20,8 @@ function t(...args) {
   return getInstance().translate(...args);
 }
 
-export { configure, t };
+function tn(...args) {
+  return getInstance().translateWithNumber(...args);
+}
+
+export { configure, t, tn };
