@@ -478,9 +478,36 @@ class BaseViz(object):
         return content
 
     def get_csv(self):
-        df = self.get_df()
+
+        logging.info('Attempt to get cache key')
+        query_obj = self.query_obj()
+        cache_key = self.cache_key(query_obj) if query_obj else None
+        logging.info('Cache key: {}'.format(cache_key))
+        df = None
+
+        if cache_key and cache:
+            cache_value = cache.get(cache_key)
+            if cache_value:
+                stats_logger.incr('loaded_from_cache')
+                logging.info('Attempt to get df from cache for csv download')
+                try:
+                    cache_value = pkl.loads(cache_value)
+                    df = cache_value['df']
+                    self.query = cache_value['query']
+                    self._any_cached_dttm = cache_value['dttm']
+                    self._any_cache_key = cache_key
+                except Exception as e:
+                    logging.exception(e)
+                    logging.error('Error reading cache: ' +
+                                  utils.error_msg_from_exception(e))
+                logging.info('Serving from cache')        
+        else:
+            """ Cache Miss, perform query """
+            df = self.get_df()
+
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
+
 
     def get_data(self, df):
         return self.get_df().to_dict(orient='records')
