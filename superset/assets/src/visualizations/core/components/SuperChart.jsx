@@ -108,7 +108,7 @@ class SuperChart extends React.PureComponent {
   }
 
   renderLoading(loadableProps, chartType) {
-    const { error, pastDelay } = loadableProps;
+    const { error } = loadableProps;
 
     if (error) {
       const result = (
