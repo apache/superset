@@ -17,7 +17,7 @@ celery==4.2.0
 certifi==2018.8.24        # via requests
 cffi==1.11.5              # via cryptography
 chardet==3.0.4            # via requests
-click==6.7                # via flask, flask-appbuilder, tableschema, tabulator
+click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
 cryptography==1.9

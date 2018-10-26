@@ -36,7 +36,9 @@ WORKDIR $HOME/incubator-superset
 COPY ./ ./
 
 RUN pip install --upgrade setuptools pip
-RUN pip install -e . && pip install -r requirements-dev.txt
+RUN pip install -r requirements.txt
+RUN pip install -r requirements-dev.txt
+RUN pip install -e .
 
 ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH

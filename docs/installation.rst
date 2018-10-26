@@ -145,7 +145,7 @@ Follow these few simple steps to install Superset.::
     superset db upgrade
 
     # Load some data to play with
-    superset load-examples
+    superset load_examples
 
     # Create default roles and permissions
     superset init

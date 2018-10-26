@@ -57,6 +57,7 @@ setup(
         'boto3==1.4.7',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0',
+        'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
         'cryptography',
