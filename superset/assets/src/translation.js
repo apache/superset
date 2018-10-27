@@ -1,4 +1,4 @@
-import { configure } from '@superset-ui/translation';
+import { configure, t, tn } from '@superset-ui/translation';
 
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
@@ -11,4 +11,8 @@ if (typeof window !== 'undefined') {
   } else {
     configure();
   }
+} else {
+  configure();
 }
+
+export { t, tn };
