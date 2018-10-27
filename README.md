@@ -15,8 +15,7 @@ Superset
   width="500"
 />
 
-**Apache Superset** (incubating) is a modern, enterprise-ready
-business intelligence web application
+** Apache Superset ** (incubating) est un outil moderne, prêt à l'emploiapplication web d'aide à la décision
 
 [this project used to be named **Caravel**, and **Panoramix** in the past]
 
@@ -43,40 +42,39 @@ Screenshots & Gifs
 **Choose from a wide array of visualizations**
 
 <kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset/assets/images/screenshots/visualizations.png"></kbd><br/>
-
 Apache Superset
 ---------------
-Apache Superset is a data exploration and visualization web application.
+Apache Superset est une application Web d'exploration et de visualisation de données.
 
-Superset provides:
-* An intuitive interface to explore and visualize datasets, and
-    create interactive dashboards.
-* A wide array of beautiful visualizations to showcase your data.
-* Easy, code-free, user flows to drill down and slice and dice the data
-    underlying exposed dashboards. The dashboards and charts acts as a starting
-    point for deeper analysis.
-* A state of the art SQL editor/IDE exposing a rich metadata browser, and
-    an easy workflow to create visualizations out of any result set.
-* An extensible, high granularity security model allowing intricate rules
-    on who can access which product features and datasets.
-    Integration with major
-    authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, ...)
-* A lightweight semantic layer, allowing to control how data sources are
-    exposed to the user by defining dimensions and metrics
-* Out of the box support for most SQL-speaking databases
-* Deep integration with Druid allows for Superset to stay blazing fast while
-    slicing and dicing large, realtime datasets
-* Fast loading dashboards with configurable caching
+Superset fournit:
+* Une interface intuitive pour explorer et visualiser des jeux de données, et
+    créer des tableaux de bord interactifs.
+* Un large éventail de belles visualisations pour mettre en valeur vos données.
+* Flux d’utilisateurs simples et sans code permettant d’explorer et de découper les données en dés
+    tableaux de bord exposés sous-jacents. Les tableaux de bord et les tableaux servent de point de départ
+    point pour une analyse plus approfondie.
+* Un éditeur / IDE SQL dernier cri exposant un riche navigateur de métadonnées, et
+    un workflow simple pour créer des visualisations à partir de tout jeu de résultats.
+* Un modèle de sécurité extensible à haute granularité permettant des règles complexes
+    sur qui peut accéder à quelles fonctionnalités du produit et à ces jeux de données.
+    Intégration avec majeur
+    backends d'authentification (base de données, OpenID, LDAP, OAuth, REMOTE_USER, ...)
+* Une couche sémantique légère, permettant de contrôler la manière dont les sources de données sont
+    exposé à l'utilisateur en définissant des dimensions et des métriques
+* Prise en charge immédiate de la plupart des bases de données SQL
+* L'intégration profonde avec Druid permet à Superset de rester rapide tout en
+    découper et découper de grands ensembles de données en temps réel
+* Tableaux de bord à chargement rapide avec mise en cache configurable
 
 
-Database Support
+Support de base de données
 ----------------
 
-Superset speaks many SQL dialects through SQLAlchemy, a Python
-ORM that is compatible with
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
+Superset parle de nombreux dialectes SQL via SQLAlchemy, un langage Python
+ORM compatible avec
+[bases de données les plus courantes] (http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
-Superset can be used to visualize data out of most databases:
+Superset peut être utilisé pour visualiser des données à partir de la plupart des bases de données:
 * MySQL
 * Postgres
 * Vertica
@@ -84,38 +82,38 @@ Superset can be used to visualize data out of most databases:
 * Microsoft SQL Server
 * SQLite
 * Greenplum
-* Firebird
+* Oiseau de feu
 * MariaDB
 * Sybase
 * IBM DB2
 * Exasol
 * MonetDB
-* Snowflake
+* Flocon de neige
 * Redshift
 * Clickhouse
 * Apache Kylin
-* **more!** look for the availability of a SQLAlchemy dialect for your database
-  to find out whether it will work with Superset
+* ** plus! ** cherche la disponibilité d'un dialecte SQLAlchemy pour votre base de données
+  pour savoir si cela fonctionnera avec Superset
 
 
-Druid!
+Druide!
 ------
 
-On top of having the ability to query your relational databases,
-Superset ships with deep integration with Druid (a real time distributed
-column-store). When querying Druid,
-Superset can query humongous amounts of data on top of real time dataset.
-Note that Superset does not require Druid in any way to function, it's simply
-another database backend that it can query.
+En plus d'avoir la possibilité d'interroger vos bases de données relationnelles,
+Superset est livré avec une intégration profonde avec Druid (une application distribuée en temps réel)
+magasin à colonnes). En interrogeant Druid,
+Superset peut interroger des quantités énormes de données sur des ensembles de données en temps réel.
+Notez que Superset ne nécessite en aucun cas Druid pour fonctionner, mais simplement
+une autre base de données qu'il peut interroger.
 
-Here's a description of Druid from the http://druid.io website:
+Voici une description de Druid du site web http://druid.io:
 
-*Druid is an open-source analytics data store designed for
-business intelligence (OLAP) queries on event data. Druid provides low
-latency (real-time) data ingestion, flexible data exploration,
-and fast data aggregation. Existing Druid deployments have scaled to
-trillions of events and petabytes of data. Druid is best used to
-power analytic dashboards and applications.*
+* Druid est un magasin de données d’analyse open source conçu pour
+les informations décisionnelles (OLAP) sur les données d'événement. Druide fournit faible
+ingestion de données de latence (temps réel), exploration de données flexible,
+et agrégation rapide des données. Les déploiements de druides existants ont été réduits à
+des milliards d'événements et de pétaoctets de données. Le druide est le mieux utilisé pour
+Tableaux de bord et applications d'analyse de l'alimentation. *
 
 
 Installation & Configuration
@@ -136,17 +134,16 @@ Resources
 
 
 Contributing
-------------
-
-Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+Intéressé à contribuer? Piratage occasionnel? Check-out
+[Contributing.MD] (https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
 
 
-Who uses Apache Superset (incubating)?
+Qui utilise Apache Superset (incubant)?
 --------------------------------------
 
-Here's a list of organizations who have taken the time to send a PR to let
-the world know they are using Superset. Join our growing community!
+Voici une liste d'organisations qui ont pris le temps d'envoyer un PR à laisser
+le monde sait qu'ils utilisent Superset. Rejoignez notre communauté grandissante!
+------------
 
  - [AiHello](https://www.aihello.com)
  - [Airbnb](https://github.com/airbnb)
