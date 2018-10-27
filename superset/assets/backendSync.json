@@ -37,7 +37,7 @@
         null,
         null
       ],
-      "description": "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent."
+      "description": "Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent."
     },
     "order_by_cols": {
       "type": "SelectControl",
@@ -253,7 +253,7 @@
         ]
       ],
       "default": "series",
-      "description": "Defines how the color are attributed."
+      "description": "Defines how the colors are attributed."
     },
     "canvas_image_rendering": {
       "type": "SelectControl",
@@ -753,7 +753,7 @@
       "label": "Reduce X ticks",
       "renderTrigger": true,
       "default": false,
-      "description": "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll."
+      "description": "Reduces the number of X-axis ticks to be rendered. If true, the x-axis won't overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into a horizontal scroll."
     },
     "include_series": {
       "type": "CheckboxControl",
@@ -834,7 +834,7 @@
           "Usa"
         ]
       ],
-      "description": "The name of country that Superset should display"
+      "description": "The name of the country that Superset should display"
     },
     "country_fieldtype": {
       "type": "SelectControl",
@@ -2242,14 +2242,14 @@
       "label": "X bounds",
       "renderTrigger": true,
       "default": true,
-      "description": "Whether to display the min and max values of the X axis"
+      "description": "Whether to display the min and max values of the X-axis"
     },
     "y_axis_showminmax": {
       "type": "CheckboxControl",
       "label": "Y bounds",
       "renderTrigger": true,
       "default": true,
-      "description": "Whether to display the min and max values of the Y axis"
+      "description": "Whether to display the min and max values of the Y-axis"
     },
     "rich_tooltip": {
       "type": "CheckboxControl",
@@ -2263,14 +2263,14 @@
       "label": "Y Log Scale",
       "default": false,
       "renderTrigger": true,
-      "description": "Use a log scale for the Y axis"
+      "description": "Use a log scale for the Y-axis"
     },
     "x_log_scale": {
       "type": "CheckboxControl",
       "label": "X Log Scale",
       "default": false,
       "renderTrigger": true,
-      "description": "Use a log scale for the X axis"
+      "description": "Use a log scale for the X-axis"
     },
     "log_scale": {
       "type": "CheckboxControl",
