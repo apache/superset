@@ -483,7 +483,7 @@ class BaseViz(object):
         query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
-        df = self.get_df() 
+        df = self.get_df()
 
         if cache_key and cache:
             cache_value = cache.get(cache_key)
@@ -503,7 +503,6 @@ class BaseViz(object):
 
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
-
 
     def get_data(self, df):
         return self.get_df().to_dict(orient='records')
