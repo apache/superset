@@ -173,7 +173,7 @@ class QueryTable extends React.PureComponent {
             <Link
               className="fa fa-pencil m-r-3"
               onClick={this.restoreSql.bind(this, query)}
-              tooltip={t('Overwrite text in editor with a query on this table')}
+              tooltip={t('Overwrite text in the editor with a query on this table')}
               placement="top"
             />
             <Link

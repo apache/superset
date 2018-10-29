@@ -287,7 +287,7 @@ export function addTable(query, tableName, schemaName) {
               isMetadataLoading: false,
             }),
           ),
-          dispatch(addDangerToast(t('Error occurred while fetching table metadata'))),
+          dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
         ]),
       );
 
@@ -300,7 +300,7 @@ export function addTable(query, tableName, schemaName) {
       .catch(() =>
         Promise.all([
           dispatch(mergeTable({ ...table, isExtraMetadataLoading: false })),
-          dispatch(addDangerToast(t('Error occurred while fetching table metadata'))),
+          dispatch(addDangerToast(t('An error occurred while fetching table metadata'))),
         ]),
       );
   };
