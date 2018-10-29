@@ -177,13 +177,13 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
       const controller = new AbortController();
       const { signal } = controller;
-      this.setState({ abortActiveRequest: controller.abort });
+      this.setState({ abortActiveRequest: controller.abort, loading: true });
 
       SupersetClient.get({
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
       }).then(({ json }) => {
-        this.setState(() => ({ suggestions: json, abortActiveRequest: null }));
+        this.setState(() => ({ suggestions: json, abortActiveRequest: null, loading: false }));
       });
     }
   }
@@ -272,7 +272,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 freeForm
                 name="filter-comparator-value"
                 value={adhocFilter.comparator}
-                isLoading={false}
+                isLoading={this.state.loading}
                 choices={this.state.suggestions}
                 onChange={this.onComparatorChange}
                 showHeader={false}
