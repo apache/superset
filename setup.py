@@ -54,7 +54,7 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'bleach',
-        'boto3==1.4.7',
+        'boto3>=1.4.7, <2.0.0',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0',
         'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
