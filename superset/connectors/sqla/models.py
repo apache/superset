@@ -1,6 +1,7 @@
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
+from enum import Enum
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -248,6 +249,20 @@ class SqlMetric(Model, BaseMetric):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
+class TimePeriod(Enum):
+    minute = 1
+    hour = 60
+    day = 60 * 24
+
+
+class Alert(Model):
+    __tablename__ = 'alert'
+
+    table = Column(Integer, ForeignKey('tables.id'))
+    params = Column(Text)
+    interval = Column(Enum(TimePeriod))
+    name = Column(String(250))
+
 class SqlaTable(Model, BaseDatasource):
 
     """An ORM object for SqlAlchemy table references"""
@@ -278,6 +293,7 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    alerts = relationship('alert', backref='table', lazy=True)
 
     baselink = 'tablemodelview'
 
