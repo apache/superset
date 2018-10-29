@@ -9,7 +9,7 @@ fabmanager create-admin --app superset
 superset db upgrade
 
 # Load some data to play with
-superset load-examples
+superset load_examples
 
 # Create default roles and permissions
 superset init
