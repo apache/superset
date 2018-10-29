@@ -6,8 +6,8 @@ import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/explor
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { getClientErrorObject } from '../modules/utils';
 import { TIME_RANGE_SEPARATOR } from '../utils/common';
+import getClientErrorObject from '../utils/getClientErrorObject';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {

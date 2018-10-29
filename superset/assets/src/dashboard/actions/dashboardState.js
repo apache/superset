@@ -7,7 +7,7 @@ import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
-import { getClientErrorObject } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import {
   Logger,
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,

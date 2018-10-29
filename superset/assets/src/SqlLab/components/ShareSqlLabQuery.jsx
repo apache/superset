@@ -6,7 +6,7 @@ import { t } from '@superset-ui/translation';
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
-import { getClientErrorObject } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
 const propTypes = {

@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
-import { getClientErrorObject } from '../modules/utils';
+import getClientErrorObject from '../utils/getClientErrorObject';
 
 function showApiMessage(resp) {
   const template =
@@ -9,8 +9,8 @@ function showApiMessage(resp) {
     'data-dismiss="alert">\xD7</button> </div>';
   const severity = resp.severity || 'info';
   $(template).addClass('alert-' + severity)
-             .append(resp.message)
-             .appendTo($('#alert-container'));
+    .append(resp.message)
+    .appendTo($('#alert-container'));
 }
 
 export default function toggleCheckbox(apiUrlPrefix, selector) {
