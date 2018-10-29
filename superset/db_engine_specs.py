@@ -1438,8 +1438,14 @@ class BQEngineSpec(BaseEngineSpec):
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
             return {}
-        partitions_columns = [index.get('column_names', []) for index in indexes if index.get('name') == 'partition']
-        cluster_columns = [index.get('column_names', []) for index in indexes if index.get('name') == 'clustering']
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
         return {
             'partitions': {
                 'cols': partitions_columns,
