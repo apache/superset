@@ -1369,7 +1369,7 @@ export const visTypes = {
       },
       link_length: {
         label: t('No of Bins'),
-        description: t('Select number of bins for the histogram'),
+        description: t('Select the number of bins for the histogram'),
         default: 5,
       },
       global_opacity: {
@@ -1816,7 +1816,7 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Additional meta data'),
+        label: t('Additional metadata'),
         controlSetRows: [
           ['all_columns'],
         ],
@@ -1837,11 +1837,11 @@ export const visTypes = {
       },
       row_limit: {
         label: t('Event count limit'),
-        description: t('The maximum number of events to return, equivalent to number of rows'),
+        description: t('The maximum number of events to return, equivalent to the number of rows'),
       },
       all_columns: {
         label: t('Meta data'),
-        description: t('Select any columns for meta data inspection'),
+        description: t('Select any columns for metadata inspection'),
       },
     },
   },

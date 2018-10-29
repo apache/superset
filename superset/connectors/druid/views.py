@@ -121,7 +121,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             '[Druid Post Aggregation]'
             '(http://druid.io/docs/latest/querying/post-aggregations.html)',
             True),
-        'is_restricted': _('Whether the access to this metric is restricted '
+        'is_restricted': _('Whether access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
                            'are allowed to access this metric'),
