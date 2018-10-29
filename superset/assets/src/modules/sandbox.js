@@ -1,6 +1,7 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
 import _ from 'underscore';
+import * as d3array from 'd3-array';
 import * as colors from './colors';
 
 // Objects exposed here should be treated like a public API
@@ -10,6 +11,7 @@ const GLOBAL_CONTEXT = {
   console,
   _,
   colors,
+  d3array,
 };
 
 // Copied/modified from https://github.com/hacksparrow/safe-eval/blob/master/index.js
