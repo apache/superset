@@ -330,3 +330,26 @@ appbuilder.add_link(
     category_icon='fa-table')
 
 appbuilder.add_separator('Sources')
+
+
+class AlertModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
+    route_base = '/alert'
+
+    datamodel = SQLAInterface(models.Alert)
+
+    list_title = _('List Alerts')
+    show_title = _('Show Alert')
+    add_title = _('Import a alert definition')
+    edit_title = _('Edit Alert')
+
+
+appbuilder.add_view(
+    AlertModelView,
+    'Alerts',
+    label=__('Alerts'),
+    icon='fa-exclamation-triangle',
+    category='',
+    category_label='',
+    category_icon='')
+
+appbuilder.add_separator('Sources')
