@@ -3394,7 +3394,7 @@ cypress@^3.0.3:
     url "0.11.0"
     yauzl "2.8.0"
 
-d3-array@1, d3-array@^1.2.0, d3-array@^1.2.1:
+d3-array@1, d3-array@^1.2.0, d3-array@^1.2.1, d3-array@^1.2.4:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/d3-array/-/d3-array-1.2.4.tgz#635ce4d5eea759f6f605863dbcfc30edc737f71f"
 

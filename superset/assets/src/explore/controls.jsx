@@ -1317,6 +1317,29 @@ export const controls = {
     'computing the total rows and columns'),
   },
 
+  js_agg_function: {
+    type: 'SelectControl',
+    label: t('Dynamic Aggregation Function'),
+    description: t('The function to use when aggregating points into groups'),
+    default: 'sum',
+    clearable: false,
+    renderTrigger: true,
+    choices: formatSelectOptions([
+      'sum',
+      'min',
+      'max',
+      'mean',
+      'median',
+      'count',
+      'variance',
+      'deviation',
+      'p1',
+      'p5',
+      'p95',
+      'p99',
+    ]),
+  },
+
   size_from: {
     type: 'TextControl',
     isInt: true,
