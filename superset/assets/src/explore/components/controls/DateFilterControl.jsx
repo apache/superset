@@ -157,17 +157,22 @@ export default class DateFilterControl extends React.Component {
     this.setTypeCustomStartEnd = this.setTypeCustomStartEnd.bind(this);
     this.toggleCalendar = this.toggleCalendar.bind(this);
   }
-  componentDidMount() {
+
+  componentWillMount() {
     const value = this.props.value;
     if (value.indexOf(SEPARATOR) >= 0) {
-      this.state = { ...this.state, ...getStateFromSeparator(value) };
+      this.setState({ ...this.state, ...getStateFromSeparator(value) });
     } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
-      this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
+      this.setState({ ...this.state, ...getStateFromCommonTimeFrame(value) });
     } else {
-      this.state = { ...this.state, ...getStateFromCustomRange(value) };
+      this.setState({ ...this.state, ...getStateFromCustomRange(value) });
     }
+  }
+
+  componentDidMount() {
     document.addEventListener('click', this.handleClick);
   }
+
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClick);
   }
