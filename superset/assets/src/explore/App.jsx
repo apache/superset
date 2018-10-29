@@ -11,10 +11,12 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
+import setupPlugins from '../setup/setupPlugins';
 import { appSetup } from '../common';
 import './main.css';
 import '../../stylesheets/reactable-pagination.css';
 
+setupPlugins();
 appSetup();
 
 const exploreViewContainer = document.getElementById('app');

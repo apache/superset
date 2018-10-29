@@ -1,4 +1,8 @@
-import { configure, t, tn } from '@superset-ui/translation';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+import { configure, t } from '@superset-ui/translation';
+import setupColors from './setup/setupColors';
+
+console.log('hi');
 
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
@@ -15,4 +19,6 @@ if (typeof window !== 'undefined') {
   configure();
 }
 
-export { t, tn };
+console.log(t('test'));
+
+setupColors();

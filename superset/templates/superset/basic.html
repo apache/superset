@@ -75,9 +75,6 @@
       </div>
     </div>
     {% block tail_js %}
-      {% with filename="common" %}
-        {% include "superset/partials/_script_tag.html" %}
-      {% endwith %}
       {% if entry %}
         {% with filename=entry %}
           {% include "superset/partials/_script_tag.html" %}

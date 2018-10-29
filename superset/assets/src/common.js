@@ -1,14 +1,8 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
-import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import { SupersetClient } from '@superset-ui/core';
 import setupClient from './setup/setupClient';
-import setupColors from './setup/setupColors';
-import setupPlugins from './setup/setupPlugins';
 import toggleCheckbox from './utils/toggleCheckbox';
-
-setupColors();
-setupPlugins();
 
 export function appSetup() {
   setupClient();
