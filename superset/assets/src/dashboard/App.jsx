@@ -6,14 +6,14 @@ import { hot } from 'react-hot-loader';
 
 import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
+import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import { appSetup } from '../common';
 import DashboardContainer from './containers/Dashboard';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
+setupApp();
 setupPlugins();
-appSetup();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

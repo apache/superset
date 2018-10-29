@@ -113,8 +113,6 @@ const config = {
         major: {
           name: 'vendors-major',
           test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js|@superset[-]ui\/translation)[\\/]/,
-          reuseExistingChunk: true,
-          enforce: true,
         },
       },
     },

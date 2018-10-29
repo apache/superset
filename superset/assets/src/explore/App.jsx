@@ -11,13 +11,13 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
+import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import { appSetup } from '../common';
 import './main.css';
 import '../../stylesheets/reactable-pagination.css';
 
+setupApp();
 setupPlugins();
-appSetup();
 
 const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));

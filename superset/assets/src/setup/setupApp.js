@@ -1,10 +1,10 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
-import setupClient from './setup/setupClient';
-import toggleCheckbox from './utils/toggleCheckbox';
+import setupClient from './setupClient';
+import toggleCheckbox from '../utils/toggleCheckbox';
 
-export function appSetup() {
+export default function setupApp() {
   setupClient();
 
   $(document).ready(function () {
@@ -26,11 +26,11 @@ export function appSetup() {
           location.reload();
         });
     });
-  });
 
-  // A set of hacks to allow apps to run within a FAB template
-  // this allows for the server side generated menus to function
-  window.$ = $;
-  window.jQuery = $;
-  require('bootstrap');
+    // A set of hacks to allow apps to run within a FAB template
+    // this allows for the server side generated menus to function
+    window.$ = $;
+    window.jQuery = $;
+    require('bootstrap');
+  });
 }

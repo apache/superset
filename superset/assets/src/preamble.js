@@ -1,9 +1,8 @@
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import { configure, t } from '@superset-ui/translation';
+import { configure } from '@superset-ui/translation';
 import setupColors from './setup/setupColors';
 
-console.log('hi');
-
+// Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
   const bootstrapData = root ? JSON.parse(root.getAttribute('data-bootstrap')) : {};
@@ -19,6 +18,5 @@ if (typeof window !== 'undefined') {
   configure();
 }
 
-console.log(t('test'));
-
+// Initialize color palettes
 setupColors();
