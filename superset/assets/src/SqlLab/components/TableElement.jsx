@@ -143,7 +143,7 @@ class TableElement extends React.PureComponent {
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText={t('Copy SELECT statement to clipboard')}
+            tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         }
         <Link
