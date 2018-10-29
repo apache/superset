@@ -86,7 +86,7 @@ def handle_superset_exception(f):
         except SupersetException as se:
             logging.exception(se)
             return json_error_response(utils.error_msg_from_exception(se),
-                                        status=se.status)
+                                       status=se.status)
     return functools.update_wrapper(wraps, f)
 
 

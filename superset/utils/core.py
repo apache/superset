@@ -230,7 +230,7 @@ def decode_iso_dttm(o):
         elif isinstance(v, basestring):
             try:
                 o[k] = parse(v, ignoretz=True)
-            except:
+            except Exception:
                 pass
 
     return o

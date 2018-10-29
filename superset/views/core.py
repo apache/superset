@@ -1140,7 +1140,9 @@ class Superset(BaseSupersetView):
             samples=False,
     ):
         viz_obj = self.get_viz(
-            query_obj=models.query_obj_backfill(form_data, datasource_id, datasource_type),
+            query_obj=models.query_obj_backfill(form_data,
+                                                datasource_id,
+                                                datasource_type),
             form_data=form_data,
             force=force,
         )
@@ -1213,8 +1215,8 @@ class Superset(BaseSupersetView):
                                object_hook=utils.decode_iso_dttm)
         viz_obj = self.get_viz(query_obj=query_obj)
         self.check_datasource_permission(viz_obj.datasource, g.user)
-        payload_json_and_error = viz_obj.get_payload_json_and_error(query_obj.get('query'))
-        return self.payload_response(payload_json_and_error)
+        json_and_error = viz_obj.get_payload_json_and_error(query_obj.get('query'))
+        return self.payload_response(json_and_error)
 
     @log_this
     @api

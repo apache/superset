@@ -34,6 +34,7 @@ import simplejson as json
 from superset import app, cache, db, get_css_manifest_files
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import NullValueException, SpatialException
+from superset.models import core as models
 from superset.utils import core as utils
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -64,17 +65,20 @@ class BaseViz(object):
     cache_type = 'df'
     enforce_numerical_metrics = True
 
-    def __init__(self, datasource, form_data, query_obj, force=False):
+    def __init__(self, datasource, form_data, query_obj={}, force=False):
         if datasource:
             self.datasource = datasource
         else:
-            datasource_dict=query_obj.get('datasource', {})
+            datasource_dict = query_obj.get('datasource', {})
             ds = ConnectorRegistry.get_datasource(
                 datasource_dict.get('type'), datasource_dict.get('id'), db.session)
             if not ds:
                 raise Exception(_('Viz is missing a datasource'))
             else:
                 self.datasource = ds
+
+        if not query_obj:
+            query_obj = models.query_obj_backfill(form_data)
 
         self.request = request
 
@@ -336,7 +340,7 @@ class BaseViz(object):
     @property
     def cache_timeout(self):
         if self.q_obj and self.q_obj.get('cache_timeout') is not None:
-            return int(self.query_obj.get('cache_timeout'))
+            return int(self.q_obj.get('cache_timeout'))
         if self.form_data and self.form_data.get('cache_timeout') is not None:
             return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout is not None:
@@ -401,7 +405,7 @@ class BaseViz(object):
             payload.get('error') is not None
         return {
             'json': self.json_dumps(payload),
-            'has_error': has_error
+            'has_error': has_error,
         }
 
     def get_df_payload(self, query_obj=None, **kwargs):
