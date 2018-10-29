@@ -336,6 +336,18 @@ export class DatasourceEditor extends React.PureComponent {
           descr={t('Whether to populate autocomplete filters options')}
           control={<CheckboxControl />}
         />
+        {this.state.isSqla &&
+          <Field
+            fieldKey="fetch_values_predicate"
+            label={t('Autocomplete Query Predicate')}
+            descr={t(
+              'When using "Autocomplete filters", this can be used to improve performance ' +
+              'of the query fetching the values. Use this option to apply a ' +
+              'predicate (WHERE clause) to the query selecting the distinct ' +
+              'values from the table. Typically the intent would be to limit the scan ' +
+              'by applying a relative time filter on a partitioned or indexed time-related field.')}
+            control={<TextControl />}
+          />}
         <Field
           fieldKey="owner"
           label={t('Owner')}
