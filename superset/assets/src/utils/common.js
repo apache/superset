@@ -117,3 +117,6 @@ export function optionFromValue(opt) {
 export const COMMON_ERR_MESSAGES = {
   SESSION_TIMED_OUT: t('Your session timed out, please refresh your page and try again.'),
 };
+
+// time_range separator
+export const TIME_RANGE_SEPARATOR = ' : ';
