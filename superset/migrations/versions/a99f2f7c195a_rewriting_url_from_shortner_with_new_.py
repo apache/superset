@@ -16,8 +16,6 @@ import sqlalchemy as sa
 from superset import db
 from superset.legacy import cast_form_data
 from sqlalchemy.ext.declarative import declarative_base
-from future.standard_library import install_aliases
-install_aliases()
 from urllib import parse
 
 Base = declarative_base()
