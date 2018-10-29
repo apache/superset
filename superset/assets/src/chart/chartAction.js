@@ -6,6 +6,7 @@ import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTyp
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
 import { getClientErrorObject } from '../modules/utils';
+import { TIME_RANGE_SEPARATOR } from '../utils/common';
 import { t } from '../locales';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -66,7 +67,8 @@ export function annotationQueryFailed(annotation, queryResponse, key) {
 export function runAnnotationQuery(annotation, timeout = 60, formData = null, key) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
-    const fd = formData || getState().charts[sliceKey].latestQueryFormData;
+    // make a copy of formData, not modifying original formData
+    const fd = { ...(formData || getState().charts[sliceKey].latestQueryFormData) };
 
     if (!requiresQuery(annotation.sourceType)) {
       return Promise.resolve();
@@ -75,6 +77,9 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     const granularity = fd.time_grain_sqla || fd.granularity;
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
+    if (fd.time_range) {
+      [fd.since, fd.util] = fd.time_range.split(TIME_RANGE_SEPARATOR);
+    }
 
     const sliceFormData = Object.keys(annotation.overrides).reduce(
       (d, k) => ({
