@@ -485,7 +485,7 @@ class BaseViz(object):
         logging.info('Cache key: {}'.format(cache_key))
         df = self.get_df()
 
-        """Use cache to get csv contents"""
+        """Use cache to get csv contents."""
         if cache_key and cache:
             cache_value = cache.get(cache_key)
             if cache_value:
