@@ -78,7 +78,7 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
     if (fd.time_range) {
-      [fd.since, fd.util] = fd.time_range.split(TIME_RANGE_SEPARATOR);
+      [fd.since, fd.until] = fd.time_range.split(TIME_RANGE_SEPARATOR);
     }
 
     const sliceFormData = Object.keys(annotation.overrides).reduce(
