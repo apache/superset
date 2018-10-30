@@ -1,4 +1,8 @@
-# `@superset-ui`
+# @superset-ui 
+
+[![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui.svg?style=flat-square
+)](https://travis-ci.com/apache-superset/superset-ui)
+[![David](https://img.shields.io/david/dev/apache-superset/superset-ui.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui?type=dev)
 
 Collection of packages that power the Apache Superset UI, and can be used to craft custom data
 applications that leverage a Superset backend :chart_with_upwards_trend:
@@ -7,8 +11,8 @@ applications that leverage a Superset backend :chart_with_upwards_trend:
 
 | Package | Version |
 |--|--|
-| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat) |
-| [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation) | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat) |
+| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat) |
+| [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation) | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat) |
 
 #### Coming :soon:
 
