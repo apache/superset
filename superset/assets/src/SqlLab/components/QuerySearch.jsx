@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import Loading from '../../components/Loading';
@@ -14,7 +15,6 @@ import {
 } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
-import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

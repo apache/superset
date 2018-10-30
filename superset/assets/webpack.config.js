@@ -79,19 +79,28 @@ if (isDevMode) {
   output.chunkFilename = '[name].[chunkhash].chunk.js';
 }
 
+const PREAMBLE = [
+  'babel-polyfill',
+  path.join(APP_DIR, '/src/preamble.js'),
+];
+
+function addPreamble(entry) {
+  return PREAMBLE.concat([path.join(APP_DIR, entry)]);
+}
+
 const config = {
   node: {
     fs: 'empty',
   },
   entry: {
-    theme: APP_DIR + '/src/theme.js',
-    common: APP_DIR + '/src/common.js',
-    addSlice: ['babel-polyfill', APP_DIR + '/src/addSlice/index.jsx'],
-    explore: ['babel-polyfill', APP_DIR + '/src/explore/index.jsx'],
-    dashboard: ['babel-polyfill', APP_DIR + '/src/dashboard/index.jsx'],
-    sqllab: ['babel-polyfill', APP_DIR + '/src/SqlLab/index.jsx'],
-    welcome: ['babel-polyfill', APP_DIR + '/src/welcome/index.jsx'],
-    profile: ['babel-polyfill', APP_DIR + '/src/profile/index.jsx'],
+    theme: path.join(APP_DIR, '/src/theme.js'),
+    preamble: PREAMBLE,
+    addSlice: addPreamble('/src/addSlice/index.jsx'),
+    explore: addPreamble('/src/explore/index.jsx'),
+    dashboard: addPreamble('/src/dashboard/index.jsx'),
+    sqllab: addPreamble('/src/SqlLab/index.jsx'),
+    welcome: addPreamble('/src/welcome/index.jsx'),
+    profile: addPreamble('/src/profile/index.jsx'),
   },
   output,
   optimization: {
@@ -103,7 +112,7 @@ const config = {
         default: false,
         major: {
           name: 'vendors-major',
-          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js)[\\/]/,
+          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js|@superset[-]ui\/translation)[\\/]/,
         },
       },
     },

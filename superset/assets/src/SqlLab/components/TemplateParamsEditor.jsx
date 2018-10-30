@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Badge } from 'react-bootstrap';
-
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/mode/json';
@@ -9,10 +8,11 @@ import 'brace/mode/html';
 import 'brace/mode/markdown';
 import 'brace/theme/textmate';
 
+import { t } from '@superset-ui/translation';
+
 import ModalTrigger from '../../components/ModalTrigger';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import Button from '../../components/Button';
-import { t } from '../../locales';
 
 const propTypes = {
   onChange: PropTypes.func,

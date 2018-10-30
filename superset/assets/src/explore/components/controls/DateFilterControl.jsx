@@ -18,10 +18,10 @@ import {
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment from 'moment';
+import { t } from '@superset-ui/translation';
 
 import './DateFilterControl.css';
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import PopoverSection from '../../../components/PopoverSection';
 
 const TYPES = Object.freeze({

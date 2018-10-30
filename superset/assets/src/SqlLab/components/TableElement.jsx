@@ -1,15 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
+import { t } from '@superset-ui/translation';
 
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import { t } from '../../locales';
 
 const propTypes = {
   table: PropTypes.object,

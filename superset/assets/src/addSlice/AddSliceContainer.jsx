@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
+import { t } from '@superset-ui/translation';
 import visTypes from '../explore/visTypes';
-import { t } from '../locales';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({

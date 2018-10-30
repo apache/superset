@@ -4,13 +4,14 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import visTypes, { sectionsToRender } from '../visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import controls from '../controls';
 import * as actions from '../actions/exploreActions';
-import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

@@ -1,12 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { t } from '../../locales';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
