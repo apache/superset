@@ -8,12 +8,12 @@ import 'brace/mode/json';
 import 'brace/mode/html';
 import 'brace/mode/markdown';
 import 'brace/mode/javascript';
-
 import 'brace/theme/textmate';
+
+import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
 import ModalTrigger from '../../../components/ModalTrigger';
-import { t } from '../../../locales';
 
 const propTypes = {
   name: PropTypes.string,

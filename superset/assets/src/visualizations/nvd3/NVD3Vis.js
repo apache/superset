@@ -4,9 +4,9 @@ import nv from 'nvd3';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import 'nvd3/build/nv.d3.min.css';
 
-import { t } from '../../locales';
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
 import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';

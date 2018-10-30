@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
-import { t } from '../locales';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
 

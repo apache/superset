@@ -2,8 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
+import { t } from '@superset-ui/translation';
+
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
 import OnPasteSelect from '../../../components/OnPasteSelect';
 

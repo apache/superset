@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, unsafe } from 'reactable';
 import { SupersetClient } from '@superset-ui/core';
-import withToasts from '../messageToasts/enhancers/withToasts';
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
 
+import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
