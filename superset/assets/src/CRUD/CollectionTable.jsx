@@ -1,13 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-
+import { t } from '@superset-ui/translation';
 import Button from '../components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './styles.css';
-
-import { t } from '../locales';
 
 const propTypes = {
   collection: PropTypes.arrayOf(PropTypes.object).isRequired,

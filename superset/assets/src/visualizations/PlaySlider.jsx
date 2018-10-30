@@ -1,13 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'react-bootstrap';
-
 import Mousetrap from 'mousetrap';
-
+import { Row, Col } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
 import './PlaySlider.css';
-
-import { t } from '../locales';
 
 const propTypes = {
   start: PropTypes.number.isRequired,

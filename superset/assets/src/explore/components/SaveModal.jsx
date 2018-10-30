@@ -2,10 +2,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
+
 import { supersetURL } from '../../utils/common';
 import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
 

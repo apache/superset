@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '../locales';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,

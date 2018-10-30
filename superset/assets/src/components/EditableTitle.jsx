@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
-import { t } from '../locales';
 
 const propTypes = {
   title: PropTypes.string,

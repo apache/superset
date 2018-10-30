@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label } from 'react-bootstrap';
 import moment from 'moment';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
-import { t } from '../locales';
 
 const propTypes = {
   onClick: PropTypes.func,

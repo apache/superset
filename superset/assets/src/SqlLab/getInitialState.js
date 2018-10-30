@@ -1,5 +1,5 @@
 import shortid from 'shortid';
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
 import getToastsFromPyFlashMessages from '../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {

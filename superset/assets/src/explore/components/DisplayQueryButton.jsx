@@ -8,6 +8,7 @@ import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
 import { Table } from 'reactable';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import CopyToClipboard from './../../components/CopyToClipboard';
@@ -16,7 +17,6 @@ import { getExploreUrlAndPayload } from '../exploreUtils';
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
-import { t } from '../../locales';
 import RowCountLabel from './RowCountLabel';
 
 registerLanguage('markdown', markdownSyntax);

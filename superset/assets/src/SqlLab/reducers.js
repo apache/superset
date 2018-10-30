@@ -1,7 +1,8 @@
 import { combineReducers } from 'redux';
 import shortid from 'shortid';
-import messageToasts from '../messageToasts/reducers';
+import { t } from '@superset-ui/translation';
 
+import messageToasts from '../messageToasts/reducers';
 import getInitialState from './getInitialState';
 import * as actions from './actions';
 import { now } from '../modules/dates';
@@ -13,7 +14,6 @@ import {
   getFromArr,
   addToArr,
 } from '../reduxUtils';
-import { t } from '../locales';
 
 export const sqlLabReducer = function (state = {}, action) {
   const actionHandlers = {
