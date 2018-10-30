@@ -29,6 +29,10 @@ const TYPES = Object.freeze({
   CUSTOM_START_END: 'custom_start_end',
   CUSTOM_RANGE: 'custom_range',
 });
+const TABS = Object.freeze({
+  DEFAULTS: 'defaults',
+  CUSTOM: 'custom',
+});
 const RELATIVE_TIME_OPTIONS = Object.freeze({
   LAST: 'Last',
   NEXT: 'Next',
@@ -78,12 +82,13 @@ function isValidMoment(s) {
 
 function getStateFromSeparator(value) {
   const [since, until] = value.split(SEPARATOR, 2);
-  return { since, until, type: TYPES.CUSTOM_START_END };
+  return { since, until, type: TYPES.CUSTOM_START_END, tab: TABS.CUSTOM };
 }
 
 function getStateFromCommonTimeFrame(value) {
   const units = value.split(' ')[1] + 's';
   return {
+    tab: TABS.DEFAULTS,
     type: TYPES.DEFAULTS,
     common: value,
     since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
@@ -109,6 +114,7 @@ function getStateFromCustomRange(value) {
     since = moment().startOf('day').format(MOMENT_FORMAT);
   }
   return {
+    tab: TABS.CUSTOM,
     type: TYPES.CUSTOM_RANGE,
     common: null,
     rel,
@@ -124,6 +130,7 @@ export default class DateFilterControl extends React.Component {
     super(props);
     this.state = {
       type: TYPES.DEFAULTS,
+      tab: TABS.DEFAULTS,
 
       // default time frames, for convenience
       common: COMMON_TIME_FRAMES[0],
@@ -145,6 +152,15 @@ export default class DateFilterControl extends React.Component {
       untilViewMode: 'days',
     };
 
+    const value = props.value;
+    if (value.indexOf(SEPARATOR) >= 0) {
+      this.state = { ...this.state, ...getStateFromSeparator(value) };
+    } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
+      this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
+    } else {
+      this.state = { ...this.state, ...getStateFromCustomRange(value) };
+    }
+
     this.close = this.close.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.isValidSince = this.isValidSince.bind(this);
@@ -156,18 +172,13 @@ export default class DateFilterControl extends React.Component {
     this.setTypeCustomRange = this.setTypeCustomRange.bind(this);
     this.setTypeCustomStartEnd = this.setTypeCustomStartEnd.bind(this);
     this.toggleCalendar = this.toggleCalendar.bind(this);
+    this.changeTab = this.changeTab.bind(this);
   }
+
   componentDidMount() {
-    const value = this.props.value;
-    if (value.indexOf(SEPARATOR) >= 0) {
-      this.state = { ...this.state, ...getStateFromSeparator(value) };
-    } else if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
-      this.state = { ...this.state, ...getStateFromCommonTimeFrame(value) };
-    } else {
-      this.state = { ...this.state, ...getStateFromCustomRange(value) };
-    }
     document.addEventListener('click', this.handleClick);
   }
+
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClick);
   }
@@ -201,6 +212,16 @@ export default class DateFilterControl extends React.Component {
   setTypeCustomStartEnd() {
     this.setState({ type: TYPES.CUSTOM_START_END });
   }
+
+  changeTab() {
+    const { tab } = this.state;
+    if (tab === TABS.CUSTOM) {
+      this.setState({ tab: TABS.DEFAULTS });
+    } else if (tab === TABS.DEFAULTS) {
+      this.setState({ tab: TABS.CUSTOM });
+    }
+  }
+
   handleClick(e) {
     // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
     if (this.startEndSectionRef && this.startEndSectionRef.contains(e.target)) {
@@ -209,7 +230,7 @@ export default class DateFilterControl extends React.Component {
   }
   close() {
     let val;
-    if (this.state.type === TYPES.DEFAULTS) {
+    if (this.state.type === TYPES.DEFAULTS || this.state.tab === TABS.DEFAULTS) {
       val = this.state.common;
     } else if (this.state.type === TYPES.CUSTOM_RANGE) {
       val = `${this.state.rel} ${this.state.num} ${this.state.grain}`;
@@ -285,9 +306,10 @@ export default class DateFilterControl extends React.Component {
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
           <Tabs
-            defaultActiveKey={this.state.type === TYPES.DEFAULTS ? 1 : 2}
+            defaultActiveKey={this.state.tab === TABS.DEFAULTS ? 1 : 2}
             id="type"
             className="time-filter-tabs"
+            onSelect={this.changeTab}
           >
             <Tab eventKey={1} title="Defaults">
               <FormGroup>{timeFrames}</FormGroup>
