@@ -1,4 +1,5 @@
 import d3 from 'd3';
+import { extent } from 'd3-array';
 import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
 import { colorScalerFactory, hexToRGB } from '../../modules/colors';
 
@@ -15,7 +16,7 @@ export function getBreakPoints({
     const numBuckets = formDataNumBuckets
       ? parseInt(formDataNumBuckets, 10)
       : 10;
-    const [minValue, maxValue] = d3.extent(features, d => d[metric]);
+    const [minValue, maxValue] = extent(features, d => d[metric]);
     const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0

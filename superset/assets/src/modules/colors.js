@@ -1,5 +1,5 @@
+import d3 from 'd3';
 import { extent } from 'd3-array';
-import { scaleLinear } from 'd3-scale';
 import getSequentialSchemeRegistry from './colors/SequentialSchemeRegistrySingleton';
 
 export const BRAND_COLOR = '#00A699';
@@ -30,7 +30,7 @@ export const colorScalerFactory = function (colors, data, accessor, extents, out
   }
   const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
   const points = colors.map((col, i) => ext[0] + (i * chunkSize));
-  const scaler = scaleLinear().domain(points).range(colors).clamp(true);
+  const scaler = d3.scale.linear().domain(points).range(colors).clamp(true);
   if (outputRGBA) {
     return v => hexToRGB(scaler(v));
   }

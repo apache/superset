@@ -1,9 +1,11 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
-import d3 from 'd3';
+import { format as d3Format } from 'd3-format';
+import { d3Select } from 'd3-selection';
+import { timeFormat } from 'd3-time-format';
 import { formatDate, UTC } from './dates';
 
-const siFormatter = d3.format('.3s');
+const siFormatter = d3Format('.3s');
 
 export function defaultNumberFormatter(n) {
   let si = siFormatter(n);
@@ -15,12 +17,12 @@ export function defaultNumberFormatter(n) {
 }
 
 export function d3FormatPreset(format) {
-  // like d3.format, but with support for presets like 'smart_date'
+  // like d3Format, but with support for presets like 'smart_date'
   if (format === 'smart_date') {
     return formatDate;
   }
   if (format) {
-    return d3.format(format);
+    return d3Format(format);
   }
   return defaultNumberFormatter;
 }
@@ -29,7 +31,7 @@ export const d3TimeFormatPreset = function (format) {
   if (effFormat === 'smart_date') {
     return formatDate;
   }
-  const f = d3.time.format(effFormat);
+  const f = timeFormat(effFormat);
   return function (dttm) {
     const d = UTC(new Date(dttm));
     return f(d);
@@ -47,7 +49,7 @@ export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
   text.each(function () {
-    const d3Text = d3.select(this);
+    const d3Text = d3Select(this);
     const words = d3Text.text().split(/\s+/);
     let word;
     let line = [];
@@ -123,7 +125,7 @@ export function d3format(format, number) {
   // Formats a number and memoizes formatters to be reused
   format = format || '.3s';
   if (!(format in formatters)) {
-    formatters[format] = d3.format(format);
+    formatters[format] = d3Format(format);
   }
   try {
     return formatters[format](number);
