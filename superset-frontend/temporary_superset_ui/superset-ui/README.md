@@ -5,10 +5,12 @@ applications that leverage a Superset backend :chart_with_upwards_trend:
 
 ## Packages
 
-- [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core)
-[![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)
-- [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation)
-[![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)
+| Package | Version |
+|--|--|
+| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core)
+| [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat) |
+| [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation)
+| [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat) |
 
 #### Coming :soon:
 
@@ -57,6 +59,12 @@ lerna bootstrap
 Each package defines its own build config, linting, and testing. You can have lerna run commands
 across all packages using the syntax `lerna exec test` from the root `@superset/monorepo` root
 directory.
+
+### Publishing
+
+```
+npm run release
+```
 
 ### License
 
