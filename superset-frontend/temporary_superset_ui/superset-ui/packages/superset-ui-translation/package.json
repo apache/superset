@@ -25,7 +25,8 @@
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.23"
+    "@data-ui/build-config": "^0.0.23",
+    "jest-mock-console": "^0.4.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
