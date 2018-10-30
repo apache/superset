@@ -1,7 +1,6 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
-import setupClient from './setupClient';
 import getClientErrorObject from '../utils/getClientErrorObject';
 
 function showApiMessage(resp) {
@@ -29,8 +28,6 @@ function toggleCheckbox(apiUrlPrefix, selector) {
 }
 
 export default function setupApp() {
-  setupClient();
-
   $(document).ready(function () {
     $(':checkbox[data-checkbox-api-prefix]').change(function () {
       const $this = $(this);

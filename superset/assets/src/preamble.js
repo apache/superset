@@ -1,5 +1,6 @@
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import { configure } from '@superset-ui/translation';
+import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 
 // Configure translation
@@ -18,5 +19,8 @@ if (typeof window !== 'undefined') {
   configure();
 }
 
-// Initialize color palettes
+// Setup SupersetClient
+setupClient();
+
+// Setup color palettes
 setupColors();
