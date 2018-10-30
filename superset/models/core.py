@@ -12,7 +12,6 @@ from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
-from future.standard_library import install_aliases
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
@@ -36,7 +35,6 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
 from superset.utils import core as utils
 from superset.viz import viz_types
-install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
