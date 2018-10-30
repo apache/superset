@@ -1,3 +1,5 @@
+/* eslint no-console: 0 */
+import mockConsole from 'jest-mock-console';
 import Translator from '../src/Translator';
 import { configure, t, tn } from '../src/TranslatorSingleton';
 import languagePackZh from './languagePacks/zh.json';
@@ -5,13 +7,19 @@ import languagePackZh from './languagePacks/zh.json';
 describe('TranslatorSingleton', () => {
   describe('before configure()', () => {
     describe('t()', () => {
-      it('throws error', () => {
-        expect(() => t('second')).toThrow();
+      it('returns untranslated input and issues a warning', () => {
+        const restoreConsole = mockConsole();
+        expect(t('second')).toEqual('second');
+        expect(console.warn).toHaveBeenCalled();
+        restoreConsole();
       });
     });
     describe('tn()', () => {
-      it('throws error', () => {
-        expect(() => tn('ox', 'oxen', 2)).toThrow();
+      it('returns untranslated input and issues a warning', () => {
+        const restoreConsole = mockConsole();
+        expect(tn('ox', 'oxen', 2)).toEqual('oxen');
+        expect(console.warn).toHaveBeenCalled();
+        restoreConsole();
       });
     });
   });
