@@ -496,7 +496,7 @@ msgstr "SQL"
 
 #: superset/assets/javascripts/SqlLab/components/QueryHistory.jsx:28
 msgid "No query history yet..."
-msgstr "No hay histórico de consultas"
+msgstr "No hay histórico de consultas, aun..."
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:106
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:66
@@ -965,7 +965,7 @@ msgstr "Este cuadro de mando se guardó con éxito."
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:69
 msgid "Sorry, there was an error saving this dashboard: "
-msgstr "Lo sentimos, hubo un error al guardar este cuadro de mando:"
+msgstr "Lo sentimos, hubo un error al guardar este cuadro de mando: "
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:101
 msgid "You must pick a name for the new dashboard"
@@ -1460,7 +1460,7 @@ msgstr "Ordenar Barras"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:322
 msgid "Sort bars by x labels."
-msgstr "Ordenar barras por etiquetas del eje X"
+msgstr "Ordenar barras por etiquetas del eje X."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:327
 msgid "Combine Metrics"
