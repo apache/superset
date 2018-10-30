@@ -5,7 +5,6 @@ import re
 
 from flask import Markup
 from flask_appbuilder import Model
-from future.standard_library import install_aliases
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text,
@@ -15,8 +14,6 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
 from superset.utils.core import QueryStatus, user_label
-
-install_aliases()
 
 
 class Query(Model):
