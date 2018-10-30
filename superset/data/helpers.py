@@ -28,7 +28,8 @@ def update_slice_ids(layout_dict, slices):
     ]
     sorted_charts = sorted(charts, key=lambda k: k['meta']['chartId'])
     for i, chart_component in enumerate(sorted_charts):
-        chart_component['meta']['chartId'] = int(slices[i].id)
+        if i < len(slices):
+            chart_component['meta']['chartId'] = int(slices[i].id)
 
 
 def merge_slice(slc):

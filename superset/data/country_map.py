@@ -4,7 +4,8 @@ import os
 import pandas as pd
 from sqlalchemy import BigInteger, Date, String
 
-from superset import db, utils
+from superset import db
+from superset.utils import core as utils
 from .helpers import (
     DATA_FOLDER,
     get_slice_json,

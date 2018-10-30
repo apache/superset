@@ -8,7 +8,8 @@ import textwrap
 import pandas as pd
 from sqlalchemy import DateTime, String
 
-from superset import db, utils
+from superset import db
+from superset.utils import core as utils
 from .helpers import (
     config,
     Dash,

@@ -173,7 +173,7 @@ def load_deck_dash():
         'color_picker': COLOR_RED,
         'datasource': '5__table',
         'filters': [],
-        'granularity_sqla': 'dttm',
+        'granularity_sqla': None,
         'groupby': [],
         'having': '',
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -182,10 +182,9 @@ def load_deck_dash():
         'point_unit': 'square_m',
         'min_radius': 1,
         'row_limit': 5000,
-        'since': None,
+        'time_range': ' : ',
         'size': 'count',
         'time_grain_sqla': None,
-        'until': None,
         'viewport': {
             'bearing': -4.952916738791771,
             'latitude': 37.78926922909199,
@@ -218,12 +217,11 @@ def load_deck_dash():
             'latCol': 'LAT',
         },
         'mapbox_style': 'mapbox://styles/mapbox/dark-v9',
-        'granularity_sqla': 'dttm',
+        'granularity_sqla': None,
         'size': 'count',
         'viz_type': 'deck_screengrid',
-        'since': None,
+        'time_range': 'No filter',
         'point_radius': 'Auto',
-        'until': None,
         'color_picker': {
             'a': 1,
             'r': 14,
@@ -265,13 +263,12 @@ def load_deck_dash():
         'filters': [],
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/streets-v9',
-        'granularity_sqla': 'dttm',
+        'granularity_sqla': None,
         'size': 'count',
         'viz_type': 'deck_hex',
-        'since': None,
+        'time_range': 'No filter',
         'point_radius_unit': 'Pixels',
         'point_radius': 'Auto',
-        'until': None,
         'color_picker': {
             'a': 1,
             'r': 14,
@@ -314,7 +311,7 @@ def load_deck_dash():
         'filters': [],
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/satellite-streets-v9',
-        'granularity_sqla': 'dttm',
+        'granularity_sqla': None,
         'size': 'count',
         'viz_type': 'deck_grid',
         'point_radius_unit': 'Pixels',
@@ -361,9 +358,9 @@ def load_deck_dash():
         'slice_id': 41,
         'granularity_sqla': None,
         'time_grain_sqla': None,
-        'since': None,
-        'until': None,
+        'time_range': ' : ',
         'line_column': 'contour',
+        'metric': None,
         'line_type': 'json',
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
         'viewport': {
@@ -429,10 +426,9 @@ def load_deck_dash():
         'datasource': '10__table',
         'viz_type': 'deck_arc',
         'slice_id': 42,
-        'granularity_sqla': 'dttm',
-        'time_grain_sqla': 'Time Column',
-        'since': None,
-        'until': None,
+        'granularity_sqla': None,
+        'time_grain_sqla': None,
+        'time_range': ' : ',
         'start_spatial': {
             'type': 'latlong',
             'latCol': 'LATITUDE',
@@ -488,9 +484,8 @@ def load_deck_dash():
         'datasource': '12__table',
         'slice_id': 43,
         'viz_type': 'deck_path',
-        'time_grain_sqla': 'Time Column',
-        'since': None,
-        'until': None,
+        'time_grain_sqla': None,
+        'time_range': ' : ',
         'line_column': 'path_json',
         'line_type': 'json',
         'row_limit': 5000,
@@ -541,10 +536,11 @@ def load_deck_dash():
     )
     merge_slice(slc)
     slices.append(slc)
+    slug = 'deck'
 
     print('Creating a dashboard')
     title = 'deck.gl Demo'
-    dash = db.session.query(Dash).filter_by(dashboard_title=title).first()
+    dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dash()
@@ -553,7 +549,11 @@ def load_deck_dash():
     update_slice_ids(pos, slices)
     dash.position_json = json.dumps(pos, indent=4)
     dash.dashboard_title = title
-    dash.slug = 'deck'
+    dash.slug = slug
     dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
+
+
+if __name__ == '__main__':
+    load_deck_dash()

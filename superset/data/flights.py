@@ -4,7 +4,8 @@ import os
 import pandas as pd
 from sqlalchemy import DateTime
 
-from superset import db, utils
+from superset import db
+from superset.utils import core as utils
 from .helpers import DATA_FOLDER, TBL
 
 

@@ -6,7 +6,8 @@ import pandas as pd
 import polyline
 from sqlalchemy import String, Text
 
-from superset import db, utils
+from superset import db
+from superset.utils.core import get_or_create_main_db
 from .helpers import DATA_FOLDER, TBL
 
 
@@ -34,7 +35,7 @@ def load_bart_lines():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'BART lines'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

@@ -7,7 +7,8 @@ import textwrap
 import pandas as pd
 from sqlalchemy import Float, String
 
-from superset import db, utils
+from superset import db
+from superset.utils import core as utils
 from .helpers import DATA_FOLDER, merge_slice, misc_dash_slices, Slice, TBL
 
 

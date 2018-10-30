@@ -6,8 +6,9 @@ import textwrap
 import pandas as pd
 from sqlalchemy import DateTime, String
 
-from superset import db, utils
+from superset import db
 from superset.connectors.sqla.models import TableColumn
+from superset.utils.core import get_or_create_main_db
 from .helpers import (
     config,
     Dash,
@@ -45,7 +46,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = get_or_create_main_db()
     obj.filter_select_enabled = True
 
     if not any(col.column_name == 'num_california' for col in obj.columns):
