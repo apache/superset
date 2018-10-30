@@ -52,7 +52,7 @@
     "@data-ui/theme": "^0.0.62",
     "@data-ui/xy-chart": "^0.0.61",
     "@superset-ui/core": "^0.0.7",
-    "@superset-ui/translation": "^0.2.0",
+    "@superset-ui/translation": "^0.2.1",
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",
     "@vx/scale": "^0.0.165",

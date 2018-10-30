@@ -406,9 +406,9 @@
     "@babel/runtime" "^7.1.2"
     whatwg-fetch "^2.0.4"
 
-"@superset-ui/translation@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.2.0.tgz#3ebb0125e87ddedff97aa410c91d0f14bc926c69"
+"@superset-ui/translation@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.2.1.tgz#252025d566918782bafc25cb9fe2aa31f9917093"
   dependencies:
     "@babel/runtime" "^7.1.2"
     jed "^1.1.1"
