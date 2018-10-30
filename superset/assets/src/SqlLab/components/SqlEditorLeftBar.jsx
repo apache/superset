@@ -4,12 +4,12 @@ import { ControlLabel, Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
 import RefreshLabel from '../../components/RefreshLabel';
-import { t } from '../../locales';
 
 const propTypes = {
   queryEditor: PropTypes.object.isRequired,

@@ -1,10 +1,10 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
 import Checkbox from '../../components/Checkbox';
 import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 

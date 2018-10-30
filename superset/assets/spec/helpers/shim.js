@@ -4,6 +4,7 @@ import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import jsdom from 'jsdom';
 import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
+import { configure as configureTranslation } from '@superset-ui/translation';
 
 import setupSupersetClient from './setupSupersetClient';
 
@@ -48,4 +49,5 @@ global.window.location = { href: 'about:blank' };
 global.window.performance = { now: () => new Date().getTime() };
 global.$ = require('jquery')(global.window);
 
+configureTranslation();
 setupSupersetClient();

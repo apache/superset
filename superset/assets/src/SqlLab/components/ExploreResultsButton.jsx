@@ -5,12 +5,12 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
+import { t } from '@superset-ui/translation';
 
 import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-import { t } from '../../locales';
 import Button from '../../components/Button';
 
 const propTypes = {

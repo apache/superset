@@ -406,6 +406,13 @@
     "@babel/runtime" "^7.1.2"
     whatwg-fetch "^2.0.4"
 
+"@superset-ui/translation@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.2.1.tgz#252025d566918782bafc25cb9fe2aa31f9917093"
+  dependencies:
+    "@babel/runtime" "^7.1.2"
+    jed "^1.1.1"
+
 "@types/blob-util@1.3.3":
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/@types/blob-util/-/blob-util-1.3.3.tgz#adba644ae34f88e1dd9a5864c66ad651caaf628a"
@@ -2697,7 +2704,7 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@^2.1.2, classnames@^2.2.3, classnames@^2.2.4, classnames@^2.2.5:
+classnames@^2.2.3, classnames@^2.2.4, classnames@^2.2.5:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
 
@@ -4451,10 +4458,6 @@ executable@4.1.1:
   resolved "https://registry.yarnpkg.com/executable/-/executable-4.1.1.tgz#41532bff361d3e57af4d763b70582db18f5d133c"
   dependencies:
     pify "^2.2.0"
-
-exenv@^1.2.0:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/exenv/-/exenv-1.2.2.tgz#2ae78e85d9894158670b03d47bec1f03bd91bb9d"
 
 exif-parser@^0.1.9:
   version "0.1.12"
@@ -9350,15 +9353,6 @@ react-bootstrap-slider@2.1.5:
     bootstrap-slider "9.9.0"
     es6bindall "^0.0.9"
 
-react-bootstrap-table@^4.3.1:
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/react-bootstrap-table/-/react-bootstrap-table-4.3.1.tgz#f704be55b7f6bf0557d2fc5bec6d25fd307d0cde"
-  dependencies:
-    classnames "^2.1.2"
-    prop-types "^15.5.10"
-    react-modal "^3.1.7"
-    react-s-alert "^1.3.2"
-
 react-bootstrap@^0.31.5:
   version "0.31.5"
   resolved "https://registry.yarnpkg.com/react-bootstrap/-/react-bootstrap-0.31.5.tgz#57040fa8b1274e1e074803c21a1b895fdabea05a"
@@ -9455,7 +9449,7 @@ react-is@^16.3.2, react-is@^16.5.2:
   version "16.5.2"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.5.2.tgz#e2a7b7c3f5d48062eb769fcb123505eb928722e3"
 
-react-lifecycles-compat@^3.0.0, react-lifecycles-compat@^3.0.4:
+react-lifecycles-compat@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/react-lifecycles-compat/-/react-lifecycles-compat-3.0.4.tgz#4f1a273afdfc8f3488a8c516bfda78f872352362"
 
@@ -9487,15 +9481,6 @@ react-markdown@^3.3.0:
     unified "^6.1.5"
     unist-util-visit "^1.3.0"
     xtend "^4.0.1"
-
-react-modal@^3.1.7:
-  version "3.6.1"
-  resolved "https://registry.yarnpkg.com/react-modal/-/react-modal-3.6.1.tgz#54d27a1ec2b493bbc451c7efaa3557b6af82332d"
-  dependencies:
-    exenv "^1.2.0"
-    prop-types "^15.5.10"
-    react-lifecycles-compat "^3.0.0"
-    warning "^3.0.0"
 
 react-move@^2.1.0:
   version "2.8.0"
@@ -9535,12 +9520,6 @@ react-resizable@^1.3.3:
   dependencies:
     prop-types "15.x"
     react-draggable "^2.2.6 || ^3.0.3"
-
-react-s-alert@^1.3.2:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/react-s-alert/-/react-s-alert-1.4.1.tgz#ef3665a9d98c4cf2e448fc2d84e48aeca799bb5a"
-  dependencies:
-    babel-runtime "^6.23.0"
 
 react-search-input@^0.11.3:
   version "0.11.3"
@@ -10822,10 +10801,6 @@ split@~0.2.10:
   resolved "http://registry.npmjs.org/split/-/split-0.2.10.tgz#67097c601d697ce1368f418f06cd201cf0521a57"
   dependencies:
     through "2"
-
-sprintf-js@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.1.1.tgz#36be78320afe5801f6cea3ee78b6e5aab940ea0c"
 
 sprintf-js@~1.0.2:
   version "1.0.3"

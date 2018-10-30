@@ -14,6 +14,7 @@ import {
   Collapse,
 } from 'react-bootstrap';
 import SplitPane from 'react-split-pane';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
 import TemplateParamsEditor from './TemplateParamsEditor';
@@ -26,8 +27,6 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { t } from '../../locales';
-
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

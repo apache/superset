@@ -9,9 +9,9 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';

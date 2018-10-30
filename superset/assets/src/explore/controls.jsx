@@ -39,6 +39,7 @@
  * each and every visualization type.
  */
 import React from 'react';
+import { t } from '@superset-ui/translation';
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
@@ -49,7 +50,6 @@ import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
-import { t } from '../locales';
 import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
 import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
