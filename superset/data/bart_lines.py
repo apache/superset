@@ -1,18 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import gzip
 import json
 import os
 
 import pandas as pd
-from sqlalchemy import String, Text
 import polyline
+from sqlalchemy import String, Text
 
 from superset import db, utils
-
 from .helpers import DATA_FOLDER, TBL
 
 

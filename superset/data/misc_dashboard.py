@@ -1,17 +1,13 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import textwrap
 
 
 from superset import db
-
 from .helpers import (
-    Slice, misc_dash_slices,
-    Dash, update_slice_ids,
+    Dash,
+    misc_dash_slices,
+    Slice,
+    update_slice_ids,
 )
 
 DASH_SLUG = 'misc_charts'

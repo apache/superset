@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import gzip
 import os
 
@@ -10,10 +5,13 @@ import pandas as pd
 from sqlalchemy import DateTime
 
 from superset import db, utils
-
 from .helpers import (
-    DATA_FOLDER, Slice, TBL, merge_slice, config,
+    config,
+    DATA_FOLDER,
     get_slice_json,
+    merge_slice,
+    Slice,
+    TBL,
 )
 
 

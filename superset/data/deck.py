@@ -1,16 +1,14 @@
 # pylint: disable=too-many-statements
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from superset import db
-
 from .helpers import (
-    Slice, TBL, merge_slice,
-    get_slice_json, Dash, update_slice_ids,
+    Dash,
+    get_slice_json,
+    merge_slice,
+    Slice,
+    TBL,
+    update_slice_ids,
 )
 
 COLOR_RED = {

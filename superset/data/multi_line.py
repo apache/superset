@@ -1,17 +1,13 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from superset import db
-
+from .birth_names import load_birth_names
 from .helpers import (
-    Slice, misc_dash_slices, merge_slice,
+    merge_slice,
+    misc_dash_slices,
+    Slice,
 )
 from .world_bank import load_world_bank_health_n_pop
-from .birth_names import load_birth_names
 
 
 def load_multi_line():

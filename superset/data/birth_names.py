@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import gzip
 import json
 import os
@@ -13,15 +8,14 @@ from sqlalchemy import DateTime, String
 
 from superset import db, utils
 from superset.connectors.sqla.models import TableColumn
-
 from .helpers import (
-    DATA_FOLDER,
-    Dash,
-    Slice,
-    TBL,
     config,
+    Dash,
+    DATA_FOLDER,
     get_slice_json,
     merge_slice,
+    Slice,
+    TBL,
     update_slice_ids,
 )
 

@@ -1,10 +1,5 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import gzip
 import os
 import textwrap
@@ -13,8 +8,7 @@ import pandas as pd
 from sqlalchemy import Float, String
 
 from superset import db, utils
-
-from .helpers import DATA_FOLDER, Slice, TBL, misc_dash_slices, merge_slice
+from .helpers import DATA_FOLDER, merge_slice, misc_dash_slices, Slice, TBL
 
 
 def load_energy():
