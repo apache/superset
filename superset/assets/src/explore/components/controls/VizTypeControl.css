@@ -28,3 +28,7 @@
   border-radius: 4px;
   transition: border-color .2s;
 }
+
+.viztype-control-search-box {
+  margin-bottom: 10px;
+}

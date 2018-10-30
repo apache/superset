@@ -122,12 +122,11 @@ export default class VizTypeControl extends React.PureComponent {
             <Modal.Title>{t('Select a visualization type')}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div>
+            <div className="viztype-control-search-box">
               <FormControl
-                id="formControlsText"
-                inputRef={(ref) => { this.setSearchRef(ref); }}
+                inputRef={this.setSearchRef}
                 type="text"
-                bsSize="sm"
+                bsSize="md"
                 value={filter}
                 placeholder={t('Search')}
                 onChange={this.changeSearch}
@@ -136,7 +135,8 @@ export default class VizTypeControl extends React.PureComponent {
             {rows}
           </Modal.Body>
         </Modal>
-      </div>);
+      </div>
+    );
   }
 }
 
