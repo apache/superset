@@ -1,5 +1,4 @@
 import React from 'react';
-import { expect } from 'chai';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 import sinon from 'sinon';
@@ -13,12 +12,12 @@ describe('EmbedCodeButton', () => {
   };
 
   it('renders', () => {
-    expect(React.isValidElement(<EmbedCodeButton {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<EmbedCodeButton {...defaultProps} />)).toBe(true);
   });
 
   it('renders overlay trigger', () => {
     const wrapper = shallow(<EmbedCodeButton {...defaultProps} />);
-    expect(wrapper.find(OverlayTrigger)).to.have.length(1);
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
   });
 
   it('returns correct embed code', () => {
@@ -35,11 +34,11 @@ describe('EmbedCodeButton', () => {
       '  seamless\n' +
       '  frameBorder="0"\n' +
       '  scrolling="no"\n' +
-      '  src="nullendpoint_url&height=1000"\n' +
+      '  src="http://localhostendpoint_url&height=1000"\n' +
       '>\n' +
       '</iframe>'
     );
-    expect(wrapper.instance().generateEmbedHTML()).to.equal(embedHTML);
+    expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
     stub.restore();
   });
 });

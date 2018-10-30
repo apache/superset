@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Add keyvalue table
 
 Revision ID: bcf3126872fc

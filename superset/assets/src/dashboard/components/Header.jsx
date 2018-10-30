@@ -28,6 +28,7 @@ const propTypes = {
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
@@ -62,7 +63,6 @@ class Header extends React.PureComponent {
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
-      hightlightRedo: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -95,7 +95,10 @@ class Header extends React.PureComponent {
   }
 
   forceRefresh() {
-    return this.props.fetchCharts(Object.values(this.props.charts), true);
+    if (!this.props.isLoading) {
+      return this.props.fetchCharts(Object.values(this.props.charts), true);
+    }
+    return false;
   }
 
   handleChangeText(nextText) {
@@ -186,6 +189,7 @@ class Header extends React.PureComponent {
       showBuilderPane,
       dashboardInfo,
       hasUnsavedChanges,
+      isLoading,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -306,6 +310,7 @@ class Header extends React.PureComponent {
             hasUnsavedChanges={hasUnsavedChanges}
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
+            isLoading={isLoading}
           />
         </div>
       </div>

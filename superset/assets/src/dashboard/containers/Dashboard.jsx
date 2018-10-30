@@ -10,15 +10,17 @@ import {
 import { runQuery } from '../../chart/chartAction';
 import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
 
-function mapStateToProps({
-  datasources,
-  sliceEntities,
-  charts,
-  dashboardInfo,
-  dashboardState,
-  dashboardLayout,
-  impressionId,
-}) {
+function mapStateToProps(state) {
+  const {
+    datasources,
+    sliceEntities,
+    charts,
+    dashboardInfo,
+    dashboardState,
+    dashboardLayout,
+    impressionId,
+  } = state;
+
   return {
     initMessages: dashboardInfo.common.flash_messages,
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,

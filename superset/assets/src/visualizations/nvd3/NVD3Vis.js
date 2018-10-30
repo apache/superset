@@ -1,4 +1,4 @@
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
@@ -7,15 +7,14 @@ import PropTypes from 'prop-types';
 import 'nvd3/build/nv.d3.min.css';
 
 import { t } from '../../locales';
-import AnnotationTypes, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/CategoricalColorNamespace';
+import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
+import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
 import {
   computeBarChartWidth,
   drawBarValues,
-  formatLabel,
   generateBubbleTooltipContent,
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
@@ -176,8 +175,6 @@ const NOOP = () => {};
 const formatter = d3.format('.3s');
 
 function nvd3Vis(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'NVD3Vis');
-
   const {
     data,
     width: maxWidth,
@@ -229,6 +226,7 @@ function nvd3Vis(element, props) {
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
   container.innerHTML = '';
+  const activeAnnotationLayers = annotationLayers.filter(layer => layer.show);
 
   let chart;
   let width = maxWidth;
@@ -325,6 +323,9 @@ function nvd3Vis(element, props) {
           });
         }
         if (showBarValue) {
+          // Add more margin to avoid label colliding with legend.
+          const top = chart.margin().top;
+          chart.margin({ top: top + 24 });
           setTimeout(function () {
             drawBarValues(svg, data, isBarStacked, yAxisFormat);
           }, ANIMATION_TIME);
@@ -642,11 +643,10 @@ function nvd3Vis(element, props) {
         chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
 
-      if (isTimeSeries && annotationData && annotationLayers.length > 0) {
+      if (isTimeSeries && annotationData && activeAnnotationLayers.length > 0) {
         // Time series annotations add additional data
-        const timeSeriesAnnotations = annotationLayers
-          .filter(layer => layer.show)
-          .filter(layer => layer.annotationType === AnnotationTypes.TIME_SERIES)
+        const timeSeriesAnnotations = activeAnnotationLayers
+          .filter(layer => layer.annotationType === ANNOTATION_TYPES.TIME_SERIES)
           .reduce((bushel, a) =>
             bushel.concat((annotationData[a.name] || []).map((series) => {
               if (!series) {
@@ -677,10 +677,10 @@ function nvd3Vis(element, props) {
       window.addEventListener('scroll', throttle(hideTooltips, 250));
 
       // The below code should be run AFTER rendering because chart is updated in call()
-      if (isTimeSeries && annotationLayers.length > 0) {
+      if (isTimeSeries && activeAnnotationLayers.length > 0) {
         // Formula annotations
-        const formulas = annotationLayers
-          .filter(a => a.annotationType === AnnotationTypes.FORMULA)
+        const formulas = activeAnnotationLayers
+          .filter(a => a.annotationType === ANNOTATION_TYPES.FORMULA)
           .map(a => ({ ...a, formula: mathjs.parse(a.value) }));
 
         let xMax;
@@ -749,10 +749,11 @@ function nvd3Vis(element, props) {
 
         if (annotationData) {
           // Event annotations
-          annotationLayers.filter(x => (
-            x.annotationType === AnnotationTypes.EVENT &&
-            annotationData && annotationData[x.name]
-          )).forEach((config, index) => {
+          activeAnnotationLayers
+            .filter(x => (
+              x.annotationType === ANNOTATION_TYPES.EVENT &&
+              annotationData && annotationData[x.name]
+            )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add event annotation layer
             const annotations = d3.select(element)
@@ -808,10 +809,11 @@ function nvd3Vis(element, props) {
           });
 
           // Interval annotations
-          annotationLayers.filter(x => (
-            x.annotationType === AnnotationTypes.INTERVAL &&
-            annotationData && annotationData[x.name]
-          )).forEach((config, index) => {
+          activeAnnotationLayers
+            .filter(x => (
+              x.annotationType === ANNOTATION_TYPES.INTERVAL &&
+              annotationData && annotationData[x.name]
+            )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add interval annotation layer
             const annotations = d3.select(element)
@@ -901,116 +903,6 @@ function nvd3Vis(element, props) {
   nv.addGraph(drawGraph);
 }
 
+nvd3Vis.displayName = 'NVD3';
 nvd3Vis.propTypes = propTypes;
-
-function adaptor(slice, payload) {
-  const { formData, datasource, selector, annotationData } = slice;
-  const {
-    annotation_layers: annotationLayers,
-    bar_stacked: isBarStacked,
-    bottom_margin: bottomMargin,
-    color_picker: baseColor,
-    color_scheme: colorScheme,
-    comparison_type: comparisonType,
-    contribution,
-    donut: isDonut,
-    entity,
-    labels_outside: isPieLabelOutside,
-    left_margin: leftMargin,
-    line_interpolation: lineInterpolation,
-    max_bubble_size: maxBubbleSize,
-    order_bars: orderBars,
-    pie_label_type: pieLabelType,
-    reduce_x_ticks: reduceXTicks,
-    rich_tooltip: useRichTooltip,
-    send_time_range: hasBrushAction,
-    show_bar_value: showBarValue,
-    show_brush: showBrush,
-    show_controls: showControls,
-    show_labels: showLabels,
-    show_legend: showLegend,
-    show_markers: showMarkers,
-    size: sizeField,
-    stacked_style: areaStackedStyle,
-    viz_type: vizType,
-    x: xField,
-    x_axis_format: xAxisFormat,
-    x_axis_label: xAxisLabel,
-    x_axis_showminmax: xAxisShowMinMax,
-    x_log_scale: xIsLogScale,
-    x_ticks_layout: xTicksLayout,
-    y: yField,
-    y_axis_format: yAxisFormat,
-    y_axis_2_format: yAxis2Format,
-    y_axis_bounds: yAxisBounds,
-    y_axis_label: yAxisLabel,
-    y_axis_showminmax: yAxisShowMinMax,
-    y_log_scale: yIsLogScale,
-  } = formData;
-
-  const element = document.querySelector(selector);
-
-  const rawData = payload.data || [];
-  const data = Array.isArray(rawData)
-    ? rawData.map(row => ({
-      ...row,
-      key: formatLabel(row.key, datasource.verbose_map),
-    }))
-    : rawData;
-
-  const props = {
-    data,
-    width: slice.width(),
-    height: slice.height(),
-    annotationData,
-    annotationLayers,
-    areaStackedStyle,
-    baseColor,
-    bottomMargin,
-    colorScheme,
-    comparisonType,
-    contribution,
-    entity,
-    isBarStacked,
-    isDonut,
-    isPieLabelOutside,
-    leftMargin,
-    lineInterpolation,
-    maxBubbleSize: parseInt(maxBubbleSize, 10),
-    onBrushEnd: isTruthy(hasBrushAction) ? ((timeRange) => {
-      slice.addFilter('__time_range', timeRange, false, true);
-    }) : undefined,
-    onError(err) { slice.error(err); },
-    orderBars,
-    pieLabelType,
-    reduceXTicks,
-    showBarValue,
-    showBrush,
-    showControls,
-    showLabels,
-    showLegend,
-    showMarkers,
-    sizeField,
-    useRichTooltip,
-    vizType,
-    xAxisFormat,
-    xAxisLabel,
-    xAxisShowMinMax,
-    xField,
-    xIsLogScale,
-    xTicksLayout,
-    yAxisFormat,
-    yAxis2Format,
-    yAxisBounds,
-    yAxisLabel,
-    yAxisShowMinMax,
-    yField,
-    yIsLogScale,
-  };
-
-  slice.clearError();
-
-  return nvd3Vis(element, props);
-}
-
-export default adaptor;
+export default nvd3Vis;

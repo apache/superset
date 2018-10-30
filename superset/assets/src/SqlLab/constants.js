@@ -1,18 +1,21 @@
 export const STATE_BSSTYLE_MAP = {
+  offline: 'danger',
   failed: 'danger',
   pending: 'info',
   fetching: 'info',
   running: 'warning',
   stopped: 'danger',
+  rendering: 'info',
   success: 'success',
 };
 
-export const STATUS_OPTIONS = [
-  'success',
-  'failed',
-  'running',
-  'pending',
-];
+export const STATUS_OPTIONS = {
+  success: 'success',
+  failed: 'failed',
+  running: 'running',
+  offline: 'offline',
+  pending: 'pending',
+};
 
 export const TIME_OPTIONS = [
   'now',

@@ -1,6 +1,5 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import MetricDefinitionOption from '../../../../src/explore/components/MetricDefinitionOption';
@@ -18,16 +17,16 @@ describe('MetricDefinitionOption', () => {
 
   it('renders a MetricOption given a saved metric', () => {
     const wrapper = setup({ option: { metric_name: 'a_saved_metric' } });
-    expect(wrapper.find(MetricOption)).to.have.lengthOf(1);
+    expect(wrapper.find(MetricOption)).toHaveLength(1);
   });
 
   it('renders a ColumnOption given a column', () => {
     const wrapper = setup({ option: { column_name: 'a_column' } });
-    expect(wrapper.find(ColumnOption)).to.have.lengthOf(1);
+    expect(wrapper.find(ColumnOption)).toHaveLength(1);
   });
 
   it('renders an AggregateOption given an aggregate metric', () => {
     const wrapper = setup({ option: { aggregate_name: 'an_aggregate' } });
-    expect(wrapper.find(AggregateOption)).to.have.lengthOf(1);
+    expect(wrapper.find(AggregateOption)).toHaveLength(1);
   });
 });

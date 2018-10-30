@@ -425,8 +425,8 @@ g.annotation-container {
     font: normal normal normal 14px/1 FontAwesome;
     content: "\f0dc";
     position: absolute;
-    top: 17px;
-    right: 15px;
+    top: 6px;
+    right: 5px;
     color: @brand-primary;
 }
 .reactable-header-sort-asc::before{
@@ -436,6 +436,9 @@ g.annotation-container {
 .reactable-header-sort-desc::before{
     content: "\f0dd";
     color: @brand-primary;
+}
+tr.reactable-column-header th.reactable-header-sortable {
+    padding-right: 17px;
 }
 
 .explore-chart-overlay {

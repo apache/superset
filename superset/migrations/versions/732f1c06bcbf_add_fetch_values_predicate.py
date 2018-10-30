@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """add fetch values predicate
 
 Revision ID: 732f1c06bcbf

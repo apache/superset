@@ -1,17 +1,10 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import re
 
 from flask import Markup
 from flask_appbuilder import Model
-from future.standard_library import install_aliases
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text,
@@ -20,9 +13,7 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils import QueryStatus, user_label
-
-install_aliases()
+from superset.utils.core import QueryStatus, user_label
 
 
 class Query(Model):

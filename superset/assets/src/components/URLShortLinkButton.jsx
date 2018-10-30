@@ -23,14 +23,14 @@ class URLShortLinkButton extends React.Component {
     this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
-  onShortUrlSuccess(data) {
-    this.setState({
-      shortUrl: data,
-    });
+  onShortUrlSuccess(shortUrl) {
+    this.setState(() => ({
+      shortUrl,
+    }));
   }
 
   getCopyUrl() {
-    getShortUrl(this.props.url, this.onShortUrlSuccess, this.props.addDangerToast);
+    getShortUrl(this.props.url).then(this.onShortUrlSuccess).catch(this.props.addDangerToast);
   }
 
   renderPopover() {
@@ -54,11 +54,12 @@ class URLShortLinkButton extends React.Component {
       <OverlayTrigger
         trigger="click"
         rootClose
+        shouldUpdatePosition
         placement="left"
         onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}
       >
-        <span className="btn btn-default btn-sm">
+        <span className="btn btn-default btn-sm" data-test="short-link-button">
           <i className="fa fa-link" />&nbsp;
         </span>
       </OverlayTrigger>

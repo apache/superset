@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import io
 import json
 import os
 import subprocess
+import sys
 
 from setuptools import find_packages, setup
+
+if sys.version_info < (3, 6):
+    sys.exit('Sorry, Python < 3.6 is not supported')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
@@ -56,27 +54,27 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'bleach',
-        'boto3==1.4.7',
+        'boto3>=1.4.7, <2.0.0',
         'botocore>=1.7.0, <1.8.0',
-        'celery>=4.2.0',
+        'celery>=4.2.0, <5.0.0',
+        'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
         'cryptography',
-        'flask<1.0.0',
-        'flask-appbuilder==1.10.0',  # known db migration with 1.11+
+        'flask>=1.0.0, <2.0.0',
+        'flask-appbuilder>=1.12.1, <2.0.0',
         'flask-caching',
         'flask-compress',
         'flask-migrate',
         'flask-wtf',
         'flower',  # deprecated
-        'future>=0.16.0, <0.17',
         'geopy',
         'gsheetsdb',
         'gunicorn',  # deprecated
         'humanize',
         'idna',
         'isodate',
-        'markdown',
+        'markdown>=3.0',
         'pandas>=0.18.0',
         'parsedatetime',
         'pathlib2',
@@ -85,10 +83,9 @@ setup(
         'pyhive>=0.4.0',
         'python-dateutil',
         'python-geohash',
-        'pyyaml>=3.11',
+        'pyyaml>=3.13',
         'requests',
         'simplejson>=3.15.0',
-        'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
@@ -110,8 +107,6 @@ setup(
         '/apache/incubator-superset/tarball/' + version_string
     ),
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
 )

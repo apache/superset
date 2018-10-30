@@ -1,50 +1,29 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
-import logging
-import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 from mock import Mock
 import pandas as pd
 
-from superset import app, cli, db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.utils import get_main_database
-
+from superset.utils.core import get_main_database
 
 BASE_DIR = app.config.get('BASE_DIR')
 
 
 class SupersetTestCase(unittest.TestCase):
-    requires_examples = False
-    examples_loaded = False
 
     def __init__(self, *args, **kwargs):
-        if (
-            self.requires_examples and
-            not os.environ.get('examples_loaded')
-        ):
-            logging.info('Loading examples')
-            cli.load_examples_run(load_test_data=True)
-            logging.info('Done loading examples')
-            security_manager.sync_role_definitions()
-            os.environ['examples_loaded'] = '1'
-        else:
-            security_manager.sync_role_definitions()
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
 
-        cli.load_test_users_run()
+    @classmethod
+    def create_druid_test_objects(cls):
         # create druid cluster and druid datasources
         session = db.session
         cluster = (
@@ -77,10 +56,13 @@ class SupersetTestCase(unittest.TestCase):
             .one()
         )
 
-    def get_or_create(self, cls, criteria, session):
+    def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
+        obj.__dict__.update(**kwargs)
+        session.add(obj)
+        session.commit()
         return obj
 
     def login(self, username='admin', password='general'):
@@ -172,7 +154,7 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
+    def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))

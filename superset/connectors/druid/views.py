@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import json
 import logging
@@ -16,9 +10,10 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
-from superset import appbuilder, db, security_manager, utils
+from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
     get_datasource_exist_error_msg, ListWidgetWithCheckboxes, SupersetModelView,
@@ -126,7 +121,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             '[Druid Post Aggregation]'
             '(http://druid.io/docs/latest/querying/post-aggregations.html)',
             True),
-        'is_restricted': _('Whether the access to this metric is restricted '
+        'is_restricted': _('Whether access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
                            'are allowed to access this metric'),

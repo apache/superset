@@ -1,7 +1,6 @@
 import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 
 import mockMessageToasts from '../mockMessageToasts';
 import Toast from '../../../../src/messageToasts/components/Toast';
@@ -19,24 +18,24 @@ describe('Toast', () => {
 
   it('should render an Alert', () => {
     const wrapper = setup();
-    expect(wrapper.find(Alert)).to.have.length(1);
+    expect(wrapper.find(Alert)).toHaveLength(1);
   });
 
   it('should render toastText within the alert', () => {
     const wrapper = setup();
     const alert = wrapper.find(Alert).dive();
 
-    expect(alert.childAt(1).text()).to.equal(props.toast.text);
+    expect(alert.childAt(1).text()).toBe(props.toast.text);
   });
 
   it('should call onCloseToast upon alert dismissal', done => {
     const onCloseToast = id => {
-      expect(id).to.equal(props.toast.id);
+      expect(id).toBe(props.toast.id);
       done();
     };
     const wrapper = setup({ onCloseToast });
     const handleClosePress = wrapper.instance().handleClosePress;
-    expect(wrapper.find(Alert).prop('onDismiss')).to.equal(handleClosePress);
+    expect(wrapper.find(Alert).prop('onDismiss')).toBe(handleClosePress);
     handleClosePress(); // there is a timeout for onCloseToast to be called
   });
 });

@@ -7,7 +7,6 @@ import URI from 'urijs';
 
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
-import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import { t } from '../../locales';
 import TabStatusIcon from './TabStatusIcon';
@@ -21,9 +20,11 @@ const propTypes = {
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
   getHeight: PropTypes.func.isRequired,
+  offline: PropTypes.bool,
 };
 const defaultProps = {
   queryEditors: [],
+  offline: false,
 };
 
 let queryCount = 1;
@@ -187,8 +188,7 @@ class TabbedSqlEditors extends React.PureComponent {
               </div>
               {t('Rename tab')}
             </MenuItem>
-            {qe && <CopyQueryTabUrl queryEditor={qe} />}
-            <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
+            <MenuItem eventKey="3" onClick={this.toggleLeftBar.bind(this)}>
               <div className="icon-container">
                 <i className="fa fa-cogs" />
               </div>
@@ -234,6 +234,7 @@ class TabbedSqlEditors extends React.PureComponent {
             </div>
           }
           eventKey="add_tab"
+          disabled={this.props.offline}
         />
       </Tabs>
     );
@@ -250,6 +251,7 @@ function mapStateToProps({ sqlLab }) {
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
     defaultDbId: sqlLab.defaultDbId,
+    offline: sqlLab.offline,
   };
 }
 function mapDispatchToProps(dispatch) {

@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
@@ -30,24 +29,24 @@ function setup(overrides) {
 describe('AdhocFilterEditPopoverSqlTabContent', () => {
   it('renders the sql tab form', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).to.have.lengthOf(2);
+    expect(wrapper.find(FormGroup)).toHaveLength(2);
   });
 
   it('passes the new clause to onChange after onSqlExpressionClauseChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSqlExpressionClauseChange(CLAUSES.HAVING);
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       sqlAdhocFilter.duplicateWith({ clause: CLAUSES.HAVING })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('passes the new query to onChange after onSqlExpressionChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSqlExpressionChange('value < 5');
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       sqlAdhocFilter.duplicateWith({ sqlExpression: 'value < 5' })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 });

@@ -15,7 +15,7 @@ RUN apt-get update -y
 # Install some dependencies
 # http://airbnb.io/superset/installation.html#os-dependencies
 RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev
+    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
 
 RUN apt-get install -y vim less postgresql-client redis-tools
 
@@ -36,7 +36,9 @@ WORKDIR $HOME/incubator-superset
 COPY ./ ./
 
 RUN pip install --upgrade setuptools pip
-RUN pip install -e . && pip install -r requirements-dev.txt
+RUN pip install -r requirements.txt
+RUN pip install -r requirements-dev.txt
+RUN pip install -e .
 
 ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH

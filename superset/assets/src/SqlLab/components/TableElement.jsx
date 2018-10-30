@@ -143,7 +143,7 @@ class TableElement extends React.PureComponent {
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText={t('Copy SELECT statement to clipboard')}
+            tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         }
         <Link
@@ -216,7 +216,7 @@ class TableElement extends React.PureComponent {
         transitionAppear
         onExited={this.removeFromStore.bind(this)}
       >
-        <div className="TableElement m-b-10">
+        <div className="TableElement table-schema m-b-10">
           {this.renderHeader()}
           <div>
             {this.renderBody()}

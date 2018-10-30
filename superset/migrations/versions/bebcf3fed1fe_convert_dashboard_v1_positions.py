@@ -8,16 +8,19 @@ Create Date: 2018-07-22 11:59:07.025119
 
 # revision identifiers, used by Alembic.
 import collections
+from functools import reduce
 import json
 import sys
-from functools import reduce
 import uuid
 
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import (
-    Table, Column,
-    Integer, String, Text, ForeignKey,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -74,9 +77,9 @@ dashboard_slices = Table(
 class Dashboard(Base):
     """Declarative class to do query in upgrade"""
     __tablename__ = 'dashboards'
-    id = sa.Column(sa.Integer, primary_key=True)
-    dashboard_title = sa.Column(String(500))
-    position_json = sa.Column(sa.Text)
+    id = Column(Integer, primary_key=True)
+    dashboard_title = Column(String(500))
+    position_json = Column(Text)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
 
@@ -189,11 +192,11 @@ def get_chart_holder(position):
 
     width = max(
         GRID_MIN_COLUMN_COUNT,
-        int(round(size_x / GRID_RATIO))
+        int(round(size_x / GRID_RATIO)),
     )
     height = max(
         GRID_MIN_ROW_UNITS,
-        int(round(((size_y / GRID_RATIO) * 100) / ROW_HEIGHT))
+        int(round(((size_y / GRID_RATIO) * 100) / ROW_HEIGHT)),
     )
     if code is not None:
         markdown_content = ' '  # white-space markdown
@@ -210,7 +213,7 @@ def get_chart_holder(position):
                 'width': width,
                 'height': height,
                 'code': markdown_content,
-            }
+            },
         }
 
     return {
@@ -233,7 +236,7 @@ def get_children_sum(children, attr, root):
     return reduce(
         (lambda sum, childId: sum + root[childId]['meta'][attr]),
         children,
-        0
+        0,
     )
 
 
@@ -243,8 +246,8 @@ def get_wide_column_ids(children, root):
     return list(
         filter(
             lambda childId: can_reduce_column_width(root[childId], root),
-            children
-        )
+            children,
+        ),
     )
 
 
@@ -274,8 +277,8 @@ def reduce_row_width(row_component, root):
     wide_leaf_component_ids = list(
         filter(
             lambda childId: is_wide_leaf_component(root[childId]),
-            row_component['children']
-        )
+            row_component['children'],
+        ),
     )
 
     widest_chart_id = None
@@ -480,7 +483,7 @@ def convert_to_layout(positions):
                             for childId in root[current_column]['children']:
                                 if root[childId]['type'] == ROW_TYPE:
                                     root[childId]['meta']['width'] = reduce_row_width(
-                                        root[childId], root
+                                        root[childId], root,
                                     )
                                 else:
                                     root[childId]['meta']['width'] = \
@@ -489,12 +492,12 @@ def convert_to_layout(positions):
                             root[current_column]['meta']['width'] = get_children_max(
                                 root[current_column]['children'],
                                 'width',
-                                root
+                                root,
                             )
                             current_width = get_children_sum(
                                 item['children'],
                                 'width',
-                                root
+                                root,
                             )
                             idx += 1
 
@@ -574,7 +577,7 @@ def scan_dashboard_positions_data(positions):
                     idx = sorted(
                         available_columns_index,
                         key=lambda x: next_row[x]['size_x'],
-                        reverse=True
+                        reverse=True,
                     )[0]
 
                 next_position = next_row.pop(idx)
@@ -646,10 +649,10 @@ def upgrade():
                 positions.append(position)
 
             v2_layout = convert_to_layout(positions)
-            v2_layout[DASHBOARD_HEADER_ID] = get_header_component(dashboard.dashboard_title)
+            v2_layout[DASHBOARD_HEADER_ID] = get_header_component(
+                dashboard.dashboard_title)
 
             sorted_by_key = collections.OrderedDict(sorted(v2_layout.items()))
-            # print('converted position_json:\n {}'.format(json.dumps(sorted_by_key, indent=2)))
             dashboard.position_json = json.dumps(sorted_by_key, indent=2)
             session.merge(dashboard)
             session.commit()

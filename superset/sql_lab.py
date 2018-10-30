@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from datetime import datetime
 import logging
 from time import sleep
@@ -17,7 +14,7 @@ from sqlalchemy.pool import NullPool
 from superset import app, dataframe, db, results_backend, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
+from superset.utils.core import (
     get_celery_app,
     json_iso_dttm_ser,
     now_as_float,
@@ -186,10 +183,14 @@ def execute_sql(
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
-        data = db_engine_spec.fetch_data(cursor, query.limit)
         stats_logger.timing(
             'sqllab.query.time_executing_query',
             now_as_float() - query_start_time)
+        fetching_start_time = now_as_float()
+        data = db_engine_spec.fetch_data(cursor, query.limit)
+        stats_logger.timing(
+            'sqllab.query.time_fetching_results',
+            now_as_float() - fetching_start_time)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
         if conn is not None:

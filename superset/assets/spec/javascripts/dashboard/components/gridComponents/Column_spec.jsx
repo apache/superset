@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import BackgroundStyleDropdown from '../../../../../src/dashboard/components/menu/BackgroundStyleDropdown';
@@ -59,42 +58,42 @@ describe('Column', () => {
   it('should render a DragDroppable', () => {
     // don't count child DragDroppables
     const wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render a WithPopoverMenu', () => {
     // don't count child DragDroppables
     const wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(WithPopoverMenu)).to.have.length(1);
+    expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
   });
 
   it('should render a ResizableContainer', () => {
     // don't count child DragDroppables
     const wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(ResizableContainer)).to.have.length(1);
+    expect(wrapper.find(ResizableContainer)).toHaveLength(1);
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: columnWithoutChildren, editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
   });
 
   it('should render a DeleteComponentButton in editMode', () => {
     let wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: columnWithoutChildren, editMode: true });
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should render a BackgroundStyleDropdown when focused', () => {
     let wrapper = setup({ component: columnWithoutChildren });
-    expect(wrapper.find(BackgroundStyleDropdown)).to.have.length(0);
+    expect(wrapper.find(BackgroundStyleDropdown)).toHaveLength(0);
 
     // we cannot set props on the Row because of the WithDragDropContext wrapper
     wrapper = setup({ component: columnWithoutChildren, editMode: true });
@@ -103,20 +102,20 @@ describe('Column', () => {
       .at(1) // first one is delete button
       .simulate('click');
 
-    expect(wrapper.find(BackgroundStyleDropdown)).to.have.length(1);
+    expect(wrapper.find(BackgroundStyleDropdown)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
     const deleteComponent = sinon.spy();
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find(DeleteComponentButton).simulate('click');
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 
   it('should pass its own width as availableColumnCount to children', () => {
     const wrapper = setup();
     const dashboardComponent = wrapper.find(DashboardComponent).first();
-    expect(dashboardComponent.props().availableColumnCount).to.equal(
+    expect(dashboardComponent.props().availableColumnCount).toBe(
       props.component.meta.width,
     );
   });
@@ -125,12 +124,12 @@ describe('Column', () => {
     const wrapper = setup({ component: columnWithoutChildren });
     const columnWidth = columnWithoutChildren.meta.width;
     const resizableProps = wrapper.find(ResizableContainer).props();
-    expect(resizableProps.adjustableWidth).to.equal(true);
-    expect(resizableProps.adjustableHeight).to.equal(false);
-    expect(resizableProps.widthStep).to.equal(props.columnWidth);
-    expect(resizableProps.widthMultiple).to.equal(columnWidth);
-    expect(resizableProps.minWidthMultiple).to.equal(props.minColumnWidth);
-    expect(resizableProps.maxWidthMultiple).to.equal(
+    expect(resizableProps.adjustableWidth).toBe(true);
+    expect(resizableProps.adjustableHeight).toBe(false);
+    expect(resizableProps.widthStep).toBe(props.columnWidth);
+    expect(resizableProps.widthMultiple).toBe(columnWidth);
+    expect(resizableProps.minWidthMultiple).toBe(props.minColumnWidth);
+    expect(resizableProps.maxWidthMultiple).toBe(
       props.availableColumnCount + columnWidth,
     );
   });
@@ -138,6 +137,6 @@ describe('Column', () => {
   it('should increment the depth of its children', () => {
     const wrapper = setup();
     const dashboardComponent = wrapper.find(DashboardComponent);
-    expect(dashboardComponent.props().depth).to.equal(props.depth + 1);
+    expect(dashboardComponent.props().depth).toBe(props.depth + 1);
   });
 });

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
-import ParentSize from '@vx/responsive/build/components/ParentSize';
+import { ParentSize } from '@vx/responsive';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';

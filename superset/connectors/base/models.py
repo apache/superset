@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from past.builtins import basestring
@@ -14,9 +8,9 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
-from superset import utils
 from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.utils import core as utils
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):

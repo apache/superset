@@ -3,10 +3,9 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
 
-import $ from 'jquery';
 import shortid from 'shortid';
 import { queries, queryWithBadColumns } from './fixtures';
 import { sqlLabReducer } from '../../../src/SqlLab/reducers';
@@ -59,19 +58,19 @@ describe('ExploreResultsButton', () => {
     requiresTime: true,
     value: 'bar',
   };
-  const getExploreResultsButtonWrapper = (props = mockedProps) => (
+  const getExploreResultsButtonWrapper = (props = mockedProps) =>
     shallow(<ExploreResultsButton {...props} />, {
       context: { store },
-    }).dive());
+    }).dive();
 
   it('renders', () => {
-    expect(React.isValidElement(<ExploreResultsButton />)).to.equal(true);
+    expect(React.isValidElement(<ExploreResultsButton />)).toBe(true);
   });
 
   it('renders with props', () => {
     expect(
       React.isValidElement(<ExploreResultsButton {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('detects bad columns', () => {
@@ -82,29 +81,15 @@ describe('ExploreResultsButton', () => {
     });
 
     const badCols = wrapper.instance().getInvalidColumns();
-    expect(badCols).to.deep.equal(['COUNT(*)', '1', '123', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
+    expect(badCols).toEqual(['COUNT(*)', '1', '123', 'CASE WHEN 1=1 THEN 1 ELSE 0 END']);
 
     const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
-    expect(msgWrapper.find('div')).to.have.length(1);
+    expect(msgWrapper.find('div')).toHaveLength(1);
   });
 
   it('renders a Button', () => {
     const wrapper = getExploreResultsButtonWrapper();
-    expect(wrapper.find(Button)).to.have.length(1);
-  });
-
-  describe('getColumnFromProps', () => {
-    it('should require valid query parameter in props', () => {
-      const emptyQuery = {
-        database,
-        show: true,
-        query: {},
-      };
-      const wrapper = shallow(<ExploreResultsButton {...emptyQuery} />, {
-        context: { store },
-      }).dive();
-      expect(wrapper.state().hints).to.deep.equal([]);
-    });
+    expect(wrapper.find(Button)).toHaveLength(1);
   });
 
   describe('datasourceName', () => {
@@ -121,19 +106,19 @@ describe('ExploreResultsButton', () => {
     it('should generate data source name from query', () => {
       const sampleQuery = queries[0];
       const name = wrapper.instance().datasourceName();
-      expect(name).to.equal(`${sampleQuery.user}-${sampleQuery.tab}-abcd`);
+      expect(name).toBe(`${sampleQuery.user}-${sampleQuery.tab}-abcd`);
     });
     it('should generate data source name with empty query', () => {
       wrapper.setProps({ query: {} });
       const name = wrapper.instance().datasourceName();
-      expect(name).to.equal('undefined-abcd');
+      expect(name).toBe('undefined-abcd');
     });
 
     it('should build viz options', () => {
       wrapper.setState({ chartType: mockChartTypeTB });
       const spy = sinon.spy(wrapper.instance(), 'buildVizOptions');
       wrapper.instance().buildVizOptions();
-      expect(spy.returnValues[0]).to.deep.equal({
+      expect(spy.returnValues[0]).toEqual({
         schema: 'test_schema',
         sql: wrapper.instance().props.query.sql,
         dbId: wrapper.instance().props.query.dbId,
@@ -155,7 +140,7 @@ describe('ExploreResultsButton', () => {
       context: { store },
     }).dive();
     const inst = longQueryWrapper.instance();
-    expect(inst.getQueryDuration()).to.equal(100.7050400390625);
+    expect(inst.getQueryDuration()).toBe(100.7050400390625);
   });
 
   describe('visualize', () => {
@@ -166,64 +151,71 @@ describe('ExploreResultsButton', () => {
       datasourceName: 'mockDatasourceName',
     });
 
-    let ajaxSpy;
-    let datasourceSpy;
+    const visualizeURL = '/superset/sqllab_viz/';
+    const visualizeEndpoint = `glob:*${visualizeURL}`;
+    const visualizationPayload = { table_id: 107 };
+    fetchMock.post(visualizeEndpoint, visualizationPayload);
+
     beforeEach(() => {
-      ajaxSpy = sinon.spy($, 'ajax');
-      sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
-      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
+      sinon
+        .stub(exploreUtils, 'getExploreUrlAndPayload')
+        .callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
       sinon.spy(exploreUtils, 'exportChart');
-      sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => (mockOptions));
-      datasourceSpy = sinon.stub(actions, 'createDatasource');
+      sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => mockOptions);
     });
     afterEach(() => {
-      ajaxSpy.restore();
-      JSON.parse.restore();
       exploreUtils.getExploreUrlAndPayload.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
-      datasourceSpy.restore();
+      fetchMock.reset();
     });
 
-    it('should build request', () => {
+    it('should build request with correct args', (done) => {
       wrapper.instance().visualize();
-      expect(ajaxSpy.callCount).to.equal(1);
 
-      const spyCall = ajaxSpy.getCall(0);
-      expect(spyCall.args[0].type).to.equal('POST');
-      expect(spyCall.args[0].url).to.equal('/superset/sqllab_viz/');
-      expect(spyCall.args[0].data.data).to.equal(JSON.stringify(mockOptions));
-    });
-    it('should open new window', () => {
-      const infoToastSpy = sinon.spy();
+      setTimeout(() => {
+        const calls = fetchMock.calls(visualizeEndpoint);
+        expect(calls).toHaveLength(1);
+        const formData = calls[0][1].body;
 
-      datasourceSpy.callsFake(() => {
-        const d = $.Deferred();
-        d.resolve('done');
-        return d.promise();
+        Object.keys(mockOptions).forEach((key) => {
+          // eslint-disable-next-line no-unused-expressions
+          expect(formData.get(key)).toBeDefined();
+        });
+
+        done();
       });
+    });
+
+    it('should export chart and add an info toast', (done) => {
+      const infoToastSpy = sinon.spy();
+      const datasourceSpy = sinon.stub();
+
+      datasourceSpy.callsFake(() => Promise.resolve(visualizationPayload));
 
       wrapper.setProps({
         actions: {
-          createDatasource: datasourceSpy,
           addInfoToast: infoToastSpy,
+          createDatasource: datasourceSpy,
         },
       });
 
       wrapper.instance().visualize();
-      expect(exploreUtils.exportChart.callCount).to.equal(1);
-      expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
-      expect(infoToastSpy.callCount).to.equal(1);
-    });
-    it('should add error toast', () => {
-      const dangerToastSpy = sinon.spy();
 
-      datasourceSpy.callsFake(() => {
-        const d = $.Deferred();
-        d.reject('error message');
-        return d.promise();
+      setTimeout(() => {
+        expect(datasourceSpy.callCount).toBe(1);
+        expect(exploreUtils.exportChart.callCount).toBe(1);
+        expect(exploreUtils.exportChart.getCall(0).args[0].datasource).toBe('107__table');
+        expect(infoToastSpy.callCount).toBe(1);
+        done();
       });
+    });
 
+    it('should add error toast', (done) => {
+      const dangerToastSpy = sinon.stub(actions, 'addDangerToast');
+      const datasourceSpy = sinon.stub();
+
+      datasourceSpy.callsFake(() => Promise.reject({ error: 'error' }));
 
       wrapper.setProps({
         actions: {
@@ -233,8 +225,14 @@ describe('ExploreResultsButton', () => {
       });
 
       wrapper.instance().visualize();
-      expect(exploreUtils.exportChart.callCount).to.equal(0);
-      expect(dangerToastSpy.callCount).to.equal(1);
+
+      setTimeout(() => {
+        expect(datasourceSpy.callCount).toBe(1);
+        expect(exploreUtils.exportChart.callCount).toBe(0);
+        expect(dangerToastSpy.callCount).toBe(1);
+        dangerToastSpy.restore();
+        done();
+      });
     });
   });
 });

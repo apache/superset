@@ -1,0 +1,10 @@
+.cal_heatmap {
+  padding: 10px;
+  position: static !important;
+  overflow: auto !important;
+}
+
+.cal_heatmap .ch-tooltip {
+  margin-left: 20px;
+  margin-top: 5px;
+}

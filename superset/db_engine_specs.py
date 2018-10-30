@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
@@ -13,11 +12,6 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import defaultdict, namedtuple
 import inspect
 import logging
@@ -32,7 +26,7 @@ from flask_babel import lazy_gettext as _
 import pandas
 from past.builtins import basestring
 import sqlalchemy as sqla
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
@@ -41,10 +35,11 @@ import sqlparse
 from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, sql_parse, utils
+from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
-from superset.utils import QueryStatus
+from superset.utils import cache as cache_util, core as utils
 
+QueryStatus = utils.QueryStatus
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
@@ -234,8 +229,8 @@ class BaseEngineSpec(object):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
@@ -299,12 +294,36 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
-    def get_schema_names(cls, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
+    def get_schema_names(cls, inspector, db_id,
+                         enable_cache, cache_timeout, force=False):
+        """A function to get all schema names in this db.
+
+        :param inspector: URI string
+        :param db_id: database id
+        :param enable_cache: whether to enable cache for the function
+        :param cache_timeout: timeout settings for cache in second.
+        :param force: force to refresh
+        :return: a list of schema names
+        """
         return inspector.get_schema_names()
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_view_names(cls, inspector, db_id, schema,
+                       enable_cache, cache_timeout, force=False):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -429,7 +448,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -561,8 +584,8 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         schemas = db.inspector.get_schema_names()
         result_sets = {}
@@ -586,7 +609,11 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
+            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
+    def get_table_names(cls, inspector, db_id, schema,
+                        enable_cache, cache_timeout, force=False):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
@@ -711,8 +738,8 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
@@ -853,6 +880,20 @@ class PrestoEngineSpec(BaseEngineSpec):
         return sql
 
     @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        try:
+            col_name, value = cls.latest_partition(
+                table_name, schema, database, show_first=True)
+        except Exception:
+            # table is not partitioned
+            return False
+        for c in columns:
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
+        return False
+
+    @classmethod
     def _latest_partition_from_df(cls, df):
         recs = df.to_records(index=False)
         if recs:
@@ -978,8 +1019,8 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
+        use_tables_cache=True)
     def fetch_result_sets(cls, db, datasource_type, force=False):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
@@ -1005,6 +1046,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             }
             return tableschema_to_hive_types.get(col_type, 'STRING')
 
+        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
+
+        if not bucket_path:
+            logging.info('No upload bucket specified')
+            raise Exception(
+                'No upload bucket specified. You can specify one in the config file.')
+
         table_name = form.name.data
         schema_name = form.schema.data
 
@@ -1014,37 +1062,29 @@ class HiveEngineSpec(PrestoEngineSpec):
                     "You can't specify a namespace. "
                     'All tables will be uploaded to the `{}` namespace'.format(
                         config.get('HIVE_NAMESPACE')))
-            table_name = '{}.{}'.format(
+            full_table_name = '{}.{}'.format(
                 config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
         else:
             if '.' in table_name and schema_name:
                 raise Exception(
                     "You can't specify a namespace both in the name of the table "
                     'and in the schema field. Please remove one')
-            if schema_name:
-                table_name = '{}.{}'.format(schema_name, table_name)
+
+            full_table_name = '{}.{}'.format(
+                schema_name, table_name) if schema_name else table_name
 
         filename = form.csv_file.data.filename
-        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
-        if not bucket_path:
-            logging.info('No upload bucket specified')
-            raise Exception(
-                'No upload bucket specified. You can specify one in the config file.')
-
-        table_name = form.name.data
-        filename = form.csv_file.data.filename
         upload_prefix = config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
-
         upload_path = config['UPLOAD_FOLDER'] + \
-            secure_filename(form.csv_file.data.filename)
+            secure_filename(filename)
 
         hive_table_schema = Table(upload_path).infer()
         column_name_and_type = []
         for column_info in hive_table_schema['fields']:
             column_name_and_type.append(
-                '{} {}'.format(
-                    "'" + column_info['name'] + "'",
+                '`{}` {}'.format(
+                    column_info['name'],
                     convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
 
@@ -1053,7 +1093,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE TABLE {table_name} ( {schema_definition} )
+        sql = """CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')""".format(**locals())
@@ -1181,7 +1221,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, schema, database, qry, columns=None):
         try:
             col_name, value = cls.latest_partition(
-                table_name, schema, database)
+                table_name, schema, database, show_first=True)
         except Exception:
             # table is not partitioned
             return False
@@ -1394,6 +1434,28 @@ class BQEngineSpec(BaseEngineSpec):
         return mutated_label
 
     @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
+        return {
+            'partitions': {
+                'cols': partitions_columns,
+            },
+            'clustering': {
+                'cols': cluster_columns,
+            },
+        }
+
+    @classmethod
     def _get_fields(cls, cols):
         """
         BigQuery dialect requires us to not use backtick in the fieldname which are
@@ -1435,7 +1497,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def get_schema_names(cls, inspector):
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
+    def get_schema_names(cls, inspector, db_id,
+                         enable_cache, cache_timeout, force=False):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas
@@ -1460,37 +1525,11 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
 
-class GSheetsEngineSpec(BaseEngineSpec):
+class GSheetsEngineSpec(SqliteEngineSpec):
     """Engine for Google spreadsheets"""
     engine = 'gsheets'
     inner_joins = False
     allows_subquery = False
-
-    time_grain_functions = {
-        None: '{col}',
-        'PT1S': 'second({col})',
-        'PT1M': 'minute({col})',
-        'PT1H': 'hour({col})',
-        'P1D': 'day({col})',
-        'P1M': 'month({col})',
-        'P0.25Y': 'quarter({col})',
-        'P1Y': 'year({col})',
-    }
-
-    @classmethod
-    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True,
-                    cols=None):
-        return BaseEngineSpec.select_star(
-            my_db=my_db,
-            table_name=table_name,
-            engine=engine,
-            schema=None,                # omit schema
-            limit=limit,
-            show_cols=show_cols,
-            indent=indent,
-            latest_partition=False,     # no partitions
-            cols=cols)
 
 
 class KylinEngineSpec(BaseEngineSpec):

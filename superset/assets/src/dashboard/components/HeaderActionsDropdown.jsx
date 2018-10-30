@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
 import CssEditor from './CssEditor';
@@ -26,6 +26,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -52,14 +53,20 @@ class HeaderActionsDropdown extends React.PureComponent {
   componentWillMount() {
     injectCustomCss(this.state.css);
 
-    $.get('/csstemplateasyncmodelview/api/read', data => {
-      const cssTemplates = data.result.map(row => ({
-        value: row.template_name,
-        css: row.css,
-        label: row.template_name,
-      }));
-      this.setState({ cssTemplates });
-    });
+    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+      .then(({ json }) => {
+        const cssTemplates = json.result.map(row => ({
+          value: row.template_name,
+          css: row.css,
+          label: row.template_name,
+        }));
+        this.setState({ cssTemplates });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      });
   }
 
   changeCss(css) {
@@ -85,6 +92,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       onSave,
       userCanEdit,
       userCanSave,
+      isLoading,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
@@ -131,7 +139,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {userCanSave && <MenuItem divider />}
 
-        <MenuItem onClick={forceRefreshAllCharts}>
+        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
         <RefreshIntervalModal

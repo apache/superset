@@ -20,7 +20,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Text
 
 from superset import db
-from superset import utils
+from superset.utils.core import (
+    convert_legacy_filters_into_adhoc, split_adhoc_filters_into_base_filters)
 
 
 Base = declarative_base()
@@ -40,7 +41,7 @@ def upgrade():
     for slc in session.query(Slice).all():
         try:
             params = json.loads(slc.params)
-            utils.convert_legacy_filters_into_adhoc(params)
+            convert_legacy_filters_into_adhoc(params)
             slc.params = json.dumps(params, sort_keys=True)
         except Exception:
             pass
@@ -56,7 +57,7 @@ def downgrade():
     for slc in session.query(Slice).all():
         try:
             params = json.loads(slc.params)
-            utils.split_adhoc_filters_into_base_filters(params)
+            split_adhoc_filters_into_base_filters(params)
 
             if 'adhoc_filters' in params:
                 del params['adhoc_filters']

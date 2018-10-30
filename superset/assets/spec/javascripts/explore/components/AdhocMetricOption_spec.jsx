@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
@@ -35,7 +34,7 @@ function setup(overrides) {
 describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OverlayTrigger)).to.have.lengthOf(1);
-    expect(wrapper.find(Label)).to.have.lengthOf(1);
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(Label)).toHaveLength(1);
   });
 });

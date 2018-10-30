@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import logging
 
 from flask import g
@@ -20,6 +14,14 @@ READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
     'DatabaseView',
     'DruidClusterModelView',
+}
+
+USER_MODEL_VIEWS = {
+    'UserDBModelView',
+    'UserLDAPModelView',
+    'UserOAuthModelView',
+    'UserOIDModelView',
+    'UserRemoteUserModelView',
 }
 
 GAMMA_READ_ONLY_MODEL_VIEWS = {
@@ -40,12 +42,7 @@ ADMIN_ONLY_VIEW_MENUS = {
     'ResetPasswordView',
     'RoleModelView',
     'Security',
-    'UserDBModelView',
-    'UserLDAPModelView',
-    'UserOAuthModelView',
-    'UserOIDModelView',
-    'UserRemoteUserModelView',
-}
+} | USER_MODEL_VIEWS
 
 ALPHA_ONLY_VIEW_MENUS = {
     'Upload a CSV',
@@ -89,7 +86,7 @@ class SupersetSecurityManager(SecurityManager):
         """Protecting from has_access failing from missing perms/view"""
         if not user:
             user = g.user
-        if user.is_anonymous():
+        if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
@@ -183,10 +180,12 @@ class SupersetSecurityManager(SecurityManager):
                     datasource_perms.add(perm.view_menu.name)
         return datasource_perms
 
-    def schemas_accessible_by_user(self, database, schemas):
+    def schemas_accessible_by_user(self, database, schemas, hierarchical=True):
         from superset import db
         from superset.connectors.sqla.models import SqlaTable
-        if self.database_access(database) or self.all_datasource_access():
+        if (hierarchical and
+                (self.database_access(database) or
+                 self.all_datasource_access())):
             return schemas
 
         subset = set()
@@ -377,7 +376,9 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in {
                 'can_sql_json', 'can_csv', 'can_search_queries', 'can_sqllab_viz',
                 'can_sqllab',
-            })
+            } or
+            (pvm.view_menu.name in USER_MODEL_VIEWS and
+             pvm.permission.name == 'can_list'))
 
     def is_granter_pvm(self, pvm):
         return pvm.permission.name in {

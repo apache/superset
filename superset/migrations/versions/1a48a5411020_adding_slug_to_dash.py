@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adding slug to dash
 
 Revision ID: 1a48a5411020

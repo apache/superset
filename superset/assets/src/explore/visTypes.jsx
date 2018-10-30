@@ -3,6 +3,7 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
 import { t } from '../locales';
@@ -39,6 +40,13 @@ export const sections = {
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
       ['time_range'],
+    ],
+  },
+  filters: {
+    label: t('Filters'),
+    expanded: true,
+    controlSetRows: [
+      ['filters'],
     ],
   },
   annotations: {
@@ -332,6 +340,9 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      metric: {
+        clearable: false,
+      },
     },
   },
 
@@ -513,6 +524,7 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
           ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
+          ['js_agg_function', null],
         ],
       },
       {
@@ -712,7 +724,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['adhoc_filters'],
-          ['metric'],
+          ['metric', 'point_radius_fixed'],
           ['row_limit', null],
           ['line_column', 'line_type'],
           ['reverse_long_lat', 'filter_nulls'],
@@ -732,10 +744,12 @@ export const visTypes = {
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
-          ['extruded', null],
+          ['extruded', 'multiplier'],
           ['line_width', null],
           ['linear_color_scheme', 'opacity'],
-          ['table_filter', null],
+          ['num_buckets', 'break_points'],
+          ['table_filter', 'toggle_polygons'],
+          ['legend_position', null],
         ],
       },
       {
@@ -758,6 +772,10 @@ export const visTypes = {
       line_type: {
         label: t('Polygon Encoding'),
       },
+      point_radius_fixed: {
+        label: t('Elevation'),
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
@@ -1352,7 +1370,7 @@ export const visTypes = {
       },
       link_length: {
         label: t('No of Bins'),
-        description: t('Select number of bins for the histogram'),
+        description: t('Select the number of bins for the histogram'),
         default: 5,
       },
       global_opacity: {
@@ -1799,7 +1817,7 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Additional meta data'),
+        label: t('Additional metadata'),
         controlSetRows: [
           ['all_columns'],
         ],
@@ -1820,11 +1838,11 @@ export const visTypes = {
       },
       row_limit: {
         label: t('Event count limit'),
-        description: t('The maximum number of events to return, equivalent to number of rows'),
+        description: t('The maximum number of events to return, equivalent to the number of rows'),
       },
       all_columns: {
         label: t('Meta data'),
-        description: t('Select any columns for meta data inspection'),
+        description: t('Select any columns for metadata inspection'),
       },
     },
   },
@@ -1916,6 +1934,7 @@ export function sectionsToRender(vizType, datasourceType) {
   return [].concat(
     sectionsCopy.datasourceAndVizType,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
+    isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
     viz.controlPanelSections,
   ).filter(section => section);
 }

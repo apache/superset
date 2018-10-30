@@ -1,9 +1,14 @@
+const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
@@ -17,6 +22,8 @@ const {
   mode = 'development',
   devserverPort = 9000,
   supersetPort = 8088,
+  measure = false,
+  analyzeBundle = false,
 } = parsedArgs;
 
 const isDevMode = mode !== 'production';
@@ -39,6 +46,11 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+  }),
+
+  // runs type checking on a separate process to speed up the build
+  new ForkTsCheckerWebpackPlugin({
+    checkSyntacticErrors: true,
   }),
 ];
 
@@ -86,19 +98,52 @@ const config = {
     splitChunks: {
       chunks: 'all',
       automaticNameDelimiter: '-',
+      minChunks: 2,
+      cacheGroups: {
+        default: false,
+        major: {
+          name: 'vendors-major',
+          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js)[\\/]/,
+        },
+      },
     },
   },
   resolve: {
-    extensions: ['.js', '.jsx'],
+    alias: {
+      src: path.resolve(APP_DIR, './src'),
+    },
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },
+  context: APP_DIR, // to automatically find tsconfig.json
   module: {
-    // uglyfying mapbox-gl results in undefined errors, see
+    // Uglifying mapbox-gl results in undefined errors, see
     // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
     noParse: /(mapbox-gl)\.js$/,
     rules: [
       {
         test: /datatables\.net.*/,
         loader: 'imports-loader?define=>false',
+      },
+      {
+        test: /\.tsx?$/,
+        use: [
+          { loader: 'cache-loader' },
+          {
+            loader: 'thread-loader',
+            options: {
+                // there should be 1 cpu for the fork-ts-checker-webpack-plugin
+              workers: os.cpus().length - 1,
+            },
+          },
+          {
+            loader: 'ts-loader',
+            options: {
+              // transpile only in happyPack mode
+              // type checking is done via fork-ts-checker-webpack-plugin
+              happyPackMode: true,
+            },
+          },
+        ],
       },
       {
         test: /\.jsx?$/,
@@ -125,15 +170,18 @@ const config = {
       /* for css linking images */
       {
         test: /\.png$/,
-        loader: 'url-loader?limit=100000',
+        loader: 'url-loader',
+        options: {
+          limit: 10000,
+          name: '[name].[hash:8].[ext]',
+        },
       },
       {
-        test: /\.jpg$/,
+        test: /\.(jpg|gif)$/,
         loader: 'file-loader',
-      },
-      {
-        test: /\.gif$/,
-        loader: 'file-loader',
+        options: {
+          name: '[name].[hash:8].[ext]',
+        },
       },
       /* for font-awesome */
       {
@@ -172,4 +220,28 @@ const config = {
   },
 };
 
-module.exports = config;
+if (!isDevMode) {
+  config.optimization.minimizer = [
+    new TerserPlugin({
+      cache: true,
+      parallel: true,
+      extractComments: true,
+    }),
+  ];
+}
+
+// Bundle analyzer is disabled by default
+// Pass flag --analyzeBundle=true to enable
+// e.g. npm run build -- --analyzeBundle=true
+if (analyzeBundle) {
+  config.plugins.push(new BundleAnalyzerPlugin());
+}
+
+// Speed measurement is disabled by default
+// Pass flag --measure=true to enable
+// e.g. npm run build -- --measure=true
+const smp = new SpeedMeasurePlugin({
+  disable: !measure,
+});
+
+module.exports = smp.wrap(config);
