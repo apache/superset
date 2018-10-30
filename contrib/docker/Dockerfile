@@ -35,7 +35,7 @@ WORKDIR $HOME/incubator-superset
 
 COPY ./ ./
 
-RUN RUN mkdir -p /home/work/.cache
+RUN mkdir -p /home/work/.cache
 RUN pip install --upgrade setuptools pip
 RUN pip install -r requirements.txt
 RUN pip install -r requirements-dev.txt
