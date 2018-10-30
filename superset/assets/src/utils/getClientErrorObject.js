@@ -1,7 +1,7 @@
 import { t } from '@superset-ui/translation';
 import COMMON_ERR_MESSAGES from './errorMessages';
 
-export function getClientErrorObject(response) {
+export default function getClientErrorObject(response) {
   // takes a Response object as input, attempts to read response as Json if possible,
   // and returns a Promise that resolves to a plain object with error key and text value.
   return new Promise((resolve) => {
