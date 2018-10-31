@@ -44,6 +44,11 @@ def debug_run(app, port, use_reloader):
         'CONTRIBUTING.md',
         fg='red',
     )
+    click.secho('[example]', fg='yellow')
+    click.secho(
+        'flask run -p 8080 --with-threads --reload --debugger',
+        fg='green',
+    )
 
 
 def console_log_run(app, port, use_reloader):
