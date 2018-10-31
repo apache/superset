@@ -715,7 +715,7 @@ class CoreTests(SupersetTestCase):
             id=db_id,
             extra=extra)
         data = self.get_json_resp(
-            url='/superset/schema_access_for_csv_upload?db_id={db_id}'
+            url='/superset/schemas_access_for_csv_upload?db_id={db_id}'
                 .format(db_id=dbobj.id))
         assert data == ['this_schema_is_allowed_too']
 
