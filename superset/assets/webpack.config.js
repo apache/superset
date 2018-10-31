@@ -80,6 +80,7 @@ const config = {
     theme: APP_DIR + '/src/theme.js',
     common: APP_DIR + '/src/common.js',
     addSlice: ['babel-polyfill', APP_DIR + '/src/addSlice/index.jsx'],
+    addAlert: ['babel-polyfill', APP_DIR + '/src/addAlert/index.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/src/explore/index.jsx'],
     dashboard: ['babel-polyfill', APP_DIR + '/src/dashboard/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/src/SqlLab/index.jsx'],
