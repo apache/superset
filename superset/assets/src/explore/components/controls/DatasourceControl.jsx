@@ -127,11 +127,15 @@ class DatasourceControl extends React.PureComponent {
             placement="right"
             overlay={
               <Tooltip id={'datasource-sqllab'}>
-                {t('Run SQL queries against this datasource')}
+                {t('Explore this datasource in SQL Lab')}
               </Tooltip>
             }
           >
-            <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
+            <a
+              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i className="fa fa-flask m-r-5" />
             </a>
           </OverlayTrigger>}
