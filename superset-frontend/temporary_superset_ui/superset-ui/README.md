@@ -1,4 +1,4 @@
-# @superset-ui 
+# @superset-ui
 
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui)
@@ -44,22 +44,21 @@ superset-ui/
     ...
 ```
 
-For easiest development
+### Installation
 
 1. clone this repo
-2. install the root npm modules including lerna and yarn
-3. have lerna install package dependencies and manage the symlinking between packages for you
+2. have lerna install package dependencies and manage the symlinking between packages for you
 
 ```sh
 git clone ...superset-ui && cd superset-ui
 npm install
-lerna bootstrap
+npm run bootstrap
 ```
 
 ### Builds, linting, and testing
 
 Each package defines its own build config, linting, and testing. You can have lerna run commands
-across all packages using the syntax `lerna exec test` from the root `@superset/monorepo` root
+across all packages using the syntax `npm run test` (or `npm run test:watch` for watch mode) from the root `@superset/monorepo` root
 directory.
 
 ### Publishing
