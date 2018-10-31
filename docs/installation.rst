@@ -23,7 +23,7 @@ flexible and lets you choose your web server (Gunicorn, Nginx, Apache),
 your metadata database engine (MySQL, Postgres, MariaDB, ...),
 your message queue (Redis, RabbitMQ, SQS, ...),
 your results backend (S3, Redis, Memcached, ...), your caching layer
-(memcached, Redis, ...), works well with services like NewRelic, StatsD and
+(Memcached, Redis, ...), works well with services like NewRelic, StatsD and
 DataDog, and has the ability to run analytic workloads against
 most popular database technologies.
 
@@ -65,7 +65,7 @@ OS dependencies
 
 Superset stores database connection information in its metadata database.
 For that purpose, we use the ``cryptography`` Python library to encrypt
-connection passwords. Unfortunately this library has OS level dependencies.
+connection passwords. Unfortunately, this library has OS level dependencies.
 
 You may want to attempt the next step
 ("Superset installation and initialization") and come back to this step if
@@ -82,7 +82,7 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
 
-otherwhise build for ``cryptography`` fails.
+otherwise build for ``cryptography`` fails.
 
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
@@ -138,7 +138,7 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user (you will be prompted to set username, first and last name before setting a password)
+    # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
     fabmanager create-admin --app superset
 
     # Initialize the database
@@ -173,14 +173,14 @@ application in a way that works well in your environment. Here's an **async**
 setup known to work well in production: ::
 
  　gunicorn \
-		-w 10 \
-		-k gevent \
-		--timeout 120 \
-		-b  0.0.0.0:6666 \
-		--limit-request-line 0 \
-		--limit-request-field_size 0 \
-		--statsd-host localhost:8125 \
-		superset:app
+        -w 10 \
+        -k gevent \
+        --timeout 120 \
+        -b  0.0.0.0:6666 \
+        --limit-request-line 0 \
+        --limit-request-field_size 0 \
+        --statsd-host localhost:8125 \
+        superset:app
 
 Refer to the
 `Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
@@ -188,7 +188,7 @@ for more information.
 
 Note that *gunicorn* does not
 work on Windows so the `superset runserver` command is not expected to work
-in that context. Also note that the development web
+in that context. Also, note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
@@ -197,9 +197,9 @@ by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
 Flask-AppBuilder Permissions
 ----------------------------
 
-By default every time the Flask-AppBuilder (FAB) app is initialized the
+By default, every time the Flask-AppBuilder (FAB) app is initialized the
 permissions and views are added automatically to the backend and associated with
-the ‘Admin’ role. The issue however is when you are running multiple concurrent
+the ‘Admin’ role. The issue, however, is when you are running multiple concurrent
 workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
@@ -224,7 +224,7 @@ If you are running superset behind a load balancer or reverse proxy (e.g. NGINX
 or ELB on AWS), you may need to utilise a healthcheck endpoint so that your
 load balancer knows if your superset instance is running. This is provided
 at ``/health`` which will return a 200 response containing "OK" if the
-webserver is running.
+the webserver is running.
 
 If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
 should set `ENABLE_PROXY_FIX = True` in the superset config file to extract and use
@@ -358,7 +358,7 @@ Here's a list of some of the recommended packages.
 |  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
 
-Note that many other database are supported, the main criteria being the
+Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
@@ -442,11 +442,11 @@ into your global default defined in ``CACHE_CONFIG``.
 .. code-block:: python
 
     CACHE_CONFIG = {
-	    'CACHE_TYPE': 'redis',
-	    'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
-	    'CACHE_KEY_PREFIX': 'superset_results',
-	    'CACHE_REDIS_URL': 'redis://localhost:6379/0',
-	}
+        'CACHE_TYPE': 'redis',
+        'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+        'CACHE_KEY_PREFIX': 'superset_results',
+        'CACHE_REDIS_URL': 'redis://localhost:6379/0',
+    }
 
 
 
@@ -470,7 +470,7 @@ while the ``metadata_params`` get unpacked into the
 Schemas (Postgres & Redshift)
 -----------------------------
 
-Postgres and Redshift, as well as other database,
+Postgres and Redshift, as well as other databases,
 use the concept of **schema** as a logical entity
 on top of the **database**. For Superset to connect to a specific schema,
 there's a **schema** parameter you can set in the table form.
@@ -596,9 +596,9 @@ On large analytic databases, it's common to run queries that
 execute for minutes or hours.
 To enable support for long running queries that
 execute beyond the typical web request's timeout (30-60 seconds), it is
-necessary to configure an asynchronous backend for Superset which consist of:
+necessary to configure an asynchronous backend for Superset which consists of:
 
-* one or many Superset worker (which is implemented as a Celery worker), and
+* one or many Superset workers (which is implemented as a Celery worker), and
   can be started with the ``celery worker`` command, run
   ``celery worker --help`` to view the related options.
 * a celery broker (message queue) for which we recommend using Redis
@@ -651,7 +651,7 @@ This means that SQLite will not work in this context since it has
 limited support for concurrency and
 typically lives on the local file system.
 
-Also note that SQL Lab supports Jinja templating in queries, and that it's
+Also note that SQL Lab supports Jinja templating in queries and that it's
 possible to overload
 the default Jinja context in your environment by defining the
 ``JINJA_CONTEXT_ADDONS`` in your superset configuration. Objects referenced
@@ -686,7 +686,7 @@ Blueprints
 `Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
 Superset allows you to specify an array of Blueprints
 in your ``superset_config`` module. Here's
-an example on how this can work with a simple Blueprint. By doing
+an example of how this can work with a simple Blueprint. By doing
 so, you can expect Superset to serve a page that says "OK"
 at the ``/simple_page`` url. This can allow you to run other things such
 as custom data visualization applications alongside Superset, on the
@@ -739,7 +739,7 @@ Note that the above command will install Superset into ``default`` namespace of 
 Custom OAuth2 configuration
 ---------------------------
 
-Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that supports "code" authorization. 
+Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that support "code" authorization. 
 
 The first step: Configure authorization in Superset ``superset_config.py``.
 
@@ -756,11 +756,11 @@ The first step: Configure authorization in Superset ``superset_config.py``.
                 'request_token_params':{
                     'scope': 'read'               # Scope for the Authorization
                 },
-                'access_token_method':'POST',	# HTTP Method to call access_token_url
-                'access_token_params':{		# Additional parameters for calls to access_token_url
-                    'client_id':'myClientId'	 
+                'access_token_method':'POST',    # HTTP Method to call access_token_url
+                'access_token_params':{        # Additional parameters for calls to access_token_url
+                    'client_id':'myClientId'     
                 },
-                'access_token_headers':{	# Additional headers for calls to access_token_url 
+                'access_token_headers':{    # Additional headers for calls to access_token_url 
                     'Authorization': 'Basic Base64EncodedClientIdAndSecret' 
                 },
                 'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
@@ -788,11 +788,11 @@ Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityM
             logging.debug("Oauth2 provider: {0}.".format(provider))
             if provider == 'egaSSO':
                 # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication, 
-		# and expects that authorization server checks the token, and response with user details
+        # and expects that authorization server checks the token, and response with user details
                 me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
                 logging.debug("user_data: {0}".format(me))
                 return { 'name' : me['name'], 'email' : me['email'], 'id' : me['user_name'], 'username' : me['user_name'], 'first_name':'', 'last_name':''}
-	    ...
+        ...
 
 This file must be located at the same directory than ``superset_config.py`` with the name ``custom_sso_security_manager.py``.
 
