@@ -351,12 +351,15 @@ def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
     for database in db.session.query(Database).all():
-        print('Fetching {} datasources ...'.format(database.name))
-        try:
-            database.all_table_names(force=True)
-            database.all_view_names(force=True)
-        except Exception as e:
-            print('{}'.format(str(e)))
+        if database.allow_multi_schema_metadata_fetch:
+            print('Fetching {} datasources ...'.format(database.name))
+            try:
+                database.all_table_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+                database.all_view_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+            except Exception as e:
+                print('{}'.format(str(e)))
 
 
 @app.cli.command()
