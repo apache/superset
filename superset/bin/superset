@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import warnings
+#import warnings
 import click
 from flask.cli import FlaskGroup
 #from flask.exthook import ExtDeprecationWarning
