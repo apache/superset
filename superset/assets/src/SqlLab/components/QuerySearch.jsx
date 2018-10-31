@@ -183,6 +183,7 @@ class QuerySearch extends React.PureComponent {
               mutator={this.userMutator}
               value={this.state.userId}
               onChange={this.changeUser}
+              placeholder={t('Filter by user')}
             />
           </div>
           <div className="col-sm-2">
@@ -191,6 +192,7 @@ class QuerySearch extends React.PureComponent {
               dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
               value={this.state.databaseId}
               mutator={this.dbMutator}
+              placeholder={t('Filter by database')}
             />
           </div>
           <div className="col-sm-4">
@@ -199,7 +201,7 @@ class QuerySearch extends React.PureComponent {
               onChange={this.changeSearch}
               onKeyDown={this.onKeyDown}
               className="form-control input-sm"
-              placeholder={t('Search Results')}
+              placeholder={t('Query search string')}
             />
           </div>
           <div className="col-sm-4 search-date-filter-container">
@@ -226,7 +228,7 @@ class QuerySearch extends React.PureComponent {
 
             <Select
               name="select-status"
-              placeholder={t('[Query Status]')}
+              placeholder={t('Filter by status')}
               options={Object.keys(STATUS_OPTIONS).map(s => ({ value: s, label: s }))}
               value={this.state.status}
               isLoading={false}
