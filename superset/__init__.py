@@ -99,11 +99,11 @@ if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
 if app.debug:
-    app.logger.setLevel(logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member
 else:
     # In production mode, add log handler to sys.stderr.
-    app.logger.addHandler(logging.StreamHandler())
-    app.logger.setLevel(logging.INFO)
+    app.logger.addHandler(logging.StreamHandler())  # pylint: disable=no-member
+    app.logger.setLevel(logging.INFO)  # pylint: disable=no-member
 logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
