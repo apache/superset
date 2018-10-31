@@ -39,19 +39,19 @@ const defaultProps = {
 export default class AddAlertContainer extends React.Component {
   constructor(props) {
     super(props);
-    const codeText = props.code || '{}';
+    const params = props.code || '{}';
     this.state = {
-      codeText,
+      params,
       parsedJSON: null,
       isValid: true,
     };
     this.onChange = this.onChange.bind(this);
   }
   componentDidMount() {
-    this.onChange(this.state.codeText);
+    this.onChange(this.state.params);
   }
   onChange(value) {
-    const codeText = value;
+    const params = value;
     let isValid;
     let parsedJSON = {};
     try {
@@ -60,9 +60,9 @@ export default class AddAlertContainer extends React.Component {
     } catch (e) {
       isValid = false;
     }
-    this.setState({ parsedJSON, isValid, codeText });
+    this.setState({ parsedJSON, isValid, params });
     if (isValid) {
-      this.props.onChange(codeText);
+      this.props.onChange(params);
     } else {
       this.props.onChange('{}');
     }
@@ -81,7 +81,7 @@ export default class AddAlertContainer extends React.Component {
   saveAlert() {
     const data = {
       table_id: this.state.datasourceId,
-      codeText: this.state.codeText,
+      params: this.state.params,
       interval: this.state.interval,
       name: this.state.name
     }
@@ -100,7 +100,7 @@ export default class AddAlertContainer extends React.Component {
     return !(this.state.datasourceId
       && this.state.name
       && this.state.interval
-      && this.state.codeText
+      && this.state.params
       && this.state.isValid
     );
   }
@@ -130,7 +130,7 @@ export default class AddAlertContainer extends React.Component {
         if (respJSON && respJSON.message) {
             errorMsg = respJSON.message;
         }
-        alert.log("ERROR: " + errorMsg);
+        alert("ERROR: " + errorMsg);
     });
     return
   };
@@ -148,7 +148,12 @@ export default class AddAlertContainer extends React.Component {
             <div>
               <p>Name</p>
               <label>
-                <input type="text" value={this.state.value} onChange={this.handleNameChange.bind(this)} />
+                <input
+                  type="text"
+                  className="Select-value"
+                  value={this.state.value}
+                  onChange={this.handleNameChange.bind(this)}
+                />
               </label>
             </div>
             <br />
@@ -204,7 +209,7 @@ export default class AddAlertContainer extends React.Component {
                 height="400px"
                 editorProps={{ $blockScrolling: true }}
                 enableLiveAutocompletion
-                value={this.state.codeText}
+                value={this.state.params}
               />
               <p className="text-muted">JSON field</p>
             </div>
@@ -231,9 +236,6 @@ export default class AddAlertContainer extends React.Component {
     );
   }
 }
-
-
-
 
 AddAlertContainer.propTypes = propTypes;
 AddAlertContainer.defaultProps = defaultProps;

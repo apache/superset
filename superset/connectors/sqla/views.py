@@ -368,9 +368,11 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
     @has_access
     def add(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
+        prefix = '[DQS]'
         datasources = [
-            {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
+            {"value": str(d.id) + "__" + d.type, "label": repr(d)}
             for d in datasources
+            if repr(d).startswith(prefix)
         ]
         return self.render_template(
             'superset/add_alert.html',
