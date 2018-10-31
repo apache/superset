@@ -10,7 +10,7 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, Enum, desc, ForeignKey, Integer, or_,
-    select, String, Text,
+    select, String, Text, ARRAY
 )
 from sqlalchemy.orm import backref, relationship, configure_mappers
 from sqlalchemy.schema import UniqueConstraint
@@ -263,6 +263,7 @@ class Alert(Model):
     params = Column(Text)
     interval = Column(Enum(TimePeriod))
     name = Column(String(250))
+    # tags = Column(ARRAY(Text))
 
 
 class SqlaTable(Model, BaseDatasource):

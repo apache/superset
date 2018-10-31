@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
+import MultiSelect from "@kenshooui/react-multi-select";
 import TextControl from '../explore/components/controls/TextControl';
 import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
 import ModalTrigger from '../components/ModalTrigger';
@@ -44,12 +45,27 @@ export default class AddAlertContainer extends React.Component {
       params,
       parsedJSON: null,
       isValid: true,
+      newTag: '',
+      items: [
+        { id: 0, label: "completion"},
+        { id: 1, label: "latency"},
+        { id: 2, label: "syntax"},
+        { id: 3, label: "semantic"}
+      ],
+      selectedItems: []
     };
     this.onChange = this.onChange.bind(this);
+    this.handleTagChange = this.handleTagChange.bind(this)
   }
+
   componentDidMount() {
     this.onChange(this.state.params);
   }
+
+  handleTagChange(selectedItems) {
+    this.setState({ selectedItems });
+  }
+
   onChange(value) {
     const params = value;
     let isValid;
@@ -69,7 +85,12 @@ export default class AddAlertContainer extends React.Component {
   }
 
   handleNameChange(event) {
+    console.log(this.state)
     this.setState({name: event.target.value});
+  }
+
+  handleTagNameChange(event) {
+    this.setState({newTag: event.target.value});
   }
 
   changeInterval(event) {
@@ -83,9 +104,20 @@ export default class AddAlertContainer extends React.Component {
       table_id: this.state.datasourceId,
       params: this.state.params,
       interval: this.state.interval,
-      name: this.state.name
+      name: this.state.name,
+      // tags: this.state.items
     }
     this.sendPostRequest(data)
+  }
+
+  addTag() {
+    const data = [...this.state.items]
+    const index = data[data.length - 1].id + 1
+    const newTag = {id: index, label: this.state.newTag}
+    data.push(newTag)
+    this.setState({
+      items: data
+    })
   }
 
   changeDatasource(e) {
@@ -103,6 +135,10 @@ export default class AddAlertContainer extends React.Component {
       && this.state.params
       && this.state.isValid
     );
+  }
+
+  isTagBtnDisabled() {
+    return !this.state.newTag
   }
 
   sendPostRequest(data) {
@@ -136,6 +172,7 @@ export default class AddAlertContainer extends React.Component {
   };
 
   render() {
+    const { items, selectedItems } = this.state;
     const intervalOptions = [
       {value: 'minute', label: 'minute'},
       {value: 'hour', label: 'hour'},
@@ -150,7 +187,14 @@ export default class AddAlertContainer extends React.Component {
               <label>
                 <input
                   type="text"
-                  className="Select-value"
+                  style={{
+                    "margin-right": 20,
+                    "width": 300,
+                    "border-radius": 6,
+                    "border-style": "solid",
+                    "border-color": "#d2d2d2",
+                    "border-width": "1"
+                  }}
                   value={this.state.value}
                   onChange={this.handleNameChange.bind(this)}
                 />
@@ -214,6 +258,38 @@ export default class AddAlertContainer extends React.Component {
               <p className="text-muted">JSON field</p>
             </div>
             <br />
+            <div>
+              <p>Tags</p>
+              <label style={{ "margin-bottom": 10 }}>
+                <input
+                  type="text"
+                  style={{
+                    "margin-right": 20,
+                    "width": 300,
+                    "border-radius": 6,
+                    "border-style": "solid",
+                    "border-color": "#d2d2d2",
+                    "border-width": "1"
+                  }}
+                  value={this.state.newTag}
+                  onChange={this.handleTagNameChange.bind(this)}
+                />
+              </label>
+              <Button
+                bsStyle="primary"
+                className="save-modal-selector"
+                disabled={this.isTagBtnDisabled()}
+                onClick={this.addTag.bind(this)}
+                >
+                Add tag
+              </Button>
+              <MultiSelect
+                items={items}
+                selectedItems={selectedItems}
+                onChange={this.handleTagChange}
+              />
+            </div>
+            <br /><br />
             <Button
               bsStyle="primary"
               disabled={this.isBtnDisabled()}
