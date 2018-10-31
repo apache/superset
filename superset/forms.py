@@ -9,11 +9,6 @@ from wtforms import (
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, NumberRange, Optional
 
-from superset import app, db, security_manager
-from superset.models import core as models
-
-config = app.config
-
 
 class CommaSeparatedListField(Field):
     widget = BS3TextFieldWidget()
@@ -44,6 +39,8 @@ def filter_not_empty_values(value):
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
     def csv_allowed_dbs():
+        from superset import db
+        from superset.models import core as models
         csv_allowed_dbs = []
         csv_enabled_dbs = db.session.query(
             models.Database).filter_by(
@@ -79,6 +76,7 @@ class CsvToDatabaseForm(DynamicForm):
                 b) if database supports schema
                     user is able to upload to schema in schemas_allowed_for_csv_upload
         """
+        from superset import security_manager
         if (security_manager.database_access(database) or
                 security_manager.all_datasource_access()):
             return True
