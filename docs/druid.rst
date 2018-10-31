@@ -21,7 +21,7 @@ Clicking the ``GroupBy`` and ``Filterable`` checkboxes will make the column
 appear in the related dropdowns while in explore view. Checking
 ``Count Distinct``, ``Min``, ``Max`` or ``Sum`` will result in creating
 new metrics that will appear in the ``List Druid Metric`` tab upon saving the
-data source. By editing these metrics, you'll notice that their ``json``
+datasource. By editing these metrics, you'll notice that their ``json``
 element corresponds to Druid aggregation definition. You can create your own
 aggregations manually from the ``List Druid Metric`` tab following Druid
 documentation.
