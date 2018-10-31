@@ -205,7 +205,7 @@ export default class AddAlertContainer extends React.Component {
             </div>
             <hr />
             <div>
-              <p>{t('Choose a table')}</p>
+              <p>{t('Choose an analytic query')}</p>
               <div style={styleSelectWidth}>
                 <Select
                   clearable={false}
@@ -213,17 +213,18 @@ export default class AddAlertContainer extends React.Component {
                   name="select-datasource"
                   onChange={this.changeDatasource.bind(this)}
                   options={this.props.datasources}
-                  placeholder='Tables'
+                  placeholder='Queries'
                   value={this.state.datasourceValue}
                   width={200}
                 />
               </div>
               <p className="text-muted">
                 {t(
-                  'If the datasource your are looking for is not ' +
+                  'If the query your are looking for is not ' +
                   'available in the list, ' +
                   'follow the instructions on the how to add it on the ')}
-                <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial')}</a>
+                <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
+                {"\n"}Ensure that the query title begins with [DQS].
               </p>
             </div>
             <hr />
@@ -253,7 +254,7 @@ export default class AddAlertContainer extends React.Component {
                 maxLines={50}
                 onChange={this.onChange.bind(this)}
                 width="80%"
-                height="400px"
+                height="250px"
                 editorProps={{ $blockScrolling: true }}
                 enableLiveAutocompletion
                 value={this.state.params}
@@ -291,13 +292,16 @@ export default class AddAlertContainer extends React.Component {
                 Add tag
               </Button>
             </div>
-            <MultiSelect
-              items={items}
-              selectedItems={selectedItems}
-              onChange={this.handleTagChange}
-              showSearch={false}
-              height={250}
-            />
+            <div style={{ width: "80%" }}>
+              <MultiSelect
+                items={items}
+                selectedItems={selectedItems}
+                onChange={this.handleTagChange}
+                showSearch={false}
+                height={250}
+                selectAllHeight={45}
+              />
+            </div>
             <br /><br />
             <Button
               bsStyle="primary"
