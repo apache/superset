@@ -4,6 +4,7 @@
   "description": "Superset UI",
   "private": true,
   "scripts": {
+    "bootstrap": "lerna bootstrap",
     "build": "yarn run build:cjs && yarn run build:esm",
     "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=*",
     "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=*",
