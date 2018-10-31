@@ -1,8 +1,8 @@
-## `@superset-ui/core`
+## @superset-ui/connection
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat)
+[![Version](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat)
 
-Core modules for Superset:
+Connection modules for Superset:
 
 - `SupersetClient` requests and authentication
 - (future) `i18n` locales and translation
@@ -27,14 +27,14 @@ a high-level it supports:
 
 ```javascript
 // appSetup.js
-import { SupersetClient } from `@superset-ui/core`;
-// or import SupersetClient from `@superset-ui/core/lib|esm/SupersetClient`;
+import { SupersetClient } from `@superset-ui/connection`;
+// or import SupersetClient from `@superset-ui/connection/lib|esm/SupersetClient`;
 
 SupersetClient.configure(...clientConfig);
 SupersetClient.init(); // CSRF auth, can also chain `.configure().init();
 
 // anotherFile.js
-import { SupersetClient } from `@superset-ui/core`;
+import { SupersetClient } from `@superset-ui/connection`;
 
 SupersetClient.post(...requestConfig)
   .then(({ request, json }) => ...)
@@ -75,7 +75,7 @@ The following flags can be passed on a per-request call `SupersetClient.get/post
 Per-request aborting is implemented through the `AbortController` API:
 
 ```javascript
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import AbortController from 'abortcontroller-polyfill';
 
 const controller = new AbortController();

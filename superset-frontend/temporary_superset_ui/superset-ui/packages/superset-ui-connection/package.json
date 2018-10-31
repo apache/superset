@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/core",
-  "version": "0.2.0",
-  "description": "Superset UI core 🤖",
+  "name": "@superset-ui/connection",
+  "version": "0.0.0",
+  "description": "Superset UI connection",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",

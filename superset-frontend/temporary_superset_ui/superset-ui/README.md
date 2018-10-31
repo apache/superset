@@ -11,7 +11,7 @@ applications that leverage a Superset backend :chart_with_upwards_trend:
 
 | Package | Version |
 |--|--|
-| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat) |
+| [@superset-ui/connection](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-connection) | [![Version](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat) |
 | [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation) | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat) |
 
 #### Coming :soon:
