@@ -1,16 +1,26 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import AceEditor from 'react-ace';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import TextControl from '../explore/components/controls/TextControl';
+import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
+import ModalTrigger from '../components/ModalTrigger';
 import visTypes from '../explore/visTypes';
 import Fieldset from '../CRUD/Fieldset';
 import Field from '../CRUD/Field';
 import $ from 'jquery';
-
 import { t } from '../locales';
+import 'brace/mode/sql';
+import 'brace/mode/json';
+import 'brace/mode/html';
+import 'brace/mode/markdown';
+import 'brace/theme/textmate';
 
 const propTypes = {
+  onChange: PropTypes.func,
+  code: PropTypes.string,
+  language: PropTypes.oneOf(['yaml', 'json']),
   datasources: PropTypes.arrayOf(PropTypes.shape({
     label: PropTypes.string.isRequired,
     value: PropTypes.string.isRequired,
@@ -19,22 +29,47 @@ const propTypes = {
 
 const styleSelectWidth = { width: 300 };
 
-export default class AddAlertContainer extends React.PureComponent {
+const defaultProps = {
+  label: null,
+  description: null,
+  onChange: () => {},
+  code: '{}',
+};
+
+export default class AddAlertContainer extends React.Component {
   constructor(props) {
     super(props);
-    const visTypeKeys = Object.keys(visTypes);
-    this.vizTypeOptions = visTypeKeys.map(vt => ({ label: visTypes[vt].label, value: vt }));
+    const codeText = props.code || '{}';
     this.state = {
-      name: '',
+      codeText,
+      parsedJSON: null,
+      isValid: true,
     };
+    this.onChange = this.onChange.bind(this);
+  }
+  componentDidMount() {
+    this.onChange(this.state.codeText);
+  }
+  onChange(value) {
+    const codeText = value;
+    let isValid;
+    let parsedJSON = {};
+    try {
+      parsedJSON = JSON.parse(value);
+      isValid = true;
+    } catch (e) {
+      isValid = false;
+    }
+    this.setState({ parsedJSON, isValid, codeText });
+    if (isValid) {
+      this.props.onChange(codeText);
+    } else {
+      this.props.onChange('{}');
+    }
   }
 
   handleNameChange(event) {
     this.setState({name: event.target.value});
-  }
-
-  handleParamChange(event) {
-    this.setState({params: event.target.value});
   }
 
   changeInterval(event) {
@@ -46,7 +81,7 @@ export default class AddAlertContainer extends React.PureComponent {
   saveAlert() {
     const data = {
       table_id: this.state.datasourceId,
-      params: this.state.params,
+      codeText: this.state.codeText,
       interval: this.state.interval,
       name: this.state.name
     }
@@ -62,7 +97,12 @@ export default class AddAlertContainer extends React.PureComponent {
   }
 
   isBtnDisabled() {
-    return !(this.state.datasourceId && this.state.name && this.state.interval && this.state.params);
+    return !(this.state.datasourceId
+      && this.state.name
+      && this.state.interval
+      && this.state.codeText
+      && this.state.isValid
+    );
   }
 
   sendPostRequest(data) {
@@ -153,9 +193,19 @@ export default class AddAlertContainer extends React.PureComponent {
             <br />
             <div>
               <p>Params</p>
-              <label>
-                <textarea type="text" value={this.state.params} onChange={this.handleParamChange.bind(this)} />
-              </label>
+              <AceEditor
+                mode="json"
+                theme="textmate"
+                style={{ border: '1px solid #CCC' }}
+                minLines={25}
+                maxLines={50}
+                onChange={this.onChange.bind(this)}
+                width="80%"
+                height="400px"
+                editorProps={{ $blockScrolling: true }}
+                enableLiveAutocompletion
+                value={this.state.codeText}
+              />
               <p className="text-muted">JSON field</p>
             </div>
             <br />
@@ -164,7 +214,15 @@ export default class AddAlertContainer extends React.PureComponent {
               disabled={this.isBtnDisabled()}
               onClick={this.saveAlert.bind(this)}
             >
-              {t('Create new alert')}
+              {!this.state.isValid &&
+                <InfoTooltipWithTrigger
+                  icon="exclamation-triangle"
+                  bsStyle="danger"
+                  tooltip={t('Invalid JSON')}
+                  label="invalid-json"
+                />
+              }
+              {t(' Create new alert')}
             </Button>
             <br /><br />
           </form>
@@ -174,4 +232,8 @@ export default class AddAlertContainer extends React.PureComponent {
   }
 }
 
+
+
+
 AddAlertContainer.propTypes = propTypes;
+AddAlertContainer.defaultProps = defaultProps;
