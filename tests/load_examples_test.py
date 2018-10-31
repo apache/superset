@@ -24,7 +24,7 @@ class SupersetDataFrameTestCase(SupersetTestCase):
         data.load_country_map_data()
 
     def test_load_multiformat_time_series_data(self):
-        data.load_multiformat_time_series_data()
+        data.load_multiformat_time_series()
 
     def test_load_paris_iris_geojson(self):
         data.load_paris_iris_geojson()
