@@ -1,4 +1,4 @@
-## `@superset-ui/translation`
+## @superset-ui/translation
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)
 
