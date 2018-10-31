@@ -187,20 +187,23 @@ export default class AddAlertContainer extends React.Component {
               <label>
                 <input
                   type="text"
+                  placeholder="Alert name"
                   style={{
-                    "margin-right": 20,
-                    "width": 300,
-                    "border-radius": 6,
-                    "border-style": "solid",
-                    "border-color": "#d2d2d2",
-                    "border-width": "1"
+                    marginRight: 20,
+                    width: 300,
+                    height: 30,
+                    borderRadius: 3,
+                    borderStyle: "solid",
+                    borderColor: "#d2d2d2",
+                    borderWidth: "1",
+                    padding: 10
                   }}
                   value={this.state.value}
                   onChange={this.handleNameChange.bind(this)}
                 />
               </label>
             </div>
-            <br />
+            <hr />
             <div>
               <p>{t('Choose a table')}</p>
               <div style={styleSelectWidth}>
@@ -223,7 +226,7 @@ export default class AddAlertContainer extends React.Component {
                 <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial')}</a>
               </p>
             </div>
-            <br />
+            <hr />
             <div>
               <p>Choose a time interval</p>
               <div style={styleSelectWidth}>
@@ -239,7 +242,7 @@ export default class AddAlertContainer extends React.Component {
                 />
               </div>
             </div>
-            <br />
+            <hr />
             <div>
               <p>Params</p>
               <AceEditor
@@ -257,19 +260,22 @@ export default class AddAlertContainer extends React.Component {
               />
               <p className="text-muted">JSON field</p>
             </div>
-            <br />
+            <hr />
             <div>
               <p>Tags</p>
-              <label style={{ "margin-bottom": 10 }}>
+              <label style={{ marginBottom: 10 }}>
                 <input
                   type="text"
+                  placeholder="New tag"
                   style={{
-                    "margin-right": 20,
-                    "width": 300,
-                    "border-radius": 6,
-                    "border-style": "solid",
-                    "border-color": "#d2d2d2",
-                    "border-width": "1"
+                    marginRight: 20,
+                    width: 300,
+                    height: 30,
+                    borderRadius: 3,
+                    borderStyle: "solid",
+                    borderColor: "#d2d2d2",
+                    borderWidth: "1",
+                    padding: 10
                   }}
                   value={this.state.newTag}
                   onChange={this.handleTagNameChange.bind(this)}
@@ -277,18 +283,21 @@ export default class AddAlertContainer extends React.Component {
               </label>
               <Button
                 bsStyle="primary"
+                style={{ padding: 4 }}
                 className="save-modal-selector"
                 disabled={this.isTagBtnDisabled()}
                 onClick={this.addTag.bind(this)}
                 >
                 Add tag
               </Button>
-              <MultiSelect
-                items={items}
-                selectedItems={selectedItems}
-                onChange={this.handleTagChange}
-              />
             </div>
+            <MultiSelect
+              items={items}
+              selectedItems={selectedItems}
+              onChange={this.handleTagChange}
+              showSearch={false}
+              height={250}
+            />
             <br /><br />
             <Button
               bsStyle="primary"
