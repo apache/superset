@@ -2,10 +2,10 @@
 import warnings
 import click
 from flask.cli import FlaskGroup
-from flask.exthook import ExtDeprecationWarning
+#from flask.exthook import ExtDeprecationWarning
 from superset.cli import create_app
 
-warnings.simplefilter('ignore', ExtDeprecationWarning)
+#warnings.simplefilter('ignore', ExtDeprecationWarning)
 
 @click.group(cls=FlaskGroup, create_app=create_app)
 def cli():
