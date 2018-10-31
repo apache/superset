@@ -178,8 +178,7 @@ class FilterBox extends React.Component {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(key => !selectedValues.hasOwnProperty(key)
-        || !(key in filtersChoices))
+      .filter(key => selectedValues.hasOwnProperty(key) && (key in filtersChoices))
       .forEach((key) => {
         const choices = filtersChoices[key] || [];
         const choiceIds = new Set(choices.map(f => f.id));
