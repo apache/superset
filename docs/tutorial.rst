@@ -231,7 +231,7 @@ You may want to do a couple more things with this measure:
   Config > List Sql Metric > Edit Metric > D3Format*)
 * Moreover, you may want to see the temperature measurements in plain degrees C, 
   not tenths of a degree. Or you may want to convert the temperature to degrees 
-  Fahrenheit. You can change the SQL that gets executed agains the database, baking 
+  Fahrenheit. You can change the SQL that gets executed against the database, baking 
   the logic into the measure itself (*Edit Table Config > List Sql Metric > Edit 
   Metric > SQL Expression*)
 
