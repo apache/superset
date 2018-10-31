@@ -272,7 +272,7 @@ export default class AddAlertContainer extends React.Component {
                     marginRight: 20,
                     width: 300,
                     height: 30,
-                    borderRadius: 3,
+                    borderRadius: 4,
                     borderStyle: "solid",
                     borderColor: "#d2d2d2",
                     borderWidth: "1",
