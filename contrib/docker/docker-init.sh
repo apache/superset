@@ -20,5 +20,5 @@ cd superset/assets && npm run build && cd ../../
 # Start superset worker for SQL Lab
 superset worker &
 
-# To start a development web server, use the -d switch
-superset runserver -d
+# Start the dev web server
+flask run -p 8080 --with-threads --reload --debugger

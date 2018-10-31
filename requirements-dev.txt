@@ -1,4 +1,5 @@
 console_log==0.2.10
+python-dotenv
 flake8-commas==2.0.0
 flake8-import-order==0.18
 flake8-quotes==1.0.0

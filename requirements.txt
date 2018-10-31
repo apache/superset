@@ -9,7 +9,7 @@ amqp==2.3.2               # via kombu
 asn1crypto==0.24.0        # via cryptography
 babel==2.6.0              # via flask-babel, flower
 billiard==3.5.0.4         # via celery
-bleach==2.1.2
+bleach==3.0.2
 boto3==1.4.7
 botocore==1.7.48
 cchardet==1.0.0           # via tabulator
@@ -33,12 +33,11 @@ flask-migrate==2.1.1
 flask-openid==1.2.5       # via flask-appbuilder
 flask-sqlalchemy==2.3.2   # via flask-appbuilder, flask-migrate
 flask-wtf==0.14.2
-flask==0.12.2
+flask==1.0.2
 flower==0.9.2
-future==0.16.0
+future==0.16.0            # via pyhive
 geopy==1.11.0
 gunicorn==19.8.0
-html5lib==1.0.1           # via bleach
 humanize==0.5.1
 idna==2.6
 ijson==2.3                # via tabulator
@@ -74,7 +73,7 @@ rfc3986==1.1.0            # via tableschema
 s3transfer==0.1.13        # via boto3
 sasl==0.2.1               # via thrift-sasl
 simplejson==3.15.0
-six==1.11.0               # via bleach, cryptography, html5lib, isodate, jsonlines, linear-tsv, pathlib2, polyline, pydruid, python-dateutil, sasl, sqlalchemy-utils, tableschema, tabulator, thrift
+six==1.11.0               # via bleach, cryptography, isodate, jsonlines, linear-tsv, pathlib2, polyline, pydruid, python-dateutil, sasl, sqlalchemy-utils, tableschema, tabulator, thrift
 sqlalchemy-utils==0.32.21
 sqlalchemy==1.2.2
 sqlparse==0.2.4
@@ -87,7 +86,7 @@ unicodecsv==0.14.1
 unidecode==1.0.22
 urllib3==1.22             # via requests
 vine==1.1.4               # via amqp
-webencodings==0.5.1       # via html5lib
+webencodings==0.5.1       # via bleach
 werkzeug==0.14.1          # via flask
 wtforms==2.2.1            # via flask-wtf
 xlrd==1.1.0               # via tabulator
