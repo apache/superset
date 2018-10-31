@@ -4,7 +4,7 @@ jobs:
   include:
     - language: python
       python: 3.6
-      env: TOXENV=cypress
+      env: TOXENV=cypress_dashboard
       cache:
         pip: true
         yarn: true
