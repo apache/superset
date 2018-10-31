@@ -38,12 +38,12 @@ def init():
 
 
 def debug_run(app, port, use_reloader):
-    return app.run(
-        host='0.0.0.0',
-        port=int(port),
-        threaded=True,
-        debug=True,
-        use_reloader=use_reloader)
+    click.secho(
+        '[DEPRECATED] As of Flask >=1.0.0, this command is no longer '
+        'supported, please use `flask run` instead, as documented in our '
+        'CONTRIBUTING.md',
+        fg='red',
+    )
 
 
 def console_log_run(app, port, use_reloader):

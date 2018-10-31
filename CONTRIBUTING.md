@@ -221,8 +221,8 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask web server (but see below for frontend asset compilation)
-superset runserver -d
+# Start the Flask dev web server (but see below for frontend asset compilation)
+flask run -p 8080 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
