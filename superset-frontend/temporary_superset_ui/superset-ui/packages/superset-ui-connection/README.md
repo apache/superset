@@ -1,6 +1,7 @@
 ## @superset-ui/connection
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat)
+[![Version](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat-square)
+[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-connection&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-connection)
 
 Connection modules for Superset:
 

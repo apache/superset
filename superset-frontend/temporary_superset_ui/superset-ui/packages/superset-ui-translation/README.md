@@ -1,6 +1,7 @@
 ## @superset-ui/translation
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat)
+[![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)
+[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-translation&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-translation)
 
 `i18n` locales and translation for Superset
 
