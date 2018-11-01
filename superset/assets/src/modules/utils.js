@@ -2,7 +2,7 @@
 import $ from 'jquery';
 import { format as d3Format } from 'd3-format';
 import { d3Select } from 'd3-selection';
-import { timeFormat } from 'd3-time-format';
+import { timeFormat as d3TimeFormat } from 'd3-time-format';
 import { formatDate, UTC } from './dates';
 
 const siFormatter = d3Format('.3s');
@@ -31,7 +31,7 @@ export const d3TimeFormatPreset = function (format) {
   if (effFormat === 'smart_date') {
     return formatDate;
   }
-  const f = timeFormat(effFormat);
+  const f = d3TimeFormat(effFormat);
   return function (dttm) {
     const d = UTC(new Date(dttm));
     return f(d);
