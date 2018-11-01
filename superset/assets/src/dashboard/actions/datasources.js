@@ -1,5 +1,5 @@
 import { SupersetClient } from '@superset-ui/core';
-import { getClientErrorObject } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export function setDatasource(datasource, key) {

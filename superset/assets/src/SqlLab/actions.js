@@ -1,15 +1,15 @@
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import { now } from '../modules/dates';
-import { t } from '../locales';
 import {
   addSuccessToast as addSuccessToastAction,
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
 } from '../messageToasts/actions';
-import { COMMON_ERR_MESSAGES } from '../utils/common';
+import COMMON_ERR_MESSAGES from '../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -153,7 +153,7 @@ export function runQuery(query) {
       .catch((error) => {
         let message = error.error || error.statusText || t('Unknown error');
         if (message.includes('CSRF token')) {
-          message = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
+          message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
         }
         // @TODO how to verify link?
         dispatch(queryFailed(query, message, error.link));

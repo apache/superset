@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import DashboardBuilder from '../containers/DashboardBuilder';
@@ -20,8 +21,6 @@ import {
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
 } from '../../logger';
-
-import { t } from '../../locales';
 
 import '../stylesheets/index.less';
 

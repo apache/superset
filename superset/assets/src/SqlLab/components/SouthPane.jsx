@@ -4,12 +4,12 @@ import shortid from 'shortid';
 import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { t } from '@superset-ui/translation';
 
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
-import { t } from '../../locales';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component

@@ -7,6 +7,7 @@ import 'brace/theme/github';
 import 'brace/ext/language_tools';
 import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
+import { t } from '@superset-ui/translation';
 
 import { sqlWords } from '../../SqlLab/components/AceEditorWrapper';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
@@ -14,7 +15,6 @@ import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import { t } from '../../locales';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

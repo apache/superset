@@ -3,10 +3,11 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
+import { t } from '@superset-ui/translation';
+
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from './validators';
-import { t } from '../locales';
 
 export const sections = {
   druidTimeSeries: {
@@ -217,6 +218,9 @@ export const visTypes = {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
+      },
+      row_limit: {
+        default: 50000,
       },
     },
   },

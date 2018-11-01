@@ -9,9 +9,9 @@ import {
   Tooltip,
   Well,
 } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
@@ -127,11 +127,15 @@ class DatasourceControl extends React.PureComponent {
             placement="right"
             overlay={
               <Tooltip id={'datasource-sqllab'}>
-                {t('Run SQL queries against this datasource')}
+                {t('Explore this datasource in SQL Lab')}
               </Tooltip>
             }
           >
-            <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
+            <a
+              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <i className="fa fa-flask m-r-5" />
             </a>
           </OverlayTrigger>}

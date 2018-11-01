@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
 
 const propTypes = {
   copyNode: PropTypes.node,

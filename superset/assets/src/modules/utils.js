@@ -1,10 +1,7 @@
 /* eslint camelcase: 0 */
-import d3 from 'd3';
 import $ from 'jquery';
-import { SupersetClient } from '@superset-ui/core';
+import d3 from 'd3';
 import { formatDate, UTC } from './dates';
-import { COMMON_ERR_MESSAGES } from '../utils/common';
-import { t } from '../locales';
 
 const siFormatter = d3.format('.3s');
 
@@ -107,70 +104,6 @@ export function showModal(options) {
   $(options.titleSelector).html(options.title || '');
   $(options.bodySelector).html(options.body || '');
   $(options.modalSelector).modal('show');
-}
-
-
-function showApiMessage(resp) {
-  const template =
-    '<div class="alert"> ' +
-    '<button type="button" class="close" ' +
-    'data-dismiss="alert">\xD7</button> </div>';
-  const severity = resp.severity || 'info';
-  $(template).addClass('alert-' + severity)
-             .append(resp.message)
-             .appendTo($('#alert-container'));
-}
-
-export function getClientErrorObject(response) {
-  // takes a Response object as input, attempts to read response as Json if possible,
-  // and returns a Promise that resolves to a plain object with error key and text value.
-  return new Promise((resolve) => {
-    if (typeof response === 'string') {
-      resolve({ error: response });
-    } else if (response && response.constructor === Response && !response.bodyUsed) {
-      // attempt to read the body as json, and fallback to text. we must clone the
-      // response in order to fallback to .text() because Response is single-read
-      response.clone().json().then((errorJson) => {
-        let error = { ...response, ...errorJson };
-        if (error.stack) {
-          error = {
-            ...error,
-            error: t('Unexpected error: ') +
-              (error.description || t('(no description, click to see stack trace)')),
-            stacktrace: error.stack,
-          };
-        } else if (error.responseText && error.responseText.indexOf('CSRF') >= 0) {
-          error = {
-            ...error,
-            error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
-          };
-        }
-        resolve(error);
-      }).catch(() => {
-        // fall back to reading as text
-        response.text().then((errorText) => {
-          resolve({ ...response, error: errorText });
-        });
-      });
-    } else {
-      // fall back to Response.statusText or generic error of we cannot read the response
-      resolve({ ...response, error: response.statusText || t('An error occurred') });
-    }
-  });
-
-}
-
-export function toggleCheckbox(apiUrlPrefix, selector) {
-  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
-    .then(() => {})
-    .catch(response =>
-      getClientErrorObject(response)
-        .then((parsedResp) => {
-          if (parsedResp && parsedResp.message) {
-            showApiMessage(parsedResp);
-          }
-        }),
-      );
 }
 
 /**

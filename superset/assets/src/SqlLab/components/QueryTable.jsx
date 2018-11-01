@@ -1,9 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import moment from 'moment';
 import { Table } from 'reactable';
 import { Label, ProgressBar, Well } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import Link from './Link';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -11,7 +12,6 @@ import HighlightedSql from './HighlightedSql';
 import { fDuration } from '../../modules/dates';
 import { storeQuery } from '../../utils/common';
 import QueryStateLabel from './QueryStateLabel';
-import { t } from '../../locales';
 
 const propTypes = {
   columns: PropTypes.array,

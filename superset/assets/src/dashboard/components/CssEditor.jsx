@@ -1,13 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
-
 import AceEditor from 'react-ace';
 import 'brace/mode/css';
 import 'brace/theme/github';
+import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
 
 const propTypes = {
   initialCss: PropTypes.string,

@@ -7,9 +7,9 @@ import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
+import { t } from '@superset-ui/translation';
 
 import { AGGREGATES } from '../constants';
-import { t } from '../../locales';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';

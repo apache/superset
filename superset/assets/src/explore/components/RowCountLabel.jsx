@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Label } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
-import { t } from '../../locales';
 import { defaultNumberFormatter } from '../../modules/utils';
 import TooltipWrapper from '../../components/TooltipWrapper';
 
