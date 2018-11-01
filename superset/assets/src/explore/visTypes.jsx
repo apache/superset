@@ -219,6 +219,9 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      row_limit: {
+        default: 50000,
+      },
     },
   },
 
