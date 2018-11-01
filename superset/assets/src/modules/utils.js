@@ -26,6 +26,7 @@ export function d3FormatPreset(format) {
   }
   return defaultNumberFormatter;
 }
+
 export const d3TimeFormatPreset = function (format) {
   const effFormat = format || 'smart_date';
   if (effFormat === 'smart_date') {
@@ -37,6 +38,20 @@ export const d3TimeFormatPreset = function (format) {
     return f(d);
   };
 };
+
+const formatters = {};
+
+export function d3format(format = '.3s', number) {
+  // Formats a number and memoizes formatters to be reused
+  if (!(format in formatters)) {
+    formatters[format] = d3Format(format);
+  }
+  try {
+    return formatters[format](number);
+  } catch (e) {
+    return 'ERR';
+  }
+}
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -119,20 +134,6 @@ export const fixDataTableBodyHeight = function ($tableDom, height) {
   const controlsHeight = (pageLengthHeight > filterHeight) ? pageLengthHeight : filterHeight;
   $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
-
-export function d3format(format, number) {
-  const formatters = {};
-  // Formats a number and memoizes formatters to be reused
-  format = format || '.3s';
-  if (!(format in formatters)) {
-    formatters[format] = d3Format(format);
-  }
-  try {
-    return formatters[format](number);
-  } catch (e) {
-    return 'ERR';
-  }
-}
 
 export function formatSelectOptionsForRange(start, end) {
   // outputs array of arrays

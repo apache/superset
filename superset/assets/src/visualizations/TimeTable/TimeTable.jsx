@@ -131,7 +131,7 @@ class TimeTable extends React.PureComponent {
           showYAxis={column.showYAxis}
           renderTooltip={({ index }) => (
             <div>
-              <strong>{d3format(column.d3Format, sparkData[index])}</strong>
+              <strong>{d3format(column.d3format, sparkData[index])}</strong>
               <div>{formatDate(entries[index].time)}</div>
             </div>
           )}
