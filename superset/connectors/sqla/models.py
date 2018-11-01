@@ -636,24 +636,23 @@ class SqlaTable(Model, BaseDatasource):
                 continue
             col = flt['col']
             op = flt['op']
-            if op == "in":
-                if col in app.config.get("active_geo_filters", []):
-                    col = "geo"
-                    op = "geo_within"
+            if op == "in" and col in app.config.get("active_geo_filters", []):
+                col = "geo"
+                op = "geo_within"
 
-                    def geo_features_gen(values):
-                        for value in values:
-                            val_geo_ = app.config.get("active_geo_filters")[col][value]
-                            yield {"type": "feature", "geometry": val_geo_}
+                def geo_features_gen(values):
+                    for value in values:
+                        val_geo_ = app.config.get("active_geo_filters")[col][value]
+                        yield {"type": "feature", "geometry": val_geo_}
 
-                    old_vals_ = flt.get('val')
-                    logging.info(old_vals_)
-                    new_flt_geo_values = {
-                        "features": list(geo_features_gen(old_vals_))
-                    }
+                old_vals_ = flt.get('val')
+                logging.info(old_vals_)
+                new_flt_geo_values = {
+                    "features": list(geo_features_gen(old_vals_))
+                }
 
-                    flt["val"] = new_flt_geo_values
-                    flt["col"] = "geo"
+                flt["val"] = new_flt_geo_values
+                flt["col"] = "geo"
             col_obj = cols.get(col)
             
             if col_obj:
