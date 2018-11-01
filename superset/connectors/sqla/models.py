@@ -638,20 +638,21 @@ class SqlaTable(Model, BaseDatasource):
             op = flt['op']
             if op == "in":
                 if col in app.config.get("active_geo_filters", []):
-                    op = "geo_within"
-                    features = {
-                        "features": []
-                    }
-                    logging.info(flt.get('val'))
-                    for value in flt.get('val'):
-                        features["features"].append(
-                            {
-                                "type": "feature",
-                                "geometry": app.config.get("active_geo_filters")[col][value]
-                             }
-                        )
-                    flt["val"] = features
                     col = "geo"
+                    op = "geo_within"
+
+                    def geo_features_gen(values):
+                        for value in values:
+                            val_geo_ = app.config.get("active_geo_filters")[col][value]
+                            yield {"type": "feature", "geometry": val_geo_}
+
+                    old_vals_ = flt.get('val')
+                    logging.info(old_vals_)
+                    new_flt_geo_values = {
+                        "features": list(geo_features_gen(old_vals_))
+                    }
+
+                    flt["val"] = new_flt_geo_values
                     flt["col"] = "geo"
             col_obj = cols.get(col)
             
