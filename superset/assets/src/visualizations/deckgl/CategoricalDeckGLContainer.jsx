@@ -51,9 +51,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
 
     const fd = props.formData;
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = props.payload.data.features.map(f => f.__timestamp);
+    const features = props.payload.data.features || [];
+    const timestamps = features.map(f => f.__timestamp);
     const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, props.payload.data.features);
+    const categories = getCategories(fd, features);
     this.state = { start, end, getStep, values, disabled, categories, viewport: props.viewport };
 
     this.getLayers = this.getLayers.bind(this);
@@ -73,6 +74,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.setState({ viewport });
   }
   getLayers(values) {
+    if (this.props.payload.data.features === undefined) {
+      return [];
+    }
+
     const {
       getLayer,
       payload,

@@ -7,6 +7,9 @@ export function getBreakPoints({
     num_buckets: formDataNumBuckets,
     metric,
   }, features) {
+  if (!features) {
+    return [];
+  }
   if (formDataBreakPoints === undefined || formDataBreakPoints.length === 0) {
     // compute evenly distributed break points based on number of buckets
     const numBuckets = formDataNumBuckets

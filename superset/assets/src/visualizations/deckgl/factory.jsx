@@ -62,7 +62,7 @@ export function createCategoricalDeckGLComponent(getLayer, getPoints) {
       viewport: originalViewport,
     } = props;
 
-    const viewport = formData.autozoom
+    const viewport = formData.autozoom && payload.data.features
       ? fitViewport(originalViewport, getPoints(payload.data.features))
       : originalViewport;
 
