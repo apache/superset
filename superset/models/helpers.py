@@ -188,16 +188,18 @@ class ImportMixin(object):
         if recursive:
             for c in self.export_children:
                 # sorting to make lists of children stable
-                dict_rep[c] = sorted(
-                    [
-                        child.export_to_dict(
-                            recursive=recursive,
-                            include_parent_ref=include_parent_ref,
-                            include_defaults=include_defaults,
-                        ) for child in getattr(self, c)
-                    ],
-                    key=lambda k: sorted(k.items()))
-
+                items = [
+                    child.export_to_dict(
+                        recursive=recursive,
+                        include_parent_ref=include_parent_ref,
+                        include_defaults=include_defaults,
+                    ) for child in getattr(self, c)
+                ]
+                try:
+                    dict_rep[c] = sorted(items, key=lambda k: sorted(k.items()))
+                except:
+                    dict_rep[c] = sorted(items, key=lambda k: json.dumps(sorted(k.items())))
+                    
         return dict_rep
 
     def override(self, obj):
