@@ -1,6 +1,6 @@
 # @superset-ui
 
-[![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui.svg?style=flat-square
+[![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui?type=dev)
 
