@@ -298,7 +298,7 @@ class SqlaTable(Model, BaseDatasource):
     template_params = Column(Text)
     alerts = relationship(
         'Alert',
-        backref='tables',
+        backref='table',
         lazy=True)
 
     baselink = 'tablemodelview'
