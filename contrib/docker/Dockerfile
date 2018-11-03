@@ -11,7 +11,8 @@ ENV LANG=C.UTF-8 \
     HOME=/home/work
 
 RUN apt-get update -y
-
+#Install dependencies to fix `curl https support error` and `elaying package configuration warning`
+RUN apt-get install -y apt-transport-https apt-utils
 # Install some dependencies
 # http://airbnb.io/superset/installation.html#os-dependencies
 RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
