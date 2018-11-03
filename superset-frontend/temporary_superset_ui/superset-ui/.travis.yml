@@ -4,18 +4,18 @@ node_js:
   - 10.7
 
 cache:
-  directories:
-    - node_modules
+  - npm: true
+  - yarn: true
 
 matrix:
   fast_finish: true
 
 install:
-  - npm install
   - npm install -g codecov
+  - yarn install
 
 script:
-  - yarn install
+  - yarn run build
   - yarn run test
 
 after_script:
