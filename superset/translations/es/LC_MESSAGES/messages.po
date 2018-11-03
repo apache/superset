@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2018-10-27 21:09+0200\n"
+"PO-Revision-Date: 2018-11-03 00:11+0100\n"
 "Last-Translator: Joe Bordes <joe@tsolucio.com>\n"
 "Language: es\n"
 "Language-Team: Español; Castellano <>\n"
@@ -321,7 +321,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:743
 #: superset/viz.py:1294 superset/viz.py:1315
 msgid "Directed Force Layout"
-msgstr ""
+msgstr "Disposición Dirigida Forzado"
 
 #: superset/viz.py:1301
 msgid "Pick exactly 2 columns to 'Group By'"
@@ -1561,6 +1561,8 @@ msgid ""
 "Defines the origin where time buckets start, accepts natural dates as in "
 "`now`, `sunday` or `1970-01-01`"
 msgstr ""
+"Define el origen donde comienzan los intervalos de tiempo, acepta fechas "
+"naturales como en `now`,` sunday` o `1970-01-01`"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:463
 msgid "Bottom Margin"
@@ -1569,6 +1571,8 @@ msgstr "Margen Inferior"
 #: superset/assets/javascripts/explore/stores/controls.jsx:467
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
 msgstr ""
+"Margen inferior, en píxeles, lo que permite más espacio para las etiquetas "
+"de eje"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:473
 msgid "Left Margin"
@@ -1577,6 +1581,8 @@ msgstr "Margen Izquierdo"
 #: superset/assets/javascripts/explore/stores/controls.jsx:477
 msgid "Left margin, in pixels, allowing for more room for axis labels"
 msgstr ""
+"Margen izquierdo, en píxeles, lo que permite más espacio para las etiquetas "
+"de los ejes."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:483
 msgid "Time Granularity"
@@ -1587,6 +1593,9 @@ msgid ""
 "The time granularity for the visualization. Note that you can type and use "
 "simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
 msgstr ""
+"La granularidad del tiempo para la visualización. Ten en cuenta que puedes "
+"escribir y usar un lenguaje natural simple como en `10 seconds`, `1 day` o "
+"`56 weeks`"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:507
 msgid "Domain"
@@ -1594,7 +1603,7 @@ msgstr "Dominio"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:510
 msgid "The time unit used for the grouping of blocks"
-msgstr ""
+msgstr "La unidad de tiempo utilizada para la agrupación de bloques."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:515
 msgid "Subdomain"
@@ -1605,22 +1614,24 @@ msgid ""
 "The time unit for each block. Should be a smaller unit than "
 "domain_granularity. Should be larger or equal to Time Grain"
 msgstr ""
+"La unidad de tiempo para cada bloque. Debe ser una unidad más pequeña que "
+"domain_granularity. Debe ser mayor o igual a Time Grain"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:525
 msgid "Link Length"
-msgstr ""
+msgstr "Longitud del Enlace"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:528
 msgid "Link length in the force layout"
-msgstr ""
+msgstr "Longitud enlace en disposición forzada"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:534
 msgid "Charge"
-msgstr ""
+msgstr "Cargo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:548
 msgid "Charge in the force layout"
-msgstr ""
+msgstr "Cargo en Disposición Forzada"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:556
 msgid ""
@@ -1628,6 +1639,10 @@ msgid ""
 "expression that return a DATETIME column in the table or. Also note that the "
 "filter below is applied against this column or expression"
 msgstr ""
+"La columna de tiempo para la visualización. Ten en cuenta que puedes definir "
+"expresiones arbitrarias que devuelven una columna DATETIME en la tabla. "
+"También ten en cuenta que el siguiente filtro se aplica a esta columna o "
+"expresión"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:568
 msgid "Time Grain"
@@ -1640,30 +1655,34 @@ msgid ""
 "The options here are defined on a per database engine basis in the Superset "
 "source code."
 msgstr ""
+"La granularidad del tiempo para la visualización. Esto aplica una "
+"transformación de fecha para alterar tu columna de tiempo y define una nueva "
+"granularidad de tiempo. Las opciones aquí se definen en función del motor de "
+"base de datos en el código fuente de Superset."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:583
 msgid "Resample Rule"
-msgstr ""
+msgstr "Regla de Remuestreo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:586
 msgid "Pandas resample rule"
-msgstr ""
+msgstr "Regla de Remuestra Pandas"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:592
 msgid "Resample How"
-msgstr ""
+msgstr "Remuestrea como"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:595
 msgid "Pandas resample how"
-msgstr ""
+msgstr "Remuestra Pandas como"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:601
 msgid "Resample Fill Method"
-msgstr ""
+msgstr "Método de Relleno de Remuestreo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:604
 msgid "Pandas resample fill method"
-msgstr ""
+msgstr "Método de llenado de remuestreo Pandas"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:610
 msgid "Since"
@@ -1679,15 +1698,15 @@ msgstr "Hasta"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:624
 msgid "Max Bubble Size"
-msgstr ""
+msgstr "Tamaño Máximo Burbuja"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:632
 msgid "Whisker/outlier options"
-msgstr ""
+msgstr "Opciones de patillas/valores atípicos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:634
 msgid "Determines how whiskers and outliers are calculated."
-msgstr ""
+msgstr "Determina cómo se calculan las patillas y los valores atípicos."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:645
 msgid "Ratio"
@@ -1695,7 +1714,7 @@ msgstr "Proporción"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:648
 msgid "Target aspect ratio for treemap tiles."
-msgstr ""
+msgstr "Relación de aspecto de destino para los mosaicos de treemap."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:654
 #: superset/assets/javascripts/explore/stores/visTypes.js:616
@@ -1710,11 +1729,11 @@ msgstr "Límite filas"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:672
 msgid "Series limit"
-msgstr ""
+msgstr "Límite de Serie"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:675
 msgid "Limits the number of time series that get displayed"
-msgstr ""
+msgstr "Limita el número de series de tiempo que se muestran"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:680
 msgid "Sort By"
@@ -1722,31 +1741,35 @@ msgstr "Ordenar por"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:682
 msgid "Metric used to define the top series"
-msgstr ""
+msgstr "Métrica utilizada para definir la serie superior."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:697
 msgid "Rolling"
-msgstr ""
+msgstr "Ventana Desplazamiento"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:700
 msgid ""
 "Defines a rolling window function to apply, works along with the [Periods] "
 "text box"
 msgstr ""
+"Define un una ventana de desplazamiento móvil para aplicar, funciona junto "
+"con el cuadro de texto [Periods]"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:706
 msgid "Periods"
-msgstr ""
+msgstr "Periodos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:708
 msgid ""
 "Defines the size of the rolling window function, relative to the time "
 "granularity selected"
 msgstr ""
+"Define el tamaño de la función de ventana móvil, en relación con la "
+"granularidad de tiempo seleccionada"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:714
 msgid "Min Periods"
-msgstr ""
+msgstr "Periodos Mínimos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:716
 msgid ""
@@ -1755,6 +1778,11 @@ msgid ""
 "7, so that all data points shown are the total of 7 periods. This will hide "
 "the \"ramp up\" taking place over the first 7 periods"
 msgstr ""
+"El número mínimo de períodos de desplazamiento necesarios para mostrar un "
+"valor. Por ejemplo, si realizas una suma acumulada en 7 días, es posible que "
+"quieras que tu \"Período mínimo\" sea 7, de modo que todos los puntos de "
+"datos mostrados sean el total de 7 períodos. Esto ocultará el \"incremento\" "
+"que tendrá lugar durante los primeros 7 períodos."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:725
 #: superset/assets/javascripts/explore/stores/visTypes.js:123
@@ -1766,6 +1794,8 @@ msgid ""
 "Defines the grouping of entities. Each series is shown as a specific color "
 "on the chart and has a legend toggle"
 msgstr ""
+"Define la agrupación de entidades. Cada serie se muestra como un color "
+"específico en el gráfico y tiene una leyenda"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:737
 msgid "Entity"
@@ -1773,7 +1803,7 @@ msgstr "Entidad"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:740
 msgid "This defines the element to be plotted on the chart"
-msgstr ""
+msgstr "Esto define el elemento a trazar en el gráfico."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:748
 #: superset/assets/javascripts/explore/stores/visTypes.js:172
@@ -1783,7 +1813,7 @@ msgstr "Eje X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:749
 msgid "Metric assigned to the [X] axis"
-msgstr ""
+msgstr "Métrica asignada al eje [X]"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:762
 #: superset/assets/javascripts/explore/stores/visTypes.js:179
@@ -1793,7 +1823,7 @@ msgstr "Eje Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:765
 msgid "Metric assigned to the [Y] axis"
-msgstr ""
+msgstr "Métrica asignada al eje [Y]"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:776
 msgid "Bubble Size"
@@ -1808,6 +1838,8 @@ msgid ""
 "The URL, this control is templated, so you can integrate {{ width }} and/or "
 "{{ height }} in your URL string."
 msgstr ""
+"La URL, este control es una plantilla, por lo que puedes integrar "
+"{{ width }} y/o {{ height }} en tu cadena de URL."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:797
 msgid "X Axis Label"
@@ -1827,6 +1859,9 @@ msgid ""
 "to other criteria. You can include complex expression, parenthesis and "
 "anything else supported by the backend it is directed towards."
 msgstr ""
+"El texto en este cuadro se incluye en la cláusula WHERE de tu consulta, como "
+"un AND a otros criterios. Puedes incluir expresiones complejas, paréntesis y "
+"cualquier otra cosa compatible con el backend al que se dirige."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:821
 msgid "Custom HAVING clause"
@@ -1838,30 +1873,34 @@ msgid ""
 "to other criteria. You can include complex expression, parenthesis and "
 "anything else supported by the backend it is directed towards."
 msgstr ""
+"El texto en este cuadro se incluye en la cláusula HAVING de tu consulta, "
+"como un AND a otros criterios. Puedes incluir expresiones complejas, "
+"paréntesis y cualquier otra cosa compatible con el backend al que se dirige."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:831
 msgid "Comparison Period Lag"
-msgstr ""
+msgstr "Retraso del Período de Comparación"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:833
 msgid "Based on granularity, number of time periods to compare against"
 msgstr ""
+"Basado en la granularidad, número de períodos de tiempo para comparar con"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:838
 msgid "Comparison suffix"
-msgstr ""
+msgstr "Sufijo Comparación"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:839
 msgid "Suffix to apply after the percentage display"
-msgstr ""
+msgstr "Sufijo a mostrar después de la visualización del porcentaje"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:845
 msgid "Table Timestamp Format"
-msgstr ""
+msgstr "Formato de hora en la tabla"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:850
 msgid "Timestamp Format"
-msgstr ""
+msgstr "Formato Hora"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:856
 msgid "Series Height"
@@ -1894,11 +1933,11 @@ msgstr "Formato Eje Derecho"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:912
 msgid "Markup Type"
-msgstr ""
+msgstr "Tipo de Markup"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:917
 msgid "Pick your favorite markup language"
-msgstr ""
+msgstr "Elige tu idioma favorito de markup"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:922
 msgid "Rotation"
@@ -1906,7 +1945,7 @@ msgstr "Rotación"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:925
 msgid "Rotation to apply to words in the cloud"
-msgstr ""
+msgstr "Rotación para aplicar a palabras en la nube."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:930
 msgid "Line Style"
@@ -1914,7 +1953,7 @@ msgstr "Estilo Línea"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:935
 msgid "Line interpolation as defined by d3.js"
-msgstr ""
+msgstr "Interpolación de línea según definido por d3.js"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:940
 msgid "Label Type"
@@ -1922,7 +1961,7 @@ msgstr "Tipo Etiqueta"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:949
 msgid "What should be shown on the label?"
-msgstr ""
+msgstr "¿Qué se debe mostrar en la etiqueta?"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:954
 #: superset/assets/javascripts/explore/stores/visTypes.js:376
@@ -1943,26 +1982,28 @@ msgid ""
 "Aggregate function to apply when pivoting and computing the total rows and "
 "columns"
 msgstr ""
+"Función agregada para aplicar al pivotar y al calcular el total de filas y "
+"columnas"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:983
 msgid "Font Size From"
-msgstr ""
+msgstr "Tamaño de fuente desde"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:985
 msgid "Font size for the smallest value in the list"
-msgstr ""
+msgstr "Tamaño de letra para el valor más pequeño en la lista"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:991
 msgid "Font Size To"
-msgstr ""
+msgstr "Tamaño de fuente a"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:993
 msgid "Font size for the biggest value in the list"
-msgstr ""
+msgstr "Tamaño de letra para el valor más grande en la lista"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:998
 msgid "Instant Filtering"
-msgstr ""
+msgstr "Filtrado Instantáneo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1009
 msgid "Range Filter"
@@ -1970,7 +2011,7 @@ msgstr "Filtro de Rango"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1012
 msgid "Whether to display the time range interactive selector"
-msgstr ""
+msgstr "Mostrar el selector interactivo de rango de tiempo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1017
 msgid "Date Filter"
@@ -1978,7 +2019,7 @@ msgstr "Filtro de Fecha"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1019
 msgid "Whether to include a time filter"
-msgstr ""
+msgstr "Mostrar un filtro de tiempo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1024
 msgid "Data Table"
@@ -1986,7 +2027,7 @@ msgstr "Tabla de Datos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1026
 msgid "Whether to display the interactive data table"
-msgstr ""
+msgstr "Mostrar la tabla de datos interactiva"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1031
 msgid "Search Box"
@@ -1994,7 +2035,7 @@ msgstr "Caja de Búsqueda"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1034
 msgid "Whether to include a client side search box"
-msgstr ""
+msgstr "Mostrar un cuadro de búsqueda en el cliente"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1039
 msgid "Table Filter"
@@ -2002,7 +2043,7 @@ msgstr "Filtro de Tabla"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1041
 msgid "Whether to apply filter when table cell is clicked"
-msgstr ""
+msgstr "Si aplicar filtro cuando se hace clic en la celda de la tabla"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1046
 msgid "Show Bubbles"
@@ -2010,7 +2051,7 @@ msgstr "Mostrar Burbujas"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1049
 msgid "Whether to display bubbles on top of countries"
-msgstr ""
+msgstr "Mostrar burbujas encima de los países"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1054
 msgid "Legend"
@@ -2018,7 +2059,7 @@ msgstr "Leyenda"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1057
 msgid "Whether to display the legend (toggles)"
-msgstr ""
+msgstr "Mostrar la leyenda (toggles)"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1062
 msgid "X bounds"
@@ -2026,7 +2067,7 @@ msgstr "Límites X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1065
 msgid "Whether to display the min and max values of the X axis"
-msgstr ""
+msgstr "Mostrar los valores mínimo y máximo del eje X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1070
 msgid "Y bounds"
@@ -2034,15 +2075,15 @@ msgstr "Límites Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1073
 msgid "Whether to display the min and max values of the Y axis"
-msgstr ""
+msgstr "Mostrar los valores mínimo y máximo del eje Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1078
 msgid "Rich Tooltip"
-msgstr ""
+msgstr "Tooltip Rico"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1081
 msgid "The rich tooltip shows a list of all series for that point in time"
-msgstr ""
+msgstr "El tooltip rico muestra una lista de todas las series para ese punto"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1087
 msgid "Y Log Scale"
@@ -2050,7 +2091,7 @@ msgstr "Escala Logarítmica Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1090
 msgid "Use a log scale for the Y axis"
-msgstr ""
+msgstr "Utiliza una escala logarítmica para el eje Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1095
 msgid "X Log Scale"
@@ -2058,7 +2099,7 @@ msgstr "Escala Logarítmica X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1098
 msgid "Use a log scale for the X axis"
-msgstr ""
+msgstr "Utiliza una escala logarítmica para el eje X"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1103
 msgid "Donut"
@@ -2082,7 +2123,7 @@ msgstr "Contribución"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1121
 msgid "Compute the contribution to the total"
-msgstr ""
+msgstr "Calcular la contribución al total."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1126
 msgid "Period Ratio"
@@ -2093,6 +2134,8 @@ msgid ""
 "[integer] Number of period to compare against, this is relative to the "
 "granularity selected"
 msgstr ""
+"[integer] Número de período para comparar, esto es relativo a la "
+"granularidad seleccionada"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1135
 msgid "Period Ratio Type"
@@ -2103,16 +2146,21 @@ msgid ""
 "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is "
 "(new-previous)"
 msgstr ""
+"`factor` significa (nuevo/anterior), `crecimiento` es ((nuevo/anterior) - "
+"1), `valor` es (nuevo-anterior)"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1144
 msgid "Time Shift"
-msgstr ""
+msgstr "Cambio de Hora"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1146
 msgid ""
 "Overlay a timeseries from a relative time period. Expects relative time "
 "delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"Superponer una serie de tiempo de un período de tiempo relativo. Espera "
+"delta de tiempo relativo en lenguaje natural (ejemplo: 24 horas, 7 días, 56 "
+"semanas, 365 días)"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1154
 msgid "Subheader"
@@ -2120,7 +2168,7 @@ msgstr "Sub-encabezado"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1155
 msgid "Description text that shows up below your Big Number"
-msgstr ""
+msgstr "Descripción del texto que aparece debajo de tu Gran Número"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1161
 msgid "label"
@@ -2132,6 +2180,9 @@ msgid ""
 "aggregated with the aggregator. Non-numerical columns will be used to label "
 "points. Leave empty to get a count of points in each cluster."
 msgstr ""
+"`count` es COUNT(*) si se usa un group by. Las columnas numéricas serán "
+"agregadas con el agregador. Se usarán columnas no numéricas para etiquetar "
+"puntos. Deja vacío para obtener un conteo de puntos en cada grupo."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1174
 msgid "Map Style"
@@ -2139,11 +2190,11 @@ msgstr "Estilo Mapa"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1184
 msgid "Base layer map style"
-msgstr ""
+msgstr "Estilo de mapa de capa base"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1190
 msgid "Clustering Radius"
-msgstr ""
+msgstr "Radio de Agrupación"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1203
 msgid ""
@@ -2151,10 +2202,13 @@ msgid ""
 "turn off clustering, but beware that a large number of points (>1000) will "
 "cause lag."
 msgstr ""
+"El radio (en píxeles) que utiliza el algoritmo para definir un grupo. Elige "
+"0 para desactivar la agrupación, pero ten en cuenta que un gran número de "
+"puntos (> 1000) causará un retraso."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1210
 msgid "Point Radius"
-msgstr ""
+msgstr "Radio del Punto"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1212
 msgid ""
@@ -2162,14 +2216,17 @@ msgid ""
 "numerical column or `Auto`, which scales the point based on the largest "
 "cluster"
 msgstr ""
+"El radio de los puntos individuales (aquellos que no están en un grupo). Ya "
+"sea una columna numérica o `Auto`, que escala el punto en función del grupo "
+"más grande"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1222
 msgid "Point Radius Unit"
-msgstr ""
+msgstr "Unidades del Radio del Punto"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1225
 msgid "The unit of measure for the specified point radius"
-msgstr ""
+msgstr "La unidad de medida para el radio del punto especificado."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1230
 msgid "Opacity"
@@ -2177,7 +2234,7 @@ msgstr "Opacidad"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1233
 msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
-msgstr ""
+msgstr "Opacidad de todas las agrupaciones, puntos y etiquetas. Entre 0 y 1."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1239
 msgid "Zoom"
@@ -2205,11 +2262,13 @@ msgstr "Longitud de la ventana gráfica predeterminada"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1266
 msgid "Live render"
-msgstr ""
+msgstr "Generación en Directo"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1268
 msgid "Points and clusters will update as viewport is being changed"
 msgstr ""
+"Los puntos y las agrupaciones se actualizarán a medida que se modifique la "
+"ventana visible."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1274
 msgid "RGB Color"
@@ -2225,15 +2284,15 @@ msgstr "Rangos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1291
 msgid "Ranges to highlight with shading"
-msgstr ""
+msgstr "Rangos a resaltar con sombreado."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1296
 msgid "Range labels"
-msgstr ""
+msgstr "Etiquetas de Rango"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1298
 msgid "Labels for the ranges"
-msgstr ""
+msgstr "Etiquetas para los rangos"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1303
 msgid "Markers"
@@ -2265,43 +2324,48 @@ msgstr "Etiquetas de Líneas para los Marcadores"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1326
 msgid "Labels for the marker lines"
-msgstr ""
+msgstr "Etiquetas para las líneas de marca"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1353
 msgid "Slice ID"
-msgstr ""
+msgstr "ID Sección"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1355
 msgid "The id of the active slice"
-msgstr ""
+msgstr "El ID de la sección activa"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1360
 msgid "Cache Timeout (seconds)"
-msgstr ""
+msgstr "Tiempo de espera de caché (segundos)"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1362
 msgid "The number of seconds before expiring the cache"
-msgstr ""
+msgstr "El número de segundos antes de caducar el caché."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1367
 msgid "Order by entity id"
-msgstr ""
+msgstr "Ordenar por ID entidad"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1368
 msgid ""
 "Important! Select this if the table is not already sorted by entity id, else "
 "there is no guarantee that all events for each entity are returned."
 msgstr ""
+"¡Importante! Selecciona esto si la tabla no está ya ordenada por el "
+"identificador de la entidad, de lo contrario no hay garantía de que se "
+"devuelvan todos los eventos para cada entidad."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1376
 msgid "Minimum leaf node event count"
-msgstr ""
+msgstr "Recuento mínimo de eventos del nodo hoja"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1379
 msgid ""
 "Leaf nodes that represent fewer than this number of events will be initially "
 "hidden in the visualization"
 msgstr ""
+"Los nodos de hoja que representan menos que este número de eventos se "
+"ocultarán inicialmente en la visualización"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1385
 #: superset/assets/javascripts/explore/stores/visTypes.js:25
@@ -2320,7 +2384,7 @@ msgstr "Tiempo"
 #: superset/assets/javascripts/explore/stores/visTypes.js:9
 #: superset/assets/javascripts/explore/stores/visTypes.js:32
 msgid "Time related form attributes"
-msgstr ""
+msgstr "Atributos de formulario relacionados con el tiempo"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:16
 msgid "Datasource & Chart Type"
@@ -2328,7 +2392,7 @@ msgstr "Tipo de Fuente de Datos y Gráfico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:45
 msgid "This section exposes ways to include snippets of SQL in your query"
-msgstr ""
+msgstr "Esta sección expone formas de incluir fragmentos de SQL en tu consulta"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:48
 #: superset/views/annotations.py:55
@@ -2344,16 +2408,20 @@ msgid ""
 "This section contains options that allow for advanced analytical post "
 "processing of query results"
 msgstr ""
+"Esta sección contiene opciones que permiten el procesamiento analítico "
+"avanzado de los resultados de la consulta"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:85
 msgid "Result Filters"
-msgstr ""
+msgstr "Filtros de Resultados"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:87
 msgid ""
 "The filters to apply after post-aggregation.Leave the value control empty to "
 "filter empty strings or nulls"
 msgstr ""
+"Los filtros a aplicar después de la agregación. Deja el control de valor "
+"vacío para filtrar cadenas vacías o nulas"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:100
 #: superset/assets/javascripts/explore/stores/visTypes.js:109
@@ -2617,13 +2685,15 @@ msgstr "Columna que contiene datos de latitud"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1056
 msgid "Cluster label aggregator"
-msgstr ""
+msgstr "Unificador de etiquetas de agrupación"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1057
 msgid ""
 "Aggregate function applied to the list of points in each cluster to produce "
 "the cluster label."
 msgstr ""
+"Función de agregación aplicada a la lista de puntos en cada grupo para "
+"producir la etiqueta del grupo."
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1061
 msgid "Tooltip"
@@ -2633,12 +2703,16 @@ msgstr "Ayuda"
 msgid ""
 "Show a tooltip when hovering over points and clusters describing the label"
 msgstr ""
+"Mostrar tooltips al pasar el cursor sobre puntos y agrupaciones que "
+"describen la etiqueta"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1066
 msgid ""
 "One or many controls to group by. If grouping, latitude and longitude "
 "columns must be present."
 msgstr ""
+"Uno o varios controles para agrupar por. Si agrupando, las columnas de "
+"latitud y longitud deben estar presentes."
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1077
 msgid "Event definition"
@@ -2687,7 +2761,7 @@ msgstr ""
 #: superset/assets/javascripts/modules/superset.js:133
 #, python-format
 msgid "An unknown error occurred. (Status: %s )"
-msgstr ""
+msgstr "Un error desconocido ocurrió. (Estado: %s )"
 
 #: superset/assets/javascripts/profile/components/App.jsx:24
 msgid "Favorites"
@@ -2945,6 +3019,12 @@ msgid ""
 "slices from a datasource. If you want to change the datasource for a slice, "
 "overwrite the slice from the 'explore view'"
 msgstr ""
+"La lista de segmentos asociados con esta tabla. Al modificar esta fuente de "
+"datos, puedes cambiar el comportamiento de estos segmentos asociados. "
+"También ten en cuenta que los segmentos deben apuntar a una fuente de datos, "
+"por lo que este formulario fallará al guardar si se eliminan segmentos de "
+"una fuente de datos. Si quieres cambiar la fuente de datos de un segmento, "
+"sobrescribe el segmento desde la 'vista de exploración'"
 
 #: superset/connectors/druid/views.py:204 superset/connectors/sqla/views.py:184
 msgid "Timezone offset (in hours) for this datasource"
@@ -2957,18 +3037,27 @@ msgid ""
 "on. If you enter `7 days ago`, the distinct list of values in the filter "
 "will be populated based on the distinct value over the past week"
 msgstr ""
+"Expresión de tiempo para usar como predicado al recuperar valores distintos "
+"para rellenar el componente de filtro. Solo se aplica cuando `Habilitar "
+"selección de filtro` está activado. Si ingresas `7 days ago`, la lista de "
+"valores en el filtro se completará en función del valor de la semana pasada"
 
 #: superset/connectors/druid/views.py:215 superset/connectors/sqla/views.py:206
 msgid ""
 "Whether to populate the filter's dropdown in the explore view's filter "
 "section with a list of distinct values fetched from the backend on the fly"
 msgstr ""
+"Si rellenar el menú desplegable del filtro en la sección de filtros de la "
+"vista de exploración con una lista de valores distintos obtenidos desde el "
+"backend sobre la marcha"
 
 #: superset/connectors/druid/views.py:219
 msgid ""
 "Redirects to this endpoint when clicking on the datasource from the "
 "datasource list"
 msgstr ""
+"Redirige a este putno al hacer clic en la fuente de datos de la lista de "
+"fuentes de datos"
 
 #: superset/connectors/druid/views.py:225 superset/connectors/sqla/views.py:213
 msgid "Associated Slices"
@@ -3020,6 +3109,8 @@ msgid ""
 "Datetime column not provided as part table configuration and is required by "
 "this type of chart"
 msgstr ""
+"No se ha proporcionado una columna de fecha y hora y es requerida por este "
+"tipo de gráfico"
 
 #: superset/connectors/sqla/models.py:398
 msgid "Empty query?"
@@ -3034,6 +3125,8 @@ msgid ""
 "Table [{}] doesn't seem to exist in the specified database, couldn't fetch "
 "column information"
 msgstr ""
+"La tabla [{}] no parece existir en la base de datos especificada, no se pudo "
+"recuperar la información de las columnas"
 
 #: superset/connectors/sqla/views.py:27
 msgid "List Columns"
@@ -3056,6 +3149,8 @@ msgid ""
 "Whether to make this column available as a [Time Granularity] option, column "
 "has to be DATETIME or DATETIME-like"
 msgstr ""
+"Si hacer que esta columna esté disponible como una opción [Time "
+"Granularity], la columna debe ser DATETIME o DATETIME-like"
 
 #: superset/connectors/sqla/views.py:52
 msgid ""
@@ -3063,6 +3158,9 @@ msgid ""
 "input a type manually for expression-defined columns in some cases. In most "
 "case users should not need to alter this."
 msgstr ""
+"El tipo de datos que fue inferido por la base de datos. Puede ser necesario "
+"ingresar un tipo manualmente para columnas definidas por expresión. En la "
+"mayoría de los casos, los usuarios no deberían necesitar alterar esto."
 
 #: superset/connectors/sqla/views.py:90
 msgid "Expression"
@@ -3131,12 +3229,16 @@ msgstr "Nombre de la tabla que existe en la fuente de datos."
 #: superset/connectors/sqla/views.py:187
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
 msgstr ""
+"Esquema, tal como se utiliza solo en algunas bases de datos como Postgres, "
+"Redshift y DB2"
 
 #: superset/connectors/sqla/views.py:193
 msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query "
 "against this string as a subquery."
 msgstr ""
+"Este campo actúa como una vista de Superset, lo que significa que Superset "
+"ejecutará una consulta en esta cadena como una subconsulta."
 
 #: superset/connectors/sqla/views.py:197
 msgid ""
@@ -3144,11 +3246,14 @@ msgid ""
 "control component. Supports jinja template syntax. Applies only when `Enable "
 "Filter Select` is on."
 msgstr ""
+"El predicado aplicado al obtener un valor distinto para rellenar el "
+"componente de control de filtro. Soporta la sintaxis de la plantilla jinja. "
+"Se aplica solo cuando `Habilitar selección de filtro` está activado."
 
 #: superset/connectors/sqla/views.py:203
 msgid ""
 "Redirects to this endpoint when clicking on the table from the table list"
-msgstr ""
+msgstr "Redirige a este punto al hacer clic en la tabla de la lista de tablas"
 
 #: superset/connectors/sqla/views.py:215
 msgid "Changed By"
@@ -3177,23 +3282,28 @@ msgstr "Nombre Tabla"
 
 #: superset/connectors/sqla/views.py:224
 msgid "Fetch Values Predicate"
-msgstr ""
+msgstr "Predicado Obtención de Valores"
 
 #: superset/connectors/sqla/views.py:226
 msgid "Main Datetime Column"
-msgstr ""
+msgstr "Columna principal de fecha y hora"
 
 #: superset/connectors/sqla/views.py:242
 msgid ""
 "Table [{}] could not be found, please double check your database connection, "
 "schema, and table name"
 msgstr ""
+"No se pudo encontrar la tabla [{}], verifica la conexión a tu base de datos, "
+"el esquema y el nombre de la tabla"
 
 #: superset/connectors/sqla/views.py:255
 msgid ""
 "The table was created. As part of this two phase configuration process, you "
 "should now click the edit button by the new table to configure it."
 msgstr ""
+"La tabla fue creada. Como parte de este proceso de configuración de dos "
+"fases, ahora debes hacer clic en el botón de edición junto a la nueva tabla "
+"para configurarla."
 
 #: superset/connectors/sqla/views.py:279
 msgid "Tables"
@@ -3253,7 +3363,7 @@ msgstr "Administrar"
 #: superset/views/base.py:62
 #, python-format
 msgid "Datasource %(name)s already exists"
-msgstr ""
+msgstr "La fuente de datos %(name)s ya existe"
 
 #: superset/views/base.py:221
 msgid "json isn't valid"
@@ -3269,23 +3379,23 @@ msgstr "¿Realmente quieres borrar todo?"
 
 #: superset/views/core.py:56
 msgid "This endpoint requires the `all_datasource_access` permission"
-msgstr ""
+msgstr "Este API requiere el permiso `all_datasource_access`"
 
 #: superset/views/core.py:58
 msgid "The datasource seems to have been deleted"
-msgstr ""
+msgstr "El origen de datos parece haber sido eliminado"
 
 #: superset/views/core.py:59
 msgid "The access requests seem to have been deleted"
-msgstr ""
+msgstr "Las solicitudes de acceso parecen haber sido eliminadas"
 
 #: superset/views/core.py:61
 msgid "The user seems to have been deleted"
-msgstr ""
+msgstr "El usuario parece haber sido eliminado"
 
 #: superset/views/core.py:62
 msgid "You don't have access to this datasource"
-msgstr ""
+msgstr "No tienes acceso a esta fuente de datos"
 
 #: superset/views/core.py:66
 #, python-format
@@ -3293,6 +3403,8 @@ msgid ""
 "This view requires the database %(name)s or `all_datasource_access` "
 "permission"
 msgstr ""
+"Esta vista requiere la base de datos %(name)s o el permiso "
+"`all_datasource_access`"
 
 #: superset/views/core.py:71
 #, python-format
@@ -3300,6 +3412,8 @@ msgid ""
 "This endpoint requires the datasource %(name)s, database or "
 "`all_datasource_access` permission"
 msgstr ""
+"Este API requiere el origen de datos %(name)s, la base de datos o el permiso "
+"`all_datasource_access`"
 
 #: superset/views/core.py:174
 msgid "List Databases"
@@ -3326,12 +3440,18 @@ msgid ""
 "Allow users to run synchronous queries, this is the default and should work "
 "well for queries that can be executed within a web request scope (<~1 minute)"
 msgstr ""
+"Permitir que los usuarios ejecuten consultas sincrónicas, este es el valor "
+"predeterminado y debería funcionar bien para las consultas que se pueden "
+"ejecutar dentro del alcance de una solicitud web (<~ 1 minuto)"
 
 #: superset/views/core.py:217
 msgid ""
 "Allow users to run queries, against an async backend. This assumes that you "
 "have a Celery worker setup as well as a results backend."
 msgstr ""
+"Permitir a los usuarios ejecutar consultas, contra un backend asíncrono. "
+"Esto supone que tienes un trabajador Celery configurado así como un backend "
+"de resultados."
 
 #: superset/views/core.py:221
 msgid "Allow CREATE TABLE AS option in SQL Lab"
@@ -3342,18 +3462,24 @@ msgid ""
 "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in "
 "SQL Lab"
 msgstr ""
+"Permitir que los usuarios ejecuten instrucciones que no sean SELECT (UPDATE, "
+"DELETE, CREATE, ...) en el laboratorio SQL"
 
 #: superset/views/core.py:226
 msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
 "table to be created in this schema"
 msgstr ""
+"Cuando se permite la opción CREATE TABLE AS en el laboratorio SQL, esta "
+"opción hace que la tabla se cree en este esquema"
 
 #: superset/views/core.py:238
 msgid ""
 "All the queries in Sql Lab are going to be executed on behalf of currently "
 "authorized user."
 msgstr ""
+"Todas las consultas en Sql Lab se ejecutarán en nombre del usuario "
+"autorizado actualmente."
 
 #: superset/views/core.py:243
 msgid "Expose in SQL Lab"
@@ -3451,10 +3577,15 @@ msgid ""
 "overwrite button in the explore view. This JSON object is exposed here for "
 "reference and for power users who may want to alter specific parameters."
 msgstr ""
+"Estos parámetros se generan dinámicamente al hacer clic en el botón Guardar "
+"o sobrescribir en la vista de exploración. Este objeto JSON se expone aquí "
+"como referencia y para usuarios avanzados que quieran modificar parámetros "
+"específicos."
 
 #: superset/views/core.py:364
 msgid "Duration (in seconds) of the caching timeout for this slice."
 msgstr ""
+"Duración (en segundos) del tiempo de espera de caché para esta sección."
 
 #: superset/views/core.py:375
 msgid "Last Modified"
@@ -3494,16 +3625,21 @@ msgid ""
 "It is dynamically generated when adjusting the widgets size and positions by "
 "using drag & drop in the dashboard view"
 msgstr ""
+"Este objeto JSON describe la posición de los widgets en el panel de control. "
+"Se genera dinámicamente al ajustar el tamaño y las posiciones de los widgets "
+"mediante la función de arrastrar y soltar en la vista del tablero"
 
 #: superset/views/core.py:456
 msgid ""
 "The css for individual dashboards can be altered here, or in the dashboard "
 "view where changes are immediately visible"
 msgstr ""
+"El CSS para cuadros de mandos individuales se puede modificar aquí, o en la "
+"vista de cuadro de mandos donde los cambios son visibles de inmediato"
 
 #: superset/views/core.py:460
 msgid "To get a readable URL for your dashboard"
-msgstr ""
+msgstr "Para obtener una URL legible para tu panel de control"
 
 #: superset/views/core.py:461
 msgid ""
@@ -3511,10 +3647,14 @@ msgid ""
 "overwrite button in the dashboard view. It is exposed here for reference and "
 "for power users who may want to alter specific parameters."
 msgstr ""
+"Este objeto JSON se genera dinámicamente al hacer clic en el botón Guardar o "
+"sobrescribir en la vista del cuadro de mando. Se expone aquí como referencia "
+"y para usuarios avanzados que quieran modificar parámetros específicos."
 
 #: superset/views/core.py:466
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr ""
+"Propietarios es una lista de usuarios que pueden alterar el panel de control."
 
 #: superset/views/core.py:474 superset/views/core.py:541
 msgid "Dashboard"
@@ -3565,12 +3705,14 @@ msgstr "Se ha solicitado Acceso"
 msgid ""
 "%(user)s was granted the role %(role)s that gives access to the "
 "%(datasource)s"
-msgstr ""
+msgstr "%(user)s recibió el rol %(role)s que le da acceso a %(datasource)s"
 
 #: superset/views/core.py:873
 #, python-format
 msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
 msgstr ""
+"El rol %(r)s se extendió para proporcionar el acceso al origen de datos "
+"%(ds)s"
 
 #: superset/views/core.py:882
 msgid "You have no permission to approve this request"
@@ -3580,26 +3722,30 @@ msgstr "No tienes permiso para aprobar esta solicitud."
 msgid ""
 "Malformed request. slice_id or table_name and db_name arguments are expected"
 msgstr ""
+"Solicitud mal formada. Se esperan argumentos de slice_id o table_name y "
+"db_name"
 
 #: superset/views/core.py:1652
 #, python-format
 msgid "Slice %(id)s not found"
-msgstr ""
+msgstr "Sección %(id)s no encontrado"
 
 #: superset/views/core.py:1664
 #, python-format
 msgid "Table %(t)s wasn't found in the database %(d)s"
-msgstr ""
+msgstr "La tabla %(t)s no se encontró en la base de datos %(d)s"
 
 #: superset/views/core.py:1803
 #, python-format
 msgid "Can't find User '%(name)s', please ask your admin to create one."
 msgstr ""
+"No se puede encontrar el usuario '%(name)s', pídale a tu administrador que "
+"cree uno."
 
 #: superset/views/core.py:1810
 #, python-format
 msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
-msgstr ""
+msgstr "No puedo encontrar DruidCluster con nombre = '%(name)s'"
 
 #: superset/views/core.py:2071
 msgid "Query record was not created as expected."
