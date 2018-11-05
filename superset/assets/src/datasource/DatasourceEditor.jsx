@@ -4,6 +4,7 @@ import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
+import getClientErrorObject from '../utils/getClientErrorObject';
 
 import Button from '../components/Button';
 import Loading from '../components/Loading';
@@ -267,11 +268,11 @@ export class DatasourceEditor extends React.PureComponent {
       this.mergeColumns(json);
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
-    }).catch((error) => {
-      const msg = error.error || error.statusText || t('An error has occurred');
-      this.props.addDangerToast(msg);
-      this.setState({ metadataLoading: false });
-    });
+    }).catch(response => getClientErrorObject(response).then(({ error, statusText }) => {
+        this.props.addDangerToast(error || statusText || t('An error has occurred'));
+        this.setState({ metadataLoading: false });
+      }),
+    );
   }
 
   findDuplicates(arr, accessor) {
