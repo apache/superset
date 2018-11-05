@@ -46,7 +46,6 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
@@ -55,6 +54,8 @@ import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegis
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+
+const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 

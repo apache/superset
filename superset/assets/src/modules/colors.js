@@ -3,7 +3,6 @@ import { extent } from 'd3-array';
 import getSequentialSchemeRegistry from './colors/SequentialSchemeRegistrySingleton';
 
 export const BRAND_COLOR = '#00A699';
-export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {
