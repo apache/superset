@@ -11,6 +11,7 @@ import { Table } from 'reactable';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
@@ -70,12 +71,14 @@ export default class DisplayQueryButton extends React.PureComponent {
           error: null,
         });
       })
-      .catch((error) => {
-        this.setState({
-          error: error.error || error.statusText || t('Sorry, An error occurred'),
-          isLoading: false,
-        });
-      });
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.setState({
+            error: error || statusText || t('Sorry, An error occurred'),
+            isLoading: false,
+          });
+        }),
+      );
   }
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });
