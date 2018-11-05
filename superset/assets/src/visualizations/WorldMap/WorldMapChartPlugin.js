@@ -5,7 +5,7 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  name: t('Word Cloud'),
+  name: t('World Map'),
   description: '',
   credits: ['http://datamaps.github.io/'],
   thumbnail,
