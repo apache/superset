@@ -39,10 +39,11 @@ class ShareSqlLabQuery extends React.Component {
         this.setState({ shortUrl });
       })
       .catch((response) => {
-        getClientErrorObject(response).then(({ error }) => {
-          this.props.addDangerToast(error);
-          this.setState({ shortUrl: t('Error') });
-        });
+        getClientErrorObject(response)
+          .then(({ error }) => {
+            this.props.addDangerToast(error);
+            this.setState({ shortUrl: t('Error') });
+          });
       });
   }
 
