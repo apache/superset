@@ -5,6 +5,7 @@ import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
+import getClientErrorObject from '../utils/getClientErrorObject';
 import DatasourceEditor from '../datasource/DatasourceEditor';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
@@ -65,17 +66,19 @@ class DatasourceModal extends React.PureComponent {
         this.props.onDatasourceSave(json);
         this.props.onHide();
       })
-      .catch((error) => {
-        this.dialog.show({
-          title: 'Error',
-          bsSize: 'medium',
-          bsStyle: 'danger',
-          actions: [
-            Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
-          ],
-          body: error.error || error.statusText || t('An error has occurred'),
-        });
-      });
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.dialog.show({
+            title: 'Error',
+            bsSize: 'medium',
+            bsStyle: 'danger',
+            actions: [
+              Dialog.DefaultAction('Ok', () => {}, 'btn-danger'),
+            ],
+            body: error || statusText || t('An error has occurred'),
+          });
+        }),
+      );
   }
 
   onDatasourceChange(datasource, errors) {
