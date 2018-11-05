@@ -1,12 +1,13 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { getClientErrorObject } from '../modules/utils';
-import { t } from '../locales';
+import { TIME_RANGE_SEPARATOR } from '../utils/common';
+import getClientErrorObject from '../utils/getClientErrorObject';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -66,7 +67,8 @@ export function annotationQueryFailed(annotation, queryResponse, key) {
 export function runAnnotationQuery(annotation, timeout = 60, formData = null, key) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
-    const fd = formData || getState().charts[sliceKey].latestQueryFormData;
+    // make a copy of formData, not modifying original formData
+    const fd = { ...(formData || getState().charts[sliceKey].latestQueryFormData) };
 
     if (!requiresQuery(annotation.sourceType)) {
       return Promise.resolve();
@@ -75,6 +77,9 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     const granularity = fd.time_grain_sqla || fd.granularity;
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
+    if (fd.time_range) {
+      [fd.since, fd.until] = fd.time_range.split(TIME_RANGE_SEPARATOR);
+    }
 
     const sliceFormData = Object.keys(annotation.overrides).reduce(
       (d, k) => ({
@@ -164,22 +169,28 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: key,
-          has_err: true,
-          datasource: formData.datasource,
-          start_offset: logStart,
-          duration: Logger.getTimestamp() - logStart,
-        });
+        const appendErrorLog = (errorDetails) => {
+          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+            slice_id: key,
+            has_err: true,
+            error_details: errorDetails,
+            datasource: formData.datasource,
+            start_offset: logStart,
+            duration: Logger.getTimestamp() - logStart,
+          });
+        };
 
         if (response.statusText === 'timeout') {
+          appendErrorLog('timeout');
           return dispatch(chartUpdateTimeout(response.statusText, timeout, key));
         } else if (response.name === 'AbortError') {
+          appendErrorLog('abort');
           return dispatch(chartUpdateStopped(key));
         }
-        return getClientErrorObject(response).then(parsedResponse =>
-          dispatch(chartUpdateFailed(parsedResponse, key)),
-        );
+        return getClientErrorObject(response).then((parsedResponse) => {
+          appendErrorLog(parsedResponse.error);
+          return dispatch(chartUpdateFailed(parsedResponse, key));
+        });
       });
 
     const annotationLayers = formData.annotation_layers || [];

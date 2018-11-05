@@ -2,12 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
-import { t } from '../../locales';
 import {
   OPERATORS,
   TABLE_ONLY_OPERATORS,
@@ -177,13 +177,13 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
       const controller = new AbortController();
       const { signal } = controller;
-      this.setState({ abortActiveRequest: controller.abort });
+      this.setState({ abortActiveRequest: controller.abort, loading: true });
 
       SupersetClient.get({
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
       }).then(({ json }) => {
-        this.setState(() => ({ suggestions: json, abortActiveRequest: null }));
+        this.setState(() => ({ suggestions: json, abortActiveRequest: null, loading: false }));
       });
     }
   }
@@ -272,7 +272,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 freeForm
                 name="filter-comparator-value"
                 value={adhocFilter.comparator}
-                isLoading={false}
+                isLoading={this.state.loading}
                 choices={this.state.suggestions}
                 onChange={this.onComparatorChange}
                 showHeader={false}

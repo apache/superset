@@ -9,13 +9,13 @@ import getInitialState from './getInitialState';
 import rootReducer from './reducers';
 import { initEnhancer } from '../reduxUtils';
 import App from './components/App';
-import { appSetup } from '../common';
+import setupApp from '../setup/setupApp';
 
 import './main.less';
 import '../../stylesheets/reactable-pagination.css';
 import '../components/FilterableTable/FilterableTableStyles.css';
 
-appSetup();
+setupApp();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

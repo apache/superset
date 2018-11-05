@@ -7,11 +7,11 @@ import { Provider } from 'react-redux';
 import App from './components/App';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
-import { appSetup } from '../common';
+import setupApp from '../setup/setupApp';
 
 import './main.css';
 
-appSetup();
+setupApp();
 
 const profileViewContainer = document.getElementById('app');
 const bootstrap = JSON.parse(profileViewContainer.getAttribute('data-bootstrap'));

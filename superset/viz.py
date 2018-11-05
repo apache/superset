@@ -784,7 +784,7 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                str(obj[DTTM_ALIAS] / 10**9): obj.get(metric)
                 for obj in records
             }
 
@@ -1822,6 +1822,9 @@ class IFrameViz(BaseViz):
 
     def get_df(self, query_obj=None):
         return None
+
+    def get_data(self, df):
+        return {}
 
 
 class ParallelCoordinatesViz(BaseViz):

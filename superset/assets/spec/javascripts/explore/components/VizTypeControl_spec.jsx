@@ -3,16 +3,29 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Modal } from 'react-bootstrap';
 import VizTypeControl from '../../../../src/explore/components/controls/VizTypeControl';
+import getChartMetadataRegistry from '../../../../src/visualizations/core/registries/ChartMetadataRegistrySingleton';
+import ChartMetadata from '../../../../src/visualizations/core/models/ChartMetadata';
 
 const defaultProps = {
   name: 'viz_type',
   label: 'Visualization Type',
-  value: 'table',
+  value: 'vis1',
   onChange: sinon.spy(),
 };
 
 describe('VizTypeControl', () => {
   let wrapper;
+
+  const registry = getChartMetadataRegistry();
+  registry
+    .registerValue('vis1', new ChartMetadata({
+      name: 'vis1',
+      thumbnail: '',
+    }))
+    .registerValue('vis2', new ChartMetadata({
+      name: 'vis2',
+      thumbnail: '',
+    }));
 
   beforeEach(() => {
     wrapper = shallow(<VizTypeControl {...defaultProps} />);
@@ -28,8 +41,8 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange.called).toBe(true);
   });
   it('filters images based on text input', () => {
-    expect(wrapper.find('img').length).toBeGreaterThan(20);
-    wrapper.setState({ filter: 'time' });
-    expect(wrapper.find('img').length).toBeLessThan(10);
+    expect(wrapper.find('img')).toHaveLength(2);
+    wrapper.setState({ filter: 'vis2' });
+    expect(wrapper.find('img')).toHaveLength(1);
   });
 });

@@ -12,7 +12,7 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 import inspect
 import logging
 import os
@@ -37,7 +37,7 @@ from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
-from superset.utils import cache as cache_util, core as utils
+from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -228,31 +228,31 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = sorted(
-                    db.inspector.get_table_names(schema))
+                all_datasource_names = db.all_table_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = sorted(
-                    db.inspector.get_view_names(schema))
+                all_datasource_names = db.all_view_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             all_result_sets += [
-                '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+                '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -294,35 +294,15 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, db_id,
-                         enable_cache, cache_timeout, force=False):
-        """A function to get all schema names in this db.
-
-        :param inspector: URI string
-        :param db_id: database id
-        :param enable_cache: whether to enable cache for the function
-        :param cache_timeout: timeout settings for cache in second.
-        :param force: force to refresh
-        :return: a list of schema names
-        """
-        return inspector.get_schema_names()
+    def get_schema_names(cls, inspector):
+        return sorted(inspector.get_schema_names())
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
-    def get_table_names(cls, inspector, db_id, schema,
-                        enable_cache, cache_timeout, force=False):
+    def get_table_names(cls, inspector, schema):
         return sorted(inspector.get_table_names(schema))
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:view_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
-    def get_view_names(cls, inspector, db_id, schema,
-                       enable_cache, cache_timeout, force=False):
+    def get_view_names(cls, inspector, schema):
         return sorted(inspector.get_view_names(schema))
 
     @classmethod
@@ -448,11 +428,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
-    def get_table_names(cls, inspector, db_id, schema,
-                        enable_cache, cache_timeout, force=False):
+    def get_table_names(cls, inspector, schema):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -587,23 +563,25 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+    def fetch_result_sets(cls, db, datasource_type):
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = sorted(db.inspector.get_table_names())
+            all_datasource_names = db.all_table_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = sorted(db.inspector.get_view_names())
+            all_datasource_names = db.all_view_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         all_result_sets += [
-            '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+            '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -613,11 +591,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{db_id}:schema:{schema}:table_list'.format(
-            db_id=kwargs.get('db_id'), schema=kwargs.get('schema')))
-    def get_table_names(cls, inspector, db_id, schema,
-                        enable_cache, cache_timeout, force=False):
+    def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
@@ -741,11 +715,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -757,10 +728,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 datasource_type.upper(),
             ),
             None)
-        result_sets = defaultdict(list)
+        result_sets = []
         for unused, row in result_set_df.iterrows():
-            result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[''].append('{}.{}'.format(
+            result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
@@ -1022,12 +992,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
+    def fetch_result_sets(cls, db, datasource_type):
         return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type, force=force)
+            db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -1438,6 +1405,28 @@ class BQEngineSpec(BaseEngineSpec):
         return mutated_label
 
     @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
+        return {
+            'partitions': {
+                'cols': partitions_columns,
+            },
+            'clustering': {
+                'cols': cluster_columns,
+            },
+        }
+
+    @classmethod
     def _get_fields(cls, cols):
         """
         BigQuery dialect requires us to not use backtick in the fieldname which are
@@ -1479,10 +1468,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, db_id,
-                         enable_cache, cache_timeout, force=False):
+    def get_schema_names(cls, inspector):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas

@@ -10,14 +10,14 @@
 
   {% block head_js %}
     {{super()}}
-    {% for entry in get_unloaded_chunks(js_manifest('theme'), loaded_chunks) %}
-      <script src="{{ entry }}"></script>
-    {% endfor %}
+    {% with filename="theme" %}
+      {% include "superset/partials/_script_tag.html" %}
+    {% endwith %}
   {% endblock %}
 
   {% block tail_js %}
     {{super()}}
-    {% for entry in get_unloaded_chunks(js_manifest('common'), loaded_chunks) %}
-      <script src="{{ entry }}"></script>
-    {% endfor %}
+    {% with filename="preamble" %}
+      {% include "superset/partials/_script_tag.html" %}
+    {% endwith %}
   {% endblock %}

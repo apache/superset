@@ -1,7 +1,7 @@
 # pylint: disable=C,R,W
 from flask import request
 
-from superset import cache, tables_cache
+from superset import tables_cache
 
 
 def view_cache_key(*unused_args, **unused_kwargs):
@@ -9,7 +9,7 @@ def view_cache_key(*unused_args, **unused_kwargs):
     return 'view/{}/{}'.format(request.path, args_hash)
 
 
-def memoized_func(key=view_cache_key, use_tables_cache=False):
+def memoized_func(key=view_cache_key, attribute_in_key=None):
     """Use this decorator to cache functions that have predefined first arg.
 
     enable_cache is treated as True by default,
@@ -26,28 +26,26 @@ def memoized_func(key=view_cache_key, use_tables_cache=False):
     returns the caching key.
     """
     def wrap(f):
-        selected_cache = None
-        if use_tables_cache and tables_cache:
-            selected_cache = tables_cache
-        elif cache:
-            selected_cache = cache
+        if tables_cache:
+            def wrapped_f(self, *args, **kwargs):
+                if not kwargs.get('cache', True):
+                    return f(self, *args, **kwargs)
 
-        if selected_cache:
-            def wrapped_f(cls, *args, **kwargs):
-                if not kwargs.get('enable_cache', True):
-                    return f(cls, *args, **kwargs)
-
-                cache_key = key(*args, **kwargs)
-                o = selected_cache.get(cache_key)
+                if attribute_in_key:
+                    cache_key = key(*args, **kwargs).format(
+                        getattr(self, attribute_in_key))
+                else:
+                    cache_key = key(*args, **kwargs)
+                o = tables_cache.get(cache_key)
                 if not kwargs.get('force') and o is not None:
                     return o
-                o = f(cls, *args, **kwargs)
-                selected_cache.set(cache_key, o,
-                                   timeout=kwargs.get('cache_timeout', 600))
+                o = f(self, *args, **kwargs)
+                tables_cache.set(cache_key, o,
+                                 timeout=kwargs.get('cache_timeout'))
                 return o
         else:
             # noop
-            def wrapped_f(cls, *args, **kwargs):
-                return f(cls, *args, **kwargs)
+            def wrapped_f(self, *args, **kwargs):
+                return f(self, *args, **kwargs)
         return wrapped_f
     return wrap

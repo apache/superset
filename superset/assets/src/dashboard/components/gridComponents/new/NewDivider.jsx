@@ -1,9 +1,9 @@
 import React from 'react';
+import { t } from '@superset-ui/translation';
 
 import { DIVIDER_TYPE } from '../../../util/componentTypes';
 import { NEW_DIVIDER_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';
-import { t } from '../../../../locales';
 
 export default function DraggableNewDivider() {
   return (

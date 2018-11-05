@@ -6,6 +6,7 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 
 import DatasourceEditor from '../../../src/datasource/DatasourceEditor';
+import Field from '../../../src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {
@@ -69,5 +70,10 @@ describe('DatasourceEditor', () => {
     expect(inst.state.databaseColumns).toHaveLength(numCols);
     inst.mergeColumns([extraColumn]);
     expect(inst.state.databaseColumns).toHaveLength(numCols + 1);
+  });
+
+  it('renders isSqla fields', () => {
+    expect(wrapper.state('isSqla')).toBe(true);
+    expect(wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists()).toBe(true);
   });
 });

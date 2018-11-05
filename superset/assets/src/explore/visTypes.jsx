@@ -3,10 +3,11 @@
  * and associated with each and every visualization type.
  */
 import React from 'react';
+import { t } from '@superset-ui/translation';
+
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
-import * as v from './validators';
-import { t } from '../locales';
+import { nonEmpty } from './validators';
 
 export const sections = {
   druidTimeSeries: {
@@ -98,8 +99,6 @@ const timeGrainSqlaAnimationOverrides = {
 
 export const visTypes = {
   dist_bar: {
-    label: t('Distribution - Bar Chart'),
-    showOnExplore: true,
     controlPanelSections: [
       {
         label: t('Query'),
@@ -145,8 +144,6 @@ export const visTypes = {
   },
 
   pie: {
-    label: t('Pie Chart'),
-    showOnExplore: true,
     controlPanelSections: [
       {
         label: t('Query'),
@@ -177,8 +174,6 @@ export const visTypes = {
   },
 
   line: {
-    label: t('Time Series - Line Chart'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -218,12 +213,13 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      row_limit: {
+        default: 50000,
+      },
     },
   },
 
   line_multi: {
-    label: t('Time Series - Multiple Line Charts'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       {
@@ -296,8 +292,6 @@ export const visTypes = {
   },
 
   time_pivot: {
-    label: t('Time Series - Periodicity Pivot'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       {
@@ -347,7 +341,6 @@ export const visTypes = {
   },
 
   dual_line: {
-    label: t('Dual Axis Line Chart'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -397,8 +390,6 @@ export const visTypes = {
   },
 
   bar: {
-    label: t('Time Series - Bar Chart'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -443,7 +434,6 @@ export const visTypes = {
   },
 
   compare: {
-    label: t('Time Series - Percent Change'),
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -484,7 +474,6 @@ export const visTypes = {
   },
 
   deck_multi: {
-    label: t('Deck.gl - Multiple Layers'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -506,7 +495,6 @@ export const visTypes = {
   },
 
   deck_hex: {
-    label: t('Deck.gl - Hexagons'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -524,6 +512,7 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
           ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
+          ['js_agg_function', null],
         ],
       },
       {
@@ -545,7 +534,6 @@ export const visTypes = {
   },
 
   deck_grid: {
-    label: t('Deck.gl - Grid'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -579,13 +567,12 @@ export const visTypes = {
       size: {
         label: t('Height'),
         description: t('Metric used to control height'),
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
       },
     },
   },
 
   deck_path: {
-    label: t('Deck.gl - Paths'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -627,7 +614,6 @@ export const visTypes = {
   },
 
   deck_screengrid: {
-    label: t('Deck.gl - Screen grid'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -667,14 +653,13 @@ export const visTypes = {
       size: {
         label: t('Weight'),
         description: t("Metric used as a weight for the grid's coloring"),
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
       },
       time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
   deck_geojson: {
-    label: t('Deck.gl - GeoJson'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -715,7 +700,6 @@ export const visTypes = {
   },
 
   deck_polygon: {
-    label: t('Deck.gl - Polygon'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -779,7 +763,6 @@ export const visTypes = {
   },
 
   deck_arc: {
-    label: t('Deck.gl - Arc'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -829,7 +812,6 @@ export const visTypes = {
   },
 
   deck_scatter: {
-    label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
     onInit: controlState => ({
       ...controlState,
@@ -898,7 +880,6 @@ export const visTypes = {
   },
 
   area: {
-    label: t('Time Series - Stacked'),
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -944,7 +925,6 @@ export const visTypes = {
   },
 
   table: {
-    label: t('Table View'),
     controlPanelSections: [
       {
         label: t('GROUP BY'),
@@ -994,7 +974,6 @@ export const visTypes = {
   },
 
   time_table: {
-    label: t('Time Series Table'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1022,7 +1001,6 @@ export const visTypes = {
   },
 
   markup: {
-    label: t('Markup'),
     controlPanelSections: [
       {
         label: t('Code'),
@@ -1036,7 +1014,6 @@ export const visTypes = {
   },
 
   pivot_table: {
-    label: t('Pivot Table'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1064,7 +1041,6 @@ export const visTypes = {
   },
 
   separator: {
-    label: t('Separator'),
     controlPanelSections: [
       {
         label: t('Code'),
@@ -1086,7 +1062,6 @@ export const visTypes = {
   },
 
   word_cloud: {
-    label: t('Word Cloud'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1110,7 +1085,6 @@ export const visTypes = {
   },
 
   treemap: {
-    label: t('Treemap'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1140,7 +1114,6 @@ export const visTypes = {
   },
 
   cal_heatmap: {
-    label: t('Calendar Heatmap'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -1179,7 +1152,6 @@ export const visTypes = {
   },
 
   box_plot: {
-    label: t('Box Plot'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1256,7 +1228,6 @@ export const visTypes = {
   },
 
   bullet: {
-    label: t('Bullet Chart'),
     requiresTime: false,
     controlPanelSections: [
       {
@@ -1281,7 +1252,6 @@ export const visTypes = {
   },
 
   big_number: {
-    label: t('Big Number with Trendline'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1310,7 +1280,6 @@ export const visTypes = {
   },
 
   big_number_total: {
-    label: t('Big Number'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1337,7 +1306,6 @@ export const visTypes = {
   },
 
   histogram: {
-    label: t('Histogram'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1369,7 +1337,7 @@ export const visTypes = {
       },
       link_length: {
         label: t('No of Bins'),
-        description: t('Select number of bins for the histogram'),
+        description: t('Select the number of bins for the histogram'),
         default: 5,
       },
       global_opacity: {
@@ -1380,7 +1348,6 @@ export const visTypes = {
   },
 
   sunburst: {
-    label: t('Sunburst'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1421,7 +1388,6 @@ export const visTypes = {
   },
 
   sankey: {
-    label: t('Sankey'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1450,7 +1416,6 @@ export const visTypes = {
   },
 
   directed_force: {
-    label: t('Force-directed Graph'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1478,7 +1443,6 @@ export const visTypes = {
     },
   },
   chord: {
-    label: t('Chord Diagram'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1508,19 +1472,18 @@ export const visTypes = {
       groupby: {
         label: t('Source'),
         multi: false,
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
         description: t('Choose a source'),
       },
       columns: {
         label: t('Target'),
         multi: false,
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
         description: t('Choose a target'),
       },
     },
   },
   country_map: {
-    label: t('Country Map'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1555,7 +1518,6 @@ export const visTypes = {
     },
   },
   world_map: {
-    label: t('World Map'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1594,7 +1556,6 @@ export const visTypes = {
   },
 
   filter_box: {
-    label: t('Filter Box'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1623,7 +1584,6 @@ export const visTypes = {
   },
 
   iframe: {
-    label: t('iFrame'),
     controlPanelSections: [
       {
         label: t('Options'),
@@ -1635,7 +1595,6 @@ export const visTypes = {
   },
 
   para: {
-    label: t('Parallel Coordinates'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1660,7 +1619,6 @@ export const visTypes = {
   },
 
   heatmap: {
-    label: t('Heatmap'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1689,10 +1647,10 @@ export const visTypes = {
     ],
     controlOverrides: {
       all_columns_x: {
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
       },
       all_columns_y: {
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
       },
       normalized: t('Whether to apply a normal distribution based on rank on the color scale'),
       y_axis_bounds: {
@@ -1709,7 +1667,6 @@ export const visTypes = {
   },
 
   horizon: {
-    label: t('Horizon'),
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
@@ -1723,7 +1680,6 @@ export const visTypes = {
   },
 
   mapbox: {
-    label: t('Mapbox'),
     controlPanelSections: [
       {
         label: t('Query'),
@@ -1795,7 +1751,6 @@ export const visTypes = {
   },
 
   event_flow: {
-    label: t('Event flow'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -1816,7 +1771,7 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Additional meta data'),
+        label: t('Additional metadata'),
         controlSetRows: [
           ['all_columns'],
         ],
@@ -1829,7 +1784,7 @@ export const visTypes = {
       },
       all_columns_x: {
         label: t('Column containing event names'),
-        validators: [v.nonEmpty],
+        validators: [nonEmpty],
         default: control => (
           control.choices && control.choices.length > 0 ?
             control.choices[0][0] : null
@@ -1837,18 +1792,16 @@ export const visTypes = {
       },
       row_limit: {
         label: t('Event count limit'),
-        description: t('The maximum number of events to return, equivalent to number of rows'),
+        description: t('The maximum number of events to return, equivalent to the number of rows'),
       },
       all_columns: {
         label: t('Meta data'),
-        description: t('Select any columns for meta data inspection'),
+        description: t('Select any columns for metadata inspection'),
       },
     },
   },
 
   paired_ttest: {
-    label: t('Time Series - Paired t-test'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -1865,8 +1818,6 @@ export const visTypes = {
   },
 
   rose: {
-    label: t('Time Series - Nightingale Rose Chart'),
-    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -1884,8 +1835,6 @@ export const visTypes = {
   },
 
   partition: {
-    label: t('Partition Diagram'),
-    showOnExplore: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
