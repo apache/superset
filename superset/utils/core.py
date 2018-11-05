@@ -923,6 +923,8 @@ def get_since_until(form_data):
         time_range = form_data['time_range']
         if separator in time_range:
             since, until = time_range.split(separator, 1)
+            if since and since not in common_time_frames:
+                since = add_ago_to_since(since)
             since = parse_human_datetime(since)
             until = parse_human_datetime(until)
         elif time_range in common_time_frames:
@@ -940,14 +942,27 @@ def get_since_until(form_data):
     else:
         since = form_data.get('since', '')
         if since:
-            since_words = since.split(' ')
-            grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
-            if len(since_words) == 2 and since_words[1] in grains:
-                since += ' ago'
+            since = add_ago_to_since(since)
         since = parse_human_datetime(since)
         until = parse_human_datetime(form_data.get('until', 'now'))
 
     return since, until
+
+
+def add_ago_to_since(since):
+    """
+    Backwards compatibility hack. Without this slices with since: 7 days will
+    be treated as 7 days in the future.
+
+    :param str since:
+    :returns: Since with ago added if necessary
+    :rtype: str
+    """
+    since_words = since.split(' ')
+    grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+    if (len(since_words) == 2 and since_words[1] in grains):
+        since += ' ago'
+    return since
 
 
 def convert_legacy_filters_into_adhoc(fd):
