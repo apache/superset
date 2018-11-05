@@ -9,6 +9,7 @@ import {
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
 } from '../messageToasts/actions';
+import getClientErrorObject from '../utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from '../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
@@ -115,12 +116,14 @@ export function fetchQueryResults(query) {
         const bigIntJson = JSONbig.parse(text);
         dispatch(querySuccess(query, bigIntJson));
       })
-      .catch((error) => {
-        const message = error.error || error.statusText || t('Failed at retrieving results');
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          const message = error.error || error.statusText || t('Failed at retrieving results');
 
-        return dispatch(queryFailed(query, message, error.link));
-      });
-  };
+          return dispatch(queryFailed(query, message, error.link));
+        }),
+      );
+    };
 }
 
 export function runQuery(query) {
@@ -150,14 +153,15 @@ export function runQuery(query) {
           dispatch(querySuccess(query, json));
         }
       })
-      .catch((error) => {
-        let message = error.error || error.statusText || t('Unknown error');
-        if (message.includes('CSRF token')) {
-          message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
-        }
-        // @TODO how to verify link?
-        dispatch(queryFailed(query, message, error.link));
-      });
+      .catch(response =>
+        getClientErrorObject(response).then((error) => {
+          let message = error.error || error.statusText || t('Unknown error');
+          if (message.includes('CSRF token')) {
+            message = t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT);
+          }
+          dispatch(queryFailed(query, message, error.link));
+        }),
+      );
   };
 }
 
