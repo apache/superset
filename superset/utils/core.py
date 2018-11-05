@@ -213,29 +213,6 @@ def dttm_from_timtuple(d):
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
 
-def decode_iso_dttm(o):
-    """
-    Function to be passed into json.loads object_hook parameter
-    to decode ISO datetime.
-    """
-    if not isinstance(o, dict):
-        return o
-
-    for k, v in o.items():
-        if isinstance(v, list):
-            for a in v:
-                decode_iso_dttm(a)
-        elif isinstance(v, dict):
-            decode_iso_dttm(v)
-        elif isinstance(v, basestring):
-            try:
-                o[k] = parse(v, ignoretz=True)
-            except Exception:
-                pass
-
-    return o
-
-
 def decode_dashboards(o):
     """
     Function to be passed into json.loads obj_hook parameter
@@ -294,7 +271,7 @@ def parse_human_timedelta(s):
     """
     cal = parsedatetime.Calendar()
     dttm = dttm_from_timtuple(datetime.now().timetuple())
-    d = cal.parse(s, dttm)[0]
+    d = cal.parse(s or '', dttm)[0]
     d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
 
@@ -908,7 +885,7 @@ def ensure_path_exists(path):
             raise
 
 
-def get_since_until(form_data):
+def get_since_until(time_range=None, since=None, until=None):
     """Return `since` and `until` from form_data.
 
     This functiom supports both reading the keys separately (from `since` and
@@ -942,8 +919,7 @@ def get_since_until(form_data):
         'Last year': (today - relativedelta(years=1), today),
     }
 
-    if 'time_range' in form_data:
-        time_range = form_data['time_range']
+    if time_range:
         if separator in time_range:
             since, until = time_range.split(separator, 1)
             since = parse_human_datetime(since)
@@ -961,16 +937,21 @@ def get_since_until(form_data):
                 since = today
                 until = today + relativedelta(**{grain: int(num)})
     else:
-        since = form_data.get('since', '')
+        since = since or ''
         if since:
             since_words = since.split(' ')
             grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
             if len(since_words) == 2 and since_words[1] in grains:
                 since += ' ago'
         since = parse_human_datetime(since)
-        until = parse_human_datetime(form_data.get('until', 'now'))
+        until = parse_human_datetime(until or 'now')
 
     return since, until
+
+
+def check_from_to_dttm(from_dttm, to_dttm):
+    if from_dttm and to_dttm and from_dttm > to_dttm:
+        raise Exception(_('From date cannot be larger than to date'))
 
 
 def convert_legacy_filters_into_adhoc(fd):

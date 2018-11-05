@@ -18,6 +18,8 @@ class ConnectorRegistry(object):
 
     @classmethod
     def get_datasource(cls, datasource_type, datasource_id, session):
+        print('session')
+        print(session)
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)

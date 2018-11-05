@@ -51,6 +51,15 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         status=status, mimetype='application/json')
 
 
+def json_success(json_msg, status=200):
+    return Response(json_msg, status=status, mimetype='application/json')
+
+
+def data_payload_response(payload_json, has_error=False):
+    status = 400 if has_error else 200
+    return json_success(payload_json, status=status)
+
+
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
     content_disp = 'attachment; filename={}.{}'.format(filename, extension)
@@ -83,6 +92,11 @@ def handle_superset_exception(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
+        except SupersetSecurityException as sse:
+            logging.exception(sse)
+            return json_error_response(utils.error_msg_from_exception(sse),
+                                       status=sse.status,
+                                       link=sse.link)
         except SupersetException as se:
             logging.exception(se)
             return json_error_response(utils.error_msg_from_exception(se),

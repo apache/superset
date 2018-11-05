@@ -88,14 +88,26 @@ class CoreTests(SupersetTestCase):
 
     def test_api_v1_query_endpoint(self):
         self.login(username='admin')
-        slc = self.get_slice('Girls', db.session)
-        query_obj = models.query_obj_backfill(slc.form_data,
-                                              slc.datasource_id, slc.datasource_type)
-        query_obj.get('query').update(slc.viz.query_obj())
-        data = json.dumps(query_obj, default=utils.json_iso_dttm_ser)
-
-        resp = self.get_resp('/superset/api/v1/query/', {'query_obj': data})
-        assert '"Jennifer"' in resp
+        slc = self.get_slice('Name Cloud', db.session)
+        form_data = slc.form_data
+        data = json.dumps({
+            'datasource': {
+                'id': slc.datasource_id,
+                'type': slc.datasource_type,
+            },
+            'query_object': {
+                'granularity': 'ds',
+                'groupby': ['name'],
+                'metrics': ['sum__num'],
+                'filters': [],
+                'since': form_data.get('since'),
+                'until': form_data.get('until'),
+                'limit': 100,
+            },
+        })
+        # Just verifying the endpoint doesn't crash here.
+        # TODO: update once get_data is implemented for QueryObject
+        self.get_resp('/api/v1/query/', {'query_context': data})
 
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')
