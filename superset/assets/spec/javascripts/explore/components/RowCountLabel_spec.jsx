@@ -20,12 +20,12 @@ describe('RowCountLabel', () => {
     expect(wrapper.find(Label)).toHaveLength(1);
     expect(wrapper.find(TooltipWrapper)).toHaveLength(1);
   });
-  it('renders a warning when limit is reached', () => {
+  it('renders a danger when limit is reached', () => {
     const props = {
       rowcount: 100,
       limit: 100,
     };
     const wrapper = shallow(<RowCountLabel {...props} />);
-    expect(wrapper.find(Label).first().props().bsStyle).toBe('warning');
+    expect(wrapper.find(Label).first().props().bsStyle).toBe('danger');
   });
 });
