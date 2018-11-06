@@ -2,7 +2,12 @@ import { scaleLinear } from 'd3-scale';
 import ColorScheme from './ColorScheme';
 
 function range(count) {
-  return [...Array(count).keys()];
+  const values = [];
+  for (let i = 0; i < count; i += 1) {
+    values.push(i);
+  }
+
+  return values;
 }
 
 export default class SequentialScheme extends ColorScheme {
