@@ -637,9 +637,6 @@ class SqlaTable(Model, BaseDatasource):
             col = flt['col']
             op = flt['op']
             if op == "in" and col in app.config.get("active_geo_filters", []):
-                col = "geo"
-                op = "geo_within"
-
                 def geo_features_gen(values):
                     for value in values:
                         val_geo_ = app.config.get("active_geo_filters")[col][value]
@@ -653,6 +650,8 @@ class SqlaTable(Model, BaseDatasource):
 
                 flt["val"] = new_flt_geo_values
                 flt["col"] = "geo"
+                col = "geo"
+                op = "geo_within"
             col_obj = cols.get(col)
             
             if col_obj:
@@ -664,48 +663,45 @@ class SqlaTable(Model, BaseDatasource):
                     shapes = [geometry.shape(feature["geometry"]) for feature in features]
                     total_shape = ops.cascaded_union(shapes)
                     eq = total_shape
+                    where_clause_and.append(
+                        sa.func.ST_COVERS(
+                            sa.func.ST_GeogFromText(eq.wkt),
+                            sa.cast(cols.get("geo").sqla_col, Geometry)
+                        )
+                    )
                 else:
                     eq = self.filter_values_handler(
                         flt.get('val'),
                         target_column_is_numeric=col_obj.is_num,
                         is_list_target=is_list_target)
-
-                if op in ('in', 'not in'):
-                    cond = col_obj.sqla_col.in_(eq)
-                    if '<NULL>' in eq:
-                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
-                    if op == 'not in':
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                elif op in ("geo_within",):
-                    where_clause_and.append(
-                        sa.func.ST_COVERS(
-                            sa.func.ST_GeogFromText(eq.wkt),
-                            sa.cast(cols.get("geo").sqla_col, Geometry)
-                            )
-                        )
-                        
-                else:
-                    if col_obj.is_num:
-                        eq = utils.string_to_num(flt['val'])
-                    if op == '==':
-                        where_clause_and.append(col_obj.sqla_col == eq)
-                    elif op == '!=':
-                        where_clause_and.append(col_obj.sqla_col != eq)
-                    elif op == '>':
-                        where_clause_and.append(col_obj.sqla_col > eq)
-                    elif op == '<':
-                        where_clause_and.append(col_obj.sqla_col < eq)
-                    elif op == '>=':
-                        where_clause_and.append(col_obj.sqla_col >= eq)
-                    elif op == '<=':
-                        where_clause_and.append(col_obj.sqla_col <= eq)
-                    elif op == 'LIKE':
-                        where_clause_and.append(col_obj.sqla_col.like(eq))
-                    elif op == 'IS NULL':
-                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
-                    elif op == 'IS NOT NULL':
-                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
+                    if op in ('in', 'not in'):
+                        cond = col_obj.sqla_col.in_(eq)
+                        if '<NULL>' in eq:
+                            cond = or_(cond, col_obj.sqla_col == None)  # noqa
+                        if op == 'not in':
+                            cond = ~cond
+                        where_clause_and.append(cond)
+                    else:
+                        if col_obj.is_num:
+                            eq = utils.string_to_num(flt['val'])
+                        if op == '==':
+                            where_clause_and.append(col_obj.sqla_col == eq)
+                        elif op == '!=':
+                            where_clause_and.append(col_obj.sqla_col != eq)
+                        elif op == '>':
+                            where_clause_and.append(col_obj.sqla_col > eq)
+                        elif op == '<':
+                            where_clause_and.append(col_obj.sqla_col < eq)
+                        elif op == '>=':
+                            where_clause_and.append(col_obj.sqla_col >= eq)
+                        elif op == '<=':
+                            where_clause_and.append(col_obj.sqla_col <= eq)
+                        elif op == 'LIKE':
+                            where_clause_and.append(col_obj.sqla_col.like(eq))
+                        elif op == 'IS NULL':
+                            where_clause_and.append(col_obj.sqla_col == None)  # noqa
+                        elif op == 'IS NOT NULL':
+                            where_clause_and.append(col_obj.sqla_col != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:
