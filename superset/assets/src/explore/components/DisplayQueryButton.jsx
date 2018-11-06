@@ -9,7 +9,7 @@ import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
 import { Table } from 'reactable';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
