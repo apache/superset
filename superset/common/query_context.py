@@ -12,10 +12,11 @@ class QueryContext():
     """
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     # a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(self,
-                 datasource: Dict,
-                 query_object: Dict,
-                 ):
+    def __init__(
+            self,
+            datasource: Dict,
+            query_object: Dict,
+    ):
         self._datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
                                                             datasource.get('id'),
                                                             db.session)

@@ -953,7 +953,7 @@ def check_from_to_dttm(from_dttm, to_dttm):
     if from_dttm and to_dttm and from_dttm > to_dttm:
         raise Exception(_('From date cannot be larger than to date'))
 
-        
+
 def add_ago_to_since(since):
     """
     Backwards compatibility hack. Without this slices with since: 7 days will

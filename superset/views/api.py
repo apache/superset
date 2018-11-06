@@ -1,3 +1,4 @@
+# pylint: disable=R
 import json
 
 from flask import g, request
