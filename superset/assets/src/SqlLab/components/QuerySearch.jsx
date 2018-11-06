@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';

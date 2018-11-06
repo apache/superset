@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 import getClientErrorObject from '../utils/getClientErrorObject';
 import DatasourceEditor from '../datasource/DatasourceEditor';

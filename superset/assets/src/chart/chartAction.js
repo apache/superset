@@ -1,7 +1,7 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
