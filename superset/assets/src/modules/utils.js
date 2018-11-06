@@ -41,7 +41,8 @@ export const d3TimeFormatPreset = function (format) {
 
 const formatters = {};
 
-export function d3format(format = '.3s', number) {
+export function d3format(format, number) {
+  format = format || '.3s';
   // Formats a number and memoizes formatters to be reused
   if (!(format in formatters)) {
     formatters[format] = d3Format(format);
