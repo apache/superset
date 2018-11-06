@@ -1036,12 +1036,11 @@ class Superset(BaseSupersetView):
             # special treat for since/until and time_range parameter:
             # we need to breakdown time_range into since/until so request parameters
             # has precedence over slice parameters for time fields.
-            if 'time_range' in form_data:
-                form_data['since'], separator, form_data['until'] = \
-                    form_data['time_range'].partition(' : ')
-            if 'time_range' in slice_form_data:
-                slice_form_data['since'], separator, slice_form_data['until'] = \
-                    slice_form_data['time_range'].partition(' : ')
+            if 'since' in form_data or 'until' in form_data:
+                form_data['since'], form_data['until'] = \
+                    utils.get_since_until(form_data)
+                slice_form_data['since'], slice_form_data['until'] = \
+                    utils.get_since_until(slice_form_data)
             slice_form_data.update(form_data)
             form_data = slice_form_data
 
