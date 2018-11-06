@@ -430,7 +430,7 @@ class SupersetSecurityManager(SecurityManager):
                 ),
             )
 
-    def check_datasource_permission(self, datasource, user=None):
+    def assert_datasource_permission(self, datasource, user=None):
         if not self.datasource_access(datasource, user):
             raise SupersetSecurityException(
                 self.get_datasource_access_error_msg(datasource),

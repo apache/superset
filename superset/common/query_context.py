@@ -1,3 +1,4 @@
+# pylint: disable=R
 from typing import Dict
 
 from superset import db
@@ -5,7 +6,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from .query_object import QueryObject
 
 
-class QueryContext():
+class QueryContext:
     """
     The query context contains the query object and additional fields necessary
     to retrieve the data payload for a given viz.
@@ -17,15 +18,7 @@ class QueryContext():
             datasource: Dict,
             query_object: Dict,
     ):
-        self._datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
-                                                            datasource.get('id'),
-                                                            db.session)
-        self._query_object = QueryObject(**query_object)
-
-    @property
-    def datasource(self):
-        return self._datasource
-
-    @property
-    def query_object(self):
-        return self._query_object
+        self.datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
+                                                           datasource.get('id'),
+                                                           db.session)
+        self.query_object = QueryObject(**query_object)

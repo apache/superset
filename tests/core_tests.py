@@ -100,14 +100,14 @@ class CoreTests(SupersetTestCase):
                 'groupby': ['name'],
                 'metrics': ['sum__num'],
                 'filters': [],
-                'since': form_data.get('since'),
-                'until': form_data.get('until'),
+                'time_range': '{} : {}'.format(form_data.get('since'),
+                                               form_data.get('until')),
                 'limit': 100,
             },
         })
-        # Just verifying the endpoint doesn't crash here.
         # TODO: update once get_data is implemented for QueryObject
-        self.get_resp('/api/v1/query/', {'query_context': data})
+        with self.assertRaises(Exception):
+            self.get_resp('/api/v1/query/', {'query_context': data})
 
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')

@@ -21,8 +21,6 @@ class QueryObject:
             metrics: List[Metric],
             filters: List[str],
             time_range: Optional[str] = None,
-            since: Optional[str] = None,
-            until: Optional[str] = None,
             time_shift: Optional[str] = None,
             is_timeseries: bool = False,
             row_limit: int = app.config.get('ROW_LIMIT'),
@@ -33,11 +31,11 @@ class QueryObject:
     ):
         self.granularity = granularity
 
-        since_dttm, until_dttm = utils.get_since_until(time_range, since, until)
+        since_dttm, until_dttm = utils.get_since_until(time_range)
         time_shift_dttm = utils.parse_human_timedelta(time_shift)
         self.from_dttm = None if since_dttm is None else (since_dttm - time_shift_dttm)
         self.to_dttm = None if until_dttm is None else (until_dttm - time_shift_dttm)
-        utils.check_from_to_dttm(self.from_dttm, self.to_dttm)
+        utils.assert_from_to_dttm(self.from_dttm, self.to_dttm)
 
         self.is_timeseries = is_timeseries
         self.groupby = groupby
@@ -52,8 +50,7 @@ class QueryObject:
         self.extras = extras
 
     def to_dict(self):
-        pass
+        raise NotImplementedError()
 
     def get_data(self):
-        # TODO: implement
-        return ''
+        raise NotImplementedError()

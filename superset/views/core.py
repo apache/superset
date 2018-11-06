@@ -1126,7 +1126,7 @@ class Superset(BaseSupersetView):
             form_data=form_data,
             force=force,
         )
-        security_manager.check_datasource_permission(viz_obj.datasource, g.user)
+        security_manager.assert_datasource_permission(viz_obj.datasource, g.user)
 
         if csv:
             return CsvResponse(
@@ -1376,7 +1376,7 @@ class Superset(BaseSupersetView):
             datasource_type, datasource_id, db.session)
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
-        security_manager.check_datasource_permission(datasource)
+        security_manager.assert_datasource_permission(datasource)
         payload = json.dumps(
             datasource.values_for_column(
                 column,
@@ -2623,7 +2623,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         # Check permission for datasource
-        security_manager.check_datasource_permission(datasource)
+        security_manager.assert_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2809,7 +2809,7 @@ class Superset(BaseSupersetView):
         get the database query string for this slice
         """
         viz_obj = self.get_viz(slice_id)
-        security_manager.check_datasource_permission(viz_obj.datasource)
+        security_manager.assert_datasource_permission(viz_obj.datasource)
         return self.get_query_string_response(viz_obj)
 
     @api
