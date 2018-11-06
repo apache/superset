@@ -923,6 +923,8 @@ def get_since_until(time_range=None, since=None, until=None):
     if time_range:
         if separator in time_range:
             since, until = time_range.split(separator, 1)
+            if since and since not in common_time_frames:
+                since = add_ago_to_since(since)
             since = parse_human_datetime(since)
             until = parse_human_datetime(until)
         elif time_range in common_time_frames:
@@ -940,10 +942,7 @@ def get_since_until(time_range=None, since=None, until=None):
     else:
         since = since or ''
         if since:
-            since_words = since.split(' ')
-            grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
-            if len(since_words) == 2 and since_words[1] in grains:
-                since += ' ago'
+            since = add_ago_to_since(since)
         since = parse_human_datetime(since)
         until = parse_human_datetime(until or 'now')
 
@@ -953,6 +952,22 @@ def get_since_until(time_range=None, since=None, until=None):
 def check_from_to_dttm(from_dttm, to_dttm):
     if from_dttm and to_dttm and from_dttm > to_dttm:
         raise Exception(_('From date cannot be larger than to date'))
+
+        
+def add_ago_to_since(since):
+    """
+    Backwards compatibility hack. Without this slices with since: 7 days will
+    be treated as 7 days in the future.
+
+    :param str since:
+    :returns: Since with ago added if necessary
+    :rtype: str
+    """
+    since_words = since.split(' ')
+    grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+    if (len(since_words) == 2 and since_words[1] in grains):
+        since += ' ago'
+    return since
 
 
 def convert_legacy_filters_into_adhoc(fd):
