@@ -48,19 +48,25 @@ export default class ColorSchemeControl extends React.PureComponent {
   renderOption(key) {
     const { isLinear, schemes } = this.props;
     const schemeLookup = isFunction(schemes) ? schemes() : schemes;
-    const currentScheme = schemeLookup[key.value || defaultProps.value].colors;
+    const currentScheme = schemeLookup[key.value || defaultProps.value];
 
     const colors = isLinear
       ? currentScheme.getColors(9)
       : currentScheme.colors;
 
-    const list = colors.map((color, i) => (
-      <li
-        key={`${currentScheme.name}-${i}`}
-        style={{ backgroundColor: color, border: `1px solid ${color === 'white' ? 'black' : color}` }}
-      >&nbsp;</li>
-    ));
-    return (<ul className="color-scheme-container">{list}</ul>);
+    return (
+      <ul className="color-scheme-container">
+        {colors.map((color, i) => (
+          <li
+            key={`${currentScheme.name}-${i}`}
+            style={{
+              backgroundColor: color,
+              border: `1px solid ${color === 'white' ? 'black' : color}`,
+            }}
+          >&nbsp;</li>
+        ))}
+      </ul>
+    );
   }
 
   render() {
