@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
+import { isEqual } from 'lodash';
 
 import ControlHeader from '../ControlHeader';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
@@ -117,8 +118,8 @@ export default class MetricsControl extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (
-      this.props.columns !== nextProps.columns ||
-      this.props.savedMetrics !== nextProps.savedMetrics
+      isEqual(this.props.columns) !== isEqual(nextProps.columns) ||
+      isEqual(this.props.savedMetrics) !== isEqual(nextProps.savedMetrics)
     ) {
       this.setState({ options: this.optionsForSelect(nextProps) });
       this.props.onChange([]);
