@@ -470,7 +470,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 hovered
                 name="annotation-override-param"
                 label="Override params"
-                description={`Override the params in the chart`}
+                description={'Override the params in the chart'}
                 placeholder=""
                 value={overrides.params}
                 onChange={v => this.setState({ overrides: { ...overrides, params: v } })}
