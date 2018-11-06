@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
-import { colorScalerFactory } from '../../../modules/colors';
 
 const propTypes = {
   description: PropTypes.string,
@@ -47,19 +46,17 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   renderOption(key) {
-    const { schemes } = this.props;
+    const { isLinear, schemes } = this.props;
     const schemeLookup = isFunction(schemes) ? schemes() : schemes;
     const currentScheme = schemeLookup[key.value || defaultProps.value].colors;
 
-    let colors = currentScheme;
-    if (this.props.isLinear) {
-      const colorScaler = colorScalerFactory(currentScheme);
-      colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
-    }
+    const colors = isLinear
+      ? currentScheme.getColors(9)
+      : currentScheme.colors;
 
     const list = colors.map((color, i) => (
       <li
-        key={`${currentScheme}-${i}`}
+        key={`${currentScheme.name}-${i}`}
         style={{ backgroundColor: color, border: `1px solid ${color === 'white' ? 'black' : color}` }}
       >&nbsp;</li>
     ));

@@ -1,6 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../../modules/colors';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import CalHeatMap from '../../../vendor/cal-heatmap/cal-heatmap';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { UTC } from '../../modules/dates';
@@ -80,9 +81,11 @@ function Calendar(element, props) {
       calContainer.text(`Metric: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
-    const extents = d3.extent(Object.keys(timestamps), key => timestamps[key]);
+    const extents = d3Extent(Object.keys(timestamps), key => timestamps[key]);
     const step = (extents[1] - extents[0]) / (steps - 1);
-    const colorScale = colorScalerFactory(linearColorScheme, null, null, extents);
+    const colorScale = getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(extents);
 
     const legend = d3.range(steps)
       .map(i => extents[0] + (step * i));

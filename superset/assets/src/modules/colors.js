@@ -14,7 +14,7 @@ export function hexToRGB(hex, alpha = 255) {
   return [r, g, b, alpha];
 }
 
-export const colorScalerFactory = function (colors, data, accessor, extents, outputRGBA = false) {
+export const colorScalerFactory = function (colors, data, accessor, extents) {
   // Returns a linear scaler out of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
@@ -29,9 +29,5 @@ export const colorScalerFactory = function (colors, data, accessor, extents, out
   }
   const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
   const points = colors.map((col, i) => ext[0] + (i * chunkSize));
-  const scaler = d3.scale.linear().domain(points).range(colors).clamp(true);
-  if (outputRGBA) {
-    return v => hexToRGB(scaler(v));
-  }
-  return scaler;
+  return d3.scale.linear().domain(points).range(colors).clamp(true);
 };
