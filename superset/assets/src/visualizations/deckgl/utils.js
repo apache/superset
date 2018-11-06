@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import { extent } from 'd3-array';
-import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import { colorScalerFactory, hexToRGB } from '../../modules/colors';
 
 export function getBreakPoints({

@@ -1,8 +1,10 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import './Chord.css';
+
+const { getScale } = CategoricalColorNamespace;
 
 const propTypes = {
   data: PropTypes.shape({

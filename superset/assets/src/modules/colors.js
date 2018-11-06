@@ -1,8 +1,6 @@
 import d3 from 'd3';
-import { extent } from 'd3-array';
-import getSequentialSchemeRegistry from './colors/SequentialSchemeRegistrySingleton';
-
-export const BRAND_COLOR = '#00A699';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
 
 export function hexToRGB(hex, alpha = 255) {
   if (!hex) {
@@ -25,7 +23,7 @@ export const colorScalerFactory = function (colors, data, accessor, extents) {
     ext = extents;
   }
   if (data) {
-    ext = extent(data, accessor);
+    ext = d3Extent(data, accessor);
   }
   const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
   const points = colors.map((col, i) => ext[0] + (i * chunkSize));

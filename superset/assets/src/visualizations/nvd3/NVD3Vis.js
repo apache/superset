@@ -5,10 +5,10 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import 'nvd3/build/nv.d3.min.css';
 
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
@@ -37,6 +37,8 @@ import {
   stringOrObjectWithLabelType,
 } from './PropTypes';
 import './NVD3Vis.css';
+
+const { getColor, getScale } = CategoricalColorNamespace;
 
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;

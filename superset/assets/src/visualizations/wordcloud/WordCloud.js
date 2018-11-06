@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 
 const ROTATION = {
   square: () => Math.floor((Math.random() * 2)) * 90,
@@ -48,7 +48,7 @@ function WordCloud(element, props) {
     .fontWeight('bold')
     .fontSize(d => scale(d.size));
 
-  const colorFn = getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
 
   function draw(words) {
     chart.selectAll('*').remove();

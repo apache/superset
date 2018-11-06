@@ -40,6 +40,8 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
+
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
@@ -49,8 +51,6 @@ import * as v from './validators';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
-import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
-import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();

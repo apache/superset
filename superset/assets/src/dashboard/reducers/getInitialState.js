@@ -18,7 +18,9 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
+
+const { getScale } = CategoricalColorNamespace;
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
