@@ -470,7 +470,7 @@ class BaseViz(object):
 
     def payload_json_and_has_error(self, payload):
         has_error = payload.get('status') == utils.QueryStatus.FAILED or \
-                    payload.get('error') is not None
+            payload.get('error') is not None
         return self.json_dumps(payload), has_error
 
     @property

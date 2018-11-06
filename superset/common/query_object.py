@@ -1,8 +1,5 @@
-"""
-The query object's schema matches the interfaces of DB connectors like sqla
-and druid. The query objects are constructed on the client.
-"""
 from typing import Dict, List, Optional, Union
+
 from superset import app
 from superset.utils import core as utils
 
@@ -10,7 +7,12 @@ from superset.utils import core as utils
 # https://github.com/python/mypy/issues/5288
 Metric = Union[str, Dict]
 
+
 class QueryObject:
+    """
+    The query object's schema matches the interfaces of DB connectors like sqla
+    and druid. The query objects are constructed on the client.
+    """
     def __init__(self,
                  granularity: str,
                  groupby: List[str],
@@ -51,4 +53,5 @@ class QueryObject:
         pass
 
     def get_data(self):
-        pass
+        # TODO: implement
+        return ''

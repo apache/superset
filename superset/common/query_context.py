@@ -1,7 +1,9 @@
 from typing import Dict
+
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
 from .query_object import QueryObject
+
 
 class QueryContext():
     """
@@ -12,8 +14,8 @@ class QueryContext():
     # a vanilla python type https://github.com/python/mypy/issues/5288
     def __init__(self,
                  datasource: Dict,
-                 query_object: Dict
-                ):
+                 query_object: Dict,
+                 ):
         self._datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
                                                             datasource.get('id'),
                                                             db.session)

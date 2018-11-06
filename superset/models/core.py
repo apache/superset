@@ -29,7 +29,6 @@ from sqlalchemy_utils import EncryptedType
 import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager
-from superset.common.query_context import QueryContext
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin

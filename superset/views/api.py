@@ -1,11 +1,14 @@
 import json
+
 from flask import g, request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+
 from superset import appbuilder, security_manager
 from superset.common.query_context import QueryContext
 from superset.models.core import Log
 from .base import api, BaseSupersetView, data_payload_response, handle_superset_exception
+
 
 class Api(BaseSupersetView):
     @Log.log_this
@@ -23,5 +26,6 @@ class Api(BaseSupersetView):
         security_manager.check_datasource_permission(query_context.datasource, g.user)
         payload_json = query_context.query_object.get_data()
         return data_payload_response(payload_json)
+
 
 appbuilder.add_view_no_menu(Api)

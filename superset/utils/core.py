@@ -24,6 +24,7 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask import flash, g, Markup, render_template
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from flask_caching import Cache
 import markdown as md
 import numpy
