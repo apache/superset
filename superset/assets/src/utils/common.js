@@ -1,5 +1,5 @@
 import d3 from 'd3';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert, Badge, Col, Label, Tabs, Tab, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
 
 import Button from '../components/Button';

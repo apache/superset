@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 import DeckGLContainer from '../DeckGLContainer';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
