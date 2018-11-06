@@ -26,6 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.3.0"
+    "@superset-ui/core": "^0.3.0",
+    "d3-scale": "^2.1.2"
   }
 }

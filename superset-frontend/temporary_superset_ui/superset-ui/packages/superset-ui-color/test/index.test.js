@@ -1,4 +1,5 @@
 import {
+  BRAND_COLOR,
   CategoricalColorNamespace,
   CategoricalColorScale,
   CategoricalScheme,
@@ -10,6 +11,7 @@ import {
 describe('index', () => {
   it('exports modules', () => {
     [
+      BRAND_COLOR,
       CategoricalColorNamespace,
       CategoricalColorScale,
       CategoricalScheme,
