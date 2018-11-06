@@ -37,7 +37,7 @@ from superset.utils import (
     cache as cache_util,
     core as utils,
 )
-from superset.viz import METRIC_KEYS, viz_types
+from superset.viz import viz_types
 from urllib import parse  # noqa
 
 config = app.config
