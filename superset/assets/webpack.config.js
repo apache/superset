@@ -112,7 +112,7 @@ const config = {
         default: false,
         major: {
           name: 'vendors-major',
-          test: /[\\/]node_modules\/(brace|react[-]dom|core[-]js|@superset[-]ui\/translation)[\\/]/,
+          test: /[\\/]node_modules\/(brace|react[-]dom|@superset[-]ui\/translation)[\\/]/,
         },
       },
     },

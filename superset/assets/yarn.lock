@@ -399,29 +399,42 @@
   dependencies:
     array-from "^2.1.1"
 
-"@superset-ui/color@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/color/-/color-0.4.0.tgz#c52b473af247fe56d0ba6e63c7dcffe64add8c75"
+"@superset-ui/chart@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/chart/-/chart-0.5.0.tgz#1420ce7b6ac3bf1b06875e5f2541fa98505b5a9b"
   dependencies:
-    "@superset-ui/core" "^0.4.0"
+    "@superset-ui/core" "^0.3.0"
+    reselect "^4.0.0"
+
+"@superset-ui/color@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/color/-/color-0.5.0.tgz#3064bec063fdf43d568a39b4d9ded352d0aeed55"
+  dependencies:
+    "@superset-ui/core" "^0.5.0"
     d3-scale "^2.1.2"
 
-"@superset-ui/connection@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/connection/-/connection-0.4.0.tgz#f709e1fd9b4ab06619243667d606088c465c9812"
+"@superset-ui/connection@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/connection/-/connection-0.5.0.tgz#c80edb4eba760d18e9b545eb41a085c79384a25b"
   dependencies:
     "@babel/runtime" "^7.1.2"
     whatwg-fetch "^2.0.4"
 
-"@superset-ui/core@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.4.0.tgz#b0c3a7d5688c6f2c9040303aaa9c4346a83b2a02"
+"@superset-ui/core@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.3.0.tgz#99b5281457201eb9781eab71ac8189a5ce3ccce4"
   dependencies:
     lodash "^4.17.11"
 
-"@superset-ui/translation@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.4.0.tgz#6c24db2b150090cd3e208e06636a037437b5a151"
+"@superset-ui/core@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.5.0.tgz#8784465e312cac5015df28d8540d27a2fd6060ba"
+  dependencies:
+    lodash "^4.17.11"
+
+"@superset-ui/translation@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.5.0.tgz#d02af7be94ac6b9e48d3b09f9f1059b11b2d283d"
   dependencies:
     jed "^1.1.1"
 
