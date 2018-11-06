@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/color",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Superset UI color",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.4.0",
+    "@superset-ui/core": "^0.5.0",
     "d3-scale": "^2.1.2"
   }
 }
