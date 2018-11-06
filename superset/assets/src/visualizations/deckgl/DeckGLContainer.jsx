@@ -38,7 +38,7 @@ export default class DeckGLContainer extends React.Component {
     }));
   }
   componentWillUnmount() {
-    this.clearInterval(this.state.timer);
+    clearInterval(this.state.timer);
   }
   onViewportChange(viewport) {
     const vp = Object.assign({}, viewport);
