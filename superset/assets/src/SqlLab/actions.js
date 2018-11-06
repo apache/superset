@@ -1,7 +1,7 @@
 import shortid from 'shortid';
 import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 import { now } from '../modules/dates';
 import {
