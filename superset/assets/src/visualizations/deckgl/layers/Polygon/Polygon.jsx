@@ -90,15 +90,29 @@ const defaultProps = {
   setTooltip() {},
 };
 
-class DeckGLPolygon extends React.PureComponent {
+class DeckGLPolygon extends React.Component {
   constructor(props) {
     super(props);
 
-    const fd = props.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
+
+    // the granularity has to be read from the payload form_data, not the
+    // props formData which comes from the instantaneous controls state
+    const granularity = (
+      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.granularity ||
+      'P1D'
+    );
+
+    const {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+    } = getPlaySliderParams(timestamps, granularity);
+
     this.state = {
       start,
       end,
