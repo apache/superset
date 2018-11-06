@@ -114,6 +114,3 @@ export function optionFromValue(opt) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
-
-// time_range separator
-export const TIME_RANGE_SEPARATOR = ' : ';
