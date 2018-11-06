@@ -1,4 +1,3 @@
-import d3 from 'd3';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
