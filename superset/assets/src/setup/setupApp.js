@@ -1,6 +1,6 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../utils/getClientErrorObject';
 
 function showApiMessage(resp) {

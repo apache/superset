@@ -20,7 +20,7 @@ const defaultProps = {
 
 export default function RowCountLabel({ rowcount, limit, suffix }) {
   const limitReached = rowcount === limit;
-  const bsStyle = (limitReached || rowcount === 0) ? 'warning' : 'default';
+  const bsStyle = (limitReached || rowcount === 0) ? 'danger' : 'default';
   const formattedRowCount = defaultNumberFormatter(rowcount);
   const tooltip = (
     <span>

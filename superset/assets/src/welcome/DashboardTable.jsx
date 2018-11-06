@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, unsafe } from 'reactable';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { t } from '@superset-ui/translation';
 
 import withToasts from '../messageToasts/enhancers/withToasts';

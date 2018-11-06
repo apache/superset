@@ -445,20 +445,19 @@
   dependencies:
     array-from "^2.1.1"
 
-"@superset-ui/core@^0.0.7":
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.0.7.tgz#e91374d10c96de504225a24d7d1d76e73cdb06cd"
-  integrity sha512-x4O0KILfhg/0dnUN+vfKm4rRuzVFl+/ivbEoUa52eE6iOBmnPNQ5K4PZ5fpWaY5nqfFUIkWNpoir39DTF/DGXA==
+"@superset-ui/connection@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/connection/-/connection-0.3.0.tgz#f659d8b74e88b64e7463c09e1a08fb89ac29c2b9"
+  integrity sha512-SNwIWF+RlLLnqeRB1dV0k26hMh4qULTjIuUOWvHS1s4FJGCS+GBv5yP8e6/H9XcyZYZsHx/JZqCCAtf7qgCEJw==
   dependencies:
     "@babel/runtime" "^7.1.2"
     whatwg-fetch "^2.0.4"
 
-"@superset-ui/translation@^0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.2.1.tgz#252025d566918782bafc25cb9fe2aa31f9917093"
-  integrity sha512-z4ucKDnPMqnAXQ8MffE9EaiNt04odAcGCmWmdsWZUyRcwftyVB0v3dIqRODljwcrAYUXbhbhSfqDsaHRfDOcWw==
+"@superset-ui/translation@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.3.0.tgz#e0c1737739f61bcdaf5c5b15a80ceecc38a50e52"
+  integrity sha512-OU+pjzqQsz1z1boMu3YcZVRUgu+22EhfJJcOaDPyR3odNIRONVnYL0lpuHqxaJWSQkgj7fRWZ8Sl2KY7x7K73w==
   dependencies:
-    "@babel/runtime" "^7.1.2"
     jed "^1.1.1"
 
 "@types/blob-util@1.3.3":

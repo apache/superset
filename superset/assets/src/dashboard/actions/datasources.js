@@ -1,4 +1,4 @@
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';

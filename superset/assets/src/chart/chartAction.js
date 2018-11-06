@@ -1,7 +1,7 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
@@ -101,15 +101,16 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       timeout: timeout * 1000,
     })
       .then(({ json }) => dispatch(annotationQuerySuccess(annotation, json, sliceKey)))
-      .catch((err) => {
+      .catch(response => getClientErrorObject(response).then((err) => {
         if (err.statusText === 'timeout') {
           dispatch(annotationQueryFailed(annotation, { error: 'Query Timeout' }, sliceKey));
-        } else if ((err.responseJSON.error || '').toLowerCase().includes('no data')) {
+        } else if ((err.error || '').toLowerCase().includes('no data')) {
           dispatch(annotationQuerySuccess(annotation, err, sliceKey));
         } else if (err.statusText !== 'abort') {
-          dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
+          dispatch(annotationQueryFailed(annotation, err, sliceKey));
         }
-      });
+      }),
+    );
   };
 }
 
