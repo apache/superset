@@ -36,10 +36,10 @@ export default class AnimatableDeckGLContainer extends React.Component {
     this.onViewportChange = this.onViewportChange.bind(this);
   }
   onViewportChange(viewport) {
-    if (!this.props.disabled) {
-      viewport.height += PLAYSLIDER_HEIGHT;
-    }
-    this.props.onViewportChange(viewport);
+    const originalViewport = this.props.disabled
+      ? { ...viewport }
+      : { ...viewport, height: viewport.height + PLAYSLIDER_HEIGHT };
+    this.props.onViewportChange(originalViewport);
   }
   render() {
     const {
@@ -52,20 +52,21 @@ export default class AnimatableDeckGLContainer extends React.Component {
       getLayers,
       values,
       onValuesChange,
+      viewport,
     } = this.props;
     const layers = getLayers(values);
 
     // leave space for the play slider
-    const viewport = {
-      ...this.props.viewport,
-      height: disabled ? this.props.viewport.height : this.props.viewport.height - PLAYSLIDER_HEIGHT,
+    const modifiedViewport = {
+      ...viewport,
+      height: disabled ? viewport.height : viewport.height - PLAYSLIDER_HEIGHT,
     };
 
     return (
       <div>
         <DeckGLContainer
           {...this.other}
-          viewport={viewport}
+          viewport={modifiedViewport}
           layers={layers}
           onViewportChange={this.onViewportChange}
         />
