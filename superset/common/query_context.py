@@ -1,5 +1,5 @@
 # pylint: disable=R
-from typing import Dict
+from typing import Dict, List
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -16,9 +16,12 @@ class QueryContext:
     def __init__(
             self,
             datasource: Dict,
-            query_object: Dict,
+            queries: List[Dict],
     ):
         self.datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
                                                            datasource.get('id'),
                                                            db.session)
-        self.query_object = QueryObject(**query_object)
+        self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
+
+    def get_data(self):
+        raise NotImplementedError()

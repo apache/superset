@@ -51,6 +51,3 @@ class QueryObject:
 
     def to_dict(self):
         raise NotImplementedError()
-
-    def get_data(self):
-        raise NotImplementedError()
