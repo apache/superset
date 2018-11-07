@@ -1,11 +1,9 @@
-import { combineReducers } from 'redux';
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
 
-import messageToasts from '../messageToasts/reducers';
 import getInitialState from './getInitialState';
-import * as actions from './actions';
-import { now } from '../modules/dates';
+import * as actions from '../actions/sqlLab';
+import { now } from '../../modules/dates';
 import {
   addToObject,
   alterInObject,
@@ -13,9 +11,9 @@ import {
   removeFromArr,
   getFromArr,
   addToArr,
-} from '../reduxUtils';
+} from '../../reduxUtils';
 
-export const sqlLabReducer = function (state = {}, action) {
+export default function sqlLabReducer(state = {}, action) {
   const actionHandlers = {
     [actions.ADD_QUERY_EDITOR]() {
       const tabHistory = state.tabHistory.slice();
@@ -276,9 +274,4 @@ export const sqlLabReducer = function (state = {}, action) {
     return actionHandlers[action.type]();
   }
   return state;
-};
-
-export default combineReducers({
-  sqlLab: sqlLabReducer,
-  messageToasts,
-});
+}
