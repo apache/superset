@@ -2456,7 +2456,7 @@ class Superset(BaseSupersetView):
                 '{}'.format(rejected_tables)), status=403)
 
         payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('DISPLAY_MAX_ROW', None)
+        display_limit = app.config.get('DEFAULT_SQLLAB_LIMIT', None)
         if display_limit:
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
@@ -2495,6 +2495,12 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
+        limit = int(request.form.get('queryLimit', 0))
+        if limit < 0:
+            logging.warning(
+                'Invalid limit of {} specified. Defaulting to max limit.'.format(limit))
+            limit = 0
+        limit = limit or app.config.get('SQL_MAX_ROW')
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2520,10 +2526,10 @@ class Superset(BaseSupersetView):
             )
 
         client_id = request.form.get('client_id') or utils.shortid()[:10]
-
+        limits = [mydb.db_engine_spec.get_limit_from_sql(sql), limit]
         query = Query(
             database_id=int(database_id),
-            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
+            limit=min(lim for lim in limits if lim is not None),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
