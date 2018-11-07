@@ -1,0 +1,19 @@
+{% extends "superset/basic.html" %}
+
+{% block title %}
+  Add new alert
+{% endblock %}
+
+{% block body %}
+  <div
+    id="js-add-alert-container"
+    data-bootstrap="{{ bootstrap_data }}"
+  ></div>
+{% endblock %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="addAlert" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}
