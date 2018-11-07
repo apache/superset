@@ -1,5 +1,3 @@
-import { round } from 'd3-format';
-
 export const defaultViewport = {
   longitude: 6.85236157047845,
   latitude: 31.222656842808707,
@@ -9,7 +7,6 @@ export const defaultViewport = {
 };
 
 const METER_TO_MILE = 1609.34;
-
 export function unitToRadius(unit, num) {
   if (unit === 'square_m') {
     return Math.sqrt(num / Math.PI);
@@ -25,15 +22,4 @@ export function unitToRadius(unit, num) {
     return Math.sqrt(num / Math.PI) * METER_TO_MILE;
   }
   return null;
-}
-
-export const EARTH_CIRCUMFERENCE_KM = 40075.16;
-export const MILES_PER_KM = 1.60934;
-
-export function kmToPixels(kilometers, latitude, zoomLevel) {
-  // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
-  const latitudeRad = latitude * (Math.PI / 180);
-  // Seems like the zoomLevel is off by one
-  const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / Math.pow(2, zoomLevel + 9);
-  return round(kilometers / kmPerPixel, 2);
 }
