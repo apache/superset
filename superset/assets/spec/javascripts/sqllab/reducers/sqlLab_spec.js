@@ -81,6 +81,11 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, actions.queryEditorSetSql(qe, sql));
       expect(newState.queryEditors[1].sql).toBe(sql);
     });
+    it('should not fail while setting queryLimit', () => {
+      const queryLimit = 101;
+      newState = sqlLabReducer(newState, actions.queryEditorSetQueryLimit(qe, queryLimit));
+      expect(newState.queryEditors[1].queryLimit).toEqual(queryLimit);
+    });
     it('should set selectedText', () => {
       const selectedText = 'TEST';
       expect(newState.queryEditors[0].selectedText).toBeNull();
