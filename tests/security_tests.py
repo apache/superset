@@ -252,6 +252,7 @@ class RolePermissionTests(SupersetTestCase):
             ['Lyft', 'welcome'],
             ['Lyft', 'sql_json'],
             ['Lyft', 'queries'],
+            ['Lyft', 'results'],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
