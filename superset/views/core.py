@@ -2844,8 +2844,6 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-            'defaultQueryLimit': config.get('DEFAULT_SQLLAB_LIMIT'),
-            'maxRow': config.get('SQL_MAX_ROW'),
             'common': self.common_bootsrap_payload(),
         }
         return self.render_template(

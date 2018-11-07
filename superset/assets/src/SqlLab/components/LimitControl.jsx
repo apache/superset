@@ -8,8 +8,9 @@ import {
   Overlay,
   Popover,
 } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import ControlHeader from '../../explore/components/ControlHeader';
-import { t } from '../../locales';
 
 const propTypes = {
   value: PropTypes.number,

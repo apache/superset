@@ -17,10 +17,8 @@ describe('SqlEditor', () => {
     getHeight: () => ('100px'),
     editorQueries: [],
     dataPreviewQueries: [],
-    constants: {
-      defaultQueryLimit: 10000,
-      maxRow: 100000,
-    },
+    defaultQueryLimit: 10000,
+    maxRow: 100000,
   };
   it('is valid', () => {
     expect(

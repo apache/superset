@@ -247,7 +247,7 @@ class TabbedSqlEditors extends React.PureComponent {
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
-function mapStateToProps({ sqlLab, constants }) {
+function mapStateToProps({ sqlLab, common }) {
   return {
     databases: sqlLab.databases,
     queryEditors: sqlLab.queryEditors,
@@ -256,10 +256,8 @@ function mapStateToProps({ sqlLab, constants }) {
     tables: sqlLab.tables,
     defaultDbId: sqlLab.defaultDbId,
     offline: sqlLab.offline,
-    defaultQueryLimit: sqlLab.constants && sqlLab.constants.defaultQueryLimit ||
-      constants.defaultQueryLimit,
-    maxRow: sqlLab.constants && sqlLab.constants.maxRow ||
-      constants.maxRow,
+    defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
+    maxRow: common.conf.SQL_MAX_ROW,
   };
 }
 function mapDispatchToProps(dispatch) {

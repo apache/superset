@@ -365,12 +365,14 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
-    constants: {
-      defaultQueryLimit: 10000,
-      maxRow: 100000,
-    },
   },
   messageToasts: [],
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 10000,
+      SQL_MAX_ROW: 100000,
+    },
+  },
 };
 
 export const query = {

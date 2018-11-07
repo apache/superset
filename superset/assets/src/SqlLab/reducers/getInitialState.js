@@ -11,7 +11,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     latestQueryId: null,
     autorun: false,
     dbId: defaultDbId,
-    queryLimit: defaultQueryLimit,
+    queryLimit: restBootstrapData.common.conf.DEFAULT_SQLLAB_LIMIT,
   };
 
   return {
