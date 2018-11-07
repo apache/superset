@@ -94,6 +94,19 @@ class DeckGLPolygon extends React.Component {
   constructor(props) {
     super(props);
 
+    this.getLayers = this.getLayers.bind(this);
+    this.onSelect = this.onSelect.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
+  }
+  static getDerivedStateFromProps(props, state) {
+    // the state is computed only from the payload; if it hasn't changed, do
+    // not recompute state since this would reset selections and/or the play
+    // slider position due to changes in form controls
+    if (state && props.payload.form_data === state.formData) {
+      return null;
+    }
+
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
 
@@ -113,7 +126,7 @@ class DeckGLPolygon extends React.Component {
       disabled,
     } = getPlaySliderParams(timestamps, granularity);
 
-    this.state = {
+    return {
       start,
       end,
       getStep,
@@ -122,12 +135,8 @@ class DeckGLPolygon extends React.Component {
       viewport: props.viewport,
       selected: [],
       lastClick: 0,
+      formData: props.payload.form_data,
     };
-
-    this.getLayers = this.getLayers.bind(this);
-    this.onSelect = this.onSelect.bind(this);
-    this.onValuesChange = this.onValuesChange.bind(this);
-    this.onViewportChange = this.onViewportChange.bind(this);
   }
   onSelect(polygon) {
     const { formData, onAddFilter } = this.props;
