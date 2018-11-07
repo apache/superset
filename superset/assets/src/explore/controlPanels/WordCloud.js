@@ -6,26 +6,19 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['series'],
         ['metric'],
         ['adhoc_filters'],
-        ['groupby'],
-        ['row_limit'],
+        ['row_limit', null],
       ],
     },
     {
-      label: t('Chart Options'),
-      expanded: true,
+      label: t('Options'),
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
+        ['size_from', 'size_to'],
+        ['rotation'],
         ['color_scheme'],
       ],
     },
   ],
-  controlOverrides: {
-    row_limit: {
-      default: 25,
-    },
-  },
 };

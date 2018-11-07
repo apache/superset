@@ -6,26 +6,24 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['groupby'],
         ['metric'],
         ['adhoc_filters'],
-        ['groupby'],
         ['row_limit'],
       ],
     },
     {
-      label: t('Chart Options'),
-      expanded: true,
+      label: t('Options'),
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
-        ['color_scheme'],
+        ['link_length'],
+        ['charge'],
       ],
     },
   ],
   controlOverrides: {
-    row_limit: {
-      default: 25,
+    groupby: {
+      label: t('Source / Target'),
+      description: t('Choose a source and a target'),
     },
   },
 };

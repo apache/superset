@@ -6,7 +6,7 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
+        ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
         ['row_limit'],
@@ -16,16 +16,15 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
         ['color_scheme'],
+        ['treemap_ratio'],
+        ['number_format'],
       ],
     },
   ],
   controlOverrides: {
-    row_limit: {
-      default: 25,
+    color_scheme: {
+      renderTrigger: false,
     },
   },
 };

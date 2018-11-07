@@ -8,24 +8,22 @@ export default {
       controlSetRows: [
         ['metric'],
         ['adhoc_filters'],
-        ['groupby'],
-        ['row_limit'],
       ],
     },
     {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
-        ['color_scheme'],
+        ['compare_lag', 'compare_suffix'],
+        ['y_axis_format', null],
+        ['show_trend_line', 'start_y_axis_at_zero'],
+        ['color_picker', null],
       ],
     },
   ],
   controlOverrides: {
-    row_limit: {
-      default: 25,
+    y_axis_format: {
+      label: t('Number format'),
     },
   },
 };

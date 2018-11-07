@@ -6,9 +6,9 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['groupby'],
         ['metric'],
         ['adhoc_filters'],
-        ['groupby'],
         ['row_limit'],
       ],
     },
@@ -16,16 +16,14 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
         ['color_scheme'],
       ],
     },
   ],
   controlOverrides: {
-    row_limit: {
-      default: 25,
+    groupby: {
+      label: t('Source / Target'),
+      description: t('Choose a source and a target'),
     },
   },
 };

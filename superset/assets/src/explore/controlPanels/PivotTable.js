@@ -6,26 +6,23 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
+        ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
-        ['row_limit'],
+        ['columns'],
+        ['row_limit', null],
       ],
     },
     {
-      label: t('Chart Options'),
-      expanded: true,
+      label: t('Pivot Options'),
       controlSetRows: [
-        ['pie_label_type'],
-        ['donut', 'show_legend'],
-        ['show_labels', 'labels_outside'],
-        ['color_scheme'],
+        ['pandas_aggfunc', 'pivot_margins'],
+        ['number_format', 'combine_metric'],
       ],
     },
   ],
   controlOverrides: {
-    row_limit: {
-      default: 25,
-    },
+    groupby: { includeTime: true },
+    columns: { includeTime: true },
   },
 };
