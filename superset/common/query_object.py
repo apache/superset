@@ -30,13 +30,7 @@ class QueryObject:
             extras: Optional[Dict] = None,
     ):
         self.granularity = granularity
-
-        since_dttm, until_dttm = utils.get_since_until(time_range)
-        time_shift_dttm = utils.parse_human_timedelta(time_shift)
-        self.from_dttm = None if since_dttm is None else (since_dttm - time_shift_dttm)
-        self.to_dttm = None if until_dttm is None else (until_dttm - time_shift_dttm)
-        utils.assert_from_to_dttm(self.from_dttm, self.to_dttm)
-
+        self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
         self.is_timeseries = is_timeseries
         self.groupby = groupby
         self.metrics = metrics

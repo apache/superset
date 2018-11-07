@@ -15,6 +15,7 @@ import os
 import signal
 import smtplib
 import sys
+from typing import Optional
 import uuid
 import zlib
 
@@ -886,8 +887,12 @@ def ensure_path_exists(path):
             raise
 
 
-def get_since_until(time_range=None, since=None, until=None):
-    """Return `since` and `until` from form_data.
+def get_since_until(time_range: Optional[str] = None,
+                    since: Optional[str] = None,
+                    until: Optional[str] = None,
+                    time_shift: Optional[str] = None) -> (datetime, datetime):
+    """Return `since` and `until` date time tuple from string representations of
+    time_range, since, until and time_shift.
 
     This functiom supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
@@ -946,12 +951,15 @@ def get_since_until(time_range=None, since=None, until=None):
         since = parse_human_datetime(since)
         until = parse_human_datetime(until or 'now')
 
-    return since, until
+    if time_shift:
+        time_shift = parse_human_timedelta(time_shift)
+        since = since if since is None else (since - time_shift)
+        until = until if until is None else (until - time_shift)
 
-
-def assert_from_to_dttm(from_dttm, to_dttm):
-    if from_dttm and to_dttm and from_dttm > to_dttm:
+    if since and until and since > until:
         raise ValueError(_('From date cannot be larger than to date'))
+
+    return since, until
 
 
 def add_ago_to_since(since):

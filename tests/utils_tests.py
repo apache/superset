@@ -614,6 +614,13 @@ class UtilsTestCase(unittest.TestCase):
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
 
+        result = get_since_until(time_range='yesterday : tomorrow', time_shift='1 day')
+        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        with self.assertRaises(ValueError):
+            get_since_until(time_range='tomorrow : yesterday')
+
     @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {
