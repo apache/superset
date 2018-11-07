@@ -52,7 +52,7 @@ describe('TabbedSqlEditors', () => {
     editorHeight: '',
     getHeight: () => ('100px'),
     database: {},
-    defaultQueryLimit: 10000,
+    defaultQueryLimit: 1000,
     maxRow: 100000,
   };
   const getWrapper = () => (

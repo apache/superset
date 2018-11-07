@@ -369,7 +369,7 @@ export const initialState = {
   messageToasts: [],
   common: {
     conf: {
-      DEFAULT_SQLLAB_LIMIT: 10000,
+      DEFAULT_SQLLAB_LIMIT: 1000,
       SQL_MAX_ROW: 100000,
     },
   },

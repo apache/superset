@@ -8,7 +8,7 @@ import ControlHeader from '../../../src/explore/components/ControlHeader';
 describe('LimitControl', () => {
   const defaultProps = {
     value: 0,
-    defaultQueryLimit: 10000,
+    defaultQueryLimit: 1000,
     maxRow: 100000,
     onChange: () => {},
   };
