@@ -2450,6 +2450,9 @@ class Superset(BaseSupersetView):
     @expose('/results/<key>/')
     @log_this
     def results(self, key):
+        return self.results_call(key)
+
+    def results_call(self, key):
         """Serves a key off of the results backend"""
         if not results_backend:
             return json_error_response("Results backend isn't configured")
