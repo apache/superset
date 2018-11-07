@@ -50,24 +50,22 @@ superset-ui/
 ### Installation
 
 1. clone this repo
-2. have lerna install package dependencies and manage the symlinking between packages for you
+2. have yarn install package dependencies and manage the symlinking between packages for you
 
 ```sh
 git clone ...superset-ui && cd superset-ui
-npm install
-npm run bootstrap
+yarn install
 ```
 
 ### Builds, linting, and testing
 
 Each package defines its own build config, linting, and testing. You can have lerna run commands
-across all packages using the syntax `npm run test` (or `npm run test:watch` for watch mode) from the root `@superset/monorepo` root
-directory.
+across all packages using the syntax `yarn run test` (or `yarn run test:watch` for watch mode) from the root `@superset-ui` directory.
 
 ### Publishing
 
 ```
-npm run release
+yarn run release
 ```
 
 ### License
