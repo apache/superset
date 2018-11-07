@@ -1,4 +1,6 @@
 .babelrc
+.cache
+.DS_Store
 .eslintcache
 .eslintignore
 .eslintrc.js
