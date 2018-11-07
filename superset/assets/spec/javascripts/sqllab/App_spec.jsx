@@ -7,7 +7,7 @@ import sinon from 'sinon';
 
 import App from 'src/SqlLab/components/App';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
-import { sqlLabReducer } from 'src/SqlLab/reducers';
+import sqlLabReducer from 'src/SqlLab/reducers/index';
 
 describe('SqlLab App', () => {
   const middlewares = [thunk];

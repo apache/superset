@@ -8,7 +8,7 @@ import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 
 class App extends React.PureComponent {
   constructor(props) {
