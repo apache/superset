@@ -14,14 +14,12 @@ export function getBounds(points) {
 }
 
 export function fitViewport(viewport, points, padding = 10) {
-  console.log('HEREERERE');
   try {
     const bounds = getBounds(points);
-    console.log(viewport.height);
     return {
       ...viewport,
       ...fitBounds({
-        height: viewport.height - 200,
+        height: viewport.height,
         width: viewport.width,
         padding,
         bounds,

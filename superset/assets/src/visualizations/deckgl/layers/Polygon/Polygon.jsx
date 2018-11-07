@@ -9,11 +9,15 @@ import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
-import { commonLayerProps } from '../common';
+import { commonLayerProps, fitViewport } from '../common';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 
 const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
+
+function getPoints(features) {
+  return features.map(d => d.polygon).flat();
+}
 
 function getElevation(d, colorScaler) {
   /* in deck.gl 5.3.4 (used in Superset as of 2018-10-24), if a polygon has
@@ -128,13 +132,17 @@ class DeckGLPolygon extends React.Component {
       disabled,
     } = getPlaySliderParams(timestamps, granularity);
 
+    const viewport = props.formData.autozoom
+      ? fitViewport(props.viewport, getPoints(features))
+      : props.viewport;
+
     return {
       start,
       end,
       getStep,
       values,
       disabled,
-      viewport: props.viewport,
+      viewport,
       selected: [],
       lastClick: 0,
       formData: props.payload.form_data,

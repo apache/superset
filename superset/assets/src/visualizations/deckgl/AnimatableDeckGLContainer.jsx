@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import DeckGLContainer from './DeckGLContainer';
 import PlaySlider from '../PlaySlider';
 
+const PLAYSLIDER_HEIGHT = 20;  // px
+
 const propTypes = {
   getLayers: PropTypes.func.isRequired,
   start: PropTypes.number.isRequired,
@@ -30,6 +32,14 @@ export default class AnimatableDeckGLContainer extends React.Component {
     super(props);
     const { getLayers, start, end, getStep, values, disabled, viewport, ...other } = props;
     this.other = other;
+
+    this.onViewportChange = this.onViewportChange.bind(this);
+  }
+  onViewportChange(viewport) {
+    if (!this.props.disabled) {
+      viewport.height += PLAYSLIDER_HEIGHT;
+    }
+    this.props.onViewportChange(viewport);
   }
   render() {
     const {
@@ -41,7 +51,6 @@ export default class AnimatableDeckGLContainer extends React.Component {
       children,
       getLayers,
       values,
-      onViewportChange,
       onValuesChange,
     } = this.props;
     const layers = getLayers(values);
@@ -49,7 +58,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
     // leave space for the play slider
     const viewport = {
       ...this.props.viewport,
-      height: disabled ? this.props.viewport.height : this.props.viewport.height - 20,
+      height: disabled ? this.props.viewport.height : this.props.viewport.height - PLAYSLIDER_HEIGHT,
     };
 
     return (
@@ -58,7 +67,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           {...this.other}
           viewport={viewport}
           layers={layers}
-          onViewportChange={onViewportChange}
+          onViewportChange={this.onViewportChange}
         />
         {!disabled &&
         <PlaySlider
