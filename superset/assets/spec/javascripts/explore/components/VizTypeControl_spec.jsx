@@ -2,9 +2,8 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Modal } from 'react-bootstrap';
+import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/chart';
 import VizTypeControl from '../../../../src/explore/components/controls/VizTypeControl';
-import getChartMetadataRegistry from '../../../../src/visualizations/core/registries/ChartMetadataRegistrySingleton';
-import ChartMetadata from '../../../../src/visualizations/core/models/ChartMetadata';
 
 const defaultProps = {
   name: 'viz_type',

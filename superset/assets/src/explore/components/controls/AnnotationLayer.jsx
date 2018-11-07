@@ -6,6 +6,7 @@ import mathjs from 'mathjs';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 import { getCategoricalSchemeRegistry } from '@superset-ui/color';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
@@ -22,7 +23,6 @@ import ANNOTATION_TYPES, {
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
-import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
 
 const AUTOMATIC_COLOR = '';
 

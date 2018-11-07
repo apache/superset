@@ -1,4 +1,4 @@
-import Preset from '../core/models/Preset';
+import { Preset } from '@superset-ui/core';
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
 import HierarchyChartPreset from './HierarchyChartPreset';
