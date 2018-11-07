@@ -9,84 +9,8 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import { nonEmpty } from './validators';
 
-export const sections = {
-  druidTimeSeries: {
-    label: t('Time'),
-    expanded: true,
-    description: t('Time related form attributes'),
-    controlSetRows: [
-      ['granularity', 'druid_time_origin'],
-      ['time_range'],
-    ],
-  },
-  datasourceAndVizType: {
-    label: t('Datasource & Chart Type'),
-    expanded: true,
-    controlSetRows: [
-      ['datasource'],
-      ['viz_type'],
-      ['slice_id', 'cache_timeout', 'url_params'],
-    ],
-  },
-  colorScheme: {
-    label: t('Color Scheme'),
-    controlSetRows: [
-      ['color_scheme'],
-    ],
-  },
-  sqlaTimeSeries: {
-    label: t('Time'),
-    description: t('Time related form attributes'),
-    expanded: true,
-    controlSetRows: [
-      ['granularity_sqla', 'time_grain_sqla'],
-      ['time_range'],
-    ],
-  },
-  filters: {
-    label: t('Filters'),
-    expanded: true,
-    controlSetRows: [
-      ['filters'],
-    ],
-  },
-  annotations: {
-    label: t('Annotations and Layers'),
-    expanded: true,
-    controlSetRows: [
-      ['annotation_layers'],
-    ],
-  },
-  NVD3TimeSeries: [
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        ['metrics'],
-        ['adhoc_filters'],
-        ['groupby'],
-        ['limit', 'timeseries_limit_metric'],
-        ['order_desc', 'contribution'],
-        ['row_limit', null],
-      ],
-    },
-    {
-      label: t('Advanced Analytics'),
-      description: t('This section contains options ' +
-      'that allow for advanced analytical post processing ' +
-      'of query results'),
-      controlSetRows: [
-        [<h1 className="section-header">{t('Moving Average')}</h1>],
-        ['rolling_type', 'rolling_periods', 'min_periods'],
-        [<h1 className="section-header">{t('Time Comparison')}</h1>],
-        ['time_compare', 'comparison_type'],
-        [<h1 className="section-header">{t('Python Functions')}</h1>],
-        [<h2 className="section-header">pandas.resample</h2>],
-        ['resample_how', 'resample_rule', 'resample_fillmethod'],
-      ],
-    },
-  ],
-};
+import dist_bar from './controlPanels/DistBar';
+import pie from './controlPanels/Pie';
 
 const timeGrainSqlaAnimationOverrides = {
   default: null,
@@ -98,80 +22,8 @@ const timeGrainSqlaAnimationOverrides = {
 };
 
 export const visTypes = {
-  dist_bar: {
-    controlPanelSections: [
-      {
-        label: t('Query'),
-        expanded: true,
-        controlSetRows: [
-          ['metrics'],
-          ['adhoc_filters'],
-          ['groupby'],
-          ['columns'],
-          ['row_limit'],
-          ['contribution'],
-        ],
-      },
-      {
-        label: t('Chart Options'),
-        expanded: true,
-        controlSetRows: [
-          ['color_scheme'],
-          ['show_legend', 'show_bar_value'],
-          ['bar_stacked', 'order_bars'],
-          ['y_axis_format', 'y_axis_label'],
-          ['show_controls', null],
-        ],
-      },
-      {
-        label: t('X Axis'),
-        expanded: true,
-        controlSetRows: [
-          ['x_axis_label', 'bottom_margin'],
-          ['x_ticks_layout', 'reduce_x_ticks'],
-        ],
-      },
-    ],
-    controlOverrides: {
-      groupby: {
-        label: t('Series'),
-      },
-      columns: {
-        label: t('Breakdowns'),
-        description: t('Defines how each series is broken down'),
-      },
-    },
-  },
-
-  pie: {
-    controlPanelSections: [
-      {
-        label: t('Query'),
-        expanded: true,
-        controlSetRows: [
-          ['metric'],
-          ['adhoc_filters'],
-          ['groupby'],
-          ['row_limit'],
-        ],
-      },
-      {
-        label: t('Chart Options'),
-        expanded: true,
-        controlSetRows: [
-          ['pie_label_type'],
-          ['donut', 'show_legend'],
-          ['show_labels', 'labels_outside'],
-          ['color_scheme'],
-        ],
-      },
-    ],
-    controlOverrides: {
-      row_limit: {
-        default: 25,
-      },
-    },
-  },
+  dist_bar,
+  pie,
 
   line: {
     requiresTime: true,
