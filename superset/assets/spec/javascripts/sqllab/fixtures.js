@@ -367,6 +367,12 @@ export const initialState = {
     activeSouthPaneTab: 'Results',
   },
   messageToasts: [],
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 1000,
+      SQL_MAX_ROW: 100000,
+    },
+  },
 };
 
 export const query = {
