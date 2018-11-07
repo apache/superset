@@ -54,7 +54,7 @@ import DeckPolygon from './controlPanels/DeckPolygon';
 import DeckScatter from './controlPanels/DeckScatter';
 import DeckScreengrid from './controlPanels/DeckScreengrid';
 
-export const visTypes = {
+export const controlPanelConfigs = {
   area: Area,
   bar: Bar,
   big_number: BigNumber,
@@ -106,14 +106,14 @@ export const visTypes = {
 
 };
 
-export default visTypes;
+export default controlPanelConfigs;
 
 export function sectionsToRender(vizType, datasourceType) {
-  const viz = visTypes[vizType];
+  const config = controlPanelConfigs[vizType];
 
   const sectionsCopy = { ...sections };
-  if (viz.sectionOverrides) {
-    Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
+  if (config.sectionOverrides) {
+    Object.entries(config.sectionOverrides).forEach(([section, overrides]) => {
       if (typeof overrides === 'object' && overrides.constructor === Object) {
         sectionsCopy[section] = {
           ...sectionsCopy[section],
@@ -129,6 +129,6 @@ export function sectionsToRender(vizType, datasourceType) {
     sectionsCopy.datasourceAndVizType,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
-    viz.controlPanelSections,
+    config.controlPanelSections,
   ).filter(section => section);
 }
