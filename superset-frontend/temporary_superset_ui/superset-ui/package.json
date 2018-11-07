@@ -6,15 +6,16 @@
   "scripts": {
     "bootstrap": "lerna bootstrap",
     "build": "yarn run build:cjs && yarn run build:esm",
-    "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=*",
-    "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=*",
-    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test}/**/*.{js,jsx}\"",
+    "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo)\"",
+    "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo)\"",
+    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx}\"",
     "jest": "beemo jest --color --coverage",
+    "postrelease": "lerna run gh-pages",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
     "prerelease": "yarn run build",
     "pretest": "yarn run lint",
-    "prettier": "beemo prettier \"./packages/*/{src,test}/**/*.{js,jsx,json,md}\"",
-    "release": "yarn run prepare-release && lerna publish",
+    "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,json,md}\"",
+    "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
     "test": "yarn run jest",
     "test:watch": "beemo create-config jest && jest --watch"
   },
@@ -65,7 +66,7 @@
     }
   },
   "lint-staged": {
-    "./packages/*/{src,test}/**/*.{js,jsx,json,md}": [
+    "./packages/*/{src,test,storybook}/**/*.{js,jsx,json,md}": [
       "yarn run prettier --write",
       "git add"
     ]
