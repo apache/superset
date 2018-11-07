@@ -4,8 +4,6 @@ import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import './Chord.css';
 
-const { getScale } = CategoricalColorNamespace;
-
 const propTypes = {
   data: PropTypes.shape({
     nodes: PropTypes.arrayOf(PropTypes.string),
@@ -31,7 +29,7 @@ function Chord(element, props) {
   const div = d3.select(element);
   const { nodes, matrix } = data;
   const f = d3.format(numberFormat);
-  const colorFn = getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;
