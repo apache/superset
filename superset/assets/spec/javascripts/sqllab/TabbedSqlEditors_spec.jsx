@@ -52,6 +52,8 @@ describe('TabbedSqlEditors', () => {
     editorHeight: '',
     getHeight: () => ('100px'),
     database: {},
+    defaultQueryLimit: 1000,
+    maxRow: 100000,
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {
