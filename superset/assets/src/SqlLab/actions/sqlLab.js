@@ -3,14 +3,14 @@ import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
-import { now } from '../modules/dates';
+import { now } from '../../modules/dates';
 import {
   addSuccessToast as addSuccessToastAction,
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,
-} from '../messageToasts/actions';
-import getClientErrorObject from '../utils/getClientErrorObject';
-import COMMON_ERR_MESSAGES from '../utils/errorMessages';
+} from '../../messageToasts/actions/index';
+import getClientErrorObject from '../../utils/getClientErrorObject';
+import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
