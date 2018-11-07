@@ -99,8 +99,9 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     }
 
     // Show only categories selected in the legend
+    const cats = this.state.categories;
     if (fd.dimension) {
-      features = features.filter(d => this.state.categories[d.cat_color].enabled);
+      features = features.filter(d => cats[d.cat_color] && cats[d.cat_color].enabled);
     }
 
     const filteredPayload = {
