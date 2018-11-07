@@ -103,7 +103,7 @@ class CoreTests(SupersetTestCase):
                 'time_range': '{} : {}'.format(form_data.get('since'),
                                                form_data.get('until')),
                 'limit': 100,
-            }]
+            }],
         })
         # TODO: update once get_data is implemented for QueryObject
         with self.assertRaises(Exception):
