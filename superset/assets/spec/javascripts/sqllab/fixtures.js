@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import * as actions from '../../../src/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions/sqlLab';
 
 export const mockedActions = sinon.stub(Object.assign({}, actions));
 

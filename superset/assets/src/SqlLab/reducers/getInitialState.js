@@ -1,6 +1,6 @@
 import shortid from 'shortid';
 import { t } from '@superset-ui/translation';
-import getToastsFromPyFlashMessages from '../messageToasts/utils/getToastsFromPyFlashMessages';
+import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   const defaultQueryEditor = {
@@ -24,10 +24,13 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       tabHistory: [defaultQueryEditor.id],
       tables: [],
       queriesLastUpdate: Date.now(),
-      ...restBootstrapData,
     },
     messageToasts: getToastsFromPyFlashMessages(
       (restBootstrapData.common || {}).flash_messages || [],
     ),
+    common: {
+      flash_messages: restBootstrapData.common.flash_messages,
+      conf: restBootstrapData.common.conf,
+    },
   };
 }

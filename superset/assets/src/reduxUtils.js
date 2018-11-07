@@ -68,14 +68,16 @@ export function addToArr(state, arrKey, obj, prepend = false) {
   return Object.assign({}, state, newState);
 }
 
-export function initEnhancer(persist = true) {
-  let enhancer = persist ? compose(persistState()) : compose();
-  if (process.env.WEBPACK_MODE === 'development') {
+export function initEnhancer(persist = true, persistConfig = {}) {
+  const { paths, config } = persistConfig;
+  const composeEnhancers = process.env.WEBPACK_MODE === 'development'
     /* eslint-disable-next-line no-underscore-dangle */
-    const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-    enhancer = persist ? composeEnhancers(persistState()) : composeEnhancers();
-  }
-  return enhancer;
+    ? (window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose)
+    : compose;
+
+  return persist
+    ? composeEnhancers(persistState(paths, config))
+    : composeEnhancers();
 }
 
 export function areArraysShallowEqual(arr1, arr2) {
