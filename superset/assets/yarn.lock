@@ -3433,7 +3433,7 @@ d3-ease@1:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/d3-ease/-/d3-ease-1.0.5.tgz#8ce59276d81241b1b72042d6af2d40e76d936ffb"
 
-d3-format@1, d3-format@^1.2.0:
+d3-format@1, d3-format@^1.2.0, d3-format@^1.3.2:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/d3-format/-/d3-format-1.3.2.tgz#6a96b5e31bcb98122a30863f7d92365c00603562"
 
@@ -3489,7 +3489,7 @@ d3-scale@^1.0.5, d3-scale@^1.0.6:
     d3-time "1"
     d3-time-format "2"
 
-d3-scale@^2.0.0:
+d3-scale@^2.0.0, d3-scale@^2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/d3-scale/-/d3-scale-2.1.2.tgz#4e932b7b60182aee9073ede8764c98423e5f9a94"
   dependencies:
@@ -3500,7 +3500,7 @@ d3-scale@^2.0.0:
     d3-time "1"
     d3-time-format "2"
 
-d3-selection@1, d3-selection@^1.1.0, d3-selection@^1.3.0:
+d3-selection@1, d3-selection@^1.1.0, d3-selection@^1.3.0, d3-selection@^1.3.2:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/d3-selection/-/d3-selection-1.3.2.tgz#6e70a9df60801c8af28ac24d10072d82cbfdf652"
 
@@ -3514,7 +3514,7 @@ d3-svg-legend@^1.x:
   version "1.13.0"
   resolved "https://registry.yarnpkg.com/d3-svg-legend/-/d3-svg-legend-1.13.0.tgz#6217478c9add9d62cb333617e1961311a41a4db3"
 
-d3-time-format@2:
+d3-time-format@2, d3-time-format@^2.1.3:
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/d3-time-format/-/d3-time-format-2.1.3.tgz#ae06f8e0126a9d60d6364eac5b1533ae1bac826b"
   dependencies:
