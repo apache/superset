@@ -263,7 +263,7 @@ class Alert(Model):
     params = Column(Text)
     interval = Column(Enum(TimePeriod))
     name = Column(String(250))
-    # tags = Column(ARRAY(Text))
+    tags = Column(Text)
 
 
 class SqlaTable(Model, BaseDatasource):
