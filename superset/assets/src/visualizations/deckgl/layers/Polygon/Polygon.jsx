@@ -94,6 +94,8 @@ class DeckGLPolygon extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = DeckGLPolygon.getDerivedStateFromProps(props);
+
     this.getLayers = this.getLayers.bind(this);
     this.onSelect = this.onSelect.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);

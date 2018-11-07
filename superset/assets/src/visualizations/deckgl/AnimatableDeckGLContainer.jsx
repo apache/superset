@@ -41,11 +41,17 @@ export default class AnimatableDeckGLContainer extends React.Component {
       children,
       getLayers,
       values,
-      viewport,
       onViewportChange,
       onValuesChange,
     } = this.props;
     const layers = getLayers(values);
+
+    // leave space for the play slider
+    const viewport = {
+      ...this.props.viewport,
+      height: disabled ? this.props.viewport.height : this.props.viewport.height - 20,
+    };
+
     return (
       <div>
         <DeckGLContainer
