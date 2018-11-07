@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { t } from '@superset-ui/translation';
 
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
