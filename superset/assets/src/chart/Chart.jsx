@@ -176,7 +176,7 @@ class Chart extends React.PureComponent {
       >
         {this.renderTooltip()}
 
-        {chartStatus !== 'rendered' && <Loading size={50} />}
+        {['loading', 'success'].indexOf(chartStatus) >= 0 && <Loading size={50} />}
 
         {chartAlert && (
           <StackTraceMessage

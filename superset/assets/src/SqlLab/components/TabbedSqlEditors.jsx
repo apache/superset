@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { t } from '@superset-ui/translation';
 
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import TabStatusIcon from './TabStatusIcon';

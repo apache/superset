@@ -2,8 +2,8 @@
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import * as actions from '../../../src/SqlLab/actions';
-import { query } from './fixtures';
+import * as actions from '../../../../src/SqlLab/actions/sqlLab';
+import { query } from '../fixtures';
 
 describe('async actions', () => {
   let dispatch;
