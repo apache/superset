@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.exceptions import SupersetSecurityException
 
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
@@ -427,4 +428,11 @@ class SupersetSecurityManager(SecurityManager):
                     permission_id=permission.id,
                     view_menu_id=view_menu.id,
                 ),
+            )
+
+    def assert_datasource_permission(self, datasource, user=None):
+        if not self.datasource_access(datasource, user):
+            raise SupersetSecurityException(
+                self.get_datasource_access_error_msg(datasource),
+                self.get_datasource_access_link(datasource),
             )

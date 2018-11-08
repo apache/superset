@@ -15,6 +15,7 @@ import os
 import signal
 import smtplib
 import sys
+from typing import Optional
 import uuid
 import zlib
 
@@ -24,6 +25,7 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask import flash, g, Markup, render_template
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from flask_caching import Cache
 import markdown as md
 import numpy
@@ -271,7 +273,7 @@ def parse_human_timedelta(s):
     """
     cal = parsedatetime.Calendar()
     dttm = dttm_from_timtuple(datetime.now().timetuple())
-    d = cal.parse(s, dttm)[0]
+    d = cal.parse(s or '', dttm)[0]
     d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
 
@@ -885,8 +887,12 @@ def ensure_path_exists(path):
             raise
 
 
-def get_since_until(form_data):
-    """Return `since` and `until` from form_data.
+def get_since_until(time_range: Optional[str] = None,
+                    since: Optional[str] = None,
+                    until: Optional[str] = None,
+                    time_shift: Optional[str] = None) -> (datetime, datetime):
+    """Return `since` and `until` date time tuple from string representations of
+    time_range, since, until and time_shift.
 
     This functiom supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
@@ -919,8 +925,7 @@ def get_since_until(form_data):
         'Last year': (today - relativedelta(years=1), today),
     }
 
-    if 'time_range' in form_data:
-        time_range = form_data['time_range']
+    if time_range:
         if separator in time_range:
             since, until = time_range.split(separator, 1)
             if since and since not in common_time_frames:
@@ -940,11 +945,19 @@ def get_since_until(form_data):
                 since = today
                 until = today + relativedelta(**{grain: int(num)})
     else:
-        since = form_data.get('since', '')
+        since = since or ''
         if since:
             since = add_ago_to_since(since)
         since = parse_human_datetime(since)
-        until = parse_human_datetime(form_data.get('until', 'now'))
+        until = parse_human_datetime(until or 'now')
+
+    if time_shift:
+        time_shift = parse_human_timedelta(time_shift)
+        since = since if since is None else (since - time_shift)
+        until = until if until is None else (until - time_shift)
+
+    if since and until and since > until:
+        raise ValueError(_('From date cannot be larger than to date'))
 
     return since, until
 

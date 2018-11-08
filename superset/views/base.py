@@ -16,7 +16,7 @@ import simplejson as json
 import yaml
 
 from superset import conf, db, security_manager
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 
@@ -53,6 +53,15 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         status=status, mimetype='application/json')
 
 
+def json_success(json_msg, status=200):
+    return Response(json_msg, status=status, mimetype='application/json')
+
+
+def data_payload_response(payload_json, has_error=False):
+    status = 400 if has_error else 200
+    return json_success(payload_json, status=status)
+
+
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
     content_disp = 'attachment; filename={}.{}'.format(filename, extension)
@@ -74,6 +83,26 @@ def api(f):
             logging.exception(e)
             return json_error_response(get_error_msg())
 
+    return functools.update_wrapper(wraps, f)
+
+
+def handle_superset_exception(f):
+    """
+    A decorator to catch superset exceptions. Use it after the @api decorator above
+    so superset exception handler is triggered before the handler for generic exceptions.
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except SupersetSecurityException as sse:
+            logging.exception(sse)
+            return json_error_response(utils.error_msg_from_exception(sse),
+                                       status=sse.status,
+                                       link=sse.link)
+        except SupersetException as se:
+            logging.exception(se)
+            return json_error_response(utils.error_msg_from_exception(se),
+                                       status=se.status)
     return functools.update_wrapper(wraps, f)
 
 
