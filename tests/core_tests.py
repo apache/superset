@@ -86,6 +86,29 @@ class CoreTests(SupersetTestCase):
         qobj['groupby'] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
 
+    def test_api_v1_query_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Name Cloud', db.session)
+        form_data = slc.form_data
+        data = json.dumps({
+            'datasource': {
+                'id': slc.datasource_id,
+                'type': slc.datasource_type,
+            },
+            'queries': [{
+                'granularity': 'ds',
+                'groupby': ['name'],
+                'metrics': ['sum__num'],
+                'filters': [],
+                'time_range': '{} : {}'.format(form_data.get('since'),
+                                               form_data.get('until')),
+                'limit': 100,
+            }],
+        })
+        # TODO: update once get_data is implemented for QueryObject
+        with self.assertRaises(Exception):
+            self.get_resp('/api/v1/query/', {'query_context': data})
+
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
