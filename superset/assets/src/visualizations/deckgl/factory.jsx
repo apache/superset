@@ -59,12 +59,8 @@ export function createCategoricalDeckGLComponent(getLayer, getPoints) {
       setControlValue,
       onAddFilter,
       setTooltip,
-      viewport: originalViewport,
+      viewport,
     } = props;
-
-    const viewport = formData.autozoom
-      ? fitViewport(originalViewport, getPoints(payload.data.features))
-      : originalViewport;
 
     return (
       <CategoricalDeckGLContainer
@@ -76,6 +72,7 @@ export function createCategoricalDeckGLComponent(getLayer, getPoints) {
         payload={payload}
         onAddFilter={onAddFilter}
         setTooltip={setTooltip}
+        getPoints={getPoints}
       />
     );
   }

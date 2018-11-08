@@ -11,7 +11,7 @@ describe('getBreakPoints', () => {
 
   it('returns sorted break points', () => {
     const fd = { break_points: ['0', '10', '100', '50', '1000'] };
-    const result = getBreakPoints(fd);
+    const result = getBreakPoints(fd, []);
     const expected = ['0', '10', '50', '100', '1000'];
     expect(result).toEqual(expected);
   });
