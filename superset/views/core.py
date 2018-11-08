@@ -368,6 +368,7 @@ class CsvToDatabaseView(SimpleFormView):
             flash(
                 message,
                 'danger')
+            stats_logger.incr('failed_csv_upload')
             return redirect('/csvtodatabaseview/form')
 
         os.remove(path)
@@ -378,6 +379,7 @@ class CsvToDatabaseView(SimpleFormView):
                                             form.name.data,
                                             db_name))
         flash(message, 'info')
+        stats_logger.incr('successful_csv_upload')
         return redirect('/tablemodelview/list/')
 
     def is_schema_allowed(self, database, schema):
