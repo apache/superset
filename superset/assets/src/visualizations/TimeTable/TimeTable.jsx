@@ -226,7 +226,7 @@ class TimeTable extends React.PureComponent {
       .map(time => ({ ...data[time], time }));
     const reversedEntries = entries.concat().reverse();
 
-    const defaultSort = rowType === 'column' ? {
+    const defaultSort = rowType === 'column' && columnConfigs.length ? {
       column: columnConfigs[0].key,
       direction: 'desc',
     } : false;

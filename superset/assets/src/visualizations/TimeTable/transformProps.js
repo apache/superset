@@ -1,7 +1,7 @@
 export default function transformProps(chartProps) {
   const { height, datasource, formData, payload } = chartProps;
   const {
-    columnCollection,
+    columnCollection = 0,
     groupby,
     metrics,
     url,
