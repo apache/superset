@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import controlPanelConfigs, { sectionsToRender } from '../controlPanelConfigs';
+import controlPanelConfigs, { sectionsToRender } from '../controlPanels';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';

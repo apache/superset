@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import controls from './controls';
-import controlPanelConfigs, { sectionsToRender } from './controlPanelConfigs';
+import controlPanelConfigs, { sectionsToRender } from './controlPanels';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
