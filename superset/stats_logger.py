@@ -38,8 +38,7 @@ class DummyStatsLogger(BaseStatsLogger):
 
     def decr(self, key):
         logging.debug((
-            Fore.CYAN + '[stats_logger] (decr) ' + key +
-            Style.RESET_ALL))
+            Fore.CYAN + '[stats_logger] (decr) ' + key + Style.RESET_ALL))
 
     def timing(self, key, value):
         logging.debug((
