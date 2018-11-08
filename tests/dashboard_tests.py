@@ -203,7 +203,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         new_slice = db.session.query(models.Slice).filter_by(
-            slice_name='Mapbox Long/Lat').first()
+            slice_name='Energy Force Layout').first()
         existing_slice = db.session.query(models.Slice).filter_by(
             slice_name='Name Cloud').first()
         data = {
@@ -217,7 +217,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         new_slice = db.session.query(models.Slice).filter_by(
-            slice_name='Mapbox Long/Lat').first()
+            slice_name='Energy Force Layout').first()
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
@@ -225,7 +225,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         dash.slices = [
-            o for o in dash.slices if o.slice_name != 'Mapbox Long/Lat']
+            o for o in dash.slices if o.slice_name != 'Energy Force Layout']
         db.session.commit()
 
     def test_remove_slices(self, username='admin'):
