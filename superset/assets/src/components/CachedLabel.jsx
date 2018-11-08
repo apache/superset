@@ -60,7 +60,7 @@ class CacheLabel extends React.PureComponent {
           onMouseOver={this.mouseOver.bind(this)}
           onMouseOut={this.mouseOut.bind(this)}
         >
-          cached <i className="fa fa-refresh" />
+          {t('cached')} <i className="fa fa-refresh" />
         </Label>
       </TooltipWrapper>);
   }
