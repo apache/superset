@@ -1030,15 +1030,7 @@ class Superset(BaseSupersetView):
         if slice_id and (use_slice_data or contains_only_slc_id):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             slice_form_data = slc.form_data.copy()
-            # allow form_data in request override slice from_data
-            # special treat for since/until and time_range parameter:
-            # we need to breakdown time_range into since/until so request parameters
-            # has precedence over slice parameters for time fields.
-            if 'since' in form_data or 'until' in form_data:
-                form_data['since'], form_data['until'] = \
-                    utils.get_since_until(form_data)
-                slice_form_data['since'], slice_form_data['until'] = \
-                    utils.get_since_until(slice_form_data)
+
             slice_form_data.update(form_data)
             form_data = slice_form_data
 
