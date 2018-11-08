@@ -364,6 +364,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert = self.datamodel.get(pk)
         db.session.delete(alert)
         db.session.commit()
+        self.update_redirect()
 
     @expose('/add', methods=['GET'])
     @has_access
