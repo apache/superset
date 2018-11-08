@@ -7,6 +7,7 @@ export const chart = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
+  chartStackTrace: null,
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
@@ -35,6 +36,7 @@ export default function chartReducer(charts = {}, action) {
       return {
         ...state,
         chartStatus: 'loading',
+        chartStackTrace: null,
         chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
