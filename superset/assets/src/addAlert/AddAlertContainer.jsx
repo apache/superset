@@ -47,10 +47,15 @@ export default class AddAlertContainer extends React.Component {
       isValid: true,
       newTag: '',
       items: [
-        { id: 0, label: "completion"},
-        { id: 1, label: "latency"},
-        { id: 2, label: "syntax"},
-        { id: 3, label: "semantic"}
+        { id: 0, label: "area:recipe analytics"},
+        { id: 1, label: "area:data quality"},
+        { id: 2, label: "category:completeness"},
+        { id: 3, label: "category:latency"},
+        { id: 4, label: "validity:syntax"},
+        { id: 5, label: "validity:semantic"},
+        { id: 6, label: "stage:nudge delivery"},
+        { id: 7, label: "stage:user engagement"},
+        { id: 8, label: "stage:recipe predictions"}
       ],
       selectedItems: []
     };
@@ -85,7 +90,7 @@ export default class AddAlertContainer extends React.Component {
   }
 
   handleNameChange(event) {
-    console.log(this.state)
+    // console.log(this.state)
     this.setState({name: event.target.value});
   }
 
@@ -105,7 +110,7 @@ export default class AddAlertContainer extends React.Component {
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
-      // tags: this.state.items
+      tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     }
     this.sendPostRequest(data)
   }
@@ -224,7 +229,6 @@ export default class AddAlertContainer extends React.Component {
                   'available in the list, ' +
                   'follow the instructions on the how to add it on the ')}
                 <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
-                {"\n"}Ensure that the query title begins with [DQS].
               </p>
             </div>
             <hr />

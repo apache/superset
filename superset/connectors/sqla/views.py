@@ -355,7 +355,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert.table_id = data['table_id']
         alert.params = data['params']
         alert.interval = data['interval']
-        # alert.tags = data['tags']
+        alert.tags = data['tags']
         db.session.add(alert)
         db.session.commit()
         return jsonify(success=True)
@@ -364,16 +364,15 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert = self.datamodel.get(pk)
         db.session.delete(alert)
         db.session.commit()
+        self.update_redirect()
 
     @expose('/add', methods=['GET'])
     @has_access
     def add(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        prefix = '[DQS]'
         datasources = [
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
             for d in datasources
-            if repr(d).startswith(prefix)
         ]
         return self.render_template(
             'superset/add_alert.html',
@@ -387,7 +386,7 @@ appbuilder.add_view(
     AlertModelView,
     'Alerts',
     label='Alerts',
-    icon='fa-exclamation-triangle',
+    icon='fa-exclamation-circle',
     category='',
     category_label='',
     category_icon='')

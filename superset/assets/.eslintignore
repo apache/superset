@@ -9,3 +9,4 @@ stylesheets/*
 vendor/*
 docs/*
 src/dashboard/deprecated/*
+src/addAlert/*
