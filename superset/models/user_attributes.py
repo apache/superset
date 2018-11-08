@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey, Integer  # pylint: disable=wrong-import-order
+from sqlalchemy.orm import relationship  # pylint: disable=wrong-import-order
+
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
