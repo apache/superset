@@ -47,6 +47,7 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
+  params: PropTypes.object,
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -73,6 +74,7 @@ const defaultProps = {
   descriptionColumns: [],
   timeColumn: '',
   intervalEndColumn: '',
+  params: {},
 
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
@@ -463,6 +465,15 @@ export default class AnnotationLayer extends React.PureComponent {
                     this.setState({ overrides: { ...overrides } });
                   }
                 }}
+              />
+              <TextControl
+                hovered
+                name="annotation-override-param"
+                label="Override params"
+                description={'Override the params in the chart'}
+                placeholder=""
+                value={overrides.params}
+                onChange={v => this.setState({ overrides: { ...overrides, params: v } })}
               />
               <TextControl
                 hovered

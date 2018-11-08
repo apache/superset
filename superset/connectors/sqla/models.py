@@ -1,6 +1,7 @@
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
+import enum
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -8,8 +9,8 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import (
-    and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
-    select, String, Text,
+    and_, asc, Boolean, Column, DateTime, Enum, desc, ForeignKey, Integer, or_,
+    select, String, Text, ARRAY
 )
 from sqlalchemy.orm import backref, relationship, configure_mappers
 from sqlalchemy.schema import UniqueConstraint
@@ -248,6 +249,23 @@ class SqlMetric(Model, BaseMetric):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
+class TimePeriod(enum.Enum):
+    minute = 1
+    hour = 60
+    day = 60 * 24
+
+
+class Alert(Model):
+    __tablename__ = 'alert'
+
+    id = Column(Integer, primary_key=True)
+    table_id = Column(Integer, ForeignKey('tables.id'))
+    params = Column(Text)
+    interval = Column(Enum(TimePeriod))
+    name = Column(String(250))
+    # tags = Column(ARRAY(Text))
+
+
 class SqlaTable(Model, BaseDatasource):
 
     """An ORM object for SqlAlchemy table references"""
@@ -278,6 +296,10 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    alerts = relationship(
+        'Alert',
+        backref='table',
+        lazy=True)
 
     baselink = 'tablemodelview'
 

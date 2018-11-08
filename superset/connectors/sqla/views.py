@@ -1,6 +1,6 @@
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
-from flask import flash, Markup, redirect
+from flask import flash, Markup, redirect, request, jsonify
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -8,8 +8,10 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
-
+import simplejson as json
 from superset import appbuilder, db, security_manager, utils
+from superset.connectors.sqla.models import Alert
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
@@ -328,5 +330,66 @@ appbuilder.add_link(
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-table')
+
+appbuilder.add_separator('Sources')
+
+
+class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
+    route_base = '/alert'
+
+    datamodel = SQLAInterface(models.Alert)
+
+    list_title = 'List Alerts'
+    show_title = 'Show Alert'
+    add_title = 'Import a alert definition'
+    edit_title = 'Edit Alert'
+    list_columns = ['name', 'params']
+    can_delete = True
+
+    @expose('/create', methods=['POST'])
+    @has_access
+    def create(self):
+        data = request.get_json()
+        alert = Alert()
+        alert.name = data['name']
+        alert.table_id = data['table_id']
+        alert.params = data['params']
+        alert.interval = data['interval']
+        # alert.tags = data['tags']
+        db.session.add(alert)
+        db.session.commit()
+        return jsonify(success=True)
+
+    def _delete(self, pk):
+        alert = self.datamodel.get(pk)
+        db.session.delete(alert)
+        db.session.commit()
+
+    @expose('/add', methods=['GET'])
+    @has_access
+    def add(self):
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        prefix = '[DQS]'
+        datasources = [
+            {"value": str(d.id) + "__" + d.type, "label": repr(d)}
+            for d in datasources
+            if repr(d).startswith(prefix)
+        ]
+        return self.render_template(
+            'superset/add_alert.html',
+            bootstrap_data=json.dumps({
+                'datasources': sorted(datasources, key=lambda d: d['label']),
+            }),
+        )
+
+
+appbuilder.add_view(
+    AlertModelView,
+    'Alerts',
+    label='Alerts',
+    icon='fa-exclamation-triangle',
+    category='',
+    category_label='',
+    category_icon='')
 
 appbuilder.add_separator('Sources')
