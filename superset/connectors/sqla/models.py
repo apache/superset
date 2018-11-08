@@ -465,7 +465,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_query_str(self, query_obj):
         qry = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(qry)
-        logging.info(sql)
+        logging.debug('Calculated query : %s', sql)
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
