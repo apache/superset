@@ -90,7 +90,7 @@ export default class AddAlertContainer extends React.Component {
   }
 
   handleNameChange(event) {
-    console.log(this.state)
+    // console.log(this.state)
     this.setState({name: event.target.value});
   }
 
