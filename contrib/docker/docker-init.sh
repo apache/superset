@@ -21,4 +21,4 @@ cd superset/assets && npm run build && cd ../../
 superset worker &
 
 # Start the dev web server
-flask run -p 8080 --with-threads --reload --debugger --host=0.0.0.0
+flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
