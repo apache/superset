@@ -110,7 +110,7 @@ export default class AddAlertContainer extends React.Component {
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
-      // tags: this.state.items
+      tags: this.state.items.map((tag) => tag.label).join(','),
     }
     this.sendPostRequest(data)
   }

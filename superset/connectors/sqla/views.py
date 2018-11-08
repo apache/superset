@@ -355,7 +355,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert.table_id = data['table_id']
         alert.params = data['params']
         alert.interval = data['interval']
-        # alert.tags = data['tags']
+        alert.tags = data['tags']
         db.session.add(alert)
         db.session.commit()
         return jsonify(success=True)
