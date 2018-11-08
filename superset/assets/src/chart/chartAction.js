@@ -35,8 +35,8 @@ export function chartUpdateFailed(queryResponse, key) {
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
-export function chartRenderingFailed(error, key) {
-  return { type: CHART_RENDERING_FAILED, error, key };
+export function chartRenderingFailed(error, key, stackTrace) {
+  return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
 }
 
 export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
