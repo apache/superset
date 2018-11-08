@@ -35,7 +35,7 @@
  *
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
- * in tandem with `visTypes.js` that defines how controls are composed into sections for
+ * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
 import React from 'react';
