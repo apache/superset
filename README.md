@@ -177,6 +177,7 @@ the world know they are using Superset. Join our growing community!
  - [ScopeAI](https://www.getscopeai.com)
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
+ - [Showmax](https://tech.showmax.com)
  - [Tails.com](https://tails.com)
  - [THEICONIC](http://theiconic.com.au/)
  - [Tobii](http://www.tobii.com/)
