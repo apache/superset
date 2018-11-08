@@ -83,36 +83,35 @@ class SupersetSecurityManager(SecurityManager):
         if schema:
             return '[{}].[{}]'.format(database, schema)
 
-    def can_access(self, permission_name, view_name, user=None):
+    def can_access(self, permission_name, view_name):
         """Protecting from has_access failing from missing perms/view"""
-        if not user:
-            user = g.user
+        user = g.user
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
-    def all_datasource_access(self, user=None):
+    def all_datasource_access(self):
         return self.can_access(
-            'all_datasource_access', 'all_datasource_access', user=user)
+            'all_datasource_access', 'all_datasource_access')
 
-    def database_access(self, database, user=None):
+    def database_access(self, database):
         return (
             self.can_access(
-                'all_database_access', 'all_database_access', user=user) or
-            self.can_access('database_access', database.perm, user=user)
+                'all_database_access', 'all_database_access') or
+            self.can_access('database_access', database.perm)
         )
 
-    def schema_access(self, datasource, user=None):
+    def schema_access(self, datasource):
         return (
-            self.database_access(datasource.database, user=user) or
-            self.all_datasource_access(user=user) or
-            self.can_access('schema_access', datasource.schema_perm, user=user)
+            self.database_access(datasource.database) or
+            self.all_datasource_access() or
+            self.can_access('schema_access', datasource.schema_perm)
         )
 
-    def datasource_access(self, datasource, user=None):
+    def datasource_access(self, datasource):
         return (
-            self.schema_access(datasource, user=user) or
-            self.can_access('datasource_access', datasource.perm, user=user)
+            self.schema_access(datasource) or
+            self.can_access('datasource_access', datasource.perm)
         )
 
     def get_datasource_access_error_msg(self, datasource):
@@ -430,8 +429,8 @@ class SupersetSecurityManager(SecurityManager):
                 ),
             )
 
-    def assert_datasource_permission(self, datasource, user=None):
-        if not self.datasource_access(datasource, user):
+    def assert_datasource_permission(self, datasource):
+        if not self.datasource_access(datasource):
             raise SupersetSecurityException(
                 self.get_datasource_access_error_msg(datasource),
                 self.get_datasource_access_link(datasource),
