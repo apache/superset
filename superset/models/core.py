@@ -198,7 +198,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
         # pylint: disable=no-member
-        return viz_class(self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=d)
 
     @property
     def description_markeddown(self):
