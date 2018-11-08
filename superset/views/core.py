@@ -46,7 +46,7 @@ from .base import (
     api, BaseSupersetView,
     check_ownership,
     CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
-    get_error_msg, handle_superset_exception, json_error_response, json_success,
+    get_error_msg, handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
@@ -1108,7 +1108,6 @@ class Superset(BaseSupersetView):
             'data': viz_obj.get_samples(),
         })
 
-    @handle_superset_exception
     def generate_json(
             self, datasource_type, datasource_id, form_data,
             csv=False, query=False, force=False, results=False,
@@ -1176,6 +1175,7 @@ class Superset(BaseSupersetView):
     @log_this
     @api
     @has_access_api
+    @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
     def explore_json(self, datasource_type=None, datasource_id=None):
@@ -1353,7 +1353,7 @@ class Superset(BaseSupersetView):
             standalone_mode=standalone)
 
     @api
-    @handle_superset_exception
+    @handle_api_exception
     @has_access_api
     @expose('/filter/<datasource_type>/<datasource_id>/<column>/')
     def filter(self, datasource_type, datasource_id, column):
@@ -2609,7 +2609,7 @@ class Superset(BaseSupersetView):
         return response
 
     @api
-    @handle_superset_exception
+    @handle_api_exception
     @has_access
     @expose('/fetch_datasource_metadata')
     @log_this
@@ -2800,7 +2800,7 @@ class Superset(BaseSupersetView):
         )
 
     @api
-    @handle_superset_exception
+    @handle_api_exception
     @has_access_api
     @expose('/slice_query/<slice_id>/')
     def slice_query(self, slice_id):

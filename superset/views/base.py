@@ -86,7 +86,7 @@ def api(f):
     return functools.update_wrapper(wraps, f)
 
 
-def handle_superset_exception(f):
+def handle_api_exception(f):
     """
     A decorator to catch superset exceptions. Use it after the @api decorator above
     so superset exception handler is triggered before the handler for generic exceptions.
@@ -94,15 +94,21 @@ def handle_superset_exception(f):
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
-        except SupersetSecurityException as sse:
-            logging.exception(sse)
-            return json_error_response(utils.error_msg_from_exception(sse),
-                                       status=sse.status,
-                                       link=sse.link)
-        except SupersetException as se:
-            logging.exception(se)
-            return json_error_response(utils.error_msg_from_exception(se),
-                                       status=se.status)
+        except SupersetSecurityException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       status=e.status,
+                                       stacktrace=traceback.format_exc(),
+                                       link=e.link)
+        except SupersetException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc(),
+                                       status=e.status)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc())
     return functools.update_wrapper(wraps, f)
 
 
