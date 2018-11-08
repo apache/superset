@@ -1,5 +1,5 @@
 import { t } from '@superset-ui/translation';
-import * as sections from './sections';
+import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 
 export default {
@@ -34,7 +34,7 @@ export default {
         ['adhoc_filters'],
       ],
     },
-    sections.annotations,
+    annotations,
   ],
   controlOverrides: {
     metric: {

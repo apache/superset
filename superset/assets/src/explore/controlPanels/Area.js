@@ -1,11 +1,11 @@
 import { t } from '@superset-ui/translation';
-import * as sections from './sections';
+import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 
 export default {
   requiresTime: true,
   controlPanelSections: [
-    sections.NVD3TimeSeries[0],
+    NVD3TimeSeries[0],
     {
       label: t('Chart Options'),
       expanded: true,
@@ -33,8 +33,8 @@ export default {
         ['y_log_scale', null],
       ],
     },
-    sections.NVD3TimeSeries[1],
-    sections.annotations,
+    NVD3TimeSeries[1],
+    annotations,
   ],
   controlOverrides: {
     x_axis_format: {
