@@ -126,7 +126,6 @@ export default class VizTypeControl extends React.PureComponent {
               <FormControl
                 inputRef={this.setSearchRef}
                 type="text"
-                bsSize="md"
                 value={filter}
                 placeholder={t('Search')}
                 onChange={this.changeSearch}
