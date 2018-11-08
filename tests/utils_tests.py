@@ -578,50 +578,48 @@ class UtilsTestCase(unittest.TestCase):
 
     @patch('superset.utils.core.parse_human_datetime', mock_parse_human_datetime)
     def test_get_since_until(self):
-        form_data = {}
-        result = get_since_until(form_data)
+        result = get_since_until()
         expected = None, datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': ' : now'}
-        result = get_since_until(form_data)
+        result = get_since_until(' : now')
         expected = None, datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': 'yesterday : tomorrow'}
-        result = get_since_until(form_data)
+        result = get_since_until('yesterday : tomorrow')
         expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': '2018-01-01T00:00:00 : 2018-12-31T23:59:59'}
-        result = get_since_until(form_data)
+        result = get_since_until('2018-01-01T00:00:00 : 2018-12-31T23:59:59')
         expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': 'Last year'}
-        result = get_since_until(form_data)
+        result = get_since_until('Last year')
         expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': 'Last 5 months'}
-        result = get_since_until(form_data)
+        result = get_since_until('Last 5 months')
         expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'time_range': 'Next 5 months'}
-        result = get_since_until(form_data)
+        result = get_since_until('Next 5 months')
         expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'since': '5 days'}
-        result = get_since_until(form_data)
+        result = get_since_until(since='5 days')
         expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
-        form_data = {'since': '5 days ago', 'until': 'tomorrow'}
-        result = get_since_until(form_data)
+        result = get_since_until(since='5 days ago', until='tomorrow')
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
+
+        result = get_since_until(time_range='yesterday : tomorrow', time_shift='1 day')
+        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        with self.assertRaises(ValueError):
+            get_since_until(time_range='tomorrow : yesterday')
 
     @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
