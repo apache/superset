@@ -8,13 +8,13 @@ from flask_appbuilder.security.decorators import has_access_api
 from superset import appbuilder, security_manager
 from superset.common.query_context import QueryContext
 from superset.models.core import Log
-from .base import api, BaseSupersetView, data_payload_response, handle_superset_exception
+from .base import api, BaseSupersetView, data_payload_response, handle_api_exception
 
 
 class Api(BaseSupersetView):
     @Log.log_this
     @api
-    @handle_superset_exception
+    @handle_api_exception
     @has_access_api
     @expose('/v1/query/', methods=['POST'])
     def query(self):

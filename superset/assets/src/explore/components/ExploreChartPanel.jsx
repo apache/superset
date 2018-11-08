@@ -43,6 +43,7 @@ class ExploreChartPanel extends React.PureComponent {
             height={parseInt(this.props.height, 10) - headerHeight}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
+            chartStackTrace={chart.chartStackTrace}
             chartId={chart.id}
             chartStatus={chart.chartStatus}
             datasource={this.props.datasource}

@@ -27,6 +27,7 @@ const propTypes = {
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
+  chartStackTrace: PropTypes.string,
   queryResponse: PropTypes.object,
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
@@ -90,10 +91,10 @@ class Chart extends React.PureComponent {
     });
   }
 
-  handleRenderFailure(e) {
+  handleRenderFailure(error, info) {
     const { actions, chartId } = this.props;
-    console.warn(e); // eslint-disable-line
-    actions.chartRenderingFailed(e.toString(), chartId);
+    console.warn(error); // eslint-disable-line
+    actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
   }
 
   prepareChartProps() {
@@ -153,6 +154,7 @@ class Chart extends React.PureComponent {
       width,
       height,
       chartAlert,
+      chartStackTrace,
       chartStatus,
       errorMessage,
       onDismissRefreshOverlay,
@@ -183,7 +185,7 @@ class Chart extends React.PureComponent {
           <StackTraceMessage
             message={chartAlert}
             link={queryResponse ? queryResponse.link : null}
-            stackTrace={queryResponse ? queryResponse.stacktrace : null}
+            stackTrace={chartStackTrace}
           />
         )}
 
