@@ -386,7 +386,7 @@ appbuilder.add_view(
     AlertModelView,
     'Alerts',
     label='Alerts',
-    icon='fa-exclamation-triangle',
+    icon='fa-exclamation-circle',
     category='',
     category_label='',
     category_icon='')
