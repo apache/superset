@@ -50,8 +50,11 @@ export default class ColorSchemeControl extends React.PureComponent {
     const schemeLookup = isFunction(schemes) ? schemes() : schemes;
     const currentScheme = schemeLookup[key.value || defaultProps.value];
 
+    // For categorical scheme, display all the colors
+    // For sequential scheme, show 10 or interpolate to 10.
+    // Sequential schemes usually have at most 10 colors.
     const colors = isLinear
-      ? currentScheme.getColors(9)
+      ? currentScheme.getColors(10)
       : currentScheme.colors;
 
     return (
