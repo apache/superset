@@ -6,13 +6,13 @@ import { Alert, Collapse } from 'react-bootstrap';
 const propTypes = {
   message: PropTypes.node.isRequired,
   link: PropTypes.string,
-  stacktrace: PropTypes.string,
+  stackTrace: PropTypes.string,
   showStackTrace: PropTypes.bool,
 };
 const defaultProps = {
   showStackTrace: false,
   link: null,
-  stacktrace: null,
+  stackTrace: null,
 };
 
 class StackTraceMessage extends React.PureComponent {
@@ -26,7 +26,7 @@ class StackTraceMessage extends React.PureComponent {
 
   render() {
     return (
-      <div className={`stack-trace-container${this.props.stacktrace ? ' has-trace' : ''}`}>
+      <div className={`stack-trace-container${this.props.stackTrace ? ' has-trace' : ''}`}>
         <Alert
           bsStyle="warning"
           onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
@@ -42,10 +42,10 @@ class StackTraceMessage extends React.PureComponent {
           </a>
        }
         </Alert>
-        {this.props.stacktrace &&
+        {this.props.stackTrace &&
           <Collapse in={this.state.showStackTrace}>
             <pre>
-              {this.props.stacktrace}
+              {this.props.stackTrace}
             </pre>
           </Collapse>
         }

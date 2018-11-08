@@ -6,7 +6,7 @@ import StackTraceMessage from './StackTraceMessage';
 const propTypes = {
   children: PropTypes.node.isRequired,
   onError: PropTypes.func,
-  showMessage: PropTypes.boolean,
+  showMessage: PropTypes.bool,
 };
 const defaultProps = {
   onError: () => {},
@@ -21,7 +21,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     this.props.onError(error, info);
-    this.setState({ hasError: true, error, info });
+    this.setState({ error, info });
   }
 
   render() {
@@ -34,7 +34,7 @@ export default class ErrorBoundary extends React.Component {
         </span>);
       if (this.props.showMessage) {
         return (
-          <StackTraceMessage message={message} stacktrace={info ? info.componentStack : null} />);
+          <StackTraceMessage message={message} stackTrace={info ? info.componentStack : null} />);
       }
       return null;
     }
