@@ -1,0 +1,37 @@
+{
+  "name": "generator-superset",
+  "version": "0.0.0",
+  "description": "Scaffolder for Superset",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "author": "Superset",
+  "files": [
+    "generators"
+  ],
+  "main": "generators/index.js",
+  "keywords": [
+    "yeoman",
+    "generator",
+    "superset",
+    "yeoman-generator"
+  ],
+  "devDependencies": {
+    "yeoman-test": "^1.9.1",
+    "yeoman-assert": "^3.1.0"
+  },
+  "engines": {
+    "npm": ">= 4.0.0"
+  },
+  "dependencies": {
+    "yeoman-generator": "^3.1.1",
+    "chalk": "^2.4.1",
+    "yosay": "^2.0.2"
+  },
+  "license": "Apache-2.0"
+}
