@@ -414,7 +414,7 @@ def flower(port, address):
 @app.cli.command()
 def load_test_users():
     """
-    Loads admin, alpha, and gamma user for testing purposes
+    Loads admin, alpha, gamma and rho user for testing purposes
 
     Syncs permissions for those users/roles
     """
@@ -424,7 +424,7 @@ def load_test_users():
 
 def load_test_users_run():
     """
-    Loads admin, alpha, and gamma user for testing purposes
+    Loads admin, alpha, gamma and rho user for testing purposes
 
     Syncs permissions for those users/roles
     """
