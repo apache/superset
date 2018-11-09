@@ -1,5 +1,5 @@
-import d3 from 'd3';
 import { extent } from 'd3-array';
+import { scaleThreshold } from 'd3-scale';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import { colorScalerFactory, hexToRGB } from '../../modules/colors';
 
@@ -61,7 +61,7 @@ export function getBreakPointColorScaler({
     bucketedColors.push(bucketedColors[n - 1]);
 
     const points = breakPoints.map(p => parseFloat(p));
-    scaler = d3.scale.threshold().domain(points).range(bucketedColors);
+    scaler = scaleThreshold().domain(points).range(bucketedColors);
     maskPoint = value => value > breakPoints[n] || value < breakPoints[0];
   } else {
     // interpolate colors linearly
