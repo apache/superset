@@ -194,6 +194,13 @@ TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 ENABLE_CORS = False
 CORS_OPTIONS = {}
 
+# Chrome allows up to 6 open connections per domain at a time. When there are more
+# than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
+# next available socket. PR #5039 is trying to allow domain sharding for Superset,
+# and this feature will be enabled by configuration only (by default Superset
+# doesn't allow cross-domain request).
+SUPERSET_WEBSERVER_DOMAINS = None
+
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
 ALLOWED_EXTENSIONS = set(['csv'])
