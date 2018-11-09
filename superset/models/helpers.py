@@ -196,10 +196,15 @@ class ImportMixin(object):
                     ) for child in getattr(self, c)
                 ]
                 try:
-                    dict_rep[c] = sorted(items, key=lambda k: sorted(k.items()))
+                    dict_rep[c] = sorted(
+                        items,
+                        key=lambda k: sorted(k.items())
+                    )
                 except TypeError:
-                    keygetter = lambda k: json.dumps(sorted(k.items()))
-                    dict_rep[c] = sorted(items, key=keygetter)
+                    dict_rep[c] = sorted(
+                        items,
+                        key=lambda k: json.dumps(sorted(k.items()))
+                    )
 
         return dict_rep
 
