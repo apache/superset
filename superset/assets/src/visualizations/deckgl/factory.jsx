@@ -41,6 +41,7 @@ export function createDeckGLComponent(getLayer, getPoints) {
         layers={[layer]}
         mapStyle={formData.mapbox_style}
         setControlValue={setControlValue}
+        deckGeoJSONLayers={payload.data.deckGeoJSONLayers}
       />
     );
   }

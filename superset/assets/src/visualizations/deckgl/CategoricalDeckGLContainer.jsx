@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
 
+import { GeoJsonLayer } from 'deck.gl';
 import { getScale } from '../../modules/CategoricalColorNamespace';
 import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
@@ -29,6 +30,41 @@ function getCategories(fd, data) {
   });
   return categories;
 }
+
+
+function getBgLayers(conf) {
+    const layers = [];
+    for (const key in conf) {
+        const request = new XMLHttpRequest();
+        // Open a new connection, using the GET request on the URL endpoint
+        request.open('GET', '/geo_assets/' + conf[key].path, false);
+        let data = {};
+        request.onload = function () {
+            data = JSON.parse(this.response);
+        };
+        request.send();
+
+        const layer = new GeoJsonLayer({
+            id: 'geojson-layer-' + key,
+            data,
+            pickable: true,
+            stroked: false,
+            filled: true,
+            extruded: true,
+            lineWidthScale: 20,
+            lineWidthMinPixels: 2,
+            getFillColor: conf[key].color,
+            getLineColor: conf[key].color,
+            getRadius: 100,
+            getLineWidth: 1,
+            getElevation: 30,
+        });
+        layers.push(layer);
+    }
+    return layers;
+}
+
+
 
 const propTypes = {
   formData: PropTypes.object.isRequired,
@@ -103,7 +139,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     }
 
     payload.data.features = data;
-    return [getLayer(fd, payload, onAddFilter, setTooltip)];
+    return [getLayer(fd, payload, onAddFilter, setTooltip)].concat(getBgLayers(this.props.deckGeoJSONLayers));
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };

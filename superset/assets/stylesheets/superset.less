@@ -16,6 +16,20 @@ body {
 .alert.alert-danger > .debugger {
     color: red;
 }
+.collapsing {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+  transition-timing-function: ease;
+  transition-duration: .35s;
+  transition-property: height;
+
+  &.width {
+    width: 0;
+    height: auto;
+    transition-property: width;
+  }
+}
 
 .modal-dialog {
     z-index: 1100;
@@ -480,4 +494,91 @@ tr.reactable-column-header th.reactable-header-sortable {
 }
 .align-right {
   text-align: right;
+}
+
+.navbar-brand img{
+  display: inline-block;
+  height: 40px;
+  position:relative;
+  top:-5px;
+  margin-right:10px;
+}
+.navbar-brand{
+  padding: 10px 20px;
+}
+
+.navbar-inverse .navbar-nav > .open > a,
+.navbar-inverse .navbar-nav > .open > a:focus,
+.navbar-inverse .navbar-nav > .open > a:active
+{
+    border-bottom: none;
+    margin-bottom: 0px;
+}
+
+.navbar .caret{
+  color: #FFF;
+}
+
+.navbar .caret:hover{
+  color: #FFF;
+}
+
+html, body{
+  height:100%;
+}
+
+.page-content{
+  min-height: 100%;
+}
+
+footer{
+  height: 60px;
+  background: @gray;
+  color: @gray-light;
+  padding: 20px;
+}
+
+footer a,
+footer a:hover,
+footer a:active,
+footyer a:focus{
+  color: white;
+}
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/static/assets/node_modules/material-design-icons/iconfont/MaterialIcons-Regular.eot'); /* For IE6-8 */
+  src:
+    local('Material Icons'),
+    local('MaterialIcons-Regular'),
+    url('/static/assets/node_modules/material-design-icons/iconfont/MaterialIcons-Regular.woff2') format('woff2'),
+    url('/static/assets/node_modules/material-design-icons/iconfont/MaterialIcons-Regular.woff') format('woff'),
+    url('/static/assets/node_modules/material-design-icons/iconfont/MaterialIcons-Regular.ttf') format('truetype');
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
 }

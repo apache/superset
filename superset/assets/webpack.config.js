@@ -73,6 +73,11 @@ if (isDevMode) {
 }
 
 const config = {
+    watchOptions: {
+        poll: true
+    },
+
+
   node: {
     fs: 'empty',
   },

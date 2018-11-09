@@ -44,7 +44,7 @@ export default class Legend extends React.PureComponent {
     const style = {
       position: 'absolute',
       [vertical]: '0px',
-      [horizontal]: '10px',
+      [horizontal]: '0px',
     };
 
     return (

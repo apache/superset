@@ -1,0 +1,72 @@
+div.layerSelector  {
+    display: inline-block;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    z-index: 2;
+    pointer-events: auto;
+}
+
+div.layerSelectorContainer {
+  position: absolute;
+  top: 0px;
+  pointer-events: none;
+}
+
+div.well {
+    background: #fff;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    padding: 6px 12px;
+    outline: none;
+    width: 300px;
+    margin: 0px;
+    border: 2px solid #dcdcdc;
+    border-radius: 8px;
+
+}
+button.cbutton {
+    pointer-events: auto;
+    position: absolute;
+    top: 90px;
+    right: 8px;
+    background: #fff;
+    padding: 5px;
+    border: 2px solid #dcdcdc;
+    border-radius: 8px;
+    width: 34px;
+    z-index: 3;
+}
+
+.cbutton .material-icons{
+  font-size: 20px;
+  color: black;
+}
+
+li{
+  list-style: none;
+}
+
+li span{
+  width: 20px;
+  margin-right: 10px;
+  display: inline-block;
+}
+
+ul{
+  padding-left: 10px;
+}
+
+ul input[type="checkbox"]{
+  margin-right:15px;
+  width:16px;
+  height:16px;
+}
+
+.colorBar{
+  margin-left:31px;
+  margin-top:5px;
+}
+
+.collapse{
+  overflow: hidden;
+}

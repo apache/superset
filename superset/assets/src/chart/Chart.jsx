@@ -141,8 +141,8 @@ class Chart extends React.PureComponent {
       });
   }
 
-  addFilter(col, vals, merge = true, refresh = true) {
-    this.props.addFilter(col, vals, merge, refresh);
+  addFilter(col, vals, merge = true, refresh = true, op="in") {
+    this.props.addFilter(col, vals, merge, refresh, op);
   }
 
   clearError() {

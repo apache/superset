@@ -59,9 +59,16 @@ const defaultProps = {
 class FilterBox extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      selectedValues: props.origSelectedValues,
-      hasChanged: false,
+    var origSelectedValues = {};
+      for (var filterKey in props.origSelectedValues){
+          origSelectedValues[filterKey] = props.origSelectedValues[filterKey].values;
+      }
+      console.log(origSelectedValues);
+      console.log(props.origSelectedValues);
+
+      this.state = {
+        selectedValues:origSelectedValues,
+        hasChanged: false,
     };
     this.changeFilter = this.changeFilter.bind(this);
   }

@@ -22,6 +22,7 @@ export const VIZ_TYPES = {
   line: 'line',
   line_multi: 'line_multi',
   mapbox: 'mapbox',
+  map_filter: 'map_filter',
   markup: 'markup',
   para: 'para',
   pie: 'pie',
@@ -90,6 +91,7 @@ const vizMap = {
     loadVis(import(/* webpackChunkName: "line_multi" */ './nvd3/LineMulti.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
   [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './MapBox/adaptor.jsx')),
+  [VIZ_TYPES.map_filter]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './map_filter.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
   [VIZ_TYPES.para]: () =>
     loadVis(import(/* webpackChunkName: "parallel_coordinates" */ './ParallelCoordinates/adaptor.jsx')),

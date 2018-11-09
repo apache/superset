@@ -52,31 +52,45 @@
         </header>
       {% endif %}
     {% endblock %}
+    <div class='page-content'>
+      
+      {% block body %}
 
-    {% block body %}
-      <div id="app" data-bootstrap="{{ bootstrap_data }}" >
-        <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
-      </div>
-    {% endblock %}
+        <div id="app" data-bootstrap="{{ bootstrap_data }}" >
+          <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
+        </div>
+      {% endblock %}
 
-    <!-- Modal for misc messages / alerts  -->
-    <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-            <h4 class="modal-title"></h4>
-          </div>
-          <div class="modal-body">
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      <!-- Modal for misc messages / alerts  -->
+      <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+    {% block footer %}
+        <footer>
+          <div class="img-rounded nav-fixed-bottom">
+              <div class="container-fluid">
+                  <div class='pull-right'>
+                      {{config['APP_FOOTER']|safe}}
+                  </div>
+              </div>
+          </div>
+        </footer>
+    {% endblock %}
     {% block tail_js %}
       {% if entry %}
         {% set entry_files = js_manifest(entry) %}

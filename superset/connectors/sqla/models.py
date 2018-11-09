@@ -16,6 +16,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
+import json
 
 from superset import app, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -24,6 +25,9 @@ from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import QueryResult
 from superset.utils import DTTM_ALIAS, QueryStatus
+
+from geoalchemy2.types import Geography, Geometry
+from shapely import geometry, ops
 
 config = app.config
 
@@ -631,42 +635,71 @@ class SqlaTable(Model, BaseDatasource):
                 continue
             col = flt['col']
             op = flt['op']
+            if op == "in" and col in app.config.get("active_geo_filters", []):
+                def geo_features_gen(values):
+                    for value in values:
+                        val_geo_ = app.config.get("active_geo_filters")[col][value]
+                        yield {"type": "feature", "geometry": val_geo_}
+
+                old_vals_ = flt.get('val')
+                logging.info(old_vals_)
+                new_flt_geo_values = {
+                    "features": list(geo_features_gen(old_vals_))
+                }
+
+                flt["val"] = new_flt_geo_values
+                flt["col"] = "geo"
+                col = "geo"
+                op = "geo_within"
             col_obj = cols.get(col)
             if col_obj:
                 is_list_target = op in ('in', 'not in')
-                eq = self.filter_values_handler(
-                    flt.get('val'),
-                    target_column_is_numeric=col_obj.is_num,
-                    is_list_target=is_list_target)
-                if op in ('in', 'not in'):
-                    cond = col_obj.get_sqla_col().in_(eq)
-                    if '<NULL>' in eq:
-                        cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
-                    if op == 'not in':
-                        cond = ~cond
-                    where_clause_and.append(cond)
+                logging.info(op)
+                if op in ["geo_within"]:
+                    features = flt.get('val')["features"]
+
+                    shapes = [geometry.shape(feature["geometry"]) for feature in features]
+                    total_shape = ops.cascaded_union(shapes)
+                    eq = total_shape
+                    where_clause_and.append(
+                        sa.func.ST_COVERS(
+                            sa.func.ST_GeogFromText(eq.wkt),
+                            sa.cast(cols.get("geo").get_sqla_col(), Geometry)
+                        )
+                    )
                 else:
-                    if col_obj.is_num:
-                        eq = utils.string_to_num(flt['val'])
-                    if op == '==':
-                        where_clause_and.append(col_obj.get_sqla_col() == eq)
-                    elif op == '!=':
-                        where_clause_and.append(col_obj.get_sqla_col() != eq)
-                    elif op == '>':
-                        where_clause_and.append(col_obj.get_sqla_col() > eq)
-                    elif op == '<':
-                        where_clause_and.append(col_obj.get_sqla_col() < eq)
-                    elif op == '>=':
-                        where_clause_and.append(col_obj.get_sqla_col() >= eq)
-                    elif op == '<=':
-                        where_clause_and.append(col_obj.get_sqla_col() <= eq)
-                    elif op == 'LIKE':
-                        where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == 'IS NULL':
-                        where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
-                    elif op == 'IS NOT NULL':
-                        where_clause_and.append(
-                            col_obj.get_sqla_col() != None)  # noqa
+                    eq = self.filter_values_handler(
+                        flt.get('val'),
+                        target_column_is_numeric=col_obj.is_num,
+                        is_list_target=is_list_target)
+                    if op in ('in', 'not in'):
+                        cond = col_obj.get_sqla_col.in_(eq)
+                        if '<NULL>' in eq:
+                            cond = or_(cond, col_obj.get_sqla_col == None)  # noqa
+                        if op == 'not in':
+                            cond = ~cond
+                        where_clause_and.append(cond)
+                    else:
+                        if col_obj.is_num:
+                            eq = utils.string_to_num(flt['val'])
+                        if op == '==':
+                            where_clause_and.append(col_obj.get_sqla_col() == eq)
+                        elif op == '!=':
+                            where_clause_and.append(col_obj.get_sqla_col() != eq)
+                        elif op == '>':
+                            where_clause_and.append(col_obj.get_sqla_col() > eq)
+                        elif op == '<':
+                            where_clause_and.append(col_obj.get_sqla_col() < eq)
+                        elif op == '>=':
+                            where_clause_and.append(col_obj.get_sqla_col() >= eq)
+                        elif op == '<=':
+                            where_clause_and.append(col_obj.get_sqla_col() <= eq)
+                        elif op == 'LIKE':
+                            where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                        elif op == 'IS NULL':
+                            where_clause_and.append(col_obj.get_sqla_col() == None)  # noqa
+                        elif op == 'IS NOT NULL':
+                            where_clause_and.append(col_obj.get_sqla_col() != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:

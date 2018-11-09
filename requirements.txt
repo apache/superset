@@ -75,6 +75,7 @@ rfc3986==1.1.0            # via tableschema
 s3transfer==0.1.13        # via boto3
 sasl==0.2.1               # via thrift-sasl
 simplejson==3.15.0
+shapely==1.6.4
 sqlalchemy-utils==0.32.21
 sqlalchemy==1.2.2
 sqlparse==0.2.4
@@ -85,6 +86,8 @@ thrift==0.11.0
 tornado==5.1.1            # via flower
 unicodecsv==0.14.1
 unidecode==1.0.22
+contextlib2==0.5.5
+geoalchemy2==0.5.0
 urllib3==1.22             # via requests
 vine==1.1.4               # via amqp
 webencodings==0.5.1       # via html5lib

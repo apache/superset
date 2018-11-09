@@ -1779,7 +1779,54 @@ export const visTypes = {
       },
     },
   },
-
+  map_filter: {
+    label: t('Map Filter'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['spatial', null],
+          ['row_limit', 'filter_nulls'],
+          ['adhoc_filters'],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['autozoom', null],
+        ],
+      },
+      {
+        label: t('Point Color'),
+        controlSetRows: [
+          ['color_picker', 'legend_position'],
+          ['dimension', 'color_scheme'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
+      },
+      size: {
+        validators: [],
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
+    },
+  },
   event_flow: {
     label: t('Event flow'),
     requiresTime: true,
@@ -1831,7 +1878,6 @@ export const visTypes = {
       },
     },
   },
-
   paired_ttest: {
     label: t('Time Series - Paired t-test'),
     showOnExplore: true,

@@ -2204,6 +2204,7 @@ class BaseDeckGLViz(BaseViz):
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
             'metricLabels': self.metric_labels,
+            'deckGeoJSONLayers': config.get('DECKGL_GEOJSON_LAYERS'),
         }
 
     def get_properties(self, d):
@@ -2680,6 +2681,56 @@ class PartitionViz(NVD3TimeSeriesViz):
         else:
             levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
         return self.nest_values(levels)
+
+
+class MapFilterViz(BaseDeckGLViz):
+    viz_type = 'map_filter'
+    verbose_name = _('Map Filter')
+    spatial_control_keys = ['spatial']
+    is_timeseries = False
+
+    def get_properties(self, d):
+        return {
+            'cat_color': d.get(self.dim) if self.dim else None,
+            'position': d.get('spatial'),
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
+        }
+
+    def get_data(self, df):
+        fd = self.form_data
+        self.fixed_value = None
+        self.dim = self.form_data.get('dimension')
+        data = super(MapFilterViz, self).get_data(df)
+        geo_json = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'properties': {
+                        **x['extraProps'],
+                        'cat_color': x['cat_color']
+
+                    },
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [x['position'][0], x['position'][1]],
+                    },
+                }
+                for x in data['features']
+            ],
+        }
+        return {
+            'geoJSON': geo_json,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'mapStyle': fd.get('mapbox_style'),
+            'viewportLongitude': fd.get('viewport', {}).get('longitude'),
+            'viewportLatitude': fd.get('viewport', {}).get('latitude'),
+            'viewportZoom': fd.get('viewport', {}).get('zoom'),
+            'renderWhileDragging': fd.get('render_while_dragging'),
+            'tooltip': fd.get('rich_tooltip'),
+            'color': fd.get('mapbox_color'),
+            'geoJSONBgLayers': config.get('GEOJSON_LAYERS', {}),
+        }
 
 
 viz_types = {

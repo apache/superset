@@ -30,6 +30,18 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+# Handles geo filters
+geo_filters = conf.get("GEO_FILTERS", {})
+active_filters = {}
+for filter_column, geo_config in geo_filters.items():
+    with open("geo_filters/" + geo_config["json_file"]) as f:
+        geo_json = json.loads(f.read())
+    current_filter = {}
+    for feature in geo_json["features"]:
+        current_filter[feature["properties"][geo_config["name_column"]]] = feature["geometry"]
+    active_filters[filter_column] = current_filter
+app.config["active_geo_filters"] = active_filters
+
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
