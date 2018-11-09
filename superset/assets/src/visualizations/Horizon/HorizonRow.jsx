@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import { scaleLinear } from 'd3-scale';
 
 export const DEFAULT_COLORS = [
   '#313695',
@@ -91,8 +92,8 @@ class HorizonRow extends React.PureComponent {
       }
 
       // Create y-scale
-      const [min, max] = yDomain || d3.extent(data, d => d.y);
-      const y = d3.scale.linear()
+      const [min, max] = yDomain || d3Extent(data, d => d.y);
+      const y = scaleLinear()
         .domain([0, Math.max(-min, max)])
         .range([0, height]);
 
