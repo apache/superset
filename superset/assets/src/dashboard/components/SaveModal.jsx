@@ -93,16 +93,16 @@ class SaveModal extends React.PureComponent {
         t('You must pick a name for the new dashboard'),
       );
     } else {
-      this.onSave(data, dashboardId, saveType).then(resp => {
-        if (
-          saveType === SAVE_TYPE_NEWDASHBOARD &&
-          resp &&
-          resp.json &&
-          resp.json.id
-        ) {
-          window.location = `/superset/dashboard/${resp.json.id}/`;
-        }
-      });
+      this.onSave(data, dashboardId, saveType)
+        .then(resp => resp.json())
+        .then(json => {
+          if (saveType === SAVE_TYPE_NEWDASHBOARD && json && json.id) {
+            window.location = `/superset/dashboard/${json.id}/`;
+          }
+        })
+        .catch(() =>
+          this.props.addDangerToast(t('Could not re-direct to new dashboard')),
+        );
       this.modal.close();
     }
   }
