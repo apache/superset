@@ -1,10 +1,9 @@
-import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { extent as d3Extent } from 'd3-array';
+import { extent as d3Extent, range as d3Range } from 'd3-array';
+import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import CalHeatMap from '../../../vendor/cal-heatmap/cal-heatmap';
-import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
-import { UTC } from '../../modules/dates';
+import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';import { UTC } from '../../modules/dates';
 import '../../../vendor/cal-heatmap/cal-heatmap.css';
 import './Calendar.css';
 
@@ -57,7 +56,7 @@ function Calendar(element, props) {
   const valueFormatter = d3FormatPreset(valueFormat);
   const timeFormatter = d3TimeFormatPreset(timeFormat);
 
-  const container = d3.select(element)
+  const container = d3Select(element)
     .style('height', height);
   container.selectAll('*').remove();
   const div = container.append('div');
@@ -87,7 +86,7 @@ function Calendar(element, props) {
       .get(linearColorScheme)
       .createLinearScale(extents);
 
-    const legend = d3.range(steps)
+    const legend = d3Range(steps)
       .map(i => extents[0] + (step * i));
     const legendColors = legend.map(colorScale);
 
