@@ -84,7 +84,7 @@ describe('getBreakPointColorScaler', () => {
     const features = [];
     const scaler = getBreakPointColorScaler(fd, features);
     expect(scaler({ count: -1 })).toEqual([0, 0, 0, 0]);
-    expect(scaler({ count: 11 })).toEqual([0, 0, 0, 0]);
+    expect(scaler({ count: 11 })).toEqual([255, 255, 255, 0]);
   });
 });
 
