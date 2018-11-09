@@ -132,7 +132,6 @@ export function saveDashboardRequest(data, id, saveType) {
     SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
-      parseMethod: null,
     })
       .then(response =>
         Promise.all([
