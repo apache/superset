@@ -148,7 +148,7 @@ export function saveDashboardRequest(data, id, saveType) {
             addDangerToast(
               `${t(
                 'Sorry, there was an error saving this dashboard: ',
-              )} ${error}}`,
+              )} ${error}`,
             ),
           ),
         ),
