@@ -198,12 +198,12 @@ class ImportMixin(object):
                 try:
                     dict_rep[c] = sorted(
                         items,
-                        key=lambda k: sorted(k.items())
+                        key=lambda k: sorted(k.items()),
                     )
                 except TypeError:
                     dict_rep[c] = sorted(
                         items,
-                        key=lambda k: json.dumps(sorted(k.items()))
+                        key=lambda k: json.dumps(sorted(k.items())),
                     )
 
         return dict_rep
