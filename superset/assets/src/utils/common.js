@@ -8,9 +8,6 @@ export const LUMINANCE_GREEN_WEIGHT = 0.7152;
 export const LUMINANCE_BLUE_WEIGHT = 0.0722;
 export const MILES_PER_KM = 1.60934;
 
-// Regexp for the label added to time shifted series (1 hour offset, 2 days offset, etc.)
-export const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
-
 export function kmToPixels(kilometers, latitude, zoomLevel) {
   // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
   const latitudeRad = latitude * (Math.PI / 180);
