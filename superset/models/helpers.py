@@ -197,9 +197,10 @@ class ImportMixin(object):
                 ]
                 try:
                     dict_rep[c] = sorted(items, key=lambda k: sorted(k.items()))
-                except:
-                    dict_rep[c] = sorted(items, key=lambda k: json.dumps(sorted(k.items())))
-                    
+                except TypeError:
+                    keygetter = lambda k: json.dumps(sorted(k.items()))
+                    dict_rep[c] = sorted(items, key=keygetter)
+
         return dict_rep
 
     def override(self, obj):
