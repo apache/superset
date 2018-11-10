@@ -1,20 +1,9 @@
-import d3 from 'd3';
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
-export const EARTH_CIRCUMFERENCE_KM = 40075.16;
 export const LUMINANCE_RED_WEIGHT = 0.2126;
 export const LUMINANCE_GREEN_WEIGHT = 0.7152;
 export const LUMINANCE_BLUE_WEIGHT = 0.0722;
-export const MILES_PER_KM = 1.60934;
-
-export function kmToPixels(kilometers, latitude, zoomLevel) {
-  // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
-  const latitudeRad = latitude * (Math.PI / 180);
-  // Seems like the zoomLevel is off by one
-  const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / Math.pow(2, zoomLevel + 9);
-  return d3.round(kilometers / kmPerPixel, 2);
-}
 
 export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance

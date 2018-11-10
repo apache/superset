@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
+import { format as d3Format } from 'd3-format';
 import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../../modules/utils';
 import './Table.css';
 
@@ -45,8 +46,8 @@ const propTypes = {
   ]),
 };
 
-const formatValue = d3.format('0,000');
-const formatPercent = d3.format('.3p');
+const formatValue = d3Format(',.0d');
+const formatPercent = d3Format('.3p');
 function NOOP() {}
 
 function TableVis(element, props) {
@@ -129,7 +130,7 @@ function TableVis(element, props) {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        html = d3.format(format || '0.3s')(val);
+        html = d3Format(format || '0.3s')(val);
       }
       if (key[0] === '%') {
         html = formatPercent(val);
