@@ -1632,7 +1632,7 @@ class Superset(BaseSupersetView):
         session.merge(dash)
         session.commit()
         session.close()
-        return 'SUCCESS'
+        return json_success(json.dumps({'status': 'SUCCESS'}))
 
     @staticmethod
     def _set_dash_metadata(dashboard, data):

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import d3 from 'd3';
 import Mustache from 'mustache';
+import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 
 import MetricOption from '../../components/MetricOption';
@@ -19,7 +19,7 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
     const [min, max] = bounds;
     const [minColor, maxColor] = colorBounds;
     if (min !== null && max !== null) {
-      const colorScale = d3.scale.linear()
+      const colorScale = scaleLinear()
         .domain([min, (max + min) / 2, max])
         .range([minColor, 'grey', maxColor]);
       return colorScale(value);
@@ -131,7 +131,7 @@ class TimeTable extends React.PureComponent {
           showYAxis={column.showYAxis}
           renderTooltip={({ index }) => (
             <div>
-              <strong>{d3format(column.d3Format, sparkData[index])}</strong>
+              <strong>{d3format(column.d3format, sparkData[index])}</strong>
               <div>{formatDate(entries[index].time)}</div>
             </div>
           )}
