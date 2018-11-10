@@ -3,8 +3,9 @@ import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { isEqual } from 'lodash';
 
-const TICK = 1000;  // milliseconds
+const TICK = 2000;  // milliseconds
 
 const propTypes = {
   viewport: PropTypes.object.isRequired,
@@ -23,12 +24,13 @@ const defaultProps = {
 export default class DeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
+    this.tick = this.tick.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
+    // This has to be placed after this.tick is bound to this
     this.state = {
       previousViewport: props.viewport,
       timer: setInterval(this.tick, TICK),
     };
-    this.tick = this.tick.bind(this);
-    this.onViewportChange = this.onViewportChange.bind(this);
   }
   static getDerivedStateFromProps(nextProps, prevState) {
     if (nextProps.viewport !== prevState.viewport) {
@@ -53,7 +55,9 @@ export default class DeckGLContainer extends React.Component {
   }
   tick() {
     // Limiting updating viewport controls through Redux at most 1*sec
-    if (this.state && this.state.previousViewport !== this.props.viewport) {
+    // Deep compare is needed as shallow equality doesn't work here, viewport object
+    // changes id at every change
+    if (this.state && !isEqual(this.state.previousViewport, this.props.viewport)) {
       const setCV = this.props.setControlValue;
       const vp = this.props.viewport;
       if (setCV) {
