@@ -125,12 +125,21 @@ class SupersetSecurityManager(SecurityManager):
         return self.can_access(
             'all_datasource_access', 'all_datasource_access')
 
+<<<<<<< HEAD
     def database_access(self, database):
         return (
             self.can_access(
                 'all_database_access', 'all_database_access') or
             self.can_access('database_access', database.perm)
         )
+=======
+    def all_database_access(self, user=None):
+        return self.can_access(
+            'all_database_access', 'all_database_access', user=user)
+
+    def database_access(self, database, user=None):
+        return self.can_access('database_access', database.perm, user=user)
+>>>>>>> remove unwanted file changes
 
     def schema_access(self, datasource):
         return (
