@@ -295,11 +295,6 @@ function nvd3Vis(element, props) {
           .showControls(showControls)
           .groupSpacing(0.1);
 
-        if (showBarValue) {
-          setTimeout(function () {
-            drawBarValues(svg, data, isBarStacked, yAxisFormat);
-          }, ANIMATION_TIME);
-        }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
@@ -321,14 +316,6 @@ function nvd3Vis(element, props) {
           data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
-        }
-        if (showBarValue) {
-          // Add more margin to avoid label colliding with legend.
-          const top = chart.margin().top;
-          chart.margin({ top: top + 24 });
-          setTimeout(function () {
-            drawBarValues(svg, data, isBarStacked, yAxisFormat);
-          }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
@@ -362,7 +349,6 @@ function nvd3Vis(element, props) {
             chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
           }
         }
-
         break;
 
       case 'column':
@@ -416,6 +402,14 @@ function nvd3Vis(element, props) {
 
       default:
         throw new Error('Unrecognized visualization for nvd3' + vizType);
+    }
+    // Assuming the container has padding already
+    chart.margin({ top: 0, left: 0, right: 0, bottom: 0 });
+
+    if (showBarValue) {
+      setTimeout(function () {
+        drawBarValues(svg, data, isBarStacked, yAxisFormat);
+      }, ANIMATION_TIME);
     }
 
     if (canShowBrush && onBrushEnd !== NOOP) {
@@ -589,19 +583,26 @@ function nvd3Vis(element, props) {
       const marginPad = Math.ceil(
         Math.min(maxWidth * (isExplore ? 0.01 : 0.03), MAX_MARGIN_PAD),
       );
-      const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
-      const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
-      chart.margin({ left: maxYAxisLabelWidth + marginPad });
-      if (yAxisLabel && yAxisLabel !== '') {
-        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
-      }
       // Hack to adjust margins to accommodate long axis tick labels.
       // - has to be done only after the chart has been rendered once
       // - measure the width or height of the labels
       // ---- (x axis labels are rotated 45 degrees so we use height),
       // - adjust margins based on these measures and render again
       const margins = chart.margin();
-      margins.bottom = 28;
+      if (chart.xAxis) {
+        margins.bottom = 28;
+      }
+      const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
+      margins.left = maxYAxisLabelWidth + marginPad;
+
+      if (yAxisLabel && yAxisLabel !== '') {
+        margins.left += 25;
+      }
+      if (showBarValue) {
+        // Add more margin to avoid label colliding with legend.
+        margins.top += 24;
+      }
       if (xAxisShowMinMax) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
@@ -642,7 +643,6 @@ function nvd3Vis(element, props) {
         }
         chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
-
       if (isTimeSeries && annotationData && activeAnnotationLayers.length > 0) {
         // Time series annotations add additional data
         const timeSeriesAnnotations = activeAnnotationLayers
