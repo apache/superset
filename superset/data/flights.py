@@ -12,7 +12,7 @@ from .helpers import DATA_FOLDER, TBL
 def load_flights():
     """Loading random time series data from a zip file in the repo"""
     tbl_name = 'flights'
-    with gzip.open(os.path.join(DATA_FOLDER, 'fligth_data.csv.gz')) as f:
+    with gzip.open(os.path.join(DATA_FOLDER, 'flight_data.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding='latin-1')
 
     # Loading airports info to join and get lat/long
