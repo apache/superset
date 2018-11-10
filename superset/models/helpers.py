@@ -277,6 +277,15 @@ class AuditMixinNullable(AuditMixin):
         time_str = humanize.naturaltime(datetime.now() - self.changed_on)
         return Markup(f'<span class="no-wrap">{time_str}</span>')
 
+    @property
+    def icons(self):
+        return """
+        <a href="{self.datasource_edit_url}"
+            data-toggle="tooltip"
+            title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """.format(**locals())
 
 class QueryResult(object):
 

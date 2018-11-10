@@ -1055,7 +1055,7 @@
       "type": "SelectControl",
       "freeForm": true,
       "label": "Time Granularity",
-      "default": "one day",
+      "default": "one_day",
       "choices": [
         [
           "all",

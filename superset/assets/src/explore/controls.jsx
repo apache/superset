@@ -779,7 +779,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Time Granularity'),
-    default: 'one day',
+    default: 'one_day',
     choices: [
       [null, 'all'],
       ['PT5S', '5 seconds'],
