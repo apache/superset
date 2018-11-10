@@ -186,7 +186,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'id': self.id,
             'column_formats': self.column_formats,
             'description': self.description,
-            'database': self.database.data,  # pylint: disable=no-member
+            'database': self.database.data,
             'default_endpoint': self.default_endpoint,
             'filter_select': self.filter_select_enabled,
             'name': self.name,
@@ -404,8 +404,8 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'id', 'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby', 'is_dttm', 'type',
-            'database_expression', 'python_date_format',
+            'filterable', 'groupby', 'is_dttm', 'type', 
+            'database_expression', 'python_date_format', 'backend'
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 

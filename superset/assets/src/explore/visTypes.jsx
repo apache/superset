@@ -1881,7 +1881,7 @@ export function sectionsToRender(vizType, datasourceType) {
 
   return [].concat(
     sectionsCopy.datasourceAndVizType,
-    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
+    (datasourceType === 'table' || datasourceType === 'pandas') ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
   ).filter(section => section);
 }

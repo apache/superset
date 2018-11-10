@@ -1449,6 +1449,11 @@ class Superset(BaseSupersetView):
             'DruidColumnInlineView':
                 ConnectorRegistry.sources['druid'].column_class,
         }
+
+        if 'pandas' in ConnectorRegistry.sources:
+            model = ConnectorRegistry.sources['pandas'].column_class
+            modelview_to_model[model_view] = model
+            
         model = modelview_to_model[model_view]
         col = db.session.query(model).filter_by(id=id_).first()
         checked = value == 'true'

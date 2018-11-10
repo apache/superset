@@ -77,6 +77,7 @@ Contents
     sqllab
     gallery
     druid
+    files
     misc
     faq
 

@@ -25,7 +25,6 @@ app.db
 .idea
 *.sqllite
 .vscode
-.python-version
 .tox
 dump.rdb
 

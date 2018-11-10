@@ -282,7 +282,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('modified')
     def modified(self):
-        return humanize.naturaltime(datetime.now() - self.changed_on)
+        return humanize.naturaltime(datetime.now())
 
     @property
     def icons(self):
