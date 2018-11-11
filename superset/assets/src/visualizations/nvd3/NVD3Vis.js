@@ -5,14 +5,15 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import 'nvd3/build/nv.d3.min.css';
 
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
 import {
+  cleanColorInput,
   computeBarChartWidth,
   drawBarValues,
   generateBubbleTooltipContent,
@@ -37,6 +38,8 @@ import {
   stringOrObjectWithLabelType,
 } from './PropTypes';
 import './NVD3Vis.css';
+
+const { getColor, getScale } = CategoricalColorNamespace;
 
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;
@@ -502,7 +505,7 @@ function nvd3Vis(element, props) {
       }
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(colorScheme).toFunction();
-      chart.color(d => d.color || colorFn(d[colorKey]));
+      chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
     }
 
     if (isVizTypes(['line', 'area']) && useRichTooltip) {
@@ -760,7 +763,7 @@ function nvd3Vis(element, props) {
               .select('.nv-wrap')
               .append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColor(e.name, colorScheme);
+            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
 
             const tip = tipFactory(e);
             const records = (annotationData[e.name].records || []).map((r) => {
@@ -821,7 +824,7 @@ function nvd3Vis(element, props) {
               .append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColor(e.name, colorScheme);
+            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
             const tip = tipFactory(e);
 
             const records = (annotationData[e.name].records || []).map((r) => {

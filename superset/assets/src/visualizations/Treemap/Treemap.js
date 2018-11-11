@@ -1,7 +1,7 @@
 /* eslint-disable no-shadow, no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import './Treemap.css';
 
 // Declare PropTypes for recursive data structures
@@ -68,7 +68,7 @@ function Treemap(element, props) {
   } = props;
   const div = d3.select(element);
   const formatNumber = d3.format(numberFormat);
-  const colorFn = getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
   const data = clone(rawData);
 
   function draw(data, eltWidth, eltHeight) {

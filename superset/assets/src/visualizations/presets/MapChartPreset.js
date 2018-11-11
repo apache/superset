@@ -1,4 +1,4 @@
-import Preset from '../core/models/Preset';
+import { Preset } from '@superset-ui/core';
 import CountryMapChartPlugin from '../CountryMap/CountryMapChartPlugin';
 import MapBoxChartPlugin from '../MapBox/MapBoxChartPlugin';
 import WorldMapChartPlugin from '../WorldMap/WorldMapChartPlugin';

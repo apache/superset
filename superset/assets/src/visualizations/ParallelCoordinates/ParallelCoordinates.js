@@ -1,6 +1,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../../modules/colors';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
+
 import parcoords from '../../../vendor/parallel_coordinates/d3.parcoords';
 import divgrid from '../../../vendor/parallel_coordinates/divgrid';
 import '../../../vendor/parallel_coordinates/d3.parcoords.css';
@@ -38,10 +40,12 @@ function ParallelCoordinates(element, props) {
   ttypes[series] = 'string';
   metrics.forEach((v) => { ttypes[v] = 'number'; });
 
-  const colorScaler = colorMetric
-    ? colorScalerFactory(linearColorScheme, data, d => d[colorMetric])
+  const colorScale = colorMetric
+    ? getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(d3Extent(data, d => d[colorMetric]))
     : () => 'grey';
-  const color = d => colorScaler(d[colorMetric]);
+  const color = d => colorScale(d[colorMetric]);
   const container = d3.select(element);
   container.selectAll('*').remove();
   const effHeight = showDatatable ? (height / 2) : height;
