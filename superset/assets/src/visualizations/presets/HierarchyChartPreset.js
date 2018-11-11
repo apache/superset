@@ -1,4 +1,4 @@
-import Preset from '../core/models/Preset';
+import { Preset } from '@superset-ui/core';
 import PartitionChartPlugin from '../Partition/PartitionChartPlugin';
 import SunburstChartPlugin from '../Sunburst/SunburstChartPlugin';
 import TreemapChartPlugin from '../Treemap/TreemapChartPlugin';
