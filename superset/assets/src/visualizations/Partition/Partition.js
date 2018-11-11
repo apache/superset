@@ -2,7 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { hierarchy } from 'd3-hierarchy';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import { d3TimeFormatPreset } from '../../modules/utils';
 import './Partition.css';
 
@@ -95,7 +95,7 @@ function Icicle(element, props) {
   const hasTime = ['adv_anal', 'time_series'].indexOf(chartType) >= 0;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
-  const colorFn = getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
 
   div.selectAll('*').remove();
   const tooltip = div

@@ -1,6 +1,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { colorScalerFactory } from '../../modules/colors';
+import { extent as d3Extent } from 'd3-array';
+import { format as d3Format } from 'd3-format';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import './CountryMap.css';
 
 const propTypes = {
@@ -30,11 +32,13 @@ function CountryMap(element, props) {
   } = props;
 
   const container = element;
-  const format = d3.format(numberFormat);
-  const colorScaler = colorScalerFactory(linearColorScheme, data, v => v.metric);
+  const format = d3Format(numberFormat);
+  const colorScale = getSequentialSchemeRegistry()
+    .get(linearColorScheme)
+    .createLinearScale(d3Extent(data, v => v.metric));
   const colorMap = {};
   data.forEach((d) => {
-    colorMap[d.country_id] = colorScaler(d.metric);
+    colorMap[d.country_id] = colorScale(d.metric);
   });
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
 

@@ -1,6 +1,5 @@
+import d3 from 'd3';
 import moment from 'moment';
-
-const d3 = require('d3');
 
 export function UTC(dttm) {
   return new Date(

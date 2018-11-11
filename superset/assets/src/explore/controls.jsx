@@ -40,21 +40,22 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
+
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
-import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
-import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+
+const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 

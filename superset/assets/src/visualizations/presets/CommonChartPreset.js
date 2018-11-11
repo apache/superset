@@ -1,4 +1,4 @@
-import Preset from '../core/models/Preset';
+import { Preset } from '@superset-ui/core';
 import AreaChartPlugin from '../nvd3/Area/AreaChartPlugin';
 import BarChartPlugin from '../nvd3/Bar/BarChartPlugin';
 import BigNumberChartPlugin from '../BigNumber/BigNumberChartPlugin';

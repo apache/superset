@@ -2,9 +2,7 @@ import React from 'react';
 import Loadable from 'react-loadable';
 import PropTypes from 'prop-types';
 import { createSelector } from 'reselect';
-import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
-import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
-import ChartProps from '../models/ChartProps';
+import { getChartComponentRegistry, getChartTransformPropsRegistry, ChartProps } from '@superset-ui/chart';
 
 const IDENTITY = x => x;
 

@@ -1,11 +1,10 @@
-import airbnb from '../modules/colors/colorSchemes/categorical/airbnb';
-import categoricalD3 from '../modules/colors/colorSchemes/categorical/d3';
-import google from '../modules/colors/colorSchemes/categorical/google';
-import lyft from '../modules/colors/colorSchemes/categorical/lyft';
-import sequentialCommon from '../modules/colors/colorSchemes/sequential/common';
-import sequentialD3 from '../modules/colors/colorSchemes/sequential/d3';
-import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
-import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
+import airbnb from '@superset-ui/color/esm/colorSchemes/categorical/airbnb';
+import categoricalD3 from '@superset-ui/color/esm/colorSchemes/categorical/d3';
+import google from '@superset-ui/color/esm/colorSchemes/categorical/google';
+import lyft from '@superset-ui/color/esm/colorSchemes/categorical/lyft';
+import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
+import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
 
 export default function setupColors() {
   // Register color schemes

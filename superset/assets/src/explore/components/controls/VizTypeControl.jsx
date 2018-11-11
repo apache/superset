@@ -4,8 +4,8 @@ import {
   Label, Row, Col, FormControl, Modal, OverlayTrigger,
   Tooltip } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
-import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.css';
 
