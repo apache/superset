@@ -34,7 +34,10 @@ import sandboxedEval from '../../../../modules/sandbox';
 
 const DOUBLE_CLICK_TRESHOLD = 250;  // milliseconds
 
-function getPoints(features) {
+function getPoints(features, lineType) {
+  if (lineType === 'zipcode' || lineType === 'fsa') {
+    return features.map(d => d.polygon).flat().flat();
+  }
   return features.map(d => d.polygon).flat();
 }
 
@@ -167,7 +170,7 @@ class DeckGLPolygon extends React.Component {
     } = getPlaySliderParams(timestamps, granularity);
 
     const viewport = props.formData.autozoom
-      ? fitViewport(props.viewport, getPoints(features))
+      ? fitViewport(props.viewport, getPoints(features, props.payload.form_data.line_type))
       : props.viewport;
 
     return {
