@@ -1,4 +1,4 @@
-import isDefined from '../utils/isDefined';
+import { isDefined } from '@superset-ui/core';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

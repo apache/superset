@@ -2,10 +2,10 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
+import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 
 import ColorSchemeControl from
   '../../../../src/explore/components/controls/ColorSchemeControl';
-import getCategoricalSchemeRegistry from '../../../../src/modules/colors/CategoricalSchemeRegistrySingleton';
 
 const defaultProps = {
   options: getCategoricalSchemeRegistry().keys().map(s => ([s, s])),
