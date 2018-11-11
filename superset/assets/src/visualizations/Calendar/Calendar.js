@@ -3,7 +3,7 @@ import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import CalHeatMap from '../../../vendor/cal-heatmap/cal-heatmap';
-import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';import { UTC } from '../../modules/dates';
+import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils'; import { UTC } from '../../modules/dates';
 import '../../../vendor/cal-heatmap/cal-heatmap.css';
 import './Calendar.css';
 
