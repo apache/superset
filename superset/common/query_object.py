@@ -45,3 +45,11 @@ class QueryObject:
 
     def to_dict(self):
         raise NotImplementedError()
+
+
+    def get_metric_labels(self):
+        raise NotImplementedError()
+
+
+    def cache_key(self):
+        raise NotImplementedError()
