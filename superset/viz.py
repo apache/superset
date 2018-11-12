@@ -489,7 +489,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
-        return self.get_df().to_dict(orient='records')
+        return df.to_dict(orient='records')
 
     @property
     def json_data(self):
