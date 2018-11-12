@@ -2,13 +2,15 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
 import { fitViewport } from './layers/common';
+
+const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };

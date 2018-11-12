@@ -9,7 +9,7 @@ import traceback
 from urllib import parse
 
 from flask import (
-    flash, g, Markup, redirect, render_template, request, Response, url_for,
+    abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
@@ -1028,11 +1028,11 @@ class Superset(BaseSupersetView):
         # Include the slice_form_data if request from explore or slice calls
         # or if form_data only contains slice_id
         if slice_id and (use_slice_data or contains_only_slc_id):
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slice_form_data = slc.form_data.copy()
-
-            slice_form_data.update(form_data)
-            form_data = slice_form_data
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            if slc:
+                slice_form_data = slc.form_data.copy()
+                slice_form_data.update(form_data)
+                form_data = slice_form_data
 
         update_time_range(form_data)
 
@@ -1068,6 +1068,8 @@ class Superset(BaseSupersetView):
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        if not slc:
+            abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
             parse.quote(json.dumps(form_data)),
         )
@@ -2099,7 +2101,9 @@ class Superset(BaseSupersetView):
         else:
             qry = qry.filter_by(slug=dashboard_id)
 
-        dash = qry.one()
+        dash = qry.one_or_none()
+        if not dash:
+            abort(404)
         datasources = set()
         for slc in dash.slices:
             datasource = slc.datasource

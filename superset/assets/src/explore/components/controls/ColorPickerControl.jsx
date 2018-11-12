@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
+import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import ControlHeader from '../ControlHeader';
-import getCategoricalSchemeRegistry from '../../../modules/colors/CategoricalSchemeRegistrySingleton';
 
 const propTypes = {
   onChange: PropTypes.func,
