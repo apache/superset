@@ -488,9 +488,7 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
-    def get_data(self, df=None):
-        if not df:
-            df = self.get_df()
+    def get_data(self, df):
         return df.to_dict(orient='records')
 
     @property
