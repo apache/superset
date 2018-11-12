@@ -1193,8 +1193,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             # table is not partitioned
             return False
         for c in columns:
-            if str(c.name) == str(col_name):
-                return qry.where(c == str(value))
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
