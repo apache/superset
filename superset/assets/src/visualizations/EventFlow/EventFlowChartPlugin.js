@@ -14,7 +14,7 @@ export default class EventFlowChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata,
-      loadTransformProps: () => import("./transformProps.js"),
+      loadTransformProps: () => import('./transformProps.js'),
       loadChart: () => import('./EventFlow.jsx'),
     });
   }
