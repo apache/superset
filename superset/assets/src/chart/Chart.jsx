@@ -79,7 +79,7 @@ class Chart extends React.PureComponent {
 
   handleRenderSuccess() {
     const { actions, chartStatus, chartId, vizType } = this.props;
-    if (chartStatus !== 'rendered') {
+    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
 
