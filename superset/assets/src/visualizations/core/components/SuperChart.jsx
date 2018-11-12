@@ -84,7 +84,7 @@ class SuperChart extends React.PureComponent {
 
   renderChart(loaded, props) {
     const Chart = loaded.Chart.default || loaded.Chart;
-    const transformProps = loaded.transformProps;
+    const transformProps = loaded.transformProps.default || loaded.transformProps;
     const {
       chartProps,
       preTransformProps,
