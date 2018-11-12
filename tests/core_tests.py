@@ -62,6 +62,10 @@ class CoreTests(SupersetTestCase):
             data=dict(username='admin', password='wrongPassword'))
         self.assertIn('User confirmation needed', resp)
 
+    def test_dashboard_endpoint(self):
+        resp = self.client.get('/superset/dashboard/-1/')
+        assert resp.status_code == 404
+
     def test_slice_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -73,6 +77,9 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
+
+        resp = self.client.get('/superset/slice/-1/')
+        assert resp.status_code == 404
 
     def test_cache_key(self):
         self.login(username='admin')
