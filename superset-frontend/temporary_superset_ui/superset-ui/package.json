@@ -34,10 +34,10 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.26",
+    "@data-ui/build-config": "^0.0.28",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
-    "lint-staged": "^7.3.0",
+    "lint-staged": "^8.0.4",
     "yarn": "^1.9.4"
   },
   "engines": {
