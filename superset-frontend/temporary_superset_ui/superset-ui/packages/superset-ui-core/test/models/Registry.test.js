@@ -52,6 +52,18 @@ describe('Registry', () => {
       expect(registry.has('a')).toBe(true);
       expect(registry.get('a')).toBe('testValue');
     });
+    it('does not overwrite if value is exactly the same', () => {
+      const registry = new Registry();
+      const value = { a: 1 };
+      registry.registerValue('a', value);
+      const promise1 = registry.getAsPromise('a');
+      registry.registerValue('a', value);
+      const promise2 = registry.getAsPromise('a');
+      expect(promise1).toBe(promise2);
+      registry.registerValue('a', { a: 1 });
+      const promise3 = registry.getAsPromise('a');
+      expect(promise1).not.toBe(promise3);
+    });
     it('returns the registry itself', () => {
       const registry = new Registry();
       expect(registry.registerValue('a', 'testValue')).toBe(registry);
@@ -64,6 +76,18 @@ describe('Registry', () => {
       registry.registerLoader('a', () => 'testValue');
       expect(registry.has('a')).toBe(true);
       expect(registry.get('a')).toBe('testValue');
+    });
+    it('does not overwrite if loader is exactly the same', () => {
+      const registry = new Registry();
+      const loader = () => 'testValue';
+      registry.registerLoader('a', loader);
+      const promise1 = registry.getAsPromise('a');
+      registry.registerLoader('a', loader);
+      const promise2 = registry.getAsPromise('a');
+      expect(promise1).toBe(promise2);
+      registry.registerLoader('a', () => 'testValue');
+      const promise3 = registry.getAsPromise('a');
+      expect(promise1).not.toBe(promise3);
     });
     it('returns the registry itself', () => {
       const registry = new Registry();
