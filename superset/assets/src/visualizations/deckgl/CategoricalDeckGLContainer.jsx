@@ -60,6 +60,16 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
   getInitialStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
@@ -104,16 +114,6 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       formData: props.payload.form_data,
       categories,
     };
-  }
-  onValuesChange(values) {
-    this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
-    });
-  }
-  onViewportChange(viewport) {
-    this.setState({ viewport });
   }
   getLayers(values) {
     const {
