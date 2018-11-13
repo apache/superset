@@ -8,8 +8,6 @@ import simplejson as json
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
-Metric = Dict
-
 
 class QueryObject:
     """
@@ -19,15 +17,15 @@ class QueryObject:
     def __init__(
             self,
             granularity: str,
-            groupby: List[str] = None,
-            metrics: List[Metric] = None,
-            filters: List[str] = None,
+            groupby: List[str],
+            metrics: List[Dict],
+            filters: List[str],
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
             is_timeseries: bool = False,
             row_limit: int = app.config.get('ROW_LIMIT'),
             limit: int = 0,
-            timeseries_limit_metric: Optional[Metric] = None,
+            timeseries_limit_metric: Optional[Dict] = None,
             order_desc: bool = True,
             extras: Optional[Dict] = None,
     ):
@@ -47,11 +45,6 @@ class QueryObject:
 
     def to_dict(self):
         raise NotImplementedError()
-
-
-    def get_metric_labels(self):
-        raise NotImplementedError()
-
 
     def cache_key(self, **extra):
         """

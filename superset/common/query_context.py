@@ -41,6 +41,8 @@ class QueryContext:
         
         self.custom_cache_timeout = custom_cache_timeout
 
+        self.enforce_numerical_metrics = True
+
     def get_query_result(self, query_object):
         """Returns a pandas dataframe based on the query object"""
 
@@ -89,7 +91,7 @@ class QueryContext:
 
     def df_metrics_to_num(self, df, query_object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
-        metrics = query_object.get_metric_labels()
+        metrics = [metric.label for metric in query_object.metrics]
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
