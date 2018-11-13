@@ -119,7 +119,7 @@ class QueryContext:
     def get_data(self, df):
         return df.to_dict(orient='records')
 
-    def get_payload(self, query_obj):
+    def get_single_payload(self, query_obj):
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
         df = payload.get('df')
@@ -132,9 +132,9 @@ class QueryContext:
             del payload['df']
         return payload
 
-    def get_payloads(self):
+    def get_payload(self):
         """Get all the paylaods from the arrays"""
-        return [self.get_payload(query_ojbect) for query_ojbect in self.queries]
+        return [self.get_single_payload(query_ojbect) for query_ojbect in self.queries]
 
     @property
     def cache_timeout(self):
