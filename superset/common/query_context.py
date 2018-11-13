@@ -150,7 +150,7 @@ class QueryContext:
 
     def get_df_payload(self, query_obj):
         """Handles caching around the df paylod retrieval"""
-        cache_key = query_obj.cache_key() if query_obj else None
+        cache_key = query_obj.cache_key(datasource=self.datasource.uid) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -223,7 +223,7 @@ class QueryContext:
                     cache.delete(cache_key)
         return {
             'cache_key': cache_key,
-            'cached_dttm': self._any_cached_dttm,
+            'cached_dttm': cache_value['dttm'] if cache_value not None else None
             'cache_timeout': self.cache_timeout,
             'df': df,
             'error': error_message,

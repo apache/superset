@@ -51,5 +51,21 @@ class QueryObject:
         raise NotImplementedError()
 
 
-    def cache_key(self):
-        raise NotImplementedError()
+    def cache_key(self, **extra):
+        """
+        The cache key is made out of the key/values in `query_obj`, plus any
+        other key/values in `extra`
+
+        We remove datetime bounds that are hard values, and replace them with
+        the use-provided inputs to bounds, which may be time-relative (as in
+        "5 days ago" or "now").
+        """
+        cache_dict = self.to_dict()
+        cache_dict.update(extra)
+
+        for k in ['from_dttm', 'to_dttm']:
+            del cache_dict[k]
+
+        cache_dict['time_range'] = self.form_data.get('time_range')
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        return hashlib.md5(json_data.encode('utf-8')).hexdigest()
