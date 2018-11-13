@@ -332,6 +332,9 @@ export const visTypes = {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
       },
+      metric: {
+        clearable: false,
+      },
     },
   },
 
@@ -605,6 +608,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -703,25 +714,31 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['line_column', 'line_type'],
-          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
+          ['metric'],
+          ['row_limit', null],
+          ['line_column', 'line_type'],
+          ['reverse_long_lat', 'filter_nulls'],
         ],
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['reverse_long_lat', null],
+          ['autozoom', null],
         ],
       },
       {
         label: t('Polygon Settings'),
+        expanded: true,
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
           ['extruded', null],
-          ['point_radius_scale', null],
+          ['line_width', null],
+          ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
         ],
       },
       {
@@ -734,6 +751,17 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metric: {
+        validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
+      },
+    },
   },
 
   deck_arc: {
@@ -759,9 +787,9 @@ export const visTypes = {
       {
         label: t('Arc'),
         controlSetRows: [
-          ['color_picker', 'legend_position'],
+          ['color_picker', 'target_color_picker'],
           ['dimension', 'color_scheme'],
-          ['stroke_width', null],
+          ['stroke_width', 'legend_position'],
         ],
       },
       {
@@ -1077,6 +1105,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['row_limit'],
         ],
       },
       {
@@ -1255,6 +1284,7 @@ export const visTypes = {
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
           ['show_trend_line', 'start_y_axis_at_zero'],
+          ['color_picker', null],
         ],
       },
     ],
@@ -1717,6 +1747,7 @@ export const visTypes = {
       },
       {
         label: t('Viewport'),
+        expanded: true,
         controlSetRows: [
           ['viewport_longitude', 'viewport_latitude'],
           ['viewport_zoom', null],
@@ -1748,7 +1779,54 @@ export const visTypes = {
       },
     },
   },
-
+  map_filter: {
+    label: t('Map Filter'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['spatial', null],
+          ['row_limit', 'filter_nulls'],
+          ['adhoc_filters'],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['autozoom', null],
+        ],
+      },
+      {
+        label: t('Point Color'),
+        controlSetRows: [
+          ['color_picker', 'legend_position'],
+          ['dimension', 'color_scheme'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
+      },
+      size: {
+        validators: [],
+      },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
+    },
+  },
   event_flow: {
     label: t('Event flow'),
     requiresTime: true,
@@ -1800,7 +1878,6 @@ export const visTypes = {
       },
     },
   },
-
   paired_ttest: {
     label: t('Time Series - Paired t-test'),
     showOnExplore: true,

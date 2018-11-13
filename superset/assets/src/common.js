@@ -1,28 +1,39 @@
-/* eslint-disable global-require */
+/* eslint global-require: 0, no-console: 0 */
 import $ from 'jquery';
-import { t } from './locales';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+import { SupersetClient } from '@superset-ui/core';
 
-const utils = require('./modules/utils');
+import airbnb from './modules/colorSchemes/airbnb';
+import categoricalSchemes from './modules/colorSchemes/categorical';
+import lyft from './modules/colorSchemes/lyft';
+import { getInstance } from './modules/ColorSchemeManager';
+import { toggleCheckbox } from './modules/utils';
 
 $(document).ready(function () {
   $(':checkbox[data-checkbox-api-prefix]').change(function () {
     const $this = $(this);
     const prefix = $this.data('checkbox-api-prefix');
     const id = $this.attr('id');
-    utils.toggleCheckbox(prefix, '#' + id);
+    toggleCheckbox(prefix, '#' + id);
   });
 
   // for language picker dropdown
   $('#language-picker a').click(function (ev) {
     ev.preventDefault();
 
-    const targetUrl = ev.currentTarget.href;
-    $.ajax(targetUrl)
+    SupersetClient.get({ endpoint: ev.currentTarget.href })
       .then(() => {
         location.reload();
       });
   });
 });
+
+// Register color schemes
+getInstance()
+  .registerScheme('bnbColors', airbnb.bnbColors)
+  .registerMultipleSchemes(categoricalSchemes)
+  .registerScheme('lyftColors', lyft.lyftColors)
+  .setDefaultSchemeName('bnbColors');
 
 export function appSetup() {
   // A set of hacks to allow apps to run within a FAB template
@@ -30,9 +41,17 @@ export function appSetup() {
   window.$ = $;
   window.jQuery = $;
   require('bootstrap');
-}
 
-// Error messages used in many places across applications
-export const COMMON_ERR_MESSAGES = {
-  SESSION_TIMED_OUT: t('Your session timed out, please refresh your page and try again.'),
-};
+  const csrfNode = document.querySelector('#csrf_token');
+  const csrfToken = csrfNode ? csrfNode.value : null;
+
+  SupersetClient.configure({
+    protocol: (window.location && window.location.protocol) || '',
+    host: (window.location && window.location.host) || '',
+    csrfToken,
+  })
+    .init()
+    .catch((error) => {
+      console.warn('Error initializing SupersetClient', error);
+    });
+}

@@ -5,14 +5,6 @@
     margin: 0;
 }
 
-.slider-selection {
-    background: #efefef;
-}
-
-.slider-handle {
-    background: #b3b3b3;
-}
-
 .slider.slider-horizontal {
     width: 100% !important;
 }

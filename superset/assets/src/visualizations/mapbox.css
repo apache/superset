@@ -14,3 +14,6 @@
 .mapbox .slice_container div {
     padding-top: 0px;
 }
+.map_filter .overlays{
+  pointer-events: none;
+}

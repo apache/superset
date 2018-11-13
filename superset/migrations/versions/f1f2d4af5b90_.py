@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Enable Filter Select
 
 Revision ID: f1f2d4af5b90

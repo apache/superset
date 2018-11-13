@@ -1,7 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 
 import { initialState, queries, table } from './fixtures';
 import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
@@ -22,10 +20,10 @@ describe('SqlEditor', () => {
   it('is valid', () => {
     expect(
       React.isValidElement(<SqlEditor {...mockedProps} />),
-    ).to.equal(true);
+    ).toBe(true);
   });
   it('render a SqlEditorLeftBar', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(SqlEditorLeftBar)).to.have.length(1);
+    expect(wrapper.find(SqlEditorLeftBar)).toHaveLength(1);
   });
 });

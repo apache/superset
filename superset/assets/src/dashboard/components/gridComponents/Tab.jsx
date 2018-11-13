@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
-import DeleteComponentButton from '../DeleteComponentButton';
+import DeleteComponentModal from '../DeleteComponentModal';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
 import { DASHBOARD_ROOT_DEPTH } from '../../util/constants';
@@ -178,6 +178,11 @@ export default class Tab extends React.PureComponent {
   renderTab() {
     const { isFocused } = this.state;
     const { component, parentComponent, index, depth, editMode } = this.props;
+    const deleteTabIcon = (
+      <div className="icon-button">
+        <span className="fa fa-trash" />
+      </div>
+    );
 
     return (
       <DragDroppable
@@ -201,7 +206,8 @@ export default class Tab extends React.PureComponent {
                 parentComponent.children.length <= 1
                   ? []
                   : [
-                      <DeleteComponentButton
+                      <DeleteComponentModal
+                        triggerNode={deleteTabIcon}
                         onDelete={this.handleDeleteComponent}
                       />,
                     ]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """database options for sql lab
 
 Revision ID: 41f6a59a61f2

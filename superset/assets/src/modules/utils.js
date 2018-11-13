@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import d3 from 'd3';
 import $ from 'jquery';
-
+import { SupersetClient } from '@superset-ui/core';
 import { formatDate, UTC } from './dates';
 
 const siFormatter = d3.format('.3s');
@@ -120,13 +120,15 @@ function showApiMessage(resp) {
 }
 
 export function toggleCheckbox(apiUrlPrefix, selector) {
-  const apiUrl = apiUrlPrefix + $(selector)[0].checked;
-  $.get(apiUrl).fail(function (xhr) {
-    const resp = xhr.responseJSON;
-    if (resp && resp.message) {
-      showApiMessage(resp);
-    }
-  });
+  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
+    .then(() => {})
+    .catch((response) => {
+      // @TODO utility function to read this
+      const resp = response.responseJSON;
+      if (resp && resp.message) {
+        showApiMessage(resp);
+      }
+    });
 }
 
 /**
@@ -186,16 +188,6 @@ export function formatSelectOptions(options) {
   );
 }
 
-export function slugify(string) {
-  // slugify('My Neat Label! '); returns 'my-neat-label'
-  return string
-          .toString()
-          .toLowerCase()
-          .trim()
-          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
-          .replace(/-$/, ''); // remove last floating dash
-}
-
 export function getAjaxErrorMsg(error) {
   const respJSON = error.responseJSON;
   return (respJSON && respJSON.error) ? respJSON.error :
@@ -204,31 +196,6 @@ export function getAjaxErrorMsg(error) {
 
 export function getDatasourceParameter(datasourceId, datasourceType) {
   return `${datasourceId}__${datasourceType}`;
-}
-
-export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
-  chart.useInteractiveGuideline(true);
-  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
-    const tooltipTitle = xAxisFormatter(d.value);
-    let tooltip = '';
-
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
-
-    d.series.forEach((series, i) => {
-      const yAxisFormatter = yAxisFormatters[i];
-      const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
-    });
-
-    tooltip += '</tbody></table>';
-
-    return tooltip;
-  });
 }
 
 export function initJQueryAjax() {
@@ -244,15 +211,6 @@ export function initJQueryAjax() {
       },
     });
   }
-}
-
-export function tryNumify(s) {
-  // Attempts casting to Number, returns string when failing
-  const n = Number(s);
-  if (isNaN(n)) {
-    return s;
-  }
-  return n;
 }
 
 export function getParam(name) {

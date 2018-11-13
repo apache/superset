@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """log_this_plus
 
 Revision ID: 525c854f0005

@@ -1,6 +1,7 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import { isFeatureEnabledCreator } from '../../featureFlags';
 import Dashboard from '../components/Dashboard';
 
 import {
@@ -10,16 +11,19 @@ import {
 import { runQuery } from '../../chart/chartAction';
 import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
 
-function mapStateToProps({
-  datasources,
-  sliceEntities,
-  charts,
-  dashboardInfo,
-  dashboardState,
-  dashboardLayout,
-  impressionId,
-}) {
+function mapStateToProps(state) {
+  const {
+    datasources,
+    sliceEntities,
+    charts,
+    dashboardInfo,
+    dashboardState,
+    dashboardLayout,
+    impressionId,
+  } = state;
+
   return {
+    isFeatureEnabled: isFeatureEnabledCreator(state),
     initMessages: dashboardInfo.common.flash_messages,
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,

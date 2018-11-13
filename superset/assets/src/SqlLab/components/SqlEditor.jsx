@@ -1,8 +1,6 @@
-/* global window */
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import {
   Col,
   FormGroup,
@@ -89,7 +87,7 @@ class SqlEditor extends React.PureComponent {
       height,
     });
 
-    if (this.refs.ace.clientHeight) {
+    if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }

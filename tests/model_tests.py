@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import textwrap
 
 from sqlalchemy.engine.url import make_url
 
 from superset import app, db
 from superset.models.core import Database
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 
@@ -77,7 +72,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
         table_name = 'bart_lines'
         sql = main_db.select_star(
             table_name, show_cols=False, latest_partition=False)
@@ -107,7 +102,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals(d.get('Time Column').function, '{col}')
 
     def test_single_statement(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
 
         if main_db.backend == 'mysql':
             df = main_db.get_df('SELECT 1', None)
@@ -117,7 +112,7 @@ class DatabaseModelTestCase(SupersetTestCase):
             self.assertEquals(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
-        main_db = self.get_main_database(db.session)
+        main_db = get_main_database(db.session)
 
         if main_db.backend == 'mysql':
             df = main_db.get_df('USE superset; SELECT 1', None)

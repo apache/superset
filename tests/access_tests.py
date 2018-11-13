@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
@@ -85,8 +79,6 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 
 
 class RequestAccessTests(SupersetTestCase):
-
-    requires_examples = False
 
     @classmethod
     def setUpClass(cls):
@@ -323,7 +315,7 @@ class RequestAccessTests(SupersetTestCase):
 
         session.commit()
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_approve(self, mock_send_mime):
         if app.config.get('ENABLE_ACCESS_REQUEST'):
             session = db.session

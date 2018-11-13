@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """a collection of Annotation-related models"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from flask_appbuilder import Model
 from sqlalchemy import (
     Column, DateTime, ForeignKey, Index, Integer, String, Text,
@@ -42,6 +36,7 @@ class Annotation(Model, AuditMixinNullable):
     layer = relationship(
         AnnotationLayer,
         backref='annotation')
+    json_metadata = Column(Text)
 
     __table_args__ = (
         Index('ti_dag_state', layer_id, start_dttm, end_dttm),

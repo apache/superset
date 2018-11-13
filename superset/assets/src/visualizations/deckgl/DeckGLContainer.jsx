@@ -7,7 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 const propTypes = {
   viewport: PropTypes.object.isRequired,
   layers: PropTypes.array.isRequired,
-  setControlValue: PropTypes.func.isRequired,
+  setControlValue: PropTypes.func,
   mapStyle: PropTypes.string,
   mapboxApiAccessToken: PropTypes.string.isRequired,
   onViewportChange: PropTypes.func,
@@ -15,6 +15,7 @@ const propTypes = {
 const defaultProps = {
   mapStyle: 'light',
   onViewportChange: () => {},
+  setControlValue: () => {},
 };
 
 export default class DeckGLContainer extends React.Component {

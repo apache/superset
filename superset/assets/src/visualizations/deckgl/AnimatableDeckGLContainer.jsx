@@ -8,41 +8,43 @@ const propTypes = {
   getLayers: PropTypes.func.isRequired,
   start: PropTypes.number.isRequired,
   end: PropTypes.number.isRequired,
-  step: PropTypes.number.isRequired,
+  getStep: PropTypes.func,
   values: PropTypes.array.isRequired,
   aggregation: PropTypes.bool,
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
   children: PropTypes.node,
+  onViewportChange: PropTypes.func,
+  onValuesChange: PropTypes.func,
 };
 
 const defaultProps = {
   aggregation: false,
   disabled: false,
-  step: 1,
+  onViewportChange: () => {},
+  onValuesChange: () => {},
 };
 
 export default class AnimatableDeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
-    const { getLayers, start, end, step, values, disabled, viewport, ...other } = props;
-    this.state = { values, viewport };
+    const { getLayers, start, end, getStep, values, disabled, viewport, ...other } = props;
     this.other = other;
-    this.onChange = this.onChange.bind(this);
-  }
-  componentWillReceiveProps(nextProps) {
-    this.setState({ values: nextProps.values, viewport: nextProps.viewport });
-  }
-  onChange(newValues) {
-    this.setState({
-      values: Array.isArray(newValues)
-        ? newValues
-        : [newValues, newValues + this.props.step],
-    });
   }
   render() {
-    const { start, end, step, disabled, aggregation, children, getLayers } = this.props;
-    const { values, viewport } = this.state;
+    const {
+      start,
+      end,
+      getStep,
+      disabled,
+      aggregation,
+      children,
+      getLayers,
+      values,
+      viewport,
+      onViewportChange,
+      onValuesChange,
+    } = this.props;
     const layers = getLayers(values);
     return (
       <div>
@@ -50,16 +52,16 @@ export default class AnimatableDeckGLContainer extends React.Component {
           {...this.other}
           viewport={viewport}
           layers={layers}
-          onViewportChange={newViewport => this.setState({ viewport: newViewport })}
+          onViewportChange={onViewportChange}
         />
         {!disabled &&
         <PlaySlider
           start={start}
           end={end}
-          step={step}
+          step={getStep(start)}
           values={values}
           range={!aggregation}
-          onChange={this.onChange}
+          onChange={onValuesChange}
         />
         }
         {children}

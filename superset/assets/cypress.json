@@ -1,0 +1,8 @@
+{
+  "baseUrl": "http://localhost:8081",
+  "videoUploadOnPasses": false,
+  "ignoreTestFiles": ["**/!(*.test.js)"],
+  "projectId": "fbf96q",
+  "viewportWidth": 1280,
+  "viewportHeight": 800
+}

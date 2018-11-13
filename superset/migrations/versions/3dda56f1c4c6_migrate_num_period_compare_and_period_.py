@@ -6,8 +6,6 @@ Create Date: 2018-07-05 15:19:14.609299
 
 """
 
-from __future__ import division
-
 # revision identifiers, used by Alembic.
 
 import datetime
@@ -19,7 +17,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 
 from superset import db
-from superset.utils import parse_human_timedelta
+from superset.utils.core import parse_human_timedelta
 
 revision = '3dda56f1c4c6'
 down_revision = 'bddc498dd179'

@@ -2,6 +2,7 @@ import { combineReducers } from 'redux';
 import shortid from 'shortid';
 import messageToasts from '../messageToasts/reducers';
 
+import getInitialState from './getInitialState';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import {
@@ -12,6 +13,7 @@ import {
   getFromArr,
   addToArr,
 } from '../reduxUtils';
+import featureFlags from '../featureFlags';
 import { t } from '../locales';
 
 export const sqlLabReducer = function (state = {}, action) {
@@ -23,13 +25,14 @@ export const sqlLabReducer = function (state = {}, action) {
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
-      const progenitor = state.queryEditors.find(qe =>
-          qe.id === state.tabHistory[state.tabHistory.length - 1]);
+      const progenitor = state.queryEditors.find(
+        qe => qe.id === state.tabHistory[state.tabHistory.length - 1],
+      );
       const qe = {
         id: shortid.generate(),
         title: t('Copy of %s', progenitor.title),
-        dbId: (action.query.dbId) ? action.query.dbId : null,
-        schema: (action.query.schema) ? action.query.schema : null,
+        dbId: action.query.dbId ? action.query.dbId : null,
+        schema: action.query.schema ? action.query.schema : null,
         autorun: true,
         sql: action.query.sql,
       };
@@ -65,10 +68,11 @@ export const sqlLabReducer = function (state = {}, action) {
       let existingTable;
       state.tables.forEach((xt) => {
         if (
-            xt.dbId === at.dbId &&
-            xt.queryEditorId === at.queryEditorId &&
-            xt.schema === at.schema &&
-            xt.name === at.name) {
+          xt.dbId === at.dbId &&
+          xt.queryEditorId === at.queryEditorId &&
+          xt.schema === at.schema &&
+          xt.name === at.name
+        ) {
           existingTable = xt;
         }
       });
@@ -81,7 +85,7 @@ export const sqlLabReducer = function (state = {}, action) {
       at.id = shortid.generate();
       // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      let newState = addToArr(state, 'tables', at, true);
+      let newState = addToArr(state, 'tables', at);
       if (action.query) {
         newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });
       }
@@ -94,8 +98,7 @@ export const sqlLabReducer = function (state = {}, action) {
       const queries = Object.assign({}, state.queries);
       delete queries[action.table.dataPreviewQueryId];
       const newState = alterInArr(state, 'tables', action.table, { dataPreviewQueryId: null });
-      return Object.assign(
-       {}, newState, { queries });
+      return Object.assign({}, newState, { queries });
     },
     [actions.CHANGE_DATA_PREVIEW_ID]() {
       const queries = Object.assign({}, state.queries);
@@ -109,8 +112,11 @@ export const sqlLabReducer = function (state = {}, action) {
           newTables.push(xt);
         }
       });
-      return Object.assign(
-       {}, state, { queries, tables: newTables, activeSouthPaneTab: action.newQuery.id });
+      return Object.assign({}, state, {
+        queries,
+        tables: newTables,
+        activeSouthPaneTab: action.newQuery.id,
+      });
     },
     [actions.COLLAPSE_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: false });
@@ -123,8 +129,10 @@ export const sqlLabReducer = function (state = {}, action) {
       if (action.query.sqlEditorId) {
         const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
         if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
-          const newResults = Object.assign(
-            {}, state.queries[qe.latestQueryId].results, { data: [], query: null });
+          const newResults = Object.assign({}, state.queries[qe.latestQueryId].results, {
+            data: [],
+            query: null,
+          });
           const q = Object.assign({}, state.queries[qe.latestQueryId], { results: newResults });
           const queries = Object.assign({}, state.queries, { [q.id]: q });
           newState = Object.assign({}, state, { queries });
@@ -157,7 +165,7 @@ export const sqlLabReducer = function (state = {}, action) {
         progress: 100,
         results: action.results,
         rows,
-        state: action.query.state,
+        state: 'rendering',
         errorMessage: null,
         cached: false,
       };
@@ -200,7 +208,9 @@ export const sqlLabReducer = function (state = {}, action) {
       return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
     },
     [actions.QUERY_EDITOR_SET_TEMPLATE_PARAMS]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { templateParams: action.templateParams });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        templateParams: action.templateParams,
+      });
     },
     [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { selectedText: action.sql });
@@ -209,7 +219,9 @@ export const sqlLabReducer = function (state = {}, action) {
       return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
     },
     [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { height: action.currentHeight });
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        height: action.currentHeight,
+      });
     },
     [actions.SET_DATABASES]() {
       const databases = {};
@@ -225,8 +237,7 @@ export const sqlLabReducer = function (state = {}, action) {
       let queriesLastUpdate = state.queriesLastUpdate;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
-        if (!state.queries.hasOwnProperty(id) ||
-            state.queries[id].state !== 'stopped') {
+        if (!state.queries.hasOwnProperty(id) || state.queries[id].state !== 'stopped') {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
           }
@@ -266,6 +277,7 @@ export const sqlLabReducer = function (state = {}, action) {
 };
 
 export default combineReducers({
+  featureFlags,
   sqlLab: sqlLabReducer,
   messageToasts,
 });

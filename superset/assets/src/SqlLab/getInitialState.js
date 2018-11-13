@@ -1,4 +1,3 @@
-/* eslint no-undef: 2 */
 import shortid from 'shortid';
 import { t } from '../locales';
 import getToastsFromPyFlashMessages from '../messageToasts/utils/getToastsFromPyFlashMessages';
@@ -15,6 +14,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
   };
 
   return {
+    featureFlags: restBootstrapData.common.feature_flags,
     sqlLab: {
       alerts: [],
       queries: {},
@@ -22,7 +22,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       queryEditors: [defaultQueryEditor],
       tabHistory: [defaultQueryEditor.id],
       tables: [],
-      queriesLastUpdate: 0,
+      queriesLastUpdate: Date.now(),
       activeSouthPaneTab: 'Results',
       ...restBootstrapData,
     },
