@@ -14,7 +14,7 @@ from sqlalchemy.pool import NullPool
 from superset import app, dataframe, db, results_backend, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
+from superset.utils.core import (
     get_celery_app,
     json_iso_dttm_ser,
     now_as_float,

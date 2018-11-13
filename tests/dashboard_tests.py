@@ -12,8 +12,6 @@ from .base_tests import SupersetTestCase
 
 class DashboardTests(SupersetTestCase):
 
-    requires_examples = True
-
     def __init__(self, *args, **kwargs):
         super(DashboardTests, self).__init__(*args, **kwargs)
 

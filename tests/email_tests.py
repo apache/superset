@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for email service in Superset"""
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -7,7 +8,8 @@ import unittest
 
 import mock
 
-from superset import app, utils
+from superset import app
+from superset.utils import core as utils
 
 send_email_test = mock.Mock()
 
@@ -16,7 +18,7 @@ class EmailSmtpTest(unittest.TestCase):
     def setUp(self):
         app.config['smtp_ssl'] = False
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_send_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')
@@ -35,7 +37,7 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEApplication('attachment')
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_send_bcc_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')

@@ -1,6 +1,6 @@
 /* eslint camelcase: 0 */
-import $ from 'jquery';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
+import { SupersetClient } from '@superset-ui/core';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
@@ -14,7 +14,6 @@ import {
 } from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import { t } from '../../locales';
-
 import {
   addSuccessToast,
   addWarningToast,
@@ -57,12 +56,21 @@ export function toggleFaveStar(isStarred) {
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
-    const url = `${FAVESTAR_BASE_URL}/${id}/count`;
-    return $.get(url).done(data => {
-      if (data.count > 0) {
-        dispatch(toggleFaveStar(true));
-      }
-    });
+    return SupersetClient.get({
+      endpoint: `${FAVESTAR_BASE_URL}/${id}/count`,
+    })
+      .then(({ json }) => {
+        if (json.count > 0) dispatch(toggleFaveStar(true));
+      })
+      .catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'There was an issue fetching the favorite status of this dashboard.',
+            ),
+          ),
+        ),
+      );
   };
 }
 
@@ -70,9 +78,17 @@ export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
-    const url = `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`;
-    $.get(url);
-    dispatch(toggleFaveStar(!isStarred));
+    return SupersetClient.get({
+      endpoint: `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`,
+    })
+      .then(() => {
+        dispatch(toggleFaveStar(!isStarred));
+      })
+      .catch(() =>
+        dispatch(
+          addDangerToast(t('There was an issue favoriting this dashboard.')),
+        ),
+      );
   };
 }
 
@@ -111,28 +127,30 @@ export function saveDashboardRequestSuccess() {
 
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-  const url = `/superset/${path}/${id}/`;
+
   return dispatch =>
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        data: JSON.stringify(data),
-      },
-      success: () => {
-        dispatch(saveDashboardRequestSuccess());
-        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
-      },
-      error: error => {
-        const errorMsg = getAjaxErrorMsg(error);
+    SupersetClient.post({
+      endpoint: `/superset/${path}/${id}/`,
+      postPayload: { data },
+      parseMethod: null,
+    })
+      .then(response =>
+        Promise.all([
+          Promise.resolve(response),
+          dispatch(saveDashboardRequestSuccess()),
+          dispatch(
+            addSuccessToast(t('This dashboard was saved successfully.')),
+          ),
+        ]),
+      )
+      .catch(error =>
         dispatch(
           addDangerToast(
             `${t('Sorry, there was an error saving this dashboard: ')}
-          ${errorMsg}`,
+          ${getAjaxErrorMsg(error) || error}`,
           ),
-        );
-      },
-    });
+        ),
+      );
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {

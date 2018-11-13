@@ -1,8 +1,7 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
-
+import { ParentSize } from '@vx/responsive';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
@@ -32,46 +31,52 @@ const propTypes = {
 };
 
 class ExploreChartPanel extends React.PureComponent {
-  getHeight() {
-    const headerHeight = this.props.standalone ? 0 : 100;
-    return parseInt(this.props.height, 10) - headerHeight;
-  }
-
   renderChart() {
     const { chart } = this.props;
+    const headerHeight = this.props.standalone ? 0 : 80;
+
     return (
-      <ChartContainer
-        chartId={chart.id}
-        containerId={this.props.containerId}
-        datasource={this.props.datasource}
-        formData={this.props.form_data}
-        height={this.getHeight()}
-        slice={this.props.slice}
-        setControlValue={this.props.actions.setControlValue}
-        timeout={this.props.timeout}
-        vizType={this.props.vizType}
-        refreshOverlayVisible={this.props.refreshOverlayVisible}
-        errorMessage={this.props.errorMessage}
-        onQuery={this.props.onQuery}
-        onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
-        annotationData={chart.annotationData}
-        chartAlert={chart.chartAlert}
-        chartStatus={chart.chartStatus}
-        chartUpdateEndTime={chart.chartUpdateEndTime}
-        chartUpdateStartTime={chart.chartUpdateStartTime}
-        latestQueryFormData={chart.latestQueryFormData}
-        lastRendered={chart.lastRendered}
-        queryResponse={chart.queryResponse}
-        queryController={chart.queryController}
-        triggerQuery={chart.triggerQuery}
-      />
+      <ParentSize>
+        {({ width, height }) => (width > 0 && height > 0) && (
+          <ChartContainer
+            chartId={chart.id}
+            containerId={this.props.containerId}
+            datasource={this.props.datasource}
+            formData={this.props.form_data}
+            width={Math.floor(width)}
+            height={parseInt(this.props.height, 10) - headerHeight}
+            slice={this.props.slice}
+            setControlValue={this.props.actions.setControlValue}
+            timeout={this.props.timeout}
+            vizType={this.props.vizType}
+            refreshOverlayVisible={this.props.refreshOverlayVisible}
+            errorMessage={this.props.errorMessage}
+            onQuery={this.props.onQuery}
+            onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
+            annotationData={chart.annotationData}
+            chartAlert={chart.chartAlert}
+            chartStatus={chart.chartStatus}
+            chartUpdateEndTime={chart.chartUpdateEndTime}
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            latestQueryFormData={chart.latestQueryFormData}
+            lastRendered={chart.lastRendered}
+            queryResponse={chart.queryResponse}
+            queryController={chart.queryController}
+            triggerQuery={chart.triggerQuery}
+          />
+        )}
+      </ParentSize>
     );
   }
 
   render() {
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
-      $('body').addClass('background-transparent');
+      const standaloneClass = 'background-transparent';
+      const bodyClasses = document.body.className.split(' ');
+      if (bodyClasses.indexOf(standaloneClass) === -1) {
+        document.body.className += ` ${standaloneClass}`;
+      }
       return this.renderChart();
     }
 
@@ -87,7 +92,8 @@ class ExploreChartPanel extends React.PureComponent {
         form_data={this.props.form_data}
         timeout={this.props.timeout}
         chart={this.props.chart}
-      />);
+      />
+    );
     return (
       <div className="chart-container">
         <Panel

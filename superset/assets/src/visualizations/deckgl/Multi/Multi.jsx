@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/core';
+
 import DeckGLContainer from '../DeckGLContainer';
 import { getExploreLongUrl } from '../../../explore/exploreUtils';
 import layerGenerators from '../layers';
-import createAdaptor from '../createAdaptor';
 
 const propTypes = {
   formData: PropTypes.object.isRequired,
@@ -48,19 +48,22 @@ class DeckMulti extends React.PureComponent {
         },
       };
 
-      const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
-      $.get(url, (data) => {
-        const layer = layerGenerators[subsliceCopy.form_data.viz_type](
-          subsliceCopy.form_data,
-          data,
-        );
-        this.setState({
-          subSlicesLayers: {
-            ...this.state.subSlicesLayers,
-            [subsliceCopy.slice_id]: layer,
-          },
-        });
-      });
+      SupersetClient.get({
+          endpoint: getExploreLongUrl(subsliceCopy.form_data, 'json'),
+        })
+        .then(({ json }) => {
+          const layer = layerGenerators[subsliceCopy.form_data.viz_type](
+            subsliceCopy.form_data,
+            json,
+          );
+          this.setState({
+            subSlicesLayers: {
+              ...this.state.subSlicesLayers,
+              [subsliceCopy.slice_id]: layer,
+            },
+          });
+        })
+        .catch(() => {});
     });
   }
 
@@ -68,7 +71,7 @@ class DeckMulti extends React.PureComponent {
     const { payload, viewport, formData, setControlValue } = this.props;
     const { subSlicesLayers } = this.state;
 
-    const layers = Object.keys(subSlicesLayers).map(k => subSlicesLayers[k]);
+    const layers = Object.values(subSlicesLayers);
 
     return (
       <DeckGLContainer
@@ -84,4 +87,4 @@ class DeckMulti extends React.PureComponent {
 
 DeckMulti.propTypes = propTypes;
 
-export default createAdaptor(DeckMulti);
+export default DeckMulti;

@@ -1,9 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { OverlayTrigger, Popover } from 'react-bootstrap';
-import { Table } from 'reactable';
-
 import Mousetrap from 'mousetrap';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 
 const propTypes = {
   hotkeys: PropTypes.arrayOf(PropTypes.shape({
@@ -25,15 +23,26 @@ export default class Hotkeys extends React.PureComponent {
     });
   }
   renderPopover() {
+    const { header, hotkeys } = this.props;
+
     return (
-      <Popover id="popover-hotkeys" title={this.props.header} style={{ width: '300px' }}>
-        <Table
-          className="table table-condensed"
-          data={this.props.hotkeys.map(keyConfig => ({
-            Key: keyConfig.key,
-            Action: keyConfig.descr,
-          }))}
-        />
+      <Popover title={header} style={{ width: '300px' }}>
+        <table className="table table-condensed">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {hotkeys.map(({ key, descr }) => (
+              <tr>
+                <td><code>{key}</code></td>
+                <td>{descr}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Popover>);
   }
   render() {

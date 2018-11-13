@@ -29,12 +29,12 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, security_manager, utils
+from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import MediumText
+from superset.utils import core as utils
 from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
@@ -358,7 +358,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(MediumText())
+    position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -847,8 +847,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get('', [])
-        return sorted(
-            self.db_engine_spec.get_table_names(schema, self.inspector))
+
+        extra = self.get_extra()
+        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
+        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
+        return sorted(self.db_engine_spec.get_table_names(
+            inspector=self.inspector,
+            db_id=self.id,
+            schema=schema,
+            enable_cache=enable_cache,
+            cache_timeout=table_cache_timeout,
+            force=force))
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
@@ -859,7 +869,17 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             return views_dict.get('', [])
         views = []
         try:
-            views = self.inspector.get_view_names(schema)
+            extra = self.get_extra()
+            medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
+            table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
+            enable_cache = 'table_cache_timeout' in medatada_cache_timeout
+            views = self.db_engine_spec.get_view_names(
+                inspector=self.inspector,
+                db_id=self.id,
+                schema=schema,
+                enable_cache=enable_cache,
+                cache_timeout=table_cache_timeout,
+                force=force)
         except Exception:
             pass
         return views

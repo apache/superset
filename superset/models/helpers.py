@@ -15,7 +15,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset.utils import QueryStatus
+from superset.utils.core import QueryStatus
 
 
 def json_to_dict(json_str):

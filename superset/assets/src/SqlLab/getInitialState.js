@@ -22,7 +22,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
       queryEditors: [defaultQueryEditor],
       tabHistory: [defaultQueryEditor.id],
       tables: [],
-      queriesLastUpdate: 0,
+      queriesLastUpdate: Date.now(),
       activeSouthPaneTab: 'Results',
       ...restBootstrapData,
     },

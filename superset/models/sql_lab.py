@@ -14,7 +14,7 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils import QueryStatus, user_label
+from superset.utils.core import QueryStatus, user_label
 
 install_aliases()
 

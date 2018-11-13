@@ -7,7 +7,7 @@ from mock import patch
 import numpy
 
 from superset.exceptions import SupersetException
-from superset.utils import (
+from superset.utils.core import (
     base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
@@ -97,7 +97,7 @@ class UtilsTestCase(unittest.TestCase):
         assert isinstance(base_json_conv(Decimal('1.0')), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
 
-    @patch('superset.utils.datetime')
+    @patch('superset.utils.core.datetime')
     def test_parse_human_timedelta(self, mock_now):
         mock_now.return_value = datetime(2016, 12, 1)
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
@@ -108,7 +108,7 @@ class UtilsTestCase(unittest.TestCase):
         got_str = zlib_decompress_to_string(blob)
         self.assertEquals(json_str, got_str)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {'A': 1, 'B': 2, 'c': 'test'}
@@ -216,7 +216,7 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_empty_filters(self):
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': ''},
@@ -226,7 +226,7 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_nones(self):
         form_data = {
             'adhoc_filters': [
@@ -256,7 +256,7 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_ignores_equal_filters(self):
         form_data = {
             'extra_filters': [
@@ -301,7 +301,7 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_merges_different_val_types(self):
         form_data = {
             'extra_filters': [
@@ -402,7 +402,7 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_merge_extra_filters_adds_unequal_lists(self):
         form_data = {
             'extra_filters': [
@@ -576,7 +576,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
 
-    @patch('superset.utils.parse_human_datetime', mock_parse_human_datetime)
+    @patch('superset.utils.core.parse_human_datetime', mock_parse_human_datetime)
     def test_get_since_until(self):
         form_data = {}
         result = get_since_until(form_data)
@@ -623,7 +623,7 @@ class UtilsTestCase(unittest.TestCase):
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {
             'where': 'a = 1',
@@ -640,7 +640,7 @@ class UtilsTestCase(unittest.TestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_filters(self):
         form_data = {
             'filters': [{'col': 'a', 'op': 'in', 'val': 'someval'}],
@@ -659,7 +659,7 @@ class UtilsTestCase(unittest.TestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_having(self):
         form_data = {
             'having': 'COUNT(1) = 1',
@@ -676,7 +676,7 @@ class UtilsTestCase(unittest.TestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_having_filters(self):
         form_data = {
             'having_filters': [{'col': 'COUNT(1)', 'op': '==', 'val': 1}],
@@ -695,7 +695,7 @@ class UtilsTestCase(unittest.TestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {
             'adhoc_filters': [],
@@ -713,7 +713,7 @@ class UtilsTestCase(unittest.TestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
 
-    @patch('superset.utils.to_adhoc', mock_to_adhoc)
+    @patch('superset.utils.core.to_adhoc', mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
         form_data = {
             'adhoc_filters': [

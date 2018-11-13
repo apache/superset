@@ -61,7 +61,7 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  it('Clear metric and set custom sql adhoc metric', () => {
+  xit('Clear metric and set custom sql adhoc metric', () => {
     const metric = 'SUM(num)/COUNT(DISTINCT name)';
 
     cy.visitChartByName('Num Births Trend');

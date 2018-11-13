@@ -8,15 +8,15 @@ import json
 import logging
 import time
 
-from superset import utils
 from superset.models.core import Dashboard
+from superset.utils.core import decode_dashboards
 
 
 def import_dashboards(session, data_stream, import_time=None):
     """Imports dashboards from a stream to databases"""
     current_tt = int(time.time())
     import_time = current_tt if import_time is None else import_time
-    data = json.loads(data_stream.read(), object_hook=utils.decode_dashboards)
+    data = json.loads(data_stream.read(), object_hook=decode_dashboards)
     # TODO: import DRUID datasources
     for table in data['datasources']:
         type(table).import_obj(table, import_time=import_time)

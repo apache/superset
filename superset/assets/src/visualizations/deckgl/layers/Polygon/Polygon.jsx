@@ -4,7 +4,6 @@ import { flatten } from 'lodash';
 import { colorScalerFactory } from '../../../../modules/colors';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
-import createAdaptor from '../../createAdaptor';
 import { createDeckGLComponent } from '../../factory';
 
 function getPoints(features) {
@@ -49,4 +48,4 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   });
 }
 
-export default createAdaptor(createDeckGLComponent(getLayer, getPoints));
+export default createDeckGLComponent(getLayer, getPoints);
