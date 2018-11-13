@@ -673,9 +673,9 @@ class SqlaTable(Model, BaseDatasource):
                         target_column_is_numeric=col_obj.is_num,
                         is_list_target=is_list_target)
                     if op in ('in', 'not in'):
-                        cond = col_obj.get_sqla_col.in_(eq)
+                        cond = col_obj.get_sqla_col().in_(eq)
                         if '<NULL>' in eq:
-                            cond = or_(cond, col_obj.get_sqla_col == None)  # noqa
+                            cond = or_(cond, col_obj.get_sqla_col() == None)  # noqa
                         if op == 'not in':
                             cond = ~cond
                         where_clause_and.append(cond)
