@@ -2383,7 +2383,8 @@ def zipcode_deser(zipcodes):
     geojson = zipcodes_to_json(zipcodes)
 
     def deser(zipcode):
-        return geojson[str(zipcode)]['coordinates'][0]
+        if str(zipcode) in geojson:
+            return geojson[str(zipcode)]['coordinates'][0]
     return deser
 
 
@@ -2511,7 +2512,7 @@ class DeckPathViz(BaseDeckGLViz):
         line_type = fd.get('line_type')
         deser = self.deser_map[line_type]
         line_column = fd.get('line_column')
-        path = deser(d[line_column])
+        path = deser(d[line_column]) or []
         if fd.get('reverse_long_lat'):
             path = [(o[1], o[0]) for o in path]
         d[self.deck_viz_key] = path
