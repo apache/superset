@@ -9,7 +9,7 @@ export default class CategoricalColorNamespace {
   }
 
   getScale(schemeName) {
-    const name = schemeName || getCategoricalSchemeRegistry().getDefaultSchemeName();
+    const name = schemeName || getCategoricalSchemeRegistry().getDefaultKey();
     const scale = this.scales[name];
     if (scale) {
       return scale;
