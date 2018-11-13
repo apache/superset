@@ -24,7 +24,7 @@ class Api(BaseSupersetView):
         """
         query_context = QueryContext(**json.loads(request.form.get('query_context')))
         security_manager.assert_datasource_permission(query_context.datasource, g.user)
-        payload_json = query_context.get_data()
+        payload_json = query_context.get_payload()
         return data_payload_response(payload_json)
 
 
