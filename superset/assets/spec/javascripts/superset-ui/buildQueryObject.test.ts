@@ -1,4 +1,4 @@
-import build from 'src/query/buildQueryObject';
+import build from 'src/query/buildQueries';
 
 describe('queryObjectBuilder', () => {
   it('should build granularity for sql alchemy datasources', () => {

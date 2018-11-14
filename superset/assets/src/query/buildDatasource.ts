@@ -10,10 +10,26 @@ export interface Datasource {
   type: DatasourceType;
 }
 
-export default function buildDatasource(formData: FormData): Datasource {
-  const [id, type] = formData.datasource.split('__');
-  return {
-    id: parseInt(id, 10),
-    type: type === 'table' ? DatasourceType.Table : DatasourceType.Druid,
-  };
+// Declaration merging with the interface above. No need to redeclare id and type.
+export class Datasource {
+  constructor(key: string) {
+    const [ idStr, typeStr ] = key.split('__');
+    this.id = parseInt(idStr, 10);
+    this.type = typeStr === 'table' ? DatasourceType.Table : DatasourceType.Druid;
+  }
+
+  public toKey() {
+    return `${this.id}__${this.type}`;
+  }
+
+  public toObject() {
+    return {
+      id: this.id,
+      type: this.type,
+    };
+  }
+}
+
+export default function buildDatasource(formData: FormData) {
+  return new Datasource(formData.datasource).toObject();
 }

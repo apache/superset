@@ -1,13 +1,9 @@
-import buildDatasource, { Datasource } from './buildDatasource';
-import buildQueries, { QueryObject } from './buildQueryObject';
+import buildDatasource from './buildDatasource';
+import buildQueries from './buildQueries';
 import { FormData } from './formData';
 
-export interface QueryContext {
-  datasource: Datasource;
-  queries: QueryObject[];
-}
-
-export default function buildQueryContext(formData: FormData): QueryContext {
+// Note: let TypeScript infer the return type
+export default function buildQueryContext(formData: FormData) {
   return {
     datasource: buildDatasource(formData),
     queries: buildQueries(formData),

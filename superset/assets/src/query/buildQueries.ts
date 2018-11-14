@@ -11,7 +11,7 @@ export interface QueryObject {
 // buildQuery method for each viz type (see `wordcloud/buildQuery.ts` for an example).
 // Note the type of the formData argument passed in here is the type of the formData for a
 // specific viz, which is a subtype of the generic formData shared among all viz types.
-export default function buildQueryObject<T extends FormData>(formData: T): QueryObject[] {
+export default function buildQueries<T extends FormData>(formData: T): QueryObject[] {
   return [{
     granularity: getGranularity(formData),
   }];
