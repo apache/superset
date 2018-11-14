@@ -6,6 +6,7 @@ import { timeFormat as d3TimeFormat } from 'd3-time-format';
 import { formatDate, UTC } from './dates';
 
 const siFormatter = d3Format('.3s');
+const ERROR_STRING = 'ERROR';
 
 export function defaultNumberFormatter(n) {
   let si = siFormatter(n);
@@ -22,7 +23,13 @@ export function d3FormatPreset(format) {
     return formatDate;
   }
   if (format) {
-    return d3Format(format);
+    try {
+      return d3Format(format);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(e);
+      return () => ERROR_STRING;
+    }
   }
   return defaultNumberFormatter;
 }
@@ -45,12 +52,18 @@ export function d3format(format, number) {
   format = format || '.3s';
   // Formats a number and memoizes formatters to be reused
   if (!(format in formatters)) {
-    formatters[format] = d3Format(format);
+    try {
+      formatters[format] = d3Format(format);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(e);
+      return ERROR_STRING;
+    }
   }
   try {
     return formatters[format](number);
   } catch (e) {
-    return 'ERR';
+    return ERROR_STRING;
   }
 }
 
