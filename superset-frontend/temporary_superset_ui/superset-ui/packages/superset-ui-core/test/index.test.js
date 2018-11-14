@@ -1,4 +1,5 @@
 import {
+  ExtensibleFunction,
   Plugin,
   Preset,
   Registry,
@@ -12,6 +13,7 @@ import {
 describe('index', () => {
   it('exports modules', () => {
     [
+      ExtensibleFunction,
       Plugin,
       Preset,
       Registry,
