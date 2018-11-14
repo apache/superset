@@ -1,3 +1,4 @@
+export { default as ExtensibleFunction } from './models/ExtensibleFunction';
 export { default as Plugin } from './models/Plugin';
 export { default as Preset } from './models/Preset';
 export { default as Registry } from './models/Registry';
