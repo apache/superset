@@ -29,6 +29,7 @@ describe('utils', () => {
       expect(d3format('.3s', 1234)).toBe('1.23k');
       expect(d3format('.3s', 1237)).toBe('1.24k');
       expect(d3format('', 1237)).toBe('1.24k');
+      expect(d3format('.2efd2.ef.2.e', 1237)).toBe('ERROR');
     });
   });
 
@@ -45,8 +46,9 @@ describe('utils', () => {
     it('is a function', () => {
       expect(typeof d3TimeFormatPreset).toBe('function');
     });
-    it('returns a working time formatter', () => {
+    it('returns a working formatter', () => {
       expect(d3FormatPreset('smart_date')(0)).toBe('1970');
+      expect(d3FormatPreset('%%GIBBERISH')(0)).toBe('ERROR');
     });
   });
 
