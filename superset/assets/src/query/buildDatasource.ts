@@ -10,7 +10,7 @@ export interface Datasource {
   type: DatasourceType;
 }
 
-export default function build(formData: FormData): Datasource {
+export default function buildDatasource(formData: FormData): Datasource {
   const [id, type] = formData.datasource.split('__');
   return {
     id: parseInt(id, 10),

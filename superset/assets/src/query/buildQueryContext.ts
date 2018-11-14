@@ -1,13 +1,13 @@
-import buildDatasource, { Datasource } from './datasourceBuilder';
+import buildDatasource, { Datasource } from './buildDatasource';
+import buildQueries, { QueryObject } from './buildQueryObject';
 import { FormData } from './formData';
-import buildQueries, { QueryObject } from './queryObjectBuilder';
 
 export interface QueryContext {
   datasource: Datasource;
   queries: QueryObject[];
 }
 
-export default function build(formData: FormData): QueryContext {
+export default function buildQueryContext(formData: FormData): QueryContext {
   return {
     datasource: buildDatasource(formData),
     queries: buildQueries(formData),
