@@ -456,11 +456,13 @@ function nvd3Vis(element, props) {
       chart.xScale(d3.scale.log());
     }
 
-    let xAxisFormatter = d3FormatPreset(xAxisFormat);
+    let xAxisFormatter;
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(xAxisFormat);
       // In tooltips, always use the verbose time format
       chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
+    } else {
+      xAxisFormatter = d3FormatPreset(xAxisFormat);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
