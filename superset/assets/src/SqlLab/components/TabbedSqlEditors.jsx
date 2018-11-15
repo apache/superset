@@ -138,6 +138,7 @@ class TabbedSqlEditors extends React.PureComponent {
       sql: `${t(
         '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
       )}\n\nSELECT ...`,
+      queryLimit: this.props.defaultQueryLimit,
     };
     this.props.actions.addQueryEditor(qe);
   }
