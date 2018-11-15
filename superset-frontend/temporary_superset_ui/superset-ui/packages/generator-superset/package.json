@@ -1,5 +1,5 @@
 {
-  "name": "generator-superset",
+  "name": "@superset-ui/generator-superset",
   "version": "0.0.0",
   "description": "Scaffolder for Superset",
   "bugs": {
