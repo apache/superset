@@ -1,17 +1,19 @@
 # pylint: disable=R
 from typing import Dict, List
+from datetime import datetime, timedelta
+import pickle as pkl
+import numpy as np
+import pandas as pd
+import logging
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset import app, cache
+from superset import cache
 from .query_object import QueryObject
-import pickle as pkl
+from superset.utils.core import DTTM_ALIAS
 
-from superset.utils.core import (
-    DTTM_ALIAS,
-    JS_MAX_INTEGER,
-)
-
+config = app.config
+stats_logger = config.get('STATS_LOGGER')
 
 class QueryContext:
     """
@@ -86,7 +88,7 @@ class QueryContext:
             'query': result.query,
             'status': result.status,
             'error_message': result.error_message,
-            'df': df
+            'df': df,
         }
 
     def df_metrics_to_num(self, df, query_object):
@@ -152,7 +154,8 @@ class QueryContext:
 
     def get_df_payload(self, query_obj):
         """Handles caching around the df paylod retrieval"""
-        cache_key = query_obj.cache_key(datasource=self.datasource.uid) if query_obj else None
+        cache_key = query_obj.cache_key(
+            datasource=self.datasource.uid) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -235,4 +238,3 @@ class QueryContext:
             'stacktrace': stacktrace,
             'rowcount': len(df.index) if df is not None else 0,
         }
-
