@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/generator-superset",
-  "version": "0.0.0",
+  "version": "0.6.0",
   "description": "Scaffolder for Superset",
   "bugs": {
     "url": "https://github.com/apache-superset/superset-ui/issues"
@@ -22,15 +22,15 @@
     "yeoman-generator"
   ],
   "devDependencies": {
-    "yeoman-test": "^1.9.1",
-    "yeoman-assert": "^3.1.0"
+    "yeoman-assert": "^3.1.0",
+    "yeoman-test": "^1.9.1"
   },
   "engines": {
     "npm": ">= 4.0.0"
   },
   "dependencies": {
-    "yeoman-generator": "^3.1.1",
     "chalk": "^2.4.1",
+    "yeoman-generator": "^3.1.1",
     "yosay": "^2.0.2"
   },
   "license": "Apache-2.0"
