@@ -1,4 +1,4 @@
-# pylint: disable=R
+# pylint: disable=C,R,W
 from datetime import datetime, timedelta
 import logging
 import pickle as pkl
@@ -95,16 +95,16 @@ class QueryContext:
             'df': df,
         }
 
-    def df_metrics_to_num(self, data_frame, query_object):
+    def df_metrics_to_num(self, df, query_object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
         metrics = [metric.label for metric in query_object.metrics]
-        for col, dtype in data_frame.dtypes.items():
+        for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
-                data_frame[col] = pd.to_numeric(data_frame[col], errors='coerce')
+                df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    def handle_nulls(self, data_frame):
-        fillna = self.get_fillna_for_columns(data_frame.columns)
-        return data_frame.fillna(fillna)
+    def handle_nulls(self, df):
+        fillna = self.get_fillna_for_columns(df.columns)
+        return df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
@@ -124,8 +124,8 @@ class QueryContext:
         }
         return fillna
 
-    def get_data(self, data_frame):
-        return data_frame.to_dict(orient='records')
+    def get_data(self, df):
+        return df.to_dict(orient='records')
 
     def get_single_payload(self, query_obj):
         """Returns a payload of metadata and data"""
