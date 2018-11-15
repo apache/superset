@@ -1,10 +1,11 @@
 # pylint: disable=R
-from typing import Dict, List, Optional
-
-from superset import app
-from superset.utils import core as utils
 import hashlib
 import simplejson as json
+
+from typing import Dict, List, Optional
+from superset import app
+from superset.utils import core as utils
+
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
@@ -75,10 +76,10 @@ class QueryObject:
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
 
-        cache_dict['time_range'] = self.form_data.get('time_range')
+        cache_dict['time_range'] = self.time_range
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
-    
+
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
             obj,
