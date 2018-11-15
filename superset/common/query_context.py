@@ -103,7 +103,7 @@ class QueryContext:
                 data_frame[col] = pd.to_numeric(data_frame[col], errors='coerce')
 
     def handle_nulls(self, data_frame):
-        fillna = self.get_fillna_for_columns(df.columns)
+        fillna = self.get_fillna_for_columns(data_frame.columns)
         return data_frame.fillna(fillna)
 
     def get_fillna_for_col(self, col):
