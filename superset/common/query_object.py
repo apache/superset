@@ -35,6 +35,7 @@ class QueryObject:
         self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
         self.is_timeseries = is_timeseries
         self.time_range = time_range
+        self.time_shift = time_shift
         self.groupby = groupby
         self.metrics = metrics
         self.row_limit = row_limit
