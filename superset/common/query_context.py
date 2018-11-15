@@ -81,7 +81,7 @@ class QueryContext:
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
-                df[DTTM_ALIAS] += self.time_shift
+                df[DTTM_ALIAS] += query_object.time_shift
 
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df, query_object)
@@ -95,16 +95,16 @@ class QueryContext:
             'df': df,
         }
 
-    def df_metrics_to_num(self, df, query_object):
+    def df_metrics_to_num(self, data_frame, query_object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
         metrics = [metric.label for metric in query_object.metrics]
-        for col, dtype in df.dtypes.items():
+        for col, dtype in data_frame.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                data_frame[col] = pd.to_numeric(data_frame[col], errors='coerce')
 
-    def handle_nulls(self, df):
+    def handle_nulls(self, data_frame):
         fillna = self.get_fillna_for_columns(df.columns)
-        return df.fillna(fillna)
+        return data_frame.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
@@ -124,14 +124,15 @@ class QueryContext:
         }
         return fillna
 
-    def get_data(self, df):
-        return df.to_dict(orient='records')
+    def get_data(self, data_frame):
+        return data_frame.to_dict(orient='records')
 
     def get_single_payload(self, query_obj):
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
         df = payload.get('df')
-        if self.status != utils.QueryStatus.FAILED:
+        status = payload.get('status')
+        if status != utils.QueryStatus.FAILED:
             if df is not None and df.empty:
                 payload['error'] = 'No data'
             else:
