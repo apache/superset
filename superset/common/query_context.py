@@ -225,7 +225,7 @@ class QueryContext:
                     cache.delete(cache_key)
         return {
             'cache_key': cache_key,
-            'cached_dttm': cache_value['dttm'] if cache_value not None else None
+            'cached_dttm': cache_value['dttm'] if cache_value is not None else None,
             'cache_timeout': self.cache_timeout,
             'df': df,
             'error': error_message,
