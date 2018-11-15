@@ -1,5 +1,5 @@
 # pylint: disable=R
-from typing import Dict, List,
+from typing import Dict, List
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry

@@ -1,10 +1,10 @@
 # pylint: disable=R
-import hashlib
-import simplejson as json
-
 from typing import Dict, List, Optional
 from superset import app
 from superset.utils import core as utils
+
+import hashlib
+import simplejson as json
 
 
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
@@ -33,9 +33,9 @@ class QueryObject:
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
         self.is_timeseries = is_timeseries
-        self.groupby = groupby or []
-        self.metrics = metrics or []
-        self.filter = filters or []
+        self.time_range =  time_range
+        self.groupby = groupby
+        self.metrics = metrics
         self.row_limit = row_limit
         self.timeseries_limit = int(limit)
         self.timeseries_limit_metric = timeseries_limit_metric
