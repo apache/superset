@@ -1514,6 +1514,14 @@ export const controls = {
     'point in time'),
   },
 
+  chart_interactivity:{
+    type: 'CheckboxControl',
+    label: t('Interactivity'),
+    renderTrigger: true,
+    default: false,
+    description: t('This is used for enable/disable chart click event'),
+  },
+
   y_log_scale: {
     type: 'CheckboxControl',
     label: t('Y Log Scale'),

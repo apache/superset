@@ -180,6 +180,7 @@ export const visTypes = {
         controlSetRows: [
           ['color_scheme'],
           ['show_brush', 'show_legend'],
+          ['chart_interactivity'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation'],
         ],

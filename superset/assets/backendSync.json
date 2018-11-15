@@ -2258,6 +2258,13 @@
       "default": true,
       "description": "The rich tooltip shows a list of all series for that point in time"
     },
+    "chart_interactivity": {
+      "type": "CheckboxControl",
+      "label": "Interactivity",
+      "renderTrigger": true,
+      "default": false,
+      "description": "This is used for enable/disable chart click event"
+    },
     "y_log_scale": {
       "type": "CheckboxControl",
       "label": "Y Log Scale",
