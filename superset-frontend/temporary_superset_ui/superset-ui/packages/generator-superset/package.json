@@ -33,5 +33,8 @@
     "yeoman-generator": "^3.1.1",
     "yosay": "^2.0.2"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  }
 }
