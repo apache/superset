@@ -1,16 +1,19 @@
 # pylint: disable=R
-from typing import Dict, List
 from datetime import datetime, timedelta
+import logging
 import pickle as pkl
+from typing import Dict, List
+import traceback
+
+
 import numpy as np
 import pandas as pd
-import logging
 
 from superset import db
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset import cache
-from .query_object import QueryObject
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils.core import DTTM_ALIAS
+from .query_object import QueryObject
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -49,8 +52,8 @@ class QueryContext:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
-        # is a valid assumption for current setting. In a long term, we may or maynot support
-        # multiple queries from different data source.
+        # is a valid assumption for current setting. In a long term, we may or maynot
+        # support multiple queries from different data source.
 
         timestamp_format = None
         if self.datasource.type == 'table':
