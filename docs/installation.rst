@@ -78,9 +78,9 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
-**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also: ::
+**Ubuntu 18.04** If you have python3.6 installed alongside with python2.7, as is default on **Ubuntu 18.04 LTS**, run this command also: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
 
 otherwise build for ``cryptography`` fails.
 
@@ -105,17 +105,18 @@ attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and r
 
 Python virtualenv
 -----------------
-It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv, for
-Python 2 you need to install it. If it's packaged for your operating systems install it from there
-otherwise you can install from pip: ::
+It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv.
+But if it's not installed in your environment for some reason, you can install it
+via the package for your operating systems, otherwise you can install from pip: ::
 
     pip install virtualenv
 
 You can create and activate a virtualenv by: ::
 
-    # virtualenv is shipped in Python 3 as pyvenv
-    virtualenv venv
-    . ./venv/bin/activate
+    # virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
+    # See https://docs.python.org/3.6/library/venv.html
+    python3 -m venv venv
+    . venv/bin/activate
 
 On windows the syntax for activating it is a bit different: ::
 
