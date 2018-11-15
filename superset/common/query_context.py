@@ -2,21 +2,22 @@
 from datetime import datetime, timedelta
 import logging
 import pickle as pkl
-from typing import Dict, List
 import traceback
-
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
 
+from superset import app, cache
 from superset import db
-from superset import cache
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
 from .query_object import QueryObject
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
+
 
 class QueryContext:
     """
@@ -57,7 +58,7 @@ class QueryContext:
 
         timestamp_format = None
         if self.datasource.type == 'table':
-            dttm_col = self.datasource.get_col(query_obj.granularity)
+            dttm_col = self.datasource.get_col(query_object.granularity)
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
 
