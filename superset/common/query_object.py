@@ -44,13 +44,27 @@ class QueryObject:
         self.extras = extras
 
     def to_dict(self):
-        raise NotImplementedError()
+        query_object_dict = {
+            'granularity': self.granularity,
+            'from_dttm': self.from_dttm,
+            'to_dttm': self.to_dttm,
+            'is_timeseries': self.is_timeseries,
+            'groupby': self.groupby,
+            'row_limit': self.row_limit,
+            'filters': self.filter,
+            'timeseries_limit': self.timeseries_limit,
+            'timeseries_limit_metric': self.timeseries_limit_metric,
+            'order_desc': self.order_desc,
+            'prequeries': self.prequeries,
+            'is_prequery': self.is_prequery,
+        }
+        query_object_dict.update(self.extras)
+        return query_object_dict
 
     def cache_key(self, **extra):
         """
         The cache key is made out of the key/values in `query_obj`, plus any
         other key/values in `extra`
-
         We remove datetime bounds that are hard values, and replace them with
         the use-provided inputs to bounds, which may be time-relative (as in
         "5 days ago" or "now").
