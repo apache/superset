@@ -63,11 +63,15 @@ export function createDeckGLComponent(getLayer, getPoints) {
         payload,
         setControlValue,
       } = this.props;
+      const {
+        layer,
+        viewport,
+      } = this.state;
       return (
         <DeckGLContainer
           mapboxApiAccessToken={payload.data.mapboxApiKey}
-          viewport={this.state.viewport}
-          layers={[this.state.layer]}
+          viewport={viewport}
+          layers={[layer]}
           mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
           onViewportChange={this.onViewportChange}
