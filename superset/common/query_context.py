@@ -44,7 +44,7 @@ class QueryContext:
         self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
 
         self.force = force
-        
+
         self.custom_cache_timeout = custom_cache_timeout
 
         self.enforce_numerical_metrics = True
