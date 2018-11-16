@@ -2666,6 +2666,32 @@ class EventFlowViz(BaseViz):
         return df.to_dict(orient='records')
 
 
+class KeplerViz(BaseViz):
+
+    """A visualization to explore patterns in event sequences"""
+
+    viz_type = 'kepler'
+    verbose_name = _('Kepler')
+    is_timeseries = False
+
+    def query_obj(self):
+        d = super(KeplerViz, self).query_obj()
+        fd = self.form_data
+
+        d['columns'] = fd.get('all_columns')
+        d['groupby'] = []
+        order_by_cols = fd.get('order_by_cols') or []
+        d['orderby'] = [json.loads(t) for t in order_by_cols]
+        return d
+
+    def get_data(self, df):
+        features = df.to_dict(orient='records')
+        return {
+            'mapboxApiAccessToken': config.get('MAPBOX_API_KEY'),
+            'features': features,
+        }
+
+
 class PairedTTestViz(BaseViz):
 
     """A table displaying paired t-test values"""

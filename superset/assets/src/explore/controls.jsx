@@ -447,6 +447,14 @@ export const controls = {
     description: t('When checked, the map will zoom to your data after each query'),
   },
 
+  readonly: {
+    type: 'CheckboxControl',
+    label: t('Read Only Mode'),
+    default: false,
+    renderTrigger: true,
+    description: t('Whether to show/hide the left panel'),
+  },
+
   show_perc: {
     type: 'CheckboxControl',
     label: t('Show percentage'),
@@ -1341,6 +1349,14 @@ export const controls = {
     mapStateToProps: state => ({
       language: state.controls && state.controls.markup_type ? state.controls.markup_type.value : 'markdown',
     }),
+    default: '',
+  },
+
+  config: {
+    type: 'TextAreaControl',
+    renderTrigger: true,
+    language: 'json',
+    label: t('Config'),
     default: '',
   },
 
