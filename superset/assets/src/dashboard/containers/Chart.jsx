@@ -6,6 +6,7 @@ import {
   toggleExpandSlice,
 } from '../actions/dashboardState';
 import { refreshChart } from '../../chart/chartAction';
+import * as  saveModalActions from '../../explore/actions/saveModalActions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
@@ -45,17 +46,20 @@ function mapStateToProps(
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
+    dashboardInfo:dashboardInfo,
   };
 }
 
 function mapDispatchToProps(dispatch) {
+  const action = Object.assign({}, {
+    updateComponents,
+    toggleExpandSlice,
+    addFilter,
+    refreshChart,
+  }, saveModalActions );
+
   return bindActionCreators(
-    {
-      updateComponents,
-      toggleExpandSlice,
-      addFilter,
-      refreshChart,
-    },
+    action,
     dispatch,
   );
 }
