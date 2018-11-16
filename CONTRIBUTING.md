@@ -89,15 +89,13 @@ meets these guidelines:
 3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-4.  The pull request should work for Python 2.7 and Python 3.6.
-    ``from __future__ import`` will be required in every `.py` file soon.
-5.  If the pull request adds a Python dependency include it in `setup.py`
-    denoting any specific restrictions and run `pip-compile` to update the
-    `requirements.txt` file which ensures that the application build is deterministic.
-6.  Please rebase and resolve all conflicts before submitting.
-7.  Please ensure the necessary checks pass and that code coverage does not
+4.  If the pull request adds a Python dependency include it in `setup.py`
+    denoting any specific restrictions and in `requirements.txt` pinned to a
+    specific version which ensures that the application build is deterministic.
+5.  Please rebase and resolve all conflicts before submitting.
+6.  Please ensure the necessary checks pass and that code coverage does not
     decrease.
-8.  If you are asked to update your pull request with some changes there's
+7.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
 ## Local development
@@ -208,6 +206,7 @@ source venv/bin/activate
 
 # Install external dependencies
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
@@ -223,8 +222,8 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask web server (but see below for frontend asset compilation)
-superset runserver -d
+# Start the Flask dev web server (but see below for frontend asset compilation)
+flask run -p 8080 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
@@ -294,6 +293,21 @@ npm run dev-server -- --supersetPort=8081
 
 After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
 
+#### Feature flags
+
+Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
+```
+FEATURE_FLAGS = {
+    'SCOPED_FILTER': True,
+}
+```
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset/assets/src/featureFlags.ts`. For example,
+```
+export enum FeatureFlag {
+  SCOPED_FILTER = 'SCOPED_FILTER',
+}
+```
+
 ## Testing
 
 All tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
@@ -329,7 +343,7 @@ commands are invoked.
 
 ### JavaScript testing
 
-We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
 cd superset/assets/spec
@@ -381,10 +395,10 @@ from flask_babel import lazy_gettext as _
 then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
 At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number), and `TCT` (translating entire React Components).
+In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import {t, tn, TCT} from locales;
+import {t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection

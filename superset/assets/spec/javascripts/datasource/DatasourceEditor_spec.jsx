@@ -1,20 +1,21 @@
 import React from 'react';
 import { Tabs } from 'react-bootstrap';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
-import $ from 'jquery';
-import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
+import thunk from 'redux-thunk';
 
 import DatasourceEditor from '../../../src/datasource/DatasourceEditor';
+import Field from '../../../src/CRUD/Field';
 import mockDatasource from '../../fixtures/mockDatasource';
 
 const props = {
   datasource: mockDatasource['7__table'],
   addSuccessToast: () => {},
   addDangerToast: () => {},
-  onChange: sinon.spy(),
+  onChange: () => {},
 };
+
 const extraColumn = {
   column_name: 'new_column',
   type: 'VARCHAR(10)',
@@ -26,47 +27,53 @@ const extraColumn = {
   groupby: true,
 };
 
+const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata/*';
+
 describe('DatasourceEditor', () => {
-  const mockStore = configureStore([]);
+  const mockStore = configureStore([thunk]);
   const store = mockStore({});
+  fetchMock.get(DATASOURCE_ENDPOINT, []);
 
   let wrapper;
   let el;
-  let ajaxStub;
   let inst;
 
   beforeEach(() => {
-    ajaxStub = sinon.stub($, 'ajax');
     el = <DatasourceEditor {...props} />;
     wrapper = shallow(el, { context: { store } }).dive();
     inst = wrapper.instance();
   });
 
-  afterEach(() => {
-    ajaxStub.restore();
-  });
-
   it('is valid', () => {
-    expect(React.isValidElement(el)).to.equal(true);
+    expect(React.isValidElement(el)).toBe(true);
   });
 
   it('renders Tabs', () => {
-    expect(wrapper.find(Tabs)).to.have.lengthOf(1);
+    expect(wrapper.find(Tabs)).toHaveLength(1);
   });
 
-  it('makes an async request', () => {
+  it('makes an async request', (done) => {
     wrapper.setState({ activeTabKey: 2 });
     const syncButton = wrapper.find('.sync-from-source');
-    expect(syncButton).to.have.lengthOf(1);
+    expect(syncButton).toHaveLength(1);
     syncButton.simulate('click');
-    expect(ajaxStub.calledOnce).to.equal(true);
+
+    setTimeout(() => {
+      expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
+      fetchMock.reset();
+      done();
+    }, 0);
   });
 
   it('merges columns', () => {
     const numCols = props.datasource.columns.length;
-    expect(inst.state.databaseColumns.length).to.equal(numCols);
+    expect(inst.state.databaseColumns).toHaveLength(numCols);
     inst.mergeColumns([extraColumn]);
-    expect(inst.state.databaseColumns.length).to.equal(numCols + 1);
+    expect(inst.state.databaseColumns).toHaveLength(numCols + 1);
   });
 
+  it('renders isSqla fields', () => {
+    expect(wrapper.state('isSqla')).toBe(true);
+    expect(wrapper.find(Field).find({ fieldKey: 'fetch_values_predicate' }).exists()).toBe(true);
+  });
 });

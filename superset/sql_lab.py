@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from datetime import datetime
 import logging
 from time import sleep
@@ -17,7 +14,7 @@ from sqlalchemy.pool import NullPool
 from superset import app, dataframe, db, results_backend, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
+from superset.utils.core import (
     get_celery_app,
     json_iso_dttm_ser,
     now_as_float,
@@ -153,10 +150,11 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    if (superset_query.is_select() and SQL_MAX_ROWS and
-            (not query.limit or query.limit > SQL_MAX_ROWS)):
-        query.limit = SQL_MAX_ROWS
-        executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
+    if superset_query.is_select():
+        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
+            query.limit = SQL_MAX_ROWS
+        if query.limit:
+            executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')

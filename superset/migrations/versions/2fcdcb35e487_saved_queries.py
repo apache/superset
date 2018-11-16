@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """saved_queries
 
 Revision ID: 2fcdcb35e487
@@ -6,11 +5,6 @@ Revises: a6c18f869a4e
 Create Date: 2017-03-29 15:04:35.734190
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from alembic import op
 import sqlalchemy as sa
 

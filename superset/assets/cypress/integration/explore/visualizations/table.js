@@ -1,4 +1,5 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
+import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
 
@@ -59,10 +60,11 @@ export default () => describe('Table chart', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
 
-    cy.wait('@getJson').then((data) => {
-      cy.verifyResponseCodes(data);
+    cy.wait('@getJson').then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
-      expect(data.response.body.data.records.length).to.eq(limit);
+      const responseBody = await readResponseBlob(xhr.response.body);
+      expect(responseBody.data.records.length).to.eq(limit);
     });
   });
 
@@ -85,10 +87,11 @@ export default () => describe('Table chart', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then((data) => {
-      cy.verifyResponseCodes(data);
+    cy.wait('@getJson').then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
-      const records = data.response.body.data.records;
+      const responseBody = await readResponseBlob(xhr.response.body);
+      const { records } = responseBody.data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });
   });

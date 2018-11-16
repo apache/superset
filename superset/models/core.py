@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
@@ -18,10 +12,8 @@ from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
-from future.standard_library import install_aliases
 import numpy
 import pandas as pd
-import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -36,14 +28,16 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, security_manager, utils
+from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import MediumText
+from superset.utils import (
+    cache as cache_util,
+    core as utils,
+)
 from superset.viz import viz_types
-install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
@@ -204,7 +198,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
         # pylint: disable=no-member
-        return viz_class(self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=d)
 
     @property
     def description_markeddown(self):
@@ -365,7 +359,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(MediumText())
+    position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -642,7 +636,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -692,6 +686,26 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def backend(self):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
+
+    @property
+    def metadata_cache_timeout(self):
+        return self.get_extra().get('metadata_cache_timeout', {})
+
+    @property
+    def schema_cache_enabled(self):
+        return 'schema_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def schema_cache_timeout(self):
+        return self.metadata_cache_timeout.get('schema_cache_timeout')
+
+    @property
+    def table_cache_enabled(self):
+        return 'table_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def table_cache_timeout(self):
+        return self.metadata_cache_timeout.get('table_cache_timeout')
 
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
@@ -777,7 +791,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         engine = self.get_sqla_engine(schema=schema)
 
         def needs_conversion(df_series):
@@ -814,7 +828,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def compile_sqla_query(self, qry, schema=None):
         engine = self.get_sqla_engine(schema=schema)
 
-        sql = six.text_type(
+        sql = str(
             qry.compile(
                 engine,
                 compile_kwargs={'literal_binds': True},
@@ -847,41 +861,105 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
-    def all_table_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            tables_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'table', force=force)
-            return tables_dict.get('', [])
-        return sorted(
-            self.db_engine_spec.get_table_names(schema, self.inspector))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:table_list',
+        attribute_in_key='id')
+    def all_table_names_in_database(self, cache=False,
+                                    cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'table')
 
-    def all_view_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            views_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'view', force=force)
-            return views_dict.get('', [])
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
+        attribute_in_key='id')
+    def all_view_names_in_database(self, cache=False,
+                                   cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'view')
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_table_names_in_schema(self, schema, cache=False,
+                                  cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: table list
+        :rtype: list
+        """
+        tables = []
+        try:
+            tables = self.db_engine_spec.get_table_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
+        return tables
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_view_names_in_schema(self, schema, cache=False,
+                                 cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: view list
+        :rtype: list
+        """
         views = []
         try:
-            views = self.inspector.get_view_names(schema)
-        except Exception:
-            pass
+            views = self.db_engine_spec.get_view_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
         return views
 
-    def all_schema_names(self, force_refresh=False):
-        extra = self.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
-        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
-        return sorted(self.db_engine_spec.get_schema_names(
-            inspector=self.inspector,
-            enable_cache=enable_cache,
-            cache_timeout=schema_cache_timeout,
-            db_id=self.id,
-            force=force_refresh))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list',
+        attribute_in_key='id')
+    def all_schema_names(self, cache=False, cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: schema list
+        :rtype: list
+        """
+        return self.db_engine_spec.get_schema_names(self.inspector)
 
     @property
     def db_engine_spec(self):

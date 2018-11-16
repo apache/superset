@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
 import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
 
 const propTypes = {
   defaultLabel: PropTypes.string,

@@ -26,7 +26,7 @@ export default () => {
 
       cy.wait('@sqlLabQuery');
 
-      cy.get('.SouthPane .ReactVirtualized__Table')
+      selectResultsTab()
         .eq(0) // ensures results tab in case preview tab exists
         .then((tableNodes) => {
           const [header, bodyWrapper] = tableNodes[0].childNodes;
@@ -40,6 +40,7 @@ export default () => {
 
     it('successfully saves a query', () => {
       cy.route('savedqueryviewapi/**').as('getSavedQuery');
+      cy.route('superset/tables/**').as('getTables');
 
       const query = 'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
       const savedQueryTitle = `CYPRESS TEST QUERY ${shortid.generate()}`;
@@ -83,7 +84,7 @@ export default () => {
       cy.get('table tr:first-child a[href*="savedQueryId"').click();
 
       // will timeout without explicitly waiting here
-      cy.wait('@getSavedQuery');
+      cy.wait(['@getSavedQuery', '@getTables']);
 
       // run the saved query
       cy.get('#js-sql-toolbar button')

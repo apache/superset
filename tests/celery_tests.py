@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset Celery worker"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import subprocess
 import time
@@ -17,7 +11,7 @@ from superset import app, db
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import get_main_database
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 

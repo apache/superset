@@ -1,7 +1,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import DatasourceModal from '../../../../src/datasource/DatasourceModal';
 import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
@@ -29,11 +28,11 @@ describe('DatasourceControl', () => {
   function setup() {
     const mockStore = configureStore([]);
     const store = mockStore({});
-    return shallow(<DatasourceControl {...defaultProps} />, { context: { store } }).dive();
+    return shallow(<DatasourceControl {...defaultProps} />, { context: { store } });
   }
 
   it('renders a Modal', () => {
     const wrapper = setup();
-    expect(wrapper.find(DatasourceModal)).to.have.lengthOf(1);
+    expect(wrapper.find(DatasourceModal)).toHaveLength(1);
   });
 });

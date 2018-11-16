@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import { ControlLabel, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-import { t } from '../../locales';
 
 const propTypes = {
+  name: PropTypes.string,
   label: PropTypes.string,
   description: PropTypes.string,
   validationErrors: PropTypes.array,
@@ -22,6 +23,7 @@ const defaultProps = {
   validationErrors: [],
   renderTrigger: false,
   hovered: false,
+  name: undefined,
 };
 
 export default class ControlHeader extends React.Component {
@@ -63,6 +65,7 @@ export default class ControlHeader extends React.Component {
     return (
       <div
         className="ControlHeader"
+        data-test={`${this.props.name}-header`}
       >
         <div className="pull-left">
           <ControlLabel>

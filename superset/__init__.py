@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Package's main module!"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -19,9 +13,11 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
-from superset import config, utils
+from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
+from superset.utils.core import (
+    get_update_perms_flag, pessimistic_connection_handling, setup_cache)
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -103,11 +99,11 @@ if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
 if app.debug:
-    app.logger.setLevel(logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member
 else:
     # In production mode, add log handler to sys.stderr.
-    app.logger.addHandler(logging.StreamHandler())
-    app.logger.setLevel(logging.INFO)
+    app.logger.addHandler(logging.StreamHandler())  # pylint: disable=no-member
+    app.logger.setLevel(logging.INFO)  # pylint: disable=no-member
 logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
@@ -118,10 +114,10 @@ if conf.get('WTF_CSRF_ENABLED'):
     for ex in csrf_exempt_list:
         csrf.exempt(ex)
 
-utils.pessimistic_connection_handling(db.engine)
+pessimistic_connection_handling(db.engine)
 
-cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
-tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
+cache = setup_cache(app, conf.get('CACHE_CONFIG'))
+tables_cache = setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + '/migrations')
 
@@ -189,7 +185,7 @@ appbuilder = AppBuilder(
     base_template='superset/base.html',
     indexview=MyIndexView,
     security_manager_class=custom_sm,
-    update_perms=utils.get_update_perms_flag(),
+    update_perms=get_update_perms_flag(),
 )
 
 security_manager = appbuilder.sm

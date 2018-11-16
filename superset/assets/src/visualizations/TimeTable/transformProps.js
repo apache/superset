@@ -1,7 +1,7 @@
-export default function transformProps(basicChartInput) {
-  const { datasource, formData, payload } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { height, datasource, formData, payload } = chartProps;
   const {
-    columnCollection,
+    columnCollection = [],
     groupby,
     metrics,
     url,
@@ -40,6 +40,7 @@ export default function transformProps(basicChartInput) {
   });
 
   return {
+    height,
     data: records,
     columnConfigs: columnCollection,
     rows,

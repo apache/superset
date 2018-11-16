@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """query.start_running_time
 
 Revision ID: a6c18f869a4e
@@ -6,11 +5,6 @@ Revises: 979c03af3341
 Create Date: 2017-03-28 11:28:41.387182
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from alembic import op
 import sqlalchemy as sa
 

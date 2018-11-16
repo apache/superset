@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
 
@@ -53,32 +52,32 @@ describe('Tabs', () => {
   it('should render a DragDroppable', () => {
     // test just Tabs with no children DragDroppables
     const wrapper = setup({ component: { ...props.component, children: [] } });
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render BootstrapTabs', () => {
     const wrapper = setup();
-    expect(wrapper.find(BootstrapTabs)).to.have.length(1);
+    expect(wrapper.find(BootstrapTabs)).toHaveLength(1);
   });
 
   it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on BootstrapTabs for perf', () => {
     const wrapper = setup();
     const tabProps = wrapper.find(BootstrapTabs).props();
-    expect(tabProps.animation).to.equal(true);
-    expect(tabProps.mountOnEnter).to.equal(true);
-    expect(tabProps.unmountOnExit).to.equal(false);
+    expect(tabProps.animation).toBe(true);
+    expect(tabProps.mountOnEnter).toBe(true);
+    expect(tabProps.unmountOnExit).toBe(false);
   });
 
   it('should render a BootstrapTab for each child', () => {
     const wrapper = setup();
-    expect(wrapper.find(BootstrapTab)).to.have.length(
+    expect(wrapper.find(BootstrapTab)).toHaveLength(
       props.component.children.length,
     );
   });
 
   it('should render an extra (+) BootstrapTab in editMode', () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(BootstrapTab)).to.have.length(
+    expect(wrapper.find(BootstrapTab)).toHaveLength(
       props.component.children.length + 1,
     );
   });
@@ -86,7 +85,7 @@ describe('Tabs', () => {
   it('should render a DashboardComponent for each child', () => {
     // note: this does not test Tab content
     const wrapper = setup({ renderTabContent: false });
-    expect(wrapper.find(DashboardComponent)).to.have.length(
+    expect(wrapper.find(DashboardComponent)).toHaveLength(
       props.component.children.length,
     );
   });
@@ -99,7 +98,7 @@ describe('Tabs', () => {
       .last()
       .simulate('click');
 
-    expect(createComponent.callCount).to.equal(1);
+    expect(createComponent.callCount).toBe(1);
   });
 
   it('should call onChangeTab when a tab is clicked', () => {
@@ -110,23 +109,23 @@ describe('Tabs', () => {
       .at(1) // will not call if it is already selected
       .simulate('click');
 
-    expect(onChangeTab.callCount).to.equal(1);
+    expect(onChangeTab.callCount).toBe(1);
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
 
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
   });
 
   it('should render a DeleteComponentButton in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
 
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
@@ -134,6 +133,6 @@ describe('Tabs', () => {
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find(DeleteComponentButton).simulate('click');
 
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 });

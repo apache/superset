@@ -1,11 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import logging
 from subprocess import Popen
@@ -18,9 +12,10 @@ import werkzeug.serving
 import yaml
 
 from superset import (
-    app, dashboard_import_export_util, data, db,
-    dict_import_export_util, security_manager, utils,
+    app, data, db, security_manager,
 )
+from superset.utils import (
+    core as utils, dashboard_import_export, dict_import_export)
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -43,12 +38,17 @@ def init():
 
 
 def debug_run(app, port, use_reloader):
-    return app.run(
-        host='0.0.0.0',
-        port=int(port),
-        threaded=True,
-        debug=True,
-        use_reloader=use_reloader)
+    click.secho(
+        '[DEPRECATED] As of Flask >=1.0.0, this command is no longer '
+        'supported, please use `flask run` instead, as documented in our '
+        'CONTRIBUTING.md',
+        fg='red',
+    )
+    click.secho('[example]', fg='yellow')
+    click.secho(
+        'flask run -p 8080 --with-threads --reload --debugger',
+        fg='green',
+    )
 
 
 def console_log_run(app, port, use_reloader):
@@ -164,7 +164,7 @@ def load_examples_run(load_test_data):
     data.load_country_map_data()
 
     print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series_data()
+    data.load_multiformat_time_series()
 
     print('Loading [Paris GeoJson]')
     data.load_paris_iris_geojson()
@@ -247,7 +247,7 @@ def import_dashboards(path, recursive=False):
         logging.info('Importing dashboard from file %s', f)
         try:
             with f.open() as data_stream:
-                dashboard_import_export_util.import_dashboards(
+                dashboard_import_export.import_dashboards(
                     db.session, data_stream)
         except Exception as e:
             logging.error('Error when importing dashboard from file %s', f)
@@ -263,7 +263,7 @@ def import_dashboards(path, recursive=False):
     help='Print JSON to stdout')
 def export_dashboards(print_stdout, dashboard_file):
     """Export dashboards to JSON"""
-    data = dashboard_import_export_util.export_dashboards(db.session)
+    data = dashboard_import_export.export_dashboards(db.session)
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
@@ -302,7 +302,7 @@ def import_datasources(path, sync, recursive=False):
         logging.info('Importing datasources from file %s', f)
         try:
             with f.open() as data_stream:
-                dict_import_export_util.import_from_dict(
+                dict_import_export.import_from_dict(
                     db.session,
                     yaml.safe_load(data_stream),
                     sync=sync_array)
@@ -327,7 +327,7 @@ def import_datasources(path, sync, recursive=False):
 def export_datasources(print_stdout, datasource_file,
                        back_references, include_defaults):
     """Export datasources to YAML"""
-    data = dict_import_export_util.export_to_dict(
+    data = dict_import_export.export_to_dict(
         session=db.session,
         recursive=True,
         back_references=back_references,
@@ -346,7 +346,7 @@ def export_datasources(print_stdout, datasource_file,
     help='Include parent back references')
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
-    data = dict_import_export_util.export_schema_to_dict(
+    data = dict_import_export.export_schema_to_dict(
         back_references=back_references)
     yaml.safe_dump(data, stdout, default_flow_style=False)
 
@@ -356,12 +356,15 @@ def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
     for database in db.session.query(Database).all():
-        print('Fetching {} datasources ...'.format(database.name))
-        try:
-            database.all_table_names(force=True)
-            database.all_view_names(force=True)
-        except Exception as e:
-            print('{}'.format(str(e)))
+        if database.allow_multi_schema_metadata_fetch:
+            print('Fetching {} datasources ...'.format(database.name))
+            try:
+                database.all_table_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+                database.all_view_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+            except Exception as e:
+                print('{}'.format(str(e)))
 
 
 @app.cli.command()
@@ -422,6 +425,7 @@ def load_test_users():
 
     Syncs permissions for those users/roles
     """
+    print(Fore.GREEN + 'Loading a set of users for unit tests')
     load_test_users_run()
 
 

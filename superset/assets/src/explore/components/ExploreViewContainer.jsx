@@ -15,7 +15,6 @@ import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
-import { isFeatureEnabledCreator } from '../../featureFlags';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 const propTypes = {
@@ -54,6 +53,9 @@ class ExploreViewContainer extends React.Component {
     this.addHistory = this.addHistory.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handlePopstate = this.handlePopstate.bind(this);
+    this.onStop = this.onStop.bind(this);
+    this.onQuery = this.onQuery.bind(this);
+    this.toggleModal = this.toggleModal.bind(this);
   }
 
   componentDidMount() {
@@ -124,7 +126,9 @@ class ExploreViewContainer extends React.Component {
   }
 
   onStop() {
-    return this.props.chart.queryRequest.abort();
+    if (this.props.chart && this.props.chart.queryController) {
+      this.props.chart.queryController.abort();
+    }
   }
 
   getWidth() {
@@ -262,7 +266,7 @@ class ExploreViewContainer extends React.Component {
       >
         {this.state.showModal && (
           <SaveModal
-            onHide={this.toggleModal.bind(this)}
+            onHide={this.toggleModal}
             actions={this.props.actions}
             form_data={this.props.form_data}
           />
@@ -271,9 +275,9 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-4">
             <QueryAndSaveBtns
               canAdd="True"
-              onQuery={this.onQuery.bind(this)}
-              onSave={this.toggleModal.bind(this)}
-              onStop={this.onStop.bind(this)}
+              onQuery={this.onQuery}
+              onSave={this.toggleModal}
+              onStop={this.onStop}
               loading={this.props.chart.chartStatus === 'loading'}
               chartIsStale={this.state.chartIsStale}
               errorMessage={this.renderErrorMessage()}
@@ -303,7 +307,6 @@ function mapStateToProps(state) {
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {
-    isFeatureEnabled: isFeatureEnabledCreator(state),
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,

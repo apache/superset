@@ -1,12 +1,12 @@
 import * as color from 'd3-color';
-import d3 from 'd3';
+import { format as d3Format } from 'd3-format';
 import { d3FormatPreset } from '../../modules/utils';
 import { renderTooltipFactory } from './BigNumber';
 
 const TIME_COLUMN = '__timestamp';
 
-export default function transformProps(basicChartInput) {
-  const { formData, payload } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { width, height, formData, payload } = chartProps;
   const {
     colorPicker,
     compareLag: compareLagInput,
@@ -43,7 +43,7 @@ export default function transformProps(basicChartInput) {
         const compareValue = sortedData[compareIndex][metricName];
         percentChange = compareValue === 0
           ? 0 : (bigNumber - compareValue) / Math.abs(compareValue);
-        const formatPercentChange = d3.format('+.1%');
+        const formatPercentChange = d3Format('+.1%');
         formattedSubheader = `${formatPercentChange(percentChange)} ${compareSuffix}`;
       }
     }
@@ -65,6 +65,8 @@ export default function transformProps(basicChartInput) {
   const formatValue = d3FormatPreset(yAxisFormat);
 
   return {
+    width,
+    height,
     bigNumber,
     className,
     formatBigNumber: formatValue,

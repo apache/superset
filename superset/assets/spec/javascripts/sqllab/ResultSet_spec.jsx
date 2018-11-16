@@ -1,6 +1,5 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { Alert, ProgressBar } from 'react-bootstrap';
@@ -41,11 +40,11 @@ describe('ResultSet', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<ResultSet {...mockedProps} />)).to.equal(true);
+    expect(React.isValidElement(<ResultSet {...mockedProps} />)).toBe(true);
   });
   it('renders a Table', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
-    expect(wrapper.find(FilterableTable)).to.have.length(1);
+    expect(wrapper.find(FilterableTable)).toHaveLength(1);
   });
   describe('componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
@@ -61,19 +60,19 @@ describe('ResultSet', () => {
     it('should update cached data', () => {
       wrapper.setProps(newProps);
 
-      expect(wrapper.state().data).to.deep.equal(newProps.query.results.data);
-      expect(clearQuerySpy.callCount).to.equal(1);
-      expect(clearQuerySpy.getCall(0).args[0]).to.deep.equal(newProps.query);
-      expect(fetchQuerySpy.callCount).to.equal(1);
-      expect(fetchQuerySpy.getCall(0).args[0]).to.deep.equal(newProps.query);
+      expect(wrapper.state().data).toEqual(newProps.query.results.data);
+      expect(clearQuerySpy.callCount).toBe(1);
+      expect(clearQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
+      expect(fetchQuerySpy.callCount).toBe(1);
+      expect(fetchQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
     });
   });
   describe('render', () => {
     it('should render success query', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
       const filterableTable = wrapper.find(FilterableTable);
-      expect(filterableTable.props().data).to.equal(mockedProps.query.results.data);
-      expect(wrapper.find(ExploreResultsButton)).to.have.length(1);
+      expect(filterableTable.props().data).toBe(mockedProps.query.results.data);
+      expect(wrapper.find(ExploreResultsButton)).toHaveLength(1);
     });
     it('should render empty results', () => {
       const wrapper = shallow(<ResultSet {...mockedProps} />);
@@ -83,9 +82,9 @@ describe('ResultSet', () => {
         },
       });
       wrapper.setProps({ query: emptyResults });
-      expect(wrapper.find(FilterableTable)).to.have.length(0);
-      expect(wrapper.find(Alert)).to.have.length(1);
-      expect(wrapper.find(Alert).shallow().text()).to.equal('The query returned no data');
+      expect(wrapper.find(FilterableTable)).toHaveLength(0);
+      expect(wrapper.find(Alert)).toHaveLength(1);
+      expect(wrapper.find(Alert).shallow().text()).toBe('The query returned no data');
     });
     it('should render cached query', () => {
       const wrapper = shallow(<ResultSet {...cachedQueryProps} />);
@@ -94,15 +93,15 @@ describe('ResultSet', () => {
       ];
       wrapper.setState({ data: cachedData });
       const filterableTable = wrapper.find(FilterableTable);
-      expect(filterableTable.props().data).to.equal(cachedData);
+      expect(filterableTable.props().data).toBe(cachedData);
     });
     it('should render stopped query', () => {
       const wrapper = shallow(<ResultSet {...stoppedQueryProps} />);
-      expect(wrapper.find(Alert)).to.have.length(1);
+      expect(wrapper.find(Alert)).toHaveLength(1);
     });
     it('should render running/pending/fetching query', () => {
       const wrapper = shallow(<ResultSet {...runningQueryProps} />);
-      expect(wrapper.find(ProgressBar)).to.have.length(1);
+      expect(wrapper.find(ProgressBar)).toHaveLength(1);
     });
   });
 });

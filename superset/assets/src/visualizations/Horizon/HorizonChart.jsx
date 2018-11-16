@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
 import './HorizonChart.css';
 
@@ -52,7 +52,7 @@ class HorizonChart extends React.PureComponent {
         (acc, current) => acc.concat(current.values),
         [],
       );
-      yDomain = d3.extent(allValues, d => d.y);
+      yDomain = d3Extent(allValues, d => d.y);
     }
 
     return (
@@ -62,7 +62,7 @@ class HorizonChart extends React.PureComponent {
             key={row.key}
             width={width}
             height={seriesHeight}
-            title={row.key[0]}
+            title={row.key.join(', ')}
             data={row.values}
             bands={bands}
             colors={colors}

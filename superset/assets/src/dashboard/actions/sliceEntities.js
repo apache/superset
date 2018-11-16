@@ -1,11 +1,14 @@
 /* eslint camelcase: 0 */
-import $ from 'jquery';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
+import { addDangerToast } from '../../messageToasts/actions';
 import { getDatasourceParameter } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {
-  return { type: SET_ALL_SLICES, slices };
+  return { type: SET_ALL_SLICES, payload: { slices } };
 }
 
 export const FETCH_ALL_SLICES_STARTED = 'FETCH_ALL_SLICES_STARTED';
@@ -15,7 +18,7 @@ export function fetchAllSlicesStarted() {
 
 export const FETCH_ALL_SLICES_FAILED = 'FETCH_ALL_SLICES_FAILED';
 export function fetchAllSlicesFailed(error) {
-  return { type: FETCH_ALL_SLICES_FAILED, error };
+  return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
 export function fetchAllSlices(userId) {
@@ -24,13 +27,12 @@ export function fetchAllSlices(userId) {
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
 
-      const uri = `/sliceaddview/api/read?_flt_0_created_by=${userId}`;
-      return $.ajax({
-        url: uri,
-        type: 'GET',
-        success: response => {
+      return SupersetClient.get({
+        endpoint: `/sliceaddview/api/read?_flt_0_created_by=${userId}`,
+      })
+        .then(({ json }) => {
           const slices = {};
-          response.result.forEach(slice => {
+          json.result.forEach(slice => {
             let form_data = JSON.parse(slice.params);
             let datasource = form_data.datasource;
             if (!datasource) {
@@ -60,10 +62,23 @@ export function fetchAllSlices(userId) {
               };
             }
           });
+
           return dispatch(setAllSlices(slices));
-        },
-        error: error => dispatch(fetchAllSlicesFailed(error)),
-      });
+        })
+        .catch(errorResponse =>
+          getClientErrorObject(errorResponse).then(({ error }) => {
+            dispatch(
+              fetchAllSlicesFailed(
+                error || t('Could not fetch all saved charts'),
+              ),
+            );
+            dispatch(
+              addDangerToast(
+                t('Sorry there was an error fetching saved charts: ') + error,
+              ),
+            );
+          }),
+        );
     }
 
     return dispatch(setAllSlices(sliceEntities.slices));

@@ -1,8 +1,17 @@
 .play-slider {
-    position: relative;
-    height: 20px;
+    display: flex;
+    height: 40px;
     width: 100%;
     margin: 0;
+}
+
+.play-slider-controls {
+    flex: 0 0 80px;
+    text-align: middle;
+}
+
+.play-slider-scrobbler {
+    flex: 1;
 }
 
 .slider.slider-horizontal {

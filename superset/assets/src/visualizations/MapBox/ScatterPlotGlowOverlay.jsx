@@ -1,14 +1,10 @@
-import d3 from 'd3';
 import Immutable from 'immutable';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ViewportMercator from 'viewport-mercator-project';
-import {
-  kmToPixels,
-  rgbLuminance,
-  isNumeric,
-  MILES_PER_KM,
-} from '../../utils/common';
+import { round as d3Round } from 'd3-format';
+import { kmToPixels, MILES_PER_KM } from '../../modules/geo';
+import { rgbLuminance } from '../../utils/common';
 
 const propTypes = {
   aggregation: PropTypes.string,
@@ -132,7 +128,7 @@ class ScatterPlotGlowOverlay extends React.Component {
     if ((props.renderWhileDragging || !props.isDragging) && props.locations) {
       props.locations.forEach(function _forEach(location, i) {
         const pixel = mercator.project(props.lngLatAccessor(location));
-        const pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
+        const pixelRounded = [d3Round(pixel[0], 1), d3Round(pixel[1], 1)];
 
         if (pixelRounded[0] + radius >= 0
               && pixelRounded[0] - radius < props.width
@@ -141,8 +137,8 @@ class ScatterPlotGlowOverlay extends React.Component {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
-            const scaledRadius = d3.round(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
-            const fontHeight = d3.round(scaledRadius * 0.5, 1);
+            const scaledRadius = d3Round(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
+            const fontHeight = d3Round(scaledRadius * 0.5, 1);
             const gradient = ctx.createRadialGradient(
               pixelRounded[0], pixelRounded[1], scaledRadius,
               pixelRounded[0], pixelRounded[1], 0,
@@ -154,7 +150,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (isNumeric(clusterLabel)) {
+            if (Number.isFinite(parseFloat(clusterLabel))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = Math.round(clusterLabel / 1000) + 'k';
               } else if (clusterLabel >= 1000) {
@@ -178,16 +174,18 @@ class ScatterPlotGlowOverlay extends React.Component {
             if (radiusProperty !== null) {
               const pointLatitude = props.lngLatAccessor(location)[1];
               if (props.pointRadiusUnit === 'Kilometers') {
-                pointLabel = d3.round(pointRadius, 2) + 'km';
+                pointLabel = d3Round(pointRadius, 2) + 'km';
                 pointRadius = kmToPixels(pointRadius, pointLatitude, props.zoom);
               } else if (props.pointRadiusUnit === 'Miles') {
-                pointLabel = d3.round(pointRadius, 2) + 'mi';
+                pointLabel = d3Round(pointRadius, 2) + 'mi';
                 pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, props.zoom);
               }
             }
 
             if (pointMetric !== null) {
-              pointLabel = isNumeric(pointMetric) ? d3.round(pointMetric, 2) : pointMetric;
+              pointLabel = Number.isFinite(parseFloat(pointMetric))
+                ? d3Round(pointMetric, 2)
+                : pointMetric;
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column
@@ -195,13 +193,13 @@ class ScatterPlotGlowOverlay extends React.Component {
               pointRadius = defaultRadius;
             }
 
-            ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(pointRadius, 1), 0, Math.PI * 2);
+            ctx.arc(pixelRounded[0], pixelRounded[1], d3Round(pointRadius, 1), 0, Math.PI * 2);
             ctx.fillStyle = 'rgb(' + rgb[1] + ', ' + rgb[2] + ', ' + rgb[3] + ')';
             ctx.fill();
 
             if (pointLabel !== undefined) {
               this.drawText(ctx, pixelRounded, {
-                fontHeight: d3.round(pointRadius, 1),
+                fontHeight: d3Round(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
                 rgb,

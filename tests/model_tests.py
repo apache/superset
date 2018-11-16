@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import textwrap
 
 from sqlalchemy.engine.url import make_url
 
 from superset import app, db
 from superset.models.core import Database
-from superset.utils import get_main_database
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 

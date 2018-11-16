@@ -1,5 +1,5 @@
-export default function transformProps(basicChartInput) {
-  const { formData, payload } = basicChartInput;
+export default function transformProps(chartProps) {
+  const { width, height, formData, payload } = chartProps;
   const {
     colorScheme,
     linkLength,
@@ -10,6 +10,8 @@ export default function transformProps(basicChartInput) {
   } = formData;
 
   return {
+    width,
+    height,
     data: payload.data,
     binCount: parseInt(linkLength, 10),
     colorScheme,

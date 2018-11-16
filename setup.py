@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import io
 import json
 import os
@@ -59,21 +53,21 @@ setup(
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
-        'bleach',
-        'boto3==1.4.7',
+        'bleach>=3.0.2, <4.0.0',
+        'boto3>=1.4.7, <2.0.0',
         'botocore>=1.7.0, <1.8.0',
-        'celery>=4.2.0',
+        'celery>=4.2.0, <5.0.0',
+        'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
         'cryptography',
-        'flask<1.0.0',
-        'flask-appbuilder>=1.12.0',
+        'flask>=1.0.0, <2.0.0',
+        'flask-appbuilder>=1.12.1, <2.0.0',
         'flask-caching',
         'flask-compress',
         'flask-migrate',
         'flask-wtf',
         'flower',  # deprecated
-        'future>=0.16.0, <0.17',
         'geopy',
         'gunicorn',  # deprecated
         'humanize',
@@ -88,10 +82,9 @@ setup(
         'pyhive>=0.4.0',
         'python-dateutil',
         'python-geohash',
-        'pyyaml>=3.11',
+        'pyyaml>=3.13',
         'requests',
         'simplejson>=3.15.0',
-        'six',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',

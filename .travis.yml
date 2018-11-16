@@ -4,7 +4,33 @@ jobs:
   include:
     - language: python
       python: 3.6
-      env: TOXENV=cypress
+      env: TOXENV=cypress-dashboard
+      cache:
+        pip: true
+        yarn: true
+        directories:
+          - ~/.npm
+          - ~/.cache
+      services:
+        - redis-server
+      before_install:
+        - nvm install 8.9
+    - language: python
+      python: 3.6
+      env: TOXENV=cypress-explore
+      cache:
+        pip: true
+        yarn: true
+        directories:
+          - ~/.npm
+          - ~/.cache
+      services:
+        - redis-server
+      before_install:
+        - nvm install 8.9
+    - language: python
+      python: 3.6
+      env: TOXENV=cypress-sqllab
       cache:
         pip: true
         yarn: true

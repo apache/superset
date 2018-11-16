@@ -1,23 +1,19 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
+from functools import reduce
 import hashlib
 import inspect
 from itertools import product
 import logging
 import math
+import pickle as pkl
 import re
 import traceback
 import uuid
@@ -34,12 +30,11 @@ from pandas.tseries.frequencies import to_offset
 from past.builtins import basestring
 import polyline
 import simplejson as json
-from six import string_types, text_type
-from six.moves import cPickle as pkl, reduce
 
-from superset import app, cache, get_css_manifest_files, utils
+from superset import app, cache, get_css_manifest_files
 from superset.exceptions import NullValueException, SpatialException
-from superset.utils import (
+from superset.utils import core as utils
+from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
     merge_extra_filters,
@@ -120,7 +115,7 @@ class BaseViz(object):
         self.metric_labels = list(self.metric_dict.keys())
 
     def get_metric_label(self, metric):
-        if isinstance(metric, string_types):
+        if isinstance(metric, str):
             return metric
 
         if isinstance(metric, dict):
@@ -139,7 +134,7 @@ class BaseViz(object):
                     # if an int is too big for Java Script to handle
                     # convert it to a string
                     if abs(v) > JS_MAX_INTEGER:
-                        d[k] = text_type(v)
+                        d[k] = str(v)
         return data
 
     def run_extra_queries(self):
@@ -284,7 +279,9 @@ class BaseViz(object):
         # default order direction
         order_desc = form_data.get('order_desc', True)
 
-        since, until = utils.get_since_until(form_data)
+        since, until = utils.get_since_until(form_data.get('time_range'),
+                                             form_data.get('since'),
+                                             form_data.get('until'))
         time_shift = form_data.get('time_shift', '')
         self.time_shift = utils.parse_human_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
@@ -448,7 +445,6 @@ class BaseViz(object):
                     logging.warning('Could not cache key {}'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache_key)
-
         return {
             'cache_key': self._any_cache_key,
             'cached_dttm': self._any_cached_dttm,
@@ -471,6 +467,11 @@ class BaseViz(object):
             sort_keys=sort_keys,
         )
 
+    def payload_json_and_has_error(self, payload):
+        has_error = payload.get('status') == utils.QueryStatus.FAILED or \
+            payload.get('error') is not None
+        return self.json_dumps(payload), has_error
+
     @property
     def data(self):
         """This is the data object serialized to the js layer"""
@@ -488,7 +489,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
-        return self.get_df().to_dict(orient='records')
+        return df.to_dict(orient='records')
 
     @property
     def json_data(self):
@@ -789,11 +790,13 @@ class CalHeatmapViz(BaseViz):
         records = df.to_dict('records')
         for metric in self.metric_labels:
             data[metric] = {
-                text_type(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                str(obj[DTTM_ALIAS] / 10**9): obj.get(metric)
                 for obj in records
             }
 
-        start, end = utils.get_since_until(form_data)
+        start, end = utils.get_since_until(form_data.get('time_range'),
+                                           form_data.get('since'),
+                                           form_data.get('until'))
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')
@@ -1089,11 +1092,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in 'biufc':
                 continue
             if isinstance(name, list):
-                series_title = [text_type(title) for title in name]
+                series_title = [str(title) for title in name]
             elif isinstance(name, tuple):
-                series_title = tuple(text_type(title) for title in name)
+                series_title = tuple(str(title) for title in name)
             else:
-                series_title = text_type(name)
+                series_title = str(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
@@ -1101,7 +1104,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
             if title_suffix:
-                if isinstance(series_title, string_types):
+                if isinstance(series_title, str):
                     series_title = (series_title, title_suffix)
                 elif isinstance(series_title, (list, tuple)):
                     series_title = series_title + (title_suffix,)
@@ -1526,18 +1529,18 @@ class DistributionBarViz(DistributionPieViz):
         for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
-            if isinstance(name, string_types):
+            if isinstance(name, str):
                 series_title = name
             else:
                 offset = 0 if len(metrics) > 1 else 1
-                series_title = ', '.join([text_type(s) for s in name[offset:]])
+                series_title = ', '.join([str(s) for s in name[offset:]])
             values = []
             for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
-                    x = ', '.join([text_type(s) for s in x])
+                    x = ', '.join([str(s) for s in x])
                 else:
-                    x = text_type(x)
+                    x = str(x)
                 values.append({
                     'x': x,
                     'y': v,
@@ -1753,7 +1756,7 @@ class WorldMapViz(BaseViz):
         d = df.to_dict(orient='records')
         for row in d:
             country = None
-            if isinstance(row['country'], string_types):
+            if isinstance(row['country'], str):
                 country = countries.get(
                     fd.get('country_fieldtype'), row['country'])
 
@@ -1827,6 +1830,9 @@ class IFrameViz(BaseViz):
 
     def get_df(self, query_obj=None):
         return None
+
+    def get_data(self, df):
+        return {}
 
 
 class ParallelCoordinatesViz(BaseViz):
@@ -2324,6 +2330,7 @@ class DeckPathViz(BaseDeckGLViz):
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
     deck_viz_key = 'path'
+    is_timeseries = True
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -2331,8 +2338,11 @@ class DeckPathViz(BaseDeckGLViz):
     }
 
     def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
         d = super(DeckPathViz, self).query_obj()
-        line_col = self.form_data.get('line_column')
+        self.metric = fd.get('metric')
+        line_col = fd.get('line_column')
         if d['metrics']:
             self.has_metrics = True
             d['groupby'].append(line_col)
@@ -2352,7 +2362,12 @@ class DeckPathViz(BaseDeckGLViz):
         d[self.deck_viz_key] = path
         if line_type != 'geohash':
             del d[line_column]
+        d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time')
         return d
+
+    def get_data(self, df):
+        self.metric_label = self.get_metric_label(self.metric)
+        return super(DeckPathViz, self).get_data(df)
 
 
 class DeckPolygon(DeckPathViz):
@@ -2362,6 +2377,26 @@ class DeckPolygon(DeckPathViz):
     viz_type = 'deck_polygon'
     deck_viz_key = 'polygon'
     verbose_name = _('Deck.gl - Polygon')
+
+    def query_obj(self):
+        fd = self.form_data
+        self.elevation = (
+            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
+        return super(DeckPolygon, self).query_obj()
+
+    def get_metrics(self):
+        metrics = [self.form_data.get('metric')]
+        if self.elevation.get('type') == 'metric':
+            metrics.append(self.elevation.get('value'))
+        return [metric for metric in metrics if metric]
+
+    def get_properties(self, d):
+        super(DeckPolygon, self).get_properties(d)
+        fd = self.form_data
+        elevation = fd['point_radius_fixed']['value']
+        type_ = fd['point_radius_fixed']['type']
+        d['elevation'] = d.get(elevation) if type_ == 'metric' else elevation
+        return d
 
 
 class DeckHex(BaseDeckGLViz):
@@ -2509,7 +2544,7 @@ class PairedTTestViz(BaseViz):
         series = df.to_dict('series')
         for nameSet in df.columns:
             # If no groups are defined, nameSet will be the metric name
-            hasGroup = not isinstance(nameSet, string_types)
+            hasGroup = not isinstance(nameSet, str)
             Y = series[nameSet]
             d = {
                 'group': nameSet[1:] if hasGroup else 'All',

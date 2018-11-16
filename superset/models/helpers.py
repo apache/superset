@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import json
 import logging
@@ -21,7 +15,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset.utils import QueryStatus
+from superset.utils.core import QueryStatus
 
 
 def json_to_dict(json_str):

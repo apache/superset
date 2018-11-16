@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime
 import functools
 import logging
@@ -21,14 +15,17 @@ from flask_babel import lazy_gettext as _
 import simplejson as json
 import yaml
 
-from superset import conf, db, security_manager, utils
-from superset.exceptions import SupersetSecurityException
+from superset import conf, db, security_manager
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
+from superset.utils import core as utils
 
 FRONTEND_CONF_KEYS = (
     'SUPERSET_WEBSERVER_TIMEOUT',
     'SUPERSET_DASHBOARD_POSITION_DATA_LIMIT',
     'ENABLE_JAVASCRIPT_CONTROLS',
+    'DEFAULT_SQLLAB_LIMIT',
+    'SQL_MAX_ROW',
 )
 
 
@@ -56,6 +53,15 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         status=status, mimetype='application/json')
 
 
+def json_success(json_msg, status=200):
+    return Response(json_msg, status=status, mimetype='application/json')
+
+
+def data_payload_response(payload_json, has_error=False):
+    status = 400 if has_error else 200
+    return json_success(payload_json, status=status)
+
+
 def generate_download_headers(extension, filename=None):
     filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
     content_disp = 'attachment; filename={}.{}'.format(filename, extension)
@@ -77,6 +83,32 @@ def api(f):
             logging.exception(e)
             return json_error_response(get_error_msg())
 
+    return functools.update_wrapper(wraps, f)
+
+
+def handle_api_exception(f):
+    """
+    A decorator to catch superset exceptions. Use it after the @api decorator above
+    so superset exception handler is triggered before the handler for generic exceptions.
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except SupersetSecurityException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       status=e.status,
+                                       stacktrace=traceback.format_exc(),
+                                       link=e.link)
+        except SupersetException as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc(),
+                                       status=e.status)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e),
+                                       stacktrace=traceback.format_exc())
     return functools.update_wrapper(wraps, f)
 
 

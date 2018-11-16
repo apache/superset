@@ -1,4 +1,4 @@
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
 import { SMALL_HEADER, MEDIUM_HEADER, LARGE_HEADER } from './constants';
 
 export default [

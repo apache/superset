@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
@@ -34,14 +33,14 @@ function setup(overrides) {
 describe('AdhocMetricEditPopoverTitle', () => {
   it('renders an OverlayTrigger wrapper with the title', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OverlayTrigger)).to.have.lengthOf(1);
-    expect(wrapper.find(OverlayTrigger).find('span').text()).to.equal('My Metric\xa0');
+    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(OverlayTrigger).find('span').text()).toBe('My Metric\xa0');
   });
 
   it('transfers to edit mode when clicked', () => {
     const { wrapper } = setup();
-    expect(wrapper.state('isEditable')).to.be.false;
+    expect(wrapper.state('isEditable')).toBe(false);
     wrapper.simulate('click');
-    expect(wrapper.state('isEditable')).to.be.true;
+    expect(wrapper.state('isEditable')).toBe(true);
   });
 });

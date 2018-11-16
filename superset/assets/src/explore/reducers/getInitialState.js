@@ -1,13 +1,13 @@
 import shortid from 'shortid';
 
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
-import { now } from '../../modules/dates';
 import { getChartKey } from '../exploreUtils';
 import { getControlsState, getFormDataFromControls } from '../store';
 
-export default function (bootstrapData) {
+export default function getInitialState(bootstrapData) {
   const controls = getControlsState(bootstrapData, bootstrapData.form_data);
   const rawFormData = { ...bootstrapData.form_data };
+
   const bootstrappedState = {
     ...bootstrapData,
     common: {
@@ -20,23 +20,26 @@ export default function (bootstrapData) {
     isDatasourceMetaLoading: false,
     isStarred: false,
   };
+
   const slice = bootstrappedState.slice;
+
   const sliceFormData = slice
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
     : null;
+
   const chartKey = getChartKey(bootstrappedState);
+
   return {
-    featureFlags: bootstrapData.common.feature_flags,
     charts: {
       [chartKey]: {
         id: chartKey,
         chartAlert: null,
         chartStatus: 'loading',
         chartUpdateEndTime: null,
-        chartUpdateStartTime: now(),
+        chartUpdateStartTime: 0,
         latestQueryFormData: getFormDataFromControls(controls),
         sliceFormData,
-        queryRequest: null,
+        queryController: null,
         queryResponse: null,
         triggerQuery: true,
         lastRendered: 0,

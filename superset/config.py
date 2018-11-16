@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """The main config file for Superset
 
@@ -6,11 +5,6 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 import imp
 import json
@@ -288,8 +282,8 @@ MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 # in the results backend. This also becomes the limit when exporting CSVs
 SQL_MAX_ROW = 100000
 
-# Limit to be returned to the frontend.
-DISPLAY_MAX_ROW = 1000
+# Default row limit for SQL Lab queries
+DEFAULT_SQLLAB_LIMIT = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
-import { brandColor } from '../../modules/colors';
+import { BRAND_COLOR } from '@superset-ui/color';
 import { formatDateVerbose } from '../../modules/dates';
 import { computeMaxFontSize } from '../../modules/visUtils';
 
@@ -63,11 +63,11 @@ const defaultProps = {
   showTrendLine: false,
   startYAxisAtZero: true,
   trendLineData: null,
-  mainColor: brandColor,
+  mainColor: BRAND_COLOR,
   renderTooltip: renderTooltipFactory(identity),
 };
 
-class BigNumberVis extends React.Component {
+class BigNumberVis extends React.PureComponent {
   constructor(props) {
     super(props);
     this.gradientId = shortid.generate();
