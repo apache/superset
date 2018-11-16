@@ -54,6 +54,7 @@ class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.itemClick = this.itemClick.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {

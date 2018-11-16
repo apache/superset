@@ -493,11 +493,7 @@ export default function nvd3Vis(slice, payload) {
     // add click event for line chart based on chart_interactivity flag
     if (vizType === 'line' && fd.chart_interactivity)
     {
-      chart.lines.dispatch.on('elementClick', function(e) {
-         // printing console
-          console.log('series data --> ',e); 
-          console.log('slice id --> ',slice.formData.slice_id); 
-        });
+      chart.lines.dispatch.on('elementClick',slice.itemClick.bind(this));
     }
 
     if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
