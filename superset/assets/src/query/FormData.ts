@@ -17,9 +17,5 @@ type FormData = SqlaFormData | DruidFormData;
 export default FormData;
 
 export function getGranularity(formData: FormData): string {
-  if ('granularity_sqla' in formData) {
-    return formData.granularity_sqla;
-  } else {
-    return formData.granularity;
-  }
+  return 'granularity_sqla' in formData ? formData.granularity_sqla : formData.granularity;
 }

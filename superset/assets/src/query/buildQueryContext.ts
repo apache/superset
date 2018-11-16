@@ -1,5 +1,5 @@
-import buildDatasource from './buildDatasource';
 import buildQueryObject, { QueryObject } from './buildQueryObject';
+import DatasourceKey from './DatasourceKey';
 import FormData from './FormData';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
@@ -9,7 +9,7 @@ export default function buildQueryContext(
   formData: FormData,
   buildQuery: (baseQueryObject: QueryObject) => QueryObject[] = WRAP_IN_ARRAY) {
   return {
-    datasource: buildDatasource(formData),
+    datasource: new DatasourceKey(formData.datasource).toObject(),
     queries: buildQuery(buildQueryObject(formData)),
   };
 }
