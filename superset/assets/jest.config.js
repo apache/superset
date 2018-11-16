@@ -1,5 +1,5 @@
 module.exports = {
-  testRegex: '\\/spec\\/.*_spec\\.(j|t)sx?$',
+  testRegex: '\\/spec\\/.*(_spec|\\.test)\\.(j|t)sx?$',
   moduleNameMapper: {
     '\\.(css|less)$': '<rootDir>/spec/__mocks__/styleMock.js',
     '\\.(gif|ttf|eot|svg)$': '<rootDir>/spec/__mocks__/fileMock.js',
