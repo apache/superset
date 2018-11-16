@@ -1,4 +1,4 @@
-import { FormData as GenericFormData } from 'src/query/formData';
+import { FormData as GenericFormData } from 'src/query';
 
 // FormData specific to the wordcloud viz
 interface WordCloudFormData {
@@ -7,4 +7,5 @@ interface WordCloudFormData {
 
 // FormData for wordcloud contains both common properties of all form data
 // and properties specific to wordcloud vizzes
-export type FormData = GenericFormData & WordCloudFormData;
+type FormData = GenericFormData & WordCloudFormData;
+export default FormData;

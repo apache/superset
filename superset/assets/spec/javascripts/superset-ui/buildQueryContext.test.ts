@@ -1,6 +1,6 @@
 import * as datasourceBuilder from 'src/query/buildDatasource';
-import * as queryObjectBuilder from 'src/query/buildQueries';
 import build from 'src/query/buildQueryContext';
+import * as queryObjectBuilder from 'src/query/buildQueryObject';
 
 describe('queryContextBuilder', () => {
   const formData = {

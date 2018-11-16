@@ -1,15 +1,10 @@
 import buildQueryContext from 'src/query';
-import { FormData } from './formData';
+import FormData from './FormData';
 
 export default function buildQuery(formData: FormData) {
   // Set the single QueryObject's groupby field with series in formData
-  const { datasource, queries } = buildQueryContext(formData);
-  const [ query ] = queries;
-  return {
-    datasource,
-    queries: [{
-      ...query,
-      groupby: [formData.series],
-    }],
-  };
+  return buildQueryContext(formData, (baseQueryObject) => [{
+    ...baseQueryObject,
+    groupby: [formData.series],
+  }]);
 }

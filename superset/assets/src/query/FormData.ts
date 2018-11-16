@@ -13,8 +13,7 @@ interface DruidFormData extends BaseFormData {
   granularity: string;
 }
 
-type FormData = SqlaFormData | DruidFormData;
-export default FormData;
+export type FormData = SqlaFormData | DruidFormData;
 
 export function getGranularity(formData: FormData): string {
   if ('granularity_sqla' in formData) {
