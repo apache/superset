@@ -9,6 +9,7 @@ import MissingChart from '../MissingChart';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
 import { VIZ_TYPES } from '../../../visualizations';
+import { supersetURL } from '../../../utils/common';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -57,6 +58,7 @@ class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.itemClick = this.itemClick.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -94,6 +96,54 @@ class Chart extends React.Component {
 
   getFilters() {
     return this.props.filters;
+  }
+
+  itemClick(data){
+    console.log('selectedDataInfo ::  ',data); 
+    console.log('sliceInfo :: slice id  ',this.props.slice.slice_id,'  slice name  -->', this.props.slice.slice_name); 
+    console.log('dashboardInfo :: dashbaord id  ',this.props.dashboardInfo.id);
+    this.cloneSliceAndAddToDashboard(data)
+  }
+
+  cloneSliceAndAddToDashboard(data)
+  {
+    var requestParams = this.getRequestParamsForCloneSlice();
+    var payload = this.getPayloadForClonedSlice(data);
+    this.saveSliceAndAddtoDashboard(payload, requestParams);
+  }
+
+  saveSliceAndAddtoDashboard(payload, requestParams)
+  {
+    this.props.saveSlice(payload, requestParams)
+    .then((data) => {
+        // redirecting to dashbaord
+        window.location = supersetURL(data.dashboard);
+    });
+  }
+
+  getRequestParamsForCloneSlice()
+  {
+    // assuming we are cloning item clicked slice and adding clone slice to existing dashboard
+    const dashId = this.getCurrentDashboardId();
+    return {
+      action: "saveas",
+      add_to_dash: "existing",
+      goto_dash: true,
+      save_to_dashboard_id: dashId,
+      slice_id: this.props.slice.slice_id,
+      slice_name: "cloned_sliceid_"+this.props.slice.slice_id
+    }
+  }
+
+  getCurrentDashboardId()
+  {
+    return this.props.dashboardInfo.id;
+  }
+
+  getPayloadForClonedSlice(filters)
+  {
+    // todo: write apropriate method with filters updated in slice form data
+    return this.props.slice.form_data;
   }
 
   getChartHeight() {
@@ -235,6 +285,7 @@ class Chart extends React.Component {
             queryResponse={chart.queryResponse}
             queryRequest={chart.queryRequest}
             triggerQuery={chart.triggerQuery}
+            itemClick={this.itemClick}
           />
         </div>
       </div>
