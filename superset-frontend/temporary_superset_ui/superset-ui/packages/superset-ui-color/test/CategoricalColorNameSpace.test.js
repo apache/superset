@@ -13,14 +13,14 @@ describe('CategoricalColorNamespace', () => {
       .registerValue(
         'testColors',
         new CategoricalScheme({
-          name: 'testColors',
+          id: 'testColors',
           colors: ['red', 'green', 'blue'],
         }),
       )
       .registerValue(
         'testColors2',
         new CategoricalScheme({
-          name: 'testColors2',
+          id: 'testColors2',
           colors: ['red', 'green', 'blue'],
         }),
       );

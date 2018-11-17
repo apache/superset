@@ -4,7 +4,7 @@ import CategoricalScheme from '../../CategoricalScheme';
 
 const schemes = [
   {
-    name: 'd3Category10',
+    id: 'd3Category10',
     colors: [
       '#1f77b4',
       '#ff7f0e',
@@ -19,7 +19,7 @@ const schemes = [
     ],
   },
   {
-    name: 'd3Category20',
+    id: 'd3Category20',
     colors: [
       '#1f77b4',
       '#aec7e8',
@@ -44,7 +44,7 @@ const schemes = [
     ],
   },
   {
-    name: 'd3Category20b',
+    id: 'd3Category20b',
     colors: [
       '#393b79',
       '#5254a3',
@@ -69,7 +69,7 @@ const schemes = [
     ],
   },
   {
-    name: 'd3Category20c',
+    id: 'd3Category20c',
     colors: [
       '#3182bd',
       '#6baed6',
