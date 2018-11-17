@@ -7,10 +7,10 @@ export default function RenderPalettes({ title, palettes }) {
       {title && <h2>{title}</h2>}
       <table>
         <tbody>
-          {palettes.map(({ colors, name, label }) => (
-            <tr key={label || name}>
+          {palettes.map(({ colors, id, label }) => (
+            <tr key={id}>
               <td className="palette-label">
-                <strong>{label || name}</strong>
+                <strong>{label}</strong>
               </td>
               <td>
                 <div className="palette-container">
