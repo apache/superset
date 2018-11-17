@@ -28,6 +28,7 @@ const defaultProps = {
   csv: true,
   actions: {},
   cache: false,
+  database: {},
 };
 
 const SEARCH_HEIGHT = 46;
