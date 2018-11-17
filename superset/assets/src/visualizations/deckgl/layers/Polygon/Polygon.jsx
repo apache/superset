@@ -48,10 +48,12 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     data = jsFnMutator(data);
   }
 
+  const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
+  const accessor = d => d[metricLabel];
   // base color for the polygons
   const baseColorScaler = fd.metric === null
     ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-    : getBreakPointColorScaler(fd, data);
+    : getBreakPointColorScaler(fd, data, accessor);
 
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d) => {
@@ -61,7 +63,6 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     }
     return baseColor;
   };
-
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
@@ -211,7 +212,12 @@ class DeckGLPolygon extends React.Component {
   render() {
     const { payload, formData, setControlValue } = this.props;
     const { start, end, getStep, values, disabled, viewport } = this.state;
-    const buckets = getBuckets(formData, payload.data.features);
+
+    const fd = formData;
+    const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
+    const accessor = d => d[metricLabel];
+
+    const buckets = getBuckets(formData, payload.data.features, accessor);
     return (
       <div style={{ position: 'relative' }}>
         <AnimatableDeckGLContainer
