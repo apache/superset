@@ -4,7 +4,7 @@ import CategoricalScheme from '../../CategoricalScheme';
 
 const schemes = [
   {
-    name: 'googleCategory10c',
+    id: 'googleCategory10c',
     colors: [
       '#3366cc',
       '#dc3912',
@@ -19,7 +19,7 @@ const schemes = [
     ],
   },
   {
-    name: 'googleCategory20c',
+    id: 'googleCategory20c',
     colors: [
       '#3366cc',
       '#dc3912',

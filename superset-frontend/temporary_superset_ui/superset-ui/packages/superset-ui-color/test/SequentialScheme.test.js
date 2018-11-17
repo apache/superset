@@ -2,7 +2,7 @@ import SequentialScheme from '../src/SequentialScheme';
 
 describe('SequentialScheme', () => {
   const scheme = new SequentialScheme({
-    name: 'white to black',
+    id: 'white to black',
     colors: ['#fff', '#000'],
   });
   it('exists', () => {
@@ -11,7 +11,7 @@ describe('SequentialScheme', () => {
   describe('new SequentialScheme()', () => {
     it('creates new instance', () => {
       const scheme2 = new SequentialScheme({
-        name: 'white to black',
+        id: 'white to black',
         colors: ['#fff', '#000'],
       });
       expect(scheme2).toBeInstanceOf(SequentialScheme);
