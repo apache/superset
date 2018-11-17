@@ -83,12 +83,11 @@ describe('CategoricalColorScale', () => {
       expect(scale).toBe(output);
     });
   });
-  describe('.toFunction()', () => {
-    it('returns a function that wraps getColor', () => {
+  describe('a CategoricalColorScale instance is also a color function itself', () => {
+    it('scale(value) returns color similar to calling scale.getColor(value)', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      const colorFn = scale.toFunction();
-      expect(scale.getColor('pig')).toBe(colorFn('pig'));
-      expect(scale.getColor('cat')).toBe(colorFn('cat'));
+      expect(scale.getColor('pig')).toBe(scale('pig'));
+      expect(scale.getColor('cat')).toBe(scale('cat'));
     });
   });
 });
