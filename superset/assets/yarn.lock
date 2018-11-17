@@ -307,30 +307,30 @@
     d3-array "^1.2.0"
     prop-types "^15.5.10"
 
-"@deck.gl/core@^5.3.3":
-  version "5.3.3"
-  resolved "https://registry.yarnpkg.com/@deck.gl/core/-/core-5.3.3.tgz#a13c07e5fa3e22297fd450d6da8ab9aac334b1f0"
+"@deck.gl/core@^5.3.5":
+  version "5.3.5"
+  resolved "https://registry.yarnpkg.com/@deck.gl/core/-/core-5.3.5.tgz#24e6b3164a36b89b05cd020c2f7bcb5d08e3c266"
   dependencies:
-    luma.gl "^5.3.0"
+    luma.gl "^5.3.1"
     math.gl "^1.2.1"
     mjolnir.js "^1.0.0"
     probe.gl "^1.0.0"
     seer "^0.2.4"
     viewport-mercator-project "^5.1.0"
 
-"@deck.gl/layers@^5.3.4":
-  version "5.3.4"
-  resolved "https://registry.yarnpkg.com/@deck.gl/layers/-/layers-5.3.4.tgz#ab3de1bf8bb68d67772642acbb4e0f87f4f11300"
+"@deck.gl/layers@^5.3.5":
+  version "5.3.5"
+  resolved "https://registry.yarnpkg.com/@deck.gl/layers/-/layers-5.3.5.tgz#79c19be42961b909772e9dcd4eef5416d226d58e"
   dependencies:
-    "@deck.gl/core" "^5.3.3"
+    "@deck.gl/core" "^5.3.5"
     d3-hexbin "^0.2.1"
     earcut "^2.0.6"
 
-"@deck.gl/react@^5.3.3":
-  version "5.3.3"
-  resolved "https://registry.yarnpkg.com/@deck.gl/react/-/react-5.3.3.tgz#e7352934f6742d3ce672a394cbff312aab5ccaa0"
+"@deck.gl/react@^5.3.5":
+  version "5.3.5"
+  resolved "https://registry.yarnpkg.com/@deck.gl/react/-/react-5.3.5.tgz#caace72d4afc6531103fbb87292400de7c6f292a"
   dependencies:
-    "@deck.gl/core" "^5.3.3"
+    "@deck.gl/core" "^5.3.5"
     prop-types "^15.6.0"
 
 "@mapbox/geojson-area@0.2.2":
@@ -3679,13 +3679,13 @@ decimal.js@9.0.1:
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-9.0.1.tgz#1cc8b228177da7ab6498c1cc06eb130a290e6e1e"
 
-deck.gl@^5.3.4:
-  version "5.3.4"
-  resolved "https://registry.yarnpkg.com/deck.gl/-/deck.gl-5.3.4.tgz#35e5a7087ef0d8ca7811d06a721ea289edbe7c24"
+deck.gl@^5.3.5:
+  version "5.3.5"
+  resolved "https://registry.yarnpkg.com/deck.gl/-/deck.gl-5.3.5.tgz#a30b8a6ee6caba1133167de461edc15ee3bb0f8b"
   dependencies:
-    "@deck.gl/core" "^5.3.3"
-    "@deck.gl/layers" "^5.3.4"
-    "@deck.gl/react" "^5.3.3"
+    "@deck.gl/core" "^5.3.5"
+    "@deck.gl/layers" "^5.3.5"
+    "@deck.gl/react" "^5.3.5"
 
 decode-uri-component@^0.2.0:
   version "0.2.0"
@@ -7241,9 +7241,9 @@ lru-cache@^4.0.1, lru-cache@^4.1.1, lru-cache@^4.1.3:
     pseudomap "^1.0.2"
     yallist "^2.1.2"
 
-luma.gl@^5.3.0:
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/luma.gl/-/luma.gl-5.3.0.tgz#a93b2f34489d8230eb6d8c871335800d9b83ee67"
+luma.gl@^5.3.1:
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/luma.gl/-/luma.gl-5.3.1.tgz#d380d554fe4c9de0b883e5d75f58d2a2142cfa05"
   dependencies:
     math.gl "^1.1.0"
     probe.gl "^1.0.0"
