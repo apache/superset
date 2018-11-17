@@ -79,7 +79,7 @@
     "d3-tip": "^0.9.1",
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
-    "deck.gl": "^5.3.4",
+    "deck.gl": "^5.3.5",
     "distributions": "^1.0.0",
     "dnd-core": "^2.6.0",
     "dompurify": "^1.0.3",
