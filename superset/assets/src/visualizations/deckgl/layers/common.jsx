@@ -38,12 +38,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
   let tooltipContentGenerator;
   if (fd.js_tooltip) {
     tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  } else if (fd.line_column && fd.line_type === 'geohash') {
+  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0) {
+    const metricLabel = fd.metric.label || fd.metric;
     tooltipContentGenerator = o => (
       <div>
         <div>{fd.line_column}: <strong>{o.object[fd.line_column]}</strong></div>
         {fd.metric &&
-          <div>{fd.metric}: <strong>{o.object[fd.metric]}</strong></div>}
+          <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
       </div>);
   }
   if (tooltipContentGenerator) {
