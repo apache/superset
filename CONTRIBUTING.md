@@ -223,7 +223,6 @@ superset init
 superset load_examples
 
 # Start the Flask dev web server (but see below for frontend asset compilation)
-export FLASK_APP=superset/__init__.py # you only have to do this once
 flask run -p 8080 --with-threads --reload --debugger
 ```
 
