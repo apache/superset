@@ -2,7 +2,7 @@ import { Registry, makeSingleton } from '@superset-ui/core';
 
 class ChartTransformPropsRegistry extends Registry {
   constructor() {
-    super('ChartTransformProps');
+    super({ name: 'ChartTransformProps' });
   }
 }
 

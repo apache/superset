@@ -12,7 +12,7 @@ describe('RegistryWithDefaultKey', () => {
     registry = new RegistryWithDefaultKey();
   });
 
-  describe('new RegistryWithDefaultKey(options)', () => {
+  describe('new RegistryWithDefaultKey(config)', () => {
     it('returns a class that extends from Registry', () => {
       expect(registry).toBeInstanceOf(Registry);
     });
@@ -61,7 +61,7 @@ describe('RegistryWithDefaultKey', () => {
     });
   });
 
-  describe('options.defaultKey', () => {
+  describe('config.defaultKey', () => {
     describe('when not set', () => {
       it(`After creation, default key is undefined`, () => {
         expect(registry.defaultKey).toBeUndefined();
@@ -72,14 +72,14 @@ describe('RegistryWithDefaultKey', () => {
         expect(registry.getDefaultKey()).toBeUndefined();
       });
     });
-    describe('when options.initialDefaultKey is set', () => {
+    describe('when config.initialDefaultKey is set', () => {
       const registry2 = new RegistryWithDefaultKey({
         initialDefaultKey: 'def',
       });
       it(`After creation, default key is undefined`, () => {
         expect(registry2.defaultKey).toEqual('def');
       });
-      it('.clear() reset defaultKey to this options.defaultKey', () => {
+      it('.clear() reset defaultKey to this config.defaultKey', () => {
         registry2.setDefaultKey('abc');
         registry2.clear();
         expect(registry2.getDefaultKey()).toEqual('def');
@@ -87,7 +87,7 @@ describe('RegistryWithDefaultKey', () => {
     });
   });
 
-  describe('options.setFirstItemAsDefault', () => {
+  describe('config.setFirstItemAsDefault', () => {
     describe('when true', () => {
       const registry2 = new RegistryWithDefaultKey({ setFirstItemAsDefault: true });
       beforeEach(() => {

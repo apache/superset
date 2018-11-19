@@ -1,3 +1,5 @@
+/* eslint no-console: 0 */
+import mockConsole from 'jest-mock-console';
 import Registry from '../../src/models/Registry';
 
 describe('Registry', () => {
@@ -5,13 +7,13 @@ describe('Registry', () => {
     expect(Registry !== undefined).toBe(true);
   });
 
-  describe('new Registry(name)', () => {
-    it('can create a new registry when name is not given', () => {
+  describe('new Registry(config)', () => {
+    it('can create a new registry when config.name is not given', () => {
       const registry = new Registry();
       expect(registry).toBeInstanceOf(Registry);
     });
-    it('can create a new registry when name is given', () => {
-      const registry = new Registry('abc');
+    it('can create a new registry when config.name is given', () => {
+      const registry = new Registry({ name: 'abc' });
       expect(registry).toBeInstanceOf(Registry);
       expect(registry.name).toBe('abc');
     });
@@ -263,6 +265,81 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
       expect(registry.remove('a')).toBe(registry);
+    });
+  });
+
+  describe('config.overwritePolicy', () => {
+    describe('=ALLOW', () => {
+      describe('.registerValue(key, value)', () => {
+        it('registers normally', () => {
+          const restoreConsole = mockConsole();
+          const registry = new Registry();
+          registry.registerValue('a', 'testValue');
+          expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
+          expect(registry.get('a')).toEqual('testValue2');
+          expect(console.warn).not.toHaveBeenCalled();
+          restoreConsole();
+        });
+      });
+      describe('.registerLoader(key, loader)', () => {
+        it('registers normally', () => {
+          const restoreConsole = mockConsole();
+          const registry = new Registry();
+          registry.registerLoader('a', () => 'testValue');
+          expect(() => registry.registerLoader('a', () => 'testValue2')).not.toThrow();
+          expect(registry.get('a')).toEqual('testValue2');
+          expect(console.warn).not.toHaveBeenCalled();
+          restoreConsole();
+        });
+      });
+    });
+    describe('=WARN', () => {
+      describe('.registerValue(key, value)', () => {
+        it('warns when overwrite', () => {
+          const restoreConsole = mockConsole();
+          const registry = new Registry({
+            overwritePolicy: Registry.OverwritePolicy.WARN,
+          });
+          registry.registerValue('a', 'testValue');
+          expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
+          expect(registry.get('a')).toEqual('testValue2');
+          expect(console.warn).toHaveBeenCalled();
+          restoreConsole();
+        });
+      });
+      describe('.registerLoader(key, loader)', () => {
+        it('warns when overwrite', () => {
+          const restoreConsole = mockConsole();
+          const registry = new Registry({
+            overwritePolicy: Registry.OverwritePolicy.WARN,
+          });
+          registry.registerLoader('a', () => 'testValue');
+          expect(() => registry.registerLoader('a', () => 'testValue2')).not.toThrow();
+          expect(registry.get('a')).toEqual('testValue2');
+          expect(console.warn).toHaveBeenCalled();
+          restoreConsole();
+        });
+      });
+    });
+    describe('=PROHIBIT', () => {
+      describe('.registerValue(key, value)', () => {
+        it('throws error when overwrite', () => {
+          const registry = new Registry({
+            overwritePolicy: Registry.OverwritePolicy.PROHIBIT,
+          });
+          registry.registerValue('a', 'testValue');
+          expect(() => registry.registerValue('a', 'testValue2')).toThrow();
+        });
+      });
+      describe('.registerLoader(key, loader)', () => {
+        it('warns when overwrite', () => {
+          const registry = new Registry({
+            overwritePolicy: Registry.OverwritePolicy.PROHIBIT,
+          });
+          registry.registerLoader('a', () => 'testValue');
+          expect(() => registry.registerLoader('a', () => 'testValue2')).toThrow();
+        });
+      });
     });
   });
 });
