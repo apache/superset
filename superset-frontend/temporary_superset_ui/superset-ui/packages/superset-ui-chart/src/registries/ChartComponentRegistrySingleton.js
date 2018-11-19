@@ -2,7 +2,7 @@ import { Registry, makeSingleton } from '@superset-ui/core';
 
 class ChartComponentRegistry extends Registry {
   constructor() {
-    super('ChartComponent');
+    super({ name: 'ChartComponent' });
   }
 }
 
