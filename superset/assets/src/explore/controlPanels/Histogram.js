@@ -1,4 +1,5 @@
 import { t } from '@superset-ui/translation';
+import { nonEmpty } from '../validators';
 
 export default {
   controlPanelSections: [
@@ -29,6 +30,7 @@ export default {
       label: t('Numeric Columns'),
       description: t('Select the numeric columns to draw the histogram'),
       multi: true,
+      validators: [nonEmpty],
     },
     link_length: {
       label: t('No of Bins'),
