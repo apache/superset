@@ -154,42 +154,42 @@ def load_examples_run(load_test_data):
     print('Loading [Birth names]')
     data.load_birth_names()
 
-    print('Loading [Random time series data]')
-    data.load_random_time_series_data()
+    print('Loading [Unicode test data]')
+    data.load_unicode_test_data()
 
-    print('Loading [Random long/lat data]')
-    data.load_long_lat_data()
+    if not load_test_data:
+        print('Loading [Random time series data]')
+        data.load_random_time_series_data()
 
-    print('Loading [Country Map data]')
-    data.load_country_map_data()
+        print('Loading [Random long/lat data]')
+        data.load_long_lat_data()
 
-    print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series()
+        print('Loading [Country Map data]')
+        data.load_country_map_data()
 
-    print('Loading [Paris GeoJson]')
-    data.load_paris_iris_geojson()
+        print('Loading [Multiformat time series]')
+        data.load_multiformat_time_series()
 
-    print('Loading [San Francisco population polygons]')
-    data.load_sf_population_polygons()
+        print('Loading [Paris GeoJson]')
+        data.load_paris_iris_geojson()
 
-    print('Loading [Flights data]')
-    data.load_flights()
+        print('Loading [San Francisco population polygons]')
+        data.load_sf_population_polygons()
 
-    print('Loading [BART lines]')
-    data.load_bart_lines()
+        print('Loading [Flights data]')
+        data.load_flights()
 
-    print('Loading [Multi Line]')
-    data.load_multi_line()
+        print('Loading [BART lines]')
+        data.load_bart_lines()
 
-    print('Loading [Misc Charts] dashboard')
-    data.load_misc_dashboard()
+        print('Loading [Multi Line]')
+        data.load_multi_line()
 
-    if load_test_data:
-        print('Loading [Unicode test data]')
-        data.load_unicode_test_data()
+        print('Loading [Misc Charts] dashboard')
+        data.load_misc_dashboard()
 
-    print('Loading DECK.gl demo')
-    data.load_deck_dash()
+        print('Loading DECK.gl demo')
+        data.load_deck_dash()
 
 
 @app.cli.command()
