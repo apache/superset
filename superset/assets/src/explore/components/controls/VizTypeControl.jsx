@@ -4,8 +4,8 @@ import {
   Label, Row, Col, FormControl, Modal, OverlayTrigger,
   Tooltip } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
-import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.css';
 
@@ -126,7 +126,6 @@ export default class VizTypeControl extends React.PureComponent {
               <FormControl
                 inputRef={this.setSearchRef}
                 type="text"
-                bsSize="md"
                 value={filter}
                 placeholder={t('Search')}
                 onChange={this.changeSearch}

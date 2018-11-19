@@ -1,12 +1,12 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
+/* eslint no-param-reassign: ["error", { "props": false }] */
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { TIME_RANGE_SEPARATOR } from '../utils/common';
 import getClientErrorObject from '../utils/getClientErrorObject';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -35,8 +35,8 @@ export function chartUpdateFailed(queryResponse, key) {
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
-export function chartRenderingFailed(error, key) {
-  return { type: CHART_RENDERING_FAILED, error, key };
+export function chartRenderingFailed(error, key, stackTrace) {
+  return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
 }
 
 export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
@@ -77,10 +77,13 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     const granularity = fd.time_grain_sqla || fd.granularity;
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
-    if (fd.time_range) {
-      [fd.since, fd.until] = fd.time_range.split(TIME_RANGE_SEPARATOR);
+    const overridesKeys = Object.keys(annotation.overrides);
+    if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
+      annotation.overrides = {
+        ...annotation.overrides,
+        time_range: null,
+      };
     }
-
     const sliceFormData = Object.keys(annotation.overrides).reduce(
       (d, k) => ({
         ...d,
@@ -101,15 +104,16 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       timeout: timeout * 1000,
     })
       .then(({ json }) => dispatch(annotationQuerySuccess(annotation, json, sliceKey)))
-      .catch((err) => {
+      .catch(response => getClientErrorObject(response).then((err) => {
         if (err.statusText === 'timeout') {
           dispatch(annotationQueryFailed(annotation, { error: 'Query Timeout' }, sliceKey));
-        } else if ((err.responseJSON.error || '').toLowerCase().includes('no data')) {
+        } else if ((err.error || '').toLowerCase().includes('no data')) {
           dispatch(annotationQuerySuccess(annotation, err, sliceKey));
         } else if (err.statusText !== 'abort') {
-          dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
+          dispatch(annotationQueryFailed(annotation, err, sliceKey));
         }
-      });
+      }),
+    );
   };
 }
 

@@ -1,9 +1,12 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
-import d3 from 'd3';
+import { format as d3Format } from 'd3-format';
+import { d3Select } from 'd3-selection';
+import { timeFormat as d3TimeFormat } from 'd3-time-format';
 import { formatDate, UTC } from './dates';
 
-const siFormatter = d3.format('.3s');
+const siFormatter = d3Format('.3s');
+const ERROR_STRING = 'ERROR';
 
 export function defaultNumberFormatter(n) {
   let si = siFormatter(n);
@@ -15,26 +18,54 @@ export function defaultNumberFormatter(n) {
 }
 
 export function d3FormatPreset(format) {
-  // like d3.format, but with support for presets like 'smart_date'
+  // like d3Format, but with support for presets like 'smart_date'
   if (format === 'smart_date') {
     return formatDate;
   }
   if (format) {
-    return d3.format(format);
+    try {
+      return d3Format(format);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(e);
+      return () => ERROR_STRING;
+    }
   }
   return defaultNumberFormatter;
 }
+
 export const d3TimeFormatPreset = function (format) {
   const effFormat = format || 'smart_date';
   if (effFormat === 'smart_date') {
     return formatDate;
   }
-  const f = d3.time.format(effFormat);
+  const f = d3TimeFormat(effFormat);
   return function (dttm) {
     const d = UTC(new Date(dttm));
     return f(d);
   };
 };
+
+const formatters = {};
+
+export function d3format(format, number) {
+  format = format || '.3s';
+  // Formats a number and memoizes formatters to be reused
+  if (!(format in formatters)) {
+    try {
+      formatters[format] = d3Format(format);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(e);
+      return ERROR_STRING;
+    }
+  }
+  try {
+    return formatters[format](number);
+  } catch (e) {
+    return ERROR_STRING;
+  }
+}
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -47,7 +78,7 @@ export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
   text.each(function () {
-    const d3Text = d3.select(this);
+    const d3Text = d3Select(this);
     const words = d3Text.text().split(/\s+/);
     let word;
     let line = [];
@@ -117,20 +148,6 @@ export const fixDataTableBodyHeight = function ($tableDom, height) {
   const controlsHeight = (pageLengthHeight > filterHeight) ? pageLengthHeight : filterHeight;
   $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
-
-export function d3format(format, number) {
-  const formatters = {};
-  // Formats a number and memoizes formatters to be reused
-  format = format || '.3s';
-  if (!(format in formatters)) {
-    formatters[format] = d3.format(format);
-  }
-  try {
-    return formatters[format](number);
-  } catch (e) {
-    return 'ERR';
-  }
-}
 
 export function formatSelectOptionsForRange(start, end) {
   // outputs array of arrays

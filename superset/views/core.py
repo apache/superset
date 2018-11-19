@@ -9,7 +9,7 @@ import traceback
 from urllib import parse
 
 from flask import (
-    flash, g, Markup, redirect, render_template, request, Response, url_for,
+    abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
@@ -45,9 +45,9 @@ from superset.utils import dashboard_import_export
 from .base import (
     api, BaseSupersetView,
     check_ownership,
-    CsvResponse, DeleteMixin,
-    generate_download_headers, get_error_msg,
-    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
+    CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
+    get_error_msg, handle_api_exception, json_error_response, json_success,
+    SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
 
@@ -77,10 +77,6 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
 def get_database_access_error_msg(database_name):
     return __('This view requires the database %(name)s or '
               '`all_datasource_access` permission', name=database_name)
-
-
-def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
 
 
 def is_owner(obj, user):
@@ -141,10 +137,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'allow_csv_upload', 'creator', 'modified']
+        'allow_dml', 'allow_csv_upload', 'expose_in_sqllab', 'creator', 'modified']
     order_columns = [
         'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified', 'allow_csv_upload',
+        'modified', 'allow_csv_upload', 'expose_in_sqllab',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
@@ -372,6 +368,7 @@ class CsvToDatabaseView(SimpleFormView):
             flash(
                 message,
                 'danger')
+            stats_logger.incr('failed_csv_upload')
             return redirect('/csvtodatabaseview/form')
 
         os.remove(path)
@@ -382,6 +379,7 @@ class CsvToDatabaseView(SimpleFormView):
                                             form.name.data,
                                             db_name))
         flash(message, 'info')
+        stats_logger.incr('successful_csv_upload')
         return redirect('/tablemodelview/list/')
 
     def is_schema_allowed(self, database, schema):
@@ -907,9 +905,8 @@ class Superset(BaseSupersetView):
             for r in session.query(DAR).all():
                 datasource = ConnectorRegistry.get_datasource(
                     r.datasource_type, r.datasource_id, session)
-                user = security_manager.get_user_by_id(r.created_by_fk)
                 if not datasource or \
-                   security_manager.datasource_access(datasource, user):
+                   security_manager.datasource_access(datasource):
                     # datasource does not exist anymore
                     session.delete(r)
             session.commit()
@@ -1030,20 +1027,11 @@ class Superset(BaseSupersetView):
         # Include the slice_form_data if request from explore or slice calls
         # or if form_data only contains slice_id
         if slice_id and (use_slice_data or contains_only_slc_id):
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slice_form_data = slc.form_data.copy()
-            # allow form_data in request override slice from_data
-            # special treat for since/until and time_range parameter:
-            # we need to breakdown time_range into since/until so request parameters
-            # has precedence over slice parameters for time fields.
-            if 'time_range' in form_data:
-                form_data['since'], separator, form_data['until'] = \
-                    form_data['time_range'].partition(' : ')
-            if 'time_range' in slice_form_data:
-                slice_form_data['since'], separator, slice_form_data['until'] = \
-                    slice_form_data['time_range'].partition(' : ')
-            slice_form_data.update(form_data)
-            form_data = slice_form_data
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            if slc:
+                slice_form_data = slc.form_data.copy()
+                slice_form_data.update(form_data)
+                form_data = slice_form_data
 
         update_time_range(form_data)
 
@@ -1079,6 +1067,8 @@ class Superset(BaseSupersetView):
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        if not slc:
+            abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
             parse.quote(json.dumps(form_data)),
         )
@@ -1124,24 +1114,13 @@ class Superset(BaseSupersetView):
             csv=False, query=False, force=False, results=False,
             samples=False,
     ):
-        try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force=force,
-            )
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
-
-        if not security_manager.datasource_access(viz_obj.datasource, g.user):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
-                status=404,
-                link=security_manager.get_datasource_access_link(viz_obj.datasource))
+        viz_obj = self.get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            force=force,
+        )
+        security_manager.assert_datasource_permission(viz_obj.datasource)
 
         if csv:
             return CsvResponse(
@@ -1159,43 +1138,24 @@ class Superset(BaseSupersetView):
         if samples:
             return self.get_samples(viz_obj)
 
-        try:
-            payload = viz_obj.get_payload()
-        except SupersetException as se:
-            logging.exception(se)
-            return json_error_response(utils.error_msg_from_exception(se),
-                                       status=se.status)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-
-        status = 200
-        if (
-            payload.get('status') == QueryStatus.FAILED or
-            payload.get('error') is not None
-        ):
-            status = 400
-
-        return json_success(viz_obj.json_dumps(payload), status=status)
+        payload = viz_obj.get_payload()
+        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @log_this
+    @api
     @has_access_api
     @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
-        try:
-            form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
-            datasource_type = slc.datasource.type
-            datasource_id = slc.datasource.id
+        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        datasource_type = slc.datasource.type
+        datasource_id = slc.datasource.id
 
-        except Exception as e:
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data)
 
     @log_this
+    @api
     @has_access_api
     @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
@@ -1210,18 +1170,13 @@ class Superset(BaseSupersetView):
             form_data=form_data,
             force=False,
         )
-        try:
-            payload = viz_obj.get_payload()
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-        status = 200
-        if payload.get('status') == QueryStatus.FAILED:
-            status = 400
-        return json_success(viz_obj.json_dumps(payload), status=status)
+        payload = viz_obj.get_payload()
+        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     @log_this
+    @api
     @has_access_api
+    @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
     def explore_json(self, datasource_type=None, datasource_id=None):
@@ -1240,15 +1195,10 @@ class Superset(BaseSupersetView):
         samples = request.args.get('samples') == 'true'
         force = request.args.get('force') == 'true'
 
-        try:
-            form_data = self.get_form_data()[0]
-            datasource_id, datasource_type = self.datasource_info(
-                datasource_id, datasource_type, form_data)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
+        form_data = self.get_form_data()[0]
+        datasource_id, datasource_type = self.datasource_info(
+            datasource_id, datasource_type, form_data)
+
         return self.generate_json(
             datasource_type=datasource_type,
             datasource_id=datasource_id,
@@ -1404,6 +1354,7 @@ class Superset(BaseSupersetView):
             standalone_mode=standalone)
 
     @api
+    @handle_api_exception
     @has_access_api
     @expose('/filter/<datasource_type>/<datasource_id>/<column>/')
     def filter(self, datasource_type, datasource_id, column):
@@ -1420,10 +1371,7 @@ class Superset(BaseSupersetView):
             datasource_type, datasource_id, db.session)
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
-        if not security_manager.datasource_access(datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(datasource))
-
+        security_manager.assert_datasource_permission(datasource)
         payload = json.dumps(
             datasource.values_for_column(
                 column,
@@ -1685,7 +1633,7 @@ class Superset(BaseSupersetView):
         session.merge(dash)
         session.commit()
         session.close()
-        return 'SUCCESS'
+        return json_success(json.dumps({'status': 'SUCCESS'}))
 
     @staticmethod
     def _set_dash_metadata(dashboard, data):
@@ -2152,7 +2100,9 @@ class Superset(BaseSupersetView):
         else:
             qry = qry.filter_by(slug=dashboard_id)
 
-        dash = qry.one()
+        dash = qry.one_or_none()
+        if not dash:
+            abort(404)
         datasources = set()
         for slc in dash.slices:
             datasource = slc.datasource
@@ -2457,7 +2407,7 @@ class Superset(BaseSupersetView):
                 '{}'.format(rejected_tables)), status=403)
 
         payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('DISPLAY_MAX_ROW', None)
+        display_limit = app.config.get('DEFAULT_SQLLAB_LIMIT', None)
         if display_limit:
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
@@ -2496,6 +2446,12 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
+        limit = int(request.form.get('queryLimit', 0))
+        if limit < 0:
+            logging.warning(
+                'Invalid limit of {} specified. Defaulting to max limit.'.format(limit))
+            limit = 0
+        limit = limit or app.config.get('SQL_MAX_ROW')
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2521,10 +2477,10 @@ class Superset(BaseSupersetView):
             )
 
         client_id = request.form.get('client_id') or utils.shortid()[:10]
-
+        limits = [mydb.db_engine_spec.get_limit_from_sql(sql), limit]
         query = Query(
             database_id=int(database_id),
-            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
+            limit=min(lim for lim in limits if lim is not None),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
@@ -2655,6 +2611,8 @@ class Superset(BaseSupersetView):
         logging.info('Ready to return response')
         return response
 
+    @api
+    @handle_api_exception
     @has_access
     @expose('/fetch_datasource_metadata')
     @log_this
@@ -2668,10 +2626,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         # Check permission for datasource
-        if not security_manager.datasource_access(datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(datasource),
-                link=security_manager.get_datasource_access_link(datasource))
+        security_manager.assert_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
     @expose('/queries/<last_updated_ms>')
@@ -2848,6 +2803,7 @@ class Superset(BaseSupersetView):
         )
 
     @api
+    @handle_api_exception
     @has_access_api
     @expose('/slice_query/<slice_id>/')
     def slice_query(self, slice_id):
@@ -2856,11 +2812,7 @@ class Superset(BaseSupersetView):
         get the database query string for this slice
         """
         viz_obj = self.get_viz(slice_id)
-        if not security_manager.datasource_access(viz_obj.datasource):
-            return json_error_response(
-                security_manager.get_datasource_access_error_msg(viz_obj.datasource),
-                status=401,
-                link=security_manager.get_datasource_access_link(viz_obj.datasource))
+        security_manager.assert_datasource_permission(viz_obj.datasource)
         return self.get_query_string_response(viz_obj)
 
     @api

@@ -35,26 +35,27 @@
  *
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
- * in tandem with `visTypes.js` that defines how controls are composed into sections for
+ * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
+
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
-import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
-import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+
+const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -520,10 +521,11 @@ export const controls = {
       'Germany',
       'India',
       'Italy',
-      'Portugal',
+      'Japan',
       'Morocco',
       'Myanmar',
       'Netherlands',
+      'Portugal',
       'Russia',
       'Singapore',
       'Spain',

@@ -541,7 +541,7 @@ class DruidDatasource(Model, BaseDatasource):
     def time_column_grains(self):
         return {
             'time_columns': [
-                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
+                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes',
                 '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month', 'quarter', 'year',

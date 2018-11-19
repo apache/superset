@@ -1,5 +1,5 @@
 /* eslint no-console: 0 */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
 export default function setupClient() {
   const csrfNode = document.querySelector('#csrf_token');

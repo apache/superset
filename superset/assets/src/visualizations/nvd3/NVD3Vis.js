@@ -5,14 +5,15 @@ import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import 'nvd3/build/nv.d3.min.css';
 
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { getScale, getColor } from '../../modules/colors/CategoricalColorNamespace';
 import { formatDateVerbose } from '../../modules/dates';
 import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
 import {
+  cleanColorInput,
   computeBarChartWidth,
   drawBarValues,
   generateBubbleTooltipContent,
@@ -37,6 +38,8 @@ import {
   stringOrObjectWithLabelType,
 } from './PropTypes';
 import './NVD3Vis.css';
+
+const { getColor, getScale } = CategoricalColorNamespace;
 
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;
@@ -295,11 +298,6 @@ function nvd3Vis(element, props) {
           .showControls(showControls)
           .groupSpacing(0.1);
 
-        if (showBarValue) {
-          setTimeout(function () {
-            drawBarValues(svg, data, isBarStacked, yAxisFormat);
-          }, ANIMATION_TIME);
-        }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
@@ -321,14 +319,6 @@ function nvd3Vis(element, props) {
           data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
-        }
-        if (showBarValue) {
-          // Add more margin to avoid label colliding with legend.
-          const top = chart.margin().top;
-          chart.margin({ top: top + 24 });
-          setTimeout(function () {
-            drawBarValues(svg, data, isBarStacked, yAxisFormat);
-          }, ANIMATION_TIME);
         }
         if (!reduceXTicks) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
@@ -362,7 +352,6 @@ function nvd3Vis(element, props) {
             chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
           }
         }
-
         break;
 
       case 'column':
@@ -417,6 +406,14 @@ function nvd3Vis(element, props) {
       default:
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
+    // Assuming the container has padding already
+    chart.margin({ top: 0, left: 0, right: 0, bottom: 0 });
+
+    if (showBarValue) {
+      setTimeout(function () {
+        drawBarValues(svg, data, isBarStacked, yAxisFormat);
+      }, ANIMATION_TIME);
+    }
 
     if (canShowBrush && onBrushEnd !== NOOP) {
       chart.focus.dispatch.on('brush', (event) => {
@@ -459,11 +456,13 @@ function nvd3Vis(element, props) {
       chart.xScale(d3.scale.log());
     }
 
-    let xAxisFormatter = d3FormatPreset(xAxisFormat);
+    let xAxisFormatter;
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(xAxisFormat);
       // In tooltips, always use the verbose time format
       chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
+    } else {
+      xAxisFormatter = d3FormatPreset(xAxisFormat);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
@@ -508,7 +507,7 @@ function nvd3Vis(element, props) {
       }
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(colorScheme).toFunction();
-      chart.color(d => d.color || colorFn(d[colorKey]));
+      chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
     }
 
     if (isVizTypes(['line', 'area']) && useRichTooltip) {
@@ -589,19 +588,26 @@ function nvd3Vis(element, props) {
       const marginPad = Math.ceil(
         Math.min(maxWidth * (isExplore ? 0.01 : 0.03), MAX_MARGIN_PAD),
       );
-      const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
-      const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
-      chart.margin({ left: maxYAxisLabelWidth + marginPad });
-      if (yAxisLabel && yAxisLabel !== '') {
-        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
-      }
       // Hack to adjust margins to accommodate long axis tick labels.
       // - has to be done only after the chart has been rendered once
       // - measure the width or height of the labels
       // ---- (x axis labels are rotated 45 degrees so we use height),
       // - adjust margins based on these measures and render again
       const margins = chart.margin();
-      margins.bottom = 28;
+      if (chart.xAxis) {
+        margins.bottom = 28;
+      }
+      const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
+      margins.left = maxYAxisLabelWidth + marginPad;
+
+      if (yAxisLabel && yAxisLabel !== '') {
+        margins.left += 25;
+      }
+      if (showBarValue) {
+        // Add more margin to avoid label colliding with legend.
+        margins.top += 24;
+      }
       if (xAxisShowMinMax) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
@@ -642,7 +648,6 @@ function nvd3Vis(element, props) {
         }
         chart.yAxis.axisLabel(yAxisLabel).axisLabelDistance(distance);
       }
-
       if (isTimeSeries && annotationData && activeAnnotationLayers.length > 0) {
         // Time series annotations add additional data
         const timeSeriesAnnotations = activeAnnotationLayers
@@ -760,7 +765,7 @@ function nvd3Vis(element, props) {
               .select('.nv-wrap')
               .append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
-            const aColor = e.color || getColor(e.name, colorScheme);
+            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
 
             const tip = tipFactory(e);
             const records = (annotationData[e.name].records || []).map((r) => {
@@ -821,7 +826,7 @@ function nvd3Vis(element, props) {
               .append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
-            const aColor = e.color || getColor(e.name, colorScheme);
+            const aColor = e.color || getColor(cleanColorInput(e.name), colorScheme);
             const tip = tipFactory(e);
 
             const records = (annotationData[e.name].records || []).map((r) => {

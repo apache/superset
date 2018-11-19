@@ -279,7 +279,9 @@ class BaseViz(object):
         # default order direction
         order_desc = form_data.get('order_desc', True)
 
-        since, until = utils.get_since_until(form_data)
+        since, until = utils.get_since_until(form_data.get('time_range'),
+                                             form_data.get('since'),
+                                             form_data.get('until'))
         time_shift = form_data.get('time_shift', '')
         self.time_shift = utils.parse_human_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
@@ -443,7 +445,6 @@ class BaseViz(object):
                     logging.warning('Could not cache key {}'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache_key)
-
         return {
             'cache_key': self._any_cache_key,
             'cached_dttm': self._any_cached_dttm,
@@ -466,6 +467,11 @@ class BaseViz(object):
             sort_keys=sort_keys,
         )
 
+    def payload_json_and_has_error(self, payload):
+        has_error = payload.get('status') == utils.QueryStatus.FAILED or \
+            payload.get('error') is not None
+        return self.json_dumps(payload), has_error
+
     @property
     def data(self):
         """This is the data object serialized to the js layer"""
@@ -483,7 +489,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
-        return self.get_df().to_dict(orient='records')
+        return df.to_dict(orient='records')
 
     @property
     def json_data(self):
@@ -788,7 +794,9 @@ class CalHeatmapViz(BaseViz):
                 for obj in records
             }
 
-        start, end = utils.get_since_until(form_data)
+        start, end = utils.get_since_until(form_data.get('time_range'),
+                                           form_data.get('since'),
+                                           form_data.get('until'))
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')

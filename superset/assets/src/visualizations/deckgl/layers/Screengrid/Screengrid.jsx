@@ -64,18 +64,54 @@ class DeckGLScreenGrid extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const fd = props.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = props.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const viewport = fd.autozoom
-      ? fitViewport(props.viewport, getPoints(props.payload.data.features))
-      : props.viewport;
-    this.state = { start, end, getStep, values, disabled, viewport };
+    this.state = DeckGLScreenGrid.getDerivedStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
+  }
+  static getDerivedStateFromProps(props, state) {
+    // the state is computed only from the payload; if it hasn't changed, do
+    // not recompute state since this would reset selections and/or the play
+    // slider position due to changes in form controls
+    if (state && props.payload.form_data === state.formData) {
+      return null;
+    }
+
+    const features = props.payload.data.features || [];
+    const timestamps = features.map(f => f.__timestamp);
+
+    // the granularity has to be read from the payload form_data, not the
+    // props formData which comes from the instantaneous controls state
+    const granularity = (
+      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.granularity ||
+      'P1D'
+    );
+
+    const {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+    } = getPlaySliderParams(timestamps, granularity);
+
+    const viewport = props.formData.autozoom
+      ? fitViewport(props.viewport, getPoints(features))
+      : props.viewport;
+
+    return {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+      viewport,
+      selected: [],
+      lastClick: 0,
+      formData: props.payload.form_data,
+    };
   }
   onValuesChange(values) {
     this.setState({

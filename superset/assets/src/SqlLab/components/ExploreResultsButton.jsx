@@ -9,7 +9,7 @@ import { t } from '@superset-ui/translation';
 
 import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
-import * as actions from '../actions';
+import * as actions from '../actions/sqlLab';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import Button from '../../components/Button';
 
@@ -184,10 +184,10 @@ class ExploreResultsButton extends React.PureComponent {
 ExploreResultsButton.propTypes = propTypes;
 ExploreResultsButton.defaultProps = defaultProps;
 
-function mapStateToProps({ sqlLab }) {
+function mapStateToProps({ sqlLab, common }) {
   return {
     errorMessage: sqlLab.errorMessage,
-    timeout: sqlLab.common ? sqlLab.common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
+    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
 }
 

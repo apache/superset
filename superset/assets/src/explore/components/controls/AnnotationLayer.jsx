@@ -4,7 +4,9 @@ import { CompactPicker } from 'react-color';
 import { Button } from 'react-bootstrap';
 import mathjs from 'mathjs';
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
+import { getCategoricalSchemeRegistry } from '@superset-ui/color';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 import SelectControl from './SelectControl';
 import TextControl from './TextControl';
@@ -21,8 +23,6 @@ import ANNOTATION_TYPES, {
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
-import getChartMetadataRegistry from '../../../visualizations/core/registries/ChartMetadataRegistrySingleton';
-import getCategoricalSchemeRegistry from '../../../modules/colors/CategoricalSchemeRegistrySingleton';
 
 const AUTOMATIC_COLOR = '';
 
@@ -97,6 +97,14 @@ export default class AnnotationLayer extends React.PureComponent {
       timeColumn,
       intervalEndColumn,
     } = props;
+
+    const overridesKeys = Object.keys(overrides);
+    if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
+      overrides.time_range = null;
+      delete overrides.since;
+      delete overrides.until;
+    }
+
     this.state = {
       // base
       name,
@@ -215,7 +223,7 @@ export default class AnnotationLayer extends React.PureComponent {
       intervalEndColumn: null,
       timeColumn: null,
       titleColumn: null,
-      overrides: { since: null, until: null },
+      overrides: { time_range: null },
     });
   }
 
@@ -427,31 +435,15 @@ export default class AnnotationLayer extends React.PureComponent {
             <div style={{ marginTop: '1rem' }}>
               <CheckboxControl
                 hovered
-                name="annotation-override-since"
-                label="Override 'Since'"
-                description={`This controls whether the "Since" field from the current
+                name="annotation-override-time_range"
+                label="Override time range"
+                description={`This controls whether the "time_range" field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={!!Object.keys(overrides).find(x => x === 'since')}
+                value={!!Object.keys(overrides).find(x => x === 'time_range')}
                 onChange={(v) => {
-                  delete overrides.since;
+                  delete overrides.time_range;
                   if (v) {
-                    this.setState({ overrides: { ...overrides, since: null } });
-                  } else {
-                    this.setState({ overrides: { ...overrides } });
-                  }
-                }}
-              />
-              <CheckboxControl
-                hovered
-                name="annotation-override-until"
-                label="Override 'Until'"
-                description={`This controls whether the "Until" field from the current
-                  view should be passed down to the chart containing the annotation data.`}
-                value={!!Object.keys(overrides).find(x => x === 'until')}
-                onChange={(v) => {
-                  delete overrides.until;
-                  if (v) {
-                    this.setState({ overrides: { ...overrides, until: null } });
+                    this.setState({ overrides: { ...overrides, time_range: null } });
                   } else {
                     this.setState({ overrides: { ...overrides } });
                   }
