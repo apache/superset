@@ -2,7 +2,7 @@ import { Registry, makeSingleton } from '@superset-ui/core';
 
 class ChartBuildQueryRegistry extends Registry {
   constructor() {
-    super('ChartBuildQuery');
+    super({ name: 'ChartBuildQuery' });
   }
 }
 
