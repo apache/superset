@@ -1,5 +1,5 @@
 import { RegistryWithDefaultKey } from '@superset-ui/core';
-import D3Formatter from './formatters/D3Formatter';
+import D3NumberFormatter from './formatters/D3NumberFormatter';
 import { SI_3_DIGIT } from './NumberFormats';
 
 const DEFAULT_FORMAT = SI_3_DIGIT;
@@ -20,7 +20,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey {
     }
 
     // Create new formatter if does not exist
-    const formatter = new D3Formatter(targetFormat);
+    const formatter = new D3NumberFormatter(targetFormat);
     this.registerValue(targetFormat, formatter);
 
     return formatter;
