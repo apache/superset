@@ -620,7 +620,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             items = [items]
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
-            '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
+            '/dashboard/export_dashboards_form?{}&action=go'.format(ids[1:]))
 
     @log_this
     @has_access
