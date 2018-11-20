@@ -47,6 +47,26 @@ export function postDatasourcesFailed(error) {
   return { type: POST_DATASOURCES_FAILED, error };
 }
 
+export const SET_SLICES = 'SET_SLICES';
+export function setSlices(slices) {
+  return { type: SET_SLICES, slices };
+}
+
+export const FETCH_SLICES_STARTED = 'FETCH_SLICES_STARTED';
+export function fetchSlicesStarted() {
+  return { type: FETCH_SLICES_STARTED };
+}
+
+export const FETCH_SLICES_SUCCEEDED = 'FETCH_SLICES_SUCCEEDED';
+export function fetchSlicesSucceeded() {
+  return { type: FETCH_SLICES_SUCCEEDED };
+}
+
+export const POST_SLICES_FAILED = 'POST_SLICES_FAILED';
+export function postSlicesFailed(error) {
+  return { type: POST_SLICES_FAILED, error };
+}
+
 export const RESET_FIELDS = 'RESET_FIELDS';
 export function resetControls() {
   return { type: RESET_FIELDS };
