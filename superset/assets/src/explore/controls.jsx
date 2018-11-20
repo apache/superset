@@ -1966,7 +1966,21 @@ export const controls = {
     hidden: true,
     description: t('The id of the active chart'),
   },
-
+  linked_slice: {
+    "type": "SelectControl",
+    "label": "Slice",
+    "validators": [
+    ],
+    "description": "Select one slice to link",
+    "renderTrigger": false,
+    mapStateToProps: (state, control) => {
+      const newState = {};
+      if (state.slices) {
+        newState.options = state.slices.filter( slice => slice.id != state.slice.slice_id).map( slice =>  ({label: slice.title, value: slice.id}))
+      }
+      return newState;
+    }
+  },
   cache_timeout: {
     type: 'HiddenControl',
     label: t('Cache Timeout (seconds)'),

@@ -63,6 +63,36 @@ export default function exploreReducer(state = {}, action) {
         datasources: action.datasources,
       };
     },
+
+    [actions.FETCH_SLICES_STARTED]() {
+
+      return {
+        ...state,
+        isSlicesLoading: true,
+      };
+    },
+    [actions.FETCH_SLICES_SUCCEEDED]() {
+
+      return {
+        ...state,
+        isSlicesLoading: false,
+      };
+    },
+    [actions.FETCH_SLICES_FAILED]() {
+
+      return {
+        ...state,
+        isSlicesLoading: false,
+        controlPanelAlert: action.error,
+      };
+    },
+    [actions.SET_SLICES]() {
+      return {
+        ...state,
+        slices: action.slices,
+      };
+    },
+    
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return {
         ...state,
