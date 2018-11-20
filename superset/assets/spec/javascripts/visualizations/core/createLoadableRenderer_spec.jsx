@@ -33,7 +33,7 @@ describe('createLoadableRenderer', () => {
     it('LoadableRenderer.preload() preloads the lazy-load components', () => {
       expect(LoadableRenderer.preload).toBeInstanceOf(Function);
       LoadableRenderer.preload();
-      expect(loadChartSuccess).toHaveBeenCalled();
+      expect(loadChartSuccess).toHaveBeenCalledTimes(1);
     });
 
     it('calls onRenderSuccess when succeeds', (done) => {
@@ -47,8 +47,8 @@ describe('createLoadableRenderer', () => {
       );
       expect(loadChartSuccess).toHaveBeenCalled();
       setTimeout(() => {
-        expect(render).toHaveBeenCalled();
-        expect(onRenderSuccess).toHaveBeenCalled();
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(onRenderSuccess).toHaveBeenCalledTimes(1);
         expect(onRenderFailure).not.toHaveBeenCalled();
         done();
       }, 10);
@@ -71,11 +71,11 @@ describe('createLoadableRenderer', () => {
           onRenderFailure={onRenderFailure}
         />,
       );
-      expect(loadChartFailure).toHaveBeenCalled();
+      expect(loadChartFailure).toHaveBeenCalledTimes(1);
       setTimeout(() => {
         expect(render).not.toHaveBeenCalled();
         expect(onRenderSuccess).not.toHaveBeenCalled();
-        expect(onRenderFailure).toHaveBeenCalled();
+        expect(onRenderFailure).toHaveBeenCalledTimes(1);
         done();
       }, 10);
     });
