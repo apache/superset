@@ -20,6 +20,16 @@ body {
 .modal-dialog {
     z-index: 1100;
 }
+
+.modal-header{
+  background: #2c1458;
+  color: #fff;
+}
+
+.modal .close{
+  color: #fff;
+  opacity: 0.9;
+}
 .label {
     font-size: 100%;
 }
@@ -481,3 +491,24 @@ tr.reactable-column-header th.reactable-header-sortable {
 .align-right {
   text-align: right;
 }
+
+button:focus {
+  outline: none;
+}
+
+.btn{
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 1, 1),
+  background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+  color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+  -webkit-box-shadow 0.2s cubic-bezier(0.4, 0, 1, 1);
+  text-transform: uppercase;
+}
+
+.panel-heading, .moder-header{
+  border: none;
+}
+
+.table th{
+  font-size: 12.5px;
+}
+
