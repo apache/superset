@@ -34,6 +34,7 @@ const propTypes = {
   opacity: PropTypes.string,
   style: PropTypes.string,
   width: PropTypes.number,
+  markerWidth: PropTypes.number,
   showMarkers: PropTypes.bool,
   hideLine: PropTypes.bool,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -44,10 +45,8 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
-
   error: PropTypes.string,
   colorScheme: PropTypes.string,
-
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
   close: PropTypes.func,
@@ -61,6 +60,7 @@ const defaultProps = {
   opacity: '',
   style: 'solid',
   width: 1,
+  markerWidth: 1,
   showMarkers: false,
   hideLine: false,
   overrides: {},
@@ -124,6 +124,7 @@ export default class AnnotationLayer extends React.PureComponent {
       opacity,
       style,
       width,
+      markerWidth,
       showMarkers,
       hideLine,
       // refData
