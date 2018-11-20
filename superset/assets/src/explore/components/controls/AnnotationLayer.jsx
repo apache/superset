@@ -38,6 +38,7 @@ const propTypes = {
   opacity: PropTypes.string,
   style: PropTypes.string,
   width: PropTypes.number,
+  markerWidth: PropTypes.number,
   showMarkers: PropTypes.bool,
   hideLine: PropTypes.bool,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -48,10 +49,8 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
-
   error: PropTypes.string,
   colorScheme: PropTypes.string,
-
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
   close: PropTypes.func,
@@ -65,6 +64,7 @@ const defaultProps = {
   opacity: '',
   style: 'solid',
   width: 1,
+  markerWidth: 1,
   showMarkers: false,
   hideLine: false,
   overrides: {},
@@ -84,7 +84,7 @@ export default class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const { name, annotationType, sourceType,
-      color, opacity, style, width, showMarkers, hideLine, value,
+      color, opacity, style, width, markerWidth, showMarkers, hideLine, value,
       overrides, show, titleColumn, descriptionColumns,
       timeColumn, intervalEndColumn } = props;
     this.state = {
@@ -106,6 +106,7 @@ export default class AnnotationLayer extends React.PureComponent {
       opacity,
       style,
       width,
+      markerWidth,
       showMarkers,
       hideLine,
       // refData
@@ -477,7 +478,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderDisplayConfiguration() {
-    const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
+    const { color, opacity, style, width, markerWidth, showMarkers, hideLine, annotationType } = this.state;
     const colorScheme = [...ALL_COLOR_SCHEMES[this.props.colorScheme]];
     if (color && color !== AUTOMATIC_COLOR &&
       !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())) {
@@ -549,6 +550,17 @@ export default class AnnotationLayer extends React.PureComponent {
           description={'Shows or hides markers for the time series'}
           value={showMarkers}
           onChange={v => this.setState({ showMarkers: v })}
+        />
+        }
+        {annotationType === AnnotationTypes.TIME_SERIES && showMarkers &&
+        <TextControl
+          hovered
+          name="annotation-layer-marker-width"
+          label={t('Marker Size')}
+          description={'Set the size of marker'}
+          isInt
+          value={markerWidth}
+          onChange={v => this.setState({ markerWidth: v })}
         />
         }
         {annotationType === AnnotationTypes.TIME_SERIES &&

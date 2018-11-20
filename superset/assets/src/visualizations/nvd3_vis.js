@@ -131,9 +131,9 @@ export default function nvd3Vis(slice, payload) {
   let data;
   if (payload.data) {
     if (Array.isArray(payload.data)) {
-        data = payload.data.map(x => ({
-            ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
-        }));
+      data = payload.data.map(x => ({
+        ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+      }));
     } else {
       data = payload.data;
     }
@@ -172,6 +172,7 @@ export default function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     let height = slice.height();
+    let annotatedLayerMarkerWidth = 1;
     const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
 
     // Handling xAxis ticks settings
@@ -231,15 +232,15 @@ export default function nvd3Vis(slice, payload) {
 
       case 'bar':
         chart = nv.models.multiBarChart()
-        .showControls(fd.show_controls)
-        .groupSpacing(0.1);
+          .showControls(fd.show_controls)
+          .groupSpacing(0.1);
 
         if (!reduceXTicks) {
           width = barchartWidth();
         }
         chart.width(width);
         chart.xAxis
-        .showMaxMin(false);
+          .showMaxMin(false);
 
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
@@ -253,9 +254,9 @@ export default function nvd3Vis(slice, payload) {
 
       case 'dist_bar':
         chart = nv.models.multiBarChart()
-        .showControls(fd.show_controls)
-        .reduceXTicks(reduceXTicks)
-        .groupSpacing(0.1); // Distance between each group of bars.
+          .showControls(fd.show_controls)
+          .reduceXTicks(reduceXTicks)
+          .groupSpacing(0.1); // Distance between each group of bars.
 
         chart.xAxis.showMaxMin(false);
 
@@ -307,7 +308,7 @@ export default function nvd3Vis(slice, payload) {
 
       case 'column':
         chart = nv.models.multiBarChart()
-        .reduceXTicks(false);
+          .reduceXTicks(false);
         break;
 
       case 'compare':
@@ -327,7 +328,7 @@ export default function nvd3Vis(slice, payload) {
           let s = '<table>';
           s += (
             `<tr><td style="color: ${p.color};">` +
-              `<strong>${p[fd.entity]}</strong> (${p.group})` +
+            `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
           s += row(fd.x, formatter(p.x));
           s += row(fd.y, formatter(p.y));
@@ -387,8 +388,8 @@ export default function nvd3Vis(slice, payload) {
     }
 
     if (chart.forceY &&
-        fd.y_axis_bounds &&
-        (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
+      fd.y_axis_bounds &&
+      (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
       chart.forceY(fd.y_axis_bounds);
     }
     if (fd.y_log_scale) {
@@ -473,13 +474,13 @@ export default function nvd3Vis(slice, payload) {
           d.series.forEach((series) => {
             tooltip += (
               `<tr class="${series.highlight ? 'emph' : ''}">` +
-                `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
-                  '<div ' +
-                    `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
-                  '></div>' +
-                '</td>' +
-                `<td>${dompurify.sanitize(series.key)}</td>` +
-                `<td>${yAxisFormatter(series.value)}</td>` +
+              `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+              '<div ' +
+              `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
+              '></div>' +
+              '</td>' +
+              `<td>${dompurify.sanitize(series.key)}</td>` +
+              `<td>${yAxisFormatter(series.value)}</td>` +
               '</tr>'
             );
           });
@@ -487,9 +488,9 @@ export default function nvd3Vis(slice, payload) {
           return tooltip;
         });
       }
-      
+
     }
-    
+
     // add click event for line chart based on chart_interactivity flag
     if (vizType === 'line' && fd.chart_interactivity)
     {
@@ -516,11 +517,11 @@ export default function nvd3Vis(slice, payload) {
     slice.container.css('height', height + 'px');
 
     svg
-    .datum(data)
-    .transition().duration(500)
-    .attr('height', height)
-    .attr('width', width)
-    .call(chart);
+      .datum(data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
 
     // align yAxis1 and yAxis2 ticks
     if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
@@ -549,8 +550,8 @@ export default function nvd3Vis(slice, payload) {
 
     if (fd.show_markers) {
       svg.selectAll('.nv-point')
-      .style('stroke-opacity', 1)
-      .style('fill-opacity', 1);
+        .style('stroke-opacity', 1)
+        .style('fill-opacity', 1);
     }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
@@ -560,7 +561,7 @@ export default function nvd3Vis(slice, payload) {
         Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, maxMarginPad),
       );
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
-                                              : getMaxLabelSize(slice.container, 'nv-y');
+        : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
       if (fd.y_axis_label && fd.y_axis_label !== '') {
@@ -619,30 +620,30 @@ export default function nvd3Vis(slice, payload) {
         // Time series annotations add additional data
         const timeSeriesAnnotations = annotationLayers
           .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-        bushel.concat((slice.annotationData[a.name] || []).map((series) => {
-          if (!series) {
-            return {};
-          }
-          const key = Array.isArray(series.key) ?
-            `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
-          return {
-            ...series,
-            key,
-            color: a.color,
-            strokeWidth: a.width,
-            classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
-          };
-        })), []);
+            bushel.concat((slice.annotationData[a.name] || []).map((series) => {
+              if (!series) {
+                return {};
+              }
+              const key = Array.isArray(series.key) ?
+                `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
+              return {
+                ...series,
+                key,
+                color: a.color,
+                strokeWidth: a.width,
+                classed: `${a.opacity} ${a.style} nv-timeseries-annotation-layer showMarkers${a.showMarkers} hideLine${a.hideLine}`,
+              };
+            })), []);
         data.push(...timeSeriesAnnotations);
       }
 
       // render chart
       svg
-      .datum(data)
-      .transition().duration(500)
-      .attr('height', height)
-      .attr('width', width)
-      .call(chart);
+        .datum(data)
+        .transition().duration(500)
+        .attr('height', height)
+        .attr('width', width)
+        .call(chart);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
       $(window).scroll(throttle(hideTooltips, 250));
@@ -862,10 +863,19 @@ export default function nvd3Vis(slice, payload) {
           .attr('width', width)
           .call(chart);
 
+        if (vizType === 'line' && fd.annotation_layers && fd.annotation_layers.length > 0) {
+          fd.annotation_layers.forEach(annotatedLayer => {
+            if (annotatedLayer.annotationType === AnnotationTypes.TIME_SERIES) {
+              annotatedLayerMarkerWidth = annotatedLayer.markerWidth;
+            }
+          });
+        }
+
         // Display styles for Time Series Annotations
         d3.selectAll('.slice_container .nv-timeseries-annotation-layer.showMarkerstrue .nv-point')
           .style('stroke-opacity', 1)
-          .style('fill-opacity', 1);
+          .style('fill-opacity', 1)
+          .style('stroke-width', annotatedLayerMarkerWidth);
         d3.selectAll('.slice_container .nv-timeseries-annotation-layer.hideLinetrue')
           .style('stroke-width', 0);
       }
