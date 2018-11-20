@@ -26,6 +26,13 @@ export const sections = {
       ['slice_id', 'cache_timeout'],
     ],
   },
+  linkedSlices: {
+    label: t('Linked Slices'),
+    expanded: true,
+    controlSetRows: [
+      ['linked_slice']
+    ],
+  },
   colorScheme: {
     label: t('Color Scheme'),
     controlSetRows: [
@@ -1882,6 +1889,7 @@ export function sectionsToRender(vizType, datasourceType) {
 
   return [].concat(
     sectionsCopy.datasourceAndVizType,
+    sectionsCopy.linkedSlices,
     (datasourceType === 'table' || datasourceType === 'pandas') ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
   ).filter(section => section);

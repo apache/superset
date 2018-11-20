@@ -70,3 +70,29 @@ export function saveSlice(formData, requestParams) {
     });
   };
 }
+
+export const GET_SLICE_BY_ID = 'GET_SLICE_BY_ID';
+export function sliceById(data) {
+  return { type: GET_SLICE_BY_ID, data };
+}
+export const GET_SLICE_BY_ID_FAILED = 'GET_SLICE_BY_ID_FAILED';
+export function sliceByIdFailed() {
+  return { type: GET_SLICE_BY_ID_FAILED };
+}
+export function getSliceById(sliceId)
+{
+  return (dispatch) => {
+    const url = '/superset/slice_json/'+ sliceId;
+    return $.ajax({
+      type: 'GET',
+      url,
+      data: undefined,
+      success: ((data) => {
+        dispatch(sliceById(data));
+      }),
+      error: (() => {
+        dispatch(sliceByIdFailed());
+      }),
+    });
+  };
+}

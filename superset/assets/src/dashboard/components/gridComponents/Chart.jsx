@@ -98,52 +98,44 @@ class Chart extends React.Component {
     return this.props.filters;
   }
 
-  itemClick(data){
-    console.log('selectedDataInfo ::  ',data); 
-    console.log('sliceInfo :: slice id  ',this.props.slice.slice_id,'  slice name  -->', this.props.slice.slice_name); 
-    console.log('dashboardInfo :: dashbaord id  ',this.props.dashboardInfo.id);
-    this.cloneSliceAndAddToDashboard(data)
+  itemClick(data) {
+    console.log('selectedDataInfo ::  ', data);
+    console.log('sliceInfo :: slice id ==> ', this.props.slice.slice_id, '  ;linked_slice== >  ', this.props.slice.form_data.linked_slice);
+    console.log('dashboardInfo :: dashbaord id  ', this.props.dashboardInfo.id);
+    if (this.props.slice.form_data.hasOwnProperty('linked_slice') && this.props.slice.form_data.linked_slice) {
+      this.cloneSliceAndAddToDashboard(this.props.slice.form_data.linked_slice, data)
+    }
   }
 
-  cloneSliceAndAddToDashboard(data)
-  {
-    var requestParams = this.getRequestParamsForCloneSlice();
-    var payload = this.getPayloadForClonedSlice(data);
-    this.saveSliceAndAddtoDashboard(payload, requestParams);
+  cloneSliceAndAddToDashboard(linked_slice_id, filters) {
+    // todo:: define a way to name cloned slice
+    const slice_name = "clone_of_slice_id_" + linked_slice_id
+    var requestParams = this.getRequestParamsForCloneSlice(linked_slice_id, slice_name);
+    this.props.getSliceById(linked_slice_id)
+      .then((data) => {
+        // todo:: append filters in formdata
+        this.props.saveSlice(data.form_data, requestParams)
+          .then((data) => {
+            window.location = supersetURL(data.dashboard);
+          });
+      })
   }
 
-  saveSliceAndAddtoDashboard(payload, requestParams)
-  {
-    this.props.saveSlice(payload, requestParams)
-    .then((data) => {
-        // redirecting to dashbaord
-        window.location = supersetURL(data.dashboard);
-    });
-  }
 
-  getRequestParamsForCloneSlice()
-  {
-    // assuming we are cloning item clicked slice and adding clone slice to existing dashboard
+  getRequestParamsForCloneSlice(slice_id, slice_name) {
     const dashId = this.getCurrentDashboardId();
     return {
       action: "saveas",
       add_to_dash: "existing",
       goto_dash: true,
       save_to_dashboard_id: dashId,
-      slice_id: this.props.slice.slice_id,
-      slice_name: "cloned_sliceid_"+this.props.slice.slice_id
+      slice_id: slice_id,
+      slice_name: slice_name,
     }
   }
 
-  getCurrentDashboardId()
-  {
+  getCurrentDashboardId() {
     return this.props.dashboardInfo.id;
-  }
-
-  getPayloadForClonedSlice(filters)
-  {
-    // todo: write apropriate method with filters updated in slice form data
-    return this.props.slice.form_data;
   }
 
   getChartHeight() {

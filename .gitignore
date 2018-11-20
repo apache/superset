@@ -43,3 +43,4 @@ venv
 # docker
 venv2
 superset/assets/cypress/videos
+cypress
