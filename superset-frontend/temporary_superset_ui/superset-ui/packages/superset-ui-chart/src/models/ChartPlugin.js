@@ -11,7 +11,7 @@ export default class ChartPlugin extends Plugin {
     metadata = isRequired('metadata'),
 
     // use buildQuery for immediate value
-    buildQuery = IDENTITY,
+    buildQuery,
     // use loadBuildQuery for dynamic import (lazy-loading)
     loadBuildQuery,
 
@@ -27,7 +27,7 @@ export default class ChartPlugin extends Plugin {
   } = {}) {
     super();
     this.metadata = metadata;
-    this.loadBuildQuery = loadBuildQuery || (() => buildQuery);
+    this.loadBuildQuery = loadBuildQuery || (buildQuery ? () => buildQuery : null);
     this.loadTransformProps = loadTransformProps || (() => transformProps);
 
     if (loadChart) {

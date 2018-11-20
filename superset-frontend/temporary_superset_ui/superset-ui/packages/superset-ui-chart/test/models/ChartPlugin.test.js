@@ -26,7 +26,7 @@ describe('ChartPlugin', () => {
           metadata,
           Chart: 'test',
         });
-        expect(plugin.loadBuildQuery()(FORM_DATA)).toBe(FORM_DATA);
+        expect(plugin.loadBuildQuery).toBeNull();
       });
       it('uses loadBuildQuery field if specified', () => {
         const plugin = new ChartPlugin({
