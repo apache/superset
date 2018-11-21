@@ -514,7 +514,7 @@ function nvd3Vis(element, props) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateRichLineTooltipContent(d, yAxisFormatter));
+          generateRichLineTooltipContent(d, xAxisFormatter, yAxisFormatter));
       }
     }
 
