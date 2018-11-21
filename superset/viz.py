@@ -96,6 +96,8 @@ class BaseViz(object):
         self.time_shift = timedelta()
 
         self.status = None
+        self.error_msg = ''
+        self.results = None
         self.error_message = None
         self.force = force
 
@@ -226,7 +228,22 @@ class BaseViz(object):
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
                     # Column has already been formatted as a timestamp.
-                    df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(pd.Timestamp)
+                    dttm_col = df[DTTM_ALIAS]
+                    one_ts_val = dttm_col[0]
+
+                    # convert time column to pandas Timestamp, but different
+                    # ways to convert depending on string or int types
+                    try:
+                        int(one_ts_val)
+                        is_integral = True
+                    except ValueError:
+                        is_integral = False
+                    if is_integral:
+                        unit = 's' if timestamp_format == 'epoch_s' else 'ms'
+                        df[DTTM_ALIAS] = pd.to_datetime(dttm_col, utc=False, unit=unit,
+                                                        origin='unix')
+                    else:
+                        df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
