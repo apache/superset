@@ -1,7 +1,6 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
-import { formatDateVerbose } from '../../modules/dates';
 
 // Regexp for the label added to time shifted series
 // (1 hour offset, 2 days offset, etc.)
@@ -50,10 +49,10 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
 
 // Custom sorted tooltip
 // use a verbose formatter for times
-export function generateRichLineTooltipContent(d, valueFormatter) {
+export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter) {
   let tooltip = '';
   tooltip += "<table><thead><tr><td colspan='3'>"
-    + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
+    + `<strong class='x-value'>${timeFormatter(d.value)}</strong>`
     + '</td></tr></thead><tbody>';
   d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
   d.series.forEach((series) => {
