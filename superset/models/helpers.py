@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 import logging
+import operator
 import re
 
 from flask import escape, Markup
@@ -196,7 +197,7 @@ class ImportMixin(object):
                             include_defaults=include_defaults,
                         ) for child in getattr(self, c)
                     ],
-                    key=lambda k: sorted(k.items()))
+                    key=lambda k: sorted(k.items(), key=operator.itemgetter(1)))
 
         return dict_rep
 
