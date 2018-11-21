@@ -1976,7 +1976,7 @@ export const controls = {
     mapStateToProps: (state, control) => {
       const newState = {};
       if (state.slices) {
-        newState.options = state.slices.filter( slice => slice.id != state.slice.slice_id).map( slice =>  ({label: slice.title, value: slice.id}))
+        newState.options = state.slices.filter( slice => state.slice ? slice.id != state.slice.slice_id : true).map( slice =>  ({label: slice.title, value: slice.id}))
       }
       return newState;
     }
