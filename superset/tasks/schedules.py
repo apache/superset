@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 
 """Utility functions used across Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -36,7 +31,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.tasks.celery_app import app as celery_app
-from superset.utils import (
+from superset.utils.core import (
     get_email_address_list,
     send_email_smtp,
 )
@@ -365,8 +360,7 @@ def deliver_slice(schedule):
 @celery_app.task(name='email_reports.send', bind=True, soft_time_limit=300)
 def schedule_email_report(task, report_type, schedule_id, recipients=None):
     model_cls = get_scheduler_model(report_type)
-    dbsession = db.create_scoped_session()
-    schedule = dbsession.query(model_cls).get(schedule_id)
+    schedule = db.session.query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:

@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import enum
 
@@ -26,7 +21,10 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.tasks.schedules import schedule_email_report
-from superset.utils import get_email_address_list, json_iso_dttm_ser
+from superset.utils.core import (
+    get_email_address_list,
+    json_iso_dttm_ser,
+)
 from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 

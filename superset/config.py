@@ -520,7 +520,7 @@ WEBDRIVER_WINDOW = {
 WEBDRIVER_CONFIGURATION = {}
 
 # The base URL to query for accessing the user interface
-WEBDRIVER_BASEURL = 'http://0.0.0.0:8088/'
+WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
 
 try:
