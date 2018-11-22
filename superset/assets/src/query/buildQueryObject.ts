@@ -1,9 +1,11 @@
 import FormData, { getGranularity } from './FormData';
+import Metric, { Metrics } from './Metric';
 
 // TODO: fill out the rest of the query object
 export interface QueryObject {
   granularity: string;
   groupby?: string[];
+  metrics?: Metric[];
 }
 
 // Build the common segments of all query objects (e.g. the granularity field derived from
@@ -14,5 +16,6 @@ export interface QueryObject {
 export default function buildQueryObject<T extends FormData>(formData: T): QueryObject {
   return {
     granularity: getGranularity(formData),
+    metrics: new Metrics(formData).getMetrics(),
   };
 }
