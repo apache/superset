@@ -14,13 +14,13 @@ from sqlalchemy.pool import NullPool
 from superset import app, dataframe, db, results_backend, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
+from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import (
     json_iso_dttm_ser,
     now_as_float,
     QueryStatus,
     zlib_compress,
 )
-from superset.tasks.celery_app import app as celery_app
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
