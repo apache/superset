@@ -79,14 +79,6 @@ class SavedQueryViewApi(SavedQueryView):
     edit_columns = add_columns
 
 
-appbuilder.add_view_no_menu(SavedQueryViewApi)
-appbuilder.add_view_no_menu(SavedQueryView)
-
-appbuilder.add_link(
-    __('Saved Queries'),
-    href='/sqllab/my_queries/',
-    icon='fa-save',
-    category='SQL Lab')
 
 
 class SqlLab(BaseSupersetView):
