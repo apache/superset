@@ -107,7 +107,7 @@ class DatasourceControl extends React.PureComponent {
             {this.props.datasource.name}
           </Label>
         </OverlayTrigger>
-        {this.props.datasource.type === 'table' &&
+        {this.props.datasource.type === 'table' && this.props.datasource.description &&
           <OverlayTrigger
             placement="right"
             overlay={
