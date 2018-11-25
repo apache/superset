@@ -322,7 +322,8 @@ class SqlaTable(Model, BaseDatasource):
     def link(self):
         name = escape(self.name)
         description = self.description or ''
-        anchor = '<a target="_blank" title="{description}" href="{self.explore_url}">{name}</a>'
+        anchor = '<a target="_blank" title="{description}"' \
+                 ' href="{self.explore_url}">{name}</a>'
         return Markup(anchor.format(**locals()))
 
     @property
