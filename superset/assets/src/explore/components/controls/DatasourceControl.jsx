@@ -107,6 +107,19 @@ class DatasourceControl extends React.PureComponent {
             {this.props.datasource.name}
           </Label>
         </OverlayTrigger>
+        {this.props.datasource.type === 'table' &&
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'datasource-table-description'}>
+                {this.props.datasource.description}
+              </Tooltip>
+            }
+          >
+            <a>
+              <i className="fa fa-info-circle m-r-5" />
+            </a>
+          </OverlayTrigger>}
         <OverlayTrigger
           placement="right"
           overlay={
