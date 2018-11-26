@@ -164,7 +164,7 @@ export default function sqlLabReducer(state = {}, action) {
         progress: 100,
         results: action.results,
         rows,
-        state: 'rendering',
+        state: action.query.state,
         errorMessage: null,
         cached: false,
       };
