@@ -238,6 +238,9 @@ class SqlMetric(Model, BaseMetric):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
