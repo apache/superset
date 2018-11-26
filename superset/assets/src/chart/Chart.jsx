@@ -95,6 +95,14 @@ class Chart extends React.PureComponent {
     const { actions, chartId } = this.props;
     console.warn(error); // eslint-disable-line
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
+
+    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: chartId,
+      has_err: true,
+      error_details: error.toString(),
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
   }
 
   prepareChartProps() {
