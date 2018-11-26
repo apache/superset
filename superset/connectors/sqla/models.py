@@ -24,7 +24,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import QueryResult
+from superset.models.helpers import QueryResult, AuditMixinNullable
 from superset.utils import DTTM_ALIAS, QueryStatus
 
 config = app.config
@@ -255,7 +255,7 @@ class TimePeriod(enum.Enum):
     day = 60 * 24
 
 
-class Alert(Model):
+class Alert(Model, AuditMixinNullable):
     __tablename__ = 'alert'
 
     id = Column(Integer, primary_key=True)
@@ -264,6 +264,7 @@ class Alert(Model):
     interval = Column(Enum(TimePeriod))
     name = Column(String(250))
     tags = Column(Text)
+    description = Column(Text)
 
 
 class SqlaTable(Model, BaseDatasource):
