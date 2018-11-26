@@ -3166,7 +3166,7 @@ msgstr ""
 #: superset/assets/src/explore/visTypes.js:1563
 #: superset/assets/src/explore/visTypes.js:1624
 msgid "Query"
-msgstr "Reqête"
+msgstr "Requête"
 
 #: superset/assets/src/explore/visTypes.js:72
 msgid ""
@@ -4627,7 +4627,7 @@ msgid ""
 msgstr ""
 "Autorise les utilisateurs à lancer des requêtes synchrones, il s'agit de "
 "la configuration par défaut qui devrait fonctionner correctement pour des"
-" reqêtes exécutables depuis le web (<~1 minute)"
+" requêtes exécutables depuis le web (<~1 minute)"
 
 #: superset/views/core.py:238
 msgid ""
@@ -4975,7 +4975,7 @@ msgstr "Impossible de trouver le DruidCluster avec cluster_name = '%(name)s"
 
 #: superset/views/core.py:2413
 msgid "Query record was not created as expected."
-msgstr "L'enregistrement de la reqête n'a pas été créé comme prévu."
+msgstr "L'enregistrement de la requête n'a pas été créé comme prévu."
 
 #: superset/views/core.py:2724
 msgid "Template Name"
@@ -5023,7 +5023,7 @@ msgstr "Liste des requêtes sauvegardées"
 
 #: superset/views/sql_lab.py:44
 msgid "Show Saved Query"
-msgstr "Montrer les requếtes sauvagardées"
+msgstr "Montrer les requêtes sauvagardées"
 
 #: superset/views/sql_lab.py:45
 msgid "Add Saved Query"
@@ -5254,4 +5254,3 @@ msgstr "Requêtes sauvegardées"
 
 #~ msgid "Slice %(id)s not found"
 #~ msgstr "Slice %(id)s non trouvé"
-
