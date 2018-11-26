@@ -339,7 +339,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
 
     datamodel = SQLAInterface(models.Alert)
 
-    list_title = 'List Alerts'
+    list_title = 'List Scheduled Queries'
     show_title = 'Show Alert'
     add_title = 'Import a alert definition'
     edit_title = 'Edit Alert'
@@ -384,9 +384,9 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     AlertModelView,
-    'Alerts',
-    label='Alerts',
-    icon='fa-exclamation-circle',
+    'Scheduled Queries',
+    label='Scheduled Queries',
+    icon='fa-clock-o',
     category='',
     category_label='',
     category_icon='')

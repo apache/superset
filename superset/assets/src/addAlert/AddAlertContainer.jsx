@@ -185,14 +185,14 @@ export default class AddAlertContainer extends React.Component {
     ]
     return (
       <div className="container">
-        <Panel header={<h3>{t('Create a new alert')}</h3>}>
+        <Panel header={<h3>{t('Create a new scheduled query')}</h3>}>
           <form>
             <div>
               <p>Name</p>
               <label>
                 <input
                   type="text"
-                  placeholder="Alert name"
+                  placeholder="Scheduled query name"
                   style={{
                     marginRight: 20,
                     width: 300,
@@ -320,7 +320,7 @@ export default class AddAlertContainer extends React.Component {
                   label="invalid-json"
                 />
               }
-              {t(' Create new alert')}
+              {t(' Create new scheduled query')}
             </Button>
             <br /><br />
           </form>
