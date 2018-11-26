@@ -2126,7 +2126,7 @@
             ""
          ],
          "Query": [
-            "Reqête"
+            "Requête"
          ],
          "This section contains options that allow for advanced analytical post processing of query results": [
             ""
@@ -3077,7 +3077,7 @@
             "Expose cette BDD dans SQL Lab"
          ],
          "Allow users to run synchronous queries, this is the default and should work well for queries that can be executed within a web request scope (<~1 minute)": [
-            "Autorise les utilisateurs à lancer des requêtes synchrones, il s'agit de la configuration par défaut qui devrait fonctionner correctement pour des reqêtes exécutables depuis le web (<~1 minute)"
+            "Autorise les utilisateurs à lancer des requêtes synchrones, il s'agit de la configuration par défaut qui devrait fonctionner correctement pour des requêtes exécutables depuis le web (<~1 minute)"
          ],
          "Allow users to run queries, against an async backend. This assumes that you have a Celery worker setup as well as a results backend.": [
             "Autorise les utilisateurs à lancer des requêtes sur un backend asynchrone. Suppose que vous ayez un worker Celery réglé comme un results backend"
@@ -3287,7 +3287,7 @@
             "Impossible de trouver le DruidCluster avec cluster_name = '%(name)s"
          ],
          "Query record was not created as expected.": [
-            "L'enregistrement de la reqête n'a pas été créé comme prévu."
+            "L'enregistrement de la requête n'a pas été créé comme prévu."
          ],
          "Template Name": [
             "Nom du template"
@@ -3323,7 +3323,7 @@
             "Liste des requêtes sauvegardées"
          ],
          "Show Saved Query": [
-            "Montrer les requếtes sauvagardées"
+            "Montrer les requêtes sauvagardées"
          ],
          "Add Saved Query": [
             "Ajouter une requête sauvegardée"
