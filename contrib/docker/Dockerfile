@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 MAINTAINER Xiao Hanyu <hanyu.xiao@shopeemobile.com>
 
@@ -14,8 +14,8 @@ RUN apt-get update -y
 
 # Install some dependencies
 # http://airbnb.io/superset/installation.html#os-dependencies
-RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+RUN apt-get update -y && apt-cache search sasl
+RUN apt-get update -y && apt-get install -y build-essential libssl-dev libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev libsasl2-2 libsasl2-modules libsasl2-modules-db libsasl2-modules-sql sasl2-bin gsasl libauthen-sasl-cyrus-perl
 
 RUN apt-get install -y vim less postgresql-client redis-tools
 
