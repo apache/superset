@@ -192,3 +192,9 @@ export function mainMetric(savedMetrics) {
   }
   return metric;
 }
+
+export function roundDecimal(number, precision) {
+  return precision
+    ? Math.round(number * (precision = Math.pow(10, precision))) / precision
+    : Math.round(number);
+}
