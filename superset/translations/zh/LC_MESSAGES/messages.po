@@ -4110,18 +4110,6 @@ msgstr "编辑 Druid 集群"
 msgid "Cluster"
 msgstr "集群"
 
-#: superset/connectors/druid/views.py:172
-msgid "Coordinator Host"
-msgstr "协调器主机"
-
-#: superset/connectors/druid/views.py:173
-msgid "Coordinator Port"
-msgstr "协调器端口"
-
-#: superset/connectors/druid/views.py:174
-msgid "Coordinator Endpoint"
-msgstr "协调器端点"
-
 #: superset/connectors/druid/views.py:175
 msgid "Broker Host"
 msgstr "代理主机"
