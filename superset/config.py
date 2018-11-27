@@ -450,7 +450,7 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(sql, username, security_manager):
 #        dttm = datetime.now().isoformat()
-#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+#        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
 SQL_QUERY_MUTATOR = None
 
 # When not using gunicorn, (nginx for instance), you may want to disable

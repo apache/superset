@@ -279,14 +279,14 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def icons(self):
-        return """
+        return f"""
         <a
                 href="{self.datasource_edit_url}"
                 data-toggle="tooltip"
                 title="{self.datasource}">
             <i class="fa fa-database"></i>
         </a>
-        """.format(**locals())
+        """
 
 
 class QueryResult(object):

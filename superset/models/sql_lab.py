@@ -115,7 +115,7 @@ class Query(Model):
         tab = (self.tab_name.replace(' ', '_').lower()
                if self.tab_name else 'notab')
         tab = re.sub(r'\W+', '', tab)
-        return 'sqllab_{tab}_{ts}'.format(**locals())
+        return f'sqllab_{tab}_{ts}'
 
 
 class SavedQuery(Model, AuditMixinNullable):
@@ -140,8 +140,8 @@ class SavedQuery(Model, AuditMixinNullable):
 
     @property
     def pop_tab_link(self):
-        return Markup("""
+        return Markup(f"""
             <a href="/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
-        """.format(**locals()))
+        """)
