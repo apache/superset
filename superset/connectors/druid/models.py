@@ -80,18 +80,13 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
-    coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer, default=8081)
-    coordinator_endpoint = Column(
-        String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
     broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
 
-    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
-                     'coordinator_endpoint', 'broker_host', 'broker_port',
+    export_fields = ('cluster_name', 'broker_host', 'broker_port',
                      'broker_endpoint', 'cache_timeout')
     update_from_object_fields = export_fields
     export_children = ['datasources']
@@ -135,7 +130,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
-            self.coordinator_host, self.coordinator_port) + '/status'
+            self.broker_host, self.broker_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     @property
