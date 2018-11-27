@@ -98,7 +98,7 @@ Superset can be used to visualize data out of most databases:
   to find out whether it will work with Superset
 
 
-Druid!
+Apache Druid (Incubating)!
 ------
 
 On top of having the ability to query your relational databases,
