@@ -14,7 +14,8 @@ down_revision = '46f444d8b9b7'
 
 
 def upgrade():
-    op.drop_column('dbs', 'allow_run_sync')
+    with op.batch_alter_table('dbs') as batch_op:
+        batch_op.drop_column('allow_run_sync')
 
 
 def downgrade():
