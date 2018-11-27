@@ -319,6 +319,10 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def database_name(self):
+        if self.database is None:
+            _db = db.session.query(Database)\
+                .filter(Database.id == self.database_id).first()
+            return _db.database_name
         return self.database.name
 
     @property
@@ -334,7 +338,7 @@ class SqlaTable(Model, BaseDatasource):
 
     def get_perm(self):
         return (
-            '[{obj.database}].[{obj.table_name}]'
+            '[{obj.database_name}].[{obj.table_name}]'
             '(id:{obj.id})').format(obj=self)
 
     @property
