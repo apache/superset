@@ -2761,15 +2761,6 @@
          "Cluster": [
             "Cluster"
          ],
-         "Coordinator Host": [
-            "Hôte du coordinator"
-         ],
-         "Coordinator Port": [
-            "Port du coordinator"
-         ],
-         "Coordinator Endpoint": [
-            "Endpoint du coordinator"
-         ],
          "Broker Host": [
             "Hôte du Broker"
          ],
