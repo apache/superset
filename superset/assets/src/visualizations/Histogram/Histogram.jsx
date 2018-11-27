@@ -4,8 +4,9 @@ import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import WithLegend from '../WithLegend';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import './Histogram.css';
 
 const propTypes = {
   className: PropTypes.string,
@@ -47,7 +48,7 @@ class CustomHistogram extends React.PureComponent {
       yAxisLabel,
     } = this.props;
 
-    const colorFn = getScale(colorScheme).toFunction();
+    const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,

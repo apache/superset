@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import Button from '../components/Button';
-import { t } from '../locales';
 
 const propTypes = {
   height: PropTypes.number.isRequired,

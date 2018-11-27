@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { App, withParentSize } from '@data-ui/event-flow';
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
 
 const propTypes = {
   className: PropTypes.string,

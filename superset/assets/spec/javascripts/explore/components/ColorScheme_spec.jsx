@@ -2,13 +2,13 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
+import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 
 import ColorSchemeControl from
   '../../../../src/explore/components/controls/ColorSchemeControl';
-import { getAllSchemes } from '../../../../src/modules/ColorSchemeManager';
 
 const defaultProps = {
-  options: Object.keys(getAllSchemes()).map(s => ([s, s])),
+  options: getCategoricalSchemeRegistry().keys().map(s => ([s, s])),
 };
 
 describe('ColorSchemeControl', () => {

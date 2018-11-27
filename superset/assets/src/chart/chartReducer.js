@@ -1,16 +1,17 @@
 /* eslint camelcase: 0 */
+import { t } from '@superset-ui/translation';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { t } from '../locales';
 
 export const chart = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
+  chartStackTrace: null,
   chartUpdateEndTime: null,
-  chartUpdateStartTime: now(),
+  chartUpdateStartTime: 0,
   latestQueryFormData: {},
-  queryRequest: null,
+  queryController: null,
   queryResponse: null,
   triggerQuery: true,
   lastRendered: 0,
@@ -32,18 +33,21 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'loading',
+        chartStackTrace: null,
         chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
-        queryRequest: action.queryRequest,
+        queryController: action.queryController,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
       return { ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
@@ -54,6 +58,7 @@ export default function chartReducer(charts = {}, action) {
     [actions.CHART_RENDERING_FAILED](state) {
       return { ...state,
         chartStatus: 'failed',
+        chartStackTrace: action.stackTrace,
         chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
       };
     },
@@ -67,6 +72,7 @@ export default function chartReducer(charts = {}, action) {
             'or you are simply querying a data source that is too large ' +
             'to be processed within the timeout range. ' +
             'If that is the case, we recommend that you summarize your data further.')),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
@@ -75,6 +81,7 @@ export default function chartReducer(charts = {}, action) {
         chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
+        chartStackTrace: action.queryResponse ? action.queryResponse.stacktrace : null,
       };
     },
     [actions.TRIGGER_QUERY](state) {

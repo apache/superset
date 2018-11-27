@@ -1,19 +1,19 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
-import { getAjaxErrorMsg } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import {
   Logger,
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_REFRESH_DASHBOARD,
 } from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
-import { t } from '../../locales';
 import {
   addSuccessToast,
   addWarningToast,
@@ -132,22 +132,23 @@ export function saveDashboardRequest(data, id, saveType) {
     SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
-      parseMethod: null,
     })
       .then(response =>
         Promise.all([
-          Promise.resolve(response),
           dispatch(saveDashboardRequestSuccess()),
           dispatch(
             addSuccessToast(t('This dashboard was saved successfully.')),
           ),
-        ]),
+        ]).then(() => Promise.resolve(response)),
       )
-      .catch(error =>
-        dispatch(
-          addDangerToast(
-            `${t('Sorry, there was an error saving this dashboard: ')}
-          ${getAjaxErrorMsg(error) || error}`,
+      .catch(response =>
+        getClientErrorObject(response).then(({ error }) =>
+          dispatch(
+            addDangerToast(
+              `${t(
+                'Sorry, there was an error saving this dashboard: ',
+              )} ${error}`,
+            ),
           ),
         ),
       );

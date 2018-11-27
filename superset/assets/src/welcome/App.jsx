@@ -6,11 +6,10 @@ import { Provider } from 'react-redux';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
-
-import { appSetup } from '../common';
+import setupApp from '../setup/setupApp';
 import Welcome from './Welcome';
 
-appSetup();
+setupApp();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));

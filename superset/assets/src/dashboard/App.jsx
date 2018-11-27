@@ -4,18 +4,20 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import { hot } from 'react-hot-loader';
 
+import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
-import { appSetup } from '../common';
-import { initJQueryAjax } from '../modules/utils';
+import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
 import DashboardContainer from './containers/Dashboard';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
-appSetup();
-initJQueryAjax();
+setupApp();
+setupPlugins();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
+initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
 
 const store = createStore(

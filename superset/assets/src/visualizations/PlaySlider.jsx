@@ -1,13 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'react-bootstrap';
-
 import Mousetrap from 'mousetrap';
-
+import { t } from '@superset-ui/translation';
 import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
 import './PlaySlider.css';
-
-import { t } from '../locales';
 
 const propTypes = {
   start: PropTypes.number.isRequired,
@@ -127,13 +123,13 @@ export default class PlaySlider extends React.PureComponent {
   render() {
     const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
     return (
-      <Row className="play-slider">
-        <Col md={1} className="padded">
+      <div className="play-slider">
+        <div className="play-slider-controls padded">
           <i className="fa fa-step-backward fa-lg slider-button " onClick={this.stepBackward} />
           <i className={this.getPlayClass()} onClick={this.play} />
           <i className="fa fa-step-forward fa-lg slider-button " onClick={this.stepForward} />
-        </Col>
-        <Col md={11} className="padded">
+        </div>
+        <div className="play-slider-scrobbler padded">
           <BootrapSliderWrapper
             value={range ? values : values[0]}
             range={range}
@@ -146,8 +142,8 @@ export default class PlaySlider extends React.PureComponent {
             reversed={reversed}
             disabled={disabled ? 'disabled' : 'enabled'}
           />
-        </Col>
-      </Row>
+        </div>
+      </div>
     );
   }
 }

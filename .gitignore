@@ -3,6 +3,7 @@
 *.pyc
 *.sqllite
 *.swp
+.cache-loader
 .coverage
 .DS_Store
 .eggs

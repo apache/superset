@@ -1,9 +1,10 @@
 /* eslint camelcase: 0 */
-import { SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
 import { addDangerToast } from '../../messageToasts/actions';
-import { t } from '../../locales';
 import { getDatasourceParameter } from '../../modules/utils';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {
@@ -64,22 +65,19 @@ export function fetchAllSlices(userId) {
 
           return dispatch(setAllSlices(slices));
         })
-        .catch(error =>
-          Promise.all([
+        .catch(errorResponse =>
+          getClientErrorObject(errorResponse).then(({ error }) => {
             dispatch(
               fetchAllSlicesFailed(
-                error.error ||
-                  error.statusText ||
-                  t('Could not fetch all saved charts'),
+                error || t('Could not fetch all saved charts'),
               ),
-            ),
+            );
             dispatch(
               addDangerToast(
-                t('Sorry there was an error fetching saved charts: ') +
-                  error.error || error.statusText,
+                t('Sorry there was an error fetching saved charts: ') + error,
               ),
-            ),
-          ]),
+            );
+          }),
         );
     }
 

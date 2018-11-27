@@ -206,6 +206,7 @@ source venv/bin/activate
 
 # Install external dependencies
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
@@ -221,8 +222,9 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask web server (but see below for frontend asset compilation)
-superset runserver -d
+# Start the Flask dev web server from inside the `superset` dir (but see below for frontend asset compilation)
+cd superset
+flask run -p 8080 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
@@ -291,6 +293,21 @@ npm run dev-server -- --supersetPort=8081
 #### Upgrading NPM packages
 
 After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
+
+#### Feature flags
+
+Superset supports a server-wide feature flag system, which eases the incremental development of features. To add a new feature flag, simply modify `superset_config.py` with something like the following:
+```
+FEATURE_FLAGS = {
+    'SCOPED_FILTER': True,
+}
+```
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in `superset/assets/src/featureFlags.ts`. For example,
+```
+export enum FeatureFlag {
+  SCOPED_FILTER = 'SCOPED_FILTER',
+}
+```
 
 ## Testing
 
@@ -379,10 +396,10 @@ from flask_babel import lazy_gettext as _
 then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
 At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number), and `TCT` (translating entire React Components).
+In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import {t, tn, TCT} from locales;
+import {t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection

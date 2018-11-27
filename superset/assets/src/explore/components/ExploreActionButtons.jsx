@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { t } from '@superset-ui/translation';
+
 import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
-import { t } from '../../locales';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
 
 const propTypes = {

@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,

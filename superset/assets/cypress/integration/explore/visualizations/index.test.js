@@ -5,6 +5,7 @@ import BubbleTest from './bubble';
 import CompareTest from './compare';
 import DistBarTest from './dist_bar';
 import DualLineTest from './dual_line';
+import FilterBox from './filter_box';
 import HistogramTest from './histogram';
 import LineTest from './line';
 import PieTest from './pie';
@@ -23,6 +24,7 @@ describe('All Visualizations', () => {
   CompareTest();
   DistBarTest();
   DualLineTest();
+  FilterBox();
   HistogramTest();
   LineTest();
   PieTest();

@@ -52,6 +52,8 @@ describe('TabbedSqlEditors', () => {
     editorHeight: '',
     getHeight: () => ('100px'),
     database: {},
+    defaultQueryLimit: 1000,
+    maxRow: 100000,
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {
@@ -165,5 +167,11 @@ describe('TabbedSqlEditors', () => {
 
     const lastTab = wrapper.find(Tab).last();
     expect(lastTab.props().eventKey).toContain('add_tab');
+  });
+  it('should disable new tab when offline', () => {
+    wrapper = getWrapper();
+    expect(wrapper.find(Tab).last().props().disabled).toBe(false);
+    wrapper.setProps({ offline: true });
+    expect(wrapper.find(Tab).last().props().disabled).toBe(true);
   });
 });

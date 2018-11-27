@@ -38,12 +38,17 @@ def init():
 
 
 def debug_run(app, port, use_reloader):
-    return app.run(
-        host='0.0.0.0',
-        port=int(port),
-        threaded=True,
-        debug=True,
-        use_reloader=use_reloader)
+    click.secho(
+        '[DEPRECATED] As of Flask >=1.0.0, this command is no longer '
+        'supported, please use `flask run` instead, as documented in our '
+        'CONTRIBUTING.md',
+        fg='red',
+    )
+    click.secho('[example]', fg='yellow')
+    click.secho(
+        'flask run -p 8080 --with-threads --reload --debugger',
+        fg='green',
+    )
 
 
 def console_log_run(app, port, use_reloader):
@@ -149,42 +154,42 @@ def load_examples_run(load_test_data):
     print('Loading [Birth names]')
     data.load_birth_names()
 
-    print('Loading [Random time series data]')
-    data.load_random_time_series_data()
+    print('Loading [Unicode test data]')
+    data.load_unicode_test_data()
 
-    print('Loading [Random long/lat data]')
-    data.load_long_lat_data()
+    if not load_test_data:
+        print('Loading [Random time series data]')
+        data.load_random_time_series_data()
 
-    print('Loading [Country Map data]')
-    data.load_country_map_data()
+        print('Loading [Random long/lat data]')
+        data.load_long_lat_data()
 
-    print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series_data()
+        print('Loading [Country Map data]')
+        data.load_country_map_data()
 
-    print('Loading [Paris GeoJson]')
-    data.load_paris_iris_geojson()
+        print('Loading [Multiformat time series]')
+        data.load_multiformat_time_series()
 
-    print('Loading [San Francisco population polygons]')
-    data.load_sf_population_polygons()
+        print('Loading [Paris GeoJson]')
+        data.load_paris_iris_geojson()
 
-    print('Loading [Flights data]')
-    data.load_flights()
+        print('Loading [San Francisco population polygons]')
+        data.load_sf_population_polygons()
 
-    print('Loading [BART lines]')
-    data.load_bart_lines()
+        print('Loading [Flights data]')
+        data.load_flights()
 
-    print('Loading [Multi Line]')
-    data.load_multi_line()
+        print('Loading [BART lines]')
+        data.load_bart_lines()
 
-    print('Loading [Misc Charts] dashboard')
-    data.load_misc_dashboard()
+        print('Loading [Multi Line]')
+        data.load_multi_line()
 
-    if load_test_data:
-        print('Loading [Unicode test data]')
-        data.load_unicode_test_data()
+        print('Loading [Misc Charts] dashboard')
+        data.load_misc_dashboard()
 
-    print('Loading DECK.gl demo')
-    data.load_deck_dash()
+        print('Loading DECK.gl demo')
+        data.load_deck_dash()
 
 
 @app.cli.command()
@@ -351,12 +356,15 @@ def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
     for database in db.session.query(Database).all():
-        print('Fetching {} datasources ...'.format(database.name))
-        try:
-            database.all_table_names(force=True)
-            database.all_view_names(force=True)
-        except Exception as e:
-            print('{}'.format(str(e)))
+        if database.allow_multi_schema_metadata_fetch:
+            print('Fetching {} datasources ...'.format(database.name))
+            try:
+                database.all_table_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+                database.all_view_names_in_database(
+                    force=True, cache=True, cache_timeout=24 * 60 * 60)
+            except Exception as e:
+                print('{}'.format(str(e)))
 
 
 @app.cli.command()

@@ -62,6 +62,10 @@ class CoreTests(SupersetTestCase):
             data=dict(username='admin', password='wrongPassword'))
         self.assertIn('User confirmation needed', resp)
 
+    def test_dashboard_endpoint(self):
+        resp = self.client.get('/superset/dashboard/-1/')
+        assert resp.status_code == 404
+
     def test_slice_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -74,6 +78,9 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
+        resp = self.client.get('/superset/slice/-1/')
+        assert resp.status_code == 404
+
     def test_cache_key(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -85,6 +92,29 @@ class CoreTests(SupersetTestCase):
 
         qobj['groupby'] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
+
+    def test_api_v1_query_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Name Cloud', db.session)
+        form_data = slc.form_data
+        data = json.dumps({
+            'datasource': {
+                'id': slc.datasource_id,
+                'type': slc.datasource_type,
+            },
+            'queries': [{
+                'granularity': 'ds',
+                'groupby': ['name'],
+                'metrics': ['sum__num'],
+                'filters': [],
+                'time_range': '{} : {}'.format(form_data.get('since'),
+                                               form_data.get('until')),
+                'limit': 100,
+            }],
+        })
+        # TODO: update once get_data is implemented for QueryObject
+        with self.assertRaises(Exception):
+            self.get_resp('/api/v1/query/', {'query_context': data})
 
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')
@@ -715,7 +745,7 @@ class CoreTests(SupersetTestCase):
             id=db_id,
             extra=extra)
         data = self.get_json_resp(
-            url='/superset/schema_access_for_csv_upload?db_id={db_id}'
+            url='/superset/schemas_access_for_csv_upload?db_id={db_id}'
                 .format(db_id=dbobj.id))
         assert data == ['this_schema_is_allowed_too']
 

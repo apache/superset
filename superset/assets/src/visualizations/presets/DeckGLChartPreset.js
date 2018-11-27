@@ -1,4 +1,4 @@
-import Preset from '../core/models/Preset';
+import { Preset } from '@superset-ui/core';
 import ArcChartPlugin from '../deckgl/layers/Arc/ArcChartPlugin';
 import GeoJsonChartPlugin from '../deckgl/layers/Geojson/GeojsonChartPlugin';
 import GridChartPlugin from '../deckgl/layers/Grid/GridChartPlugin';

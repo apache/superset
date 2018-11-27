@@ -1,11 +1,11 @@
-import ChartPlugin from '../core/models/ChartPlugin';
-import ChartMetadata from '../core/models/ChartMetadata';
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../../modules/AnnotationTypes';
 
 const metadata = new ChartMetadata({
-  name: 'Table',
+  name: t('Table'),
   description: '',
   canBeAnnotationTypes: [
     ANNOTATION_TYPES.EVENT,

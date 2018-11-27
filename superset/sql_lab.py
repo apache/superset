@@ -150,10 +150,11 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    if (superset_query.is_select() and SQL_MAX_ROWS and
-            (not query.limit or query.limit > SQL_MAX_ROWS)):
-        query.limit = SQL_MAX_ROWS
-        executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
+    if superset_query.is_select():
+        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
+            query.limit = SQL_MAX_ROWS
+        if query.limit:
+            executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')

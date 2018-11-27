@@ -1,10 +1,10 @@
-import ChartPlugin from '../../../core/models/ChartPlugin';
-import ChartMetadata from '../../../core/models/ChartMetadata';
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import thumbnail from './images/thumbnail.png';
 import transformProps from '../../transformProps';
 
 const metadata = new ChartMetadata({
-  name: 'deck.gl 3D Hexagon',
+  name: t('deck.gl 3D Hexagon'),
   description: '',
   credits: ['https://uber.github.io/deck.gl'],
   thumbnail,

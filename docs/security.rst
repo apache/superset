@@ -18,7 +18,7 @@ their original values as you run your next ``superset init`` command.
 Since it's not recommended to alter the roles described here, it's right
 to assume that your security strategy should be to compose user access based
 on these base roles and roles that you create. For instance you could
-create a role ``Financial Analyst`` that would be made of set of permissions
+create a role ``Financial Analyst`` that would be made of a set of permissions
 to a set of data sources (tables) and/or databases. Users would then be
 granted ``Gamma``, ``Financial Analyst``, and perhaps ``sql_lab``.
 
@@ -29,13 +29,13 @@ other users and altering other people's slices and dashboards.
 
 Alpha
 """""
-Alpha have access to all data sources, but they cannot grant or revoke access
+Alpha users have access to all data sources, but they cannot grant or revoke access
 from other users. They are also limited to altering the objects that they
 own. Alpha users can add and alter data sources.
 
 Gamma
 """""
-Gamma have limited access. They can only consume data coming from data sources
+Gamma users have limited access. They can only consume data coming from data sources
 they have been given access to through another complementary role.
 They only have access to view the slices and
 dashboards made from data sources that they have access to. Currently Gamma
@@ -75,7 +75,7 @@ click the ``+`` sign.
 
 This new window allows you to give this new role a name, attribute it to users
 and select the tables in the ``Permissions`` dropdown. To select the data
-sources you want to associate with this role, simply click in the dropdown
+sources you want to associate with this role, simply click on the dropdown
 and use the typeahead to search for your table names.
 
 You can then confirm with your Gamma users that they see the objects
@@ -87,12 +87,12 @@ Customizing
 
 The permissions exposed by FAB are very granular and allow for a great level
 of customization. FAB creates many permissions automagically for each model
-that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
+that is created (can_add, can_delete, can_show, can_edit, ...) as well as for
 each view. On top of that, Superset can expose more granular permissions like
 ``all_datasource_access``.
 
 We do not recommend altering the 3 base roles as there
-are a set of assumptions that Superset build upon. It is possible though for
+are a set of assumptions that Superset is built upon. It is possible though for
 you to create your own roles, and union them to existing ones.
 
 Permissions
@@ -107,8 +107,7 @@ of permissions. Here are the different categories of permissions:
   so on. By adding ``can_delete on Dashboard`` to a role, and granting that
   role to a user, this user will be able to delete dashboards.
 - **Views**: views are individual web pages, like the ``explore`` view or the
-  ``SQL Lab`` view. When granted to a user, he/she will see that view in
-  the its menu items, and be able to load that page.
+  ``SQL Lab`` view. When granted to a user, he/she will see that view in its menu items, and be able to load that page.
 - **Data source**: For each data source, a permission is created. If the user
   does not have the ``all_datasource_access`` permission granted, the user
   will only be able to see Slices or explore the data sources that are granted

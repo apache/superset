@@ -11,6 +11,7 @@ from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Text,
 )
+from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
@@ -237,6 +238,9 @@ class SqlMetric(Model, BaseMetric):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
@@ -281,7 +285,9 @@ class SqlaTable(Model, BaseDatasource):
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params', 'template_params', 'filter_select_enabled')
+        'sql', 'params', 'template_params', 'filter_select_enabled',
+        'fetch_values_predicate',
+    )
     update_from_object_fields = [
         f for f in export_fields if f not in ('table_name', 'database_id')]
     export_parent = 'database'
@@ -377,7 +383,10 @@ class SqlaTable(Model, BaseDatasource):
     def external_metadata(self):
         cols = self.database.get_columns(self.table_name, schema=self.schema)
         for col in cols:
-            col['type'] = '{}'.format(col['type'])
+            try:
+                col['type'] = str(col['type'])
+            except CompileError:
+                col['type'] = 'UNKNOWN'
         return cols
 
     @property
@@ -410,6 +419,7 @@ class SqlaTable(Model, BaseDatasource):
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
             d['main_dttm_col'] = self.main_dttm_col
+            d['fetch_values_predicate'] = self.fetch_values_predicate
         return d
 
     def values_for_column(self, column_name, limit=10000):

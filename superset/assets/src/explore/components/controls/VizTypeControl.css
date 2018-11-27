@@ -1,0 +1,34 @@
+.viztype-label {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.viztype-selector-container {
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.viztype-selector-container:hover img {
+  border: 1px solid #aaa;
+}
+
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.viztype-selector-container.selected img {
+  border: 1px solid #333;
+}
+
+.viztype-selector-container img {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color .2s;
+}
+
+.viztype-control-search-box {
+  margin-bottom: 10px;
+}

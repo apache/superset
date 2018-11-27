@@ -2,13 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
+const QUERY_TIMEOUT_LIMIT = 7000;
 
 class QueryAutoRefresh extends React.PureComponent {
   componentWillMount() {
@@ -44,11 +45,15 @@ class QueryAutoRefresh extends React.PureComponent {
     if (this.shouldCheckForQueries()) {
       SupersetClient.get({
         endpoint: `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`,
+        timeout: QUERY_TIMEOUT_LIMIT,
       }).then(({ json }) => {
         if (Object.keys(json).length > 0) {
           this.props.actions.refreshQueries(json);
         }
-      });
+        this.props.actions.setUserOffline(false);
+        }).catch(() => {
+          this.props.actions.setUserOffline(true);
+        });
     }
   }
   render() {
