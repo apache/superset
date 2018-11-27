@@ -7,8 +7,9 @@
 #    /etc/reflex-provisioner/playbooks/superset/main.yml if the    #
 #    site_connectivity is offline.                                 #
 #------------------------------------------------------------------#
+docker_default_registry: "{{ site_default_rpm_repo_host }}"
 
-superset_docker_registry: "artifacts.ggn.in.guavus.com:4245"
+superset_docker_registry: "{{ docker_default_registry }}"
 
 #------------------------------------------------------------------#
 #                       Components Version                         #

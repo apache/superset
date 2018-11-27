@@ -42,11 +42,11 @@
   hosts:
     - management-nodes
   roles:
-    - role: superset/data_model
+    - role: raf/superset/data_model
 
 
 - name: Superset role deployment
   hosts:
     - management-nodes
   roles:
-    - superset/superset
+    - raf/superset/superset
