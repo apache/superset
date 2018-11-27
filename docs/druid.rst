@@ -33,7 +33,7 @@ Post-Aggregations
 -----------------
 
 Druid supports post aggregation and this works in Superset. All you have to
-do is creating a metric, much like you would create an aggregation manually,
+do is create a metric, much like you would create an aggregation manually,
 but specify ``postagg`` as a ``Metric Type``. You then have to provide a valid
 json post-aggregation definition (as specified in the Druid docs) in the
 Json field.
