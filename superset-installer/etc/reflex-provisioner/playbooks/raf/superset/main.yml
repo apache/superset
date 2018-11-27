@@ -37,11 +37,6 @@
   roles:
     - reflex-provisionner/load_vars
 
-- name: Superset kerberos config setup
-  hosts:
-    - master-nodes
-  roles:
-    - raf/superset/kerberos
 
 - name: Superset db creation
   hosts:
@@ -49,11 +44,6 @@
   roles:
     - role: raf/superset/data_model
 
-- name: Superset haproxy backend
-  hosts:
-    - loadbalancer-nodes
-  roles:
-    - raf/superset/haproxy_backend
 
 - name: Superset role deployment
   hosts:
