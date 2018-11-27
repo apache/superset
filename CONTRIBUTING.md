@@ -201,7 +201,7 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv venv
+virtualenv -p python3 venv . # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
