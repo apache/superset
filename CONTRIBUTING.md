@@ -255,11 +255,11 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# Install yarn, a replacement for `npm install`
+# If needed, install yarn, a replacement for `npm install`
 npm install -g yarn
 
 # Install dependencies
-yarn install
+yarn
 ```
 
 Finally, to compile frontend assets, run any of the following commands.
