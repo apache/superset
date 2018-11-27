@@ -194,7 +194,11 @@ export function mainMetric(savedMetrics) {
 }
 
 export function roundDecimal(number, precision) {
-  return precision
-    ? Math.round(number * (precision = Math.pow(10, precision))) / precision
-    : Math.round(number);
+  let roundedNumber;
+  if (precision) {
+    roundedNumber = Math.round(number * (precision = Math.pow(10, precision))) / precision;
+  } else {
+    roundedNumber = Math.round(number);
+  }
+  return roundedNumber;
 }
