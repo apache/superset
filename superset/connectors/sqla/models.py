@@ -304,11 +304,9 @@ class SqlaTable(Model, BaseDatasource):
         'MAX': sa.func.MAX,
     }
 
-    # cache for storing labels that are mutated to be compatible with db engine
-    mutated_label_cache = {}
-
     def mutate_label(self, label):
         """Conditionally mutate a label to conform to db engine requirements
+        and store mapping from mutated label to original label
 
         :param label: original label
         :return: Either a string or sqlalchemy.sql.elements.quoted_name if required
@@ -318,7 +316,7 @@ class SqlaTable(Model, BaseDatasource):
         original_label = label
         label, sqla_label = db_engine_spec.make_label_compatible(original_label)
         if original_label != label:
-            self.mutated_label_cache[label] = original_label
+            self.mutated_labels[label] = original_label
         return sqla_label
 
     def __repr__(self):
@@ -574,8 +572,8 @@ class SqlaTable(Model, BaseDatasource):
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
-        # Reset cache when retrieving new sqla query
-        self.mutated_label_cache = {}
+        # Initialize empty cache to store mutated labels
+        self.mutated_labels = {}
 
         orderby = orderby or []
 
@@ -817,9 +815,8 @@ class SqlaTable(Model, BaseDatasource):
         df = None
         try:
             df = self.database.get_df(sql, self.schema)
-            mutated_labels = self.mutated_label_cache
-            if len(mutated_labels) > 0:
-                df = df.rename(index=str, columns=mutated_labels)
+            if self.mutated_labels:
+                df = df.rename(index=str, columns=self.mutated_labels)
         except Exception as e:
             status = utils.QueryStatus.FAILED
             logging.exception(e)
