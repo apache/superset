@@ -911,7 +911,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return tables
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:view_list'.format(
             kwargs.get('schema')),
         attribute_in_key='id')
     def all_view_names_in_schema(self, schema, cache=False,
