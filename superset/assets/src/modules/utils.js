@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
 import { format as d3Format } from 'd3-format';
-import { d3Select } from 'd3-selection';
+import { select as d3Select } from 'd3-selection';
 import { timeFormat as d3TimeFormat } from 'd3-time-format';
 import { formatDate, UTC } from './dates';
 
