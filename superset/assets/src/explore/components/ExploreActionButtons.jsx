@@ -7,7 +7,7 @@ import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
-import CopyToClipboardWithTooltip from "./CopyToClipboardWithTooltip";
+import CopyToClipboardAsync from "../../components/CopyToClipboardAsync";
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -63,18 +63,19 @@ export default function ExploreActionButtons({
           <i className="fa fa-file-text-o" /> .csv
         </a>}
       {latestQueryFormData &&
-        <CopyToClipboardWithTooltip
-            activeStateProps={{disabled: false}}
-            inactiveStateProps={{disabled: true}}
-            textToCopyFunc={() => sleep(4000).then(a => "some\trandom\ttext\ntry\tpasting\tinto\tspreadsheet")}
-        >
-          <a
-            className="btn btn-default btn-sm"
-            rel="noopener noreferrer"
-          >
-            <i className="fa fa-clipboard" /> Clipboard
-          </a>
-        </CopyToClipboardWithTooltip>}
+        <CopyToClipboardAsync
+          activeStateProps={{disabled: false}}
+          inactiveStateProps={{disabled: true}}
+          shouldShowText={false}
+          textToCopyFunc={() => sleep(4000).then(a => "some\trandom\ttext\ntry\tpasting\tinto\tspreadsheet")}
+          // textToCopyFunc={() => sleep(2000).then(a => Promise.reject("error"))}
+          copyNode={<a
+              className="btn btn-default btn-sm"
+              rel="noopener noreferrer"
+            >
+              <i className="fa fa-clipboard" /> Clipboard
+            </a>}
+        />}
       <DisplayQueryButton
         queryResponse={queryResponse}
         latestQueryFormData={latestQueryFormData}
