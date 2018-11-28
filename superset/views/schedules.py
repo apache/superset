@@ -139,9 +139,9 @@ class DashboardEmailScheduleView(EmailScheduleView):
     schedule_type = ScheduleType.dashboard.name
     schedule_type_model = Dashboard
 
-    add_title = 'Schedule Email Reports for Dashboards'
+    add_title = _('Schedule Email Reports for Dashboards')
     edit_title = add_title
-    list_title = 'Manage Email Reports for Dashboards'
+    list_title = _('Manage Email Reports for Dashboards')
 
     datamodel = SQLAInterface(DashboardEmailSchedule)
     order_columns = ['user', 'dashboard', 'created_on']
@@ -197,9 +197,9 @@ class DashboardEmailScheduleView(EmailScheduleView):
 class SliceEmailScheduleView(EmailScheduleView):
     schedule_type = ScheduleType.slice.name
     schedule_type_model = Slice
-    add_title = 'Schedule Email Reports for Charts'
+    add_title = _('Schedule Email Reports for Charts')
     edit_title = add_title
-    list_title = 'Manage Email Reports for Charts'
+    list_title = _('Manage Email Reports for Charts')
 
     datamodel = SQLAInterface(SliceEmailSchedule)
     order_columns = ['user', 'slice', 'created_on']

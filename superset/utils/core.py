@@ -678,7 +678,7 @@ def get_email_address_list(address_string):
             address_string = address_string.split(';')
         else:
             address_string = [address_string]
-    return [x.strip() for x in address_string]
+    return [x.strip() for x in address_string if x.strip()]
 
 
 def choicify(values):

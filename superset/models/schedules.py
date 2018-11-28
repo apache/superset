@@ -32,7 +32,7 @@ class SliceEmailReportFormat(enum.Enum):
     data = 'Raw data'
 
 
-class EmailSchedule(object):
+class EmailSchedule():
 
     """Schedules for emailing slices / dashboards"""
 
