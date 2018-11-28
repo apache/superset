@@ -9,6 +9,7 @@ import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
+import CopyToClipboard from "../../components/CopyToClipboard";
 
 const propTypes = {
   actions: PropTypes.object,
@@ -112,6 +113,16 @@ export default class ResultSet extends React.PureComponent {
                   <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
                     <i className="fa fa-file-text-o" /> {t('.CSV')}
                   </Button>}
+
+                <CopyToClipboard
+                  text={this.prepareCopyToClipboardData(this.props.query.results.data)}
+                  wrapped={false}
+                  copyNode={
+                    <Button bsSize="small">
+                      <i className="fa fa-clipboard" /> {t('Clipboard')}
+                    </Button>
+                  }
+                />
               </ButtonGroup>
             </div>
             <div className="pull-right">
@@ -129,6 +140,13 @@ export default class ResultSet extends React.PureComponent {
       );
     }
     return <div className="noControls" />;
+  }
+  prepareCopyToClipboardData(data) {
+    let result = '';
+    for(let i = 0; i < data.length; ++i) {
+      result += Object.values(data[i]).join('\t') + '\n';
+    }
+    return result;
   }
   render() {
     const query = this.props.query;

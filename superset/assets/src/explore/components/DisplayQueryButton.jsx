@@ -124,12 +124,28 @@ export default class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
+  prepareCopyToClipboardData(data) {
+    let result = '';
+    for(let i = 0; i < data.length; ++i) {
+      result += Object.values(data[i]).join('\t') + '\n';
+    }
+    return result;
+  }
   renderDataTable(data) {
     return (
       <div style={{ overflow: 'auto' }}>
         <Row>
           <Col md={9}>
             <RowCountLabel rowcount={data.length} suffix={t('rows retrieved')} />
+            <CopyToClipboard
+              text={this.prepareCopyToClipboardData(data)}
+              wrapped={false}
+              copyNode={
+                <Button style={{padding: "2px 10px", fontSize: "11px"}}>
+                  <i className="fa fa-clipboard" />
+                </Button>
+              }
+            />
           </Col>
           <Col md={3}>
             <FormControl
