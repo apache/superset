@@ -30,6 +30,7 @@ with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 conf = app.config
 
 #################################################################
