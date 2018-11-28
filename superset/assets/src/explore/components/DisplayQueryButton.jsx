@@ -86,6 +86,13 @@ export default class DisplayQueryButton extends React.PureComponent {
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
+  prepareCopyToClipboardData(data) {
+    let result = '';
+    for (let i = 0; i < data.length; ++i) {
+      result += Object.values(data[i]).join('\t') + '\n';
+    }
+    return result;
+  }
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
@@ -124,13 +131,6 @@ export default class DisplayQueryButton extends React.PureComponent {
     }
     return null;
   }
-  prepareCopyToClipboardData(data) {
-    let result = '';
-    for(let i = 0; i < data.length; ++i) {
-      result += Object.values(data[i]).join('\t') + '\n';
-    }
-    return result;
-  }
   renderDataTable(data) {
     return (
       <div style={{ overflow: 'auto' }}>
@@ -141,7 +141,7 @@ export default class DisplayQueryButton extends React.PureComponent {
               text={this.prepareCopyToClipboardData(data)}
               wrapped={false}
               copyNode={
-                <Button style={{padding: "2px 10px", fontSize: "11px"}}>
+                <Button style={{ padding: '2px 10px', fontSize: '11px' }}>
                   <i className="fa fa-clipboard" />
                 </Button>
               }

@@ -157,8 +157,9 @@ export default class CopyToClipboard extends React.Component {
   }
 
   render() {
-    if(!this.props.wrapped)
-      return this.renderNotWrapped();
+    if (!this.props.wrapped) {
+        return this.renderNotWrapped();
+    }
     return this.props.inMenu ? this.renderInMenu() : this.renderLink();
   }
 }
