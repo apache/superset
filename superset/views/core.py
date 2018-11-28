@@ -2725,7 +2725,7 @@ class Superset(BaseSupersetView):
     def welcome(self):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
-            return redirect('/login')
+            return redirect(appbuilder.get_url_for_login)
 
         welcome_dashboard_id = (
             db.session
