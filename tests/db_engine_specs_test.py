@@ -1,6 +1,6 @@
-import mock
-
 import inspect
+
+import mock
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
