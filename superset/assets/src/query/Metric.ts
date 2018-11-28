@@ -1,6 +1,8 @@
 import Column from './Column';
 import FormData from './FormData';
 
+export const LABEL_MAX_LENGTH = 43;
+
 export enum MetricKey {
   METRIC = 'metric',
   METRICS = 'metrics',
@@ -90,6 +92,7 @@ export class Metrics {
     } else {
       label = metric.sqlExpression;
     }
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    return label.length <= LABEL_MAX_LENGTH ? label :
+      `${label.substring(0, LABEL_MAX_LENGTH - 3)}...`;
   }
 }
