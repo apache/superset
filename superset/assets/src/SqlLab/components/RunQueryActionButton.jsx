@@ -29,7 +29,28 @@ export default function RunQueryActionButton(props) {
     disabled: !(props.dbId),
   };
 
-  const syncBtn = (
+  if (shouldShowStopBtn) {
+    return (
+      <Button
+        {...commonBtnProps}
+        onClick={props.stopQuery}
+      >
+        <i className="fa fa-stop" /> {t('Stop')}
+      </Button>
+    );
+  } else if (props.allowAsync) {
+    return (
+      <Button
+        {...commonBtnProps}
+        onClick={() => props.runQuery(true)}
+        key="run-async-btn"
+        tooltip={t('Run query asynchronously')}
+        disabled={!props.sql.trim()}
+      >
+        <i className="fa fa-table" /> {runBtnText}
+      </Button>);
+  }
+  return (
     <Button
       {...commonBtnProps}
       onClick={() => props.runQuery(false)}
@@ -40,37 +61,6 @@ export default function RunQueryActionButton(props) {
       <i className="fa fa-refresh" /> {runBtnText}
     </Button>
   );
-
-  const asyncBtn = (
-    <Button
-      {...commonBtnProps}
-      onClick={() => props.runQuery(true)}
-      key="run-async-btn"
-      tooltip={t('Run query asynchronously')}
-      disabled={!props.sql.trim()}
-    >
-      <i className="fa fa-table" /> {runBtnText}
-    </Button>
-  );
-
-  const stopBtn = (
-    <Button
-      {...commonBtnProps}
-      onClick={props.stopQuery}
-    >
-      <i className="fa fa-stop" /> {t('Stop')}
-    </Button>
-  );
-
-  let button;
-  if (shouldShowStopBtn) {
-    button = stopBtn;
-  } else if (props.allowAsync) {
-    button = asyncBtn;
-  } else {
-    button = syncBtn;
-  }
-  return button;
 }
 
 RunQueryActionButton.propTypes = propTypes;
