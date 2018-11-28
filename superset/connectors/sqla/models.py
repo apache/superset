@@ -96,7 +96,7 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label=None):
         label = label if label else self.column_name
-        label = self.table.mutate_label(label)
+        label = self.table.get_label(label)
         if not self.expression:
             col = column(self.column_name).label(label)
         else:
@@ -118,7 +118,7 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
-        label = self.table.mutate_label(utils.DTTM_ALIAS)
+        label = self.table.get_label(utils.DTTM_ALIAS)
 
         pdf = self.python_date_format
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
@@ -230,7 +230,7 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label=None):
         label = label if label else self.metric_name
-        label = self.table.mutate_label(label)
+        label = self.table.get_label(label)
         return literal_column(self.expression).label(label)
 
     @property
@@ -304,7 +304,7 @@ class SqlaTable(Model, BaseDatasource):
         'MAX': sa.func.MAX,
     }
 
-    def mutate_label(self, label):
+    def get_label(self, label):
         """Conditionally mutate a label to conform to db engine requirements
         and store mapping from mutated label to original label
 
@@ -313,10 +313,10 @@ class SqlaTable(Model, BaseDatasource):
         by db engine
         """
         db_engine_spec = self.database.db_engine_spec
-        original_label = label
-        label, sqla_label = db_engine_spec.make_label_compatible(original_label)
-        if original_label != label:
-            self.mutated_labels[label] = original_label
+        sqla_label = db_engine_spec.make_label_compatible(label)
+        mutated_label = str(sqla_label)
+        if label != mutated_label:
+            self.mutated_labels[mutated_label] = label
         return sqla_label
 
     def __repr__(self):
@@ -519,7 +519,7 @@ class SqlaTable(Model, BaseDatasource):
         """
         expression_type = metric.get('expressionType')
         label = utils.get_metric_name(metric)
-        label = self.mutate_label(label)
+        label = self.get_label(label)
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
@@ -604,7 +604,7 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            label = self.mutate_label('ccount')
+            label = self.get_label('ccount')
             main_metric_expr = literal_column('COUNT(*)').label(label)
 
         select_exprs = []
@@ -730,7 +730,7 @@ class SqlaTable(Model, BaseDatasource):
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
-                label = self.mutate_label('mme_inner__')
+                label = self.get_label('mme_inner__')
                 inner_main_metric_expr = main_metric_expr.label(label)
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs)
@@ -762,7 +762,7 @@ class SqlaTable(Model, BaseDatasource):
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = self.mutate_label(gb + '__')
+                    col_name = self.get_label(gb + '__')
                     on_clause.append(groupby_exprs[i] == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))

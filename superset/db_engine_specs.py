@@ -378,13 +378,14 @@ class BaseEngineSpec(object):
     @classmethod
     def make_label_compatible(cls, label):
         """
-        Return a tuple containing the mutated label and a
-        sqlalchemy.sql.elements.quoted_name if the engine requires quoting of aliases
-        to ensure that select query and query results have same case.
+        Conditionally mutate and/or quote a sql column/expression label. If
+        force_column_alias_quotes is set to True, return the label as a
+        sqlalchemy.sql.elements.quoted_name object to ensure that the select query
+        and query results have same case. Otherwise return the mutated label as a
+        regular string.
         """
         label = cls.mutate_label(label)
-        sqla_label = quoted_name(label, True) if cls.force_column_alias_quotes else label
-        return label, sqla_label
+        return quoted_name(label, True) if cls.force_column_alias_quotes else label
 
     @staticmethod
     def mutate_label(label):
