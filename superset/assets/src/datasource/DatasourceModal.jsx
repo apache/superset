@@ -147,7 +147,7 @@ class DatasourceModal extends React.PureComponent {
               target="_blank"
               href={this.props.datasource.edit_url}
             >
-              {t('See Tableview Form')}
+              {t('Use Legacy Datasource Editor')}
             </Button>
           </span>
 
