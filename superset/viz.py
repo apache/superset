@@ -789,10 +789,13 @@ class CalHeatmapViz(BaseViz):
         data = {}
         records = df.to_dict('records')
         for metric in self.metric_labels:
-            data[metric] = {
-                str(obj[DTTM_ALIAS] / 10**9): obj.get(metric)
-                for obj in records
-            }
+            values = {}
+            for obj in records:
+                v = obj[DTTM_ALIAS]
+                if hasattr(v, 'value'):
+                    v = v.value
+                values[str(v / 10**9)] = obj.get(metric)
+            data[metric] = values
 
         start, end = utils.get_since_until(form_data.get('time_range'),
                                            form_data.get('since'),
