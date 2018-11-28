@@ -95,7 +95,7 @@ function Calendar(element, props) {
     cal.init({
       start: UTCTS(data.start),
       data: timestamps,
-      itemSelector: calContainer[0][0],
+      itemSelector: calContainer.node(),
       legendVerticalPosition: 'top',
       cellSize,
       cellPadding,

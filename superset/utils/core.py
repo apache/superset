@@ -358,6 +358,7 @@ def pessimistic_json_iso_dttm_ser(obj):
 
 def datetime_to_epoch(dttm):
     if dttm.tzinfo:
+        dttm = dttm.replace(tzinfo=pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)
         return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
@@ -837,7 +838,6 @@ def get_or_create_main_db():
         dbobj = models.Database(database_name='main')
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
     dbobj.expose_in_sqllab = True
-    dbobj.allow_run_sync = True
     dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
