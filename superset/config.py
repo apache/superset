@@ -83,7 +83,7 @@ FLASK_USE_RELOAD = True
 SHOW_STACKTRACE = True
 
 # Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
-ENABLE_PROXY_FIX = False
+ENABLE_PROXY_FIX = True
 
 # ------------------------------
 # GLOBALS FOR APP Builder
