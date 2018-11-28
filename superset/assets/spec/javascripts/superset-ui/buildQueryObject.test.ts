@@ -8,7 +8,7 @@ describe('queryObjectBuilder', () => {
     expect(query.granularity).toEqual('ds');
   });
 
-  it('should build granularity for sql alchemy datasources', () => {
+  it('should build granularity for sql druid datasources', () => {
     query = build({datasource: '5__druid', granularity: 'ds'});
     expect(query.granularity).toEqual('ds');
   });
