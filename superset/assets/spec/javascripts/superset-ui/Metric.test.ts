@@ -1,4 +1,7 @@
-import { AdhocMetric, Aggregate, ExpressionType, Metrics } from 'src/query/Metric';
+import { ColumnType } from 'src/query/Column';
+import {
+  AdhocMetric, Aggregate, ExpressionType, LABEL_MAX_LENGTH, Metrics,
+} from 'src/query/Metric';
 
 describe('Metrics', () => {
   let metrics: Metrics;
@@ -22,7 +25,7 @@ describe('Metrics', () => {
       column: {
         columnName: 'sum_girls',
         id: 5,
-        type: 'BIGINT',
+        type: ColumnType.BIGINT,
       },
       expressionType: ExpressionType.SIMPLE,
     };
@@ -35,7 +38,7 @@ describe('Metrics', () => {
       column: {
         columnName: 'sum_girls',
         id: 5,
-        type: 'BIGINT',
+        type: ColumnType.BIGINT,
       },
       expressionType: 'SIMPLE',
       label: 'AVG(sum_girls)',
@@ -87,6 +90,6 @@ describe('Metrics', () => {
       ...formData,
       metric: adhocMetric,
     });
-    expect(metrics.getLabels()).toEqual(['COUNT(verrrrrrrrry_loooooooooooooooooooo...']);
+    expect(metrics.getLabels()[0].length).toBeLessThanOrEqual(LABEL_MAX_LENGTH);
   });
 });
