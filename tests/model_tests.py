@@ -79,7 +79,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         expected = textwrap.dedent(f"""\
         SELECT *
         FROM {table_name}
-        LIMIT 100"""
+        LIMIT 100""")
         assert sql.startswith(expected)
 
         sql = main_db.select_star(
@@ -89,7 +89,7 @@ class DatabaseModelTestCase(SupersetTestCase):
                target,
                value
         FROM energy_usage
-        LIMIT 100"""
+        LIMIT 100""")
         assert sql.startswith(expected)
 
     def test_grains_dict(self):

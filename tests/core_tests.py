@@ -478,7 +478,7 @@ class CoreTests(SupersetTestCase):
         self.login('admin')
         dbid = get_main_database(db.session).id
         self.get_json_resp(
-            '/superset/extra_table_metadata/{dbid}/'
+            f'/superset/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/')
 
     def test_process_template(self):

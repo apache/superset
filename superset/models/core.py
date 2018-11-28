@@ -1207,7 +1207,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self):
         action_list = ''
-        for r in self.created_by.roles:
+        for r in self.created_by.roles:  # pylint: disable=no-member
             # pylint: disable=no-member
             url = (
                 f'/superset/approve?datasource_type={self.datasource_type}&'
