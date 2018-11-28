@@ -1,4 +1,4 @@
-import { round as d3Round } from 'd3-format';
+import { roundDecimal } from '../modules/utils';
 
 export const defaultViewport = {
   longitude: 6.85236157047845,
@@ -35,5 +35,5 @@ export function kmToPixels(kilometers, latitude, zoomLevel) {
   const latitudeRad = latitude * (Math.PI / 180);
   // Seems like the zoomLevel is off by one
   const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / Math.pow(2, zoomLevel + 9);
-  return d3Round(kilometers / kmPerPixel, 2);
+  return roundDecimal(kilometers / kmPerPixel, 2);
 }
