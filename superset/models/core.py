@@ -298,6 +298,17 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             force=force,
         )
 
+    @property
+    def icons(self):
+        return f"""
+        <a
+                href="{self.datasource_edit_url}"
+                data-toggle="tooltip"
+                title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """
+
     @classmethod
     def import_obj(cls, slc_to_import, slc_to_override, import_time=None):
         """Inserts or overrides slc in the database.
@@ -1183,6 +1194,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
+            # pylint: disable=no-member
             url = (
                 f'/superset/approve?datasource_type={self.datasource_type}&'
                 f'datasource_id={self.datasource_id}&'
@@ -1195,7 +1207,8 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self):
         action_list = ''
-        for r in self.created_by.roles:  # pylint: disable=no-member
+        for r in self.created_by.roles:
+            # pylint: disable=no-member
             url = (
                 f'/superset/approve?datasource_type={self.datasource_type}&'
                 f'datasource_id={self.datasource_id}&'
