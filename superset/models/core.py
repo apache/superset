@@ -629,8 +629,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
-    expose_in_sqllab = Column(Boolean, default=False)
-    allow_run_sync = Column(Boolean, default=True)
+    expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
@@ -648,7 +647,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
-                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'expose_in_sqllab', 'allow_run_async',
                      'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 

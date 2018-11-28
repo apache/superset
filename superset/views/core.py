@@ -136,15 +136,15 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     edit_title = _('Edit Database')
 
     list_columns = [
-        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
+        'database_name', 'backend', 'allow_run_async',
         'allow_dml', 'allow_csv_upload', 'expose_in_sqllab', 'creator', 'modified']
     order_columns = [
-        'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
+        'database_name', 'allow_run_async', 'allow_dml',
         'modified', 'allow_csv_upload', 'expose_in_sqllab',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
-        'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
+        'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
         'allow_multi_schema_metadata_fetch', 'extra',
     ]
@@ -175,14 +175,13 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
-        'allow_run_sync': _(
-            'Allow users to run synchronous queries, this is the default '
-            'and should work well for queries that can be executed '
-            'within a web request scope (<~1 minute)'),
         'allow_run_async': _(
-            'Allow users to run queries, against an async backend. '
+            'Operate the database in asynchronous mode, meaning  '
+            'that the queries are executed on remote workers as opposed '
+            'to on the web server itself. '
             'This assumes that you have a Celery worker setup as well '
-            'as a results backend.'),
+            'as a results backend. Refer to the installation docs '
+            'for more information.'),
         'allow_ctas': _('Allow CREATE TABLE AS option in SQL Lab'),
         'allow_dml': _(
             'Allow users to run non-SELECT statements '
@@ -240,8 +239,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': _('SQLAlchemy URI'),
         'cache_timeout': _('Chart Cache Timeout'),
         'extra': _('Extra'),
-        'allow_run_sync': _('Allow Run Sync'),
-        'allow_run_async': _('Allow Run Async'),
+        'allow_run_async': _('Asynchronous Query Execution'),
         'impersonate_user': _('Impersonate the logged on user'),
         'allow_csv_upload': _('Allow Csv Upload'),
         'modified': _('Modified'),
@@ -311,7 +309,7 @@ class DatabaseAsync(DatabaseView):
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
-        'allow_run_async', 'allow_run_sync', 'allow_dml',
+        'allow_run_async', 'allow_dml',
         'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
         'allows_subquery',
     ]
