@@ -1,5 +1,7 @@
 import inspect
 
+import mock
+
 from superset import db_engine_specs
 from superset.db_engine_specs import (
     BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
@@ -284,3 +286,9 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
                 intersection = time_grains.intersection(defined_time_grains)
                 self.assertSetEqual(defined_time_grains, intersection, cls_name)
+
+    def test_presto_get_view_names_return_empty_list(self):
+        self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
+
+    def test_hive_get_view_names_return_empty_list(self):
+        self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
