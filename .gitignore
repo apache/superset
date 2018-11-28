@@ -45,13 +45,6 @@ yarn-error.log
 venv
 @eaDir/
 
-# docker
-/Dockerfile
-/docker-build.sh
-/docker-compose.yml
-/docker-entrypoint.sh
-/docker-init.sh
-
 # Test data
 celery_results.sqlite
 celerybeat-schedule
