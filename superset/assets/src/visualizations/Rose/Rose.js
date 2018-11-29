@@ -60,7 +60,7 @@ function Rose(element, props) {
   const numGroups = datum[times[0]].length;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();
