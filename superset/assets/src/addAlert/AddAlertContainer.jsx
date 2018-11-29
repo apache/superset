@@ -90,8 +90,11 @@ export default class AddAlertContainer extends React.Component {
   }
 
   handleNameChange(event) {
-    // console.log(this.state)
     this.setState({name: event.target.value});
+  }
+
+  handleDescriptionChange(event) {
+    this.setState({description: event.target.value});
   }
 
   handleTagNameChange(event) {
@@ -110,6 +113,7 @@ export default class AddAlertContainer extends React.Component {
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
+      description: this.state.description,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     }
     this.sendPostRequest(data)
@@ -185,19 +189,19 @@ export default class AddAlertContainer extends React.Component {
     ]
     return (
       <div className="container">
-        <Panel header={<h3>{t('Create a new alert')}</h3>}>
+        <Panel header={<h3>{t('Create a new scheduled query')}</h3>}>
           <form>
             <div>
               <p>Name</p>
               <label>
                 <input
                   type="text"
-                  placeholder="Alert name"
+                  placeholder="Scheduled query name"
                   style={{
                     marginRight: 20,
                     width: 300,
                     height: 30,
-                    borderRadius: 3,
+                    borderRadius: 4,
                     borderStyle: "solid",
                     borderColor: "#d2d2d2",
                     borderWidth: "1",
@@ -207,6 +211,25 @@ export default class AddAlertContainer extends React.Component {
                   onChange={this.handleNameChange.bind(this)}
                 />
               </label>
+            </div>
+            <hr />
+            <div>
+              <p>Description</p>
+              <textarea
+                placeholder="Scheduled query description"
+                style={{
+                  marginRight: 20,
+                  width: "80%",
+                  height: 70,
+                  borderRadius: 4,
+                  borderStyle: "solid",
+                  borderColor: "#d2d2d2",
+                  borderWidth: "1",
+                  padding: 10
+                }}
+                value={this.state.description}
+                onChange={this.handleDescriptionChange.bind(this)}
+              />
             </div>
             <hr />
             <div>
@@ -320,7 +343,7 @@ export default class AddAlertContainer extends React.Component {
                   label="invalid-json"
                 />
               }
-              {t(' Create new alert')}
+              {t(' Create new scheduled query')}
             </Button>
             <br /><br />
           </form>

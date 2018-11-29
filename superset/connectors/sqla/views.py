@@ -339,11 +339,11 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
 
     datamodel = SQLAInterface(models.Alert)
 
-    list_title = 'List Alerts'
-    show_title = 'Show Alert'
-    add_title = 'Import a alert definition'
-    edit_title = 'Edit Alert'
-    list_columns = ['name', 'params']
+    list_title = 'List Scheduled Queries'
+    show_title = 'Show Scheduled Queries'
+    add_title = 'Import a Scheduled Queries Definition'
+    edit_title = 'Edit Scheduled Queries'
+    list_columns = ['name', 'description', 'params', 'created_by', 'changed_on']
     can_delete = True
 
     @expose('/create', methods=['POST'])
@@ -356,6 +356,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert.params = data['params']
         alert.interval = data['interval']
         alert.tags = data['tags']
+        alert.description = data['description']
         db.session.add(alert)
         db.session.commit()
         return jsonify(success=True)
@@ -384,9 +385,9 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     AlertModelView,
-    'Alerts',
-    label='Alerts',
-    icon='fa-exclamation-circle',
+    'Scheduled Queries',
+    label='Scheduled Queries',
+    icon='fa-clock-o',
     category='',
     category_label='',
     category_icon='')
