@@ -5,16 +5,17 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap",
-    "build": "yarn run build:cjs && yarn run build:esm",
+    "build": "yarn run build:cjs && yarn run build:esm && yarn run build:ts",
     "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx}\"",
+    "build:ts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/connection\"",
+    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage",
     "postrelease": "lerna run gh-pages",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
     "prerelease": "yarn run build",
     "pretest": "yarn run lint",
-    "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,json,md}\"",
+    "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
     "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
     "test": "yarn run jest",
     "test:watch": "beemo create-config jest && jest --watch"
@@ -34,7 +35,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.28",
+    "@data-ui/build-config": "^0.0.31",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
@@ -54,7 +55,8 @@
           "NODE_ENV": "test"
         }
       },
-      "prettier"
+      "prettier",
+      "typescript"
     ],
     "jest": {
       "testPathIgnorePatterns": [
@@ -66,7 +68,7 @@
           "displayName": "node",
           "rootDir": "<rootDir>/packages/generator-superset",
           "testMatch": [
-            "<rootDir>/test/**/?(*.)+(spec|test).{js,jsx}"
+            "<rootDir>/test/**/?(*.)+(spec|test).{js,jsx,ts,tsx}"
           ],
           "testEnvironment": "node"
         }
@@ -82,7 +84,7 @@
     }
   },
   "lint-staged": {
-    "./packages/*/{src,test,storybook}/**/*.{js,jsx,json,md}": [
+    "./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}": [
       "yarn run prettier --write",
       "git add"
     ]

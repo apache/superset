@@ -4,6 +4,7 @@ import callApi from '../../src/callApi/callApi';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
+import { CallApi } from '../../src/types';
 
 describe('callApi()', () => {
   beforeAll(() => {
@@ -41,16 +42,16 @@ describe('callApi()', () => {
     it('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', () => {
       expect.assertions(8);
 
-      const mockRequest = {
+      const mockRequest: CallApi = {
         url: mockGetUrl,
-        mode: 'my-mode',
-        cache: 'cash money',
-        credentials: 'mad cred',
+        mode: 'cors',
+        cache: 'default',
+        credentials: 'include',
         headers: {
           custom: 'header',
         },
-        redirect: 'no thanks',
-        signal: () => {},
+        redirect: 'follow',
+        signal: undefined,
         body: 'BODY',
       };
 
