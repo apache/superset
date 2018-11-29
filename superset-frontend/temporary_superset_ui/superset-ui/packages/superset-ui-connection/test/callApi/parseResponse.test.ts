@@ -94,7 +94,7 @@ describe('parseResponse()', () => {
 
     const apiPromise = callApi({ url: mockNoParseUrl, method: 'GET' });
 
-    return parseResponse(apiPromise, null).then(response => {
+    return parseResponse(apiPromise, null).then((response: Response) => {
       expect(fetchMock.calls(mockNoParseUrl)).toHaveLength(1);
       expect(response.bodyUsed).toBe(false);
 

@@ -1,26 +1,25 @@
 import 'whatwg-fetch';
-
-const DEFAULT_HEADERS = null;
+import { CallApi } from '../types';
 
 // This function fetches an API response and returns the corresponding json
 export default function callApi({
-  url,
-  method = 'GET', // GET, POST, PUT, DELETE
-  mode = 'same-origin', // no-cors, cors, same-origin
-  cache = 'default', // default, no-cache, reload, force-cache, only-if-cached
-  credentials = 'same-origin', // include, same-origin, omit
-  headers: partialHeaders,
   body,
+  cache = 'default',
+  credentials = 'same-origin',
+  headers,
+  method = 'GET',
+  mode = 'same-origin',
   postPayload,
+  redirect = 'follow',
+  signal,
   stringify = true,
-  redirect = 'follow', // manual, follow, error
-  signal, // used for aborting
-}) {
-  let request = {
+  url,
+}: CallApi): Promise<Response> {
+  const request = {
     body,
     cache,
     credentials,
-    headers: { ...DEFAULT_HEADERS, ...partialHeaders },
+    headers,
     method,
     mode,
     redirect,
@@ -30,18 +29,16 @@ export default function callApi({
   if (method === 'POST' && typeof postPayload === 'object') {
     // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
     // not e.g., 'application/x-www-form-urlencoded'
-    const formData = new FormData();
+    const formData: FormData = new FormData();
+
     Object.keys(postPayload).forEach(key => {
       const value = postPayload[key];
       if (typeof value !== 'undefined') {
-        formData.append(key, stringify ? JSON.stringify(postPayload[key]) : postPayload[key]);
+        formData.append(key, stringify ? JSON.stringify(value) : value);
       }
     });
 
-    request = {
-      ...request,
-      body: formData,
-    };
+    request.body = formData;
   }
 
   return fetch(url, request); // eslint-disable-line compat/compat
