@@ -1,7 +1,6 @@
 import fetchMock from 'fetch-mock';
 
-import PublicAPI, { SupersetClient } from '../src/SupersetClient';
-
+import PublicAPI, { SupersetClient, ClientConfig } from '../src/SupersetClient';
 import throwIfCalled from './utils/throwIfCalled';
 import { LOGIN_GLOB } from './fixtures/constants';
 
@@ -51,16 +50,16 @@ describe('SupersetClient', () => {
       const csrfSpy = jest.spyOn(SupersetClient.prototype, 'getCSRFToken');
 
       PublicAPI.configure({});
-      expect(authenticatedSpy).toHaveBeenCalledTimes(1);
-
       PublicAPI.init();
+
       expect(initSpy).toHaveBeenCalledTimes(1);
+      expect(authenticatedSpy).toHaveBeenCalledTimes(1);
       expect(csrfSpy).toHaveBeenCalledTimes(1);
 
       PublicAPI.get({ url: mockGetUrl });
       PublicAPI.post({ url: mockPostUrl });
       PublicAPI.isAuthenticated();
-      PublicAPI.reAuthenticate({});
+      PublicAPI.reAuthenticate();
 
       expect(initSpy).toHaveBeenCalledTimes(2);
       expect(getSpy).toHaveBeenCalledTimes(1);
@@ -78,6 +77,35 @@ describe('SupersetClient', () => {
   });
 
   describe('SupersetClient', () => {
+    describe('getUrl', () => {
+      let client;
+      beforeEach(() => {
+        client = new SupersetClient({ protocol: 'https:', host: 'CONFIG_HOST' });
+      });
+
+      it('uses url if passed', () => {
+        expect(client.getUrl({ url: 'myUrl', endpoint: 'blah', host: 'blah' })).toBe('myUrl');
+      });
+
+      it('constructs a valid url from config.protocol + host + endpoint if passed', () => {
+        expect(client.getUrl({ endpoint: '/test', host: 'myhost' })).toBe('https://myhost/test');
+        expect(client.getUrl({ endpoint: '/test', host: 'myhost/' })).toBe('https://myhost/test');
+        expect(client.getUrl({ endpoint: 'test', host: 'myhost' })).toBe('https://myhost/test');
+        expect(client.getUrl({ endpoint: '/test/test//', host: 'myhost/' })).toBe(
+          'https://myhost/test/test//',
+        );
+      });
+
+      it('constructs a valid url from config.host + endpoint if host is omitted', () => {
+        expect(client.getUrl({ endpoint: '/test' })).toBe('https://CONFIG_HOST/test');
+      });
+
+      it('does not throw if url, endpoint, and host are', () => {
+        client = new SupersetClient({ protocol: 'https:', host: '' });
+        expect(client.getUrl()).toBe('https:///');
+      });
+    });
+
     describe('CSRF', () => {
       afterEach(fetchMock.reset);
 
@@ -270,14 +298,14 @@ describe('SupersetClient', () => {
 
     describe('requests', () => {
       afterEach(fetchMock.reset);
-      const protocol = 'PROTOCOL';
+      const protocol = 'https:';
       const host = 'HOST';
       const mockGetEndpoint = '/get/url';
       const mockPostEndpoint = '/post/url';
       const mockTextEndpoint = '/text/endpoint';
-      const mockGetUrl = `${protocol}://${host}${mockGetEndpoint}`;
-      const mockPostUrl = `${protocol}://${host}${mockPostEndpoint}`;
-      const mockTextUrl = `${protocol}://${host}${mockTextEndpoint}`;
+      const mockGetUrl = `${protocol}//${host}${mockGetEndpoint}`;
+      const mockPostUrl = `${protocol}//${host}${mockPostEndpoint}`;
+      const mockTextUrl = `${protocol}//${host}${mockTextEndpoint}`;
       const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
 
       fetchMock.get(mockGetUrl, { json: 'payload' });
@@ -306,11 +334,11 @@ describe('SupersetClient', () => {
 
       it('sets protocol, host, headers, mode, and credentials from config', () => {
         expect.assertions(3);
-        const clientConfig = {
+        const clientConfig: ClientConfig = {
           host,
           protocol,
-          mode: 'a la mode',
-          credentials: 'mad cred',
+          mode: 'cors',
+          credentials: 'include',
           headers: { my: 'header' },
         };
 
@@ -367,18 +395,18 @@ describe('SupersetClient', () => {
 
         it('allows overriding host, headers, mode, and credentials per-request', () => {
           expect.assertions(3);
-          const clientConfig = {
+          const clientConfig: ClientConfig = {
             host,
             protocol,
-            mode: 'a la mode',
-            credentials: 'mad cred',
+            mode: 'cors',
+            credentials: 'include',
             headers: { my: 'header' },
           };
 
-          const overrideConfig = {
+          const overrideConfig: ClientConfig = {
             host: 'override_host',
-            mode: 'override mode',
-            credentials: 'override credentials',
+            mode: 'no-cors',
+            credentials: 'omit',
             headers: { my: 'override', another: 'header' },
           };
 
@@ -423,18 +451,18 @@ describe('SupersetClient', () => {
         });
 
         it('allows overriding host, headers, mode, and credentials per-request', () => {
-          const clientConfig = {
+          const clientConfig: ClientConfig = {
             host,
             protocol,
-            mode: 'a la mode',
-            credentials: 'mad cred',
+            mode: 'cors',
+            credentials: 'include',
             headers: { my: 'header' },
           };
 
-          const overrideConfig = {
+          const overrideConfig: ClientConfig = {
             host: 'override_host',
-            mode: 'override mode',
-            credentials: 'override credentials',
+            mode: 'no-cors',
+            credentials: 'omit',
             headers: { my: 'override', another: 'header' },
           };
 

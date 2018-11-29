@@ -1,5 +1,6 @@
 {
   "rules": {
-    "prefer-promise-reject-errors": "off"
+    "prefer-promise-reject-errors": "off",
+    "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }]
   }
 }
