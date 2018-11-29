@@ -3,6 +3,8 @@ import FormData from './FormData';
 
 export const LABEL_MAX_LENGTH = 43;
 
+// Note that the values of MetricKeys are lower_snake_case because they're
+// used as keys of form data jsons.
 export enum MetricKey {
   METRIC = 'metric',
   METRICS = 'metrics',
