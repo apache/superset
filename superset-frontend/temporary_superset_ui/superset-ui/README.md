@@ -1,11 +1,11 @@
 # @superset-ui
 
-[![Codecov](http://codecov.io/github/apache-superset/superset-ui/coverage.svg?branch=master)](http://codecov.io/github/apache-superset/superset-ui/coverage.svg?branch=master)
+[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui/master.svg?style=flat-square)](http://codecov.io/github/apache-superset/superset-ui/coverage.svg?branch=master)
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui?type=dev)
 
-Collection of packages that power the Apache Superset UI, and can be used to craft custom data
+Collection of packages that power the [Apache Superset](https://github.com/apache/incubator-superset) UI, and can be used to craft custom data
 applications that leverage a Superset backend :chart_with_upwards_trend:
 
 ## Packages
