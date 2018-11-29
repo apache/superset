@@ -8,6 +8,7 @@ export default class NumberFormatter extends ExtensibleFunction {
     label,
     description = '',
     formatFunc = isRequired('config.formatFunc'),
+    isInvalid = false,
   } = {}) {
     super((...args) => this.format(...args));
 
@@ -15,6 +16,7 @@ export default class NumberFormatter extends ExtensibleFunction {
     this.label = label || id;
     this.description = description;
     this.formatFunc = formatFunc;
+    this.isInvalid = isInvalid;
   }
 
   format(value) {
