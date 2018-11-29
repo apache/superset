@@ -211,7 +211,6 @@ class Chart extends React.PureComponent {
             chartProps={skipChartRendering ? null : this.prepareChartProps()}
             onRenderSuccess={this.handleRenderSuccess}
             onRenderFailure={this.handleRenderFailure}
-            skipRendering={skipChartRendering}
           />
         </div>
       </ErrorBoundary>
