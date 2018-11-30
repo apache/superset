@@ -9,7 +9,7 @@ export default function createSiAtMostNDigitFormatter({ description, n = 3, id, 
     formatFunc: value => {
       const si = siFormatter(value);
 
-      // Removing trailing `.00` if any
+      /* Removing trailing `.00` if any */
       return si.slice(-1) < 'A' ? parseFloat(si).toString() : si;
     },
     id: id || `si_at_most_${n}_digit`,

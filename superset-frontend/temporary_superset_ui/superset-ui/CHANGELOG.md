@@ -1,5 +1,16 @@
 # @superset-ui -- Changelog
 
+## v0.7.1
+
+### ✨ Features
+
+* Add new APIs to `@superset-ui/time-format`
+  - `createD3TimeFormatter`
+  - `createMultiFormatter`
+* Add new APIs to `@superset-ui/number-format`
+  - `createD3NumberFormatter`
+  - `createSiAtMostNDigitFormatter`
+
 ## v0.7.0
 
 ### ✨ Features

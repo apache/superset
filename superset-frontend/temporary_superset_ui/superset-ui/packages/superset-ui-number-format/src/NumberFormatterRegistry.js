@@ -1,13 +1,11 @@
 import { RegistryWithDefaultKey } from '@superset-ui/core';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
-import { SI_3_DIGIT } from './NumberFormats';
-
-const DEFAULT_FORMAT = SI_3_DIGIT;
+import NumberFormats from './NumberFormats';
 
 export default class NumberFormatterRegistry extends RegistryWithDefaultKey {
   constructor() {
     super({
-      initialDefaultKey: DEFAULT_FORMAT,
+      initialDefaultKey: NumberFormats.SI,
       name: 'NumberFormatter',
     });
   }
