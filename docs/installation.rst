@@ -559,6 +559,18 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
+DOMAIN SHARDING
+---------------
+
+Chrome allows up to 6 open connections per domain at a time. When there are more
+than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
+next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/pull/5039>`) adds domain sharding to Superset,
+and this feature will be enabled by configuration only (by default Superset
+doesn't allow cross-domain request).
+
+*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
+
+
 MIDDLEWARE
 ----------
 
