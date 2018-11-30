@@ -23,7 +23,7 @@ const defaultNumberFormatter = createSiAtMostNDigitFormatter();
  * Otherwise, format number with the given format name
  * @param {*} format
  */
-export function d3FormatPreset(format) {
+export function getTimeOrNumberFormatter(format) {
   if (format === 'smart_date') {
     return smartDateFormatter;
   }

@@ -16,12 +16,12 @@ import { isTruthy } from '../../utils/common';
 import {
   cleanColorInput,
   computeBarChartWidth,
-  d3FormatPreset,
   drawBarValues,
   generateBubbleTooltipContent,
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   getMaxLabelSize,
+  getTimeOrNumberFormatter,
   hideTooltips,
   tipFactory,
   tryNumify,
@@ -379,8 +379,8 @@ function nvd3Vis(element, props) {
             xField,
             yField,
             sizeField,
-            xFormatter: d3FormatPreset(xAxisFormat),
-            yFormatter: d3FormatPreset(yAxisFormat),
+            xFormatter: getTimeOrNumberFormatter(xAxisFormat),
+            yFormatter: getTimeOrNumberFormatter(yAxisFormat),
             sizeFormatter: formatter,
           }));
         chart.pointRange([5, maxBubbleSize ** 2]);
@@ -464,7 +464,7 @@ function nvd3Vis(element, props) {
       // In tooltips, always use the verbose time format
       chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
     } else {
-      xAxisFormatter = d3FormatPreset(xAxisFormat);
+      xAxisFormatter = getTimeOrNumberFormatter(xAxisFormat);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
@@ -474,7 +474,7 @@ function nvd3Vis(element, props) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    let yAxisFormatter = d3FormatPreset(yAxisFormat);
+    let yAxisFormatter = getTimeOrNumberFormatter(yAxisFormat);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (contribution || comparisonType === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format

@@ -1,4 +1,4 @@
-import { d3FormatPreset, formatLabel, tryNumify } from '../../../../src/visualizations/nvd3/utils';
+import { getTimeOrNumberFormatter, formatLabel, tryNumify } from '../../../../src/visualizations/nvd3/utils';
 
 describe('nvd3/utils', () => {
   const verboseMap = {
@@ -8,10 +8,10 @@ describe('nvd3/utils', () => {
 
   describe('d3FormatPreset', () => {
     it('is a function', () => {
-      expect(typeof d3FormatPreset).toBe('function');
+      expect(typeof getTimeOrNumberFormatter).toBe('function');
     });
     it('returns a working formatter', () => {
-      expect(d3FormatPreset('.3s')(3000000)).toBe('3.00M');
+      expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
     });
   });
 
