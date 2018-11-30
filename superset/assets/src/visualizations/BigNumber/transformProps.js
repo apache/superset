@@ -28,7 +28,7 @@ export default function transformProps(chartProps) {
 
   let bigNumber;
   let trendLineData;
-  const metricName = metric.label || metric;
+  const metricName = metric && metric.label ? metric.label : metric;
   const compareLag = +compareLagInput || 0;
   const supportTrendLine = vizType === 'big_number';
   const supportAndShowTrendLine = supportTrendLine && showTrendLine;
