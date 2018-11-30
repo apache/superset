@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import { availableDomains } from '../utils/hostNamesConfig';
+import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 
 export function getChartKey(explore) {
   const slice = explore.slice;
@@ -36,6 +37,10 @@ export function getURIDirectory(formData, endpointType = 'base') {
   let directory = '/superset/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
     directory = '/superset/explore_json/';
+  }
+  // const buildQueryRegistry = getChartBuildQueryRegistry();
+  if (formData.viz_type === 'word_cloud') {
+    directory = '/api/v1/query/';
   }
   return directory;
 }
@@ -115,7 +120,13 @@ export function getExploreUrlAndPayload({
     });
   }
   uri = uri.search(search).directory(directory);
-  const payload = { ...formData };
+  let payload = { form_data: { ...formData } };
+
+  const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+  if (buildQuery) {
+    console.log(formData);
+    payload = { query_context: buildQuery(formData) };
+  }
 
   return {
     url: uri.toString(),
