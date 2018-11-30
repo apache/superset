@@ -10,7 +10,7 @@ from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 import simplejson as json
 from superset import appbuilder, db, security_manager, utils
-from superset.connectors.sqla.models import Alert
+from superset.connectors.sqla.models import Alert, SqlaTable
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
@@ -378,16 +378,12 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         if request.method == 'POST':
             data = request.get_json()
             modified_alert = self.datamodel.get(data['edit_id'])
-            modified_alert.name = data['name']
-            modified_alert.table_id = data['table_id']
-            modified_alert.params = data['params']
-            modified_alert.interval = data['interval']
-            modified_alert.tags = data['tags']
-            modified_alert.description = data['description']
+            for attribute in data:
+                setattr(modified_alert, attribute, data[attribute])
             db.session.commit()
             return jsonify(success=True)
         else:
-            datasources = ConnectorRegistry.get_all_datasources(db.session)
+            datasources = db.session.query(SqlaTable).all()
             datasources = [
                 {"value": str(d.id) + "__" + d.type, "label": repr(d)}
                 for d in datasources
@@ -417,7 +413,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET'])
     @has_access
     def add(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = db.session.query(SqlaTable).all()
         datasources = [
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
             for d in datasources
