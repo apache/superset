@@ -255,10 +255,13 @@ class TimePeriod(enum.Enum):
     day = 60 * 24
 
 
-class ExecutionType(enum.Enum):
-    alert = 1
-    table = 2
-
+alert = 'alert'
+table = 'table'
+execution_type_dict = {
+    alert: 1,
+    table: 2,
+}
+ExecutionType = enum.Enum('ExecutionType', execution_type_dict)
 
 class Alert(Model, AuditMixinNullable):
     __tablename__ = 'alert'
