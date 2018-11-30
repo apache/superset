@@ -47,7 +47,7 @@ function Sankey(element, props) {
     .attr('class', 'sankey-tooltip')
     .style('opacity', 0);
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const sankey = d3Sankey()
     .nodeWidth(15)

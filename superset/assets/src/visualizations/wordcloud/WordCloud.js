@@ -48,7 +48,7 @@ function WordCloud(element, props) {
     .fontWeight('bold')
     .fontSize(d => scale(d.size));
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   function draw(words) {
     chart.selectAll('*').remove();
