@@ -432,16 +432,16 @@
   dependencies:
     lodash "^4.17.11"
 
-"@superset-ui/number-format@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/number-format/-/number-format-0.7.0.tgz#4b8bec9a07615aac9df9963f4574f4c7a5bda0f5"
+"@superset-ui/number-format@^0.7.1":
+  version "0.7.1"
+  resolved "https://registry.yarnpkg.com/@superset-ui/number-format/-/number-format-0.7.1.tgz#5117395c1f667d901f7077b3298cf5381f402d3d"
   dependencies:
     "@superset-ui/core" "^0.7.0"
     d3-format "^1.3.2"
 
-"@superset-ui/time-format@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/time-format/-/time-format-0.7.0.tgz#9cc47f4553d29a1cf4dfc4c62d849862eee76965"
+"@superset-ui/time-format@^0.7.1":
+  version "0.7.1"
+  resolved "https://registry.yarnpkg.com/@superset-ui/time-format/-/time-format-0.7.1.tgz#0342bd708b3b82e6c9c64d2e0f7627204ccb13e3"
   dependencies:
     "@superset-ui/core" "^0.7.0"
     d3-time "^1.0.10"
