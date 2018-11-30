@@ -23,9 +23,9 @@ class Api(BaseSupersetView):
         for the given query_obj.
         """
         query_context = QueryContext(**json.loads(request.form.get('query_context')))
-        security_manager.assert_datasource_permission(query_context.datasource, g.user)
+        security_manager.assert_datasource_permission(query_context.datasource)
         payload_json = query_context.get_payload()
-        return data_payload_response(payload_json)
+        return json.dumps(payload_json)
 
 
 appbuilder.add_view_no_menu(Api)

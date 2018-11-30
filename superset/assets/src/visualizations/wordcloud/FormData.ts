@@ -3,6 +3,8 @@ import { FormData as GenericFormData } from 'src/query';
 // FormData specific to the wordcloud viz
 interface WordCloudFormData {
   series: string;
+  metric: string;
+  time_range: string;
 }
 
 // FormData for wordcloud contains both common properties of all form data

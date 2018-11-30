@@ -21,7 +21,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: transformData(payload.data, formData),
+    data: transformData(payload[0].data, formData),
     colorScheme,
     rotation,
     sizeRange: [sizeFrom, sizeTo],
