@@ -1,8 +1,5 @@
-import { getNumberFormatterRegistry } from '@superset-ui/number-format';
-import createD3NumberFormatter from '@superset-ui/number-format/esm/factories/createD3NumberFormatter';
-import { getTimeFormatterRegistry } from '@superset-ui/time-format';
-import smartDateFormatter from '@superset-ui/time-format/lib/formatters/smartDate';
-import smartDateVerboseFormatter from '@superset-ui/time-format/lib/formatters/smartDateVerbose';
+import { getNumberFormatterRegistry, createD3NumberFormatter } from '@superset-ui/number-format';
+import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 
 export default function setupFormatters() {
   getNumberFormatterRegistry().registerValue('+,', createD3NumberFormatter({

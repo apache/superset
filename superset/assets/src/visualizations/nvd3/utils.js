@@ -1,9 +1,8 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
-import { getNumberFormatter } from '@superset-ui/number-format';
-import createSiAtMostNDigitFormatter from '@superset-ui/number-format/lib/factories/createSiAtMostNDigitFormatter';
-import smartDateFormatter from '@superset-ui/time-format/lib/formatters/smartDate';
+import { getNumberFormatter, createSiAtMostNDigitFormatter } from '@superset-ui/number-format';
+import { smartDateFormatter } from '@superset-ui/time-format';
 
 // Regexp for the label added to time shifted series
 // (1 hour offset, 2 days offset, etc.)
@@ -32,7 +31,7 @@ export function d3FormatPreset(format) {
 }
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
-  const format = d3.format(axisFormat || '.3s');
+  const format = getNumberFormatter(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
