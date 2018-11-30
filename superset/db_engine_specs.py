@@ -394,7 +394,9 @@ class BaseEngineSpec(object):
         and special characters, like commas, parentheses etc. For engines that
         have restrictions on what types of aliases are supported, this method
         can be overridden to ensure that labels conform to the engine's
-        limitations.
+        limitations. Mutated labels should be deterministic (input label A always
+        yields output label X) and unique (input labels A and B don't yield the same
+        output label X).
         """
         return label
 
