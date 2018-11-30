@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import Datamap from 'datamaps/dist/datamaps.world.min';
-import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import './WorldMap.css';
 
 const propTypes = {
@@ -18,7 +18,7 @@ const propTypes = {
   showBubbles: PropTypes.bool,
 };
 
-const formatter = getNumberFormatter(NumberFormats.SI_3_DIGIT);
+const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {

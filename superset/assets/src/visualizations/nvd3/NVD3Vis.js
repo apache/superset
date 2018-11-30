@@ -177,7 +177,7 @@ const propTypes = {
 };
 
 const NOOP = () => {};
-const formatter = getNumberFormatter('.3s');
+const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
@@ -344,7 +344,7 @@ function nvd3Vis(element, props) {
         if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${formatNumber(NumberFormats.SI_3_DIGIT, d.data.y)}`);
+          chart.labelType(d => `${d.data.x}: ${formatNumber(NumberFormats.SI, d.data.y)}`);
         }
 
         if (pieLabelType === 'percent' || pieLabelType === 'key_percent') {

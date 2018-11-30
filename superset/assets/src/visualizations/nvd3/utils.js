@@ -31,7 +31,7 @@ export function getTimeOrNumberFormatter(format) {
 }
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
-  const format = getNumberFormatter(axisFormat || '.3s');
+  const format = getNumberFormatter(axisFormat);
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
