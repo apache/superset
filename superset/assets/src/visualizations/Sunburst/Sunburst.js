@@ -66,7 +66,7 @@ function Sunburst(element, props) {
   let arcs;
   let gMiddleText; // dom handles
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   // Helper + path gen functions
   const partition = d3.layout.partition()
