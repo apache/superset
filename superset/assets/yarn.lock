@@ -399,18 +399,18 @@
   dependencies:
     array-from "^2.1.1"
 
-"@superset-ui/chart@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/chart/-/chart-0.5.0.tgz#1420ce7b6ac3bf1b06875e5f2541fa98505b5a9b"
+"@superset-ui/chart@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/chart/-/chart-0.7.0.tgz#c297642bf6968e9e24b8de68c595942ad02da949"
   dependencies:
     "@superset-ui/core" "^0.3.0"
     reselect "^4.0.0"
 
-"@superset-ui/color@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/color/-/color-0.5.0.tgz#3064bec063fdf43d568a39b4d9ded352d0aeed55"
+"@superset-ui/color@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/color/-/color-0.7.0.tgz#9d3eca8da493e1241a047f88b06d668b2cd20e3c"
   dependencies:
-    "@superset-ui/core" "^0.5.0"
+    "@superset-ui/core" "^0.7.0"
     d3-scale "^2.1.2"
 
 "@superset-ui/connection@^0.5.0":
@@ -426,15 +426,15 @@
   dependencies:
     lodash "^4.17.11"
 
-"@superset-ui/core@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.5.0.tgz#8784465e312cac5015df28d8540d27a2fd6060ba"
+"@superset-ui/core@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.7.0.tgz#aa116248d56fd22d57a7bbc9afbdfc0cb367146a"
   dependencies:
     lodash "^4.17.11"
 
-"@superset-ui/translation@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.5.0.tgz#d02af7be94ac6b9e48d3b09f9f1059b11b2d283d"
+"@superset-ui/translation@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@superset-ui/translation/-/translation-0.7.0.tgz#8b9426a97d523df5aefe9242084264897efe252c"
   dependencies:
     jed "^1.1.1"
 
