@@ -11,15 +11,15 @@ export default function setupColors() {
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   [airbnb, categoricalD3, google, lyft].forEach((group) => {
     group.forEach((scheme) => {
-      categoricalSchemeRegistry.registerValue(scheme.name, scheme);
+      categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });
   });
-  categoricalSchemeRegistry.setDefaultSchemeName('bnbColors');
+  categoricalSchemeRegistry.setDefaultKey('bnbColors');
 
   const sequentialSchemeRegistry = getSequentialSchemeRegistry();
   [sequentialCommon, sequentialD3].forEach((group) => {
     group.forEach((scheme) => {
-      sequentialSchemeRegistry.registerValue(scheme.name, scheme);
+      sequentialSchemeRegistry.registerValue(scheme.id, scheme);
     });
   });
 }
