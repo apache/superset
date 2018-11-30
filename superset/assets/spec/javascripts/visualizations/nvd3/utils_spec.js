@@ -1,21 +1,26 @@
 import { getTimeOrNumberFormatter, formatLabel, tryNumify } from '../../../../src/visualizations/nvd3/utils';
 
 describe('nvd3/utils', () => {
-  const verboseMap = {
-    foo: 'Foo',
-    bar: 'Bar',
-  };
-
-  describe('d3FormatPreset', () => {
+  describe('getTimeOrNumberFormatter(format)', () => {
     it('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');
     });
-    it('returns a working formatter', () => {
+    it('returns a date formatter if format is smart_date', () => {
+      const time = new Date(Date.UTC(2018, 10, 21, 22, 11));
+      expect(getTimeOrNumberFormatter('smart_date')(time)).toBe('10:11');
+    });
+    it('returns a number formatter otherwise', () => {
       expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
+      expect(getTimeOrNumberFormatter()(3000100)).toBe('3.00M');
     });
   });
 
   describe('formatLabel()', () => {
+    const verboseMap = {
+      foo: 'Foo',
+      bar: 'Bar',
+    };
+
     it('formats simple labels', () => {
       expect(formatLabel('foo')).toBe('foo');
       expect(formatLabel(['foo'])).toBe('foo');
