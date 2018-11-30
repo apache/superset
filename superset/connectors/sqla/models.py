@@ -255,6 +255,11 @@ class TimePeriod(enum.Enum):
     day = 60 * 24
 
 
+class ExecutionType(enum.Enum):
+    alert = 1
+    table = 2
+
+
 class Alert(Model, AuditMixinNullable):
     __tablename__ = 'alert'
 
@@ -262,6 +267,7 @@ class Alert(Model, AuditMixinNullable):
     table_id = Column(Integer, ForeignKey('tables.id'))
     params = Column(Text)
     interval = Column(Enum(TimePeriod))
+    execution = Column(Enum(ExecutionType))
     name = Column(String(250))
     tags = Column(Text)
     description = Column(Text)
