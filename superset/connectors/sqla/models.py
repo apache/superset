@@ -260,6 +260,11 @@ class Alert(Model, AuditMixinNullable):
 
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
+    table = relationship(
+        'SqlaTable',
+        backref=db.backref('alert', lazy='dynamic'),
+        foreign_keys=[table_id]
+    )
     params = Column(Text)
     interval = Column(Enum(TimePeriod))
     name = Column(String(250))
@@ -297,10 +302,6 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
-    alerts = relationship(
-        'Alert',
-        backref='table',
-        lazy=True)
 
     baselink = 'tablemodelview'
 

@@ -343,7 +343,17 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
     show_title = 'Show Scheduled Queries'
     add_title = 'Import a Scheduled Queries Definition'
     edit_title = 'Edit Scheduled Queries'
-    list_columns = ['name', 'description', 'params', 'created_by', 'changed_on']
+    list_columns = ['id', 'name', 'description', 'table', 'interval', 'changed_by', 'changed_on', 'params']
+    label_columns = {
+        'id': _('id'),
+        'name': _('Name'),
+        'description': _('Description'),
+        'table': _('Analytic Query'),
+        'interval': _('Interval'),
+        'changed_by': _('Updated By'),
+        'changed_on': _('Updated On'),
+        'params': _('Params'),
+    }
     can_delete = True
 
     @expose('/create', methods=['POST'])
@@ -360,6 +370,43 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         db.session.add(alert)
         db.session.commit()
         return jsonify(success=True)
+
+    @expose('/<pk>', methods=['GET', 'POST'])
+    @has_access
+    def edit(self, pk):
+        alert = self.datamodel.get(pk)
+        if request.method == 'POST':
+            data = request.get_json()
+            modified_alert = self.datamodel.get(data['edit_id'])
+            modified_alert.name = data['name']
+            modified_alert.table_id = data['table_id']
+            modified_alert.params = data['params']
+            modified_alert.interval = data['interval']
+            modified_alert.tags = data['tags']
+            modified_alert.description = data['description']
+            db.session.commit()
+            return jsonify(success=True)
+        else:
+            datasources = ConnectorRegistry.get_all_datasources(db.session)
+            datasources = [
+                {"value": str(d.id) + "__" + d.type, "label": repr(d)}
+                for d in datasources
+            ]
+            return self.render_template(
+                'superset/add_alert.html',
+                bootstrap_data=json.dumps({
+                    'datasources': sorted(datasources, key=lambda d: d['label']),
+                    'alert_data': {
+                        'edit_id': alert.id,
+                        'name': alert.name,
+                        'table_id': alert.table_id,
+                        'params': alert.params,
+                        'interval': alert.interval._name_,
+                        'tags': alert.tags,
+                        'description': alert.description,
+                    }
+                }),
+            )
 
     def _delete(self, pk):
         alert = self.datamodel.get(pk)
