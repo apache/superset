@@ -115,6 +115,11 @@ export default class AddAlertContainer extends React.Component {
   }
 
   saveAlert() {
+    // If “Send to Datadog” selected, then the “Alert Field” parameter is required.
+    if (this.state.execution === 'alert' && this.state.params.indexOf('alert_field') === -1) {
+      alert('"alert_field" is required in the params')
+      return
+    }
     const data = {
       table_id: this.state.datasourceId,
       params: this.state.params,
