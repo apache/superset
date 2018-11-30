@@ -97,7 +97,7 @@ class QueryContext:
 
     def df_metrics_to_num(self, df, query_object):
         """Converting metrics to numeric when pandas.read_sql cannot"""
-        metrics = [metric.label for metric in query_object.metrics]
+        metrics = [metric for metric in query_object.metrics]
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors='coerce')

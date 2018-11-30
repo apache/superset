@@ -21,7 +21,7 @@ class QueryObject:
             granularity: str,
             groupby: List[str],
             metrics: List[Dict],
-            filters: List[str],
+            filters: List[str] = None,
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
             is_timeseries: bool = False,
@@ -39,12 +39,13 @@ class QueryObject:
         self.groupby = groupby
         self.metrics = metrics
         self.row_limit = row_limit
+        self.filter = filters if filters is not None else []
         self.timeseries_limit = int(limit)
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
         self.prequeries = []
         self.is_prequery = False
-        self.extras = extras
+        self.extras = extras if extras is not None else {}
 
     def to_dict(self):
         query_object_dict = {
@@ -53,13 +54,15 @@ class QueryObject:
             'to_dttm': self.to_dttm,
             'is_timeseries': self.is_timeseries,
             'groupby': self.groupby,
+            'metrics': self.metrics,
             'row_limit': self.row_limit,
-            'filters': self.filter,
+            'filter': self.filter,
             'timeseries_limit': self.timeseries_limit,
             'timeseries_limit_metric': self.timeseries_limit_metric,
             'order_desc': self.order_desc,
             'prequeries': self.prequeries,
             'is_prequery': self.is_prequery,
+            'extras': self.extras,
         }
         query_object_dict.update(self.extras)
         return query_object_dict

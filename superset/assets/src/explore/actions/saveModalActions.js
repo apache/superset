@@ -52,7 +52,7 @@ export function saveSlice(formData, requestParams) {
       requestParams,
     });
 
-    return SupersetClient.post({ url, postPayload: { form_data: payload } })
+    return SupersetClient.post({ url, postPayload: { ...payload } })
       .then(({ json }) => dispatch(saveSliceSuccess(json)))
       .catch(() => dispatch(saveSliceFailed()));
   };
