@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
+import { formatNumber } from '@superset-ui/number-format';
 
 import MetricOption from '../../components/MetricOption';
 import { formatDateThunk } from '../../modules/dates';
-import { d3format } from '../../modules/utils';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
@@ -131,7 +131,7 @@ class TimeTable extends React.PureComponent {
           showYAxis={column.showYAxis}
           renderTooltip={({ index }) => (
             <div>
-              <strong>{d3format(column.d3format, sparkData[index])}</strong>
+              <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
               <div>{formatDate(entries[index].time)}</div>
             </div>
           )}

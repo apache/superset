@@ -1,10 +1,20 @@
-import { formatLabel, tryNumify } from '../../../../src/visualizations/nvd3/utils';
+import { d3FormatPreset, formatLabel, tryNumify } from '../../../../src/visualizations/nvd3/utils';
 
 describe('nvd3/utils', () => {
   const verboseMap = {
     foo: 'Foo',
     bar: 'Bar',
   };
+
+  describe('d3FormatPreset', () => {
+    it('is a function', () => {
+      expect(typeof d3FormatPreset).toBe('function');
+    });
+    it('returns a working formatter', () => {
+      expect(d3FormatPreset('.3s')(3000000)).toBe('3.00M');
+    });
+  });
+
   describe('formatLabel()', () => {
     it('formats simple labels', () => {
       expect(formatLabel('foo')).toBe('foo');
@@ -22,6 +32,7 @@ describe('nvd3/utils', () => {
       expect(formatLabel(['foo', 'bar', 'baz', '2 hours offset'], verboseMap)).toBe('Foo, Bar, baz, 2 hours offset');
     });
   });
+
   describe('tryNumify()', () => {
     it('tryNumify works as expected', () => {
       expect(tryNumify(5)).toBe(5);
