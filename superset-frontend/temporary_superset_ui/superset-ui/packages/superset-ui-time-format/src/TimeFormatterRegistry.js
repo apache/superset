@@ -1,13 +1,11 @@
 import { RegistryWithDefaultKey } from '@superset-ui/core';
-import { DATABASE_DATETIME, LOCAL_PREFIX } from './TimeFormats';
+import TimeFormats, { LOCAL_PREFIX } from './TimeFormats';
 import createD3TimeFormatter from './factories/createD3TimeFormatter';
-
-const DEFAULT_FORMAT = DATABASE_DATETIME;
 
 export default class TimeFormatterRegistry extends RegistryWithDefaultKey {
   constructor() {
     super({
-      initialDefaultKey: DEFAULT_FORMAT,
+      initialDefaultKey: TimeFormats.DATABASE_DATETIME,
       name: 'TimeFormatter',
     });
   }
