@@ -46,6 +46,7 @@ export default class AddAlertContainer extends React.Component {
       parsedJSON: null,
       isValid: true,
       newTag: '',
+      execution: 'datadog',
       items: [
         { id: 0, label: "area:recipe analytics"},
         { id: 1, label: "area:data quality"},
@@ -104,6 +105,12 @@ export default class AddAlertContainer extends React.Component {
   changeInterval(event) {
     this.setState({
       interval: event.value,
+    });
+  }
+
+  changeExecutionOption(event) {
+    this.setState({
+      execution: event.value,
     });
   }
 
@@ -187,6 +194,10 @@ export default class AddAlertContainer extends React.Component {
       {value: 'hour', label: 'hour'},
       {value: 'day', label: 'day'},
     ]
+    const executionOptions = [
+      {value: 'datadog', label: 'Send  to Datadog for alerting'},
+      {value: 'executed_table', label: 'Store values as executed table'},
+    ]
     return (
       <div className="container">
         <Panel header={<h3>{t('Create a new scheduled query')}</h3>}>
@@ -253,6 +264,22 @@ export default class AddAlertContainer extends React.Component {
                   'follow the instructions on the how to add it on the ')}
                 <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
               </p>
+            </div>
+            <hr />
+            <div>
+              <p>Choose an execution type</p>
+              <div style={styleSelectWidth}>
+                <Select
+                  clearable={false}
+                  style={styleSelectWidth}
+                  name="select-execution-type"
+                  onChange={this.changeExecutionOption.bind(this)}
+                  options={executionOptions}
+                  placeholder='Execution type'
+                  value={this.state.execution}
+                  width={200}
+                />
+              </div>
             </div>
             <hr />
             <div>
