@@ -1,10 +1,15 @@
-import { getNumberFormatterRegistry, createD3NumberFormatter } from '@superset-ui/number-format';
+import { getNumberFormatterRegistry, createD3NumberFormatter, createSiAtMostNDigitFormatter } from '@superset-ui/number-format';
 import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 
 export default function setupFormatters() {
-  getNumberFormatterRegistry().registerValue('+,', createD3NumberFormatter({
-    formatString: '+,d',
-  }));
+  const defaultNumberFormatter = createSiAtMostNDigitFormatter({ n: 3 });
+
+  getNumberFormatterRegistry()
+    .registerValue(defaultNumberFormatter.id, defaultNumberFormatter)
+    .registerValue('+,', createD3NumberFormatter({
+      formatString: '+,d',
+    }))
+    .setDefaultKey(defaultNumberFormatter.id);
 
   getTimeFormatterRegistry()
     .registerValue('smart_date', smartDateFormatter)

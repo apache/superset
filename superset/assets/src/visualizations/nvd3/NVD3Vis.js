@@ -7,11 +7,10 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter, formatNumber, NumberFormats } from '@superset-ui/number-format';
-import { getTimeFormatter } from '@superset-ui/time-format';
+import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import 'nvd3/build/nv.d3.min.css';
 
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { formatDateVerbose } from '../../modules/dates';
 import { isTruthy } from '../../utils/common';
 import {
   cleanColorInput,
@@ -462,7 +461,7 @@ function nvd3Vis(element, props) {
     if (isTimeSeries) {
       xAxisFormatter = getTimeFormatter(xAxisFormat);
       // In tooltips, always use the verbose time format
-      chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
+      chart.interactiveLayer.tooltip.headerFormatter(smartDateVerboseFormatter);
     } else {
       xAxisFormatter = getTimeOrNumberFormatter(xAxisFormat);
     }

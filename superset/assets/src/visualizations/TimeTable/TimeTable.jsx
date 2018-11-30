@@ -4,9 +4,9 @@ import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 import { formatNumber } from '@superset-ui/number-format';
+import { formatTime } from '@superset-ui/time-format';
 
 import MetricOption from '../../components/MetricOption';
-import { formatDateThunk } from '../../modules/dates';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
@@ -113,8 +113,6 @@ class TimeTable extends React.PureComponent {
       sparkData = entries.map(d => d[valueField]);
     }
 
-    const formatDate = formatDateThunk(column.dateFormat);
-
     return (
       <Td
         column={column.key}
@@ -132,7 +130,7 @@ class TimeTable extends React.PureComponent {
           renderTooltip={({ index }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-              <div>{formatDate(entries[index].time)}</div>
+              <div>{formatTime(column.dateFormat, entries[index].time)}</div>
             </div>
           )}
         />

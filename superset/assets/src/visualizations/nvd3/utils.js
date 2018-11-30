@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
-import { getNumberFormatter, createSiAtMostNDigitFormatter } from '@superset-ui/number-format';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import { smartDateFormatter } from '@superset-ui/time-format';
 
 // Regexp for the label added to time shifted series
@@ -16,18 +16,15 @@ export function cleanColorInput(value) {
     .join(', ');
 }
 
-const defaultNumberFormatter = createSiAtMostNDigitFormatter();
-
 /**
  * If format is smart_date, format date
  * Otherwise, format number with the given format name
  * @param {*} format
  */
 export function getTimeOrNumberFormatter(format) {
-  if (format === 'smart_date') {
-    return smartDateFormatter;
-  }
-  return format ? getNumberFormatter(format) : defaultNumberFormatter;
+  return (format === 'smart_date')
+    ? smartDateFormatter
+    : getNumberFormatter(format);
 }
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
