@@ -856,6 +856,7 @@ def get_main_database(session):
 def is_adhoc_metric(metric):
     return (
         isinstance(metric, dict) and
+        'expressionType' in metric and
         (
             (
                 metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE'] and
@@ -872,7 +873,7 @@ def is_adhoc_metric(metric):
 
 
 def get_metric_name(metric):
-    return metric['label'] if is_adhoc_metric(metric) else metric
+    return metric['label']
 
 
 def get_metric_names(metrics):

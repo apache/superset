@@ -566,7 +566,7 @@ class SqlaTable(Model, BaseDatasource):
 
         cols = {col.column_name: col for col in self.columns}
         metrics_dict = {m.metric_name: m for m in self.metrics}
-
+        print(metrics_dict)
         if not granularity and is_timeseries:
             raise Exception(_(
                 'Datetime column not provided as part table configuration '
@@ -577,10 +577,10 @@ class SqlaTable(Model, BaseDatasource):
         for m in metrics:
             if utils.is_adhoc_metric(m):
                 metrics_exprs.append(self.adhoc_metric_to_sqla(m, cols))
-            elif m in metrics_dict:
-                metrics_exprs.append(metrics_dict.get(m).get_sqla_col())
+            elif m['label'] in metrics_dict:
+                metrics_exprs.append(metrics_dict.get(m['label']).get_sqla_col())
             else:
-                raise Exception(_("Metric '{}' is not valid".format(m)))
+                raise Exception(_("Metric '{}' is not valid".format(m['label'])))
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
