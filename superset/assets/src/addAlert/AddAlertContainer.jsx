@@ -46,7 +46,7 @@ export default class AddAlertContainer extends React.Component {
       parsedJSON: null,
       isValid: true,
       newTag: '',
-      execution: 'datadog',
+      execution: 'alert',
       items: [
         { id: 0, label: "area:recipe analytics"},
         { id: 1, label: "area:data quality"},
@@ -120,6 +120,7 @@ export default class AddAlertContainer extends React.Component {
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
+      execution: this.state.execution,
       description: this.state.description,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     }
@@ -195,8 +196,8 @@ export default class AddAlertContainer extends React.Component {
       {value: 'day', label: 'day'},
     ]
     const executionOptions = [
-      {value: 'datadog', label: 'Send  to Datadog for alerting'},
-      {value: 'executed_table', label: 'Store values as executed table'},
+      {value: 'alert', label: 'Send  to Datadog for alerting'},
+      {value: 'table', label: 'Store values as executed table'},
     ]
     return (
       <div className="container">
