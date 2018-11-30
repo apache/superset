@@ -46,6 +46,7 @@ export default class AddAlertContainer extends React.Component {
       parsedJSON: null,
       isValid: true,
       newTag: '',
+      execution: 'alert',
       items: [
         { id: 0, label: "area:recipe analytics"},
         { id: 1, label: "area:data quality"},
@@ -107,12 +108,24 @@ export default class AddAlertContainer extends React.Component {
     });
   }
 
+  changeExecutionOption(event) {
+    this.setState({
+      execution: event.value,
+    });
+  }
+
   saveAlert() {
+    // If “Send to Datadog” selected, then the “Alert Field” parameter is required.
+    if (this.state.execution === 'alert' && this.state.params.indexOf('alert_field') === -1) {
+      alert('"alert_field" is required in the params')
+      return
+    }
     const data = {
       table_id: this.state.datasourceId,
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
+      execution: this.state.execution,
       description: this.state.description,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     }
@@ -187,6 +200,10 @@ export default class AddAlertContainer extends React.Component {
       {value: 'hour', label: 'hour'},
       {value: 'day', label: 'day'},
     ]
+    const executionOptions = [
+      {value: 'alert', label: 'Send  to Datadog for alerting'},
+      {value: 'table', label: 'Store values as executed table'},
+    ]
     return (
       <div className="container">
         <Panel header={<h3>{t('Create a new scheduled query')}</h3>}>
@@ -253,6 +270,22 @@ export default class AddAlertContainer extends React.Component {
                   'follow the instructions on the how to add it on the ')}
                 <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
               </p>
+            </div>
+            <hr />
+            <div>
+              <p>Choose an execution type</p>
+              <div style={styleSelectWidth}>
+                <Select
+                  clearable={false}
+                  style={styleSelectWidth}
+                  name="select-execution-type"
+                  onChange={this.changeExecutionOption.bind(this)}
+                  options={executionOptions}
+                  placeholder='Execution type'
+                  value={this.state.execution}
+                  width={200}
+                />
+              </div>
             </div>
             <hr />
             <div>

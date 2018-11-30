@@ -354,6 +354,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert.name = data['name']
         alert.table_id = data['table_id']
         alert.params = data['params']
+        alert.execution = data['execution']
         alert.interval = data['interval']
         alert.tags = data['tags']
         alert.description = data['description']
