@@ -95,7 +95,7 @@ function Icicle(element, props) {
   const hasTime = ['adv_anal', 'time_series'].indexOf(chartType) >= 0;
   const format = d3.format(numberFormat);
   const timeFormat = d3TimeFormatPreset(dateTimeFormat);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   div.selectAll('*').remove();
   const tooltip = div
