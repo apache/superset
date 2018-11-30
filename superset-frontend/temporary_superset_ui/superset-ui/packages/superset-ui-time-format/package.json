@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/time-format",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Superset UI time-format",
   "sideEffects": false,
   "main": "lib/index.js",
