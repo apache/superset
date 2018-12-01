@@ -11,7 +11,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey {
   }
 
   get(formatterId) {
-    const targetFormat = formatterId || this.defaultKey;
+    const targetFormat = (formatterId || this.defaultKey).trim();
 
     if (this.has(targetFormat)) {
       return super.get(targetFormat);
