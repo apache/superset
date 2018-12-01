@@ -1,6 +1,6 @@
 import createMultiFormatter from '../../src/factories/createMultiFormatter';
 
-describe('createMultiFormatter', () => {
+describe('createMultiFormatter()', () => {
   describe('creates a multi-step formatter', () => {
     const formatter = createMultiFormatter({
       id: 'my_format',
