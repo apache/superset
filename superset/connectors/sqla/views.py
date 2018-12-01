@@ -11,7 +11,6 @@ from past.builtins import basestring
 import simplejson as json
 from superset import appbuilder, db, security_manager, utils
 from superset.connectors.sqla.models import Alert, SqlaTable
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
@@ -364,6 +363,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         alert.name = data['name']
         alert.table_id = data['table_id']
         alert.params = data['params']
+        alert.execution = data['execution']
         alert.interval = data['interval']
         alert.tags = data['tags']
         alert.description = data['description']
@@ -398,6 +398,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
                         'table_id': alert.table_id,
                         'params': alert.params,
                         'interval': alert.interval._name_,
+                        'execution': alert.execution._name_,
                         'tags': alert.tags,
                         'description': alert.description,
                     }

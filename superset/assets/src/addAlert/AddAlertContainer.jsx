@@ -37,6 +37,7 @@ export default class AddAlertContainer extends React.Component {
     super(props);
     let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing;
     let tags = [];
+    let execution = 'alert';
     const selectedItems = [];
     const items = [
       { id: 0, label: "area:recipe analytics"},
@@ -59,6 +60,7 @@ export default class AddAlertContainer extends React.Component {
       params = edit.params;
       interval = edit.interval;
       description = edit.description;
+      execution = edit.execution;
       datasourceValue = props.datasources.find(query => query.value.startsWith(datasourceId));
       tags = edit.tags.split(',');
     }
@@ -78,6 +80,7 @@ export default class AddAlertContainer extends React.Component {
       description,
       items,
       selectedItems,
+      execution,
       parsedJSON: null,
       isValid: true,
       newTag: '',
@@ -125,18 +128,31 @@ export default class AddAlertContainer extends React.Component {
   }
 
   changeInterval(event) {
+    console.log(this.state)
     this.setState({
       interval: event.value,
     });
   }
 
+  changeExecutionOption(event) {
+    this.setState({
+      execution: event.value,
+    });
+  }
+
   saveAlert() {
+    // If “Send to Datadog” selected, then the “Alert Field” parameter is required.
+    if (this.state.execution === 'alert' && this.state.params.indexOf('alert_field') === -1) {
+      alert('"alert_field" is required in the params')
+      return
+    }
     const data = {
       edit_id: this.state.editId,
       table_id: this.state.datasourceId,
       params: this.state.params,
       interval: this.state.interval,
       name: this.state.name,
+      execution: this.state.execution,
       description: this.state.description,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     };
@@ -214,6 +230,12 @@ export default class AddAlertContainer extends React.Component {
       {value: 'hour', label: 'hour'},
       {value: 'day', label: 'day'},
     ];
+
+    const executionOptions = [
+      {value: 'alert', label: 'Send  to Datadog for alerting'},
+      {value: 'table', label: 'Store values as executed table'},
+    ];
+
     return (
       <div className="container">
         <Panel header={<h3>{action} scheduled query</h3>}>
@@ -280,6 +302,22 @@ export default class AddAlertContainer extends React.Component {
                   'follow the instructions on the how to add it on the ')}
                 <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
               </p>
+            </div>
+            <hr />
+            <div>
+              <p>Choose an execution type</p>
+              <div style={styleSelectWidth}>
+                <Select
+                  clearable={false}
+                  style={styleSelectWidth}
+                  name="select-execution-type"
+                  onChange={this.changeExecutionOption.bind(this)}
+                  options={executionOptions}
+                  placeholder='Execution type'
+                  value={this.state.execution}
+                  width={200}
+                />
+              </div>
             </div>
             <hr />
             <div>
