@@ -11,14 +11,17 @@ export default function transformProps(chartProps) {
     colorPicker,
     compareLag: compareLagInput,
     compareSuffix = '',
-    metric,
     showTrendLine,
     startYAxisAtZero,
     subheader = '',
     vizType,
     yAxisFormat,
   } = formData;
+
   const { data } = payload;
+
+  // We need the metric as of the last query
+  const { metric } = payload.form_data;
 
   let mainColor;
   if (colorPicker) {
