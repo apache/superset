@@ -255,19 +255,21 @@ class TimePeriod(enum.Enum):
     day = 60 * 24
 
 
-alert = 'alert'
-table = 'table'
-execution_type_dict = {
-    alert: 1,
-    table: 2,
-}
-ExecutionType = enum.Enum('ExecutionType', execution_type_dict)
+class ExecutionType(enum.Enum):
+    alert = 1
+    table = 2
+
 
 class Alert(Model, AuditMixinNullable):
     __tablename__ = 'alert'
 
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
+    table = relationship(
+        'SqlaTable',
+        backref=db.backref('alert', lazy='dynamic'),
+        foreign_keys=[table_id]
+    )
     params = Column(Text)
     interval = Column(Enum(TimePeriod))
     execution = Column(Enum(ExecutionType))
@@ -306,10 +308,6 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
-    alerts = relationship(
-        'Alert',
-        backref='table',
-        lazy=True)
 
     baselink = 'tablemodelview'
 

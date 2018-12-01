@@ -4,12 +4,7 @@ import AceEditor from 'react-ace';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import MultiSelect from "@kenshooui/react-multi-select";
-import TextControl from '../explore/components/controls/TextControl';
 import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
-import ModalTrigger from '../components/ModalTrigger';
-import visTypes from '../explore/visTypes';
-import Fieldset from '../CRUD/Fieldset';
-import Field from '../CRUD/Field';
 import $ from 'jquery';
 import { t } from '../locales';
 import 'brace/mode/sql';
@@ -40,25 +35,55 @@ const defaultProps = {
 export default class AddAlertContainer extends React.Component {
   constructor(props) {
     super(props);
-    const params = props.code || '{}';
+    let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing;
+    let tags = [];
+    let execution = 'alert';
+    const selectedItems = [];
+    const items = [
+      { id: 0, label: "area:recipe analytics"},
+      { id: 1, label: "area:data quality"},
+      { id: 2, label: "category:completeness"},
+      { id: 3, label: "category:latency"},
+      { id: 4, label: "validity:syntax"},
+      { id: 5, label: "validity:semantic"},
+      { id: 6, label: "stage:nudge delivery"},
+      { id: 7, label: "stage:user engagement"},
+      { id: 8, label: "stage:recipe predictions"}
+    ];
+
+    if (props.alertData) {
+      isEditing = true;
+      edit = props.alertData;
+      editId = edit.edit_id;
+      name = edit.name;
+      datasourceId = edit.table_id;
+      params = edit.params;
+      interval = edit.interval;
+      description = edit.description;
+      execution = edit.execution;
+      datasourceValue = props.datasources.find(query => query.value.startsWith(datasourceId));
+      tags = edit.tags.split(',');
+    }
+
+    tags.forEach(tag => {
+      selectedItems.push(items.find(item => item.label === tag))
+    });
+
     this.state = {
+      isEditing,
+      editId,
+      name,
+      datasourceId,
+      datasourceValue,
       params,
+      interval,
+      description,
+      items,
+      selectedItems,
+      execution,
       parsedJSON: null,
       isValid: true,
       newTag: '',
-      execution: 'alert',
-      items: [
-        { id: 0, label: "area:recipe analytics"},
-        { id: 1, label: "area:data quality"},
-        { id: 2, label: "category:completeness"},
-        { id: 3, label: "category:latency"},
-        { id: 4, label: "validity:syntax"},
-        { id: 5, label: "validity:semantic"},
-        { id: 6, label: "stage:nudge delivery"},
-        { id: 7, label: "stage:user engagement"},
-        { id: 8, label: "stage:recipe predictions"}
-      ],
-      selectedItems: []
     };
     this.onChange = this.onChange.bind(this);
     this.handleTagChange = this.handleTagChange.bind(this)
@@ -103,6 +128,7 @@ export default class AddAlertContainer extends React.Component {
   }
 
   changeInterval(event) {
+    console.log(this.state)
     this.setState({
       interval: event.value,
     });
@@ -121,6 +147,7 @@ export default class AddAlertContainer extends React.Component {
       return
     }
     const data = {
+      edit_id: this.state.editId,
       table_id: this.state.datasourceId,
       params: this.state.params,
       interval: this.state.interval,
@@ -128,7 +155,7 @@ export default class AddAlertContainer extends React.Component {
       execution: this.state.execution,
       description: this.state.description,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
-    }
+    };
     this.sendPostRequest(data)
   }
 
@@ -164,6 +191,7 @@ export default class AddAlertContainer extends React.Component {
   }
 
   sendPostRequest(data) {
+    const url = this.state.isEditing ? "/alert/edit" : "/alert/create";
     const csrf_token = (document.getElementById('csrf_token') || {}).value;
 
     $.ajaxSetup({
@@ -176,7 +204,7 @@ export default class AddAlertContainer extends React.Component {
 
     $.ajax({
       method: "POST",
-      url: "/alert/create",
+      url: url,
       data: JSON.stringify(data),
       dataType: 'json',
       contentType: "application/json; charset=utf-8"
@@ -194,19 +222,23 @@ export default class AddAlertContainer extends React.Component {
   };
 
   render() {
-    const { items, selectedItems } = this.state;
+    const { items, selectedItems, isEditing } = this.state;
+    const action = isEditing ? 'Edit a' : 'Create a new';
+    const buttonText = isEditing ? 'Save changes' : 'Create new scheduled query';
     const intervalOptions = [
       {value: 'minute', label: 'minute'},
       {value: 'hour', label: 'hour'},
       {value: 'day', label: 'day'},
-    ]
+    ];
+
     const executionOptions = [
       {value: 'alert', label: 'Send  to Datadog for alerting'},
       {value: 'table', label: 'Store values as executed table'},
-    ]
+    ];
+
     return (
       <div className="container">
-        <Panel header={<h3>{t('Create a new scheduled query')}</h3>}>
+        <Panel header={<h3>{action} scheduled query</h3>}>
           <form>
             <div>
               <p>Name</p>
@@ -224,7 +256,7 @@ export default class AddAlertContainer extends React.Component {
                     borderWidth: "1",
                     padding: 10
                   }}
-                  value={this.state.value}
+                  value={this.state.name}
                   onChange={this.handleNameChange.bind(this)}
                 />
               </label>
@@ -376,7 +408,7 @@ export default class AddAlertContainer extends React.Component {
                   label="invalid-json"
                 />
               }
-              {t(' Create new scheduled query')}
+              {buttonText}
             </Button>
             <br /><br />
           </form>
