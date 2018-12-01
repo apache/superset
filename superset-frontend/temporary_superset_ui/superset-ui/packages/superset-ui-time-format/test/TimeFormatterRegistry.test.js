@@ -22,6 +22,11 @@ describe('TimeFormatterRegistry', () => {
       const formatter = registry.get();
       expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
     });
+    it('removes leading and trailing spaces from format', () => {
+      const formatter = registry.get(' %Y ');
+      expect(formatter).toBeInstanceOf(TimeFormatter);
+      expect(formatter.format(PREVIEW_TIME)).toEqual('2017');
+    });
   });
   describe('.format(format, value)', () => {
     it('return the value with the specified format', () => {
