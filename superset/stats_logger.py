@@ -43,13 +43,15 @@ class DummyStatsLogger(BaseStatsLogger):
 
     def timing(self, key, value):
         logging.debug((
-            Fore.CYAN + '[stats_logger] (timing) {key} | {value} ' +
-            Style.RESET_ALL).format(**locals()))
+            Fore.CYAN +
+            f'[stats_logger] (timing) {key} | {value} ' +
+            Style.RESET_ALL))
 
     def gauge(self, key, value):
         logging.debug((
-            Fore.CYAN + '[stats_logger] (gauge) '
-            '{key} | {value}' + Style.RESET_ALL).format(**locals()))
+            Fore.CYAN + '[stats_logger] (gauge) ' +
+            f'{key} | {value}' +
+            Style.RESET_ALL))
 
 
 try:
@@ -72,5 +74,5 @@ try:
             # pylint: disable=no-value-for-parameter
             self.client.gauge(key)
 
-except Exception as e:
+except Exception:
     pass
