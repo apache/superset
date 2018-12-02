@@ -100,9 +100,9 @@ class SupersetQuery(object):
         exec_sql = ''
         sql = self.stripped()
         if overwrite:
-            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-        exec_sql += 'CREATE TABLE {table_name} AS \n{sql}'
-        return exec_sql.format(**locals())
+            exec_sql = f'DROP TABLE IF EXISTS {table_name};\n'
+        exec_sql += f'CREATE TABLE {table_name} AS \n{sql}'
+        return exec_sql
 
     def __extract_from_token(self, token):
         if not hasattr(token, 'tokens'):

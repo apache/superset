@@ -1275,9 +1275,8 @@ class Superset(BaseSupersetView):
                 'danger')
             return redirect(
                 'superset/request_access/?'
-                'datasource_type={datasource_type}&'
-                'datasource_id={datasource_id}&'
-                ''.format(**locals()))
+                f'datasource_type={datasource_type}&'
+                f'datasource_id={datasource_id}&')
 
         viz_type = form_data.get('viz_type')
         if not viz_type and datasource.default_endpoint:
@@ -2115,7 +2114,7 @@ class Superset(BaseSupersetView):
                         'danger')
                     return redirect(
                         'superset/request_access/?'
-                        'dashboard_id={dash.id}&'.format(**locals()))
+                        f'dashboard_id={dash.id}&')
 
         dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
             security_manager.can_access('can_save_dash', 'Superset')
@@ -2522,11 +2521,10 @@ class Superset(BaseSupersetView):
                     start_time=utils.now_as_float())
             except Exception as e:
                 logging.exception(e)
-                msg = (
+                msg = _(
                     'Failed to start remote query on a worker. '
                     'Tell your administrator to verify the availability of '
-                    'the message queue.'
-                )
+                    'the message queue.')
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
@@ -2542,8 +2540,7 @@ class Superset(BaseSupersetView):
         try:
             timeout = config.get('SQLLAB_TIMEOUT')
             timeout_msg = (
-                'The query exceeded the {timeout} seconds '
-                'timeout.').format(**locals())
+                f'The query exceeded the {timeout} seconds timeout.')
             with utils.timeout(seconds=timeout,
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
