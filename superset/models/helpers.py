@@ -277,17 +277,6 @@ class AuditMixinNullable(AuditMixin):
     def modified(self):
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
-    @property
-    def icons(self):
-        return """
-        <a
-                href="{self.datasource_edit_url}"
-                data-toggle="tooltip"
-                title="{self.datasource}">
-            <i class="fa fa-database"></i>
-        </a>
-        """.format(**locals())
-
 
 class QueryResult(object):
 
