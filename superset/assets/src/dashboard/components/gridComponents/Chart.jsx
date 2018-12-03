@@ -100,9 +100,6 @@ class Chart extends React.Component {
   }
 
   itemClick(data) {
-    console.log('selectedDataInfo ::  ', data);
-    console.log('sliceInfo :: slice id ==> ', this.props.slice.slice_id, '  ;linked_slice== >  ', this.props.slice.form_data.linked_slice);
-    console.log('dashboardInfo :: dashbaord id  ', this.props.dashboardInfo.id);
     if (this.props.slice.form_data.hasOwnProperty('linked_slice') && this.props.slice.form_data.linked_slice) {
       this.cloneSliceAndAddToDashboard(this.props.slice.form_data.linked_slice, data)
     }

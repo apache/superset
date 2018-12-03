@@ -95,19 +95,31 @@ export default function dashboardStateReducer(state = {}, action) {
       let filters = state.filters;
       const { chart, col, vals: nextVals, merge, refresh } = action;
       const sliceId = chart.id;
-      let newFilter = {};
-      if (!(sliceId in filters)) {
-        // if no filters existed for the slice, set them
-        newFilter = { [col]: nextVals };
-      } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
-        // If no filters exist for this column, or we are overwriting them
-        newFilter = { ...filters[sliceId], [col]: nextVals };
-      } else if (filters[sliceId][col] instanceof Array) {
-        newFilter[col] = [...filters[sliceId][col], ...nextVals];
-      } else {
-        newFilter[col] = [filters[sliceId][col], ...nextVals];
-      }
-      filters = { ...filters, [sliceId]: newFilter };
+      const filterKeys = [
+        '__time_range',
+        '__time_col',
+        '__time_grain',
+        '__time_origin',
+        '__granularity',
+      ];
+      // TODO: we want to revisit the condition for more generic filter implementation
+      if ( 
+        filterKeys.indexOf(col) >= 0 ||
+        action.chart.formData.publish_columns.indexOf(col) !== -1
+      ) {
+        let newFilter = {};
+        if (!(sliceId in filters)) {
+          // if no filters existed for the slice, set them
+          newFilter = { [col]: nextVals };
+        } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
+          // If no filters exist for this column, or we are overwriting them
+          newFilter = { ...filters[sliceId], [col]: nextVals };
+        } else if (filters[sliceId][col] instanceof Array) {
+          newFilter[col] = [...filters[sliceId][col], ...nextVals];
+        } else {
+          newFilter[col] = [filters[sliceId][col], ...nextVals];
+        }
+        filters = { ...filters, [sliceId]: newFilter };
 
       // remove any empty filters so they don't pollute the logs
       Object.keys(filters).forEach(chartId => {

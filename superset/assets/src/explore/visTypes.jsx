@@ -27,10 +27,10 @@ export const sections = {
     ],
   },
   linkedSlices: {
-    label: t('Linked Slices'),
+    label: t('Publish & Subscribe'),
     expanded: true,
     controlSetRows: [
-      ['linked_slice']
+      ['publish_columns', 'linked_slice']
     ],
   },
   colorScheme: {

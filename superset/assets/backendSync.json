@@ -903,6 +903,13 @@
       "description": "One or many controls to group by",
       "valueKey": "column_name"
     },
+    "publish_columns": {
+      "type": "SelectControl",
+      "multi": true,
+      "label": "Publish Columns",
+      "default": [],
+      "description": "Columns to publish data on click"
+    },
     "dimension": {
       "type": "SelectControl",
       "multi": false,
@@ -2638,10 +2645,11 @@
     },
     "linked_slice": {
       "type": "SelectControl",
-      "label": "Slice",
+      "multi": true,
+      "label": "Subscribe slices",
       "validators": [
       ],
-      "description": "Select one slice to link",
+      "description": "Select slices to subscribe",
       "renderTrigger": false
     },
     "cache_timeout": {

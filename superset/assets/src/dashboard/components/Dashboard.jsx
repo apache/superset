@@ -195,11 +195,11 @@ class Dashboard extends React.PureComponent {
 
     this.getAllCharts().forEach(chart => {
       // filterKey is a string, immune array contains numbers
-      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
+      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1 && this.isFilterkeyExistInLinkedSlices(chart, filterKey)) {
         const updatedFormData = getFormDataWithExtraFilters({
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
-          filters: this.props.dashboardState.filters,
+          filters: this.getExtraFilters(chart),
           sliceId: chart.id,
         });
 
@@ -211,6 +211,49 @@ class Dashboard extends React.PureComponent {
         );
       }
     });
+  }
+
+  isFilterkeyExistInLinkedSlices(chart, filterKey) {
+    const propExist = chart.formData.hasOwnProperty("linked_slice");
+    let keyExists = false;
+    if (propExist) {
+      const linked_slices = chart.formData.linked_slice;
+      const key = parseInt(filterKey);
+      if (linked_slices instanceof Array) {
+        keyExists = linked_slices.indexOf(key) != -1
+      } else {
+        keyExists = linked_slices === key
+      }
+    }
+    return keyExists
+  }
+
+  getExtraFilters(chart) {
+    const slicesInState = this.getLinkedSliceWithFilters(chart.formData)
+    const filters = this.getFiltersFromSlices(slicesInState)
+    return filters;
+  }
+
+  getFiltersFromSlices(slices) {
+    const filters = {};
+    slices.forEach( slice => {
+      filters[slice] = this.props.dashboardState.filters[slice];
+    })
+    return filters;
+  }
+
+  getLinkedSliceWithFilters(formData) {
+    let slicesInState = [];
+    const propExist = formData.hasOwnProperty("linked_slice");
+    if(propExist) {
+      const linked_slices = formData.linked_slice;
+      if (linked_slices instanceof Array) {
+        slicesInState  = linked_slices.filter(element => this.props.dashboardState.filters.hasOwnProperty(element));  
+      } else {
+       slicesInState = [linked_slices];
+      }
+    }
+    return slicesInState;
   }
 
   render() {

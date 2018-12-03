@@ -165,14 +165,16 @@ function tableVis(slice, payload) {
     )
     .on('click', function (d) {
       if (!d.isMetric && fd.table_filter) {
-        const td = d3.select(this);
-        if (td.classed('filtered')) {
-          slice.removeFilter(d.col, [d.val]);
-          d3.select(this).classed('filtered', false);
-        } else {
-          d3.select(this).classed('filtered', true);
-          slice.addFilter(d.col, [d.val]);
-        }
+        //addFilter args (col, vals, merge = true)
+        slice.addFilter(d.col, [d.val],false);
+        // const td = d3.select(this);
+        // if (td.classed('filtered')) {
+        //   slice.removeFilter(d.col, [d.val]);
+        //   d3.select(this).classed('filtered', false);
+        // } else {
+        //   d3.select(this).classed('filtered', true);
+        //   slice.addFilter(d.col, [d.val]);
+        // }
       }
     })
     .style('cursor', function (d) {
