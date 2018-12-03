@@ -97,6 +97,7 @@ export default class CopyToClipboard extends React.Component {
   }
 
   renderNotWrapped() {
+    const { copyNode } = this.props;
     return (
       <OverlayTrigger
         placement="top"
@@ -107,7 +108,7 @@ export default class CopyToClipboard extends React.Component {
         onClick={this.onClick}
         onMouseOut={this.onMouseOut}
       >
-        {this.props.copyNode}
+        {copyNode}
       </OverlayTrigger>
     );
   }
@@ -157,10 +158,11 @@ export default class CopyToClipboard extends React.Component {
   }
 
   render() {
-    if (!this.props.wrapped) {
-        return this.renderNotWrapped();
+    const { wrapped, inMenu } = this.props;
+    if (!wrapped) {
+      return this.renderNotWrapped();
     }
-    return this.props.inMenu ? this.renderInMenu() : this.renderLink();
+    return inMenu ? this.renderInMenu() : this.renderLink();
   }
 }
 

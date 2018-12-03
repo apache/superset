@@ -1,4 +1,4 @@
-import { isTruthy, optionFromValue } from '../../../src/utils/common';
+import { isTruthy, optionFromValue, prepareCopyToClipboardTabularData } from '../../../src/utils/common';
 
 describe('utils/common', () => {
   describe('isTruthy', () => {
@@ -46,6 +46,19 @@ describe('utils/common', () => {
       expect(optionFromValue('')).toEqual({ value: '', label: '<empty string>' });
       expect(optionFromValue('foo')).toEqual({ value: 'foo', label: 'foo' });
       expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });
+    });
+  });
+  describe('prepareCopyToClipboardTabularData', () => {
+    it('converts empty array', () => {
+      const array = [];
+      expect(prepareCopyToClipboardTabularData(array)).toEqual('');
+    });
+    it('converts non empty array', () => {
+      const array = [
+          { column1: 'lorem', column2: 'ipsum' },
+          { column1: 'dolor', column2: 'sit', column3: 'amet' },
+      ];
+      expect(prepareCopyToClipboardTabularData(array)).toEqual('lorem\tipsum\ndolor\tsit\tamet\n');
     });
   });
 });

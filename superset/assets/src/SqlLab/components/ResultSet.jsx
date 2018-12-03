@@ -10,6 +10,7 @@ import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
 import CopyToClipboard from '../../components/CopyToClipboard';
+import { prepareCopyToClipboardTabularData } from '../../utils/common';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -96,13 +97,6 @@ export default class ResultSet extends React.PureComponent {
       this.props.actions.runQuery(query, true);
     }
   }
-  prepareCopyToClipboardData(data) {
-    let result = '';
-    for (let i = 0; i < data.length; ++i) {
-      result += Object.values(data[i]).join('\t') + '\n';
-    }
-    return result;
-  }
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       return (
@@ -122,7 +116,7 @@ export default class ResultSet extends React.PureComponent {
                   </Button>}
 
                 <CopyToClipboard
-                  text={this.prepareCopyToClipboardData(this.props.query.results.data)}
+                  text={prepareCopyToClipboardTabularData(this.props.query.results.data)}
                   wrapped={false}
                   copyNode={
                     <Button bsSize="small">

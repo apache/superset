@@ -19,6 +19,7 @@ import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
 import RowCountLabel from './RowCountLabel';
+import { prepareCopyToClipboardTabularData } from '../../utils/common';
 
 registerLanguage('markdown', markdownSyntax);
 registerLanguage('html', htmlSyntax);
@@ -86,13 +87,6 @@ export default class DisplayQueryButton extends React.PureComponent {
   redirectSQLLab() {
     this.props.onOpenInEditor(this.props.latestQueryFormData);
   }
-  prepareCopyToClipboardData(data) {
-    let result = '';
-    for (let i = 0; i < data.length; ++i) {
-      result += Object.values(data[i]).join('\t') + '\n';
-    }
-    return result;
-  }
   renderQueryModalBody() {
     if (this.state.isLoading) {
       return <Loading />;
@@ -138,7 +132,7 @@ export default class DisplayQueryButton extends React.PureComponent {
           <Col md={9}>
             <RowCountLabel rowcount={data.length} suffix={t('rows retrieved')} />
             <CopyToClipboard
-              text={this.prepareCopyToClipboardData(data)}
+              text={prepareCopyToClipboardTabularData(data)}
               wrapped={false}
               copyNode={
                 <Button style={{ padding: '2px 10px', fontSize: '11px' }}>
