@@ -3,6 +3,7 @@ import { MULTI_OPERATORS } from './constants';
 export const EXPRESSION_TYPES = {
   SIMPLE: 'SIMPLE',
   SQL: 'SQL',
+  OPTIONS: 'OPTIONS'
 };
 
 export const CLAUSES = {
@@ -55,7 +56,14 @@ export default class AdhocFilter {
       this.subject = null;
       this.operator = null;
       this.comparator = null;
+    } else if (this.expressionType === EXPRESSION_TYPES.OPTIONS) {
+      this.subject = adhocFilter.subject;
+      this.operator = adhocFilter.operator;
+      this.comparator = adhocFilter.comparator;
+      this.clause = adhocFilter.clause;
+      this.sqlExpression = adhocFilter.sqlExpression;
     }
+
     this.fromFormData = !!adhocFilter.filterOptionName;
 
     this.filterOptionName = adhocFilter.filterOptionName ||
@@ -102,6 +110,12 @@ export default class AdhocFilter {
       );
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return !!(this.sqlExpression && this.clause);
+    } else if (this.expressionType === EXPRESSION_TYPES.OPTIONS){
+      return (
+        this.operator &&
+        this.comparator &&
+        this.sqlExpression&&
+        this.clause)
     }
     return false;
   }

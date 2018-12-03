@@ -96,6 +96,91 @@ const timeGrainSqlaAnimationOverrides = {
 };
 
 export const visTypes = {
+  leaflet_map: {
+    label: t('Leaflet Map'),
+    showOnExplore: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['geojson'],
+          ['polygon'],
+          ['adhoc_columns'],
+          ['adhoc_filters'],
+          ['row_limit', 'include_time'],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['viewport_longitude', 'viewport_latitude'],
+          ['viewport_zoom', 'mapbox_style'],
+          ['min_radius','max_radius'],
+          ['ranges'],
+         
+        ],
+      },
+    ],
+    controlOverrides: {
+      geojson:{
+        label: t('Id Column'),
+        description: t('Id column for GeoJson Column'),
+      },
+      polygon:{
+        label: t('GeoJson Column '),
+      },
+      mapbox_style:{
+        renderTrigger: false,
+        label: t('Map Layer'),
+        choices: [
+          ['Point', 'Marker'],
+          ['Polygon','Polygon'],
+          ['Polygon-Convex', 'Polygon Convex'],
+          ['Polygon-Concave', 'Polygon Concave'],
+        ],
+        default: 'Polygon',
+        description: t('Map Layer style'),
+      },
+      viewport_longitude:{
+        default: 72.83333,
+      },
+      viewport_latitude:{
+        default: 18.96667,
+      },
+      viewport_zoom:{
+        label: t('Default Zoom Level'),
+        description: t('Default Zoom Level'),
+        default: 12,
+        isInt: true,
+      },
+      min_radius:{
+        label: t('Minimum Zoom Level'),
+        description: t('Minimum Zoom Level'),
+        renderTrigger: false,
+        isInt: true,
+        default: 8,
+      },
+      max_radius:{
+        label: t('Maximum Zoom Level'),
+        description: t('Maximum Zoom Level'),
+        renderTrigger: false,
+        default: 18,
+        isInt: true,
+      },
+      ranges:{
+        label: t('Map Server URL'),
+        description: t('Map Server URL'),
+        renderTrigger: false,
+        default: 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+      },
+      row_limit:{
+        default: 50,
+      }
+
+    },
+  },
   dist_bar: {
     label: t('Distribution - Bar Chart'),
     showOnExplore: true,
