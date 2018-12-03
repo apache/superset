@@ -64,6 +64,14 @@ export default class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
+  componentDidUpdate(prevProps) {
+    if (prevProps.query.state === 'rendering') {
+      this.setQueryStateSuccess();
+    }
+  }
+  setQueryStateSuccess() {
+    this.props.actions.setQueryStateSuccess(this.props.query);
+  }
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
@@ -163,7 +171,7 @@ export default class ResultSet extends React.PureComponent {
             </Button>
           </Alert>
         </div>);
-    } else if (query.state === 'success') {
+    } else if (['rendering', 'success'].indexOf(query.state) >= 0) {
       const results = query.results;
       let data;
       if (this.props.cache && query.cached) {

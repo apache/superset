@@ -35,6 +35,7 @@ export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
+export const SET_QUERY_STATE_SUCCESS = 'SET_QUERY_STATE_SUCCESS';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
 export const RUN_QUERY = 'RUN_QUERY';
@@ -91,6 +92,10 @@ export function queryFailed(query, msg, link) {
 
 export function stopQuery(query) {
   return { type: STOP_QUERY, query };
+}
+
+export function setQueryStateSuccess(query) {
+  return { type: SET_QUERY_STATE_SUCCESS, query };
 }
 
 export function clearQueryResults(query) {

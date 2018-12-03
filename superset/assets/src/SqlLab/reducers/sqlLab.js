@@ -154,6 +154,9 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.REQUEST_QUERY_RESULTS]() {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
+    [actions.SET_QUERY_STATE_SUCCESS]() {
+      return alterInObject(state, 'queries', action.query, { state: 'success' });
+    },
     [actions.QUERY_SUCCESS]() {
       let rows;
       if (action.results.data) {
