@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/number-format",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Superset UI number format",
   "sideEffects": false,
   "main": "lib/index.js",
