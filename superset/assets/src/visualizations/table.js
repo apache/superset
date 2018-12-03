@@ -51,6 +51,10 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
+  const expressionMap = {};
+  slice.datasource.columns.forEach(column => {
+    expressionMap[column.column_name] = column.expression 
+  });
   const verboseMap = slice.datasource.verbose_map;
   const cols = data.columns.map((c) => {
     if (verboseMap[c]) {
@@ -63,6 +67,13 @@ function tableVis(slice, payload) {
     }
     return c;
   });
+
+  function buttoRenderer(column) {
+    console.log(slice.datasource)
+    const label = slice.datasource.verbose_map[column] || column
+    //console.log(slice.datasource.verbose_map[column]);
+    return `<button type="button" class="btn btn-sm btn-default">${label}</button>`
+  }
 
   table.append('thead').append('tr')
     .selectAll('th')
@@ -95,6 +106,10 @@ function tableVis(slice, payload) {
       }
       if (c[0] === '%') {
         html = d3.format('.3p')(val);
+      }
+      if(c === '__buttonRenderer') {
+        html = buttoRenderer(c);
+        c = expressionMap[c];
       }
       return {
         col: c,
