@@ -198,7 +198,6 @@ function leafletmap(slice, payload) {
         return feats;
     }
 
-
     function createMapDP() {
         geoJson = {
             'type': 'FeatureCollection',
