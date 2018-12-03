@@ -1,4 +1,10 @@
-# @superset-ui -- Changelog
+# @superset-ui : Change Log
+
+## v0.7.2
+
+### ✨ Features
+
+* Make `@superset-ui/time-format` and `@superset-ui/number-format` ignore leading and trailing spaces when looking for formatters.
 
 ## v0.7.1
 
