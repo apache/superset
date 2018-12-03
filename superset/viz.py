@@ -1686,6 +1686,48 @@ class ChordViz(BaseViz):
             'matrix': m,
         }
 
+class LeafletViz(BaseViz):
+    """A leaflet map"""
+    viz_type = 'leaflet_map'
+    verbose_name = _('Leaflet Map')
+    is_timeseries = False
+
+    def should_be_timeseries(self):
+        fd = self.form_data
+        # TODO handle datasource-type-specific code in datasource
+        conditions_met = (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(_(
+                'Pick a granularity in the Time section or '
+                "uncheck 'Include Time'"))
+        return fd.get('include_time')
+
+    def query_obj(self):
+        d = super(LeafletViz, self).query_obj()
+        fd = self.form_data
+
+        d['columns'] = [fd.get('geojson'), fd.get('polygon')]
+        if fd.get('adhoc_columns') is not None and len(fd.get('adhoc_columns')) > 0 :
+            adhoc_columns = fd.get('adhoc_columns')
+            extra_cols = []
+            for col in adhoc_columns:
+                val1=col['subject']
+                extra_cols.append(val1)
+
+            d['columns'] += extra_cols
+
+        d['columns'] = list(set(d['columns']))
+        d['is_timeseries'] = self.should_be_timeseries()
+        return d
+
+    def get_data(self, df):
+        return {
+            'data': df.to_dict('records')
+        }
+
 
 class CountryMapViz(BaseViz):
 

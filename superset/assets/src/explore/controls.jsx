@@ -1861,6 +1861,20 @@ export const controls = {
     provideFormDataToProps: true,
   },
 
+  adhoc_columns: {
+    type: 'AdhocColumnControl',
+    label: t('Color Columns'),
+    default: null,
+    description: '',
+    validators: [v.nonEmpty],
+    mapStateToProps: state => ({
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasource: state.datasource,
+    }),
+    provideFormDataToProps: true,
+  },
+
   slice_id: {
     type: 'HiddenControl',
     label: t('Chart ID'),
