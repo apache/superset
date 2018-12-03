@@ -9,7 +9,7 @@ import * as rejectAfterTimeout from '../../src/callApi/rejectAfterTimeout';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
-import { JsonResponse } from '../../src/types';
+import { Json } from '../../src/types';
 
 describe('callApiAndParseWithTimeout()', () => {
   beforeAll(() => {
@@ -91,7 +91,7 @@ describe('callApiAndParseWithTimeout()', () => {
       jest.useFakeTimers();
 
       return callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET', timeout: 100 }).then(
-        (response: JsonResponse) => {
+        (response: Json) => {
           expect(response.json).toEqual(expect.objectContaining(mockGetPayload));
 
           return Promise.resolve();
