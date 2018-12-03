@@ -102,9 +102,10 @@ export default function dashboardStateReducer(state = {}, action) {
         '__time_origin',
         '__granularity',
       ];
-      if (
+      // TODO: we want to revisit the condition for more generic filter implementation
+      if ( 
         filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.groupby.indexOf(col) !== -1
+        action.chart.formData.publish_columns.indexOf(col) !== -1
       ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
