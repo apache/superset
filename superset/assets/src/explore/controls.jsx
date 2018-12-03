@@ -602,6 +602,19 @@ export const controls = {
       options: (state.datasource) ? state.datasource.columns : [],
     }),
   },
+  publish_columns: {
+    type: 'SelectControl',
+    multi: true,
+    label: t('Publish Columns'),
+    default: [],
+    description: t('Columns to publish data on click'),
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: state => ({
+      options: (state.datasource) ? state.datasource.columns : [],
+    }),
+  },
 
   spatial: {
     type: 'SpatialControl',
@@ -1953,10 +1966,11 @@ export const controls = {
   },
   linked_slice: {
     "type": "SelectControl",
-    "label": "Slice",
+    "label": "Subscribe Slices",
+    "multi": true,
     "validators": [
     ],
-    "description": "Select one slice to link",
+    "description": "Select slices to subscribe",
     "renderTrigger": false,
     mapStateToProps: (state, control) => {
       const newState = {};
