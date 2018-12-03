@@ -14,7 +14,7 @@ export default function callApiAndParseWithTimeout({
 
   const racedPromise =
     typeof timeout === 'number' && timeout > 0
-      ? Promise.race([rejectAfterTimeout(timeout), apiPromise])
+      ? Promise.race([rejectAfterTimeout<Response>(timeout), apiPromise])
       : apiPromise;
 
   return parseResponse(racedPromise, parseMethod);
