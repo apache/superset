@@ -19,7 +19,7 @@ import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricsControl';
 import AdhocFilterControl from './AdhocFilterControl';
-import FilterPanel from './FilterPanel';
+import AdhocColumnControl from './AdhocColumnControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -43,6 +43,6 @@ const controlMap = {
   VizTypeControl,
   MetricsControl,
   AdhocFilterControl,
-  FilterPanel,
+  AdhocColumnControl,
 };
 export default controlMap;
