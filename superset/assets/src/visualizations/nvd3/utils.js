@@ -61,13 +61,8 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
 }
 
 // Formats the series key to account for a possible NULL value
-function getFormattedKey(seriesKey, toDompurify) {
-    let key = '';
-    if (toDompurify === true) {
-        key = dompurify.sanitize(seriesKey);
-    } else {
-        key = seriesKey;
-    }
+function getFormattedKey(seriesKey, shouldDompurify) {
+    var key = shouldDompurify ? dompurify.sanitize(seriesKey) : seriesKey
     if (key === '') {
         key = '&lt;' + seriesKey.slice(1, -1) + '&gt;';
     }
