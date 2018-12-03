@@ -69,9 +69,9 @@ function tableVis(slice, payload) {
   });
 
   function buttoRenderer(column) {
-    // console.log(slice.datasource)
+    console.log(slice.datasource)
     const label = slice.datasource.verbose_map[column] || column
-    // console.log(slice.datasource.verbose_map[column]);
+    //console.log(slice.datasource.verbose_map[column]);
     return `<button type="button" class="btn btn-sm btn-default">${label}</button>`
   }
 
@@ -107,7 +107,7 @@ function tableVis(slice, payload) {
       if (c[0] === '%') {
         html = d3.format('.3p')(val);
       }
-      if(c === '__buttonrenderer') {
+      if(c === '__buttonRenderer') {
         html = buttoRenderer(c);
         c = expressionMap[c];
       }
@@ -165,16 +165,14 @@ function tableVis(slice, payload) {
     )
     .on('click', function (d) {
       if (!d.isMetric && fd.table_filter) {
-        //addFilter args (col, vals, merge = true)
-        slice.addFilter(d.col, [d.val],false);
-        // const td = d3.select(this);
-        // if (td.classed('filtered')) {
-        //   slice.removeFilter(d.col, [d.val]);
-        //   d3.select(this).classed('filtered', false);
-        // } else {
-        //   d3.select(this).classed('filtered', true);
-        //   slice.addFilter(d.col, [d.val]);
-        // }
+        const td = d3.select(this);
+        if (td.classed('filtered')) {
+          slice.removeFilter(d.col, [d.val]);
+          d3.select(this).classed('filtered', false);
+        } else {
+          d3.select(this).classed('filtered', true);
+          slice.addFilter(d.col, [d.val]);
+        }
       }
     })
     .style('cursor', function (d) {
