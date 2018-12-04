@@ -16,40 +16,45 @@ function leafletmap(slice, payload) {
     const CONVEX = 'Convex';
     const CONCAVE = 'Concave';
     const POINT = 'Point';
-     // todo: get these from config
-    const MARKER_FILL_COLOR = '#fff000';
+
+    const formData = slice.formData;
+
+    const MARKER_FILL_COLOR = getRgbColor(formData.color_picker);
     const MARKER_RADIUS = 10;
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
-    const MARKER_FILL_OPACITY = .75;
 
-    const formData = slice.formData;
+
 
     var colorCols;
     var geoJson;
     var mapInstance;
     var mapLayerType;
+    var selectedColorColumn;
+    var geoJsonLayer;
 
-    function getDefaultPolygonStyles()
-    {
+    function getDefaultPolygonStyles() {
         return {
-            color: MARKER_FILL_COLOR,
+            color: getRgbColor(formData.stroke_color_picker),
             fillColor: MARKER_FILL_COLOR,
             weight: MARKER_WEIGHT,
             opacity: MARKER_OPACITY,
-            fillOpacity:MARKER_FILL_OPACITY
+            fillOpacity: formData.cell_size
         }
     }
 
-    function setMapLayerType(){
-       var  map_style = formData.mapbox_style; 
-       var types  = map_style.split('-');
-       mapLayerType = ( types.length == 2 ) ? types[1] : types[0];
-       console.log(map_style,mapLayerType);
+    function getRgbColor(rgbObj){
+        return "rgb("+rgbObj.r+","+rgbObj.g+","+rgbObj.b+","+rgbObj.a+")";
     }
 
-    function setLayout()
-    {
+    function setMapLayerType() {
+        var map_style = formData.mapbox_style;
+        var types = map_style.split('-');
+        mapLayerType = (types.length == 2) ? types[1] : types[0];
+        console.log(map_style, mapLayerType);
+    }
+
+    function setLayout() {
         const container = slice.container;
         container.css('height', slice.height());
         container.css('overflow', 'auto');
@@ -64,10 +69,12 @@ function leafletmap(slice, payload) {
                 colorCols[element['subject']] = element;
             });
         }
-       
+
+        selectedColorColumn = Object.keys(colorCols)[0];
+
     }
 
-    function getTurfBasedGeoCordinates(points,type){
+    function getTurfBasedGeoCordinates(points, type) {
         var turfPoints = [];
         points.forEach(element => {
             turfPoints.push(turf.point(element))
@@ -89,8 +96,8 @@ function leafletmap(slice, payload) {
             return (points.length > 0 && points[0] instanceof Array) ? points[0] : points;
         }
         else if (mapLayerType == CONVEX || mapLayerType == CONCAVE) {
-            return getTurfBasedGeoCordinates(points,mapLayerType)
-        }else{
+            return getTurfBasedGeoCordinates(points, mapLayerType)
+        } else {
             return [points];
         }
     }
@@ -103,13 +110,26 @@ function leafletmap(slice, payload) {
         var maxvalue = col['sqlExpression'];
         var minValueClr = col['comparator'];
         var maxValueClr = col['clause'];
+
+        // if  minValueClr is r,g,b,a typed Object
+        if(minValueClr instanceof Object){
+            minValueClr = getRgbColor(minValueClr);
+        }
+
+        // if  minValueClr is r,g,b,a typed Object
+        if(maxValueClr instanceof Object){
+            maxValueClr = getRgbColor(maxValueClr);
+        }
+
         // todo: add algo to decrease /increase color intensity ad per value
         var colclr = minValueClr;
         if (colvalue >= maxvalue) {
+
             colclr = maxValueClr;
         } else if (colvalue < minValue) {
             colclr = MARKER_FILL_COLOR
         }
+        
         return colclr;
     }
 
@@ -136,7 +156,7 @@ function leafletmap(slice, payload) {
     function getMapGeometry(data) {
 
         return {
-            'type': (mapLayerType ==  POINT) ? POINT : POLYGON,
+            'type': (mapLayerType == POINT) ? POINT : POLYGON,
             'coordinates': getMapCordinates(data)
         };
     }
@@ -150,7 +170,7 @@ function leafletmap(slice, payload) {
     }
 
     function getFeatures() {
-        var  _data = payload.data.data;
+        var _data = payload.data.data;
         var feats = [];
         _data.forEach(element => {
             feats.push(getFeatureObject(element));
@@ -159,7 +179,7 @@ function leafletmap(slice, payload) {
         return feats;
     }
 
-    
+
     function createMapDP() {
         geoJson = {
             'type': 'FeatureCollection',
@@ -185,56 +205,85 @@ function leafletmap(slice, payload) {
         L.tileLayer(def_mapserver, {}).addTo(mapInstance);
     }
 
-    function mapItemClick(event)
-    {
-        slice.addFilter(formData.geojson, [event.target.feature.properties.id],false);
+    function mapItemClick(event) {
+        slice.addFilter(formData.geojson, [event.target.feature.properties.id], false);
     }
 
-    // todo: get column as per selections fetaure will be added
-    function getSelectedColorColumn(){
-        return Object.keys(colorCols)[0];
+    function getSelectedColorColumn() {
+        return selectedColorColumn;
     }
 
-    function getLayerStyles(feature){
+    function getLayerStyles(feature) {
         var clr = feature.properties[getSelectedColorColumn()].color;
-        var styles = Object.assign({}, getDefaultPolygonStyles()); 
+        var styles = Object.assign({}, getDefaultPolygonStyles());
         styles.fillColor = clr;
-        styles.color = clr;
         return styles;
     }
 
-    function getPopupContent(feature){
-      return "<div style='display:grid'><span><b>Details</b></span><span>"+formData.geojson+' : '+feature.properties.id+"</span><span>"+getSelectedColorColumn()+" : "+feature.properties[getSelectedColorColumn()].value+"</span></div>";
+    function getPopupContent(feature) {
+        return "<div style='display:grid'><span><b>Details</b></span><span>" + formData.geojson + ' : ' + feature.properties.id + "</span><span>" + getSelectedColorColumn() + " : " + feature.properties[getSelectedColorColumn()].value + "</span></div>";
     }
 
     function renderPolygonLayer() {
-        L.geoJson(geoJson, {
+        geoJsonLayer = L.geoJson(geoJson, {
             style: function (feature) {
                 return getLayerStyles(feature);
             },
-           
+
             onEachFeature: function onEachFeature(feature, layer) {
                 layer.on({
                     click: mapItemClick
                 });
                 // todo: move this to tooltip functionality
                 layer.bindPopup(getPopupContent(feature));
+
             },
             pointToLayer: function (feature, latlng) {
                 var styles = getLayerStyles(feature)
                 styles.radius = MARKER_RADIUS;
-                return L.circleMarker(latlng, styles).on('click',mapItemClick);
+                return L.circleMarker(latlng, styles).on('click', mapItemClick);
             },
         }).addTo(mapInstance);
     }
 
-    function drawMap()
-    {
-        renderBasicMap();
+    function changeColumn(event) {
+        selectedColorColumn = event.target.value;
+        mapInstance.removeLayer(geoJsonLayer);
+        console.log(selectedColorColumn);
         renderPolygonLayer();
     }
+    function getColumnOptions() {
+        var str = "<select>";
+        for (const key in colorCols) {
+            if (colorCols.hasOwnProperty(key)) {
+                str += "<option>" + key + "</option>";
+            }
+        }
+        str += "</select>";
+        return str;
+    }
 
-    function init(){
+    function addColumnsDropdownToMap() {
+
+        if (Object.keys(colorCols).length > 1) {
+            var legend = L.control({ position: 'topright' });
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'color_column_div');
+                div.innerHTML = getColumnOptions();
+                div.firstChild.onchange = changeColumn;
+                return div;
+            };
+            legend.addTo(mapInstance);
+        }
+    }
+
+    function drawMap() {
+        renderBasicMap();
+        renderPolygonLayer();
+        addColumnsDropdownToMap();
+    }
+
+    function init() {
 
         setLayout();
         setMapLayerType();
