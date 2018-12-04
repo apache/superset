@@ -6,11 +6,11 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
+import { getNumberFormatter, formatNumber, NumberFormats } from '@superset-ui/number-format';
+import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import 'nvd3/build/nv.d3.min.css';
 
 import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
-import { formatDateVerbose } from '../../modules/dates';
-import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils';
 import { isTruthy } from '../../utils/common';
 import {
   cleanColorInput,
@@ -20,6 +20,7 @@ import {
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   getMaxLabelSize,
+  getTimeOrNumberFormatter,
   hideTooltips,
   tipFactory,
   tryNumify,
@@ -175,7 +176,7 @@ const propTypes = {
 };
 
 const NOOP = () => {};
-const formatter = d3.format('.3s');
+const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
@@ -342,7 +343,7 @@ function nvd3Vis(element, props) {
         if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+          chart.labelType(d => `${d.data.x}: ${formatNumber(NumberFormats.SI, d.data.y)}`);
         }
 
         if (pieLabelType === 'percent' || pieLabelType === 'key_percent') {
@@ -377,8 +378,8 @@ function nvd3Vis(element, props) {
             xField,
             yField,
             sizeField,
-            xFormatter: d3FormatPreset(xAxisFormat),
-            yFormatter: d3FormatPreset(yAxisFormat),
+            xFormatter: getTimeOrNumberFormatter(xAxisFormat),
+            yFormatter: getTimeOrNumberFormatter(yAxisFormat),
             sizeFormatter: formatter,
           }));
         chart.pointRange([5, maxBubbleSize ** 2]);
@@ -458,11 +459,11 @@ function nvd3Vis(element, props) {
 
     let xAxisFormatter;
     if (isTimeSeries) {
-      xAxisFormatter = d3TimeFormatPreset(xAxisFormat);
+      xAxisFormatter = getTimeFormatter(xAxisFormat);
       // In tooltips, always use the verbose time format
-      chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
+      chart.interactiveLayer.tooltip.headerFormatter(smartDateVerboseFormatter);
     } else {
-      xAxisFormatter = d3FormatPreset(xAxisFormat);
+      xAxisFormatter = getTimeOrNumberFormatter(xAxisFormat);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
@@ -472,11 +473,11 @@ function nvd3Vis(element, props) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    let yAxisFormatter = d3FormatPreset(yAxisFormat);
+    let yAxisFormatter = getTimeOrNumberFormatter(yAxisFormat);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (contribution || comparisonType === 'percentage') {
         // When computing a "Percentage" or "Contribution" selected, we force a percentage format
-        yAxisFormatter = d3.format('.1%');
+        yAxisFormatter = getNumberFormatter(NumberFormats.PERCENT_1_POINT);
       }
       chart.yAxis.tickFormat(yAxisFormatter);
     }
@@ -519,8 +520,8 @@ function nvd3Vis(element, props) {
     }
 
     if (isVizTypes(['dual_line', 'line_multi'])) {
-      const yAxisFormatter1 = d3.format(yAxisFormat);
-      const yAxisFormatter2 = d3.format(yAxis2Format);
+      const yAxisFormatter1 = getNumberFormatter(yAxisFormat);
+      const yAxisFormatter2 = getNumberFormatter(yAxis2Format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
       const yAxisFormatters = data.map(datum => (

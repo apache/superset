@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
 import { BRAND_COLOR } from '@superset-ui/color';
-import { formatDateVerbose } from '../../modules/dates';
+import { smartDateVerboseFormatter } from '@superset-ui/time-format';
 import { computeMaxFontSize } from '../../modules/visUtils';
 
 import './BigNumber.css';
@@ -26,7 +26,7 @@ const PROPORTION = {
 export function renderTooltipFactory(formatValue) {
   return function renderTooltip({ datum }) { // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
-    const formattedDate = formatDateVerbose(rawDate);
+    const formattedDate = smartDateVerboseFormatter(rawDate);
     const value = formatValue(rawValue);
 
     return (

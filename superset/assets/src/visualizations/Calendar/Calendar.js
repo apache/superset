@@ -2,8 +2,10 @@ import PropTypes from 'prop-types';
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
+import { getNumberFormatter } from '@superset-ui/number-format';
+import { getTimeFormatter } from '@superset-ui/time-format';
 import CalHeatMap from '../../../vendor/cal-heatmap/cal-heatmap';
-import { d3TimeFormatPreset, d3FormatPreset } from '../../modules/utils'; import { UTC } from '../../modules/dates';
+import { UTC } from '../../modules/dates';
 import '../../../vendor/cal-heatmap/cal-heatmap.css';
 import './Calendar.css';
 
@@ -53,8 +55,8 @@ function Calendar(element, props) {
     verboseMap,
   } = props;
 
-  const valueFormatter = d3FormatPreset(valueFormat);
-  const timeFormatter = d3TimeFormatPreset(timeFormat);
+  const valueFormatter = getNumberFormatter(valueFormat);
+  const timeFormatter = getTimeFormatter(timeFormat);
 
   const container = d3Select(element)
     .style('height', height);

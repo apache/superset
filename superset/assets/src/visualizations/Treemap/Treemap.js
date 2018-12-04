@@ -2,6 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import './Treemap.css';
 
 // Declare PropTypes for recursive data structures
@@ -67,7 +68,7 @@ function Treemap(element, props) {
     treemapRatio,
   } = props;
   const div = d3.select(element);
-  const formatNumber = d3.format(numberFormat);
+  const formatNumber = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const data = clone(rawData);
 

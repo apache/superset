@@ -3,7 +3,8 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import nv from 'nvd3';
 import { CategoricalColorNamespace } from '@superset-ui/color';
-import { d3TimeFormatPreset } from '../../modules/utils';
+import { getNumberFormatter } from '@superset-ui/number-format';
+import { getTimeFormatter } from '@superset-ui/time-format';
 import './Rose.css';
 
 const propTypes = {
@@ -58,8 +59,8 @@ function Rose(element, props) {
     .sort((a, b) => a - b);
   const numGrains = times.length;
   const numGroups = datum[times[0]].length;
-  const format = d3.format(numberFormat);
-  const timeFormat = d3TimeFormatPreset(dateTimeFormat);
+  const format = getNumberFormatter(numberFormat);
+  const timeFormat = getTimeFormatter(dateTimeFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   d3.select('.nvtooltip').remove();
