@@ -7,7 +7,7 @@
 #    /etc/reflex-provisioner/playbooks/superset/main.yml if the    #
 #    site_connectivity is offline.                                 #
 #------------------------------------------------------------------#
-docker_default_registry: "{{ site_default_rpm_repo_host }}"
+docker_default_registry: "{{ site_default_dck_repo_host }}"
 
 superset_docker_registry: "{{ docker_default_registry }}"
 
