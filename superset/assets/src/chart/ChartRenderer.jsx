@@ -66,8 +66,7 @@ class ChartRenderer extends React.PureComponent {
         nextProps.queryResponse !== this.props.queryResponse ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
-        nextProps.triggerRender ||
-        nextProps.refreshOverlayVisible)
+        nextProps.triggerRender)
     ) {
       return true;
     }

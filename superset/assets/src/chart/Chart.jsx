@@ -1,12 +1,9 @@
-import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { ChartProps } from '@superset-ui/chart';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
+import { Logger } from '../logger';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
-import SuperChart from '../visualizations/core/components/SuperChart';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
 import './chart.css';
