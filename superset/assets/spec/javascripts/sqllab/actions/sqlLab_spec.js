@@ -68,7 +68,7 @@ describe('async actions', () => {
     it('calls querySuccess on fetch success', () =>
       makeRequest().then(() => {
         expect(dispatch.callCount).toBe(2);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
+        expect(dispatch.getCall(1).args[0].type).toBe(actions.RENDER_QUERY_RESULTS);
       }));
 
     it('calls queryFailed on fetch error', () => {
@@ -117,7 +117,7 @@ describe('async actions', () => {
       return makeRequest().then(() => {
         expect(dispatch.callCount).toBe(2);
         expect(dispatch.getCall(0).args[0].type).toBe(actions.START_QUERY);
-        expect(dispatch.getCall(1).args[0].type).toBe(actions.QUERY_SUCCESS);
+        expect(dispatch.getCall(1).args[0].type).toBe(actions.RENDER_QUERY_RESULTS);
       });
     });
 
