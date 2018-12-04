@@ -55,7 +55,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
 
   onSqlExpressionClauseChange(clause) {
     this.props.onChange(this.props.adhocFilter.duplicateWith({
-      clause: clause.hex,
+      clause: clause.rgb,
       expressionType: EXPRESSION_TYPES.OPTIONS,
     }));
   }
@@ -78,7 +78,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
 
   onComparatorChange(comparator) {
     this.props.onChange(this.props.adhocFilter.duplicateWith({
-      comparator: comparator.hex,
+      comparator: comparator.rgb,
       expressionType: EXPRESSION_TYPES.OPTIONS,
     }));
   }
@@ -99,9 +99,8 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
           <tr>
             <td>
               <TextControl
-                isInt = 'true'
                 name="map-color-low-value"
-                label="Good value & Color"
+                label="Min Value & Color"
                 placeholder=""
                 value= {adhocFilter.operator}
                 onChange={this.onOperatorChange}
@@ -118,9 +117,8 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
           <tr>
             <td>
               <TextControl
-                isInt = 'true'
                 name="map-color-high-value"
-                label="Alert Value & Color"
+                label="Max Value & Color"
                 placeholder=""
                 value= {adhocFilter.sqlExpression}
                 onChange={this.onSqlExpressionChange}
@@ -134,8 +132,8 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
              />
             </td>
           </tr>
-       
         </table>
+        <span>Min value color is filled for value in range (min - max) </span>
       </span>
     );
   }
