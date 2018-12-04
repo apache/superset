@@ -64,8 +64,8 @@ export default class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
-  componentDidUpdate(prevProps) {
-    if (prevProps.query.state === 'rendering') {
+  componentDidUpdate() {
+    if (this.props.query.state === 'rendering') {
       this.setQueryStateSuccess();
     }
   }

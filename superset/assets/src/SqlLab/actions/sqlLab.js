@@ -42,7 +42,7 @@ export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
-export const QUERY_SUCCESS = 'QUERY_SUCCESS';
+export const RENDER_QUERY_RESULTS = 'RENDER_QUERY_RESULTS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
@@ -82,8 +82,8 @@ export function startQuery(query) {
   return { type: START_QUERY, query };
 }
 
-export function querySuccess(query, results) {
-  return { type: QUERY_SUCCESS, query, results };
+export function renderQueryResults(query, results) {
+  return { type: RENDER_QUERY_RESULTS, query, results };
 }
 
 export function queryFailed(query, msg, link) {
@@ -120,7 +120,7 @@ export function fetchQueryResults(query) {
     })
       .then(({ text = '{}' }) => {
         const bigIntJson = JSONbig.parse(text);
-        dispatch(querySuccess(query, bigIntJson));
+        dispatch(renderQueryResults(query, bigIntJson));
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {
@@ -157,7 +157,7 @@ export function runQuery(query) {
     })
       .then(({ json }) => {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, json));
+          dispatch(renderQueryResults(query, json));
         }
       })
       .catch(response =>
