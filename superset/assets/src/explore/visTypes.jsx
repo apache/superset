@@ -112,18 +112,45 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Map'),
+        label: t('Polygon/Marker'),
+        expanded: true,
+        controlSetRows: [
+          ['color_picker'],
+          ['stroke_color_picker'],
+          ['cell_size']
+   
+        ],
+      },
+      {
+        label: t('Map Options'),
         expanded: true,
         controlSetRows: [
           ['viewport_longitude', 'viewport_latitude'],
           ['viewport_zoom', 'mapbox_style'],
           ['min_radius','max_radius'],
           ['ranges'],
-         
         ],
       },
     ],
     controlOverrides: {
+      cell_size:{
+        default: .75,
+        validators: [],
+        isInt: false,
+        renderTrigger: false,
+        label: t('Fill Opacity'),
+        description: t('The Polygon fill color Opacity 0-1'),
+      },
+      stroke_color_picker:{
+        label: t('Border Color'),
+        description: t('Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
+        renderTrigger: false,
+      },
+      color_picker:{
+        label: t('Default Fill Color'),
+        description: t('Use this to define a default fill color for outside range values'),
+        renderTrigger: false,
+      },
       geojson:{
         label: t('Id Column'),
         description: t('Id column for GeoJson Column'),
@@ -145,9 +172,11 @@ export const visTypes = {
       },
       viewport_longitude:{
         default: 72.83333,
+        isFloat: false,
       },
       viewport_latitude:{
         default: 18.96667,
+        isFloat: false,
       },
       viewport_zoom:{
         label: t('Default Zoom Level'),
