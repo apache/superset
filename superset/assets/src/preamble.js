@@ -2,6 +2,7 @@ import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import { configure } from '@superset-ui/translation';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
+import setupFormatters from './setup/setupFormatters';
 
 // Configure translation
 if (typeof window !== 'undefined') {
@@ -22,3 +23,6 @@ setupClient();
 
 // Setup color palettes
 setupColors();
+
+// Setup number formatters
+setupFormatters();

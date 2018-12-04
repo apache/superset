@@ -3,6 +3,7 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
 import { CategoricalColorNamespace } from '@superset-ui/color';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import './Sankey.css';
 
 const propTypes = {
@@ -16,7 +17,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
-const formatNumber = d3.format(',.2f');
+const formatNumber = getNumberFormatter(NumberFormats.FLOAT);
 
 function Sankey(element, props) {
   const {
