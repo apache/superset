@@ -319,6 +319,7 @@ function mapStateToProps(state) {
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,

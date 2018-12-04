@@ -28,6 +28,7 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
+  triggerRender: PropTypes.bool,
 };
 
 class ExploreChartPanel extends React.PureComponent {
@@ -46,6 +47,7 @@ class ExploreChartPanel extends React.PureComponent {
             chartStackTrace={chart.chartStackTrace}
             chartId={chart.id}
             chartStatus={chart.chartStatus}
+            triggerRender={this.props.triggerRender}
             datasource={this.props.datasource}
             errorMessage={this.props.errorMessage}
             formData={this.props.form_data}
