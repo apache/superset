@@ -1,6 +1,5 @@
 import * as color from 'd3-color';
-import { format as d3Format } from 'd3-format';
-import { d3FormatPreset } from '../../modules/utils';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { renderTooltipFactory } from './BigNumber';
 
 const TIME_COLUMN = '__timestamp';
@@ -43,7 +42,7 @@ export default function transformProps(chartProps) {
         const compareValue = sortedData[compareIndex][metricName];
         percentChange = compareValue === 0
           ? 0 : (bigNumber - compareValue) / Math.abs(compareValue);
-        const formatPercentChange = d3Format('+.1%');
+        const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_CHANGE_1_POINT);
         formattedSubheader = `${formatPercentChange(percentChange)} ${compareSuffix}`;
       }
     }
@@ -62,7 +61,7 @@ export default function transformProps(chartProps) {
     className = 'negative';
   }
 
-  const formatValue = d3FormatPreset(yAxisFormat);
+  const formatValue = getNumberFormatter(yAxisFormat);
 
   return {
     width,

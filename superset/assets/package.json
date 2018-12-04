@@ -55,6 +55,8 @@
     "@superset-ui/color": "^0.7.0",
     "@superset-ui/connection": "^0.5.0",
     "@superset-ui/core": "^0.7.0",
+    "@superset-ui/number-format": "^0.7.2",
+    "@superset-ui/time-format": "^0.7.2",
     "@superset-ui/translation": "^0.7.0",
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",

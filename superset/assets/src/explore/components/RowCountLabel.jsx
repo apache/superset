@@ -1,11 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Label } from 'react-bootstrap';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import { t } from '@superset-ui/translation';
 
-import { defaultNumberFormatter } from '../../modules/utils';
 import TooltipWrapper from '../../components/TooltipWrapper';
-
 
 const propTypes = {
   rowcount: PropTypes.number,
@@ -21,7 +20,7 @@ const defaultProps = {
 export default function RowCountLabel({ rowcount, limit, suffix }) {
   const limitReached = rowcount === limit;
   const bsStyle = (limitReached || rowcount === 0) ? 'danger' : 'default';
-  const formattedRowCount = defaultNumberFormatter(rowcount);
+  const formattedRowCount = getNumberFormatter()(rowcount);
   const tooltip = (
     <span>
       {limitReached &&
