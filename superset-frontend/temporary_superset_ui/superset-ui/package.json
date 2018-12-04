@@ -8,7 +8,7 @@
     "build": "yarn run build:cjs && yarn run build:esm && yarn run build:ts",
     "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "build:ts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/connection\"",
+    "build:ts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(connection|chart)\"",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage",
     "postrelease": "lerna run gh-pages",
@@ -35,7 +35,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.31",
+    "@data-ui/build-config": "^0.0.33",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
