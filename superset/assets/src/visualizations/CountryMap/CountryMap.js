@@ -1,8 +1,8 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { format as d3Format } from 'd3-format';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import './CountryMap.css';
 
 const propTypes = {
@@ -32,7 +32,7 @@ function CountryMap(element, props) {
   } = props;
 
   const container = element;
-  const format = d3Format(numberFormat);
+  const format = getNumberFormatter(numberFormat);
   const colorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
