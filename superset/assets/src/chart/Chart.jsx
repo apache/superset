@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Logger } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -32,7 +32,6 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
 };
 
 const BLANK = {};
@@ -56,6 +55,20 @@ class Chart extends React.PureComponent {
     }
   }
 
+  handleRenderFailure(error, info) {
+    const { actions, chartId } = this.props;
+    console.warn(error); // eslint-disable-line
+    actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
+
+    Logger.append(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
+      slice_id: chartId,
+      has_err: true,
+      error_details: error.toString(),
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+  }
+
   render() {
     const {
       width,
@@ -64,7 +77,6 @@ class Chart extends React.PureComponent {
       chartStackTrace,
       chartStatus,
       errorMessage,
-      onDismissRefreshOverlay,
       onQuery,
       queryResponse,
       refreshOverlayVisible,
@@ -75,9 +87,10 @@ class Chart extends React.PureComponent {
     // this allows <Loading /> to be positioned in the middle of the chart
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
-    this.renderStartTime = Logger.getTimestamp();
+    this.renderContainerStartTime = Logger.getTimestamp();
+
     return (
-      <ErrorBoundary onError={this.handleRenderFailure} showMessage={false}>
+      <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
         <div
           className={`chart-container ${isLoading ? 'is-loading' : ''}`}
           style={containerStyles}
@@ -98,7 +111,6 @@ class Chart extends React.PureComponent {
               width={width}
               height={height}
               onQuery={onQuery}
-              onDismiss={onDismissRefreshOverlay}
             />
           )}
           <div className={`slice_container ${isFaded ? ' faded' : ''}`}>

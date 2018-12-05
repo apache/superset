@@ -122,10 +122,6 @@ class ExploreViewContainer extends React.Component {
     this.addHistory({});
   }
 
-  onDismissRefreshOverlay() {
-    this.setState({ refreshOverlayVisible: false });
-  }
-
   onStop() {
     if (this.props.chart && this.props.chart.queryController) {
       this.props.chart.queryController.abort();
@@ -247,7 +243,6 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />
     );
   }

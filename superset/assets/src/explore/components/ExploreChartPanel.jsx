@@ -10,7 +10,6 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   addHistory: PropTypes.func,
   onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
@@ -51,7 +50,6 @@ class ExploreChartPanel extends React.PureComponent {
             datasource={this.props.datasource}
             errorMessage={this.props.errorMessage}
             formData={this.props.form_data}
-            onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
             onQuery={this.props.onQuery}
             queryResponse={chart.queryResponse}
             refreshOverlayVisible={this.props.refreshOverlayVisible}

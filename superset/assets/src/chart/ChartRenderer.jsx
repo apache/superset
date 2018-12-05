@@ -6,7 +6,6 @@ import { ChartProps } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
 import SuperChart from '../visualizations/core/components/SuperChart';
-import './chart.css';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -18,21 +17,16 @@ const propTypes = {
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
-  timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
-  chartStackTrace: PropTypes.string,
   queryResponse: PropTypes.object,
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
-  errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
-  onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
 };
 
 const BLANK = {};
@@ -62,6 +56,7 @@ class ChartRenderer extends React.PureComponent {
       nextProps.queryResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
       !nextProps.queryResponse.error &&
+      !nextProps.refreshOverlayVisible &&
       (nextProps.annotationData !== this.props.annotationData ||
         nextProps.queryResponse !== this.props.queryResponse ||
         nextProps.height !== this.props.height ||
