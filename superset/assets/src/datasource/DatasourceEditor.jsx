@@ -25,7 +25,7 @@ import './main.css';
 
 const checkboxGenerator = (d, onChange) => <CheckboxControl value={d} onChange={onChange} />;
 const styleMonospace = { fontFamily: 'monospace' };
-const DATA_TYPES = ['STRING', 'NUMBER', 'DATETIME'];
+const DATA_TYPES = ['STRING', 'NUMBER', 'DATETIME', 'TIMESTAMP'];
 
 function CollectionTabTitle({ title, collection }) {
   return (
