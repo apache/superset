@@ -140,6 +140,17 @@ class DatasourceModal extends React.PureComponent {
             />}
         </Modal.Body>
         <Modal.Footer>
+          <span className="float-left">
+            <Button
+              bsSize="sm"
+              bsStyle="default"
+              target="_blank"
+              href={this.props.datasource.edit_url}
+            >
+              {t('Use Legacy Datasource Editor')}
+            </Button>
+          </span>
+
           <span className="float-right">
             <Button
               bsSize="sm"
