@@ -152,8 +152,11 @@ HTML Sphinx generated should be in `docs/_build/html`. Navigate there
 and start a simple web server so we can check out the docs in a browser:
 
 ```bash
-cd docs/_build/html
+cd _build/html
+#python2
 python -m SimpleHTTPServer
+#python3
+python -m http.server 8000
 ```
 
 This will start a small Python web server listening on port 8000. Point your
