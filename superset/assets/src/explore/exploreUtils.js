@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { availableDomains } from '../utils/hostNamesConfig';
 import { getChartBuildQueryRegistry } from '@superset-ui/chart';
+import { availableDomains } from '../utils/hostNamesConfig';
 
 export function getChartKey(explore) {
   const slice = explore.slice;
