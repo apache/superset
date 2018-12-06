@@ -31,7 +31,10 @@ export default class EmbedCodeButton extends React.Component {
   generateEmbedHTML() {
     const srcLink = (
       window.location.origin +
-      getExploreLongUrl(this.props.latestQueryFormData, 'standalone') +
+      getExploreLongUrl({
+        formData: this.props.latestQueryFormData,
+        endpointType: 'standalone',
+      }) +
       `&height=${this.state.height}`
     );
     return (

@@ -28,7 +28,7 @@ export default function ExploreActionButtons({
     <div className="btn-group results" role="group">
       {latestQueryFormData &&
         <URLShortLinkButton
-          url={getExploreLongUrl(latestQueryFormData)}
+          url={getExploreLongUrl({ formData: latestQueryFormData })}
           emailSubject="Superset Chart"
           emailContent="Check out this chart: "
         />
