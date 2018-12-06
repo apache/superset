@@ -108,9 +108,8 @@ class QueryContext:
 
     def get_fillna_for_col(self, col):
         """Returns the value to use as filler for a specific Column.type"""
-        if col:
-            if col.is_string:
-                return ' NULL'
+        if col and col.is_string:
+            return ' NULL'
         return self.default_fillna
 
     def get_fillna_for_columns(self, columns=None):
