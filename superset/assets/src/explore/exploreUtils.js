@@ -34,26 +34,36 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
     }).toString();
 }
 
-export function getURIDirectory(formData, endpointType = 'base') {
+export function getURIDirectory({
+  formData,
+  endpointType = 'base',
+  forceExplore,
+}) {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
     directory = '/superset/explore_json/';
   }
   // const buildQueryRegistry = getChartBuildQueryRegistry();
-  if (formData.viz_type === 'word_cloud') {
+  if (formData.viz_type === 'word_cloud' && !forceExplore) {
     directory = '/api/v1/query/';
   }
   return directory;
 }
 
-export function getExploreLongUrl(formData, endpointType, allowOverflow = true, extraSearch = {}) {
+export function getExploreLongUrl({
+  formData,
+  endpointType,
+  forceExplore = false,
+  allowOverflow = true,
+  extraSearch = {},
+}) {
   if (!formData.datasource) {
     return null;
   }
 
   const uri = new URI('/');
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory({ formData, endpointType, forceExplore });
   const search = uri.search(true);
   Object.keys(extraSearch).forEach((key) => {
     search[key] = extraSearch[key];
@@ -100,7 +110,7 @@ export function getExploreUrlAndPayload({
     uri = URI(URI(curUrl).search());
   }
 
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory({ formData, endpointType });
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
@@ -138,7 +148,6 @@ export function getExploreUrlAndPayload({
 
   const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
   if (buildQuery) {
-    console.log(formData);
     payload = { query_context: buildQuery(formData) };
   }
 
