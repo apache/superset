@@ -1,0 +1,22 @@
+---
+- name: Add superset servers in haproxy
+  blockinfile:
+    dest: /etc/haproxy/haproxy.cfg
+    backup: yes
+    marker: "# {mark} SUPERSET SERVICE BLOCK"
+    block: |
+       listen SUPERSET_{{ superset_host_port }}
+         bind {{ site_floating_ip.ip }}:{{ superset_host_port }}
+         mode  http
+         balance  roundrobin
+         appsession JSESSIONID len 1024 timeout 1h request-learn
+         option forwardfor
+         {% for host in groups['master-nodes'] %}server {{ hostvars[host]['ansible_hostname'] }} {{ hostvars[host]['ansible_default_ipv4']['address'] }}:{{ superset_host_port }}
+         {%- if loop.first %} check
+         {% else %}  check
+         {% endif -%}
+         {% endfor %}
+  notify:
+    - Reload Haproxy
+  when:
+    - inventory_hostname in groups['loadbalancer-nodes']
