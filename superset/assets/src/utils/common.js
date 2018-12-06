@@ -1,25 +1,9 @@
-/* eslint global-require: 0 */
-import { SupersetClient } from '@superset-ui/core';
-import { t } from '../locales';
+import { SupersetClient } from '@superset-ui/connection';
+import getClientErrorObject from './getClientErrorObject';
 
-const d3 = require('d3');
-
-export const EARTH_CIRCUMFERENCE_KM = 40075.16;
 export const LUMINANCE_RED_WEIGHT = 0.2126;
 export const LUMINANCE_GREEN_WEIGHT = 0.7152;
 export const LUMINANCE_BLUE_WEIGHT = 0.0722;
-export const MILES_PER_KM = 1.60934;
-
-// Regexp for the label added to time shifted series (1 hour offset, 2 days offset, etc.)
-export const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
-
-export function kmToPixels(kilometers, latitude, zoomLevel) {
-  // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
-  const latitudeRad = latitude * (Math.PI / 180);
-  // Seems like the zoomLevel is off by one
-  const kmPerPixel = (EARTH_CIRCUMFERENCE_KM * Math.cos(latitudeRad)) / Math.pow(2, zoomLevel + 9);
-  return d3.round(kilometers / kmPerPixel, 2);
-}
 
 export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance
@@ -66,7 +50,11 @@ export function getShortUrl(longUrl) {
     postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
     parseMethod: 'text',
     stringify: false, // the url saves with an extra set of string quotes without this
-  }).then(({ text }) => text);
+  })
+    .then(({ text }) => text)
+    .catch(response =>
+      getClientErrorObject(response)
+        .then(({ error, statusText }) => Promise.reject(error || statusText)));
 }
 
 export function supersetURL(rootUrl, getParams = {}) {
@@ -112,11 +100,3 @@ export function optionFromValue(opt) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
-
-// Error messages used in many places across applications
-export const COMMON_ERR_MESSAGES = {
-  SESSION_TIMED_OUT: t('Your session timed out, please refresh your page and try again.'),
-};
-
-// time_range separator
-export const TIME_RANGE_SEPARATOR = ' : ';

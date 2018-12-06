@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import controls from './controls';
-import visTypes, { sectionsToRender } from './visTypes';
+import controlPanelConfigs, { sectionsToRender } from './controlPanels';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
@@ -47,7 +47,7 @@ export function getControlsState(state, form_data) {
 
   const controlNames = getControlNames(vizType, state.datasource.type);
 
-  const viz = visTypes[vizType];
+  const viz = controlPanelConfigs[vizType];
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
   controlNames.forEach((k) => {
@@ -102,7 +102,7 @@ export function getControlsState(state, form_data) {
 export function applyDefaultFormData(form_data) {
   const datasourceType = form_data.datasource.split('__')[1];
   const vizType = form_data.viz_type || 'table';
-  const viz = visTypes[vizType];
+  const viz = controlPanelConfigs[vizType];
   const controlNames = getControlNames(vizType, datasourceType);
   const controlOverrides = viz.controlOverrides || {};
   const formData = {};

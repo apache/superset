@@ -53,7 +53,7 @@ setup(
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
-        'bleach',
+        'bleach>=3.0.2, <4.0.0',
         'boto3>=1.4.7, <2.0.0',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0, <5.0.0',

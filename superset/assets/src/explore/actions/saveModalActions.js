@@ -1,4 +1,4 @@
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';

@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
-import { SupersetClient } from '@superset-ui/core';
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+import getClientErrorObject from '../utils/getClientErrorObject';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -57,10 +58,11 @@ class AsyncSelect extends React.PureComponent {
           this.onChange(options[0]);
         }
       })
-      .catch((error) => {
+      .catch(response => getClientErrorObject(response).then((error) => {
         this.props.onAsyncError(error.error || error.statusText || error);
         this.setState({ isLoading: false });
-      });
+      }),
+    );
   }
 
   render() {

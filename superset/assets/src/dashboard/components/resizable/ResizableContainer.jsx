@@ -7,6 +7,8 @@ import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
 import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
 
+const proxyToInfinity = Number.MAX_VALUE;
+
 const propTypes = {
   id: PropTypes.string.isRequired,
   children: PropTypes.node,
@@ -41,9 +43,9 @@ const defaultProps = {
   widthMultiple: null,
   heightMultiple: null,
   minWidthMultiple: 1,
-  maxWidthMultiple: Infinity,
+  maxWidthMultiple: proxyToInfinity,
   minHeightMultiple: 1,
-  maxHeightMultiple: Infinity,
+  maxHeightMultiple: proxyToInfinity,
   staticHeight: null,
   staticHeightMultiple: null,
   staticWidth: null,

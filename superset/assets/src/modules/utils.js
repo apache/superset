@@ -1,43 +1,6 @@
 /* eslint camelcase: 0 */
-import d3 from 'd3';
 import $ from 'jquery';
-import { SupersetClient } from '@superset-ui/core';
-import { formatDate, UTC } from './dates';
-import { COMMON_ERR_MESSAGES } from '../utils/common';
-import { t } from '../locales';
-
-const siFormatter = d3.format('.3s');
-
-export function defaultNumberFormatter(n) {
-  let si = siFormatter(n);
-  // Removing trailing `.00` if any
-  if (si.slice(-1) < 'A') {
-    si = parseFloat(si).toString();
-  }
-  return si;
-}
-
-export function d3FormatPreset(format) {
-  // like d3.format, but with support for presets like 'smart_date'
-  if (format === 'smart_date') {
-    return formatDate;
-  }
-  if (format) {
-    return d3.format(format);
-  }
-  return defaultNumberFormatter;
-}
-export const d3TimeFormatPreset = function (format) {
-  const effFormat = format || 'smart_date';
-  if (effFormat === 'smart_date') {
-    return formatDate;
-  }
-  const f = d3.time.format(effFormat);
-  return function (dttm) {
-    const d = UTC(new Date(dttm));
-    return f(d);
-  };
-};
+import { select as d3Select } from 'd3-selection';
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -50,7 +13,7 @@ export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
   text.each(function () {
-    const d3Text = d3.select(this);
+    const d3Text = d3Select(this);
     const words = d3Text.text().split(/\s+/);
     let word;
     let line = [];
@@ -109,70 +72,6 @@ export function showModal(options) {
   $(options.modalSelector).modal('show');
 }
 
-
-function showApiMessage(resp) {
-  const template =
-    '<div class="alert"> ' +
-    '<button type="button" class="close" ' +
-    'data-dismiss="alert">\xD7</button> </div>';
-  const severity = resp.severity || 'info';
-  $(template).addClass('alert-' + severity)
-             .append(resp.message)
-             .appendTo($('#alert-container'));
-}
-
-export function getClientErrorObject(response) {
-  // takes a Response object as input, attempts to read response as Json if possible,
-  // and returns a Promise that resolves to a plain object with error key and text value.
-  return new Promise((resolve) => {
-    if (typeof response === 'string') {
-      resolve({ error: response });
-    } else if (response && response.constructor === Response && !response.bodyUsed) {
-      // attempt to read the body as json, and fallback to text. we must clone the
-      // response in order to fallback to .text() because Response is single-read
-      response.clone().json().then((errorJson) => {
-        let error = { ...response, ...errorJson };
-        if (error.stack) {
-          error = {
-            ...error,
-            error: t('Unexpected error: ') +
-              (error.description || t('(no description, click to see stack trace)')),
-            stacktrace: error.stack,
-          };
-        } else if (error.responseText && error.responseText.indexOf('CSRF') >= 0) {
-          error = {
-            ...error,
-            error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
-          };
-        }
-        resolve(error);
-      }).catch(() => {
-        // fall back to reading as text
-        response.text().then((errorText) => {
-          resolve({ ...response, error: errorText });
-        });
-      });
-    } else {
-      // fall back to Response.statusText or generic error of we cannot read the response
-      resolve({ ...response, error: response.statusText || t('An error occurred') });
-    }
-  });
-
-}
-
-export function toggleCheckbox(apiUrlPrefix, selector) {
-  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
-    .then(() => {})
-    .catch(response =>
-      getClientErrorObject(response)
-        .then((parsedResp) => {
-          if (parsedResp && parsedResp.message) {
-            showApiMessage(parsedResp);
-          }
-        }),
-      );
-}
-
 /**
  * Fix the height of the table body of a DataTable with scrollY set
  */
@@ -184,20 +83,6 @@ export const fixDataTableBodyHeight = function ($tableDom, height) {
   const controlsHeight = (pageLengthHeight > filterHeight) ? pageLengthHeight : filterHeight;
   $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
-
-export function d3format(format, number) {
-  const formatters = {};
-  // Formats a number and memoizes formatters to be reused
-  format = format || '.3s';
-  if (!(format in formatters)) {
-    formatters[format] = d3.format(format);
-  }
-  try {
-    return formatters[format](number);
-  } catch (e) {
-    return 'ERR';
-  }
-}
 
 export function formatSelectOptionsForRange(start, end) {
   // outputs array of arrays
@@ -242,4 +127,14 @@ export function mainMetric(savedMetrics) {
     }
   }
   return metric;
+}
+
+export function roundDecimal(number, precision) {
+  let roundedNumber;
+  if (precision) {
+    roundedNumber = Math.round(number * (precision = Math.pow(10, precision))) / precision;
+  } else {
+    roundedNumber = Math.round(number);
+  }
+  return roundedNumber;
 }

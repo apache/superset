@@ -44,10 +44,3 @@ yarn-error.log
 *.iml
 venv
 @eaDir/
-
-# docker
-/Dockerfile
-/docker-build.sh
-/docker-compose.yml
-/docker-entrypoint.sh
-/docker-init.sh

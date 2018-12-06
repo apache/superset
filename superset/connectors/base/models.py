@@ -66,7 +66,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @property
     def uid(self):
         """Unique id across datasource types"""
-        return '{self.id}__{self.type}'.format(**locals())
+        return f'{self.id}__{self.type}'
 
     @property
     def column_names(self):

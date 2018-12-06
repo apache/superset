@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import dompurify from 'dompurify';
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../../modules/utils';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getTimeFormatter } from '@superset-ui/time-format';
+import { fixDataTableBodyHeight } from '../../modules/utils';
 import './Table.css';
 
 dt(window, $);
@@ -45,8 +47,8 @@ const propTypes = {
   ]),
 };
 
-const formatValue = d3.format('0,000');
-const formatPercent = d3.format('.3p');
+const formatValue = getNumberFormatter(NumberFormats.INTEGER);
+const formatPercent = getNumberFormatter(NumberFormats.PERCENT_3_POINT);
 function NOOP() {}
 
 function TableVis(element, props) {
@@ -95,7 +97,7 @@ function TableVis(element, props) {
     }
   }
 
-  const tsFormatter = d3TimeFormatPreset(tableTimestampFormat);
+  const tsFormatter = getTimeFormatter(tableTimestampFormat);
 
   const div = d3.select(element);
   div.html('');
@@ -129,7 +131,7 @@ function TableVis(element, props) {
         html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
-        html = d3.format(format || '0.3s')(val);
+        html = getNumberFormatter(format)(val);
       }
       if (key[0] === '%') {
         html = formatPercent(val);

@@ -238,6 +238,9 @@ class SqlMetric(Model, BaseMetric):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
@@ -321,8 +324,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
-        return Markup(anchor.format(**locals()))
+        anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor)
 
     @property
     def schema_perm(self):

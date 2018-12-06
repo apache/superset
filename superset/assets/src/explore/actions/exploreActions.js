@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
-import { SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 import { addDangerToast } from '../../messageToasts/actions';
-import { t } from '../../locales';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 

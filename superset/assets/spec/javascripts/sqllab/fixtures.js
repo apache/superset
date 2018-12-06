@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import * as actions from '../../../src/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions/sqlLab';
 
 export const mockedActions = sinon.stub(Object.assign({}, actions));
 
@@ -292,7 +292,6 @@ export const databases = {
       allow_ctas: true,
       allow_dml: true,
       allow_run_async: false,
-      allow_run_sync: true,
       database_name: 'main',
       expose_in_sqllab: true,
       force_ctas_schema: '',
@@ -302,7 +301,6 @@ export const databases = {
       allow_ctas: true,
       allow_dml: false,
       allow_run_async: true,
-      allow_run_sync: true,
       database_name: 'Presto - Gold',
       expose_in_sqllab: true,
       force_ctas_schema: 'tmp',
@@ -367,6 +365,12 @@ export const initialState = {
     activeSouthPaneTab: 'Results',
   },
   messageToasts: [],
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 1000,
+      SQL_MAX_ROW: 100000,
+    },
+  },
 };
 
 export const query = {

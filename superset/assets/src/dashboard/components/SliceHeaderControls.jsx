@@ -2,14 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import {
   Logger,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_REFRESH_CHART,
 } from '../../logger';
-
-import { t } from '../../locales';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,

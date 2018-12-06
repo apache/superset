@@ -1,9 +1,9 @@
 import React from 'react';
+import { t } from '@superset-ui/translation';
 
 import { ROW_TYPE } from '../../../util/componentTypes';
 import { NEW_ROW_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';
-import { t } from '../../../../locales';
 
 export default function DraggableNewRow() {
   return (

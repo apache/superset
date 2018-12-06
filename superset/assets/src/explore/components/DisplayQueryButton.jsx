@@ -8,15 +8,16 @@ import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
 import { Table } from 'reactable';
-import { SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
 import Loading from '../../components/Loading';
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
-import { t } from '../../locales';
 import RowCountLabel from './RowCountLabel';
 
 registerLanguage('markdown', markdownSyntax);
@@ -70,12 +71,14 @@ export default class DisplayQueryButton extends React.PureComponent {
           error: null,
         });
       })
-      .catch((error) => {
-        this.setState({
-          error: error.error || error.statusText || t('Sorry, An error occurred'),
-          isLoading: false,
-        });
-      });
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.setState({
+            error: error || statusText || t('Sorry, An error occurred'),
+            isLoading: false,
+          });
+        }),
+      );
   }
   changeFilterText(event) {
     this.setState({ filterText: event.target.value });

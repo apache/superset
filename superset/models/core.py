@@ -33,7 +33,10 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.user_attributes import UserAttribute
-from superset.utils import core as utils
+from superset.utils import (
+    cache as cache_util,
+    core as utils,
+)
 from superset.viz import viz_types
 from urllib import parse  # noqa
 
@@ -195,7 +198,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
         # pylint: disable=no-member
-        return viz_class(self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=d)
 
     @property
     def description_markeddown(self):
@@ -254,8 +257,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data = {'slice_id': self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return (
-            '{base_url}/?form_data={params}'.format(**locals()))
+        return f'{base_url}/?form_data={params}'
 
     @property
     def slice_url(self):
@@ -275,7 +277,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     def slice_link(self):
         url = self.slice_url
         name = escape(self.slice_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_viz(self, force=False):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -295,6 +297,17 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             form_data=slice_params,
             force=force,
         )
+
+    @property
+    def icons(self):
+        return f"""
+        <a
+                href="{self.datasource_edit_url}"
+                data-toggle="tooltip"
+                title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """
 
     @classmethod
     def import_obj(cls, slc_to_import, slc_to_override, import_time=None):
@@ -406,8 +419,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     def dashboard_link(self):
         title = escape(self.dashboard_title)
-        return Markup(
-            '<a href="{self.url}">{title}</a>'.format(**locals()))
+        return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
     def data(self):
@@ -626,14 +638,13 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
-    expose_in_sqllab = Column(Boolean, default=False)
-    allow_run_sync = Column(Boolean, default=True)
+    expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -645,7 +656,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
-                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'expose_in_sqllab', 'allow_run_async',
                      'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
@@ -683,6 +694,26 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def backend(self):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
+
+    @property
+    def metadata_cache_timeout(self):
+        return self.get_extra().get('metadata_cache_timeout', {})
+
+    @property
+    def schema_cache_enabled(self):
+        return 'schema_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def schema_cache_timeout(self):
+        return self.metadata_cache_timeout.get('schema_cache_timeout')
+
+    @property
+    def table_cache_enabled(self):
+        return 'table_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def table_cache_timeout(self):
+        return self.metadata_cache_timeout.get('table_cache_timeout')
 
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
@@ -838,61 +869,105 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
-    def all_table_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            tables_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'table', force=force)
-            return tables_dict.get('', [])
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:table_list',
+        attribute_in_key='id')
+    def all_table_names_in_database(self, cache=False,
+                                    cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'table')
 
-        extra = self.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
-        enable_cache = 'table_cache_timeout' in medatada_cache_timeout
-        return sorted(self.db_engine_spec.get_table_names(
-            inspector=self.inspector,
-            db_id=self.id,
-            schema=schema,
-            enable_cache=enable_cache,
-            cache_timeout=table_cache_timeout,
-            force=force))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
+        attribute_in_key='id')
+    def all_view_names_in_database(self, cache=False,
+                                   cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'view')
 
-    def all_view_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            views_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'view', force=force)
-            return views_dict.get('', [])
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_table_names_in_schema(self, schema, cache=False,
+                                  cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: table list
+        :rtype: list
+        """
+        tables = []
+        try:
+            tables = self.db_engine_spec.get_table_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
+        return tables
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:view_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_view_names_in_schema(self, schema, cache=False,
+                                 cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: view list
+        :rtype: list
+        """
         views = []
         try:
-            extra = self.get_extra()
-            medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-            table_cache_timeout = medatada_cache_timeout.get('table_cache_timeout')
-            enable_cache = 'table_cache_timeout' in medatada_cache_timeout
             views = self.db_engine_spec.get_view_names(
-                inspector=self.inspector,
-                db_id=self.id,
-                schema=schema,
-                enable_cache=enable_cache,
-                cache_timeout=table_cache_timeout,
-                force=force)
-        except Exception:
-            pass
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
         return views
 
-    def all_schema_names(self, force_refresh=False):
-        extra = self.get_extra()
-        medatada_cache_timeout = extra.get('metadata_cache_timeout', {})
-        schema_cache_timeout = medatada_cache_timeout.get('schema_cache_timeout')
-        enable_cache = 'schema_cache_timeout' in medatada_cache_timeout
-        return sorted(self.db_engine_spec.get_schema_names(
-            inspector=self.inspector,
-            enable_cache=enable_cache,
-            cache_timeout=schema_cache_timeout,
-            db_id=self.id,
-            force=force_refresh))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list',
+        attribute_in_key='id')
+    def all_schema_names(self, cache=False, cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: schema list
+        :rtype: list
+        """
+        return self.db_engine_spec.get_schema_names(self.inspector)
 
     @property
     def db_engine_spec(self):
@@ -1119,11 +1194,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_grant={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_grant={r.name}'
             )
             href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
             action_list = action_list + '<li>' + href + '</li>'
@@ -1133,11 +1208,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def user_roles(self):
         action_list = ''
         for r in self.created_by.roles:  # pylint: disable=no-member
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_extend={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_extend={r.name}'
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
             if r.name in self.ROLES_BLACKLIST:

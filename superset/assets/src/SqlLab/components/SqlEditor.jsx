@@ -14,8 +14,10 @@ import {
   Collapse,
 } from 'react-bootstrap';
 import SplitPane from 'react-split-pane';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
+import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
@@ -26,8 +28,6 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { t } from '../../locales';
-
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -39,6 +39,8 @@ const propTypes = {
   dataPreviewQueries: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   hideLeftBar: PropTypes.bool,
+  defaultQueryLimit: PropTypes.number.isRequired,
+  maxRow: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -131,8 +133,13 @@ class SqlEditor extends React.PureComponent {
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
+  setQueryLimit(queryLimit) {
+    this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
+  }
   runQuery() {
-    this.startQuery(!(this.props.database || {}).allow_run_sync);
+    if (this.props.database) {
+      this.startQuery(this.props.database.allow_run_async);
+    }
   }
   startQuery(runAsync = false, ctas = false) {
     const qe = this.props.queryEditor;
@@ -144,6 +151,7 @@ class SqlEditor extends React.PureComponent {
       schema: qe.schema,
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
+      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync,
       ctas,
     };
@@ -237,7 +245,18 @@ class SqlEditor extends React.PureComponent {
             <span className="m-r-5">
               <ShareSqlLabQuery queryEditor={qe} />
             </span>
-            {ctasControls}
+            <span className="m-r-5">
+              {ctasControls}
+            </span>
+            <span className="inlineBlock m-r-5">
+              <LimitControl
+                value={(this.props.queryEditor.queryLimit !== undefined) ?
+                  this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
+                defaultQueryLimit={this.props.defaultQueryLimit}
+                maxRow={this.props.maxRow}
+                onChange={this.setQueryLimit.bind(this)}
+              />
+            </span>
             <span className="m-l-5">
               <Hotkeys
                 header="Keyboard shortcuts"

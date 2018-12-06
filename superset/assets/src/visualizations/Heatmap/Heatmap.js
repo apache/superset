@@ -2,8 +2,9 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import 'd3-svg-legend';
 import d3tip from 'd3-tip';
+import { getSequentialSchemeRegistry } from '@superset-ui/color';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 
-import { colorScalerFactory } from '../../modules/colors';
 import '../../../stylesheets/d3tip.css';
 import './Heatmap.css';
 
@@ -85,7 +86,7 @@ function Heatmap(element, props) {
     bottom: 35,
     left: 35,
   };
-  const valueFormatter = d3.format(numberFormat);
+  const valueFormatter = getNumberFormatter(numberFormat);
 
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
@@ -152,7 +153,7 @@ function Heatmap(element, props) {
 
   const hmWidth = width - (margin.left + margin.right);
   const hmHeight = height - (margin.bottom + margin.top);
-  const fp = d3.format('.2%');
+  const fp = getNumberFormatter(NumberFormats.PERCENT);
 
   const xScale = ordScale('x', null, sortXAxis);
   const yScale = ordScale('y', null, sortYAxis);
@@ -164,7 +165,9 @@ function Heatmap(element, props) {
 
   const minBound = yAxisBounds[0] || 0;
   const maxBound = yAxisBounds[1] || 1;
-  const colorScaler = colorScalerFactory(colorScheme, null, null, [minBound, maxBound]);
+  const colorScale = getSequentialSchemeRegistry()
+    .get(colorScheme)
+    .createLinearScale([minBound, maxBound]);
 
   const scale = [
     d3.scale.linear()
@@ -213,7 +216,7 @@ function Heatmap(element, props) {
   if (showLegend) {
     const colorLegend = d3.legend.color()
       .labelFormat(valueFormatter)
-      .scale(colorScaler)
+      .scale(colorScale)
       .shapePadding(0)
       .cells(10)
       .shapeWidth(10)
@@ -309,7 +312,7 @@ function Heatmap(element, props) {
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
     records.forEach((d) => {
-      const c = d3.rgb(colorScaler(normalized ? d.rank : d.perc));
+      const c = d3.rgb(colorScale(normalized ? d.rank : d.perc));
       const x = xScale(d.x);
       const y = yScale(d.y);
       pixs[x + (y * xScale.domain().length)] = c;

@@ -1,12 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
 import sql from 'react-syntax-highlighter/dist/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/styles/hljs/github';
+import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
 
 registerLanguage('sql', sql);
 

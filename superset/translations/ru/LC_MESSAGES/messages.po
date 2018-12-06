@@ -3953,18 +3953,6 @@ msgstr "Редактировать Кластер Druid"
 msgid "Cluster"
 msgstr "Кластер"
 
-#: superset/connectors/druid/views.py:165
-msgid "Coordinator Host"
-msgstr "Координатор Хост"
-
-#: superset/connectors/druid/views.py:166
-msgid "Coordinator Port"
-msgstr "Координатор Порт"
-
-#: superset/connectors/druid/views.py:167
-msgid "Coordinator Endpoint"
-msgstr "Координатор Конечная Точка"
-
 #: superset/connectors/druid/views.py:168
 msgid "Broker Host"
 msgstr "Брокер-Хост"

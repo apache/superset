@@ -1,10 +1,10 @@
-import ChartPlugin from '../../core/models/ChartPlugin';
-import ChartMetadata from '../../core/models/ChartMetadata';
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  name: 'Time-series Period Pivot',
+  name: t('Time-series Period Pivot'),
   description: '',
   credits: ['http://nvd3.org'],
   thumbnail,

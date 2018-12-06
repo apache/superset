@@ -1,5 +1,8 @@
+import sinon from 'sinon';
+
 import URI from 'urijs';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../../../src/explore/exploreUtils';
+import * as hostNamesConfig from '../../../src/utils/hostNamesConfig';
 
 describe('exploreUtils', () => {
   const location = window.location;
@@ -125,6 +128,71 @@ describe('exploreUtils', () => {
           .search({ foo: 'bar' }),
       );
       expect(payload).toEqual(formData);
+    });
+  });
+
+  describe('domain sharding', () => {
+    let stub;
+    const availableDomains = [
+      'http://localhost/',
+      'domain1.com', 'domain2.com', 'domain3.com',
+    ];
+    beforeEach(() => {
+      stub = sinon.stub(hostNamesConfig, 'availableDomains').value(availableDomains);
+    });
+    afterEach(() => {
+      stub.restore();
+    });
+
+    it('generate url to different domains', () => {
+      let url = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        allowDomainSharding: true,
+      }).url;
+      expect(url).toMatch(availableDomains[0]);
+
+      url = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        allowDomainSharding: true,
+      }).url;
+      expect(url).toMatch(availableDomains[1]);
+
+      url = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        allowDomainSharding: true,
+      }).url;
+      expect(url).toMatch(availableDomains[2]);
+
+      url = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        allowDomainSharding: true,
+      }).url;
+      expect(url).toMatch(availableDomains[3]);
+
+      // circle back to first available domain
+      url = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        allowDomainSharding: true,
+      }).url;
+      expect(url).toMatch(availableDomains[0]);
+    });
+    it('not generate url to different domains without flag', () => {
+      let csvURL = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'csv',
+      }).url;
+      expect(csvURL).toMatch(availableDomains[0]);
+
+      csvURL = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'csv',
+      }).url;
+      expect(csvURL).toMatch(availableDomains[0]);
     });
   });
 

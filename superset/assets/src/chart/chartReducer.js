@@ -1,12 +1,13 @@
 /* eslint camelcase: 0 */
+import { t } from '@superset-ui/translation';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { t } from '../locales';
 
 export const chart = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
+  chartStackTrace: null,
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
@@ -35,6 +36,7 @@ export default function chartReducer(charts = {}, action) {
       return {
         ...state,
         chartStatus: 'loading',
+        chartStackTrace: null,
         chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
@@ -56,6 +58,7 @@ export default function chartReducer(charts = {}, action) {
     [actions.CHART_RENDERING_FAILED](state) {
       return { ...state,
         chartStatus: 'failed',
+        chartStackTrace: action.stackTrace,
         chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
       };
     },
@@ -78,10 +81,15 @@ export default function chartReducer(charts = {}, action) {
         chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
+        chartStackTrace: action.queryResponse ? action.queryResponse.stacktrace : null,
       };
     },
     [actions.TRIGGER_QUERY](state) {
-      return { ...state, triggerQuery: action.value };
+      return {
+        ...state,
+        triggerQuery: action.value,
+        chartStatus: 'loading',
+      };
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };

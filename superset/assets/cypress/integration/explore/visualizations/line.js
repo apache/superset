@@ -113,4 +113,15 @@ export default () => describe('Line', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
+
+  it('Test verbose name shows up in legend', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('text.nv-legend-text').contains('COUNT(*)');
+  });
 });

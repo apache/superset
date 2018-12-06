@@ -1,9 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreLongUrl } from '../exploreUtils';
-import { t } from '../../locales';
 
 const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,

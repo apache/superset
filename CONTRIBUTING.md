@@ -201,11 +201,12 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv venv
+virtualenv -p python3 venv . # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
@@ -221,8 +222,9 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask web server (but see below for frontend asset compilation)
-superset runserver -d
+# Start the Flask dev web server from inside the `superset` dir (but see below for frontend asset compilation)
+cd superset
+flask run -p 8080 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
@@ -253,11 +255,11 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# Install yarn, a replacement for `npm install`
+# If needed, install yarn, a replacement for `npm install`
 npm install -g yarn
 
 # Install dependencies
-yarn install
+yarn
 ```
 
 Finally, to compile frontend assets, run any of the following commands.
@@ -394,10 +396,10 @@ from flask_babel import lazy_gettext as _
 then wrap our translatable strings with it, e.g. `_('Translate me')`. During extraction, string literals passed to `_` will be added to the generated `.po` file for each language for later translation.
 At runtime, the `_` function will return the translation of the given string for the current language, or the given string itself if no translation is available.
 
-In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number), and `TCT` (translating entire React Components).
+In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import {t, tn, TCT} from locales;
+import {t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection

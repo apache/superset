@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
-import { getClientErrorObject } from '../../modules/utils';
-import { t } from '../../locales';
+import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
@@ -39,10 +39,11 @@ class ShareSqlLabQuery extends React.Component {
         this.setState({ shortUrl });
       })
       .catch((response) => {
-        getClientErrorObject(response).then(({ error }) => {
-          this.props.addDangerToast(error);
-          this.setState({ shortUrl: t('Error') });
-        });
+        getClientErrorObject(response)
+          .then(({ error }) => {
+            this.props.addDangerToast(error);
+            this.setState({ shortUrl: t('Error') });
+          });
       });
   }
 
