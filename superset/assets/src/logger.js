@@ -132,6 +132,7 @@ export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
 export const LOG_ACTIONS_FIRST_DASHBOARD_LOAD = 'first_dashboard_load';
 export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
 export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
+export const LOG_ACTIONS_RENDER_CHART_CONTAINER = 'render_chart_container';
 export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
 export const LOG_ACTIONS_REFRESH_CHART = 'force_refresh_chart';
 
@@ -158,4 +159,5 @@ export const EXPLORE_EVENT_NAMES = [
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_RENDER_CHART,
   LOG_ACTIONS_REFRESH_CHART,
+  LOG_ACTIONS_RENDER_CHART_CONTAINER,
 ];
