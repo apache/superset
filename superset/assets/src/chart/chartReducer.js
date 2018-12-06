@@ -85,7 +85,11 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.TRIGGER_QUERY](state) {
-      return { ...state, triggerQuery: action.value };
+      return {
+        ...state,
+        triggerQuery: action.value,
+        chartStatus: 'loading',
+      };
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };

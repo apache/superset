@@ -122,10 +122,6 @@ class ExploreViewContainer extends React.Component {
     this.addHistory({});
   }
 
-  onDismissRefreshOverlay() {
-    this.setState({ refreshOverlayVisible: false });
-  }
-
   onStop() {
     if (this.props.chart && this.props.chart.queryController) {
       this.props.chart.queryController.abort();
@@ -247,7 +243,6 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />
     );
   }
@@ -319,6 +314,7 @@ function mapStateToProps(state) {
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,
