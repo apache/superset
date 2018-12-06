@@ -69,9 +69,9 @@ function tableVis(slice, payload) {
   });
 
   function buttoRenderer(column) {
-    console.log(slice.datasource)
+    // console.log(slice.datasource)
     const label = slice.datasource.verbose_map[column] || column
-    //console.log(slice.datasource.verbose_map[column]);
+    // console.log(slice.datasource.verbose_map[column]);
     return `<button type="button" class="btn btn-sm btn-default">${label}</button>`
   }
 
@@ -107,7 +107,7 @@ function tableVis(slice, payload) {
       if (c[0] === '%') {
         html = d3.format('.3p')(val);
       }
-      if(c === '__buttonRenderer') {
+      if(c === '__buttonrenderer') {
         html = buttoRenderer(c);
         c = expressionMap[c];
       }
