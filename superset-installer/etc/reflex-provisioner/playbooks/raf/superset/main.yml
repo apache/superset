@@ -44,6 +44,11 @@
   roles:
     - role: raf/superset/data_model
 
+- name: Superset haproxy backend
+  hosts:
+    - loadbalancer-nodes
+  roles:
+    - raf/superset/haproxy_backend
 
 - name: Superset role deployment
   hosts:
