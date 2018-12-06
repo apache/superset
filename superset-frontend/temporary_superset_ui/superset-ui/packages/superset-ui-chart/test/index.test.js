@@ -7,6 +7,7 @@ import {
   getChartComponentRegistry,
   getChartMetadataRegistry,
   getChartTransformPropsRegistry,
+  reactify,
 } from '../src/index';
 
 describe('index', () => {
@@ -20,6 +21,7 @@ describe('index', () => {
       getChartComponentRegistry,
       getChartMetadataRegistry,
       getChartTransformPropsRegistry,
+      reactify,
     ].forEach(x => expect(x).toBeDefined());
   });
 });
