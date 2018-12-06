@@ -49,7 +49,7 @@ class DeckMulti extends React.PureComponent {
       };
 
       SupersetClient.get({
-          endpoint: getExploreLongUrl(subsliceCopy.form_data, 'json'),
+          endpoint: getExploreLongUrl({ formData: subsliceCopy.form_data, endpointType: 'json' }),
         })
         .then(({ json }) => {
           const layer = layerGenerators[subsliceCopy.form_data.viz_type](
