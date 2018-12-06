@@ -1,6 +1,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import createLoadableRenderer from '../../src/components/createLoadableRenderer';
+import { createLoadableRenderer } from '../../src';
 
 describe('createLoadableRenderer', () => {
   function TestComponent() {

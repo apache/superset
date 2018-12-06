@@ -18,7 +18,7 @@
     "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
     "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
     "test": "yarn run jest",
-    "test:watch": "beemo create-config jest && jest --watch"
+    "test:watch": "beemo create-config jest --react && jest --watch"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
   "keywords": [
