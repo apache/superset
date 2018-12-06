@@ -1,0 +1,24 @@
+---
+
+- name: Reload Haproxy
+  command: /bin/true
+  notify:
+    - Kill haproxy
+    - Restart pacemaker.service
+    - Restart haproxy.service
+
+- name: 'Kill haproxy'
+  shell: '/usr/bin/pkill haproxy'
+  when: inventory_hostname in groups['loadbalancer-nodes']
+
+- name: 'Restart pacemaker.service'
+  systemd:
+    name: pacemaker.service
+    state: restarted
+  when: inventory_hostname in groups['loadbalancer-nodes']
+
+- name: 'Restart haproxy.service'
+  systemd:
+    name: haproxy.service
+    state: restarted
+  when: inventory_hostname in groups['loadbalancer-nodes']
