@@ -10,6 +10,7 @@ const propTypes = {
   shouldShowText: PropTypes.bool,
   text: PropTypes.string,
   inMenu: PropTypes.bool,
+  wrapped: PropTypes.bool,
   tooltipText: PropTypes.string,
 };
 
@@ -18,6 +19,7 @@ const defaultProps = {
   onCopyEnd: () => {},
   shouldShowText: true,
   inMenu: false,
+  wrapped: true,
   tooltipText: t('Copy to clipboard'),
 };
 
@@ -94,6 +96,23 @@ export default class CopyToClipboard extends React.Component {
     return this.props.tooltipText;
   }
 
+  renderNotWrapped() {
+    const { copyNode } = this.props;
+    return (
+      <OverlayTrigger
+        placement="top"
+        style={{ cursor: 'pointer' }}
+        overlay={this.renderTooltip()}
+        trigger={['hover']}
+        bsStyle="link"
+        onClick={this.onClick}
+        onMouseOut={this.onMouseOut}
+      >
+        {copyNode}
+      </OverlayTrigger>
+    );
+  }
+
   renderLink() {
     return (
       <span>
@@ -139,7 +158,11 @@ export default class CopyToClipboard extends React.Component {
   }
 
   render() {
-    return this.props.inMenu ? this.renderInMenu() : this.renderLink();
+    const { wrapped, inMenu } = this.props;
+    if (!wrapped) {
+      return this.renderNotWrapped();
+    }
+    return inMenu ? this.renderInMenu() : this.renderLink();
   }
 }
 
