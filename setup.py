@@ -69,7 +69,7 @@ setup(
         'flask-wtf',
         'flower',  # deprecated
         'geopy',
-        'gsheetsdb',
+        'gsheetsdb>=0.1.8',
         'gunicorn',  # deprecated
         'humanize',
         'idna',
