@@ -19,7 +19,7 @@ import FilterDefinitionOption from '../FilterDefinitionOption';
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
-  value: PropTypes.arrayOf(adhocFilterType),
+  value: PropTypes.arrayOf(PropTypes.object),
   datasource: PropTypes.object,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),

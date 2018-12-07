@@ -56,6 +56,12 @@ function leafletmap(slice, payload) {
 
     function setLayout() {
         const container = slice.container;
+        // fix of leaflet js :: error 
+        //An error occurred while rendering the visualization: Error: Map container is already initialized.
+        var el = container.el;
+        if(el && el._leaflet_id){
+            el._leaflet_id = null;
+        }
         container.css('height', slice.height());
         container.css('overflow', 'auto');
     }
