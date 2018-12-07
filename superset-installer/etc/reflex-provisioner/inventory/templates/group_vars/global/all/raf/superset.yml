@@ -32,6 +32,7 @@ superset_docker_images:
   - name: guavus-superset
     tag: "{{ superset_image_tag }}"
 
+superset_kube_namespace: default
 
 #------------------------------------------------------------------#
 #                      Configurations                              #
