@@ -6,7 +6,7 @@ import textwrap
 import pandas as pd
 from sqlalchemy import DateTime, String
 
-from superset import db
+from superset import db, security_manager
 from superset.connectors.sqla.models import TableColumn
 from superset.utils.core import get_or_create_main_db
 from .helpers import (
@@ -75,6 +75,8 @@ def load_birth_names():
         'where': '',
         'markup_type': 'markdown',
     }
+
+    admin = security_manager.find_user('admin')
 
     print('Creating some slices')
     slices = [
@@ -318,6 +320,18 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type='line')),
+        Slice(
+            slice_name='Daily Totals',
+            viz_type='table',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            created_by=admin,
+            params=get_slice_json(
+                defaults,
+                groupby=['ds'],
+                since='40 years ago',
+                until='now',
+                viz_type='table')),
     ]
     for slc in slices:
         merge_slice(slc)
