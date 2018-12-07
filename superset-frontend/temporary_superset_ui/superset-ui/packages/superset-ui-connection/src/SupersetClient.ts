@@ -25,8 +25,8 @@ export interface ClientConfig {
 
 class SupersetClient {
   credentials: Credentials;
-  csrfToken: CsrfToken | undefined;
-  csrfPromise: CsrfPromise;
+  csrfToken?: CsrfToken;
+  csrfPromise?: CsrfPromise;
   protocol: Protocol;
   host: Host;
   headers: Headers;
@@ -49,12 +49,7 @@ class SupersetClient {
     this.protocol = protocol;
     this.credentials = credentials;
     this.csrfToken = csrfToken;
-    this.csrfPromise = Promise.reject({
-      error: `SupersetClient has no CSRF token, ensure it is initialized or
-      try logging into the Superset instance at ${this.getUrl({
-        endpoint: '/login',
-      })}`,
-    });
+    this.csrfPromise = undefined;
 
     if (typeof this.csrfToken === 'string') {
       this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
@@ -132,7 +127,15 @@ class SupersetClient {
   }
 
   ensureAuth() {
-    return this.csrfPromise;
+    return (
+      this.csrfPromise ||
+      Promise.reject({
+        error: `SupersetClient has no CSRF token, ensure it is initialized or
+      try logging into the Superset instance at ${this.getUrl({
+        endpoint: '/login',
+      })}`,
+      })
+    );
   }
 
   async getCSRFToken() {
