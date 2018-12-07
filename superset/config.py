@@ -6,6 +6,7 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 from collections import OrderedDict
+import functools
 import imp
 import json
 import os
@@ -450,6 +451,30 @@ SQL_QUERY_MUTATOR = None
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
 
+
+def CUSTOM_HAS_ACCESS(f):
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        # print("ha happened")
+        # from superset import security_manager
+        # security_manager.add_role('ha')
+        from flask_appbuilder.security.decorators import has_access
+        return has_access(f)(self, *args, **kwargs)
+
+    return wrapper
+
+
+def CUSTOM_HAS_ACCESS_API(f):
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        # print("hap happened")
+        # from superset import security_manager
+        # security_manager.add_role('hap')
+        from flask_appbuilder.security.decorators import has_access_api
+        return has_access_api(f)(self, *args, **kwargs)
+
+    return wrapper
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
@@ -471,3 +496,4 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
+

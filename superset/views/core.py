@@ -14,7 +14,6 @@ from flask import (
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -28,8 +27,8 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend,
-    security_manager, sql_lab, viz)
+    app, appbuilder, cache, db, has_access, has_access_api,
+    results_backend, security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
