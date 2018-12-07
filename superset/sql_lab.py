@@ -187,7 +187,7 @@ def execute_sql(
                 query.executed_sql,
                 query.schema,
                 user_name,
-                'superset.sql_lab',
+                __name__,
             )
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
         logging.info('Handling cursor')
