@@ -96,6 +96,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
     return (
       <span>
         <table>
+        <tbody>
           <tr>
             <td>
               <TextControl
@@ -132,6 +133,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
              />
             </td>
           </tr>
+          </tbody>
         </table>
         <span>Min value color is filled for value in range (min - max) </span>
       </span>
