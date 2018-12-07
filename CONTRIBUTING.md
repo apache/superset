@@ -153,9 +153,9 @@ and start a simple web server so we can check out the docs in a browser:
 
 ```bash
 cd _build/html
-#python2
+#python2 environment please run this command
 python -m SimpleHTTPServer
-#python3
+#python3 environment please run this command
 python -m http.server 8000
 ```
 
