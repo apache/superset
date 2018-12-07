@@ -802,6 +802,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_df(self, sql, schema):
         sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         engine = self.get_sqla_engine(schema=schema)
+        username = utils.get_username()
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -810,29 +811,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
-        username = utils.get_username()
+        def _log_query(sql):
+            if log_query:
+                log_query(engine.url, sql, schema, username, __name__)
+
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 for sql in sqls[:-1]:
-                    if log_query:
-                        log_query(
-                            engine.url,
-                            sql,
-                            schema,
-                            username,
-                            'superset.models.core',
-                        )
+                    _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
                     cursor.fetchall()
 
-                if log_query:
-                    log_query(
-                        engine.url,
-                        sqls[-1],
-                        schema,
-                        username,
-                        'superset.models.core',
-                    )
+                _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
                 if cursor.description is not None:
