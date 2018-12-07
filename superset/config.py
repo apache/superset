@@ -281,6 +281,12 @@ ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
+# Custom logger for auditing queries. This can be used to send ran queries to a
+# structured immutable store for auditing purposes. The function is called for
+# every query ran, in both SQL Lab and charts/dashboards.
+# def QUERY_LOGGER(database, query, schema=None, user=None, client=None):
+#     pass
+
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
