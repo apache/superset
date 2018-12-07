@@ -157,6 +157,8 @@ cd _build/html
 python -m SimpleHTTPServer
 #python3 environment please run this command
 python -m http.server 8000
+#if your environment both have python 2 & 3, please run this command
+python3 -m http.server 8000
 ```
 
 This will start a small Python web server listening on port 8000. Point your
