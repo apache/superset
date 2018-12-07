@@ -1,4 +1,12 @@
-
+<li>
+  <a
+    tabindex="-1"
+    href="https://jira.lyft.net/secure/CreateIssueDetails!init.jspa?pid=18701&issuetype=1"
+    title="Report a bug"
+  >
+    <i class="fa fa-bug"></i>&nbsp;
+  </a>
+</li>
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}
@@ -24,7 +32,6 @@
     </ul>
 </li>
 {% endif %}
-
 
 
 {% if not current_user.is_anonymous %}
