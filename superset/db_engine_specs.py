@@ -1461,10 +1461,10 @@ class BQEngineSpec(BaseEngineSpec):
         hashed_label = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
 
         # if label starts with number, add underscore as first character
-        mutated_label = '_' + label if re.match('^\d', label) else label
+        mutated_label = '_' + label if re.match(r'^\d', label) else label
 
         # replace non-alphanumeric characters with underscores
-        mutated_label = re.sub('[^\w]+', '_', mutated_label)
+        mutated_label = re.sub(r'[^\w]+', '_', mutated_label)
         if mutated_label != label:
             # add md5 hash to label to avoid possible collisions
             mutated_label += hashed_label
