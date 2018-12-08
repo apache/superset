@@ -163,16 +163,14 @@ if app.config.get('UPLOAD_FOLDER'):
         pass
 
 if app.config.get('CUSTOM_HAS_ACCESS'):
-    print("custom has_access")
     has_access = app.config.get('CUSTOM_HAS_ACCESS')
 else:
-    print("original has_access")
-    from flask_appbuilder.security.decorators import has_access
+    from flask_appbuilder.security.decorators import has_access  # noqa
 
 if app.config.get('CUSTOM_HAS_ACCESS_API'):
     has_access_api = app.config.get('CUSTOM_HAS_ACCESS_API')
 else:
-    from flask_appbuilder.security.decorators import has_access_api
+    from flask_appbuilder.security.decorators import has_access_api  # noqa
 
 for middleware in app.config.get('ADDITIONAL_MIDDLEWARE'):
     app.wsgi_app = middleware(app.wsgi_app)
@@ -182,6 +180,7 @@ class MyIndexView(IndexView):
     @expose('/')
     def index(self):
         return redirect('/superset/welcome')
+
 
 custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager
 if not issubclass(custom_sm, SupersetSecurityManager):

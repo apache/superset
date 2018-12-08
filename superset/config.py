@@ -6,7 +6,6 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 from collections import OrderedDict
-import functools
 import imp
 import json
 import os
@@ -451,29 +450,41 @@ SQL_QUERY_MUTATOR = None
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
 
+# A custom has_access decorator which overrides the default
+# has_access decorator from Flask Appbuilder.
+# Example:
+#    def CUSTOM_HAS_ACCESS(f):
+#        if hasattr(f, '_permission_name'):
+#            permission_str = f._permission_name
+#        else:
+#            permission_str = f.__name__
+#        def wrapper(self, *args, **kwargs):
+#            ################################
+#            # Do custom stuff here         #
+#            ################################
+#            from flask_appbuilder.security.decorators import has_access
+#            return has_access(f)(self, *args, **kwargs)
+#        f._permission_name = permission_str
+#        return functools.update_wrapper(wrapper, f)
+CUSTOM_HAS_ACCESS = None
 
-def CUSTOM_HAS_ACCESS(f):
-    @functools.wraps(f)
-    def wrapper(self, *args, **kwargs):
-        # print("ha happened")
-        # from superset import security_manager
-        # security_manager.add_role('ha')
-        from flask_appbuilder.security.decorators import has_access
-        return has_access(f)(self, *args, **kwargs)
-
-    return wrapper
-
-
-def CUSTOM_HAS_ACCESS_API(f):
-    @functools.wraps(f)
-    def wrapper(self, *args, **kwargs):
-        # print("hap happened")
-        # from superset import security_manager
-        # security_manager.add_role('hap')
-        from flask_appbuilder.security.decorators import has_access_api
-        return has_access_api(f)(self, *args, **kwargs)
-
-    return wrapper
+# A custom has_access_api decorator which overrides the default
+# has_access_api decorator from Flask Appbuilder.
+# Example:
+#    def CUSTOM_HAS_ACCESS_API(f):
+#        if hasattr(f, '_permission_name'):
+#            permission_str = f._permission_name
+#        else:
+#            permission_str = f.__name__
+#        def wrapper(self, *args, **kwargs):
+#            ################################
+#            # Do custom stuff here         #
+#            ################################
+#            from flask_appbuilder.security.decorators import has_access_api
+#            return has_access_api(f)(self, *args, **kwargs)
+#        f._permission_name = permission_str
+#        return functools.update_wrapper(wrapper, f)
+CUSTOM_HAS_ACCESS_API = None
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
@@ -496,4 +507,3 @@ try:
             superset_config.__file__))
 except ImportError:
     pass
-
