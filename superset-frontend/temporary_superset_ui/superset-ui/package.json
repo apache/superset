@@ -10,6 +10,7 @@
     "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:ts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(connection|chart)\"",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
+    "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage --react",
     "postrelease": "lerna run gh-pages",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
