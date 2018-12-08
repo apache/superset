@@ -1,12 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
-import { isEqual, isEmpty } from 'underscore';
-
+import { isEqual, isEmpty } from 'lodash';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
-import { t } from '../locales';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
@@ -42,6 +41,10 @@ export default class AlteredSliceTag extends React.Component {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         continue;
       }
+      // Ignore obsolete legacy filters
+      if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
+        continue;
+      }
       if (!isEqual(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
@@ -56,13 +59,15 @@ export default class AlteredSliceTag extends React.Component {
       return 'N/A';
     } else if (value === null) {
       return 'null';
-    } else if (controls[key] && controls[key].type === 'FilterControl') {
+    } else if (controls[key] && controls[key].type === 'AdhocFilterControl') {
       if (!value.length) {
         return '[]';
       }
       return value.map((v) => {
-        const filterVal = v.val && v.val.constructor === Array ? `[${v.val.join(', ')}]` : v.val;
-        return `${v.col} ${v.op} ${filterVal}`;
+        const filterVal = v.comparator && v.comparator.constructor === Array ?
+          `[${v.comparator.join(', ')}]` :
+          v.comparator;
+        return `${v.subject} ${v.operator} ${filterVal}`;
       }).join(', ');
     } else if (controls[key] && controls[key].type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;

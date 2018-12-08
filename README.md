@@ -92,11 +92,13 @@ Superset can be used to visualize data out of most databases:
 * MonetDB
 * Snowflake
 * Redshift
+* Clickhouse
+* Apache Kylin
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
 
 
-Druid!
+Apache Druid (Incubating)!
 ------
 
 On top of having the ability to query your relational databases,
@@ -129,6 +131,7 @@ Resources
 * [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
+* [Join our Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LTc2Y2QwYjE4NGYwNzQyZWUwYTExZTdiZDMzMWQwZjc2YmJmM2QyMDkwMGVjZTA4N2I2MzUxZTk2YmE5MWRhZWE)
 * [DEPRECATED Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
 
 
@@ -150,6 +153,7 @@ the world know they are using Superset. Join our growing community!
  - [Airboxlab](https://foobot.io)
  - [Aktia Bank plc](https://www.aktia.com)
  - [Amino](https://amino.com)
+ - [Apollo GraphQL](https://www.apollographql.com/)
  - [Ascendica Development](http://ascendicadevelopment.com)
  - [Astronomer](https://www.astronomer.io)
  - [Brilliant.org](https://brilliant.org/)
@@ -165,7 +169,8 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
- - [Maieutical Labs](https://cloudschooling.it)
+ - [Maieutical Labs](https://maieuticallabs.it)
+ - [Myra Labs](http://www.myralabs.com/)
  - [PeopleDoc](https://www.people-doc.com)
  - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
@@ -173,9 +178,12 @@ the world know they are using Superset. Join our growing community!
  - [ScopeAI](https://www.getscopeai.com)
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
+ - [Showmax](https://tech.showmax.com)
  - [Tails.com](https://tails.com)
+ - [THEICONIC](http://theiconic.com.au/)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
+ - [TrustMedis](https://trustmedis.com)
  - [Twitter](https://twitter.com/)
  - [Udemy](https://www.udemy.com/)
  - [VIPKID](https://www.vipkid.com.cn/)
@@ -183,3 +191,5 @@ the world know they are using Superset. Join our growing community!
  - [Yahoo!](https://yahoo.com/)
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
+ - [Fordeal](http://www.fordeal.com)
+

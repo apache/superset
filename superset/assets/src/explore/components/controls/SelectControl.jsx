@@ -2,8 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
+import { t } from '@superset-ui/translation';
+
 import ControlHeader from '../ControlHeader';
-import { t } from '../../../locales';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
 import OnPasteSelect from '../../../components/OnPasteSelect';
 
@@ -28,6 +29,7 @@ const propTypes = {
   placeholder: PropTypes.string,
   noResultsText: PropTypes.string,
   refFunc: PropTypes.func,
+  filterOption: PropTypes.func,
 };
 
 const defaultProps = {
@@ -131,6 +133,7 @@ export default class SelectControl extends React.PureComponent {
       selectComponent: this.props.freeForm ? Creatable : Select,
       disabled: this.props.disabled,
       refFunc: this.props.refFunc,
+      filterOption: this.props.filterOption,
     };
     return (
       <div>

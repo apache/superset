@@ -20,6 +20,9 @@ const OPERATORS_TO_SQL = {
   in: 'in',
   'not in': 'not in',
   LIKE: 'like',
+  regex: 'regex',
+  'IS NOT NULL': 'IS NOT NULL',
+  'IS NULL': 'IS NULL',
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
@@ -27,7 +30,7 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     const isMulti = MULTI_OPERATORS.indexOf(adhocMetric.operator) >= 0;
     const subject = adhocMetric.subject;
     const operator = OPERATORS_TO_SQL[adhocMetric.operator];
-    const comparator = isMulti ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
+    const comparator = Array.isArray(adhocMetric.comparator) ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
     return `${subject} ${operator} ${isMulti ? '(\'' : ''}${comparator}${isMulti ? '\')' : ''}`;
   } else if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
@@ -83,6 +86,13 @@ export default class AdhocFilter {
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
+      if (this.operator === 'IS NOT NULL' || this.operator === 'IS NULL') {
+        return !!(
+          this.operator &&
+          this.subject
+        );
+      }
+
       return !!(
         this.operator &&
         this.subject &&

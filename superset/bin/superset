@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+import click
+from flask.cli import FlaskGroup
 
-import warnings
-from flask.exthook import ExtDeprecationWarning
-warnings.simplefilter('ignore', ExtDeprecationWarning)
+from superset.cli import create_app
 
-from superset.cli import manager
 
-if __name__ == "__main__":
-    manager.run()
+@click.group(cls=FlaskGroup, create_app=create_app)
+def cli():
+    """This is a management script for the Superset application."""
+    pass
+
+
+if __name__ == '__main__':
+    cli()

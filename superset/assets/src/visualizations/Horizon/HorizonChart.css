@@ -1,0 +1,18 @@
+.horizon-chart {
+  overflow: auto;
+}
+
+.horizon-chart .horizon-row  {
+  border-bottom: solid 1px #ddd;
+  border-top: 0px;
+  padding: 0px;
+  margin: 0px;
+}
+
+.horizon-row span.title {
+  position: absolute;
+  color: #333;
+  font-size: 0.8em;
+  margin: 0;
+  text-shadow: 1px 1px rgba(255, 255, 255, 0.75);
+}

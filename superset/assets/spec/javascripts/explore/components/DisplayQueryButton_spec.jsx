@@ -1,8 +1,5 @@
 import React from 'react';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { mount } from 'enzyme';
-import { Modal } from 'react-bootstrap';
 import ModalTrigger from './../../../../src/components/ModalTrigger';
 
 import DisplayQueryButton from '../../../../src/explore/components/DisplayQueryButton';
@@ -16,15 +13,16 @@ describe('DisplayQueryButton', () => {
     },
     chartStatus: 'success',
     queryEndpoint: 'localhost',
+    latestQueryFormData: {
+      datasource: '1__table',
+    },
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).to.equal(true);
+    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(true);
   });
-  it('renders a button and a modal', () => {
+  it('renders a dropdown', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
-    expect(wrapper.find(ModalTrigger)).to.have.lengthOf(1);
-    wrapper.find('.modal-trigger').simulate('click');
-    expect(wrapper.find(Modal)).to.have.lengthOf(1);
+    expect(wrapper.find(ModalTrigger)).toHaveLength(3);
   });
 });

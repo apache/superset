@@ -11,18 +11,18 @@ import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../store';
-import { chartPropType } from '../../chart/chartReducer';
+import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
-import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
-  LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
+import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
+import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  chart: PropTypes.shape(chartPropType).isRequired,
+  chart: chartPropShape.isRequired,
   slice: PropTypes.object,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
@@ -35,13 +35,11 @@ const propTypes = {
 class ExploreViewContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.firstLoad = true;
     this.loadingLog = new ActionLog({
       impressionId: props.impressionId,
-      actionType: LOG_ACTIONS_PAGE_LOAD,
       source: 'slice',
       sourceId: props.slice ? props.slice.slice_id : 0,
-      eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
+      eventNames: EXPLORE_EVENT_NAMES,
     });
     Logger.start(this.loadingLog);
 
@@ -56,40 +54,46 @@ class ExploreViewContainer extends React.Component {
     this.addHistory = this.addHistory.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handlePopstate = this.handlePopstate.bind(this);
+    this.onStop = this.onStop.bind(this);
+    this.onQuery = this.onQuery.bind(this);
+    this.toggleModal = this.toggleModal.bind(this);
   }
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
     this.addHistory({ isReplace: true });
+    Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
   }
 
-  componentWillReceiveProps(np) {
-    if (this.firstLoad &&
-      ['rendered', 'failed', 'stopped'].indexOf(np.chart.chartStatus) > -1) {
-      Logger.end(this.loadingLog);
-      this.firstLoad = false;
+  componentWillReceiveProps(nextProps) {
+    const wasRendered =
+      ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
+    const isRendered = ['rendered', 'failed', 'stopped'].indexOf(nextProps.chart.chartStatus) > -1;
+    if (!wasRendered && isRendered) {
+      Logger.send(this.loadingLog);
     }
-    if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
+    if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
-      this.props.actions.triggerQuery(true, this.props.chart.chartKey);
+      this.props.actions.triggerQuery(true, this.props.chart.id);
     }
     if (
-      np.controls.datasource && (
-        this.props.controls.datasource == null ||
-        np.controls.datasource.value !== this.props.controls.datasource.value
-      )
+      nextProps.controls.datasource &&
+      (this.props.controls.datasource == null ||
+        nextProps.controls.datasource.value !== this.props.controls.datasource.value)
     ) {
-      this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
+      fetchDatasourceMetadata(nextProps.form_data.datasource, true);
     }
 
-    const changedControlKeys = this.findChangedControlKeys(this.props.controls, np.controls);
-    if (this.hasDisplayControlChanged(changedControlKeys, np.controls)) {
+    const changedControlKeys = this.findChangedControlKeys(this.props.controls, nextProps.controls);
+    if (this.hasDisplayControlChanged(changedControlKeys, nextProps.controls)) {
       this.props.actions.updateQueryFormData(
-        getFormDataFromControls(np.controls), this.props.chart.chartKey);
-      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
+        getFormDataFromControls(nextProps.controls),
+        this.props.chart.id,
+      );
+      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.id);
     }
-    if (this.hasQueryControlChanged(changedControlKeys, np.controls)) {
+    if (this.hasQueryControlChanged(changedControlKeys, nextProps.controls)) {
       this.setState({ chartIsStale: true, refreshOverlayVisible: true });
     }
   }
@@ -112,18 +116,16 @@ class ExploreViewContainer extends React.Component {
   onQuery() {
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
-    this.props.actions.triggerQuery(true, this.props.chart.chartKey);
+    this.props.actions.triggerQuery(true, this.props.chart.id);
 
     this.setState({ chartIsStale: false, refreshOverlayVisible: false });
     this.addHistory({});
   }
 
-  onDismissRefreshOverlay() {
-    this.setState({ refreshOverlayVisible: false });
-  }
-
   onStop() {
-    return this.props.chart.queryRequest.abort();
+    if (this.props.chart && this.props.chart.queryController) {
+      this.props.chart.queryController.abort();
+    }
   }
 
   getWidth() {
@@ -139,42 +141,46 @@ class ExploreViewContainer extends React.Component {
   }
 
   findChangedControlKeys(prevControls, currentControls) {
-    return Object.keys(currentControls).filter(key => (
-      typeof prevControls[key] !== 'undefined' &&
-      !areObjectsEqual(currentControls[key].value, prevControls[key].value)
-    ));
+    return Object.keys(currentControls).filter(
+      key =>
+        typeof prevControls[key] !== 'undefined' &&
+        !areObjectsEqual(currentControls[key].value, prevControls[key].value),
+    );
   }
 
   hasDisplayControlChanged(changedControlKeys, currentControls) {
-    return changedControlKeys.some(key => (currentControls[key].renderTrigger));
+    return changedControlKeys.some(key => currentControls[key].renderTrigger);
   }
 
   hasQueryControlChanged(changedControlKeys, currentControls) {
-    return changedControlKeys.some(key => (
-      !currentControls[key].renderTrigger && !currentControls[key].dontRefreshOnChange
-    ));
+    return changedControlKeys.some(
+      key => !currentControls[key].renderTrigger && !currentControls[key].dontRefreshOnChange,
+    );
   }
 
   triggerQueryIfNeeded() {
     if (this.props.chart.triggerQuery && !this.hasErrors()) {
-      this.props.actions.runQuery(this.props.form_data, false,
-        this.props.timeout, this.props.chart.chartKey);
+      this.props.actions.runQuery(
+        this.props.form_data,
+        false,
+        this.props.timeout,
+        this.props.chart.id,
+      );
     }
   }
 
   addHistory({ isReplace = false, title }) {
     const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
     const longUrl = getExploreLongUrl(this.props.form_data);
-    if (isReplace) {
-      history.replaceState(
-        payload,
-        title,
-        longUrl);
-    } else {
-      history.pushState(
-        payload,
-        title,
-        longUrl);
+    try {
+      if (isReplace) {
+        history.replaceState(payload, title, longUrl);
+      } else {
+        history.pushState(payload, title, longUrl);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed at altering browser history', payload, title, longUrl);
     }
 
     // it seems some browsers don't support pushState title attribute
@@ -194,12 +200,7 @@ class ExploreViewContainer extends React.Component {
     const formData = history.state;
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
-      this.props.actions.runQuery(
-        formData,
-        false,
-        this.props.timeout,
-        this.props.chart.chartKey,
-      );
+      this.props.actions.runQuery(formData, false, this.props.timeout, this.props.chart.id);
     }
   }
 
@@ -209,7 +210,8 @@ class ExploreViewContainer extends React.Component {
   hasErrors() {
     const ctrls = this.props.controls;
     return Object.keys(ctrls).some(
-      k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0);
+      k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0,
+    );
   }
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
@@ -227,9 +229,7 @@ class ExploreViewContainer extends React.Component {
     }
     let errorMessage;
     if (errors.length > 0) {
-      errorMessage = (
-        <div style={{ textAlign: 'left' }}>{errors}</div>
-      );
+      errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
     }
     return errorMessage;
   }
@@ -243,8 +243,8 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
-      />);
+      />
+    );
   }
 
   render() {
@@ -260,23 +260,24 @@ class ExploreViewContainer extends React.Component {
           overflow: 'hidden',
         }}
       >
-        {this.state.showModal &&
-        <SaveModal
-          onHide={this.toggleModal.bind(this)}
-          actions={this.props.actions}
-          form_data={this.props.form_data}
-        />
-      }
+        {this.state.showModal && (
+          <SaveModal
+            onHide={this.toggleModal}
+            actions={this.props.actions}
+            form_data={this.props.form_data}
+          />
+        )}
         <div className="row">
           <div className="col-sm-4">
             <QueryAndSaveBtns
               canAdd="True"
-              onQuery={this.onQuery.bind(this)}
-              onSave={this.toggleModal.bind(this)}
-              onStop={this.onStop.bind(this)}
+              onQuery={this.onQuery}
+              onSave={this.toggleModal}
+              onStop={this.onStop}
               loading={this.props.chart.chartStatus === 'loading'}
               chartIsStale={this.state.chartIsStale}
               errorMessage={this.renderErrorMessage()}
+              datasourceType={this.props.datasource_type}
             />
             <br />
             <ControlPanelsContainer
@@ -287,9 +288,7 @@ class ExploreViewContainer extends React.Component {
               isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
             />
           </div>
-          <div className="col-sm-8">
-            {this.renderChartContainer()}
-          </div>
+          <div className="col-sm-8">{this.renderChartContainer()}</div>
         </div>
       </div>
     );
@@ -298,15 +297,9 @@ class ExploreViewContainer extends React.Component {
 
 ExploreViewContainer.propTypes = propTypes;
 
-function mapStateToProps({ explore, charts, impressionId }) {
+function mapStateToProps(state) {
+  const { explore, charts, impressionId } = state;
   const form_data = getFormDataFromControls(explore.controls);
-  // fill in additional params stored in form_data but not used by control
-  Object.keys(explore.rawFormData)
-    .forEach((key) => {
-      if (form_data[key] === undefined) {
-        form_data[key] = explore.rawFormData[key];
-      }
-    });
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {
@@ -321,6 +314,7 @@ function mapStateToProps({ explore, charts, impressionId }) {
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,

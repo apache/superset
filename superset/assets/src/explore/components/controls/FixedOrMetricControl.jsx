@@ -63,7 +63,7 @@ export default class FixedOrMetricControl extends React.Component {
   renderPopover() {
     const value = this.props.value || this.props.default;
     const type = value.type || controlTypes.fixed;
-    const metrics = this.props.datasource ? this.props.datasource.metrics : null;
+    const metricsCombo = this.props.datasource ? this.props.datasource.metrics_combo : null;
     return (
       <Popover id="filter-popover">
         <div style={{ width: '240px' }}>
@@ -87,7 +87,7 @@ export default class FixedOrMetricControl extends React.Component {
             <SelectControl
               {...controls.metric}
               name="metric"
-              options={metrics}
+              choices={metricsCombo}
               onFocus={() => { this.setType(controlTypes.metric); }}
               onChange={this.setMetric}
               value={this.state.metricValue}

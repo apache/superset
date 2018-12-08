@@ -1,0 +1,60 @@
+@import '../../dashboard/stylesheets/variables.less';
+
+.toast-presenter {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 500px;
+  z-index: 3000; // top of the world
+}
+
+.toast {
+  background: white;
+  color: @almost-black;
+  opacity: 0;
+  position: relative;
+  white-space: pre-line;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
+  will-change: transform, opacity;
+  transform: translateY(-100%);
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.toast > button {
+  color: @almost-black;
+}
+
+.toast > button:hover {
+  color: @gray-dark;
+}
+
+.toast--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+}
+
+.toast--info:after {
+  background: linear-gradient(to bottom, @pink, @purple);
+}
+
+.toast--success:after {
+  background: @success;
+}
+
+.toast--warning:after {
+  background: @warning;
+}
+
+.toast--danger:after {
+  background: @danger;
+}

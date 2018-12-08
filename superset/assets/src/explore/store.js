@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
+import React from 'react';
 import controls from './controls';
-import visTypes, { sectionsToRender } from './visTypes';
+import controlPanelConfigs, { sectionsToRender } from './controlPanels';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
@@ -46,10 +47,14 @@ export function getControlsState(state, form_data) {
 
   const controlNames = getControlNames(vizType, state.datasource.type);
 
-  const viz = visTypes[vizType];
+  const viz = controlPanelConfigs[vizType];
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
   controlNames.forEach((k) => {
+    if (React.isValidElement(k)) {
+      // no state
+      return;
+    }
     const control = Object.assign({}, controls[k], controlOverrides[k]);
     if (control.mapStateToProps) {
       Object.assign(control, control.mapStateToProps(state, control));
@@ -60,28 +65,32 @@ export function getControlsState(state, form_data) {
       : formData[k];
 
     // If the value is not valid anymore based on choices, clear it
-    if (control.type === 'SelectControl' && control.choices && k !== 'datasource' && formData[k]) {
+    if (
+      control.type === 'SelectControl' &&
+      !control.freeForm &&
+      control.choices &&
+      k !== 'datasource' &&
+      formData[k]
+    ) {
       const choiceValues = control.choices.map(c => c[0]);
-      if (control.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
-        delete formData[k];
-      } else if (!control.multi && !control.freeForm && choiceValues.indexOf(formData[k]) < 0) {
+      if (control.multi && formData[k].length > 0) {
+        formData[k] = formData[k].filter(el => choiceValues.indexOf(el) > -1);
+      } else if (!control.multi && choiceValues.indexOf(formData[k]) < 0) {
         delete formData[k];
       }
-    }
-    // Removing invalid filters that point to a now inexisting column
-    if (control.type === 'FilterControl' && control.choices) {
-      if (!formData[k]) {
-        formData[k] = [];
-      }
-      const choiceValues = control.choices.map(c => c[0]);
-      formData[k] = formData[k].filter(flt => choiceValues.indexOf(flt.col) >= 0);
     }
 
     if (typeof control.default === 'function') {
       control.default = control.default(control);
     }
     control.validationErrors = [];
-    control.value = formData[k] !== undefined ? formData[k] : control.default;
+    control.value = control.default;
+    // formData[k]'s type should match control value type
+    if (formData[k] !== undefined &&
+      (Array.isArray(formData[k]) && control.multi || !control.multi)
+    ) {
+      control.value = formData[k];
+    }
     controlsState[k] = control;
   });
   if (viz.onInit) {
@@ -93,7 +102,7 @@ export function getControlsState(state, form_data) {
 export function applyDefaultFormData(form_data) {
   const datasourceType = form_data.datasource.split('__')[1];
   const vizType = form_data.viz_type || 'table';
-  const viz = visTypes[vizType];
+  const viz = controlPanelConfigs[vizType];
   const controlNames = getControlNames(vizType, datasourceType);
   const controlOverrides = viz.controlOverrides || {};
   const formData = {};
@@ -112,13 +121,6 @@ export function applyDefaultFormData(form_data) {
       formData[k] = form_data[k];
     }
   });
-  // fill in additional params stored in form_data but not used by control
-  Object.keys(form_data)
-    .forEach((key) => {
-      if (formData[key] === undefined) {
-        formData[key] = form_data[key];
-      }
-    });
   return formData;
 }
 

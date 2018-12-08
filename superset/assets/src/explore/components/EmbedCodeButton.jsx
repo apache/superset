@@ -1,9 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreLongUrl } from '../exploreUtils';
-import { t } from '../../locales';
 
 const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
@@ -113,7 +114,7 @@ export default class EmbedCodeButton extends React.Component {
         placement="left"
         overlay={this.renderPopover()}
       >
-        <span className="btn btn-default btn-sm">
+        <span className="btn btn-default btn-sm" data-test="embed-code-button">
           <i className="fa fa-code" />&nbsp;
         </span>
       </OverlayTrigger>

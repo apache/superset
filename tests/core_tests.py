@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import csv
 import datetime
 import doctest
@@ -17,22 +11,23 @@ import re
 import string
 import unittest
 
+import mock
 import pandas as pd
 import psycopg2
-from six import text_type
 import sqlalchemy as sqla
 
-from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
+from superset.utils import core as utils
+from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
 
 class CoreTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
@@ -67,6 +62,10 @@ class CoreTests(SupersetTestCase):
             data=dict(username='admin', password='wrongPassword'))
         self.assertIn('User confirmation needed', resp)
 
+    def test_dashboard_endpoint(self):
+        resp = self.client.get('/superset/dashboard/-1/')
+        assert resp.status_code == 404
+
     def test_slice_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -79,6 +78,9 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
+        resp = self.client.get('/superset/slice/-1/')
+        assert resp.status_code == 404
+
     def test_cache_key(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -90,6 +92,29 @@ class CoreTests(SupersetTestCase):
 
         qobj['groupby'] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
+
+    def test_api_v1_query_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Name Cloud', db.session)
+        form_data = slc.form_data
+        data = json.dumps({
+            'datasource': {
+                'id': slc.datasource_id,
+                'type': slc.datasource_type,
+            },
+            'queries': [{
+                'granularity': 'ds',
+                'groupby': ['name'],
+                'metrics': ['sum__num'],
+                'filters': [],
+                'time_range': '{} : {}'.format(form_data.get('since'),
+                                               form_data.get('until')),
+                'limit': 100,
+            }],
+        })
+        # TODO: update once get_data is implemented for QueryObject
+        with self.assertRaises(Exception):
+            self.get_resp('/api/v1/query/', {'query_context': data})
 
     def test_old_slice_json_endpoint(self):
         self.login(username='admin')
@@ -190,10 +215,11 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'target',
+            'groupby': 'source',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': new_slice_id,
+            'time_range': 'now',
         }
         # Setting the name back to its original name by overwriting new slice
         self.get_resp(
@@ -206,6 +232,7 @@ class CoreTests(SupersetTestCase):
         )
         slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
         assert slc.slice_name == new_slice_name
+        assert slc.viz.form_data == form_data
         db.session.delete(slc)
 
     def test_filter_endpoint(self):
@@ -227,6 +254,14 @@ class CoreTests(SupersetTestCase):
         assert len(resp) > 0
         assert 'Carbon Dioxide' in resp
 
+    def test_slice_data(self):
+        # slice data should have some required attributes
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        slc_data_attributes = slc.data.keys()
+        assert('changed_on' in slc_data_attributes)
+        assert('modified' in slc_data_attributes)
+
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username='admin')
@@ -238,7 +273,7 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'explore_json', slc.explore_json_url),
             ]
         for name, method, url in urls:
-            logging.info('[{name}]/[{method}]: {url}'.format(**locals()))
+            logging.info(f'[{name}]/[{method}]: {url}')
             self.client.get(url)
 
     def test_tablemodelview_list(self):
@@ -254,8 +289,8 @@ class CoreTests(SupersetTestCase):
 
     def test_add_slice(self):
         self.login(username='admin')
-        # assert that /slicemodelview/add responds with 200
-        url = '/slicemodelview/add'
+        # assert that /chart/add responds with 200
+        url = '/chart/add'
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
@@ -284,8 +319,8 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
             ]
         for name, method, url in urls:
-            print('[{name}]/[{method}]: {url}'.format(**locals()))
-            response = self.client.get(url)
+            print(f'[{name}]/[{method}]: {url}')
+            self.client.get(url)
 
     def test_doctests(self):
         modules = [utils, models, sql_lab]
@@ -301,7 +336,7 @@ class CoreTests(SupersetTestCase):
 
     def test_testconn(self, username='admin'):
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
@@ -330,7 +365,7 @@ class CoreTests(SupersetTestCase):
         assert response.headers['Content-Type'] == 'application/json'
 
     def test_custom_password_store(self):
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -348,13 +383,13 @@ class CoreTests(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = 'databaseview/edit/{}'.format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
@@ -365,7 +400,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 4
+        assert len(data) > 0
 
     def test_shortner(self):
         self.login(username='admin')
@@ -409,8 +444,8 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Charts' in self.get_resp('/slicemodelview/list/')
-        assert 'List Dashboard' in self.get_resp('/dashboardmodelview/list/')
+        assert 'List Charts' in self.get_resp('/chart/list/')
+        assert 'List Dashboard' in self.get_resp('/dashboard/list/')
 
     def test_csv_endpoint(self):
         self.login('admin')
@@ -427,32 +462,41 @@ class CoreTests(SupersetTestCase):
         expected_data = csv.reader(
             io.StringIO('first_name,last_name\nadmin, user\n'))
 
+        sql = "SELECT first_name FROM ab_user WHERE first_name LIKE '%admin%'"
+        client_id = '{}'.format(random.getrandbits(64))[:10]
+        self.run_sql(sql, client_id, raise_on_error=True)
+
+        resp = self.get_resp('/superset/csv/{}'.format(client_id))
+        data = csv.reader(io.StringIO(resp))
+        expected_data = csv.reader(
+            io.StringIO('first_name\nadmin\n'))
+
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
     def test_extra_table_metadata(self):
         self.login('admin')
-        dbid = self.get_main_database(db.session).id
+        dbid = get_main_database(db.session).id
         self.get_json_resp(
-            '/superset/extra_table_metadata/{dbid}/'
-            'ab_permission_view/panoramix/'.format(**locals()))
+            f'/superset/extra_table_metadata/{dbid}/'
+            'ab_permission_view/panoramix/')
 
     def test_process_template(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_get_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb, foo='bar')
         rendered = tp.process_template(s)
         self.assertEqual('bar', rendered)
 
     def test_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo='bar')
@@ -465,7 +509,7 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['data'][0]['test'], '2017-01-01T00:00:00')
 
     def test_table_metadata(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         backend = maindb.backend
         data = self.get_json_resp(
             '/superset/table/{}/ab_user/null/'.format(maindb.id))
@@ -539,7 +583,7 @@ class CoreTests(SupersetTestCase):
         # superset/explore case
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        self.get_resp(slc.slice_url, {'form_data': json.dumps(slc.viz.form_data)})
+        self.get_resp(slc.slice_url, {'form_data': json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
@@ -548,7 +592,7 @@ class CoreTests(SupersetTestCase):
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         slc_url = slc.slice_url.replace('explore', 'explore_json')
-        self.get_json_resp(slc_url, {'form_data': json.dumps(slc.viz.form_data)})
+        self.get_json_resp(slc_url, {'form_data': json.dumps(slc.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_query_endpoint(self):
@@ -618,8 +662,7 @@ class CoreTests(SupersetTestCase):
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
             (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
         ]
-        df = dataframe.SupersetDataFrame(pd.DataFrame(data=list(data),
-                                                      columns=['data']))
+        df = dataframe.SupersetDataFrame(list(data), [['data']], BaseEngineSpec)
         data = df.data
         self.assertDictEqual(
             data[0],
@@ -634,49 +677,37 @@ class CoreTests(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = '/* comment 1 */' + clean_query + '-- comment 2'
         table = SqlaTable(sql=commented_query)
-        rendered_query = text_type(table.get_from_clause())
+        rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
-
-    def test_slice_url_overrides(self):
-        # No override
-        self.login(username='admin')
-        slice_name = 'Girls'
-        slc = self.get_slice(slice_name, db.session)
-        resp = self.get_resp(slc.explore_json_url)
-        assert '"Jennifer"' in resp
-
-        # Overriding groupby
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={'groupby': ['state']})
-        resp = self.get_resp(url)
-        assert '"CA"' in resp
 
     def test_slice_payload_no_data(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
+        json_endpoint = '/superset/explore_json/'
+        form_data = slc.form_data
+        form_data.update({
+            'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
+        })
 
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={
-                'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
-            },
+        data = self.get_json_resp(
+            json_endpoint,
+            {'form_data': json.dumps(form_data)},
         )
-
-        data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.SUCCESS)
         self.assertEqual(data['error'], 'No data')
 
     def test_slice_payload_invalid_query(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
+        form_data = slc.form_data
+        form_data.update({
+            'groupby': ['N/A'],
+        })
 
-        url = slc.get_explore_url(
-            base_url='/superset/explore_json',
-            overrides={'groupby': ['N/A']},
+        data = self.get_json_resp(
+            '/superset/explore_json/',
+            {'form_data': json.dumps(form_data)},
         )
-
-        data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.FAILED)
         assert 'KeyError' in data['stacktrace']
 
@@ -688,6 +719,40 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
+
+    @mock.patch('superset.security.SupersetSecurityManager.schemas_accessible_by_user')
+    @mock.patch('superset.security.SupersetSecurityManager.database_access')
+    @mock.patch('superset.security.SupersetSecurityManager.all_datasource_access')
+    def test_schemas_access_for_csv_upload_endpoint(self,
+                                                    mock_all_datasource_access,
+                                                    mock_database_access,
+                                                    mock_schemas_accessible):
+        mock_all_datasource_access.return_value = False
+        mock_database_access.return_value = False
+        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
+        database_name = 'fake_db_100'
+        db_id = 100
+        extra = """{
+            "schemas_allowed_for_csv_upload":
+            ["this_schema_is_allowed", "this_schema_is_allowed_too"]
+        }"""
+
+        self.login(username='admin')
+        dbobj = self.get_or_create(
+            cls=models.Database,
+            criteria={'database_name': database_name},
+            session=db.session,
+            id=db_id,
+            extra=extra)
+        data = self.get_json_resp(
+            url='/superset/schemas_access_for_csv_upload?db_id={db_id}'
+                .format(db_id=dbobj.id))
+        assert data == ['this_schema_is_allowed_too']
+
+    def test_select_star(self):
+        self.login(username='admin')
+        resp = self.get_resp('/superset/select_star/1/birth_names')
+        self.assertIn('gender', resp)
 
 
 if __name__ == '__main__':

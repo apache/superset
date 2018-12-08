@@ -1,0 +1,10 @@
+{
+  "baseUrl": "http://localhost:8081",
+  "videoUploadOnPasses": false,
+  "video": false,
+  "ignoreTestFiles": ["**/!(*.test.js)"],
+  "projectId": "fbf96q",
+  "defaultCommandTimeout": 10000,
+  "viewportWidth": 1280,
+  "viewportHeight": 800
+}

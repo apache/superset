@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
@@ -15,6 +9,7 @@ from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.utils.core import get_main_database
 from .base_tests import SupersetTestCase
 
 DBREF = 'dict_import__export_test'
@@ -24,7 +19,6 @@ ID_PREFIX = 20000
 
 class DictImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
     def __init__(self, *args, **kwargs):
         super(DictImportExportTests, self).__init__(*args, **kwargs)
 
@@ -55,7 +49,7 @@ class DictImportExportTests(SupersetTestCase):
         params = {DBREF: id, 'database_name': database_name}
 
         dict_rep = {
-            'database_id': self.get_main_database(db.session).id,
+            'database_id': get_main_database(db.session).id,
             'table_name': name,
             'schema': schema,
             'id': id,

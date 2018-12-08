@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import {
   Col,
   FormGroup,
@@ -14,20 +14,20 @@ import {
   Collapse,
 } from 'react-bootstrap';
 import SplitPane from 'react-split-pane';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
+import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
-import ShareQuery from './ShareQuery';
+import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { t } from '../../locales';
-
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -39,6 +39,8 @@ const propTypes = {
   dataPreviewQueries: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   hideLeftBar: PropTypes.bool,
+  defaultQueryLimit: PropTypes.number.isRequired,
+  maxRow: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -87,7 +89,7 @@ class SqlEditor extends React.PureComponent {
       height,
     });
 
-    if (this.refs.ace.clientHeight) {
+    if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
@@ -97,8 +99,14 @@ class SqlEditor extends React.PureComponent {
   getHotkeyConfig() {
     return [
       {
-        name: 'runQuery',
+        name: 'runQuery1',
         key: 'ctrl+r',
+        descr: 'Run query',
+        func: this.runQuery,
+      },
+      {
+        name: 'runQuery2',
+        key: 'ctrl+enter',
         descr: 'Run query',
         func: this.runQuery,
       },
@@ -125,8 +133,13 @@ class SqlEditor extends React.PureComponent {
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
+  setQueryLimit(queryLimit) {
+    this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
+  }
   runQuery() {
-    this.startQuery(!this.props.database.allow_run_sync);
+    if (this.props.database) {
+      this.startQuery(this.props.database.allow_run_async);
+    }
   }
   startQuery(runAsync = false, ctas = false) {
     const qe = this.props.queryEditor;
@@ -138,6 +151,7 @@ class SqlEditor extends React.PureComponent {
       schema: qe.schema,
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
+      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync,
       ctas,
     };
@@ -229,12 +243,23 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             <span className="m-r-5">
-              <ShareQuery queryEditor={qe} />
+              <ShareSqlLabQuery queryEditor={qe} />
             </span>
-            {ctasControls}
+            <span className="m-r-5">
+              {ctasControls}
+            </span>
+            <span className="inlineBlock m-r-5">
+              <LimitControl
+                value={(this.props.queryEditor.queryLimit !== undefined) ?
+                  this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
+                defaultQueryLimit={this.props.defaultQueryLimit}
+                maxRow={this.props.maxRow}
+                onChange={this.setQueryLimit.bind(this)}
+              />
+            </span>
             <span className="m-l-5">
               <Hotkeys
-                header="Hotkeys"
+                header="Keyboard shortcuts"
                 hotkeys={hotkeys}
               />
             </span>

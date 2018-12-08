@@ -1,14 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'react-bootstrap';
-
 import Mousetrap from 'mousetrap';
-
-import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
+import { t } from '@superset-ui/translation';
+import BootrapSliderWrapper from '../components/BootstrapSliderWrapper';
 import './PlaySlider.css';
-
-import { t } from '../locales';
 
 const propTypes = {
   start: PropTypes.number.isRequired,
@@ -21,6 +16,7 @@ const propTypes = {
   orientation: PropTypes.oneOf(['horizontal', 'vertical']),
   reversed: PropTypes.bool,
   disabled: PropTypes.bool,
+  range: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -30,6 +26,7 @@ const defaultProps = {
   orientation: 'horizontal',
   reversed: false,
   disabled: false,
+  range: true,
 };
 
 export default class PlaySlider extends React.PureComponent {
@@ -46,7 +43,8 @@ export default class PlaySlider extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.play = this.play.bind(this);
     this.pause = this.pause.bind(this);
-    this.step = this.step.bind(this);
+    this.stepBackward = this.stepBackward.bind(this);
+    this.stepForward = this.stepForward.bind(this);
     this.getPlayClass = this.getPlayClass.bind(this);
     this.formatter = this.formatter.bind(this);
   }
@@ -75,7 +73,7 @@ export default class PlaySlider extends React.PureComponent {
     if (this.state.intervalId != null) {
       this.pause();
     } else {
-      const id = setInterval(this.step, this.intervalMilliseconds);
+      const id = setInterval(this.stepForward, this.intervalMilliseconds);
       this.setState({ intervalId: id });
     }
   }
@@ -83,16 +81,31 @@ export default class PlaySlider extends React.PureComponent {
     clearInterval(this.state.intervalId);
     this.setState({ intervalId: null });
   }
-  step() {
-    if (this.props.disabled) {
+  stepForward() {
+    const { start, end, step, values, disabled } = this.props;
+
+    if (disabled) {
       return;
     }
-    let values = this.props.values.map(value => value + this.increment);
-    if (values[1] > this.props.end) {
-      const cr = values[0] - this.props.start;
-      values = values.map(value => value - cr);
+
+    const currentValues = Array.isArray(values) ? values : [values, values + step];
+    const nextValues = currentValues.map(value => value + this.increment);
+    const carriageReturn = (nextValues[1] > end) ? (nextValues[0] - start) : 0;
+
+    this.props.onChange(nextValues.map(value => value - carriageReturn));
+  }
+  stepBackward() {
+    const { start, end, step, values, disabled } = this.props;
+
+    if (disabled) {
+      return;
     }
-    this.props.onChange(values);
+
+    const currentValues = Array.isArray(values) ? values : [values, values + step];
+    const nextValues = currentValues.map(value => value - this.increment);
+    const carriageReturn = (nextValues[0] < start) ? (end - nextValues[1]) : 0;
+
+    this.props.onChange(nextValues.map(value => value + carriageReturn));
   }
   formatter(values) {
     if (this.props.disabled) {
@@ -108,26 +121,29 @@ export default class PlaySlider extends React.PureComponent {
     return parts.map(value => (new Date(value)).toUTCString()).join(' : ');
   }
   render() {
+    const { start, end, step, orientation, reversed, disabled, range, values } = this.props;
     return (
-      <Row className="play-slider">
-        <Col md={1} className="padded">
+      <div className="play-slider">
+        <div className="play-slider-controls padded">
+          <i className="fa fa-step-backward fa-lg slider-button " onClick={this.stepBackward} />
           <i className={this.getPlayClass()} onClick={this.play} />
-          <i className="fa fa-step-forward fa-lg slider-button " onClick={this.step} />
-        </Col>
-        <Col md={11} className="padded">
-          <ReactBootstrapSlider
-            value={this.props.values}
+          <i className="fa fa-step-forward fa-lg slider-button " onClick={this.stepForward} />
+        </div>
+        <div className="play-slider-scrobbler padded">
+          <BootrapSliderWrapper
+            value={range ? values : values[0]}
+            range={range}
             formatter={this.formatter}
             change={this.onChange}
-            min={this.props.start}
-            max={this.props.end}
-            step={this.props.step}
-            orientation={this.props.orientation}
-            reversed={this.props.reversed}
-            disabled={this.props.disabled ? 'disabled' : 'enabled'}
+            min={start}
+            max={end}
+            step={step}
+            orientation={orientation}
+            reversed={reversed}
+            disabled={disabled ? 'disabled' : 'enabled'}
           />
-        </Col>
-      </Row>
+        </div>
+      </div>
     );
   }
 }

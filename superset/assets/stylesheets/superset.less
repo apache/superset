@@ -114,7 +114,6 @@ span.title-block {
 }
 
 .nvtooltip {
-    //position: relative !important;
     z-index: 888;
     transition: opacity 0ms linear;
     -moz-transition: opacity 0ms linear;
@@ -141,7 +140,7 @@ div.navbar {
 img.loading {
   width: 40px;
   position: relative;
-  z-index: 10;
+  z-index: 1;
   margin: 10px;
 }
 img.viz-thumb-option {
@@ -162,7 +161,6 @@ li.widget:hover {
 div.widget .chart-header {
   padding-top: 8px;
   color: #333;
-  border-bottom: 1px solid #aaa;
   margin: 0 10px;
 }
 
@@ -176,10 +174,6 @@ div.widget .chart-header {
   margin-right: 10px;
 }
 
-
-div.widget .chart-header a {
-  margin-left: 5px;
-}
 
 #is_cached {
   display: none;
@@ -228,34 +222,49 @@ table.table-no-hover tr:hover {
 }
 
 .editable-title input {
-    padding: 2px 6px 3px 6px;
+  outline: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: initial;
+}
+
+.editable-title input[type="text"] {
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 2px;
 }
 
 .editable-title input[type="button"] {
-    border-color: transparent;
-    background: transparent;
-    white-space: normal;
-    text-align: left;
+  border-color: transparent;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+  text-align: left;
+  cursor: initial;
 }
 
-.editable-title input[type="button"]:hover {
-    cursor: text;
+.editable-title.editable-title--editable input[type="button"] {
+  cursor: pointer;
 }
 
-.editable-title input[type="button"]:focus {
-    outline: none;
+.editable-title.editable-title--editing input[type="button"] {
+  cursor: text;
 }
+
 .m-r-5 {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 .m-r-3 {
-    margin-right: 3px;
+  margin-right: 3px;
 }
 .m-t-5 {
-    margin-top: 5px;
+  margin-top: 5px;
 }
 .m-t-10 {
-    margin-top: 10px;
+  margin-top: 10px;
 }
 .m-b-10 {
     margin-bottom: 10px;
@@ -416,8 +425,8 @@ g.annotation-container {
     font: normal normal normal 14px/1 FontAwesome;
     content: "\f0dc";
     position: absolute;
-    top: 17px;
-    right: 15px;
+    top: 6px;
+    right: 5px;
     color: @brand-primary;
 }
 .reactable-header-sort-asc::before{
@@ -427,6 +436,9 @@ g.annotation-container {
 .reactable-header-sort-desc::before{
     content: "\f0dd";
     color: @brand-primary;
+}
+tr.reactable-column-header th.reactable-header-sortable {
+    padding-right: 17px;
 }
 
 .explore-chart-overlay {
@@ -450,8 +462,22 @@ g.annotation-container {
   border-color: @brand-primary;
 }
 
+.fave-unfave-icon {
+  .fa-star-o,
+  .fa-star {
+    &,
+    &:hover,
+    &:active {
+      color: #263238;
+    }
+  }
+}
+
 .metric-edit-popover-label-input {
   border-radius: 4px;
   height: 30px;
   padding-left: 10px;
+}
+.align-right {
+  text-align: right;
 }

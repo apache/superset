@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+import inspect
 
-import textwrap
+import mock
 
+from superset import db_engine_specs
 from superset.db_engine_specs import (
-    HiveEngineSpec, MssqlEngineSpec, MySQLEngineSpec)
+    BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
+    MySQLEngineSpec, PrestoEngineSpec,
+)
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -84,6 +83,31 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split('\n')  # noqa ignore: E501
         self.assertEquals(60, HiveEngineSpec.progress(log))
 
+    def test_hive_error_msg(self):
+        msg = (
+            '{...} errorMessage="Error while compiling statement: FAILED: '
+            'SemanticException [Error 10001]: Line 4'
+            ':5 Table not found \'fact_ridesfdslakj\'", statusCode=3, '
+            'sqlState=\'42S02\', errorCode=10001)){...}')
+        self.assertEquals((
+            'Error while compiling statement: FAILED: '
+            'SemanticException [Error 10001]: Line 4:5 '
+            "Table not found 'fact_ridesfdslakj'"),
+            HiveEngineSpec.extract_error_message(Exception(msg)))
+
+        e = Exception("Some string that doesn't match the regex")
+        self.assertEquals(
+            str(e), HiveEngineSpec.extract_error_message(e))
+
+        msg = (
+            'errorCode=10001, '
+            'errorMessage="Error while compiling statement"), operationHandle'
+            '=None)"'
+        )
+        self.assertEquals((
+            'Error while compiling statement'),
+            HiveEngineSpec.extract_error_message(Exception(msg)))
+
     def get_generic_database(self):
         return Database(sqlalchemy_uri='mysql://localhost')
 
@@ -141,18 +165,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             'SELECT * FROM a LIMIT 1000',
         )
 
-    def test_modify_newline_query(self):
-        self.sql_limit_regex(
-            'SELECT * FROM a\nLIMIT 9999',
-            'SELECT * FROM a LIMIT 1000',
-        )
-
-    def test_modify_lcase_limit_query(self):
-        self.sql_limit_regex(
-            'SELECT * FROM a\tlimit 9999',
-            'SELECT * FROM a LIMIT 1000',
-        )
-
     def test_limit_query_with_limit_subquery(self):
         self.sql_limit_regex(
             'SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999',
@@ -161,35 +173,122 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_limit_with_expr(self):
         self.sql_limit_regex(
-            textwrap.dedent("""\
-                SELECT
-                    'LIMIT 777' AS a
-                    , b
-                FROM
-                table
-                LIMIT
-                99990"""),
-            textwrap.dedent("""\
+            """
             SELECT
                 'LIMIT 777' AS a
                 , b
             FROM
-            table LIMIT 1000"""),
+            table
+            LIMIT 99990""",
+            """
+            SELECT
+                'LIMIT 777' AS a
+                , b
+            FROM
+            table
+            LIMIT 1000""",
         )
 
     def test_limit_expr_and_semicolon(self):
         self.sql_limit_regex(
-            textwrap.dedent("""\
+            """
                 SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
                 table
-                LIMIT         99990            ;"""),
-            textwrap.dedent("""\
+                LIMIT         99990            ;""",
+            """
                 SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
-                table LIMIT 1000"""),
+                table
+                LIMIT         1000            ;""",
         )
+
+    def test_get_datatype(self):
+        self.assertEquals('STRING', PrestoEngineSpec.get_datatype('string'))
+        self.assertEquals('TINY', MySQLEngineSpec.get_datatype(1))
+        self.assertEquals('VARCHAR', MySQLEngineSpec.get_datatype(15))
+        self.assertEquals('VARCHAR', BaseEngineSpec.get_datatype('VARCHAR'))
+
+    def test_limit_with_implicit_offset(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990, 999999""",
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990, 1000""",
+        )
+
+    def test_limit_with_explicit_offset(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 99990
+                OFFSET 999999""",
+            """
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT 1000
+                OFFSET 999999""",
+        )
+
+    def test_limit_with_non_token_limit(self):
+        self.sql_limit_regex(
+            """
+                SELECT
+                    'LIMIT 777'""",
+            """
+                SELECT
+                    'LIMIT 777' LIMIT 1000""",
+        )
+
+    def test_time_grain_blacklist(self):
+        blacklist = ['PT1M']
+        time_grains = {
+            'PT1S': 'second',
+            'PT1M': 'minute',
+        }
+        time_grain_functions = {
+            'PT1S': '{col}',
+            'PT1M': '{col}',
+        }
+        time_grains = db_engine_specs._create_time_grains_tuple(time_grains,
+                                                                time_grain_functions,
+                                                                blacklist)
+        self.assertEqual(1, len(time_grains))
+        self.assertEqual('PT1S', time_grains[0].duration)
+
+    def test_engine_time_grain_validity(self):
+        time_grains = set(db_engine_specs.builtin_time_grains.keys())
+        # loop over all subclasses of BaseEngineSpec
+        for cls_name, cls in inspect.getmembers(db_engine_specs):
+            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec):
+                # make sure that all defined time grains are supported
+                defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
+                intersection = time_grains.intersection(defined_time_grains)
+                self.assertSetEqual(defined_time_grains, intersection, cls_name)
+
+    def test_presto_get_view_names_return_empty_list(self):
+        self.assertEquals([], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY))
+
+    def test_hive_get_view_names_return_empty_list(self):
+        self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))

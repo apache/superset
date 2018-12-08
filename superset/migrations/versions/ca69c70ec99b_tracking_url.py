@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """tracking_url
 
 Revision ID: ca69c70ec99b

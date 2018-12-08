@@ -1256,7 +1256,6 @@ msgstr "Selecione a coluna"
 msgid "Select operator"
 msgstr "Selecione o operador"
 
-#: superset/assets/javascripts/explore/components/controls/FilterControl.jsx:138
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
 msgstr "Adicionar filtro"
@@ -3253,18 +3252,6 @@ msgstr "Editar Druid Cluster"
 #: superset/connectors/druid/views.py:226
 msgid "Cluster"
 msgstr "Grupo"
-
-#: superset/connectors/druid/views.py:142
-msgid "Coordinator Host"
-msgstr "Coordenador de Host"
-
-#: superset/connectors/druid/views.py:143
-msgid "Coordinator Port"
-msgstr "Porto Coordenador"
-
-#: superset/connectors/druid/views.py:144
-msgid "Coordinator Endpoint"
-msgstr "Ponto final do coordenador"
 
 #: superset/connectors/druid/views.py:145
 msgid "Broker Host"

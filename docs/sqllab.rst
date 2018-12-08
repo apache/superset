@@ -19,7 +19,7 @@ Feature Overview
 - Browse database metadata: tables, columns, indexes, partitions
 - Support for long-running queries
 
-  - uses the `Celery distributed queue <http://www.python.org/>`_
+  - uses the `Celery distributed queue <http://www.celeryproject.org/>`_
     to dispatch query handling to workers
   - supports defining a "results backend" to persist query results
 
@@ -66,6 +66,8 @@ Superset's Jinja context:
     :members:
 
 .. autofunction:: superset.jinja_context.url_param
+
+.. autofunction:: superset.jinja_context.filter_values
 
 Extending macros
 ''''''''''''''''

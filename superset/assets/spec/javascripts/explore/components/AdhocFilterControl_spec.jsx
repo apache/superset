@@ -1,8 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../../src/explore/AdhocFilter';
@@ -33,18 +31,9 @@ const columns = [
   { type: 'DOUBLE', column_name: 'value' },
 ];
 
-const legacyFilter = { col: 'value', op: '>', val: '5' };
-const legacyHavingFilter = { col: 'SUM(value)', op: '>', val: '10' };
-const whereFilterText = 'target in (\'alpha\')';
-const havingFilterText = 'SUM(value) < 20';
-
 const formData = {
-  filters: [legacyFilter],
-  having: havingFilterText,
-  having_filters: [legacyHavingFilter],
   metric: undefined,
   metrics: [sumValueAdhocMetric, savedMetric.saved_metric_name],
-  where: whereFilterText,
 };
 
 function setup(overrides) {
@@ -65,50 +54,7 @@ function setup(overrides) {
 describe('AdhocFilterControl', () => {
   it('renders an onPasteSelect', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).to.have.lengthOf(1);
-  });
-
-  it('will translate legacy filters into adhoc filters if no adhoc filters are present', () => {
-    const { wrapper } = setup({ value: undefined });
-    expect(wrapper.state('values')).to.have.lengthOf(4);
-    expect(wrapper.state('values')[0].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: 'value',
-        operator: '>',
-        comparator: '5',
-        clause: CLAUSES.WHERE,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[1].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: 'SUM(value)',
-        operator: '>',
-        comparator: '10',
-        clause: CLAUSES.HAVING,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[2].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        sqlExpression: 'target in (\'alpha\')',
-        clause: CLAUSES.WHERE,
-      })
-    ))).to.be.true;
-    expect(wrapper.state('values')[3].equals((
-      new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
-        sqlExpression: 'SUM(value) < 20',
-        clause: CLAUSES.HAVING,
-      })
-    ))).to.be.true;
-  });
-
-  it('will ignore legacy filters if adhoc filters are present', () => {
-    const { wrapper } = setup();
-    expect(wrapper.state('values')).to.have.lengthOf(1);
-    expect(wrapper.state('values')[0]).to.equal(simpleAdhocFilter);
+    expect(wrapper.find(OnPasteSelect)).toHaveLength(1);
   });
 
   it('handles saved metrics being selected to filter on', () => {
@@ -117,7 +63,7 @@ describe('AdhocFilterControl', () => {
     select.simulate('change', [{ saved_metric_name: 'sum__value' }]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).to.be.true;
+    expect(adhocFilter instanceof AdhocFilter).toBe(true);
     expect(adhocFilter.equals((
       new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SQL,
@@ -126,7 +72,7 @@ describe('AdhocFilterControl', () => {
         comparator: 0,
         clause: CLAUSES.HAVING,
       })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('handles adhoc metrics being selected to filter on', () => {
@@ -135,7 +81,7 @@ describe('AdhocFilterControl', () => {
     select.simulate('change', [sumValueAdhocMetric]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).to.be.true;
+    expect(adhocFilter instanceof AdhocFilter).toBe(true);
     expect(adhocFilter.equals((
       new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SQL,
@@ -144,7 +90,7 @@ describe('AdhocFilterControl', () => {
         comparator: 0,
         clause: CLAUSES.HAVING,
       })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('handles columns being selected to filter on', () => {
@@ -153,7 +99,7 @@ describe('AdhocFilterControl', () => {
     select.simulate('change', [columns[0]]);
 
     const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).to.be.true;
+    expect(adhocFilter instanceof AdhocFilter).toBe(true);
     expect(adhocFilter.equals((
       new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -162,7 +108,7 @@ describe('AdhocFilterControl', () => {
         comparator: '',
         clause: CLAUSES.WHERE,
       })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('persists existing filters even when new filters are added', () => {
@@ -171,11 +117,11 @@ describe('AdhocFilterControl', () => {
     select.simulate('change', [simpleAdhocFilter, columns[0]]);
 
     const existingAdhocFilter = onChange.lastCall.args[0][0];
-    expect(existingAdhocFilter instanceof AdhocFilter).to.be.true;
-    expect(existingAdhocFilter.equals(simpleAdhocFilter)).to.be.true;
+    expect(existingAdhocFilter instanceof AdhocFilter).toBe(true);
+    expect(existingAdhocFilter.equals(simpleAdhocFilter)).toBe(true);
 
     const newAdhocFilter = onChange.lastCall.args[0][1];
-    expect(newAdhocFilter instanceof AdhocFilter).to.be.true;
+    expect(newAdhocFilter instanceof AdhocFilter).toBe(true);
     expect(newAdhocFilter.equals((
       new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -184,6 +130,6 @@ describe('AdhocFilterControl', () => {
         comparator: '',
         clause: CLAUSES.WHERE,
       })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 });

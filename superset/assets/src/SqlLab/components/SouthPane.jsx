@@ -1,14 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { Alert, Label, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { t } from '@superset-ui/translation';
 
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { t } from '../../locales';
+import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -20,10 +21,13 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
   height: PropTypes.number,
+  databases: PropTypes.object.isRequired,
+  offline: PropTypes.bool,
 };
 
 const defaultProps = {
   activeSouthPaneTab: 'Results',
+  offline: false,
 };
 
 class SouthPane extends React.PureComponent {
@@ -31,6 +35,12 @@ class SouthPane extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab(id);
   }
   render() {
+    if (this.props.offline) {
+      return (
+        <Label className="m-r-3" bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}>
+          { STATUS_OPTIONS.offline }
+        </Label>);
+    }
     const innerTabHeight = this.props.height - 55;
     let latestQuery;
     const props = this.props;
@@ -46,15 +56,15 @@ class SouthPane extends React.PureComponent {
           query={latestQuery}
           actions={props.actions}
           height={innerTabHeight}
+          database={this.props.databases[latestQuery.dbId]}
         />
       );
     } else {
       results = <Alert bsStyle="info">{t('Run a query to display results here')}</Alert>;
     }
-
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (
       <Tab
-        title={t('Preview for %s', query.tableName)}
+        title={t('Preview: `%s`', query.tableName)}
         eventKey={query.id}
         key={query.id}
       >
@@ -87,7 +97,7 @@ class SouthPane extends React.PureComponent {
             title={t('Query History')}
             eventKey="History"
           >
-            <div style={{ height: `${innerTabHeight}px`, overflow: 'scroll' }}>
+            <div style={{ height: `${innerTabHeight}px`, overflow: 'auto' }}>
               <QueryHistory queries={props.editorQueries} actions={props.actions} />
             </div>
           </Tab>
@@ -98,9 +108,11 @@ class SouthPane extends React.PureComponent {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps({ sqlLab }) {
   return {
-    activeSouthPaneTab: state.activeSouthPaneTab,
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
+    databases: sqlLab.databases,
+    offline: sqlLab.offline,
   };
 }
 

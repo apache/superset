@@ -1,15 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
+import { t } from '@superset-ui/translation';
 
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import { t } from '../../locales';
 
 const propTypes = {
   table: PropTypes.object,
@@ -143,7 +142,7 @@ class TableElement extends React.PureComponent {
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText={t('Copy SELECT statement to clipboard')}
+            tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         }
         <Link
@@ -165,15 +164,15 @@ class TableElement extends React.PureComponent {
             className="table-name"
             onClick={(e) => { this.toggleTable(e); }}
           >
-            <strong>{table.name}</strong>
-            <small className="m-l-5">
+            <small className="m-r-5">
               <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
             </small>
+            <strong>`{table.name}`</strong>
           </a>
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ?
-            <Loading size={20} />
+            <Loading size={50} />
             :
             this.renderControls()
           }
@@ -197,11 +196,10 @@ class TableElement extends React.PureComponent {
       >
         <div>
           {this.renderWell()}
-          <div className="table-columns">
+          <div className="table-columns m-t-5">
             {cols && cols.map(col => (
               <ColumnElement column={col} key={col.name} />
             ))}
-            <hr />
           </div>
         </div>
       </Collapse>
@@ -217,7 +215,7 @@ class TableElement extends React.PureComponent {
         transitionAppear
         onExited={this.removeFromStore.bind(this)}
       >
-        <div className="TableElement">
+        <div className="TableElement table-schema m-b-10">
           {this.renderHeader()}
           <div>
             {this.renderBody()}

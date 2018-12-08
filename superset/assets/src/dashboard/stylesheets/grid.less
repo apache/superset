@@ -1,0 +1,42 @@
+.grid-container {
+  position: relative;
+  margin: 24px;
+  /* without this, the grid will not get smaller upon toggling the builder panel on */
+  min-width: 0;
+  width: 100%;
+}
+
+/* this is the ParentSize wrapper */
+.grid-container > div:first-child {
+  height: inherit !important;
+}
+
+.grid-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* gutters between rows */
+.grid-content > div:not(:only-child):not(:last-child):not(.empty-droptarget) {
+  margin-bottom: 16px;
+}
+
+/* Editing guides */
+.grid-column-guide {
+  position: absolute;
+  top: 0;
+  min-height: 100%;
+  background-color: rgba(68, 192, 255, 0.05);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(68, 192, 255, 0.5);
+}
+
+.grid-row-guide {
+  position: absolute;
+  left: 0;
+  bottom: 2;
+  height: 2;
+  background-color: @indicator-color;
+  pointer-events: none;
+  z-index: 10;
+}

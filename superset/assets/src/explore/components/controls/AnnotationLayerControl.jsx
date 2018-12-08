@@ -2,14 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover, ListGroup, ListGroupItem } from 'react-bootstrap';
 import { connect } from 'react-redux';
+import { t } from '@superset-ui/translation';
 import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 
-
 import AnnotationLayer from './AnnotationLayer';
-import { t } from '../../../locales';
-
 
 const propTypes = {
   colorScheme: PropTypes.string.isRequired,
@@ -75,7 +73,7 @@ class AnnotationLayerControl extends React.PureComponent {
     return (
       <Popover
         style={{ maxWidth: 'none' }}
-        title={annotation ? 'Edit Annotation Layer' : 'Add Annotation Layer'}
+        title={annotation ? t('Edit Annotation Layer') : t('Add Annotation Layer')}
         id={`annotation-pop-${id}`}
       >
         <AnnotationLayer

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """sqllab_setting_defaults
 
 Revision ID: eca4694defa7

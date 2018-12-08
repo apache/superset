@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 
-import { chartPropType } from '../../chart/chartReducer';
+import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';
@@ -10,7 +11,6 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
-import { t } from '../../locales';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -28,13 +28,13 @@ const propTypes = {
   table_name: PropTypes.string,
   form_data: PropTypes.object,
   timeout: PropTypes.number,
-  chart: PropTypes.shape(chartPropType),
+  chart: chartPropShape,
 };
 
 class ExploreChartHeader extends React.PureComponent {
   runQuery() {
     this.props.actions.runQuery(this.props.form_data, true,
-      this.props.timeout, this.props.chart.chartKey);
+      this.props.timeout, this.props.chart.id);
   }
 
   updateChartTitleOrSaveSlice(newTitle) {
@@ -44,7 +44,8 @@ class ExploreChartHeader extends React.PureComponent {
       action: isNewSlice ? 'saveas' : 'overwrite',
     };
     this.props.actions.saveSlice(this.props.form_data, params)
-      .then((data) => {
+      .then((json) => {
+        const { data } = json;
         if (isNewSlice) {
           this.props.actions.createNewSlice(
             data.can_add, data.can_download, data.can_overwrite,
@@ -101,7 +102,7 @@ class ExploreChartHeader extends React.PureComponent {
           >
             <a
               className="edit-desc-icon"
-              href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
+              href={`/chart/edit/${this.props.slice.slice_id}`}
             >
               <i className="fa fa-edit" />
             </a>
@@ -133,6 +134,7 @@ class ExploreChartHeader extends React.PureComponent {
             style={{ fontSize: '10px', marginRight: '5px' }}
           />
           <ExploreActionButtons
+            actions={this.props.actions}
             slice={this.props.slice}
             canDownload={this.props.can_download}
             chartStatus={chartStatus}

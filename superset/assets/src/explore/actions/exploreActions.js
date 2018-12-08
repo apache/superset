@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
-import { triggerQuery } from '../../chart/chartAction';
-
-const $ = window.$ = require('jquery');
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+import { addDangerToast } from '../../messageToasts/actions';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -20,19 +20,10 @@ export function setDatasources(datasources) {
   return { type: SET_DATASOURCES, datasources };
 }
 
-export const FETCH_DATASOURCE_STARTED = 'FETCH_DATASOURCE_STARTED';
-export function fetchDatasourceStarted() {
-  return { type: FETCH_DATASOURCE_STARTED };
-}
-
+export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
 export const FETCH_DATASOURCE_SUCCEEDED = 'FETCH_DATASOURCE_SUCCEEDED';
 export function fetchDatasourceSucceeded() {
   return { type: FETCH_DATASOURCE_SUCCEEDED };
-}
-
-export const FETCH_DATASOURCE_FAILED = 'FETCH_DATASOURCE_FAILED';
-export function fetchDatasourceFailed(error) {
-  return { type: FETCH_DATASOURCE_FAILED, error };
 }
 
 export const FETCH_DATASOURCES_STARTED = 'FETCH_DATASOURCES_STARTED';
@@ -50,49 +41,15 @@ export function fetchDatasourcesFailed(error) {
   return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
+
+export const POST_DATASOURCES_FAILED = 'POST_DATASOURCES_FAILED';
+export function postDatasourcesFailed(error) {
+  return { type: POST_DATASOURCES_FAILED, error };
+}
+
 export const RESET_FIELDS = 'RESET_FIELDS';
 export function resetControls() {
   return { type: RESET_FIELDS };
-}
-
-export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false) {
-  return function (dispatch) {
-    dispatch(fetchDatasourceStarted());
-    const url = `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`;
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setDatasource(data));
-        dispatch(fetchDatasourceSucceeded());
-        dispatch(resetControls());
-        if (alsoTriggerQuery) {
-          dispatch(triggerQuery());
-        }
-      },
-      error(error) {
-        dispatch(fetchDatasourceFailed(error.responseJSON.error));
-      },
-    });
-  };
-}
-
-export function fetchDatasources() {
-  return function (dispatch) {
-    dispatch(fetchDatasourcesStarted());
-    const url = '/superset/datasources/';
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setDatasources(data));
-        dispatch(fetchDatasourcesSucceeded());
-      },
-      error(error) {
-        dispatch(fetchDatasourcesFailed(error.responseJSON.error));
-      },
-    });
-  };
 }
 
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
@@ -103,9 +60,8 @@ export function toggleFaveStar(isStarred) {
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
   return function (dispatch) {
-    const url = `${FAVESTAR_BASE_URL}/${sliceId}/count`;
-    $.get(url, (data) => {
-      if (data.count > 0) {
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count` }).then(({ json }) => {
+      if (json.count > 0) {
         dispatch(toggleFaveStar(true));
       }
     });
@@ -116,9 +72,9 @@ export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
   return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
-    const url = `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`;
-    $.get(url);
-    dispatch(toggleFaveStar(!isStarred));
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/` })
+      .then(() => dispatch(toggleFaveStar(!isStarred)))
+      .catch(() => dispatch(addDangerToast(t('An error occurred while starring this chart'))));
   };
 }
 

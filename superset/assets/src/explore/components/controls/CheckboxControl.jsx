@@ -4,10 +4,8 @@ import ControlHeader from '../ControlHeader';
 import Checkbox from '../../../components/Checkbox';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
   value: PropTypes.bool,
   label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
 };
 
@@ -22,21 +20,25 @@ export default class CheckboxControl extends React.Component {
   onChange() {
     this.props.onChange(!this.props.value);
   }
-  render() {
+  renderCheckbox() {
     return (
-      <ControlHeader
-        {...this.props}
-        leftNode={
-          <Checkbox
-            onChange={this.onChange.bind(this)}
-            style={checkboxStyle}
-            checked={!!this.props.value}
-          />
-        }
-      />
-    );
+      <Checkbox
+        onChange={this.onChange.bind(this)}
+        style={checkboxStyle}
+        checked={!!this.props.value}
+      />);
+  }
+  render() {
+    if (this.props.label) {
+      return (
+        <ControlHeader
+          {...this.props}
+          leftNode={this.renderCheckbox()}
+        />
+      );
+    }
+    return this.renderCheckbox();
   }
 }
-
 CheckboxControl.propTypes = propTypes;
 CheckboxControl.defaultProps = defaultProps;

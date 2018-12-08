@@ -2,14 +2,19 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+
+import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
-import { now, epochTimeXHoursAgo,
-  epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
+import {
+  now,
+  epochTimeXHoursAgo,
+  epochTimeXDaysAgo,
+  epochTimeXYearsAgo,
+} from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
-import { t } from '../../locales';
-
-const $ = window.$ = require('jquery');
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -36,6 +41,7 @@ class QuerySearch extends React.PureComponent {
     this.dbMutator = this.dbMutator.bind(this);
     this.onChange = this.onChange.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
     this.changeFrom = this.changeFrom.bind(this);
     this.changeTo = this.changeTo.bind(this);
     this.changeStatus = this.changeStatus.bind(this);
@@ -43,19 +49,34 @@ class QuerySearch extends React.PureComponent {
     this.onUserClicked = this.onUserClicked.bind(this);
     this.onDbClicked = this.onDbClicked.bind(this);
   }
+
   componentDidMount() {
     this.refreshQueries();
   }
+
   onUserClicked(userId) {
-    this.setState({ userId }, () => { this.refreshQueries(); });
+    this.setState({ userId }, () => {
+      this.refreshQueries();
+    });
   }
+
   onDbClicked(dbId) {
-    this.setState({ databaseId: dbId }, () => { this.refreshQueries(); });
+    this.setState({ databaseId: dbId }, () => {
+      this.refreshQueries();
+    });
   }
+
   onChange(db) {
-    const val = (db) ? db.value : null;
+    const val = db ? db.value : null;
     this.setState({ databaseId: val });
   }
+
+  onKeyDown(event) {
+    if (event.keyCode === 13) {
+      this.refreshQueries();
+    }
+  }
+
   getTimeFromSelection(selection) {
     switch (selection) {
       case 'now':
@@ -76,37 +97,45 @@ class QuerySearch extends React.PureComponent {
         return null;
     }
   }
+
   changeFrom(user) {
-    const val = (user) ? user.value : null;
+    const val = user ? user.value : null;
     this.setState({ from: val });
   }
+
   changeTo(status) {
-    const val = (status) ? status.value : null;
+    const val = status ? status.value : null;
     this.setState({ to: val });
   }
+
   changeUser(user) {
-    const val = (user) ? user.value : null;
+    const val = user ? user.value : null;
     this.setState({ userId: val });
   }
+
   insertParams(baseUrl, params) {
-    const validParams = params.filter(
-      function (p) { return p !== ''; },
-    );
+    const validParams = params.filter(function (p) {
+      return p !== '';
+    });
     return baseUrl + '?' + validParams.join('&');
   }
+
   changeStatus(status) {
-    const val = (status) ? status.value : null;
+    const val = status ? status.value : null;
     this.setState({ status: val });
   }
+
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
   }
+
   userLabel(user) {
     if (user.first_name && user.last_name) {
       return user.first_name + ' ' + user.last_name;
     }
     return user.username;
   }
+
   userMutator(data) {
     const options = [];
     for (let i = 0; i < data.pks.length; i++) {
@@ -114,17 +143,16 @@ class QuerySearch extends React.PureComponent {
     }
     return options;
   }
+
   dbMutator(data) {
     const options = data.result.map(db => ({ value: db.id, label: db.database_name }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
-      this.props.actions.addAlert({
-        bsStyle: 'danger',
-        msg: t('It seems you don\'t have access to any database'),
-      });
+      this.props.actions.addDangerToast(t("It seems you don't have access to any database"));
     }
     return options;
   }
+
   refreshQueries() {
     this.setState({ queriesLoading: true });
     const params = [
@@ -136,13 +164,15 @@ class QuerySearch extends React.PureComponent {
       this.state.to ? `to=${this.getTimeFromSelection(this.state.to)}` : '',
     ];
 
-    const url = this.insertParams('/superset/search_queries', params);
-    $.getJSON(url, (data, status) => {
-      if (status === 'success') {
-        this.setState({ queriesArray: data, queriesLoading: false });
-      }
-    });
+    SupersetClient.get({ endpoint: this.insertParams('/superset/search_queries', params) })
+      .then(({ json }) => {
+        this.setState({ queriesArray: json, queriesLoading: false });
+      })
+      .catch(() => {
+        this.props.actions.addDangerToast(t('An error occurred when refreshing queries'));
+      });
   }
+
   render() {
     return (
       <div>
@@ -153,6 +183,7 @@ class QuerySearch extends React.PureComponent {
               mutator={this.userMutator}
               value={this.state.userId}
               onChange={this.changeUser}
+              placeholder={t('Filter by user')}
             />
           </div>
           <div className="col-sm-2">
@@ -161,22 +192,26 @@ class QuerySearch extends React.PureComponent {
               dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
               value={this.state.databaseId}
               mutator={this.dbMutator}
+              placeholder={t('Filter by database')}
             />
           </div>
           <div className="col-sm-4">
             <input
               type="text"
               onChange={this.changeSearch}
+              onKeyDown={this.onKeyDown}
               className="form-control input-sm"
-              placeholder={t('Search Results')}
+              placeholder={t('Query search string')}
             />
           </div>
           <div className="col-sm-4 search-date-filter-container">
             <Select
               name="select-from"
               placeholder={t('[From]-')}
-              options={TIME_OPTIONS
-                .slice(1, TIME_OPTIONS.length).map(xt => ({ value: xt, label: xt }))}
+              options={TIME_OPTIONS.slice(1, TIME_OPTIONS.length).map(xt => ({
+                value: xt,
+                label: xt,
+              }))}
               value={this.state.from}
               autosize={false}
               onChange={this.changeFrom}
@@ -193,8 +228,8 @@ class QuerySearch extends React.PureComponent {
 
             <Select
               name="select-status"
-              placeholder={t('[Query Status]')}
-              options={STATUS_OPTIONS.map(s => ({ value: s, label: s }))}
+              placeholder={t('Filter by status')}
+              options={Object.keys(STATUS_OPTIONS).map(s => ({ value: s, label: s }))}
               value={this.state.status}
               isLoading={false}
               autosize={false}
@@ -206,29 +241,21 @@ class QuerySearch extends React.PureComponent {
             </Button>
           </div>
         </div>
-        {this.state.queriesLoading ?
-          (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
-          :
-          (
-            <div className="scrollbar-container">
-              <div
-                className="scrollbar-content"
-                style={{ height: this.props.height }}
-              >
-                <QueryTable
-                  columns={[
-                    'state', 'db', 'user', 'time',
-                    'progress', 'rows', 'sql', 'querylink',
-                  ]}
-                  onUserClicked={this.onUserClicked}
-                  onDbClicked={this.onDbClicked}
-                  queries={this.state.queriesArray}
-                  actions={this.props.actions}
-                />
-              </div>
+        <div className="scrollbar-container">
+          {this.state.queriesLoading ? (
+            <Loading />
+          ) : (
+            <div className="scrollbar-content" style={{ height: this.props.height }}>
+              <QueryTable
+                columns={['state', 'db', 'user', 'time', 'progress', 'rows', 'sql', 'querylink']}
+                onUserClicked={this.onUserClicked}
+                onDbClicked={this.onDbClicked}
+                queries={this.state.queriesArray}
+                actions={this.props.actions}
+              />
             </div>
-          )
-        }
+          )}
+        </div>
       </div>
     );
   }
