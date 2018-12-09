@@ -58,6 +58,6 @@ export const annotationLayerType = PropTypes.shape({
   showMarkers: PropTypes.bool,
   sourceType: PropTypes.string,
   style: PropTypes.string,
-  value: PropTypes.string,
+  value: PropTypes.number,
   width: PropTypes.number,
 });
