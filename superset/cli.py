@@ -115,12 +115,13 @@ def runserver(debug, console_log, use_reloader, address, port, timeout, workers,
         addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
         cmd = (
             'gunicorn '
-            '-w {workers} '
-            '--timeout {timeout} '
-            '-b ' + addr_str +
+            f'-w {workers} '
+            f'--timeout {timeout} '
+            f'-b {addr_str} '
             '--limit-request-line 0 '
             '--limit-request-field_size 0 '
-            'superset:app').format(**locals())
+            'superset:app'
+        )
         print(Fore.GREEN + 'Starting server with command: ')
         print(Fore.YELLOW + cmd)
         print(Style.RESET_ALL)
@@ -404,10 +405,10 @@ def flower(port, address):
     BROKER_URL = celery_app.conf.BROKER_URL
     cmd = (
         'celery flower '
-        '--broker={BROKER_URL} '
-        '--port={port} '
-        '--address={address} '
-    ).format(**locals())
+        f'--broker={BROKER_URL} '
+        f'--port={port} '
+        f'--address={address} '
+    )
     logging.info(
         "The 'superset flower' command is deprecated. Please use the 'celery "
         "flower' command instead.")

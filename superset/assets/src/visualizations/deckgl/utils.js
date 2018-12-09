@@ -41,7 +41,7 @@ export function getBreakPointColorScaler({
     : null;
   const colorScheme = Array.isArray(linearColorScheme)
     ? new SequentialScheme({
-      name: 'custom',
+      id: 'custom',
       colors: linearColorScheme,
     })
     : getSequentialSchemeRegistry().get(linearColorScheme);

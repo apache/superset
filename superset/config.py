@@ -194,6 +194,13 @@ TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 ENABLE_CORS = False
 CORS_OPTIONS = {}
 
+# Chrome allows up to 6 open connections per domain at a time. When there are more
+# than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
+# next available socket. PR #5039 is trying to allow domain sharding for Superset,
+# and this feature will be enabled by configuration only (by default Superset
+# doesn't allow cross-domain request).
+SUPERSET_WEBSERVER_DOMAINS = None
+
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
 ALLOWED_EXTENSIONS = set(['csv'])
@@ -273,6 +280,12 @@ FILENAME = os.path.join(DATA_DIR, 'superset.log')
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
+
+# Custom logger for auditing queries. This can be used to send ran queries to a
+# structured immutable store for auditing purposes. The function is called for
+# every query ran, in both SQL Lab and charts/dashboards.
+# def QUERY_LOGGER(database, query, schema=None, user=None, client=None):
+#     pass
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
@@ -443,7 +456,7 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(sql, username, security_manager):
 #        dttm = datetime.now().isoformat()
-#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+#        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
 SQL_QUERY_MUTATOR = None
 
 # When not using gunicorn, (nginx for instance), you may want to disable

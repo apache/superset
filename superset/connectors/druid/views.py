@@ -158,8 +158,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     edit_title = _('Edit Druid Cluster')
 
     add_columns = [
-        'verbose_name', 'coordinator_host', 'coordinator_port',
-        'coordinator_endpoint', 'broker_host', 'broker_port',
+        'verbose_name', 'broker_host', 'broker_port',
         'broker_endpoint', 'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
@@ -167,9 +166,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _('Cluster'),
-        'coordinator_host': _('Coordinator Host'),
-        'coordinator_port': _('Coordinator Port'),
-        'coordinator_endpoint': _('Coordinator Endpoint'),
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),

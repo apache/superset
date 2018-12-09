@@ -10,7 +10,6 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   addHistory: PropTypes.func,
   onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
@@ -28,6 +27,7 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
+  triggerRender: PropTypes.bool,
 };
 
 class ExploreChartPanel extends React.PureComponent {
@@ -46,10 +46,10 @@ class ExploreChartPanel extends React.PureComponent {
             chartStackTrace={chart.chartStackTrace}
             chartId={chart.id}
             chartStatus={chart.chartStatus}
+            triggerRender={this.props.triggerRender}
             datasource={this.props.datasource}
             errorMessage={this.props.errorMessage}
             formData={this.props.form_data}
-            onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
             onQuery={this.props.onQuery}
             queryResponse={chart.queryResponse}
             refreshOverlayVisible={this.props.refreshOverlayVisible}

@@ -100,3 +100,11 @@ export function optionFromValue(opt) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
+
+export function prepareCopyToClipboardTabularData(data) {
+  let result = '';
+  for (let i = 0; i < data.length; ++i) {
+    result += Object.values(data[i]).join('\t') + '\n';
+  }
+  return result;
+}

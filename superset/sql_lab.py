@@ -26,6 +26,7 @@ config = app.config
 celery_app = get_celery_app(config)
 stats_logger = app.config.get('STATS_LOGGER')
 SQLLAB_TIMEOUT = config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC', 600)
+log_query = config.get('QUERY_LOGGER')
 
 
 class SqlLabException(Exception):
@@ -180,6 +181,14 @@ def execute_sql(
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
         query_start_time = now_as_float()
+        if log_query:
+            log_query(
+                query.database.sqlalchemy_uri,
+                query.executed_sql,
+                query.schema,
+                user_name,
+                __name__,
+            )
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)

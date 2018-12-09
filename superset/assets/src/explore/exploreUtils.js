@@ -1,9 +1,21 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
+import { availableDomains } from '../utils/hostNamesConfig';
 
 export function getChartKey(explore) {
   const slice = explore.slice;
   return slice ? (slice.slice_id) : 0;
+}
+
+let requestCounter = 0;
+function getHostName(allowDomainSharding = false) {
+  let currentIndex = 0;
+  if (allowDomainSharding) {
+    currentIndex = requestCounter % availableDomains.length;
+    requestCounter += 1;
+  }
+
+  return availableDomains[currentIndex];
 }
 
 export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
@@ -49,6 +61,7 @@ export function getExploreUrlAndPayload({
   force = false,
   curUrl = null,
   requestParams = {},
+  allowDomainSharding = false,
 }) {
   if (!formData.datasource) {
     return null;
@@ -57,7 +70,13 @@ export function getExploreUrlAndPayload({
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof
   // the window.location).
-  let uri = new URI([location.protocol, '//', location.host].join(''));
+  let uri = new URI({
+    protocol: location.protocol.slice(0, -1),
+    hostname: getHostName(allowDomainSharding),
+    port: location.port ? location.port : '',
+    path: '/',
+  });
+
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -105,7 +124,11 @@ export function getExploreUrlAndPayload({
 }
 
 export function exportChart(formData, endpointType) {
-  const { url, payload } = getExploreUrlAndPayload({ formData, endpointType });
+  const { url, payload } = getExploreUrlAndPayload({
+    formData,
+    endpointType,
+    allowDomainSharding: false,
+  });
 
   const exploreForm = document.createElement('form');
   exploreForm.action = url;

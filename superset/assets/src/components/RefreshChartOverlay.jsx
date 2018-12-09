@@ -7,7 +7,6 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   onQuery: PropTypes.func,
-  onDismiss: PropTypes.func,
 };
 
 class RefreshChartOverlay extends React.PureComponent {
@@ -24,12 +23,6 @@ class RefreshChartOverlay extends React.PureComponent {
             bsStyle="primary"
           >
             {t('Run Query')}
-          </Button>
-          <Button
-            className="dismiss-overlay-btn"
-            onClick={this.props.onDismiss}
-          >
-            {t('Dismiss')}
           </Button>
         </div>
       </div>
