@@ -56,7 +56,7 @@
 - name: Undeploy superset
   kube:
     name: "{{ item.item.name }}"
-    namespace: default
+    namespace: "{{ superset_kube_namespace }}"
     kubectl: "{{ bin_dir }}/kubectl"
     resource: "{{ item.item.type }}"
     filename: "{{ superset_host_k8s_dir }}/{{ item.item.file }}"
@@ -71,7 +71,7 @@
 - name: Deploy superset
   kube:
     name: "{{ item.item.name }}"
-    namespace: default
+    namespace: "{{ superset_kube_namespace }}"
     kubectl: "{{ bin_dir }}/kubectl"
     resource: "{{ item.item.type }}"
     filename: "{{ superset_host_k8s_dir }}/{{ item.item.file }}"
