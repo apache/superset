@@ -2267,10 +2267,11 @@ class Superset(BaseSupersetView):
         }))
 
     @has_access
-    @expose('/table/<database_id>/<table_name>/<schema>/')
+    @expose('/table/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
@@ -2326,10 +2327,11 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
+    @expose('/extra_table_metadata/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
