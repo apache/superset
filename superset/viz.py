@@ -1785,40 +1785,49 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     cache_type = 'get_data'
+    filter_row_limit = 1000
 
     def query_obj(self):
         return None
 
     def run_extra_queries(self):
-        qry = self.filter_query_obj()
-        filters = [g for g in self.form_data['groupby']]
+        qry = super(FilterBoxViz, self).query_obj()
+        filters = self.form_data.get('filter_configs') or []
+        qry['row_limit'] = self.filter_row_limit
         self.dataframes = {}
         for flt in filters:
-            qry['groupby'] = [flt]
+            col = flt.get('column')
+            if not col:
+                raise Exception(_(
+                    'Invalid filter configuration, please select a column'))
+            qry['groupby'] = [col]
+            metric = flt.get('metric')
+            qry['metrics'] = [metric] if metric else []
             df = self.get_df_payload(query_obj=qry).get('df')
-            self.dataframes[flt] = df
-
-    def filter_query_obj(self):
-        qry = super(FilterBoxViz, self).query_obj()
-        groupby = self.form_data.get('groupby')
-        if len(groupby) < 1 and not self.form_data.get('date_filter'):
-            raise Exception(_('Pick at least one filter field'))
-        qry['metrics'] = [
-            self.form_data['metric']]
-        return qry
+            self.dataframes[col] = df
 
     def get_data(self, df):
+        filters = self.form_data.get('filter_configs') or []
         d = {}
-        filters = [g for g in self.form_data['groupby']]
         for flt in filters:
-            df = self.dataframes[flt]
-            d[flt] = [{
-                'id': row[0],
-                'text': row[0],
-                'filter': flt,
-                'metric': row[1]}
-                for row in df.itertuples(index=False)
-            ]
+            col = flt.get('column')
+            metric = flt.get('metric')
+            df = self.dataframes.get(col)
+            if metric:
+                df = df.sort_values(metric, ascending=flt.get('asc'))
+                d[col] = [{
+                    'id': row[0],
+                    'text': row[0],
+                    'metric': row[1]}
+                    for row in df.itertuples(index=False)
+                ]
+            else:
+                df = df.sort_values(col, ascending=flt.get('asc'))
+                d[col] = [{
+                    'id': row[0],
+                    'text': row[0]}
+                    for row in df.itertuples(index=False)
+                ]
         return d
 
 
