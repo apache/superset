@@ -2362,7 +2362,7 @@ class DeckPathViz(BaseDeckGLViz):
         return d
 
     def get_data(self, df):
-        self.metric_label = self.get_metric_label(self.metric)
+        self.metric_label = utils.get_metric_name(self.metric)
         return super(DeckPathViz, self).get_data(df)
 
 
