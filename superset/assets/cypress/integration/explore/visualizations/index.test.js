@@ -13,6 +13,7 @@ import PivotTableTest from './pivot_table';
 import SankeyTest from './sankey';
 import SunburstTest from './sunburst';
 import TableTest from './table';
+import TimeTableTest from './time_table';
 import TreemapTest from './treemap';
 import WorldMapTest from './world_map';
 
@@ -32,6 +33,7 @@ describe('All Visualizations', () => {
   SankeyTest();
   SunburstTest();
   TableTest();
+  TimeTableTest();
   TreemapTest();
   WorldMapTest();
 });
