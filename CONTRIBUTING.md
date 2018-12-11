@@ -98,9 +98,9 @@ meets these guidelines:
 7.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
-## Local development
+## Setup Local Environment for Development
 
-First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/), then clone it. You can clone the main repository directly instead, but you won't be able to send pull requests.
+First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/), then clone it. You can clone the main repository directly, but you won't be able to send pull requests.
 
 ```bash
 git clone git@github.com:your-username/incubator-superset.git
@@ -222,9 +222,11 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask dev web server from inside the `superset` dir (but see below for frontend asset compilation)
+# Start the Flask dev web server from inside the `superset` dir at port 8088
+# Note that your page may not have css at this point.
+# See instructions below how to build the front-end assets.
 cd superset
-flask run -p 8080 --with-threads --reload --debugger
+FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
@@ -232,7 +234,7 @@ flask run -p 8080 --with-threads --reload --debugger
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
 
 ```bash
-superset runserver -d --console-log
+FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger --console-log
 ```
 
 You can log anything to the browser console, including objects:
@@ -243,11 +245,21 @@ app.logger.error('An exception occurred!')
 app.logger.info(form_data)
 ```
 
-### Frontend assets
+### Frontend Assets
 
 Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
 First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended.
+
+#### Prerequisite
+
+If needed, install yarn
+
+```bash
+npm install -g yarn
+```
+
+#### Installing Dependencies
 
 Install third-party dependencies listed in `package.json`:
 
@@ -255,29 +267,13 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# If needed, install yarn, a replacement for `npm install`
-npm install -g yarn
-
 # Install dependencies
-yarn
+yarn install
 ```
 
-Finally, to compile frontend assets, run any of the following commands.
+#### Building
 
-```bash
-# Start a watcher that recompiles your assets as you modify them (reload your browser to see changes)
-npm run dev
-
-# Compile the Javascript and CSS in production/optimized mode for official releases
-npm run prod
-
-# Copy a conf file from the frontend to the backend
-npm run sync-backend
-```
-
-#### Webpack dev server
-
-Alternatively, you can run the Webpack dev server, which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to it, updates to asset sources will be reflected in-browser without a refresh.
+You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to it, updates to asset sources will be reflected in-browser without a refresh.
 
 ```bash
 # Run the dev server
@@ -290,7 +286,20 @@ npm run dev-server -- --port=9001
 npm run dev-server -- --supersetPort=8081
 ```
 
-#### Upgrading NPM packages
+Alternatively you can use one of the following commands.
+
+```bash
+# Start a watcher that recompiles your assets as you modify them (but have to manually reload your browser to see changes.)
+npm run dev
+
+# Compile the Javascript and CSS in production/optimized mode for official releases
+npm run prod
+
+# Copy a conf file from the frontend to the backend
+npm run sync-backend
+```
+
+#### Updating NPM packages
 
 After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
 
@@ -309,20 +318,35 @@ export enum FeatureFlag {
 }
 ```
 
+## Linting
+
+Lint the project with:
+
+```bash
+# for python
+tox -e flake8
+
+# for javascript
+cd superset/assets
+yarn install
+npm run lint
+```
+
 ## Testing
 
-All tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework mostly for Python (though we also used it for Javascript).
+### Python Testing
+
+All python tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
+a standardized testing framework.
 All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
 ```bash
 tox -e <environment>
 ```
 
-i.e.,
+For example,
 
 ```bash
-tox -e py27
 tox -e py36
 ```
 
@@ -342,17 +366,17 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-### JavaScript testing
+### JavaScript Testing
 
 We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
-cd superset/assets/spec
-npm install
+cd superset/assets
+yarn install
 npm run test
 ```
 
-### Integration testing
+### Integration Testing
 
 We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
 
@@ -373,18 +397,6 @@ npm run build
 npm run cypress run
 ```
 
-### Linting
-
-Lint the project with:
-
-```bash
-# for python
-tox -e flake8
-
-# for javascript
-tox -e eslint
-```
-
 ## Translating
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. In Python files, we import the magic `_` function using:
@@ -399,7 +411,7 @@ At runtime, the `_` function will return the translation of the given string for
 In JavaScript, the technique is similar: we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import {t, tn } from '@superset-ui/translation';
+import { t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection
