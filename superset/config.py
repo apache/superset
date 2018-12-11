@@ -11,6 +11,7 @@ import json
 import os
 import sys
 
+from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
@@ -309,19 +310,43 @@ WARNING_MSG = None
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
-"""
-# Example:
+
+
 class CeleryConfig(object):
-  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
-  CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
-  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-  CELERYD_LOG_LEVEL = 'DEBUG'
-  CELERYD_PREFETCH_MULTIPLIER = 1
-  CELERY_ACKS_LATE = True
+    BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+    CELERY_IMPORTS = (
+        'superset.sql_lab',
+        'superset.tasks',
+    )
+    CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+    CELERYD_LOG_LEVEL = 'DEBUG'
+    CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERY_ACKS_LATE = True
+    CELERY_ANNOTATIONS = {
+        'sql_lab.get_sql_results': {
+            'rate_limit': '100/s',
+        },
+        'email_reports.send': {
+            'rate_limit': '1/s',
+            'time_limit': 120,
+            'soft_time_limit': 150,
+            'ignore_result': True,
+        },
+    }
+    CELERYBEAT_SCHEDULE = {
+        'email_reports.schedule_hourly': {
+            'task': 'email_reports.schedule_hourly',
+            'schedule': crontab(minute=1, hour='*'),
+        },
+    }
+
+
 CELERY_CONFIG = CeleryConfig
+
 """
+# Set celery config to None to disable all the above configuration
 CELERY_CONFIG = None
+"""
 
 # static http headers to be served by your Superset server.
 # This header prevents iFrames from other domains and
@@ -462,6 +487,54 @@ SQL_QUERY_MUTATOR = None
 # When not using gunicorn, (nginx for instance), you may want to disable
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
+
+# Enable / disable scheduled email reports
+ENABLE_SCHEDULED_EMAIL_REPORTS = False
+
+# If enabled, certail features are run in debug mode
+# Current list:
+# * Emails are sent using dry-run mode (logging only)
+SCHEDULED_EMAIL_DEBUG_MODE = False
+
+# Email reports - minimum time resolution (in minutes) for the crontab
+EMAIL_REPORTS_CRON_RESOLUTION = 15
+
+# Email report configuration
+# From address in emails
+EMAIL_REPORT_FROM_ADDRESS = 'reports@superset.org'
+
+# Send bcc of all reports to this address. Set to None to disable.
+# This is useful for maintaining an audit trail of all email deliveries.
+EMAIL_REPORT_BCC_ADDRESS = None
+
+# User credentials to use for generating reports
+# This user should have permissions to browse all the dashboards and
+# slices.
+# TODO: In the future, login as the owner of the item to generate reports
+EMAIL_REPORTS_USER = 'admin'
+EMAIL_REPORTS_SUBJECT_PREFIX = '[Report] '
+
+# The webdriver to use for generating reports. Use one of the following
+# firefox
+#   Requires: geckodriver and firefox installations
+#   Limitations: can be buggy at times
+# chrome:
+#   Requires: headless chrome
+#   Limitations: unable to generate screenshots of elements
+EMAIL_REPORTS_WEBDRIVER = 'firefox'
+
+# Window size - this will impact the rendering of the data
+WEBDRIVER_WINDOW = {
+    'dashboard': (1600, 2000),
+    'slice': (3000, 1200),
+}
+
+# Any config options to be passed as-is to the webdriver
+WEBDRIVER_CONFIGURATION = {}
+
+# The base URL to query for accessing the user interface
+WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
+
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
