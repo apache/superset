@@ -88,7 +88,7 @@ It's easy: use the ``Filter Box`` widget, build a slice, and add it to your
 dashboard.
 
 The ``Filter Box`` widget allows you to define a query to populate dropdowns
-that can be use for filtering. To build the list of distinct values, we
+that can be used for filtering. To build the list of distinct values, we
 run a query, and sort the result by the metric you provide, sorting
 descending.
 
