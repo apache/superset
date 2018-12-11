@@ -2,14 +2,14 @@ version: '3'
 services:
   redis:
     image: redis:3.2
-    restart: unless-stopped
+    restart: always
     ports:
       - 6379:6379
     volumes:
       - redis:/data
   postgres:
     image: postgres:10
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_DB: superset
       POSTGRES_PASSWORD: superset
@@ -19,10 +19,8 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
   superset:
-    build:
-      context: ../../
-      dockerfile: contrib/docker/Dockerfile
-    restart: unless-stopped
+    image: guavus-superset
+    restart: always
     environment:
       POSTGRES_DB: superset
       POSTGRES_USER: superset
@@ -31,21 +29,19 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      # If using production, comment development volume below
-      #SUPERSET_ENV: production
-      SUPERSET_ENV: development
+      SUPERSET_ENV: local
     ports:
       - 8088:8088
+    command: "tail -f /dev/null"
     depends_on:
       - postgres
       - redis
     volumes:
-      # this is needed to communicate with the postgres and redis services
-      - ./superset_config.py:/home/superset/superset/superset_config.py
-      # this is needed for development, remove with SUPERSET_ENV=production
-      - ../../superset:/home/superset/superset
+      - superset-node-modules:/home/work/incubator-superset/superset/assets/node_modules
 volumes:
   postgres:
     external: false
   redis:
+    external: false
+  superset-node-modules:
     external: false

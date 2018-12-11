@@ -2,11 +2,6 @@
 
 set -ex
 
-  if [ $IS_KERBEROS_ENABLED == "True" ]; then
-    echo "running kerberised superset"
-    sh /usr/local/bin/auth-kerberized.sh
-  fi
-
   echo "Initializing database"
   superset db upgrade
 
