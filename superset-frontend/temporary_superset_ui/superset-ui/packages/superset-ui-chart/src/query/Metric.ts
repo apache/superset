@@ -1,5 +1,5 @@
 import { Column } from './Column';
-import FormData from './FormData';
+import { FormData } from './FormData';
 
 export const LABEL_MAX_LENGTH = 43;
 
