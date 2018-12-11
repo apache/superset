@@ -24,8 +24,7 @@ type DruidFormData = {
   granularity: string;
 } & BaseFormData;
 
-type FormData = SqlaFormData | DruidFormData;
-export default FormData;
+export type FormData = SqlaFormData | DruidFormData;
 
 export function getGranularity(formData: FormData): string {
   return 'granularity_sqla' in formData ? formData.granularity_sqla : formData.granularity;
