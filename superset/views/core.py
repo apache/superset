@@ -1635,7 +1635,6 @@ class Superset(BaseSupersetView):
     @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-
         # find slices in the position data
         slice_ids = []
         slice_id_to_name = {}
