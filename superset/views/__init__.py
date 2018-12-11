@@ -6,3 +6,4 @@ from . import sql_lab  # noqa
 from . import datasource  # noqa
 from . import annotations  # noqa
 from . import tags  # noqa
+from . import schedules # noqa
