@@ -84,7 +84,7 @@ setup(
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.13',
-        'requests',
+        'requests>=2.20.0',
         'simplejson>=3.15.0',
         'sqlalchemy',
         'sqlalchemy-utils',
