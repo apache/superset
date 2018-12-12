@@ -76,4 +76,8 @@ export class ChartPlugin extends Plugin {
 
     return this;
   }
+
+  configure(config: { [key: string]: any }): ChartPlugin {
+    return super.configure(config);
+  }
 }

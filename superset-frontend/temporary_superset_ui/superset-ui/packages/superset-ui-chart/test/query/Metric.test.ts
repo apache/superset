@@ -12,6 +12,7 @@ describe('Metrics', () => {
   const formData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
+    viz_type: 'word_cloud',
   };
 
   it('should build metrics for built-in metric keys', () => {
