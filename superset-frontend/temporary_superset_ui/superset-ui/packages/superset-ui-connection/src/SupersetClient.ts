@@ -3,14 +3,12 @@ import { RequestConfig } from './types';
 
 let singletonClient: SupersetClientClass | undefined;
 
-function hasInstance(
-  maybeClient: SupersetClientClass | undefined,
-): maybeClient is SupersetClientClass {
+function getInstance(maybeClient: SupersetClientClass | undefined): SupersetClientClass {
   if (!maybeClient) {
     throw new Error('You must call SupersetClient.configure(...) before calling other methods');
   }
 
-  return true;
+  return maybeClient;
 }
 
 const SupersetClient = {
@@ -19,11 +17,12 @@ const SupersetClient = {
 
     return singletonClient;
   },
-  get: (request: RequestConfig) => hasInstance(singletonClient) && singletonClient.get(request),
-  init: (force?: boolean) => hasInstance(singletonClient) && singletonClient.init(force),
-  isAuthenticated: () => hasInstance(singletonClient) && singletonClient.isAuthenticated(),
-  post: (request: RequestConfig) => hasInstance(singletonClient) && singletonClient.post(request),
-  reAuthenticate: () => hasInstance(singletonClient) && singletonClient.init(/* force = */ true),
+  get: (request: RequestConfig) => getInstance(singletonClient).get(request),
+  getInstance,
+  init: (force?: boolean) => getInstance(singletonClient).init(force),
+  isAuthenticated: () => getInstance(singletonClient).isAuthenticated(),
+  post: (request: RequestConfig) => getInstance(singletonClient).post(request),
+  reAuthenticate: () => getInstance(singletonClient).init(/* force = */ true),
   reset: () => {
     singletonClient = undefined;
   },
