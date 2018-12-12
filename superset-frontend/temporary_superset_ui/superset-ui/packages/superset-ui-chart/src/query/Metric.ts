@@ -46,6 +46,11 @@ export type AdhocMetric = {
   optionName?: string;
 } & (AdhocMetricSimple | AdhocMetricSQL);
 
+// Type of metrics in form data
+export type FormDataMetric = string | AdhocMetric;
+
+// Type of Metric the client provides to server after unifying various forms
+// of metrics in form data
 export type Metric = {
   label: string;
 } & Partial<AdhocMetric>;
@@ -55,22 +60,17 @@ export class Metrics {
   private metrics: Metric[];
 
   constructor(formData: FormData) {
-    this.metrics = Object.keys(MetricKey)
-      .map(key => formData[MetricKey[key as any] as MetricKey])
-      .filter(metric => metric)
-      .map(metric => {
-        if (typeof metric === 'string') {
-          return { label: metric };
+    this.metrics = [];
+    Object.keys(MetricKey).forEach(key => {
+      const metric = formData[MetricKey[key as keyof typeof MetricKey]];
+      if (metric) {
+        if (Array.isArray(metric)) {
+          metric.forEach(m => this.addMetric(m));
+        } else {
+          this.addMetric(metric);
         }
-
-        // Note we further sanitize the metric label for BigQuery datasources
-        // TODO: move this logic to the client once client has more info on the
-        // the datasource
-        return {
-          ...metric,
-          label: (metric as Metric).label || this.getDefaultLabel(metric as AdhocMetric),
-        };
-      });
+      }
+    });
   }
 
   public getMetrics() {
@@ -79,6 +79,23 @@ export class Metrics {
 
   public getLabels() {
     return this.metrics.map(m => m.label);
+  }
+
+  private addMetric(metric: FormDataMetric) {
+    if (typeof metric === 'string') {
+      this.metrics.push({
+        label: metric,
+      });
+    } else {
+      // Note we further sanitize the metric label for BigQuery datasources
+      // TODO: move this logic to the client once client has more info on the
+      // the datasource
+      const label = metric.label || this.getDefaultLabel(metric);
+      this.metrics.push({
+        ...metric,
+        label,
+      });
+    }
   }
 
   private getDefaultLabel(metric: AdhocMetric) {

@@ -1,4 +1,4 @@
-import { AdhocMetric, MetricKey } from './Metric';
+import { FormDataMetric, MetricKey } from './Metric';
 
 // Type signature and utility functions for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -7,7 +7,7 @@ import { AdhocMetric, MetricKey } from './Metric';
 // https://github.com/Microsoft/TypeScript/issues/13573
 // The Metrics in formData is either a string or a proper metric. It will be
 // unified into a proper Metric type during buildQuery (see `/query/Metrics.ts`).
-type Metrics = Partial<Record<MetricKey, AdhocMetric | string>>;
+type Metrics = Partial<Record<MetricKey, FormDataMetric | FormDataMetric[]>>;
 
 type BaseFormData = {
   datasource: string;
