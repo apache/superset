@@ -1,3 +1,4 @@
+export { ChartClient, ChartClientConfig } from './clients/ChartClient';
 export { ChartMetadata, ChartMetadataConfig } from './models/ChartMetadata';
 export {
   ChartPlugin,

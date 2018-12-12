@@ -1,4 +1,5 @@
 import {
+  ChartClient,
   ChartMetadata,
   ChartPlugin,
   ChartProps,
@@ -13,6 +14,7 @@ import {
 describe('index', () => {
   it('exports modules', () => {
     [
+      ChartClient,
       ChartMetadata,
       ChartPlugin,
       ChartProps,
