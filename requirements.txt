@@ -44,7 +44,6 @@ humanize==0.5.1
 idna==2.6
 ijson==2.3                # via tabulator
 isodate==0.6.0
-markdown==2.6.11
 mysqlclient==1.3.13
 itsdangerous==0.24        # via flask
 jdcal==1.4                # via openpyxl
@@ -53,8 +52,6 @@ jmespath==0.9.3           # via boto3, botocore
 jsonlines==1.2.0          # via tabulator
 jsonschema==2.6.0         # via tableschema
 kombu==4.2.1              # via celery
-linear-tsv==1.1.0         # via tabulator
-mako==1.0.7               # via alembic
 markdown==3.0
 markupsafe==1.0           # via jinja2, mako
 numpy==1.15.2             # via pandas
