@@ -33,6 +33,8 @@
   },
   "devDependencies": {
     "@superset-ui/connection": "^0.7.0",
+    "fetch-mock": "^7.2.5",
+    "node-fetch": "^2.2.0",
     "react": "^15 || ^16"
   },
   "peerDependencies": {

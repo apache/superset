@@ -24,7 +24,11 @@ describe('ChartPlugin', () => {
       datasource: { id: 1, type: DatasourceType.Table },
       queries: [{ granularity: 'day' }],
     });
-    const FORM_DATA = { datasource: '1__table', granularity: 'day' };
+    const FORM_DATA = {
+      datasource: '1__table',
+      granularity: 'day',
+      viz_type: 'table',
+    };
 
     it('creates a new plugin', () => {
       const plugin = new ChartPlugin({
