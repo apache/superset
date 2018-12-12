@@ -102,4 +102,13 @@ describe('Metrics', () => {
     });
     expect(metrics.getLabels()[0].length).toBeLessThanOrEqual(LABEL_MAX_LENGTH);
   });
+
+  it('should handle metrics arrays in form data', () => {
+    metrics = new Metrics({
+      ...formData,
+      metrics: ['sum__num'],
+    });
+    expect(metrics.getMetrics()).toEqual([{ label: 'sum__num' }]);
+    expect(metrics.getLabels()).toEqual(['sum__num']);
+  });
 });
