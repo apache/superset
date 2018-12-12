@@ -53,3 +53,9 @@ celerybeat.pid
 geckodriver.log
 ghostdriver.log
 testCSV.csv
+
+# docker
+Dockerfile
+docker-compose.yml
+docker-entrypoint.sh
+docker-init.sh

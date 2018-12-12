@@ -54,6 +54,8 @@ RUN cd superset/assets \
     && rm -rf node_modules \
     && yarn cache clean
 
+# Copy flask env
+COPY .flaskenv ./.flaskenv
 COPY contrib/docker/docker-init.sh .
 COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
