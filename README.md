@@ -121,8 +121,19 @@ power analytic dashboards and applications.*
 Installation & Configuration
 ----------------------------
 
-[See in the documentation](https://superset.incubator.apache.org/installation.html)
+For __Docker installation__ use the following steps
 
+```
+$ git clone https://github.com/apache/incubator-superset/
+$ cd incubator-superset
+$ cp contrib/docker/* .
+$ cp contrib/docker/superset_config.py superset/
+$ docker-compose up -d
+$ docker-compose exec superset bash
+$ bash docker-init.sh
+```
+
+For the rest of the documentation please follow the official link here: [See in the documentation](https://superset.incubator.apache.org/installation.html)
 
 Resources
 -------------

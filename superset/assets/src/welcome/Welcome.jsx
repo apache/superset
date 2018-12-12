@@ -23,7 +23,7 @@ export default class Welcome extends React.PureComponent {
   }
   render() {
     return (
-      <div className="container welcome">
+      <div className="container test welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">
           <Tab eventKey={1} title={t('Dashboards')}>
             <Panel>
