@@ -64,9 +64,8 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
 function getFormattedKey(seriesKey, shouldDompurify) {
     if (seriesKey === '<NULL>') {
         return '&lt;' + seriesKey.slice(1, -1) + '&gt;';
-    } else {
-        return shouldDompurify ? dompurify.sanitize(seriesKey) : seriesKey;
     }
+    return shouldDompurify ? dompurify.sanitize(seriesKey) : seriesKey;
 }
 
 // Custom sorted tooltip
