@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Shortcuts, ShortcutManager } from 'react-shortcuts';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
@@ -17,6 +18,18 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
+
+
+const keymap = {
+  BOX: {
+    MOVE_LEFT: ['left', 'a'],
+    MOVE_RIGHT: ['right', 'd'],
+    MOVE_UP: ['up', 'w'],
+    MOVE_DOWN: ['down', 's'],
+  },
+};
+
+const shortcutManager = new ShortcutManager(keymap)
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -57,6 +70,28 @@ class ExploreViewContainer extends React.Component {
     this.onStop = this.onStop.bind(this);
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
+  }
+
+  getChildContext() {
+    return { shortcuts: shortcutManager }
+  }
+
+  handleShortcuts(action, event) {
+    console.log(action, event)
+    switch (action) {
+      case 'MOVE_LEFT':
+        console.log('moving left')
+        break
+      case 'MOVE_RIGHT':
+        console.log('moving right')
+        break
+      case 'MOVE_UP':
+        console.log('moving up')
+        break
+      case 'COPY':
+        console.log('copying stuff')
+        break
+    }
   }
 
   componentDidMount() {
@@ -252,6 +287,10 @@ class ExploreViewContainer extends React.Component {
       return this.renderChartContainer();
     }
     return (
+      <Shortcuts
+        name='BOX'
+        handler={this.handleShortcuts}
+      >
       <div
         id="explore-container"
         className="container-fluid"
@@ -291,11 +330,15 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-8">{this.renderChartContainer()}</div>
         </div>
       </div>
+      </Shortcuts>
     );
   }
 }
 
 ExploreViewContainer.propTypes = propTypes;
+ExploreViewContainer.childContextTypes = {
+  shortcuts: PropTypes.object.isRequired
+}
 
 function mapStateToProps(state) {
   const { explore, charts, impressionId } = state;
