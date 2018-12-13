@@ -5,13 +5,13 @@ from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 
-import superset.models.core as models
-
 from superset import appbuilder, db, security_manager
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
+import superset.models.core as models
 from superset.models.core import Log
 from .base import api, BaseSupersetView, handle_api_exception
+
 
 class Api(BaseSupersetView):
     @Log.log_this
@@ -50,7 +50,6 @@ class Api(BaseSupersetView):
         update_time_range(form_data)
 
         return json.dumps(form_data)
-
 
 
 appbuilder.add_view_no_menu(Api)
