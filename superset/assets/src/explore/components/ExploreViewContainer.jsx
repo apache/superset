@@ -98,10 +98,11 @@ class ExploreViewContainer extends React.Component {
     match(action)
     .on(action => action === 'RUN', () => this.onQuery())
     .on(action => action === 'SAVE', () => {
+      console.log(this.props.slice);
       const sliceParams = {
         action: "overwrite",
         slice_id: this.props.slice.slice_id,
-        slice_name: this.props.slice.slice_id,
+        slice_name: this.props.slice.slice_name,
         add_to_dash: "noSave",
         goto_dash: false
       };
