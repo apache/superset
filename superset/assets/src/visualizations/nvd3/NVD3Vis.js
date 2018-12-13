@@ -407,8 +407,8 @@ function nvd3Vis(element, props) {
       default:
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
-    // Assuming the container has padding already
-    chart.margin({ top: 0, left: 0, right: 0, bottom: 0 });
+    // Assuming the container has padding already other than for top margin
+    chart.margin({ left: 0, right: 0, bottom: 0 });
 
     if (showBarValue) {
       setTimeout(function () {
