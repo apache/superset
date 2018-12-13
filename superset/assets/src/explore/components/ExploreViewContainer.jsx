@@ -32,20 +32,13 @@ const match = x => ({
   otherwise: fn => console.log('default...'),
 });
 
-
+// Prolly need to move this to a global context
 const keymap = {
-  BOX: {
-    MOVE_LEFT: ['left', 'a'],
-    MOVE_RIGHT: ['right', 'd'],
-    MOVE_UP: ['up', 'w'],
-    MOVE_DOWN: ['down', 's'],
-  },
   EXPLORE: {
     RUN: ['command+enter'],
     SAVE: ['command+shift'],
   },
 };
-
 const shortcutManager = new ShortcutManager(keymap)
 
 const propTypes = {
@@ -98,7 +91,6 @@ class ExploreViewContainer extends React.Component {
     match(action)
     .on(action => action === 'RUN', () => this.onQuery())
     .on(action => action === 'SAVE', () => {
-      console.log(this.props.slice);
       const sliceParams = {
         action: "overwrite",
         slice_id: this.props.slice.slice_id,
