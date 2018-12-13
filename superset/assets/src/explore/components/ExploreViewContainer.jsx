@@ -20,12 +20,29 @@ import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 
+// todo(hugh): Move this util.js for as a more functional switch cases
+// https://codeburst.io/alternative-to-javascripts-switch-statement-with-a-functional-twist-3f572787ba1c
+const matched = x => ({
+  on: () => matched(x),
+  otherwise: () => x,
+});
+
+const match = x => ({
+  on: (pred, fn) => (pred(x) ? matched(fn(x)) : match(x)),
+  otherwise: fn => console.log('default...'),
+});
+
+
 const keymap = {
   BOX: {
     MOVE_LEFT: ['left', 'a'],
     MOVE_RIGHT: ['right', 'd'],
     MOVE_UP: ['up', 'w'],
     MOVE_DOWN: ['down', 's'],
+  },
+  EXPLORE: {
+    RUN: ['command+enter'],
+    SAVE: ['command+shift'],
   },
 };
 
@@ -70,6 +87,7 @@ class ExploreViewContainer extends React.Component {
     this.onStop = this.onStop.bind(this);
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
+    this.handleShortcuts = this.handleShortcuts.bind(this);
   }
 
   getChildContext() {
@@ -77,21 +95,20 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleShortcuts(action, event) {
-    console.log(action, event)
-    switch (action) {
-      case 'MOVE_LEFT':
-        console.log('moving left')
-        break
-      case 'MOVE_RIGHT':
-        console.log('moving right')
-        break
-      case 'MOVE_UP':
-        console.log('moving up')
-        break
-      case 'COPY':
-        console.log('copying stuff')
-        break
-    }
+    match(action)
+    .on(action => action === 'RUN', () => this.onQuery())
+    .on(action => action === 'SAVE', () => {
+      const sliceParams = {
+        action: "overwrite",
+        slice_id: this.props.slice.slice_id,
+        slice_name: this.props.slice.slice_id,
+        add_to_dash: "noSave",
+        goto_dash: false
+      };
+      this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
+        window.location = data.slice.slice_url;
+      });
+    })
   }
 
   componentDidMount() {
@@ -288,7 +305,7 @@ class ExploreViewContainer extends React.Component {
     }
     return (
       <Shortcuts
-        name='BOX'
+        name='EXPLORE'
         handler={this.handleShortcuts}
       >
       <div
