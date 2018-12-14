@@ -353,6 +353,8 @@ function nvd3Vis(element, props) {
             chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
           }
         }
+        // Pie chart does not need top margin
+        chart.margin({ top: 0 });
         break;
 
       case 'column':
