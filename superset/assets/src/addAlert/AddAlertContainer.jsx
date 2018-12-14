@@ -35,7 +35,7 @@ const defaultProps = {
 export default class AddAlertContainer extends React.Component {
   constructor(props) {
     super(props);
-    let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing;
+    let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing, deployment;
     let tags = [];
     let execution = 'alert';
     const selectedItems = [];
@@ -61,6 +61,7 @@ export default class AddAlertContainer extends React.Component {
       interval = edit.interval;
       description = edit.description;
       execution = edit.execution;
+      deployment = edit.deployment;
       datasourceValue = props.datasources.find(query => query.value.startsWith(datasourceId));
       tags = edit.tags.split(',');
     }
@@ -81,6 +82,7 @@ export default class AddAlertContainer extends React.Component {
       items,
       selectedItems,
       execution,
+      deployment,
       parsedJSON: null,
       isValid: true,
       newTag: '',
@@ -128,7 +130,6 @@ export default class AddAlertContainer extends React.Component {
   }
 
   changeInterval(event) {
-    console.log(this.state)
     this.setState({
       interval: event.value,
     });
@@ -154,6 +155,7 @@ export default class AddAlertContainer extends React.Component {
       name: this.state.name,
       execution: this.state.execution,
       description: this.state.description,
+      deployment: this.state.deployment,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     };
     this.sendPostRequest(data)
@@ -177,10 +179,17 @@ export default class AddAlertContainer extends React.Component {
     });
   }
 
+  changeDeployment(e) {
+    this.setState({
+      deployment: e.value,
+    });
+  }
+
   isBtnDisabled() {
     return !(this.state.datasourceId
       && this.state.name
       && this.state.interval
+      && this.state.deployment
       && this.state.params
       && this.state.isValid
     );
@@ -279,6 +288,22 @@ export default class AddAlertContainer extends React.Component {
                 value={this.state.description}
                 onChange={this.handleDescriptionChange.bind(this)}
               />
+            </div>
+            <hr />
+            <div>
+              <p>{t('Select deployment')}</p>
+              <div style={styleSelectWidth}>
+                <Select
+                  clearable={false}
+                  style={styleSelectWidth}
+                  name="select-datasource"
+                  onChange={this.changeDeployment.bind(this)}
+                  options={this.props.deployments}
+                  placeholder='Deployments'
+                  value={this.state.deployment}
+                  width={200}
+                />
+              </div>
             </div>
             <hr />
             <div>

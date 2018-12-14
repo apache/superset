@@ -360,13 +360,8 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
     def create(self):
         data = request.get_json()
         alert = Alert()
-        alert.name = data['name']
-        alert.table_id = data['table_id']
-        alert.params = data['params']
-        alert.execution = data['execution']
-        alert.interval = data['interval']
-        alert.tags = data['tags']
-        alert.description = data['description']
+        for attribute in data:
+            setattr(alert, attribute, data[attribute])
         db.session.add(alert)
         db.session.commit()
         return jsonify(success=True)
@@ -388,10 +383,12 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
                 {"value": str(d.id) + "__" + d.type, "label": repr(d)}
                 for d in datasources
             ]
+            deployments = self.get_deployment_names()
             return self.render_template(
                 'superset/add_alert.html',
                 bootstrap_data=json.dumps({
                     'datasources': sorted(datasources, key=lambda d: d['label']),
+                    'deployments': deployments,
                     'alert_data': {
                         'edit_id': alert.id,
                         'name': alert.name,
@@ -401,6 +398,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
                         'execution': alert.execution._name_,
                         'tags': alert.tags,
                         'description': alert.description,
+                        'deployment': alert.deployment,
                     }
                 }),
             )
@@ -411,6 +409,36 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         db.session.commit()
         self.update_redirect()
 
+    def get_deployment_names(self):
+        from sqlalchemy import create_engine
+        deployments = []
+        presto_engine = create_engine('presto://localhost:3894')
+        presto_connection = presto_engine.connect()
+        query = 'SHOW CATALOGS'
+        try:
+            results = presto_connection.execute(query)
+            for row in results:
+                deployment = row['Catalog']
+                if '_mysql' in deployment:
+                    deployment = deployment.split('_mysql')[0]
+                deployments.append(deployment)
+        except:
+            deployments = [
+                {'value': 'dignity', 'label': 'dignity'},
+                {'value': 'ech', 'label': 'ech'},
+                {'value': 'emory', 'label': 'emory'},
+                {'value': 'fairview', 'label': 'fairview'},
+                {'value': 'medstar', 'label': 'medstar'},
+                {'value': 'mercynet', 'label': 'mercynet'},
+                {'value': 'metrohealth', 'label': 'metrohealth'},
+                {'value': 'natividad', 'label': 'natividad'},
+                {'value': 'nyp', 'label': 'nyp'},
+                {'value': 'phs', 'label': 'phs'},
+                {'value': 'sutter', 'label': 'sutter'},
+
+            ]
+        return deployments
+
     @expose('/add', methods=['GET'])
     @has_access
     def add(self):
@@ -419,10 +447,12 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
             for d in datasources
         ]
+        deployments = self.get_deployment_names()
         return self.render_template(
             'superset/add_alert.html',
             bootstrap_data=json.dumps({
                 'datasources': sorted(datasources, key=lambda d: d['label']),
+                'deployments':  deployments,
             }),
         )
 
