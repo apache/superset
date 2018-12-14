@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { mount } from 'enzyme';
-import { reactify } from '../../src';
+import reactify, { RenderFuncType } from '../../src/components/reactify';
 
 describe('reactify(renderFn)', () => {
-  const renderFn = jest.fn((element, props) => {
+  const renderFn: RenderFuncType<{ content?: string }> = jest.fn((element, props) => {
     const container = element;
     container.innerHTML = '';
     const child = document.createElement('b');
@@ -13,17 +13,19 @@ describe('reactify(renderFn)', () => {
   });
 
   renderFn.displayName = 'BoldText';
+
   renderFn.propTypes = {
     content: PropTypes.string,
   };
+
   renderFn.defaultProps = {
     content: 'ghi',
   };
 
   const TheChart = reactify(renderFn);
 
-  class TestComponent extends React.PureComponent {
-    constructor(props) {
+  class TestComponent extends React.PureComponent<{}, { content: string }, any> {
+    constructor(props = {}) {
       super(props);
       this.state = { content: 'abc' };
     }
@@ -37,17 +39,18 @@ describe('reactify(renderFn)', () => {
     render() {
       const { content } = this.state;
 
-      return <TheChart content={content} />;
+      return <TheChart id="test" content={content} />;
     }
   }
 
   it('returns a React component class', done => {
     const wrapper = mount(<TestComponent />);
+
     expect(renderFn).toHaveBeenCalledTimes(1);
-    expect(wrapper.html()).toEqual('<div><b>abc</b></div>');
+    expect(wrapper.html()).toEqual('<div id="test"><b>abc</b></div>');
     setTimeout(() => {
       expect(renderFn).toHaveBeenCalledTimes(2);
-      expect(wrapper.html()).toEqual('<div><b>def</b></div>');
+      expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
       wrapper.unmount();
       done();
     }, 20);
@@ -64,19 +67,19 @@ describe('reactify(renderFn)', () => {
   describe('propTypes', () => {
     it('has propTypes if renderFn.propTypes is defined', () => {
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(TheChart.propTypes).toBe(renderFn.propTypes);
+      expect(Object.keys(TheChart.propTypes || {})).toEqual(['id', 'className', 'content']);
     });
     it('does not have propTypes if renderFn.propTypes is not defined', () => {
       const AnotherChart = reactify(() => {});
       /* eslint-disable-next-line react/forbid-foreign-prop-types */
-      expect(AnotherChart.propTypes).toBeUndefined();
+      expect(Object.keys(AnotherChart.propTypes || {})).toEqual(['id', 'className']);
     });
   });
   describe('defaultProps', () => {
     it('has defaultProps if renderFn.defaultProps is defined', () => {
       expect(TheChart.defaultProps).toBe(renderFn.defaultProps);
-      const wrapper = mount(<TheChart />);
-      expect(wrapper.html()).toEqual('<div><b>ghi</b></div>');
+      const wrapper = mount(<TheChart id="test" />);
+      expect(wrapper.html()).toEqual('<div id="test"><b>ghi</b></div>');
     });
     it('does not have defaultProps if renderFn.defaultProps is not defined', () => {
       const AnotherChart = reactify(() => {});
@@ -85,8 +88,8 @@ describe('reactify(renderFn)', () => {
   });
   it('does not try to render if not mounted', () => {
     const anotherRenderFn = jest.fn();
-    const AnotherChart = reactify(anotherRenderFn);
-    new AnotherChart().execute();
+    const AnotherChart = reactify(anotherRenderFn) as any; // enables valid new AnotherChart() call
+    new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });
 });

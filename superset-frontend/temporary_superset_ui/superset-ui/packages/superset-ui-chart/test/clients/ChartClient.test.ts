@@ -2,10 +2,11 @@ import fetchMock from 'fetch-mock';
 import { SupersetClientClass, SupersetClient } from '@superset-ui/connection';
 
 import { ChartClient, getChartBuildQueryRegistry, buildQueryContext, FormData } from '../../src';
+import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
 import { LOGIN_GLOB } from '../../../superset-ui-connection/test/fixtures/constants';
 
 describe('ChartClient', () => {
-  let chartClient;
+  let chartClient: ChartClient;
 
   beforeAll(() => {
     fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
@@ -32,59 +33,57 @@ describe('ChartClient', () => {
   });
 
   describe('.loadFormData({ sliceId, formData }, options)', () => {
+    const sliceId = 123;
     it('fetches formData if given only sliceId', () => {
-      fetchMock.get('glob:*/api/v1/formData/?slice_id=123', {
+      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
         form_data: {
           granularity: 'minute',
-          field1: 'abc',
-          field2: 'def',
+          viz_type: 'line',
         },
       });
 
-      return expect(chartClient.loadFormData({ sliceId: 123 })).resolves.toEqual({
+      return expect(chartClient.loadFormData({ sliceId })).resolves.toEqual({
         granularity: 'minute',
-        field1: 'abc',
-        field2: 'def',
+        viz_type: 'line',
       });
     });
     it('fetches formData from sliceId and merges with specify formData if both fields are specified', () => {
-      fetchMock.get('glob:*/api/v1/formData/?slice_id=123', {
+      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
         form_data: {
           granularity: 'minute',
-          field1: 'abc',
-          field2: 'def',
+          viz_type: 'line',
         },
       });
 
       return expect(
         chartClient.loadFormData({
-          sliceId: 123,
+          sliceId,
           formData: {
-            field2: 'ghi',
-            field3: 'jkl',
+            granularity: 'second',
+            viz_type: 'bar',
           },
         }),
       ).resolves.toEqual({
-        granularity: 'minute',
-        field1: 'abc',
-        field2: 'ghi',
-        field3: 'jkl',
+        granularity: 'second',
+        viz_type: 'bar',
       });
     });
     it('returns promise of formData if only formData was given', () =>
       expect(
         chartClient.loadFormData({
           formData: {
-            field1: 'abc',
-            field2: 'def',
+            datasource: '1__table',
+            granularity: 'minute',
+            viz_type: 'line',
           },
         }),
       ).resolves.toEqual({
-        field1: 'abc',
-        field2: 'def',
+        datasource: '1__table',
+        granularity: 'minute',
+        viz_type: 'line',
       }));
     it('rejects if none of sliceId or formData is specified', () =>
-      expect(chartClient.loadFormData({})).rejects.toEqual(
+      expect(chartClient.loadFormData({} as SliceIdAndOrFormData)).rejects.toEqual(
         new Error('At least one of sliceId or formData must be specified'),
       ));
   });
@@ -104,8 +103,6 @@ describe('ChartClient', () => {
           granularity: 'minute',
           viz_type: 'word_cloud',
           datasource: '1__table',
-          field3: 'abc',
-          field4: 'def',
         }),
       ).resolves.toEqual({
         field1: 'abc',
@@ -118,8 +115,6 @@ describe('ChartClient', () => {
           granularity: 'minute',
           viz_type: 'rainbow_3d_pie',
           datasource: '1__table',
-          field3: 'abc',
-          field4: 'def',
         }),
       ).rejects.toEqual(new Error('Unknown chart type: rainbow_3d_pie')));
   });
@@ -179,8 +174,9 @@ describe('ChartClient', () => {
   });
 
   describe('.loadChartData({ sliceId, formData })', () => {
+    const sliceId = 10120;
     it('loadAllDataNecessaryForAChart', () => {
-      fetchMock.get('glob:*/api/v1/formData/?slice_id=10120', {
+      fetchMock.get(`glob:*/api/v1/formData/?slice_id=${sliceId}`, {
         form_data: {
           granularity: 'minute',
           viz_type: 'line',
@@ -206,7 +202,7 @@ describe('ChartClient', () => {
 
       return expect(
         chartClient.loadChartData({
-          sliceId: '10120',
+          sliceId,
         }),
       ).resolves.toEqual({
         annotationData: {},
