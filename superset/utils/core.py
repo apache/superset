@@ -858,7 +858,7 @@ def get_main_database(session):
     from superset.models import core as models
     return (
         session.query(models.Database)
-        .filter_by(data base_name='main')
+        .filter_by(database_name='main')
         .first()
     )
 
@@ -869,7 +869,7 @@ def is_adhoc_metric(metric):
         'expressionType' in metric and
         (
             (
-                metric['0'] == ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE'] and
+                metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE'] and
                 metric['column'] and
                 metric['aggregate']
             ) or
