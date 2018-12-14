@@ -46,8 +46,8 @@ venv
 @eaDir/
 
 # Docker
-Dockerfile
-docker-build.sh
-docker-compose.yml
-docker-entrypoint.sh
-docker-init.sh
+./Dockerfile
+./docker-build.sh
+./docker-compose.yml
+./docker-entrypoint.sh
+./docker-init.sh
