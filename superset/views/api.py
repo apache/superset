@@ -24,7 +24,7 @@ class Api(BaseSupersetView):
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
         """
-        query_context = QueryConext(**json.loads(request.form.get('query_context')))
+        query_context = QueryContext(**json.loads(request.form.get('query_context')))
         security_manager.assert_datasource_permission(query_context.datasource)
         payload_json = query_context.get_payload()
         return json.dumps(payload_json)
