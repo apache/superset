@@ -26,37 +26,34 @@ export enum Aggregate {
 }
 
 export enum ExpressionType {
-  BUILTIN = 'BUILTIN',
   SIMPLE = 'SIMPLE',
   SQL = 'SQL',
 }
 
-interface SimpleMetric {
+interface AdhocMetricSimple {
   expressionType: ExpressionType.SIMPLE;
   column: Column;
   aggregate: Aggregate;
-  label?: string;
-  optionName?: string;
 }
 
-interface SQLMetric {
+interface AdhocMetricSQL {
   expressionType: ExpressionType.SQL;
   sqlExpression: string;
+}
+
+export type AdhocMetric = {
   label?: string;
   optionName?: string;
-}
-
-interface BuiltInMetric {
-  expressionType: ExpressionType.BUILTIN;
-  label: string;
-}
+} & (AdhocMetricSimple | AdhocMetricSQL);
 
 // Type of metrics in form data
-export type FormDataMetric = string | SQLMetric | SimpleMetric;
+export type FormDataMetric = string | AdhocMetric;
 
 // Type of Metric the client provides to server after unifying various forms
 // of metrics in form data
-export type Metric = BuiltInMetric | SQLMetric | SimpleMetric;
+export type Metric = {
+  label: string;
+} & Partial<AdhocMetric>;
 
 export class Metrics {
   // Use Array to maintain insertion order for metrics that are order sensitive
@@ -87,7 +84,6 @@ export class Metrics {
   private addMetric(metric: FormDataMetric) {
     if (typeof metric === 'string') {
       this.metrics.push({
-        expressionType: ExpressionType.BUILTIN,
         label: metric,
       });
     } else {
@@ -102,7 +98,7 @@ export class Metrics {
     }
   }
 
-  private getDefaultLabel(metric: SQLMetric | SimpleMetric) {
+  private getDefaultLabel(metric: AdhocMetric) {
     let label: string;
     if (metric.expressionType === ExpressionType.SIMPLE) {
       label = `${metric.aggregate}(${metric.column.columnName})`;
