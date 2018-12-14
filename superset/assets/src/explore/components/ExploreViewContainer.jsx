@@ -27,7 +27,7 @@ const keymap = {
     SAVE: ['command+shift'],
   },
 };
-const shortcutManager = new ShortcutManager(keymap)
+const shortcutManager = new ShortcutManager(keymap);
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -72,7 +72,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   getChildContext() {
-    return { shortcuts: shortcutManager }
+    return { shortcuts: shortcutManager };
   }
 
   componentDidMount() {
@@ -157,6 +157,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleShortcuts(action, event) {
+
     match(action)
     .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
     .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
@@ -333,8 +334,8 @@ class ExploreViewContainer extends React.Component {
 
 ExploreViewContainer.propTypes = propTypes;
 ExploreViewContainer.childContextTypes = {
-  shortcuts: PropTypes.object.isRequired
-}
+  shortcuts: PropTypes.object.isRequired,
+};
 
 function mapStateToProps(state) {
   const { explore, charts, impressionId } = state;
