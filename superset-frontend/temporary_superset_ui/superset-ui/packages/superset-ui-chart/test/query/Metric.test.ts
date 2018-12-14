@@ -1,6 +1,6 @@
 import { ColumnType } from '../../src/query/Column';
 import {
-  AdhocMetric,
+  FormDataMetric,
   Aggregate,
   ExpressionType,
   LABEL_MAX_LENGTH,
@@ -20,12 +20,17 @@ describe('Metrics', () => {
       ...formData,
       metric: 'sum__num',
     });
-    expect(metrics.getMetrics()).toEqual([{ label: 'sum__num' }]);
+    expect(metrics.getMetrics()).toEqual([
+      {
+        label: 'sum__num',
+        expressionType: 'BUILTIN',
+      },
+    ]);
     expect(metrics.getLabels()).toEqual(['sum__num']);
   });
 
   it('should build metrics for simple adhoc metrics', () => {
-    const adhocMetric: AdhocMetric = {
+    const adhocMetric: FormDataMetric = {
       aggregate: Aggregate.AVG,
       column: {
         columnName: 'sum_girls',
@@ -54,7 +59,7 @@ describe('Metrics', () => {
   });
 
   it('should build metrics for SQL adhoc metrics', () => {
-    const adhocMetric: AdhocMetric = {
+    const adhocMetric: FormDataMetric = {
       expressionType: ExpressionType.SQL,
       sqlExpression: 'COUNT(sum_girls)',
     };
@@ -73,7 +78,7 @@ describe('Metrics', () => {
   });
 
   it('should build metrics for adhoc metrics with custom labels', () => {
-    const adhocMetric: AdhocMetric = {
+    const adhocMetric: FormDataMetric = {
       expressionType: ExpressionType.SQL,
       label: 'foo',
       sqlExpression: 'COUNT(sum_girls)',
@@ -93,7 +98,7 @@ describe('Metrics', () => {
   });
 
   it('should truncate labels if they are too long', () => {
-    const adhocMetric: AdhocMetric = {
+    const adhocMetric: FormDataMetric = {
       expressionType: ExpressionType.SQL,
       sqlExpression: 'COUNT(verrrrrrrrry_loooooooooooooooooooooong_string)',
     };
@@ -109,7 +114,12 @@ describe('Metrics', () => {
       ...formData,
       metrics: ['sum__num'],
     });
-    expect(metrics.getMetrics()).toEqual([{ label: 'sum__num' }]);
+    expect(metrics.getMetrics()).toEqual([
+      {
+        label: 'sum__num',
+        expressionType: 'BUILTIN',
+      },
+    ]);
     expect(metrics.getLabels()).toEqual(['sum__num']);
   });
 });
