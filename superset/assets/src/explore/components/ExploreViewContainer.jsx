@@ -23,8 +23,8 @@ import { match } from '../../utils/common';
 // Prolly need to move this to a global context
 const keymap = {
   EXPLORE: {
-    RUN: ['command+enter'],
-    SAVE: ['command+shift'],
+    RUN: ['command+r'],
+    SAVE: ['command+s'],
   },
 };
 const shortcutManager = new ShortcutManager(keymap);
@@ -41,6 +41,7 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
+  childContextTypes: PropTypes.object.isRequired,
 };
 
 class ExploreViewContainer extends React.Component {
