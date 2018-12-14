@@ -1,5 +1,5 @@
-import Preset from '../../src/models/Preset';
 import Plugin from '../../src/models/Plugin';
+import Preset from '../../src/models/Preset';
 
 describe('Preset', () => {
   it('exists', () => {
@@ -15,26 +15,34 @@ describe('Preset', () => {
 
   describe('.register()', () => {
     it('register all listed presets then plugins', () => {
-      const values = [];
+      const values: number[] = [];
       class Plugin1 extends Plugin {
         register() {
           values.push(1);
+
+          return this;
         }
       }
       class Plugin2 extends Plugin {
         register() {
           values.push(2);
+
+          return this;
         }
       }
       class Plugin3 extends Plugin {
         register() {
           values.push(3);
+
+          return this;
         }
       }
       class Plugin4 extends Plugin {
         register() {
           const { key } = this.config;
           values.push(key);
+
+          return this;
         }
       }
 
@@ -46,10 +54,10 @@ describe('Preset', () => {
       });
       const preset3 = new Preset({
         presets: [preset1, preset2],
-        plugins: [new Plugin3(), new Plugin4().configure({ key: 'abc' })],
+        plugins: [new Plugin3(), new Plugin4().configure({ key: 9 })],
       });
       preset3.register();
-      expect(values).toEqual([1, 2, 3, 'abc']);
+      expect(values).toEqual([1, 2, 3, 9]);
     });
 
     it('returns itself', () => {

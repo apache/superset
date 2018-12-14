@@ -1,15 +1,39 @@
 /* eslint no-console: 0 */
 
-const OverwritePolicy = {
-  ALLOW: 'ALLOW',
-  PROHIBIT: 'PROHIBIT',
-  WARN: 'WARN',
-};
+export enum OverwritePolicy {
+  ALLOW = 'ALLOW',
+  PROHIBIT = 'PROHIBIT',
+  WARN = 'WARN',
+}
 
-export default class Registry {
-  constructor({ name = '', overwritePolicy = OverwritePolicy.ALLOW } = {}) {
-    this.overwritePolicy = overwritePolicy;
+interface ItemWithValue<T> {
+  value: T;
+}
+
+interface ItemWithLoader<T> {
+  loader: () => T | Promise<T>;
+}
+
+export interface RegistryConfig {
+  name?: string;
+  overwritePolicy?: OverwritePolicy;
+}
+
+export default class Registry<V> {
+  name: string;
+  overwritePolicy: OverwritePolicy;
+  items: {
+    [key: string]: ItemWithValue<V> | ItemWithLoader<V>;
+  };
+
+  promises: {
+    [key: string]: Promise<V>;
+  };
+
+  constructor(config: RegistryConfig = {}) {
+    const { name = '', overwritePolicy = OverwritePolicy.ALLOW } = config;
     this.name = name;
+    this.overwritePolicy = overwritePolicy;
     this.items = {};
     this.promises = {};
   }
@@ -21,22 +45,24 @@ export default class Registry {
     return this;
   }
 
-  has(key) {
+  has(key: string) {
     const item = this.items[key];
 
     return item !== null && item !== undefined;
   }
 
-  registerValue(key, value) {
+  registerValue(key: string, value: V) {
     const item = this.items[key];
-    if (item && item.value !== value) {
+    const willOverwrite =
+      this.has(key) && (('value' in item && item.value !== value) || 'loader' in item);
+    if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
         console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
         throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);
       }
     }
-    if (!item || item.value !== value) {
+    if (!item || willOverwrite) {
       this.items[key] = { value };
       delete this.promises[key];
     }
@@ -44,16 +70,18 @@ export default class Registry {
     return this;
   }
 
-  registerLoader(key, loader) {
+  registerLoader(key: string, loader: () => V | Promise<V>) {
     const item = this.items[key];
-    if (item && item.loader !== loader) {
+    const willOverwrite =
+      this.has(key) && (('loader' in item && item.loader !== loader) || 'value' in item);
+    if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
         console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
         throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);
       }
     }
-    if (!item || item.loader !== loader) {
+    if (!item || willOverwrite) {
       this.items[key] = { loader };
       delete this.promises[key];
     }
@@ -61,33 +89,39 @@ export default class Registry {
     return this;
   }
 
-  get(key) {
+  get(key: string): V | Promise<V> | undefined {
     const item = this.items[key];
-    if (item) {
-      return item.loader ? item.loader() : item.value;
+    if (item !== undefined) {
+      if ('loader' in item) {
+        return item.loader();
+      }
+
+      return item.value;
     }
 
-    return null;
+    return undefined;
   }
 
-  getAsPromise(key) {
+  getAsPromise(key: string): Promise<V> {
     const promise = this.promises[key];
     if (promise) {
       return promise;
     }
     const item = this.get(key);
-    if (item) {
+    if (item !== undefined) {
       const newPromise = Promise.resolve(item);
       this.promises[key] = newPromise;
 
       return newPromise;
     }
 
-    return Promise.reject(new Error(`Item with key "${key}" is not registered.`));
+    return Promise.reject<V>(new Error(`Item with key "${key}" is not registered.`));
   }
 
   getMap() {
-    return this.keys().reduce((prev, key) => {
+    return this.keys().reduce<{
+      [key: string]: V | Promise<V> | undefined;
+    }>((prev, key) => {
       const map = prev;
       map[key] = this.get(key);
 
@@ -99,7 +133,9 @@ export default class Registry {
     const keys = this.keys();
 
     return Promise.all(keys.map(key => this.getAsPromise(key))).then(values =>
-      values.reduce((prev, value, i) => {
+      values.reduce<{
+        [key: string]: V;
+      }>((prev, value, i) => {
         const map = prev;
         map[keys[i]] = value;
 
@@ -108,26 +144,26 @@ export default class Registry {
     );
   }
 
-  keys() {
+  keys(): string[] {
     return Object.keys(this.items);
   }
 
-  values() {
+  values(): Array<V | Promise<V> | undefined> {
     return this.keys().map(key => this.get(key));
   }
 
-  valuesAsPromise() {
+  valuesAsPromise(): Promise<V[]> {
     return Promise.all(this.keys().map(key => this.getAsPromise(key)));
   }
 
-  entries() {
+  entries(): Array<{ key: string; value: V | Promise<V> | undefined }> {
     return this.keys().map(key => ({
       key,
       value: this.get(key),
     }));
   }
 
-  entriesAsPromise() {
+  entriesAsPromise(): Promise<Array<{ key: string; value: V }>> {
     const keys = this.keys();
 
     return Promise.all(keys.map(key => this.getAsPromise(key))).then(values =>
@@ -138,12 +174,10 @@ export default class Registry {
     );
   }
 
-  remove(key) {
+  remove(key: string) {
     delete this.items[key];
     delete this.promises[key];
 
     return this;
   }
 }
-
-Registry.OverwritePolicy = OverwritePolicy;
