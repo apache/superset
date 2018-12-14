@@ -18,19 +18,7 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
-
-
-// todo(hugh): Move this util.js for as a more functional switch cases
-// https://codeburst.io/alternative-to-javascripts-switch-statement-with-a-functional-twist-3f572787ba1c
-const matched = x => ({
-  on: () => matched(x),
-  otherwise: () => x,
-});
-
-const match = x => ({
-  on: (pred, fn) => (pred(x) ? matched(fn(x)) : match(x)),
-  otherwise: fn => fn(x),
-});
+import { match } from '../../utils/common';
 
 // Prolly need to move this to a global context
 const keymap = {
