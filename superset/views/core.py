@@ -2049,7 +2049,13 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                obj = slc.get_viz(force=True)
+                form_data = self.get_form_data(slc.id, use_slice_data=True)[0]
+                obj = self.get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
                 obj.get_json()
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
