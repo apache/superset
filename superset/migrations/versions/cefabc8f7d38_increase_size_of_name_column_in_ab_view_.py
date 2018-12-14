@@ -15,20 +15,20 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.alter_column(
-        'ab_view_menu',
-        'name',
-        existing_type=sa.String(length=100),
-        existing_nullable=False,
-        type_=sa.String(length=255),
-        nullable=False)
+    with op.batch_alter_table('ab_view_menu') as batch_op:
+        batch_op.alter_column(
+            'name',
+            existing_type=sa.String(length=100),
+            existing_nullable=False,
+            type_=sa.String(length=255),
+            nullable=False)
 
 
 def downgrade():
-    op.alter_column(
-        'ab_view_menu',
-        'name',
-        existing_type=sa.String(length=255),
-        existing_nullable=False,
-        type_=sa.String(length=100),
-        nullable=False)
+    with op.batch_alter_table('ab_view_menu') as batch_op:
+        batch_op.alter_column(
+            'name',
+            existing_type=sa.String(length=255),
+            existing_nullable=False,
+            type_=sa.String(length=100),
+            nullable=False)
