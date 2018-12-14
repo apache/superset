@@ -172,14 +172,13 @@ class ExploreViewContainer extends React.Component {
     match(action)
     .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
     .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
-      const sliceParams = {
+      this.props.actions.saveSlice(this.props.form_data, {
         action: 'overwrite',
         slice_id: this.props.slice.slice_id,
         slice_name: this.props.slice.slice_name,
         add_to_dash: 'noSave',
         goto_dash: false,
-      };
-      this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
+      }).then(({ data }) => {
         window.location = data.slice.slice_url;
       });
     });
