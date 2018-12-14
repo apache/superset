@@ -1,9 +1,9 @@
 import { ParseMethod, SupersetClientResponse } from '../types';
 
 function rejectIfNotOkay(response: Response): Promise<Response> {
-  if (!response.ok) return Promise.reject(response);
+  if (!response.ok) return Promise.reject<Response>(response);
 
-  return Promise.resolve(response);
+  return Promise.resolve<Response>(response);
 }
 
 export default function parseResponse(
@@ -13,7 +13,7 @@ export default function parseResponse(
   const checkedPromise = apiPromise.then(rejectIfNotOkay);
 
   if (parseMethod === null) {
-    return checkedPromise;
+    return apiPromise.then(rejectIfNotOkay);
   } else if (parseMethod === 'text') {
     return checkedPromise.then(response => response.text().then(text => ({ response, text })));
   } else if (parseMethod === 'json') {

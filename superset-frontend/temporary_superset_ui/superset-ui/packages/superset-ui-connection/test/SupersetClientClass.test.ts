@@ -17,7 +17,8 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.getUrl()', () => {
-    let client;
+    let client = new SupersetClientClass();
+
     beforeEach(() => {
       client = new SupersetClientClass({ protocol: 'https:', host: 'CONFIG_HOST' });
     });
@@ -155,7 +156,7 @@ describe('SupersetClientClass', () => {
 
     it('returns true if a token is passed at configuration', () => {
       expect.assertions(2);
-      const clientWithoutToken = new SupersetClientClass({ csrfToken: null });
+      const clientWithoutToken = new SupersetClientClass({ csrfToken: undefined });
       const clientWithToken = new SupersetClientClass({ csrfToken: 'token' });
 
       expect(clientWithoutToken.isAuthenticated()).toBe(false);
@@ -288,7 +289,9 @@ describe('SupersetClientClass', () => {
           const fetchRequest = fetchMock.calls(mockGetUrl)[0][1];
           expect(fetchRequest.mode).toBe(clientConfig.mode);
           expect(fetchRequest.credentials).toBe(clientConfig.credentials);
-          expect(fetchRequest.headers).toEqual(expect.objectContaining(clientConfig.headers));
+          expect(fetchRequest.headers).toEqual(
+            expect.objectContaining(clientConfig.headers as Object),
+          );
 
           return Promise.resolve();
         }),
@@ -361,7 +364,7 @@ describe('SupersetClientClass', () => {
                 expect(fetchRequest.mode).toBe(overrideConfig.mode);
                 expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
                 expect(fetchRequest.headers).toEqual(
-                  expect.objectContaining(overrideConfig.headers),
+                  expect.objectContaining(overrideConfig.headers as Object),
                 );
 
                 return Promise.resolve();
@@ -412,7 +415,9 @@ describe('SupersetClientClass', () => {
             const fetchRequest = fetchMock.calls(mockPostUrl)[0][1];
             expect(fetchRequest.mode).toBe(overrideConfig.mode);
             expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
-            expect(fetchRequest.headers).toEqual(expect.objectContaining(overrideConfig.headers));
+            expect(fetchRequest.headers).toEqual(
+              expect.objectContaining(overrideConfig.headers as Object),
+            );
 
             return Promise.resolve();
           }),
@@ -436,7 +441,7 @@ describe('SupersetClientClass', () => {
       it('passes postPayload key,values in the body', () => {
         expect.assertions(3);
 
-        const postPayload = { number: 123, array: [1, 2, 3] };
+        const postPayload = { number: 123, array: [1, 2, 3] } as any;
         const client = new SupersetClientClass({ protocol, host });
 
         return client.init().then(() =>
@@ -454,7 +459,7 @@ describe('SupersetClientClass', () => {
 
       it('respects the stringify parameter for postPayload key,values', () => {
         expect.assertions(3);
-        const postPayload = { number: 123, array: [1, 2, 3] };
+        const postPayload = { number: 123, array: [1, 2, 3] } as any;
         const client = new SupersetClientClass({ protocol, host });
 
         return client.init().then(() =>

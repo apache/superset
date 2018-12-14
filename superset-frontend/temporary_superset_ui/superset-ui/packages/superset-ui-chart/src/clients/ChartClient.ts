@@ -1,18 +1,22 @@
 import { isDefined } from '@superset-ui/core';
 import {
   SupersetClient,
+  SupersetClientInterface,
   RequestConfig,
-  SupersetClientClass,
-  SupersetClientResponse,
   Json,
+  SupersetClientClass,
 } from '@superset-ui/connection';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import { FormData, AnnotationLayerMetadata } from '../query/FormData';
 
-interface SliceIdAndOrFormData {
-  sliceId?: number;
-  formData?: FormData;
-}
+export type SliceIdAndOrFormData =
+  | {
+      sliceId: number;
+      formData?: Partial<FormData>;
+    }
+  | {
+      formData: FormData;
+    };
 
 interface AnnotationData {
   [key: string]: object;
@@ -26,14 +30,11 @@ interface ChartData {
 }
 
 export interface ChartClientConfig {
-  client?: SupersetClientClass;
+  client?: SupersetClientInterface | SupersetClientClass;
 }
 
 export class ChartClient {
-  readonly client: {
-    get: (config: RequestConfig) => Promise<SupersetClientResponse>;
-    post: (config: RequestConfig) => Promise<SupersetClientResponse>;
-  };
+  readonly client: SupersetClientInterface | SupersetClientClass;
 
   constructor(config: ChartClientConfig = {}) {
     const { client = SupersetClient } = config;
@@ -42,7 +43,7 @@ export class ChartClient {
 
   loadFormData(input: SliceIdAndOrFormData, options?: RequestConfig): Promise<FormData> {
     /* If sliceId is provided, use it to fetch stored formData from API */
-    if (input.sliceId) {
+    if ('sliceId' in input) {
       const promise = this.client
         .get({
           endpoint: `/api/v1/formData/?slice_id=${input.sliceId}`,
@@ -55,20 +56,15 @@ export class ChartClient {
        * If formData is also specified, override API result
        * with user-specified formData
        */
-      return input.formData
-        ? promise.then(
-            (dbFormData: object) =>
-              ({
-                ...dbFormData,
-                ...input.formData,
-              } as FormData),
-          )
-        : promise.then((dbFormData: object) => dbFormData as FormData);
+      return promise.then((dbFormData: FormData) => ({
+        ...dbFormData,
+        ...input.formData,
+      }));
     }
 
     /* If sliceId is not provided, returned formData wrapped in a Promise */
     return input.formData
-      ? Promise.resolve(input.formData)
+      ? Promise.resolve(input.formData as FormData)
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 

@@ -1,3 +1,5 @@
+/* eslint camelcase: 0 */
+// FormData uses snake_cased keys.
 import { FormDataMetric, MetricKey } from './Metric';
 
 // Type signature and utility functions for formData shared by all viz types
@@ -14,18 +16,14 @@ export type AnnotationLayerMetadata = {
   sourceType?: string;
 };
 
-/* eslint-disable camelcase */
 type BaseFormData = {
   datasource: string;
   viz_type: string;
   annotation_layers?: Array<AnnotationLayerMetadata>;
 } & Metrics;
-/* eslint-enable camelcase */
 
 // FormData is either sqla-based or druid-based
 type SqlaFormData = {
-  // FormData uses snake_cased keys.
-  // eslint-disable-next-line camelcase
   granularity_sqla: string;
 } & BaseFormData;
 
