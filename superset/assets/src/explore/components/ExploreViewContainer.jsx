@@ -298,16 +298,12 @@ class ExploreViewContainer extends React.Component {
     }
     return (
       <Shortcuts
-        name='EXPLORE'
+        name="EXPLORE"
         handler={this.handleShortcuts}
-      >
-      <div
+      ><div
         id="explore-container"
         className="container-fluid"
-        style={{
-          height: this.state.height,
-          overflow: 'hidden',
-        }}
+        style={{ height: this.state.height, overflow: 'hidden' }}
       >
         {this.state.showModal && (
           <SaveModal
