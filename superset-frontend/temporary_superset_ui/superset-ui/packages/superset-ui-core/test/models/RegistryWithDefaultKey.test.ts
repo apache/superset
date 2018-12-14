@@ -6,7 +6,7 @@ describe('RegistryWithDefaultKey', () => {
     expect(RegistryWithDefaultKey).toBeDefined();
   });
 
-  let registry;
+  let registry: RegistryWithDefaultKey<number>;
 
   beforeEach(() => {
     registry = new RegistryWithDefaultKey();
@@ -42,6 +42,10 @@ describe('RegistryWithDefaultKey', () => {
     it('.get(key) returns value from specified key', () => {
       expect(registry.get('def')).toEqual(200);
     });
+    it('returns undefined if no key was given and there is no default key', () => {
+      registry.clearDefaultKey();
+      expect(registry.get()).toBeUndefined();
+    });
   });
 
   describe('.getDefaultKey()', () => {
@@ -58,6 +62,16 @@ describe('RegistryWithDefaultKey', () => {
     });
     it('returns itself', () => {
       expect(registry.setDefaultKey('ghi')).toBe(registry);
+    });
+  });
+
+  describe('.clearDefaultKey()', () => {
+    it('set the default key to undefined', () => {
+      registry.clearDefaultKey();
+      expect(registry.defaultKey).toBeUndefined();
+    });
+    it('returns itself', () => {
+      expect(registry.clearDefaultKey()).toBe(registry);
     });
   });
 
