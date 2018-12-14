@@ -6,7 +6,7 @@ import {
   ChartProps,
   BuildQueryFunction,
   TransformPropsFunction,
-} from '../../src/index';
+} from '../../src';
 
 describe('ChartPlugin', () => {
   const metadata = new ChartMetadata({
@@ -37,14 +37,6 @@ describe('ChartPlugin', () => {
       });
       expect(plugin).toBeInstanceOf(ChartPlugin);
     });
-    it('throws an error if metadata is not specified', () => {
-      expect(
-        () =>
-          new ChartPlugin({
-            metadata: null,
-          }),
-      ).toThrowError(Error);
-    });
     describe('buildQuery', () => {
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({
@@ -54,22 +46,28 @@ describe('ChartPlugin', () => {
         expect(plugin.loadBuildQuery).toBeUndefined();
       });
       it('uses loadBuildQuery field if specified', () => {
+        expect.assertions(1);
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
           loadBuildQuery: () => buildQuery,
         });
-        const fn = plugin.loadBuildQuery() as BuildQueryFunction;
-        expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
+        if (typeof plugin.loadBuildQuery === 'function') {
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction;
+          expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
+        }
       });
       it('uses buildQuery field if specified', () => {
+        expect.assertions(1);
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
           buildQuery,
         });
-        const fn = plugin.loadBuildQuery() as BuildQueryFunction;
-        expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
+        if (typeof plugin.loadBuildQuery === 'function') {
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction;
+          expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
+        }
       });
     });
     describe('Chart', () => {

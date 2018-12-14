@@ -1,5 +1,5 @@
 import { ClientConfig, SupersetClientClass } from './SupersetClientClass';
-import { RequestConfig } from './types';
+import { RequestConfig, SupersetClientResponse } from './types';
 
 let singletonClient: SupersetClientClass | undefined;
 
@@ -11,8 +11,19 @@ function getInstance(maybeClient: SupersetClientClass | undefined): SupersetClie
   return maybeClient;
 }
 
-const SupersetClient = {
-  configure: (config: ClientConfig = {}): SupersetClientClass => {
+export interface SupersetClientInterface {
+  configure: (config?: ClientConfig) => SupersetClientClass;
+  get: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  getInstance: (maybeClient?: SupersetClientClass) => SupersetClientClass;
+  init: (force?: boolean) => Promise<string | undefined>;
+  isAuthenticated: () => boolean;
+  post: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  reAuthenticate: () => Promise<string | undefined>;
+  reset: () => void;
+}
+
+const SupersetClient: SupersetClientInterface = {
+  configure: (config?: ClientConfig): SupersetClientClass => {
     singletonClient = new SupersetClientClass(config);
 
     return singletonClient;

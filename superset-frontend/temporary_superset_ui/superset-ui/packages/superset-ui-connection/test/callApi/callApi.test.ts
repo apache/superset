@@ -62,7 +62,7 @@ describe('callApi()', () => {
         expect(fetchParams.mode).toBe(mockRequest.mode);
         expect(fetchParams.cache).toBe(mockRequest.cache);
         expect(fetchParams.credentials).toBe(mockRequest.credentials);
-        expect(fetchParams.headers).toEqual(expect.objectContaining(mockRequest.headers));
+        expect(fetchParams.headers).toEqual(expect.objectContaining(mockRequest.headers as Object));
         expect(fetchParams.redirect).toBe(mockRequest.redirect);
         expect(fetchParams.signal).toBe(mockRequest.signal);
         expect(fetchParams.body).toBe(mockRequest.body);
@@ -75,7 +75,7 @@ describe('callApi()', () => {
   describe('POST requests', () => {
     it('encodes key,value pairs from postPayload', () => {
       expect.assertions(3);
-      const postPayload = { key: 'value', anotherKey: 1237 };
+      const postPayload = { key: 'value', anotherKey: 1237 } as any;
 
       return callApi({ url: mockPostUrl, method: 'POST', postPayload }).then(() => {
         const calls = fetchMock.calls(mockPostUrl);
@@ -118,7 +118,7 @@ describe('callApi()', () => {
         object: { a: 'a', 1: 1 },
         null: null,
         emptyString: '',
-      };
+      } as any;
 
       expect.assertions(1 + 2 * Object.keys(postPayload).length);
 

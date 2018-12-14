@@ -1,15 +1,17 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { createLoadableRenderer } from '../../src';
+import createLoadableRenderer, {
+  LoadableRenderer as LoadableRendererType,
+} from '../../src/components/createLoadableRenderer';
 
 describe('createLoadableRenderer', () => {
   function TestComponent() {
     return <div className="test-component">test</div>;
   }
-  let loadChartSuccess;
-  let render;
-  let loading;
-  let LoadableRenderer;
+  let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
+  let render = () => null;
+  let loading = () => null;
+  let LoadableRenderer: LoadableRendererType<{}, {}>;
 
   beforeEach(() => {
     loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
@@ -19,6 +21,7 @@ describe('createLoadableRenderer', () => {
       return <Chart />;
     });
     loading = jest.fn(() => <div>Loading</div>);
+
     LoadableRenderer = createLoadableRenderer({
       loader: {
         Chart: loadChartSuccess,
@@ -82,6 +85,16 @@ describe('createLoadableRenderer', () => {
         expect(wrapper.find(TestComponent)).toHaveLength(1);
         done();
       }, 10);
+    });
+
+    it('does not throw if loaders are empty', () => {
+      const NeverLoadingRenderer = createLoadableRenderer({
+        loader: {},
+        loading,
+        render,
+      });
+
+      expect(() => shallow(<NeverLoadingRenderer />)).not.toThrow();
     });
   });
 });

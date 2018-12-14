@@ -5,10 +5,11 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap",
-    "build": "yarn run build:cjs && yarn run build:esm && yarn run build:ts",
-    "build:cjs": "NODE_ENV=production beemo babel ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "build:esm": "NODE_ENV=production beemo babel ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "build:ts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(connection|chart)\"",
+    "build": "yarn run build:cjs && yarn run build:esm && yarn run type:dts",
+    "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(connection|chart)\" --noEmit",
+    "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(connection|chart)\" --emitDeclarationOnly",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage --react",
@@ -18,7 +19,7 @@
     "pretest": "yarn run lint",
     "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
     "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
-    "test": "yarn run jest",
+    "test": "yarn run type && yarn run jest",
     "test:watch": "beemo create-config jest --react && jest --watch"
   },
   "repository": "https://github.com/apache-superset/superset-ui.git",
@@ -36,7 +37,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.33",
+    "@data-ui/build-config": "^0.0.35",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
