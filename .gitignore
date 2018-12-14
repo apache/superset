@@ -59,3 +59,4 @@ Dockerfile
 docker-compose.yml
 docker-entrypoint.sh
 docker-init.sh
+data

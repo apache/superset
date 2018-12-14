@@ -6,7 +6,7 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - redis:/data
+      - ./data/redis:/data
   postgres:
     image: postgres:10
     restart: unless-stopped
@@ -17,7 +17,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
   superset:
     build:
       context: ./
@@ -35,6 +35,7 @@ services:
       #SUPERSET_ENV: production
       SUPERSET_ENV: development
       FLASK_APP: "superset:app"
+      SUPERSET_LOAD_EXAMPLES: "yes"
     ports:
       - 8088:8088
     depends_on:
@@ -45,8 +46,3 @@ services:
       - ./superset_config.py:/home/superset/superset/superset_config.py
       # this is needed for development, remove with SUPERSET_ENV=production
       - ./superset:/home/superset/superset
-volumes:
-  postgres:
-    external: false
-  redis:
-    external: false
