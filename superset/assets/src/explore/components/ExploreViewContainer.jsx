@@ -29,7 +29,7 @@ const matched = x => ({
 
 const match = x => ({
   on: (pred, fn) => (pred(x) ? matched(fn(x)) : match(x)),
-  otherwise: fn => console.log('default...'),
+  otherwise: fn => fn(x),
 });
 
 // Prolly need to move this to a global context
@@ -85,23 +85,6 @@ class ExploreViewContainer extends React.Component {
 
   getChildContext() {
     return { shortcuts: shortcutManager }
-  }
-
-  handleShortcuts(action, event) {
-    match(action)
-    .on(action => action === 'RUN', () => this.onQuery())
-    .on(action => action === 'SAVE', () => {
-      const sliceParams = {
-        action: "overwrite",
-        slice_id: this.props.slice.slice_id,
-        slice_name: this.props.slice.slice_name,
-        add_to_dash: "noSave",
-        goto_dash: false
-      };
-      this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
-        window.location = data.slice.slice_url;
-      });
-    })
   }
 
   componentDidMount() {
@@ -184,6 +167,24 @@ class ExploreViewContainer extends React.Component {
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
   }
+
+  handleShortcuts(action, event) {
+    match(action)
+    .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
+    .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
+      const sliceParams = {
+        action: 'overwrite',
+        slice_id: this.props.slice.slice_id,
+        slice_name: this.props.slice.slice_name,
+        add_to_dash: 'noSave',
+        goto_dash: false,
+      };
+      this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
+        window.location = data.slice.slice_url;
+      });
+    });
+  }
+
 
   findChangedControlKeys(prevControls, currentControls) {
     return Object.keys(currentControls).filter(
