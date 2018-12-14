@@ -300,6 +300,8 @@ class ExploreViewContainer extends React.Component {
       <Shortcuts
         name="EXPLORE"
         handler={this.handleShortcuts}
+        targetNodeSelector={'body'}
+        global
       ><div
         id="explore-container"
         className="container-fluid"
