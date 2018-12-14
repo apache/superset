@@ -69,6 +69,7 @@ setup(
         'flask-wtf',
         'flower',  # deprecated
         'geopy',
+        'gsheetsdb>=0.1.8',
         'gunicorn',  # deprecated
         'humanize',
         'idna',
@@ -83,7 +84,7 @@ setup(
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.13',
-        'requests',
+        'requests>=2.20.0',
         'simplejson>=3.15.0',
         'sqlalchemy',
         'sqlalchemy-utils',
@@ -93,6 +94,9 @@ setup(
         'thrift-sasl>=0.2.1',
         'unicodecsv',
         'unidecode>=0.04.21',
+        'croniter==0.3.25',
+        'selenium==3.14.0',
+        'retry==0.9.2',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

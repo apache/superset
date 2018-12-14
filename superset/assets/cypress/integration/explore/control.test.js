@@ -1,6 +1,7 @@
 // ***********************************************
 // Tests for setting controls in the UI
 // ***********************************************
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Groupby', () => {
   it('Set groupby', () => {
@@ -61,7 +62,7 @@ describe('AdhocMetrics', () => {
     });
   });
 
-  xit('Clear metric and set custom sql adhoc metric', () => {
+  it('Clear metric and set custom sql adhoc metric', () => {
     const metric = 'SUM(num)/COUNT(DISTINCT name)';
 
     cy.visitChartByName('Num Births Trend');
@@ -70,7 +71,7 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
       cy.get('.Select-control').click({ force: true });
-      cy.get('input').type('num', { force: true });
+      cy.get('input').type('num{downarrow}', { force: true });
       cy.get('.VirtualizedSelectFocusedOption')
         .trigger('mousedown')
         .click();
@@ -80,7 +81,7 @@ describe('AdhocMetrics', () => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
       cy.get('.ace_content').click();
       cy.get('.ace_text-input')
-        .type(`{selectall}{backspace}${metric}`, { force: true });
+        .type('/COUNT(DISTINCT name)', { force: true });
       cy.get('button').contains('Save').click();
     });
 
@@ -265,5 +266,38 @@ describe('Annotations', () => {
     });
 
     cy.get('.nv-legend-text').should('have.length', 2);
+  });
+});
+
+describe('Time range filter', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.server();
+    cy.route('POST', '/superset/explore_json/**').as('getJson');
+  });
+
+  it('Defaults to the correct tab for time_range params', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: '100 years ago : now',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+
+    cy.get('[data-test=time_range]').within(() => {
+      cy.get('span.label').click();
+    });
+
+    cy.get('#filter-popover').within(() => {
+      cy.get('div.tab-pane.active').within(() => {
+        cy.get('div.PopoverSection :not(.dimmed)').within(() => {
+          cy.get('input[value="100 years ago"]');
+          cy.get('input[value="now"]');
+        });
+      });
+    });
   });
 });

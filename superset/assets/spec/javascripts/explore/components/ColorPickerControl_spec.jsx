@@ -19,10 +19,10 @@ describe('ColorPickerControl', () => {
   beforeEach(() => {
     getCategoricalSchemeRegistry()
       .registerValue('test', new CategoricalScheme({
-        name: 'test',
+        id: 'test',
         colors: ['red', 'green', 'blue'],
       }))
-      .setDefaultSchemeName('test');
+      .setDefaultKey('test');
     wrapper = shallow(<ColorPickerControl {...defaultProps} />);
     inst = wrapper.instance();
   });

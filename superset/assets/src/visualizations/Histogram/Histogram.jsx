@@ -6,6 +6,7 @@ import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import WithLegend from '../WithLegend';
+import './Histogram.css';
 
 const propTypes = {
   className: PropTypes.string,
@@ -47,7 +48,7 @@ class CustomHistogram extends React.PureComponent {
       yAxisLabel,
     } = this.props;
 
-    const colorFn = CategoricalColorNamespace.getScale(colorScheme).toFunction();
+    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,

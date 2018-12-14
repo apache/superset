@@ -789,10 +789,13 @@ class CalHeatmapViz(BaseViz):
         data = {}
         records = df.to_dict('records')
         for metric in self.metric_labels:
-            data[metric] = {
-                str(obj[DTTM_ALIAS] / 10**9): obj.get(metric)
-                for obj in records
-            }
+            values = {}
+            for obj in records:
+                v = obj[DTTM_ALIAS]
+                if hasattr(v, 'value'):
+                    v = v.value
+                values[str(v / 10**9)] = obj.get(metric)
+            data[metric] = values
 
         start, end = utils.get_since_until(form_data.get('time_range'),
                                            form_data.get('since'),
@@ -1467,6 +1470,16 @@ class HistogramViz(BaseViz):
         d['groupby'] = []
         return d
 
+    def labelify(self, keys, column):
+        if isinstance(keys, str):
+            keys = (keys,)
+        # removing undesirable characters
+        labels = [re.sub(r'\W+', r'_', k) for k in keys]
+        if len(self.columns) > 1 or not self.groupby:
+            # Only show numeric column in label if there are many
+            labels = [column] + labels
+        return '__'.join(labels)
+
     def get_data(self, df):
         """Returns the chart data"""
         chart_data = []
@@ -1475,14 +1488,10 @@ class HistogramViz(BaseViz):
         else:
             groups = [((), df)]
         for keys, data in groups:
-            if isinstance(keys, str):
-                keys = (keys,)
-            # removing undesirable characters
-            keys = [re.sub(r'\W+', r'_', k) for k in keys]
             chart_data.extend([{
-                'key': '__'.join([c] + keys),
-                'values': data[c].tolist()}
-                for c in self.columns])
+                'key': self.labelify(keys, column),
+                'values': data[column].tolist()}
+                for column in self.columns])
         return chart_data
 
 

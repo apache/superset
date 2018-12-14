@@ -6,6 +6,8 @@ recursive-exclude superset/static/assets/docs *
 recursive-exclude superset/static/assets/images/viz_thumbnails_large *
 recursive-exclude superset/static/docs *
 recursive-exclude superset/static/spec *
+recursive-exclude superset/static/assets/src *
+recursive-include superset/static/assets/src/visualizations/CountryMap/ *
 recursive-exclude superset/static/images/viz_thumbnails_large *
 recursive-exclude superset/static/assets/node_modules *
 recursive-include superset/templates *

@@ -1,71 +1,6 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
-import { format as d3Format } from 'd3-format';
-import { d3Select } from 'd3-selection';
-import { timeFormat as d3TimeFormat } from 'd3-time-format';
-import { formatDate, UTC } from './dates';
-
-const siFormatter = d3Format('.3s');
-const ERROR_STRING = 'ERROR';
-
-export function defaultNumberFormatter(n) {
-  let si = siFormatter(n);
-  // Removing trailing `.00` if any
-  if (si.slice(-1) < 'A') {
-    si = parseFloat(si).toString();
-  }
-  return si;
-}
-
-export function d3FormatPreset(format) {
-  // like d3Format, but with support for presets like 'smart_date'
-  if (format === 'smart_date') {
-    return formatDate;
-  }
-  if (format) {
-    try {
-      return d3Format(format);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(e);
-      return () => ERROR_STRING;
-    }
-  }
-  return defaultNumberFormatter;
-}
-
-export const d3TimeFormatPreset = function (format) {
-  const effFormat = format || 'smart_date';
-  if (effFormat === 'smart_date') {
-    return formatDate;
-  }
-  const f = d3TimeFormat(effFormat);
-  return function (dttm) {
-    const d = UTC(new Date(dttm));
-    return f(d);
-  };
-};
-
-const formatters = {};
-
-export function d3format(format, number) {
-  format = format || '.3s';
-  // Formats a number and memoizes formatters to be reused
-  if (!(format in formatters)) {
-    try {
-      formatters[format] = d3Format(format);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(e);
-      return ERROR_STRING;
-    }
-  }
-  try {
-    return formatters[format](number);
-  } catch (e) {
-    return ERROR_STRING;
-  }
-}
+import { select as d3Select } from 'd3-selection';
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -192,4 +127,14 @@ export function mainMetric(savedMetrics) {
     }
   }
   return metric;
+}
+
+export function roundDecimal(number, precision) {
+  let roundedNumber;
+  if (precision) {
+    roundedNumber = Math.round(number * (precision = Math.pow(10, precision))) / precision;
+  } else {
+    roundedNumber = Math.round(number);
+  }
+  return roundedNumber;
 }

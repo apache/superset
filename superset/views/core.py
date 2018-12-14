@@ -136,15 +136,15 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     edit_title = _('Edit Database')
 
     list_columns = [
-        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'allow_csv_upload', 'creator', 'modified']
+        'database_name', 'backend', 'allow_run_async',
+        'allow_dml', 'allow_csv_upload', 'expose_in_sqllab', 'creator', 'modified']
     order_columns = [
-        'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified', 'allow_csv_upload',
+        'database_name', 'allow_run_async', 'allow_dml',
+        'modified', 'allow_csv_upload', 'expose_in_sqllab',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
-        'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
+        'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
         'allow_multi_schema_metadata_fetch', 'extra',
     ]
@@ -175,14 +175,13 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
-        'allow_run_sync': _(
-            'Allow users to run synchronous queries, this is the default '
-            'and should work well for queries that can be executed '
-            'within a web request scope (<~1 minute)'),
         'allow_run_async': _(
-            'Allow users to run queries, against an async backend. '
+            'Operate the database in asynchronous mode, meaning  '
+            'that the queries are executed on remote workers as opposed '
+            'to on the web server itself. '
             'This assumes that you have a Celery worker setup as well '
-            'as a results backend.'),
+            'as a results backend. Refer to the installation docs '
+            'for more information.'),
         'allow_ctas': _('Allow CREATE TABLE AS option in SQL Lab'),
         'allow_dml': _(
             'Allow users to run non-SELECT statements '
@@ -240,8 +239,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': _('SQLAlchemy URI'),
         'cache_timeout': _('Chart Cache Timeout'),
         'extra': _('Extra'),
-        'allow_run_sync': _('Allow Run Sync'),
-        'allow_run_async': _('Allow Run Async'),
+        'allow_run_async': _('Asynchronous Query Execution'),
         'impersonate_user': _('Impersonate the logged on user'),
         'allow_csv_upload': _('Allow Csv Upload'),
         'modified': _('Modified'),
@@ -311,7 +309,7 @@ class DatabaseAsync(DatabaseView):
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
-        'allow_run_async', 'allow_run_sync', 'allow_dml',
+        'allow_run_async', 'allow_dml',
         'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
         'allows_subquery',
     ]
@@ -1277,9 +1275,8 @@ class Superset(BaseSupersetView):
                 'danger')
             return redirect(
                 'superset/request_access/?'
-                'datasource_type={datasource_type}&'
-                'datasource_id={datasource_id}&'
-                ''.format(**locals()))
+                f'datasource_type={datasource_type}&'
+                f'datasource_id={datasource_id}&')
 
         viz_type = form_data.get('viz_type')
         if not viz_type and datasource.default_endpoint:
@@ -1638,7 +1635,6 @@ class Superset(BaseSupersetView):
     @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-
         # find slices in the position data
         slice_ids = []
         slice_id_to_name = {}
@@ -2053,7 +2049,13 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                obj = slc.get_viz(force=True)
+                form_data = self.get_form_data(slc.id, use_slice_data=True)[0]
+                obj = self.get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
                 obj.get_json()
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
@@ -2117,7 +2119,7 @@ class Superset(BaseSupersetView):
                         'danger')
                     return redirect(
                         'superset/request_access/?'
-                        'dashboard_id={dash.id}&'.format(**locals()))
+                        f'dashboard_id={dash.id}&')
 
         dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
             security_manager.can_access('can_save_dash', 'Superset')
@@ -2270,10 +2272,11 @@ class Superset(BaseSupersetView):
         }))
 
     @has_access
-    @expose('/table/<database_id>/<table_name>/<schema>/')
+    @expose('/table/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
@@ -2329,10 +2332,11 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
+    @expose('/extra_table_metadata/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
@@ -2524,11 +2528,10 @@ class Superset(BaseSupersetView):
                     start_time=utils.now_as_float())
             except Exception as e:
                 logging.exception(e)
-                msg = (
+                msg = _(
                     'Failed to start remote query on a worker. '
                     'Tell your administrator to verify the availability of '
-                    'the message queue.'
-                )
+                    'the message queue.')
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
@@ -2544,8 +2547,7 @@ class Superset(BaseSupersetView):
         try:
             timeout = config.get('SQLLAB_TIMEOUT')
             timeout_msg = (
-                'The query exceeded the {timeout} seconds '
-                'timeout.').format(**locals())
+                f'The query exceeded the {timeout} seconds timeout.')
             with utils.timeout(seconds=timeout,
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter

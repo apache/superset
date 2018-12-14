@@ -1,8 +1,8 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 import PropTypes from 'prop-types';
 import { createSelector } from 'reselect';
 import { getChartComponentRegistry, getChartTransformPropsRegistry, ChartProps } from '@superset-ui/chart';
+import createLoadableRenderer from './createLoadableRenderer';
 
 const IDENTITY = x => x;
 
@@ -16,7 +16,6 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   onRenderSuccess: PropTypes.func,
   onRenderFailure: PropTypes.func,
-  skipRendering: PropTypes.bool,
 };
 const defaultProps = {
   id: '',
@@ -26,7 +25,6 @@ const defaultProps = {
   postTransformProps: IDENTITY,
   onRenderSuccess() {},
   onRenderFailure() {},
-  skipRendering: false,
 };
 
 class SuperChart extends React.PureComponent {
@@ -66,7 +64,7 @@ class SuperChart extends React.PureComponent {
       input => input.overrideTransformProps,
       (chartType, overrideTransformProps) => {
         if (chartType) {
-          return Loadable.Map({
+          const LoadableRenderer = createLoadableRenderer({
             loader: {
               Chart: () => componentRegistry.getAsPromise(chartType),
               transformProps: overrideTransformProps
@@ -76,11 +74,17 @@ class SuperChart extends React.PureComponent {
             loading: loadingProps => this.renderLoading(loadingProps, chartType),
             render: this.renderChart,
           });
+
+          // Trigger preloading.
+          LoadableRenderer.preload();
+
+          return LoadableRenderer;
         }
         return null;
       },
     );
   }
+
 
   renderChart(loaded, props) {
     const Chart = loaded.Chart.default || loaded.Chart;
@@ -91,7 +95,7 @@ class SuperChart extends React.PureComponent {
       postTransformProps,
     } = props;
 
-    const result = (
+    return (
       <Chart
         {...this.processChartProps({
           preTransformProps,
@@ -101,23 +105,19 @@ class SuperChart extends React.PureComponent {
         })}
       />
     );
-    setTimeout(() => this.props.onRenderSuccess(), 0);
-    return result;
   }
 
-  renderLoading(loadableProps, chartType) {
-    const { error } = loadableProps;
+  renderLoading(loadingProps, chartType) {
+    const { error } = loadingProps;
 
     if (error) {
-      const result = (
+      return (
         <div className="alert alert-warning" role="alert">
           <strong>ERROR</strong>&nbsp;
           <code>chartType="{chartType}"</code> &mdash;
           {JSON.stringify(error)}
         </div>
       );
-      setTimeout(() => this.props.onRenderFailure(error), 0);
-      return result;
     }
 
     return null;
@@ -130,14 +130,18 @@ class SuperChart extends React.PureComponent {
       preTransformProps,
       postTransformProps,
       chartProps,
-      skipRendering,
+      onRenderSuccess,
+      onRenderFailure,
     } = this.props;
 
+    // Create LoadableRenderer and start preloading
+    // the lazy-loaded Chart components
     const LoadableRenderer = this.createLoadableRenderer(this.props);
 
-    // Use this to allow loading the vis components
-    // without rendering (while waiting for data)
-    if (skipRendering || !chartProps) {
+    // Do not render if chartProps is not available.
+    // but the pre-loading has been started in this.createLoadableRenderer
+    // to prepare for rendering once chartProps becomes available.
+    if (!chartProps) {
       return null;
     }
 
@@ -148,6 +152,8 @@ class SuperChart extends React.PureComponent {
             preTransformProps={preTransformProps}
             postTransformProps={postTransformProps}
             chartProps={chartProps}
+            onRenderSuccess={onRenderSuccess}
+            onRenderFailure={onRenderFailure}
           />
         )}
       </div>

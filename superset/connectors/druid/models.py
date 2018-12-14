@@ -80,18 +80,13 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
-    coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer, default=8081)
-    coordinator_endpoint = Column(
-        String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
     broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
 
-    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
-                     'coordinator_endpoint', 'broker_host', 'broker_port',
+    export_fields = ('cluster_name', 'broker_host', 'broker_port',
                      'broker_endpoint', 'cache_timeout')
     update_from_object_fields = export_fields
     export_children = ['datasources']
@@ -121,7 +116,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def get_base_broker_url(self):
         base_url = self.get_base_url(
             self.broker_host, self.broker_port)
-        return '{base_url}/{self.broker_endpoint}'.format(**locals())
+        return f'{base_url}/{self.broker_endpoint}'
 
     def get_pydruid_client(self):
         cli = PyDruid(
@@ -135,7 +130,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
-            self.coordinator_host, self.coordinator_port) + '/status'
+            self.broker_host, self.broker_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     @property
@@ -439,6 +434,9 @@ class DruidMetric(Model, BaseMetric):
                  parent_name=self.datasource.full_name,
                  ) if self.datasource else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
@@ -530,7 +528,7 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.datasource_name)
-        return Markup('<a href="{self.url}">{name}</a>').format(**locals())
+        return Markup(f'<a href="{self.url}">{name}</a>')
 
     @property
     def full_name(self):
@@ -554,9 +552,9 @@ class DruidDatasource(Model, BaseDatasource):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
+        url = f'/superset/explore/{self.type}/{self.id}/'
         name = escape(self.datasource_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_metric_obj(self, metric_name):
         return [

@@ -172,7 +172,7 @@ class TableElement extends React.PureComponent {
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ?
-            <Loading size={20} />
+            <Loading size={50} />
             :
             this.renderControls()
           }

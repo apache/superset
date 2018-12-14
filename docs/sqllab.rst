@@ -19,7 +19,7 @@ Feature Overview
 - Browse database metadata: tables, columns, indexes, partitions
 - Support for long-running queries
 
-  - uses the `Celery distributed queue <http://www.python.org/>`_
+  - uses the `Celery distributed queue <http://www.celeryproject.org/>`_
     to dispatch query handling to workers
   - supports defining a "results backend" to persist query results
 

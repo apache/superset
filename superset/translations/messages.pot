@@ -4104,18 +4104,6 @@ msgstr ""
 msgid "Cluster"
 msgstr ""
 
-#: superset/connectors/druid/views.py:172
-msgid "Coordinator Host"
-msgstr ""
-
-#: superset/connectors/druid/views.py:173
-msgid "Coordinator Port"
-msgstr ""
-
-#: superset/connectors/druid/views.py:174
-msgid "Coordinator Endpoint"
-msgstr ""
-
 #: superset/connectors/druid/views.py:175
 msgid "Broker Host"
 msgstr ""

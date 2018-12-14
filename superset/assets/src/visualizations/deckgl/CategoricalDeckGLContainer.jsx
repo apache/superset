@@ -15,7 +15,7 @@ const { getScale } = CategoricalColorNamespace;
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme).toFunction();
+  const colorFn = getScale(fd.color_scheme);
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -52,8 +52,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    */
   constructor(props) {
     super(props);
-
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props);
+    this.state = this.getInitialStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
@@ -61,7 +60,17 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
-  static getDerivedStateFromProps(props, state) {
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
+  getInitialStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
     const categories = getCategories(props.formData, features);
@@ -106,16 +115,6 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       categories,
     };
   }
-  onValuesChange(values) {
-    this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
-    });
-  }
-  onViewportChange(viewport) {
-    this.setState({ viewport });
-  }
   getLayers(values) {
     const {
       getLayer,
@@ -159,7 +158,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme).toFunction();
+    const colorFn = getScale(fd.color_scheme);
     return data.map((d) => {
       let color;
       if (fd.dimension) {
@@ -171,15 +170,19 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
-    categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories, [category]: categoryState };
+    const categories = {
+      ...this.state.categories,
+      [category]: {
+        ...categoryState,
+        enabled: !categoryState.enabled,
+      },
+    };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
       Object.values(categories).forEach((v) => { v.enabled = true; });
     }
-
     this.setState({ categories });
   }
   showSingleCategory(category) {

@@ -4,6 +4,7 @@ from builtins import object
 from datetime import date, datetime, time, timedelta
 import decimal
 from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
@@ -358,6 +359,7 @@ def pessimistic_json_iso_dttm_ser(obj):
 
 def datetime_to_epoch(dttm):
     if dttm.tzinfo:
+        dttm = dttm.replace(tzinfo=pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)
         return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
@@ -581,21 +583,23 @@ def notify_user_about_perm_udate(
                     dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
 
-def send_email_smtp(to, subject, html_content, config, files=None,
-                    dryrun=False, cc=None, bcc=None, mime_subtype='mixed'):
+def send_email_smtp(to, subject, html_content, config,
+                    files=None, data=None, images=None, dryrun=False,
+                    cc=None, bcc=None, mime_subtype='mixed'):
     """
     Send an email with html content, eg:
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
     smtp_mail_from = config.get('SMTP_MAIL_FROM')
-
     to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
     msg['Subject'] = subject
     msg['From'] = smtp_mail_from
     msg['To'] = ', '.join(to)
+    msg.preamble = 'This is a multi-part message in MIME format.'
+
     recipients = to
     if cc:
         cc = get_email_address_list(cc)
@@ -611,6 +615,7 @@ def send_email_smtp(to, subject, html_content, config, files=None,
     mime_text = MIMEText(html_content, 'html')
     msg.attach(mime_text)
 
+    # Attach files by reading them from disk
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, 'rb') as f:
@@ -619,6 +624,23 @@ def send_email_smtp(to, subject, html_content, config, files=None,
                     f.read(),
                     Content_Disposition="attachment; filename='%s'" % basename,
                     Name=basename))
+
+    # Attach any files passed directly
+    for name, body in (data or {}).items():
+        msg.attach(
+            MIMEApplication(
+                body,
+                Content_Disposition="attachment; filename='%s'" % name,
+                Name=name,
+            ))
+
+    # Attach any inline images, which may be required for display in
+    # HTML content (inline)
+    for msgid, body in (images or {}).items():
+        image = MIMEImage(body)
+        image.add_header('Content-ID', '<%s>' % msgid)
+        image.add_header('Content-Disposition', 'inline')
+        msg.attach(image)
 
     send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
 
@@ -638,7 +660,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
             s.starttls()
         if SMTP_USER and SMTP_PASSWORD:
             s.login(SMTP_USER, SMTP_PASSWORD)
-        logging.info('Sent an alert email to ' + str(e_to))
+        logging.info('Sent an email to ' + str(e_to))
         s.sendmail(e_from, e_to, mime_msg.as_string())
         s.quit()
     else:
@@ -650,11 +672,13 @@ def get_email_address_list(address_string):
     if isinstance(address_string, basestring):
         if ',' in address_string:
             address_string = address_string.split(',')
+        elif '\n' in address_string:
+            address_string = address_string.split('\n')
         elif ';' in address_string:
             address_string = address_string.split(';')
         else:
             address_string = [address_string]
-    return address_string
+    return [x.strip() for x in address_string if x.strip()]
 
 
 def choicify(values):
@@ -837,7 +861,6 @@ def get_or_create_main_db():
         dbobj = models.Database(database_name='main')
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
     dbobj.expose_in_sqllab = True
-    dbobj.allow_run_sync = True
     dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
