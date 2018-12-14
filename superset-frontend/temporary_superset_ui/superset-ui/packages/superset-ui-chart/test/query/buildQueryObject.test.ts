@@ -28,6 +28,11 @@ describe('queryObjectBuilder', () => {
       viz_type: 'table',
       metric: 'sum__num',
     });
-    expect(query.metrics).toEqual([{ label: 'sum__num' }]);
+    expect(query.metrics).toEqual([
+      {
+        label: 'sum__num',
+        expressionType: 'BUILTIN',
+      },
+    ]);
   });
 });
