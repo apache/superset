@@ -5,6 +5,7 @@ import { TimeFormats } from '../../src';
 describe('createD3TimeFormatter(config)', () => {
   it('requires config.formatString', () => {
     expect(() => createD3TimeFormatter()).toThrow();
+    expect(() => createD3TimeFormatter({})).toThrow();
   });
   describe('if config.useLocalTime is true', () => {
     it('formats in local time', () => {

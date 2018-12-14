@@ -4,6 +4,7 @@ import parseResponse from '../../src/callApi/parseResponse';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
+import { SupersetClientResponse } from '../../src';
 
 describe('parseResponse()', () => {
   beforeAll(() => {
@@ -94,7 +95,8 @@ describe('parseResponse()', () => {
 
     const apiPromise = callApi({ url: mockNoParseUrl, method: 'GET' });
 
-    return parseResponse(apiPromise, null).then((response: Response) => {
+    return parseResponse(apiPromise, null).then((clientResponse: SupersetClientResponse) => {
+      const response = clientResponse as Response;
       expect(fetchMock.calls(mockNoParseUrl)).toHaveLength(1);
       expect(response.bodyUsed).toBe(false);
 
