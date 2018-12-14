@@ -51,3 +51,12 @@ venv
 ./docker-compose.yml
 ./docker-entrypoint.sh
 ./docker-init.sh
+
+# Test data
+celery_results.sqlite
+celerybeat-schedule
+celerydb.sqlite
+celerybeat.pid
+geckodriver.log
+ghostdriver.log
+testCSV.csv

@@ -603,14 +603,12 @@ Upgrading should be as straightforward as running::
     superset db upgrade
     superset init
 
-SQL Lab
--------
-SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
-databases. By default, queries are executed in the scope of a web
-request so they
-may eventually timeout as queries exceed the maximum duration of a web
-request in your environment, whether it'd be a reverse proxy or the Superset
-server itself.
+Celery Tasks
+------------
+On large analytic databases, it's common to run background jobs, reports
+and/or queries that execute for minutes or hours. In certain cases, we need
+to support long running tasks that execute beyond the typical web request's
+timeout (30-60 seconds).
 
 On large analytic databases, it's common to run queries that
 execute for minutes or hours.
@@ -634,15 +632,41 @@ have the same configuration.
 
     class CeleryConfig(object):
         BROKER_URL = 'redis://localhost:6379/0'
-        CELERY_IMPORTS = ('superset.sql_lab', )
+        CELERY_IMPORTS = (
+            'superset.sql_lab',
+            'superset.tasks',
+        )
         CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-        CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+        CELERYD_LOG_LEVEL = 'DEBUG'
+        CELERYD_PREFETCH_MULTIPLIER = 10
+        CELERY_ACKS_LATE = True
+        CELERY_ANNOTATIONS = {
+            'sql_lab.get_sql_results': {
+                'rate_limit': '100/s',
+            },
+            'email_reports.send': {
+                'rate_limit': '1/s',
+                'time_limit': 120,
+                'soft_time_limit': 150,
+                'ignore_result': True,
+            },
+        }
+        CELERYBEAT_SCHEDULE = {
+            'email_reports.schedule_hourly': {
+                'task': 'email_reports.schedule_hourly',
+                'schedule': crontab(minute=1, hour='*'),
+            },
+        }
 
     CELERY_CONFIG = CeleryConfig
 
-To start a Celery worker to leverage the configuration run: ::
+* To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+
+* To start a job which schedules periodic background jobs, run ::
+
+    celery beat --app=superset.tasks.celery_app:app
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
@@ -665,11 +689,65 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
-Note that it's important that all the worker nodes and web servers in
-the Superset cluster share a common metadata database.
-This means that SQLite will not work in this context since it has
-limited support for concurrency and
-typically lives on the local file system.
+**Important notes**
+
+* It is important that all the worker nodes and web servers in
+  the Superset cluster share a common metadata database.
+  This means that SQLite will not work in this context since it has
+  limited support for concurrency and
+  typically lives on the local file system.
+
+* There should only be one instance of ``celery beat`` running in your
+  entire setup. If not, background jobs can get scheduled multiple times
+  resulting in weird behaviors like duplicate delivery of reports,
+  higher than expected load / traffic etc.
+
+
+Email Reports
+-------------
+Email reports allow users to schedule email reports for
+
+* slice and dashboard visualization (Attachment or inline)
+* slice data (CSV attachment on inline table)
+
+Schedules are defined in crontab format and each schedule
+can have a list of recipients (all of them can receive a single mail,
+or separate mails). For audit purposes, all outgoing mails can have a
+mandatory bcc.
+
+**Requirements**
+
+* A selenium compatible driver & headless browser
+
+  * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
+  * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
+* Run `celery worker` and `celery beat` as follows ::
+
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery beat --app=superset.tasks.celery_app:app
+
+**Important notes**
+
+* Be mindful of the concurrency setting for celery (using ``-c 4``).
+  Selenium/webdriver instances can consume a lot of CPU / memory on your servers.
+
+* In some cases, if you notice a lot of leaked ``geckodriver`` processes, try running
+  your celery processes with ::
+
+    celery worker --pool=prefork --max-tasks-per-child=128 ...
+
+* It is recommended to run separate workers for ``sql_lab`` and
+  ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
+
+SQL Lab
+-------
+SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
+databases. By default, queries are executed in the scope of a web
+request so they may eventually timeout as queries exceed the maximum duration of a web
+request in your environment, whether it'd be a reverse proxy or the Superset
+server itself. In such cases, it is preferred to use ``celery`` to run the queries
+in the background. Please follow the examples/notes mentioned above to get your
+celery setup working.
 
 Also note that SQL Lab supports Jinja templating in queries and that it's
 possible to overload
@@ -684,6 +762,8 @@ in this dictionary are made available for users to use in their SQL.
     }
 
 
+Celery Flower
+-------------
 Flower is a web based tool for monitoring the Celery cluster which you can
 install from pip: ::
 
@@ -691,7 +771,7 @@ install from pip: ::
 
 and run via: ::
 
-    celery flower --app=superset.sql_lab:celery_app
+    celery flower --app=superset.tasks.celery_app:app
 
 Building from source
 ---------------------
