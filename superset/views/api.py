@@ -18,13 +18,13 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose('/v1/query/', methods=['POST'])
+    @expose('/v1/query', methods=['POST'])
     def query(self):
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
         """
-        query_context = QueryContext(**json.loads(request.form.get('query_context')))
+        query_context = QueryConext(**json.loads(request.form.get('query_context')))
         security_manager.assert_datasource_permission(query_context.datasource)
         payload_json = query_context.get_payload()
         return json.dumps(payload_json)
@@ -33,7 +33,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose('/v1/form_data/', methods=['GET'])
+    @expose('/v1/form_data', methods=['GET'])
     def query_form_data(self):
         """
         Takes a query_obj constructed in the client and returns payload data response
@@ -41,7 +41,6 @@ class Api(BaseSupersetView):
         """
         form_data = {}
         slice_id = request.args.get('slice_id')
-        print(slice_id)
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
             if slc:
