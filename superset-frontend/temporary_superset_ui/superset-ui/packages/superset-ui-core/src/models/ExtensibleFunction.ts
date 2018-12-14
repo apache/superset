@@ -3,7 +3,9 @@
  */
 
 export default class ExtensibleFunction extends Function {
-  constructor(fn) {
+  constructor(fn: Function) {
+    super();
+
     return Object.setPrototypeOf(fn, new.target.prototype);
   }
 }

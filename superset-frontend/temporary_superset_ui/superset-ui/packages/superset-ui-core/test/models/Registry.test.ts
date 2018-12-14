@@ -1,6 +1,6 @@
 /* eslint no-console: 0 */
 import mockConsole from 'jest-mock-console';
-import Registry from '../../src/models/Registry';
+import Registry, { OverwritePolicy } from '../../src/models/Registry';
 
 describe('Registry', () => {
   it('exists', () => {
@@ -66,6 +66,13 @@ describe('Registry', () => {
       const promise3 = registry.getAsPromise('a');
       expect(promise1).not.toBe(promise3);
     });
+    it('overwrites item with loader', () => {
+      const registry = new Registry();
+      registry.registerLoader('a', () => 'ironman');
+      expect(registry.get('a')).toBe('ironman');
+      registry.registerValue('a', 'hulk');
+      expect(registry.get('a')).toBe('hulk');
+    });
     it('returns the registry itself', () => {
       const registry = new Registry();
       expect(registry.registerValue('a', 'testValue')).toBe(registry);
@@ -91,6 +98,13 @@ describe('Registry', () => {
       const promise3 = registry.getAsPromise('a');
       expect(promise1).not.toBe(promise3);
     });
+    it('overwrites item with value', () => {
+      const registry = new Registry();
+      registry.registerValue('a', 'hulk');
+      expect(registry.get('a')).toBe('hulk');
+      registry.registerLoader('a', () => 'ironman');
+      expect(registry.get('a')).toBe('ironman');
+    });
     it('returns the registry itself', () => {
       const registry = new Registry();
       expect(registry.registerLoader('a', () => 'testValue')).toBe(registry);
@@ -108,9 +122,9 @@ describe('Registry', () => {
       registry.registerLoader('b', () => 'testValue2');
       expect(registry.get('b')).toBe('testValue2');
     });
-    it('returns null if the item with specified key does not exist', () => {
+    it('returns undefined if the item with specified key does not exist', () => {
       const registry = new Registry();
-      expect(registry.get('a')).toBeNull();
+      expect(registry.get('a')).toBeUndefined();
     });
     it('If the key was registered multiple times, returns the most recent item.', () => {
       const registry = new Registry();
@@ -255,7 +269,7 @@ describe('Registry', () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
       registry.remove('a');
-      expect(registry.get('a')).toBeNull();
+      expect(registry.get('a')).toBeUndefined();
     });
     it('does not throw error if the key does not exist', () => {
       const registry = new Registry();
@@ -298,7 +312,7 @@ describe('Registry', () => {
         it('warns when overwrite', () => {
           const restoreConsole = mockConsole();
           const registry = new Registry({
-            overwritePolicy: Registry.OverwritePolicy.WARN,
+            overwritePolicy: OverwritePolicy.WARN,
           });
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).not.toThrow();
@@ -311,7 +325,7 @@ describe('Registry', () => {
         it('warns when overwrite', () => {
           const restoreConsole = mockConsole();
           const registry = new Registry({
-            overwritePolicy: Registry.OverwritePolicy.WARN,
+            overwritePolicy: OverwritePolicy.WARN,
           });
           registry.registerLoader('a', () => 'testValue');
           expect(() => registry.registerLoader('a', () => 'testValue2')).not.toThrow();
@@ -325,7 +339,7 @@ describe('Registry', () => {
       describe('.registerValue(key, value)', () => {
         it('throws error when overwrite', () => {
           const registry = new Registry({
-            overwritePolicy: Registry.OverwritePolicy.PROHIBIT,
+            overwritePolicy: OverwritePolicy.PROHIBIT,
           });
           registry.registerValue('a', 'testValue');
           expect(() => registry.registerValue('a', 'testValue2')).toThrow();
@@ -334,7 +348,7 @@ describe('Registry', () => {
       describe('.registerLoader(key, loader)', () => {
         it('warns when overwrite', () => {
           const registry = new Registry({
-            overwritePolicy: Registry.OverwritePolicy.PROHIBIT,
+            overwritePolicy: OverwritePolicy.PROHIBIT,
           });
           registry.registerLoader('a', () => 'testValue');
           expect(() => registry.registerLoader('a', () => 'testValue2')).toThrow();

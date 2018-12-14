@@ -126,7 +126,7 @@ describe('ChartPlugin', () => {
     });
   });
 
-  describe('.register(key)', () => {
+  describe('.register()', () => {
     const plugin = new ChartPlugin({
       metadata,
       Chart() {},
