@@ -183,7 +183,7 @@ class BaseViz(object):
         return fillna
 
     def get_samples(self):
-        query_obj = self._query_obj()
+        query_obj = self.query_obj()
         query_obj.update({
             'groupby': [],
             'metrics': [],
@@ -196,7 +196,7 @@ class BaseViz(object):
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
-            query_obj = self._query_obj()
+            query_obj = self.query_obj()
         if not query_obj:
             return None
 
@@ -266,7 +266,6 @@ class BaseViz(object):
             'metrics': formatted_metrics,
         })
         return query_obj
-
 
     def _query_obj(self):
         """Building a query object"""
@@ -396,7 +395,7 @@ class BaseViz(object):
     def get_df_payload(self, query_obj=None, **kwargs):
         """Handles caching around the df payload retrieval"""
         if not query_obj:
-            query_obj = self._query_obj()
+            query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
@@ -1213,7 +1212,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             time_compare = [time_compare]
 
         for option in time_compare:
-            query_object = self._query_obj()
+            query_object = self.query_obj()
             delta = utils.parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
