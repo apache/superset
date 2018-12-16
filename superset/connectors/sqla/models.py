@@ -27,6 +27,7 @@ from superset.models.helpers import QueryResult
 from superset.utils import core as utils, import_datasource
 
 config = app.config
+metadata = Model.metadata  # pylint: disable=no-member
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -251,7 +252,7 @@ class SqlMetric(Model, BaseMetric):
 
 
 sqlatable_user = Table(
-    'sqlatable_user', Model.metadata,
+    'sqlatable_user', metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
     Column('table_id', Integer, ForeignKey('tables.id')),

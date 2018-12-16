@@ -43,6 +43,7 @@ from superset.utils.core import (
 
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
+metadata = Model.metadata  # pylint: disable=no-member
 
 
 # Function wrapper because bound methods cannot
@@ -447,7 +448,7 @@ class DruidMetric(Model, BaseMetric):
 
 
 druiddatasource_user = Table(
-    'druiddatasource_user', Model.metadata,
+    'druiddatasource_user', metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
     Column('datasource_id', Integer, ForeignKey('datasources.id')),
