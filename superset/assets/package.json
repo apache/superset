@@ -157,6 +157,7 @@
     "babel-preset-env": "^1.7.0",
     "cache-loader": "^1.2.2",
     "clean-webpack-plugin": "^0.1.19",
+    "core-js": "^2.6.0",
     "css-loader": "^1.0.0",
     "cypress": "^3.0.3",
     "enzyme": "^3.3.0",
