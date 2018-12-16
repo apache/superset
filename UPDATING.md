@@ -3,6 +3,12 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.31.0
+boto3 / botocore was removed from the dependency list. If you use s3
+as a place to store your SQL Lab result set or Hive uploads, you may
+have to rely on an alternate requirements.txt file to install those
+dependencies.
+
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson
   file included in the package was very large
