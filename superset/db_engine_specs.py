@@ -1064,7 +1064,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                     convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
 
-        import boto3
+        # Optional dependency
+        import boto3  # pylint: disable=import-error
+
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
