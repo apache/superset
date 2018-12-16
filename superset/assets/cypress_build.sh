@@ -4,10 +4,10 @@ set -e
 cd "$(dirname "$0")"
 
 #run all the python steps in a background process
-time /home/travis/build/apache/incubator-superset/superset/bin/superset db upgrade
-time /home/travis/build/apache/incubator-superset/superset/bin/superset load_test_users
-/home/travis/build/apache/incubator-superset/superset/bin/superset load_examples --load-test-data
-time /home/travis/build/apache/incubator-superset/superset/bin/superset init
+time superset db upgrade
+time superset load_test_users
+time superset load_examples --load-test-data
+time superset init
 echo "[completed python build steps]"
 flask run -p 8081 --with-threads --reload --debugger &
 
