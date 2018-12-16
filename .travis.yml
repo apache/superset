@@ -7,7 +7,6 @@ jobs:
       env: TOXENV=cypress-dashboard
       cache:
         pip: true
-        yarn: true
         directories:
           - ~/.npm
           - ~/.cache
@@ -20,7 +19,6 @@ jobs:
       env: TOXENV=cypress-explore
       cache:
         pip: true
-        yarn: true
         directories:
           - ~/.npm
           - ~/.cache
@@ -33,7 +31,6 @@ jobs:
       env: TOXENV=cypress-sqllab
       cache:
         pip: true
-        yarn: true
         directories:
           - ~/.npm
           - ~/.cache
@@ -54,11 +51,10 @@ jobs:
     - language: node_js
       node_js: 8.9
       cache:
-        yarn: true
       before_install:
         - cd superset/assets
       install:
-        - yarn install --frozen-lockfile
+        - npm install
       script:
         - npm run lint
         - npm run cover
