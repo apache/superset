@@ -5,12 +5,19 @@
 .active-layer{
     stroke-width:5 !important;
 }
+<<<<<<< HEAD
 .active-layer-canvas{
   border: 1px solid red;
 }
 /**
  remove close button from tooltip
 */
+=======
+
+/** 
+ remove close button from tooltip
+*/ 
+>>>>>>> Feature/map click unclick and tooltip support (#32)
 .leaflet-popup-close-button{
   display: none;
 }

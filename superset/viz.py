@@ -1742,7 +1742,7 @@ class LeafletViz(BaseViz):
 
             d['columns'] += extra_cols
 
-        if fd.get('all_columns_x') is not None and len(fd.get('all_columns_x')) > 0 :
+        if fd.get('all_columns_x') is not None and len(fd.get('all_columns_x')) > 0 :  
               all_columns_x = fd.get('all_columns_x')
               d['columns'] += all_columns_x
 
