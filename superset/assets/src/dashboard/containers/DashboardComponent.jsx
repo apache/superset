@@ -39,15 +39,17 @@ function mapStateToProps(
 
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
-  const componentType = component.type;
-  if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
-    const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
-      id,
-      components: dashboardLayout,
-    });
+  if (component) {
+    const componentType = component.type;
+    if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
+      const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
+        id,
+        components: dashboardLayout,
+      });
 
-    if (componentType === ROW_TYPE) props.occupiedColumnCount = occupiedWidth;
-    if (componentType === COLUMN_TYPE) props.minColumnWidth = minimumWidth;
+      if (componentType === ROW_TYPE) props.occupiedColumnCount = occupiedWidth;
+      if (componentType === COLUMN_TYPE) props.minColumnWidth = minimumWidth;
+    }
   }
 
   return props;
@@ -68,7 +70,7 @@ function mapDispatchToProps(dispatch) {
 class DashboardComponent extends React.PureComponent {
   render() {
     const { component } = this.props;
-    const Component = ComponentLookup[component.type];
+    const Component = component ? ComponentLookup[component.type] : null;
     return Component ? <Component {...this.props} /> : null;
   }
 }

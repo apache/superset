@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """owners_many_to_many
 
 Revision ID: 4fa88fe24e94
@@ -6,11 +5,6 @@ Revises: b4456560d4f3
 Create Date: 2016-04-15 17:58:33.842012
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 # revision identifiers, used by Alembic.
 revision = '4fa88fe24e94'
 down_revision = 'b4456560d4f3'

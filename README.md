@@ -98,7 +98,7 @@ Superset can be used to visualize data out of most databases:
   to find out whether it will work with Superset
 
 
-Druid!
+Apache Druid (Incubating)!
 ------
 
 On top of having the ability to query your relational databases,
@@ -153,6 +153,7 @@ the world know they are using Superset. Join our growing community!
  - [Airboxlab](https://foobot.io)
  - [Aktia Bank plc](https://www.aktia.com)
  - [Amino](https://amino.com)
+ - [Apollo GraphQL](https://www.apollographql.com/)
  - [Ascendica Development](http://ascendicadevelopment.com)
  - [Astronomer](https://www.astronomer.io)
  - [Brilliant.org](https://brilliant.org/)
@@ -169,7 +170,7 @@ the world know they are using Superset. Join our growing community!
  - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://maieuticallabs.it)
- - [Myra Labs] (http://www.myralabs.com/)
+ - [Myra Labs](http://www.myralabs.com/)
  - [PeopleDoc](https://www.people-doc.com)
  - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
@@ -177,10 +178,12 @@ the world know they are using Superset. Join our growing community!
  - [ScopeAI](https://www.getscopeai.com)
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
+ - [Showmax](https://tech.showmax.com)
  - [Tails.com](https://tails.com)
  - [THEICONIC](http://theiconic.com.au/)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
+ - [TrustMedis](https://trustmedis.com)
  - [Twitter](https://twitter.com/)
  - [Udemy](https://www.udemy.com/)
  - [VIPKID](https://www.vipkid.com.cn/)
@@ -188,3 +191,5 @@ the world know they are using Superset. Join our growing community!
  - [Yahoo!](https://yahoo.com/)
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
+ - [Fordeal](http://www.fordeal.com)
+

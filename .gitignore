@@ -3,6 +3,7 @@
 *.pyc
 *.sqllite
 *.swp
+.cache-loader
 .coverage
 .DS_Store
 .eggs
@@ -44,9 +45,18 @@ yarn-error.log
 venv
 @eaDir/
 
-# docker
-/Dockerfile
-/docker-build.sh
-/docker-compose.yml
-/docker-entrypoint.sh
-/docker-init.sh
+# Docker
+./Dockerfile
+./docker-build.sh
+./docker-compose.yml
+./docker-entrypoint.sh
+./docker-init.sh
+
+# Test data
+celery_results.sqlite
+celerybeat-schedule
+celerydb.sqlite
+celerybeat.pid
+geckodriver.log
+ghostdriver.log
+testCSV.csv

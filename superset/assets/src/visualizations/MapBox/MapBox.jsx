@@ -1,16 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
 import Immutable from 'immutable';
-import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
 import './MapBox.css';
 
 const NOOP = () => {};
-const DEFAULT_POINT_RADIUS = 60;
-const DEFAULT_MAX_ZOOM = 16;
+export const DEFAULT_MAX_ZOOM = 16;
+export const DEFAULT_POINT_RADIUS = 60;
 
 const propTypes = {
   width: PropTypes.number,
@@ -124,86 +122,4 @@ class MapBox extends React.Component {
 MapBox.propTypes = propTypes;
 MapBox.defaultProps = defaultProps;
 
-function mapbox(slice, payload, setControlValue) {
-  const { formData, selector } = slice;
-  const {
-    hasCustomMetric,
-    geoJSON,
-    bounds,
-    mapboxApiKey,
-  } = payload.data;
-  const {
-    clustering_radius: clusteringRadius,
-    global_opacity: globalOpacity,
-    mapbox_color: color,
-    mapbox_style: mapStyle,
-    pandas_aggfunc: aggregatorName,
-    point_radius: pointRadius,
-    point_radius_unit: pointRadiusUnit,
-    render_while_dragging: renderWhileDragging,
-  } = formData;
-
-  // Validate mapbox color
-  const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/
-    .exec(color);
-  if (rgb === null) {
-    slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-    return;
-  }
-
-  const opts = {
-    radius: clusteringRadius,
-    maxZoom: DEFAULT_MAX_ZOOM,
-  };
-  if (hasCustomMetric) {
-    opts.initial = () => ({
-      sum: 0,
-      squaredSum: 0,
-      min: Infinity,
-      max: -Infinity,
-    });
-    opts.map = prop => ({
-      sum: prop.metric,
-      squaredSum: Math.pow(prop.metric, 2),
-      min: prop.metric,
-      max: prop.metric,
-    });
-    opts.reduce = (accu, prop) => {
-      // Temporarily disable param-reassignment linting to work with supercluster's api
-      /* eslint-disable no-param-reassign */
-      accu.sum += prop.sum;
-      accu.squaredSum += prop.squaredSum;
-      accu.min = Math.min(accu.min, prop.min);
-      accu.max = Math.max(accu.max, prop.max);
-      /* eslint-enable no-param-reassign */
-    };
-  }
-  const clusterer = supercluster(opts);
-  clusterer.load(geoJSON.features);
-
-  ReactDOM.render(
-    <MapBox
-      width={slice.width()}
-      height={slice.height()}
-      hasCustomMetric={hasCustomMetric}
-      aggregatorName={aggregatorName}
-      clusterer={clusterer}
-      globalOpacity={globalOpacity}
-      mapStyle={mapStyle}
-      mapboxApiKey={mapboxApiKey}
-      onViewportChange={({ latitude, longitude, zoom }) => {
-        setControlValue('viewport_longitude', longitude);
-        setControlValue('viewport_latitude', latitude);
-        setControlValue('viewport_zoom', zoom);
-      }}
-      pointRadius={pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : pointRadius}
-      pointRadiusUnit={pointRadiusUnit}
-      renderWhileDragging={renderWhileDragging}
-      rgb={rgb}
-      bounds={bounds}
-    />,
-    document.querySelector(selector),
-  );
-}
-
-export default mapbox;
+export default MapBox;

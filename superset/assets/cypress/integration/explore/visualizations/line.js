@@ -1,6 +1,6 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
-describe('Line', () => {
+export default () => describe('Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
   beforeEach(() => {
@@ -112,5 +112,81 @@ describe('Line', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+  });
+
+  it('Test verbose name shows up in legend', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('text.nv-legend-text').contains('COUNT(*)');
+  });
+
+  it('Test hidden annotation', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+      annotation_layers: [{
+        name: 'Goal+line',
+        annotationType: 'FORMULA',
+        sourceType: '',
+        value: 'y=140000',
+        overrides: { time_range: null },
+        show: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+        color: null,
+        opacity: '',
+        style: 'solid',
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+      }],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      // Goal line annotation doesn't show up in legend
+      cy.get('.nv-legend-text').should('have.length', 1);
+    });
+  });
+
+  it('Test event annotation time override', () => {
+    cy.request('/chart/api/read?_flt_3_slice_name=Daily+Totals').then((response) => {
+      const value = response.body.pks[0];
+      const formData = {
+        ...LINE_CHART_DEFAULTS,
+        metrics: ['count'],
+        annotation_layers: [{
+          name: 'Yearly date',
+          annotationType: 'EVENT',
+          sourceType: 'table',
+          value,
+          overrides: { time_range: null },
+          show: true,
+          titleColumn: 'ds',
+          descriptionColumns: ['ds'],
+          timeColumn: 'ds',
+          color: null,
+          opacity: '',
+          style: 'solid',
+          width: 1,
+          showMarkers: false,
+          hideLine: false,
+        }],
+      };
+      cy.visitChartByParams(JSON.stringify(formData));
+    });
+
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      cy.get('.nv-event-annotation-layer-0').children().should('have.length', 44);
+    });
   });
 });

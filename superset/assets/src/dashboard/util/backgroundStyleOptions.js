@@ -1,4 +1,4 @@
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
 import { BACKGROUND_TRANSPARENT, BACKGROUND_WHITE } from './constants';
 
 export default [

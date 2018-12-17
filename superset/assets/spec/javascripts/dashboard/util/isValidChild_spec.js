@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import isValidChild from '../../../../src/dashboard/util/isValidChild';
 
 import {
@@ -88,7 +86,7 @@ describe('isValidChild', () => {
                 parentType,
                 childType,
               }),
-            ).to.equal(true);
+            ).toBe(true);
           });
         }
         // see isValidChild.js for why tabs do not increment the depth of their children
@@ -135,7 +133,7 @@ describe('isValidChild', () => {
                 parentType,
                 childType,
               }),
-            ).to.equal(false);
+            ).toBe(false);
           });
         }
         // see isValidChild.js for why tabs do not increment the depth of their children

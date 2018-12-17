@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import Chart from '../../../../../src/dashboard/containers/Chart';
@@ -50,22 +49,20 @@ describe('ChartHolder', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render a ResizableContainer', () => {
     const wrapper = setup();
-    expect(wrapper.find(ResizableContainer)).to.have.length(1);
+    expect(wrapper.find(ResizableContainer)).toHaveLength(1);
   });
 
   it('should only have an adjustableWidth if its parent is a Row', () => {
     let wrapper = setup();
-    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).to.equal(
-      true,
-    );
+    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(true);
 
     wrapper = setup({ ...props, parentComponent: mockLayout.present.CHART_ID });
-    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).to.equal(
+    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(
       false,
     );
   });
@@ -73,39 +70,39 @@ describe('ChartHolder', () => {
   it('should pass correct props to ResizableContainer', () => {
     const wrapper = setup();
     const resizableProps = wrapper.find(ResizableContainer).props();
-    expect(resizableProps.widthStep).to.equal(props.columnWidth);
-    expect(resizableProps.widthMultiple).to.equal(props.component.meta.width);
-    expect(resizableProps.heightMultiple).to.equal(props.component.meta.height);
-    expect(resizableProps.maxWidthMultiple).to.equal(
+    expect(resizableProps.widthStep).toBe(props.columnWidth);
+    expect(resizableProps.widthMultiple).toBe(props.component.meta.width);
+    expect(resizableProps.heightMultiple).toBe(props.component.meta.height);
+    expect(resizableProps.maxWidthMultiple).toBe(
       props.component.meta.width + props.availableColumnCount,
     );
   });
 
   it('should render a div with class "dashboard-component-chart-holder"', () => {
     const wrapper = setup();
-    expect(wrapper.find('.dashboard-component-chart-holder')).to.have.length(1);
+    expect(wrapper.find('.dashboard-component-chart-holder')).toHaveLength(1);
   });
 
   it('should render a Chart', () => {
     const wrapper = setup();
-    expect(wrapper.find(Chart)).to.have.length(1);
+    expect(wrapper.find(Chart)).toHaveLength(1);
   });
 
   it('should render a HoverMenu with DeleteComponentButton in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(0);
 
     // we cannot set props on the Divider because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
     const deleteComponent = sinon.spy();
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find(DeleteComponentButton).simulate('click');
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 });

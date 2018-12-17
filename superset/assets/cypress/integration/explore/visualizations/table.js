@@ -1,8 +1,9 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
+import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
 
-describe('Table chart', () => {
+export default () => describe('Table chart', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'table' };
 
   beforeEach(() => {
@@ -59,11 +60,13 @@ describe('Table chart', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
 
-    cy.wait('@getJson').then((data) => {
-      cy.verifyResponseCodes(data);
+    cy.wait('@getJson').then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
-      expect(data.response.body.data.records.length).to.eq(limit);
+      const responseBody = await readResponseBlob(xhr.response.body);
+      expect(responseBody.data.records.length).to.eq(limit);
     });
+    cy.get('span.label-danger').contains('10 rows');
   });
 
   it('Test table with columns and row limit', () => {
@@ -85,10 +88,11 @@ describe('Table chart', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then((data) => {
-      cy.verifyResponseCodes(data);
+    cy.wait('@getJson').then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
       cy.verifySliceContainer('table');
-      const records = data.response.body.data.records;
+      const responseBody = await readResponseBlob(xhr.response.body);
+      const { records } = responseBody.data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });
   });
@@ -101,5 +105,27 @@ describe('Table chart', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+  });
+
+  it('Tests table number formatting with % in metric name', () => {
+    const PERCENT_METRIC = {
+      expressionType: 'SQL',
+      sqlExpression: 'CAST(SUM(sum_girls)+AS+FLOAT)/SUM(num)',
+      column: null,
+      aggregate: null,
+      hasCustomLabel: true,
+      fromFormData: true,
+      label: '%+Girls',
+      optionName: 'metric_6qwzgc8bh2v_zox7hil1mzs',
+    };
+    const formData = { ...VIZ_DEFAULTS, metrics: PERCENT_METRIC, groupby: ['state'] };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({
+      waitAlias: '@getJson',
+      querySubstring: formData.groupby[0],
+      chartSelector: 'table',
+    });
+    cy.get('td').contains(/\d*%/);
   });
 });

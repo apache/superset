@@ -1,7 +1,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
 
 const propTypes = {
   datasourceLink: PropTypes.string,

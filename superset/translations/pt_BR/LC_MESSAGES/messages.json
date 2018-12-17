@@ -2100,15 +2100,6 @@
          "Cluster": [
             "Grupo"
          ],
-         "Coordinator Host": [
-            "Coordenador de Host"
-         ],
-         "Coordinator Port": [
-            "Porto Coordenador"
-         ],
-         "Coordinator Endpoint": [
-            "Ponto final do coordenador"
-         ],
          "Broker Host": [
             "Host de corretor"
          ],

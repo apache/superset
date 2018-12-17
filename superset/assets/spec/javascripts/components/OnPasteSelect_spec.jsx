@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
@@ -44,25 +43,25 @@ describe('OnPasteSelect', () => {
 
   it('renders the supplied selectWrap component', () => {
     const select = wrapper.find(Select);
-    expect(select).to.have.lengthOf(1);
+    expect(select).toHaveLength(1);
   });
 
   it('renders custom selectWrap components', () => {
     props.selectWrap = Creatable;
     wrapper = shallow(<OnPasteSelect {...props} />);
-    expect(wrapper.find(Creatable)).to.have.lengthOf(1);
+    expect(wrapper.find(Creatable)).toHaveLength(1);
     props.selectWrap = VirtualizedSelect;
     wrapper = shallow(<OnPasteSelect {...props} />);
-    expect(wrapper.find(VirtualizedSelect)).to.have.lengthOf(1);
+    expect(wrapper.find(VirtualizedSelect)).toHaveLength(1);
   });
 
   describe('onPaste', () => {
     it('calls onChange with pasted values', () => {
       wrapper.instance().onPaste(evt);
       expected = props.options.slice(0, 4);
-      expect(props.onChange.calledWith(expected)).to.be.true;
-      expect(evt.preventDefault.called).to.be.true;
-      expect(props.isValidNewOption.callCount).to.equal(5);
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(5);
     });
 
     it('calls onChange without any duplicate values and adds new values', () => {
@@ -75,10 +74,10 @@ describe('OnPasteSelect', () => {
         { label: 'Chi na', value: 'Chi na' },
       ];
       wrapper.instance().onPaste(evt);
-      expect(props.onChange.calledWith(expected)).to.be.true;
-      expect(evt.preventDefault.called).to.be.true;
-      expect(props.isValidNewOption.callCount).to.equal(9);
-      expect(props.options[0].value).to.equal(expected[2].value);
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(9);
+      expect(props.options[0].value).toBe(expected[2].value);
       props.options.splice(0, 1);
     });
 
@@ -96,9 +95,9 @@ describe('OnPasteSelect', () => {
         props.options[2],
       ];
       wrapper.instance().onPaste(evt);
-      expect(props.onChange.calledWith(expected)).to.be.true;
-      expect(evt.preventDefault.called).to.be.true;
-      expect(props.isValidNewOption.callCount).to.equal(11);
+      expect(props.onChange.calledWith(expected)).toBe(true);
+      expect(evt.preventDefault.called).toBe(true);
+      expect(props.isValidNewOption.callCount).toBe(11);
     });
   });
 });

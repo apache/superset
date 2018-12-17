@@ -4,12 +4,15 @@ import PropTypes from 'prop-types';
 import { Alert, Collapse } from 'react-bootstrap';
 
 const propTypes = {
-  message: PropTypes.string,
-  queryResponse: PropTypes.object,
+  message: PropTypes.node.isRequired,
+  link: PropTypes.string,
+  stackTrace: PropTypes.string,
   showStackTrace: PropTypes.bool,
 };
 const defaultProps = {
   showStackTrace: false,
+  link: null,
+  stackTrace: null,
 };
 
 class StackTraceMessage extends React.PureComponent {
@@ -21,25 +24,17 @@ class StackTraceMessage extends React.PureComponent {
     };
   }
 
-  hasTrace() {
-    return this.props.queryResponse && this.props.queryResponse.stacktrace;
-  }
-
-  hasLink() {
-    return this.props.queryResponse && this.props.queryResponse.link;
-  }
-
   render() {
     return (
-      <div className={`stack-trace-container${this.hasTrace() ? ' has-trace' : ''}`}>
+      <div className={`stack-trace-container${this.props.stackTrace ? ' has-trace' : ''}`}>
         <Alert
           bsStyle="warning"
           onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
         >
           {this.props.message}
-          {this.hasLink() &&
+          {this.props.link &&
           <a
-            href={this.props.queryResponse.link}
+            href={this.props.link}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -47,10 +42,10 @@ class StackTraceMessage extends React.PureComponent {
           </a>
        }
         </Alert>
-        {this.hasTrace() &&
+        {this.props.stackTrace &&
           <Collapse in={this.state.showStackTrace}>
             <pre>
-              {this.props.queryResponse.stacktrace}
+              {this.props.stackTrace}
             </pre>
           </Collapse>
         }

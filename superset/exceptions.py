@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 
 class SupersetException(Exception):
     status = 500
+
+    def __init__(self, msg):
+        super(SupersetException, self).__init__(msg)
 
 
 class SupersetTimeoutException(SupersetException):
@@ -15,7 +13,11 @@ class SupersetTimeoutException(SupersetException):
 
 
 class SupersetSecurityException(SupersetException):
-    pass
+    status = 401
+
+    def __init__(self, msg, link=None):
+        super(SupersetSecurityException, self).__init__(msg)
+        self.link = link
 
 
 class MetricPermException(SupersetException):

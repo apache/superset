@@ -1,13 +1,12 @@
-import ReactDOM from 'react-dom';
 import React from 'react';
 import PropTypes from 'prop-types';
-import d3 from 'd3';
 import Mustache from 'mustache';
+import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
+import { formatNumber } from '@superset-ui/number-format';
+import { formatTime } from '@superset-ui/time-format';
 
 import MetricOption from '../../components/MetricOption';
-import { formatDateThunk } from '../../modules/dates';
-import { d3format } from '../../modules/utils';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
@@ -20,7 +19,7 @@ function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
     const [min, max] = bounds;
     const [minColor, maxColor] = colorBounds;
     if (min !== null && max !== null) {
-      const colorScale = d3.scale.linear()
+      const colorScale = scaleLinear()
         .domain([min, (max + min) / 2, max])
         .range([minColor, 'grey', maxColor]);
       return colorScale(value);
@@ -114,8 +113,6 @@ class TimeTable extends React.PureComponent {
       sparkData = entries.map(d => d[valueField]);
     }
 
-    const formatDate = formatDateThunk(column.dateFormat);
-
     return (
       <Td
         column={column.key}
@@ -132,8 +129,8 @@ class TimeTable extends React.PureComponent {
           showYAxis={column.showYAxis}
           renderTooltip={({ index }) => (
             <div>
-              <strong>{d3format(column.d3Format, sparkData[index])}</strong>
-              <div>{formatDate(entries[index].time)}</div>
+              <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
+              <div>{formatTime(column.dateFormat, entries[index].time)}</div>
             </div>
           )}
         />
@@ -227,7 +224,7 @@ class TimeTable extends React.PureComponent {
       .map(time => ({ ...data[time], time }));
     const reversedEntries = entries.concat().reverse();
 
-    const defaultSort = rowType === 'column' ? {
+    const defaultSort = rowType === 'column' && columnConfigs.length ? {
       column: columnConfigs[0].key,
       direction: 'desc',
     } : false;
@@ -270,58 +267,4 @@ class TimeTable extends React.PureComponent {
 TimeTable.propTypes = propTypes;
 TimeTable.defaultProps = defaultProps;
 
-function adaptor(slice, payload) {
-  const { containerId, formData, datasource } = slice;
-  const {
-    column_collection: columnConfigs,
-    groupby,
-    metrics,
-    url,
-  } = formData;
-  const { records, columns } = payload.data;
-  const isGroupBy = groupby.length > 0;
-
-  // When there is a "group by",
-  // each row in the table is a database column
-  // Otherwise,
-  // each row in the table is a metric
-  let rows;
-  if (isGroupBy) {
-    rows = columns.map(column => (typeof column === 'object')
-      ? column
-      : { label: column });
-  } else {
-    const metricMap = datasource.metrics
-      .reduce((acc, current) => {
-        const map = acc;
-        map[current.metric_name] = current;
-        return map;
-      }, {});
-
-    rows = metrics.map(metric => (typeof metric === 'object')
-      ? metric
-      : metricMap[metric]);
-  }
-
-  // TODO: Better parse this from controls instead of mutative value here.
-  columnConfigs.forEach((column) => {
-    const c = column;
-    if (c.timeLag !== undefined && c.timeLag !== null && c.timeLag !== '') {
-      c.timeLag = parseInt(c.timeLag, 10);
-    }
-  });
-
-  ReactDOM.render(
-    <TimeTable
-      height={slice.height()}
-      data={records}
-      columnConfigs={columnConfigs}
-      rows={rows}
-      rowType={isGroupBy ? 'column' : 'metric'}
-      url={url}
-    />,
-    document.getElementById(containerId),
-  );
-}
-
-export default adaptor;
+export default TimeTable;

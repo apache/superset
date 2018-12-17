@@ -4,7 +4,7 @@
  * as arguments and return something that evals to false if v is valid,
  * and an error message if not valid.
  * */
-import { t } from '../locales';
+import { t } from '@superset-ui/translation';
 
 export function numeric(v) {
   if (v && isNaN(v)) {

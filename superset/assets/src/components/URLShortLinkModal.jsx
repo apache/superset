@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
-import { t } from '../locales';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import ModalTrigger from './ModalTrigger';
 
@@ -27,10 +27,8 @@ class URLShortLinkModal extends React.Component {
     this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
-  onShortUrlSuccess(data) {
-    this.setState({
-      shortUrl: data,
-    });
+  onShortUrlSuccess(shortUrl) {
+    this.setState(() => ({ shortUrl }));
   }
 
   setModalRef(ref) {
@@ -38,7 +36,7 @@ class URLShortLinkModal extends React.Component {
   }
 
   getCopyUrl() {
-    getShortUrl(this.props.url, this.onShortUrlSuccess, this.props.addDangerToast);
+    getShortUrl(this.props.url).then(this.onShortUrlSuccess).catch(this.props.addDangerToast);
   }
 
   render() {

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """adjusting key length
 
 Revision ID: 956a063c52b3
@@ -6,11 +5,6 @@ Revises: f0fbf6129e13
 Create Date: 2016-05-11 17:28:32.407340
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from alembic import op
 import sqlalchemy as sa
 

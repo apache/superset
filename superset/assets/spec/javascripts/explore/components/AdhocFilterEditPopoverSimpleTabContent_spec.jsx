@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 
@@ -58,67 +57,67 @@ function setup(overrides) {
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('renders the simple tab form', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).to.have.lengthOf(3);
+    expect(wrapper.find(FormGroup)).toHaveLength(3);
   });
 
   it('passes the new adhocFilter to onChange after onSubjectChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       simpleAdhocFilter.duplicateWith({ subject: 'source' })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onSubjectChange(sumValueAdhocMetric);
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       simpleAdhocFilter.duplicateWith({
         subject: sumValueAdhocMetric.label,
         clause: CLAUSES.HAVING,
       })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onOperatorChange({ operator: 'in' });
-    expect(onChange.calledOnce).to.be.true;
-    expect(onChange.lastCall.args[0].comparator).to.have.lengthOf(1);
-    expect(onChange.lastCall.args[0].comparator[0]).to.equal('10');
-    expect(onChange.lastCall.args[0].operator).to.equal('in');
+    expect(onChange.calledOnce).toBe(true);
+    expect(onChange.lastCall.args[0].comparator).toHaveLength(1);
+    expect(onChange.lastCall.args[0].comparator[0]).toBe('10');
+    expect(onChange.lastCall.args[0].operator).toBe('in');
   });
 
   it('will convert from array to individual comparators if the operator changes from multi', () => {
     const { wrapper, onChange } = setup({ adhocFilter: simpleMultiAdhocFilter });
     wrapper.instance().onOperatorChange({ operator: '<' });
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       simpleAdhocFilter.duplicateWith({ operator: '<', comparator: '10' })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('passes the new adhocFilter to onChange after onComparatorChange', () => {
     const { wrapper, onChange } = setup();
     wrapper.instance().onComparatorChange('20');
-    expect(onChange.calledOnce).to.be.true;
+    expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0].equals((
       simpleAdhocFilter.duplicateWith({ comparator: '20' })
-    ))).to.be.true;
+    ))).toBe(true);
   });
 
   it('will filter operators for table datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'table' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).to.be.false;
-    expect(wrapper.instance().isOperatorRelevant('LIKE')).to.be.true;
+    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(false);
+    expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(true);
   });
 
   it('will filter operators for druid datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).to.be.true;
-    expect(wrapper.instance().isOperatorRelevant('LIKE')).to.be.false;
+    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(true);
+    expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(false);
   });
 
   it('expands when its multi comparator input field expands', () => {
@@ -128,7 +127,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       { _selectRef: { select: { control: { clientHeight: 57 } } } };
     wrapper.instance().handleMultiComparatorInputHeightChange();
 
-    expect(onHeightChange.calledOnce).to.be.true;
-    expect(onHeightChange.lastCall.args[0]).to.equal(27);
+    expect(onHeightChange.calledOnce).toBe(true);
+    expect(onHeightChange.lastCall.args[0]).toBe(27);
   });
 });

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """change_table_unique_constraint
 
 Revision ID: b4456560d4f3
@@ -6,10 +5,6 @@ Revises: bb51420eaf83
 Create Date: 2016-04-15 08:31:26.249591
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 from alembic import op
 
 # revision identifiers, used by Alembic.

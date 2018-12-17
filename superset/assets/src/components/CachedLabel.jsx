@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label } from 'react-bootstrap';
 import moment from 'moment';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
-import { t } from '../locales';
 
 const propTypes = {
   onClick: PropTypes.func,
@@ -60,7 +60,7 @@ class CacheLabel extends React.PureComponent {
           onMouseOver={this.mouseOver.bind(this)}
           onMouseOut={this.mouseOut.bind(this)}
         >
-          cached <i className="fa fa-refresh" />
+          {t('cached')} <i className="fa fa-refresh" />
         </Label>
       </TooltipWrapper>);
   }

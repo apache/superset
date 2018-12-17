@@ -2,7 +2,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import PropTypes from 'prop-types';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import VirtualizedRendererWrap from '../../../src/components/VirtualizedRendererWrap';
@@ -38,38 +37,34 @@ describe('VirtualizedRendererWrap', () => {
 
   it('uses the provided renderer', () => {
     const option = wrapper.find(TestOption);
-    expect(option).to.have.lengthOf(1);
+    expect(option).toHaveLength(1);
   });
 
   it('renders nothing when no option is provided', () => {
     props.option = null;
     wrapper = shallow(<RendererWrap {...props} />);
     const option = wrapper.find(TestOption);
-    expect(option).to.have.lengthOf(0);
+    expect(option).toHaveLength(0);
   });
 
   it('renders unfocused, unselected options with the default class', () => {
     const optionDiv = wrapper.find('div');
-    expect(optionDiv).to.have.lengthOf(1);
-    expect(optionDiv.props().className).to.equal('VirtualizedSelectOption');
+    expect(optionDiv).toHaveLength(1);
+    expect(optionDiv.props().className).toBe('VirtualizedSelectOption');
   });
 
   it('renders focused option with the correct class', () => {
     props.option = props.focusedOption;
     wrapper = shallow(<RendererWrap {...props} />);
     const optionDiv = wrapper.find('div');
-    expect(optionDiv.props().className).to.equal(
-      'VirtualizedSelectOption VirtualizedSelectFocusedOption',
-    );
+    expect(optionDiv.props().className).toBe('VirtualizedSelectOption VirtualizedSelectFocusedOption');
   });
 
   it('renders disabled option with the correct class', () => {
     props.option.disabled = true;
     wrapper = shallow(<RendererWrap {...props} />);
     const optionDiv = wrapper.find('div');
-    expect(optionDiv.props().className).to.equal(
-      'VirtualizedSelectOption VirtualizedSelectDisabledOption',
-    );
+    expect(optionDiv.props().className).toBe('VirtualizedSelectOption VirtualizedSelectDisabledOption');
     props.option.disabled = false;
   });
 
@@ -77,29 +72,25 @@ describe('VirtualizedRendererWrap', () => {
     props.valueArray = [props.option, props.focusedOption];
     wrapper = shallow(<RendererWrap {...props} />);
     const optionDiv = wrapper.find('div');
-    expect(optionDiv.props().className).to.equal(
-      'VirtualizedSelectOption VirtualizedSelectSelectedOption',
-    );
+    expect(optionDiv.props().className).toBe('VirtualizedSelectOption VirtualizedSelectSelectedOption');
   });
 
   it('renders options with custom classes', () => {
     props.option.className = 'CustomClass';
     wrapper = shallow(<RendererWrap {...props} />);
     const optionDiv = wrapper.find('div');
-    expect(optionDiv.props().className).to.equal(
-      'VirtualizedSelectOption CustomClass',
-    );
+    expect(optionDiv.props().className).toBe('VirtualizedSelectOption CustomClass');
   });
 
   it('calls focusedOption on its own option onMouseEnter', () => {
     const optionDiv = wrapper.find('div');
     optionDiv.simulate('mouseEnter');
-    expect(props.focusOption.calledWith(props.option)).to.be.true;
+    expect(props.focusOption.calledWith(props.option)).toBe(true);
   });
 
   it('calls selectValue on its own option onClick', () => {
     const optionDiv = wrapper.find('div');
     optionDiv.simulate('click');
-    expect(props.selectValue.calledWith(props.option)).to.be.true;
+    expect(props.selectValue.calledWith(props.option)).toBe(true);
   });
 });

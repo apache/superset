@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import AdhocMetricStaticOption from '../../../../src/explore/components/AdhocMetricStaticOption';
@@ -16,6 +15,6 @@ const sumValueAdhocMetric = new AdhocMetric({
 describe('AdhocMetricStaticOption', () => {
   it('renders the adhoc metrics label', () => {
     const wrapper = shallow(<AdhocMetricStaticOption adhocMetric={sumValueAdhocMetric} />);
-    expect(wrapper.text()).to.equal('SUM(source)');
+    expect(wrapper.text()).toBe('SUM(source)');
   });
 });

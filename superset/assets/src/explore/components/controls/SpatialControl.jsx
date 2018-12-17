@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import {
   Row, Col, Button, Label, OverlayTrigger, Popover,
 } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
 import PopoverSection from '../../../components/PopoverSection';
 import Checkbox from '../../../components/Checkbox';
-import { t } from '../../../locales';
 
 const spatialTypes = {
   latlong: 'latlong',

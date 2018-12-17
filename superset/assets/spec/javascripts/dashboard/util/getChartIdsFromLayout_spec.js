@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import getChartIdsFromLayout from '../../../../src/dashboard/util/getChartIdsFromLayout';
 import {
   ROW_TYPE,
@@ -27,14 +25,14 @@ describe('getChartIdsFromLayout', () => {
 
   it('should return an array of chartIds', () => {
     const result = getChartIdsFromLayout(mockLayout);
-    expect(Array.isArray(result)).to.equal(true);
-    expect(result.includes('A')).to.equal(true);
-    expect(result.includes('B')).to.equal(true);
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.includes('A')).toBe(true);
+    expect(result.includes('B')).toBe(true);
   });
 
   it('should return ids only from CHART_TYPE components', () => {
     const result = getChartIdsFromLayout(mockLayout);
-    expect(result.length).to.equal(2);
-    expect(result.includes('C')).to.equal(false);
+    expect(result).toHaveLength(2);
+    expect(result.includes('C')).toBe(false);
   });
 });

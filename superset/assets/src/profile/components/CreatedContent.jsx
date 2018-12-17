@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { t } from '@superset-ui/translation';
+
 import TableLoader from '../../components/TableLoader';
-import { t } from '../../locales';
 
 const propTypes = {
   user: PropTypes.object.isRequired,

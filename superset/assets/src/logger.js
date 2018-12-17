@@ -1,6 +1,5 @@
 /* eslint no-console: 0 */
-
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/connection';
 
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance
@@ -41,13 +40,13 @@ export const Logger = {
 
   send(log) {
     const { impressionId, source, sourceId, events } = log;
-    let url = '/superset/log/';
+    let endpoint = '/superset/log/?explode=events';
 
     // backend logs treat these request params as first-class citizens
     if (source === 'dashboard') {
-      url += `?dashboard_id=${sourceId}`;
+      endpoint += `&dashboard_id=${sourceId}`;
     } else if (source === 'slice') {
-      url += `?slice_id=${sourceId}`;
+      endpoint += `&slice_id=${sourceId}`;
     }
 
     const eventData = [];
@@ -63,14 +62,10 @@ export const Logger = {
       });
     }
 
-    $.ajax({
-      url,
-      method: 'POST',
-      dataType: 'json',
-      data: {
-        explode: 'events',
-        events: JSON.stringify(eventData),
-      },
+    SupersetClient.post({
+      endpoint,
+      postPayload: { events: eventData },
+      parseMethod: null,
     });
 
     // flush events for this logger
@@ -88,7 +83,7 @@ export class ActionLog {
     this.impressionId = impressionId;
     this.source = source;
     this.sourceId = sourceId;
-    this.eventNames = eventNames;
+    this.eventNames = eventNames || [];
     this.sendNow = sendNow || false;
     this.events = {};
 
@@ -137,6 +132,7 @@ export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
 export const LOG_ACTIONS_FIRST_DASHBOARD_LOAD = 'first_dashboard_load';
 export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
 export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
+export const LOG_ACTIONS_RENDER_CHART_CONTAINER = 'render_chart_container';
 export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
 export const LOG_ACTIONS_REFRESH_CHART = 'force_refresh_chart';
 
@@ -163,4 +159,5 @@ export const EXPLORE_EVENT_NAMES = [
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_RENDER_CHART,
   LOG_ACTIONS_REFRESH_CHART,
+  LOG_ACTIONS_RENDER_CHART_CONTAINER,
 ];

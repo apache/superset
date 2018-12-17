@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
@@ -13,12 +12,7 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 import inspect
 import logging
 import os
@@ -32,7 +26,7 @@ from flask_babel import lazy_gettext as _
 import pandas
 from past.builtins import basestring
 import sqlalchemy as sqla
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
@@ -41,10 +35,11 @@ import sqlparse
 from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, sql_parse, utils
+from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
-from superset.utils import QueryStatus
+from superset.utils import core as utils
 
+QueryStatus = utils.QueryStatus
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
@@ -233,31 +228,31 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = sorted(
-                    db.inspector.get_table_names(schema))
+                all_datasource_names = db.all_table_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = sorted(
-                    db.inspector.get_view_names(schema))
+                all_datasource_names = db.all_view_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             all_result_sets += [
-                '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+                '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -300,11 +295,15 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_schema_names(cls, inspector):
-        return inspector.get_schema_names()
+        return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    def get_view_names(cls, inspector, schema):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -429,7 +428,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -560,23 +559,25 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+    def fetch_result_sets(cls, db, datasource_type):
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = sorted(db.inspector.get_table_names())
+            all_datasource_names = db.all_table_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = sorted(db.inspector.get_view_names())
+            all_datasource_names = db.all_view_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         all_result_sets += [
-            '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+            '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -586,7 +587,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
@@ -686,6 +687,16 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
+    def get_view_names(cls, inspector, schema):
+        """Returns an empty list
+
+        get_table_names() function returns all table names and view names,
+        and get_view_names() is not implemented in sqlalchemy_presto.py
+        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
+        """
+        return []
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
@@ -710,11 +721,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -726,10 +734,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 datasource_type.upper(),
             ),
             None)
-        result_sets = defaultdict(list)
+        result_sets = []
         for unused, row in result_set_df.iterrows():
-            result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[''].append('{}.{}'.format(
+            result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
@@ -841,16 +848,30 @@ class PrestoEngineSpec(BaseEngineSpec):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append("{field} = '{value}'".format(**locals()))
+                l.append(f"{field} = '{value}'")
             where_clause = 'WHERE ' + ' AND '.join(l)
 
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(f"""\
             SHOW PARTITIONS FROM {table_name}
             {where_clause}
             {order_by_clause}
             {limit_clause}
-        """).format(**locals())
+        """)
         return sql
+
+    @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        try:
+            col_name, value = cls.latest_partition(
+                table_name, schema, database, show_first=True)
+        except Exception:
+            # table is not partitioned
+            return False
+        for c in columns:
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
+        return False
 
     @classmethod
     def _latest_partition_from_df(cls, df):
@@ -977,12 +998,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
+    def fetch_result_sets(cls, db, datasource_type):
         return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type, force=force)
+            db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -1052,10 +1070,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE TABLE {full_table_name} ( {schema_definition} )
+        sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
-            tblproperties ('skip.header.line.count'='1')""".format(**locals())
+            tblproperties ('skip.header.line.count'='1')"""
         logging.info(form.con.data)
         engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
         engine.execute(sql)
@@ -1180,13 +1198,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, schema, database, qry, columns=None):
         try:
             col_name, value = cls.latest_partition(
-                table_name, schema, database)
+                table_name, schema, database, show_first=True)
         except Exception:
             # table is not partitioned
             return False
         for c in columns:
-            if str(c.name) == str(col_name):
-                return qry.where(c == str(value))
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
@@ -1202,7 +1220,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(
             cls, table_name, limit=0, order_by=None, filters=None):
-        return 'SHOW PARTITIONS {table_name}'.format(**locals())
+        return f'SHOW PARTITIONS {table_name}'
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user, username):
@@ -1393,6 +1411,28 @@ class BQEngineSpec(BaseEngineSpec):
         return mutated_label
 
     @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
+        return {
+            'partitions': {
+                'cols': partitions_columns,
+            },
+            'clustering': {
+                'cols': cluster_columns,
+            },
+        }
+
+    @classmethod
     def _get_fields(cls, cols):
         """
         BigQuery dialect requires us to not use backtick in the fieldname which are
@@ -1459,6 +1499,13 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
 
+class GSheetsEngineSpec(SqliteEngineSpec):
+    """Engine for Google spreadsheets"""
+    engine = 'gsheets'
+    inner_joins = False
+    allows_subquery = False
+
+
 class KylinEngineSpec(BaseEngineSpec):
     """Dialect for Apache Kylin"""
 
@@ -1494,16 +1541,16 @@ class TeradataEngineSpec(BaseEngineSpec):
     engine = 'teradata'
     limit_method = LimitMethod.WRAP_SQL
 
-    time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('minute', _('minute'), "TRUNC(CAST({col} as DATE), 'MI')", 'PT1M'),
-        Grain('hour', _('hour'), "TRUNC(CAST({col} as DATE), 'HH')", 'PT1H'),
-        Grain('day', _('day'), "TRUNC(CAST({col} as DATE), 'DDD')", 'P1D'),
-        Grain('week', _('week'), "TRUNC(CAST({col} as DATE), 'WW')", 'P1W'),
-        Grain('month', _('month'), "TRUNC(CAST({col} as DATE), 'MONTH')", 'P1M'),
-        Grain('quarter', _('quarter'), "TRUNC(CAST({col} as DATE), 'Q')", 'P0.25Y'),
-        Grain('year', _('year'), "TRUNC(CAST({col} as DATE), 'YEAR')", 'P1Y'),
-    )
+    time_grain_functions = {
+        None: '{col}',
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
+    }
 
 
 engines = {

@@ -1,6 +1,7 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
@@ -10,7 +11,6 @@ import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
-import { t } from '../../locales';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -30,6 +30,7 @@ const propTypes = {
   css: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
@@ -98,7 +99,10 @@ class Header extends React.PureComponent {
   }
 
   forceRefresh() {
-    return this.props.fetchCharts(Object.values(this.props.charts), true);
+    if (!this.props.isLoading) {
+      return this.props.fetchCharts(Object.values(this.props.charts), true);
+    }
+    return false;
   }
 
   handleChangeText(nextText) {
@@ -189,6 +193,7 @@ class Header extends React.PureComponent {
       showBuilderPane,
       dashboardInfo,
       hasUnsavedChanges,
+      isLoading,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -318,6 +323,7 @@ class Header extends React.PureComponent {
             hasUnsavedChanges={hasUnsavedChanges}
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
+            isLoading={isLoading}
           />
         </div>
       </div>

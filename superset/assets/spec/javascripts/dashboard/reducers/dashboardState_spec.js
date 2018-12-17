@@ -1,5 +1,3 @@
-import { expect } from 'chai';
-
 import {
   ADD_SLICE,
   CHANGE_FILTER,
@@ -18,7 +16,7 @@ import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardS
 
 describe('dashboardState reducer', () => {
   it('should return initial state', () => {
-    expect(dashboardStateReducer(undefined, {})).to.deep.equal({});
+    expect(dashboardStateReducer(undefined, {})).toEqual({});
   });
 
   it('should add a slice', () => {
@@ -27,7 +25,7 @@ describe('dashboardState reducer', () => {
         { sliceIds: [1] },
         { type: ADD_SLICE, slice: { slice_id: 2 } },
       ),
-    ).to.deep.equal({ sliceIds: [1, 2] });
+    ).toEqual({ sliceIds: [1, 2] });
   });
 
   it('should remove a slice', () => {
@@ -36,7 +34,7 @@ describe('dashboardState reducer', () => {
         { sliceIds: [1, 2], filters: {} },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ sliceIds: [1], refresh: false, filters: {} });
+    ).toEqual({ sliceIds: [1], refresh: false, filters: {} });
   });
 
   it('should reset filters if a removed slice is a filter', () => {
@@ -45,7 +43,7 @@ describe('dashboardState reducer', () => {
         { sliceIds: [1, 2], filters: { 2: {}, 1: {} } },
         { type: REMOVE_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ sliceIds: [1], filters: { 1: {} }, refresh: true });
+    ).toEqual({ sliceIds: [1], filters: { 1: {} }, refresh: true });
   });
 
   it('should toggle fav star', () => {
@@ -54,7 +52,7 @@ describe('dashboardState reducer', () => {
         { isStarred: false },
         { type: TOGGLE_FAVE_STAR, isStarred: true },
       ),
-    ).to.deep.equal({ isStarred: true });
+    ).toEqual({ isStarred: true });
   });
 
   it('should toggle edit mode', () => {
@@ -63,7 +61,7 @@ describe('dashboardState reducer', () => {
         { editMode: false },
         { type: SET_EDIT_MODE, editMode: true },
       ),
-    ).to.deep.equal({ editMode: true, showBuilderPane: true });
+    ).toEqual({ editMode: true, showBuilderPane: true });
   });
 
   it('should toggle builder pane', () => {
@@ -72,14 +70,14 @@ describe('dashboardState reducer', () => {
         { showBuilderPane: false },
         { type: TOGGLE_BUILDER_PANE },
       ),
-    ).to.deep.equal({ showBuilderPane: true });
+    ).toEqual({ showBuilderPane: true });
 
     expect(
       dashboardStateReducer(
         { showBuilderPane: true },
         { type: TOGGLE_BUILDER_PANE },
       ),
-    ).to.deep.equal({ showBuilderPane: false });
+    ).toEqual({ showBuilderPane: false });
   });
 
   it('should toggle expanded slices', () => {
@@ -88,18 +86,18 @@ describe('dashboardState reducer', () => {
         { expandedSlices: { 1: true, 2: false } },
         { type: TOGGLE_EXPAND_SLICE, sliceId: 1 },
       ),
-    ).to.deep.equal({ expandedSlices: { 2: false } });
+    ).toEqual({ expandedSlices: { 2: false } });
 
     expect(
       dashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } },
         { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
       ),
-    ).to.deep.equal({ expandedSlices: { 1: true, 2: true } });
+    ).toEqual({ expandedSlices: { 1: true, 2: true } });
   });
 
   it('should set hasUnsavedChanges', () => {
-    expect(dashboardStateReducer({}, { type: ON_CHANGE })).to.deep.equal({
+    expect(dashboardStateReducer({}, { type: ON_CHANGE })).toEqual({
       hasUnsavedChanges: true,
     });
 
@@ -108,7 +106,7 @@ describe('dashboardState reducer', () => {
         {},
         { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges: false } },
       ),
-    ).to.deep.equal({
+    ).toEqual({
       hasUnsavedChanges: false,
     });
   });
@@ -122,7 +120,7 @@ describe('dashboardState reducer', () => {
           payload: { maxUndoHistoryExceeded: true },
         },
       ),
-    ).to.deep.equal({
+    ).toEqual({
       maxUndoHistoryExceeded: true,
     });
   });
@@ -130,7 +128,7 @@ describe('dashboardState reducer', () => {
   it('should set unsaved changes, max undo history, and editMode to false on save', () => {
     expect(
       dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
-    ).to.deep.equal({
+    ).toEqual({
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       editMode: false,
@@ -154,7 +152,7 @@ describe('dashboardState reducer', () => {
             merge: true,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['b', 'a'] } },
         refresh: true,
         sliceIds: [1],
@@ -179,7 +177,7 @@ describe('dashboardState reducer', () => {
             merge: false,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['b', 'a'] } },
         refresh: true,
         sliceIds: [1],
@@ -204,7 +202,7 @@ describe('dashboardState reducer', () => {
             merge: true,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: { 1: { column: ['z', 'b', 'a'] } },
         refresh: true,
         sliceIds: [1],
@@ -229,7 +227,7 @@ describe('dashboardState reducer', () => {
             merge: false,
           },
         ),
-      ).to.deep.equal({
+      ).toEqual({
         filters: {},
         refresh: true,
         sliceIds: [1],

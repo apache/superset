@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
@@ -49,14 +48,14 @@ describe('MetricsControl', () => {
 
   it('renders an OnPasteSelect', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(OnPasteSelect)).to.have.lengthOf(1);
+    expect(wrapper.find(OnPasteSelect)).toHaveLength(1);
   });
 
   describe('constructor', () => {
 
     it('unifies options for the dropdown select with aggregates', () => {
       const { wrapper } = setup();
-      expect(wrapper.state('options')).to.deep.equal([
+      expect(wrapper.state('options')).toEqual([
         { optionName: '_col_source', type: 'VARCHAR(255)', column_name: 'source' },
         { optionName: '_col_target', type: 'VARCHAR(255)', column_name: 'target' },
         { optionName: '_col_value', type: 'DOUBLE', column_name: 'value' },
@@ -83,9 +82,9 @@ describe('MetricsControl', () => {
       });
 
       const adhocMetric = wrapper.state('value')[0];
-      expect(adhocMetric instanceof AdhocMetric).to.be.true;
-      expect(adhocMetric.optionName.length).to.be.above(10);
-      expect(wrapper.state('value')).to.deep.equal([
+      expect(adhocMetric instanceof AdhocMetric).toBe(true);
+      expect(adhocMetric.optionName.length).toBeGreaterThan(10);
+      expect(wrapper.state('value')).toEqual([
         {
           expressionType: EXPRESSION_TYPES.SIMPLE,
           column: { type: 'double', column_name: 'value' },
@@ -108,7 +107,7 @@ describe('MetricsControl', () => {
       const { wrapper, onChange } = setup();
       const select = wrapper.find(OnPasteSelect);
       select.simulate('change', [{ metric_name: 'sum__value' }]);
-      expect(onChange.lastCall.args).to.deep.equal([['sum__value']]);
+      expect(onChange.lastCall.args).toEqual([['sum__value']]);
     });
 
     it('handles columns being selected', () => {
@@ -117,8 +116,8 @@ describe('MetricsControl', () => {
       select.simulate('change', [valueColumn]);
 
       const adhocMetric = onChange.lastCall.args[0][0];
-      expect(adhocMetric instanceof AdhocMetric).to.be.true;
-      expect(onChange.lastCall.args).to.deep.equal([[{
+      expect(adhocMetric instanceof AdhocMetric).toBe(true);
+      expect(onChange.lastCall.args).toEqual([[{
         expressionType: EXPRESSION_TYPES.SIMPLE,
         column: valueColumn,
         aggregate: AGGREGATES.SUM,
@@ -145,16 +144,16 @@ describe('MetricsControl', () => {
 
       select.simulate('change', [{ aggregate_name: 'SUM', optionName: 'SUM' }]);
 
-      expect(setInputSpy.calledWith('SUM()')).to.be.true;
-      expect(handleInputSpy.calledWith({ target: { value: 'SUM()' } })).to.be.true;
-      expect(onChange.lastCall.args).to.deep.equal([[]]);
+      expect(setInputSpy.calledWith('SUM()')).toBe(true);
+      expect(handleInputSpy.calledWith({ target: { value: 'SUM()' } })).toBe(true);
+      expect(onChange.lastCall.args).toEqual([[]]);
     });
 
     it('preserves existing selected AdhocMetrics', () => {
       const { wrapper, onChange } = setup();
       const select = wrapper.find(OnPasteSelect);
       select.simulate('change', [{ metric_name: 'sum__value' }, sumValueAdhocMetric]);
-      expect(onChange.lastCall.args).to.deep.equal([['sum__value', sumValueAdhocMetric]]);
+      expect(onChange.lastCall.args).toEqual([['sum__value', sumValueAdhocMetric]]);
     });
   });
 
@@ -167,7 +166,7 @@ describe('MetricsControl', () => {
       const editedMetric = sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG });
       wrapper.instance().onMetricEdit(editedMetric);
 
-      expect(onChange.lastCall.args).to.deep.equal([[
+      expect(onChange.lastCall.args).toEqual([[
         editedMetric,
       ]]);
     });
@@ -177,17 +176,17 @@ describe('MetricsControl', () => {
     it('handles an aggregate in the input', () => {
       const { wrapper } = setup();
 
-      expect(wrapper.state('aggregateInInput')).to.be.null;
+      expect(wrapper.state('aggregateInInput')).toBeNull();
       wrapper.instance().checkIfAggregateInInput('AVG(');
-      expect(wrapper.state('aggregateInInput')).to.equal(AGGREGATES.AVG);
+      expect(wrapper.state('aggregateInInput')).toBe(AGGREGATES.AVG);
     });
 
     it('handles no aggregate in the input', () => {
       const { wrapper } = setup();
 
-      expect(wrapper.state('aggregateInInput')).to.be.null;
+      expect(wrapper.state('aggregateInInput')).toBeNull();
       wrapper.instance().checkIfAggregateInInput('colu');
-      expect(wrapper.state('aggregateInInput')).to.be.null;
+      expect(wrapper.state('aggregateInInput')).toBeNull();
     });
   });
 
@@ -202,7 +201,7 @@ describe('MetricsControl', () => {
           expression: 'SUM(FANCY(metric))',
         },
         'a',
-      )).to.be.true;
+      )).toBe(true);
     });
 
     it('includes auto generated avg metrics for druid', () => {
@@ -215,7 +214,7 @@ describe('MetricsControl', () => {
           expression: 'AVG(metric)',
         },
         'a',
-      )).to.be.true;
+      )).toBe(true);
     });
 
     it('includes columns and aggregates', () => {
@@ -224,12 +223,12 @@ describe('MetricsControl', () => {
       expect(!!wrapper.instance().selectFilterOption(
         { type: 'VARCHAR(255)', column_name: 'source', optionName: '_col_source' },
         'sou',
-      )).to.be.true;
+      )).toBe(true);
 
       expect(!!wrapper.instance().selectFilterOption(
         { aggregate_name: 'AVG', optionName: '_aggregate_AVG' },
         'av',
-      )).to.be.true;
+      )).toBe(true);
     });
 
     it('includes columns based on verbose_name', () => {
@@ -238,7 +237,7 @@ describe('MetricsControl', () => {
       expect(!!wrapper.instance().selectFilterOption(
         { metric_name: 'sum__num', verbose_name: 'babies', optionName: '_col_sum_num' },
         'bab',
-      )).to.be.true;
+      )).toBe(true);
     });
 
     it('excludes auto generated avg metrics for sqla', () => {
@@ -251,7 +250,7 @@ describe('MetricsControl', () => {
           expression: 'AVG(metric)',
         },
         'a',
-      )).to.be.false;
+      )).toBe(false);
     });
 
     it('includes custom made simple saved metrics', () => {
@@ -264,7 +263,7 @@ describe('MetricsControl', () => {
           expression: 'SUM(value)',
         },
         'sum',
-      )).to.be.true;
+      )).toBe(true);
     });
 
     it('excludes auto generated metrics', () => {
@@ -277,7 +276,7 @@ describe('MetricsControl', () => {
           expression: 'SUM(value)',
         },
         'sum',
-      )).to.be.false;
+      )).toBe(false);
 
       expect(!!wrapper.instance().selectFilterOption(
         {
@@ -286,7 +285,7 @@ describe('MetricsControl', () => {
           expression: 'SUM("table"."value")',
         },
         'sum',
-      )).to.be.false;
+      )).toBe(false);
     });
 
     it('filters out metrics if the input begins with an aggregate', () => {
@@ -296,7 +295,7 @@ describe('MetricsControl', () => {
       expect(!!wrapper.instance().selectFilterOption(
         { metric_name: 'metric', expression: 'SUM(FANCY(metric))' },
         'SUM(',
-      )).to.be.false;
+      )).toBe(false);
     });
 
     it('includes columns if the input begins with an aggregate', () => {
@@ -306,7 +305,7 @@ describe('MetricsControl', () => {
       expect(!!wrapper.instance().selectFilterOption(
         { type: 'DOUBLE', column_name: 'value' },
         'SUM(',
-      )).to.be.true;
+      )).toBe(true);
     });
   });
 });
