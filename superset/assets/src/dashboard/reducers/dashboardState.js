@@ -105,7 +105,7 @@ export default function dashboardStateReducer(state = {}, action) {
       // TODO: we want to revisit the condition for more generic filter implementation
       if ( 
         filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.publish_columns.indexOf(col) !== -1
+        action.chart.formData.publish_columns.indexOf(col) !== -1 
       ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
@@ -121,20 +121,24 @@ export default function dashboardStateReducer(state = {}, action) {
         }
         filters = { ...filters, [sliceId]: newFilter };
 
-      // remove any empty filters so they don't pollute the logs
-      Object.keys(filters).forEach(chartId => {
-        Object.keys(filters[chartId]).forEach(column => {
-          if (
-            !filters[chartId][column] ||
-            filters[chartId][column].length === 0
-          ) {
-            delete filters[chartId][column];
-          }
-        });
-        if (Object.keys(filters[chartId]).length === 0) {
-          delete filters[chartId];
-        }
-      });
+     // commneting ::: below as we need deselection feature so we will maintain empty list of filters
+        // remove any empty filters so they don't pollute the logs
+        // Object.keys(filters).forEach(chartId => {
+        //   Object.keys(filters[chartId]).forEach(column => {
+        //     if (
+        //       !filters[chartId][column] ||
+        //       filters[chartId][column].length === 0
+        //     ) {
+        //       delete filters[chartId][column];
+        //     }
+        //   });
+        //   if (Object.keys(filters[chartId]).length === 0) {
+        //     delete filters[chartId];
+        //   }
+        // });
+
+       
+      }
       return { ...state, filters, refresh };
     },
     [SET_UNSAVED_CHANGES]() {

@@ -123,8 +123,8 @@ class SliceHeaderControls extends React.PureComponent {
           <VerticalDotsTrigger />
         </Dropdown.Toggle>
 
-        <Dropdown.Menu>
-          <MenuItem onClick={this.refreshChart} disabled={!updatedDttm}>
+        <Dropdown.Menu className ="slice-header-dropdown-menu">
+          <MenuItem onClick={this.refreshChart}>
             {t('Force refresh')}
             <div className="refresh-tooltip">{refreshTooltip}</div>
           </MenuItem>
