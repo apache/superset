@@ -32,6 +32,9 @@ function leafletmap(slice, payload) {
     var mapLayerType;
     var selectedColorColumn;
     var geoJsonLayer;
+    var tooltipColumns = formData.all_columns_x;
+    var enableClick = formData.chart_interactivity;
+    var showTooltip = formData.rich_tooltip;
 
     function getDefaultPolygonStyles() {
         return {
@@ -43,8 +46,8 @@ function leafletmap(slice, payload) {
         }
     }
 
-    function getRgbColor(rgbObj){
-        return "rgb("+rgbObj.r+","+rgbObj.g+","+rgbObj.b+","+rgbObj.a+")";
+    function getRgbColor(rgbObj) {
+        return "rgb(" + rgbObj.r + "," + rgbObj.g + "," + rgbObj.b + "," + rgbObj.a + ")";
     }
 
     function setMapLayerType() {
@@ -59,7 +62,7 @@ function leafletmap(slice, payload) {
         // fix of leaflet js :: error 
         //An error occurred while rendering the visualization: Error: Map container is already initialized.
         var el = container.el;
-        if(el && el._leaflet_id){
+        if (el && el._leaflet_id) {
             el._leaflet_id = null;
         }
         container.css('height', slice.height());
@@ -118,12 +121,12 @@ function leafletmap(slice, payload) {
         var maxValueClr = col['clause'];
 
         // if  minValueClr is r,g,b,a typed Object
-        if(minValueClr instanceof Object){
+        if (minValueClr instanceof Object) {
             minValueClr = getRgbColor(minValueClr);
         }
 
         // if  minValueClr is r,g,b,a typed Object
-        if(maxValueClr instanceof Object){
+        if (maxValueClr instanceof Object) {
             maxValueClr = getRgbColor(maxValueClr);
         }
 
@@ -135,7 +138,7 @@ function leafletmap(slice, payload) {
         } else if (colvalue < minValue) {
             colclr = MARKER_FILL_COLOR
         }
-        
+
         return colclr;
     }
 
@@ -155,6 +158,11 @@ function leafletmap(slice, payload) {
                 obj[key] = getColumn(key, data[key])
             }
         }
+
+        if (showTooltip) {
+            obj.tooltip = getPopupContent(data)
+        }
+
 
         return obj;
     }
@@ -212,7 +220,26 @@ function leafletmap(slice, payload) {
     }
 
     function mapItemClick(event) {
-        slice.addFilter(formData.geojson, [event.target.feature.properties.id], false);
+
+        if (enableClick) {
+            var selections = [];
+            // remove previous selected layers except selected
+            Object.values(event.target._map._targets).forEach(element => {
+                if (element.hasOwnProperty('_path') && element._path.classList.contains('active-layer') && event.target._leaflet_id != element._leaflet_id) {
+                    element._path.classList.remove('active-layer');
+                }
+            });
+
+            if (event.target._path.classList.contains('active-layer')) {
+                event.target._path.classList.remove('active-layer');
+            } else {
+                event.target._path.classList.add('active-layer');
+                selections = [event.target.feature.properties.id];
+            }
+
+            slice.addFilter(formData.geojson, selections, false);
+        }
+
     }
 
     function getSelectedColorColumn() {
@@ -226,8 +253,16 @@ function leafletmap(slice, payload) {
         return styles;
     }
 
-    function getPopupContent(feature) {
-        return "<div style='display:grid'><span><b>Details</b></span><span>" + formData.geojson + ' : ' + feature.properties.id + "</span><span>" + getSelectedColorColumn() + " : " + feature.properties[getSelectedColorColumn()].value + "</span></div>";
+    function getPopupContent(data) {
+        let tooltip = "<div style='display:grid'>"
+        for (let index = 0; index < tooltipColumns.length; index++) {
+            const columnName = tooltipColumns[index];
+            tooltip += "<span>";
+            tooltip += "<b class='leaflet-tooltip-title'>" + columnName + "</b> : " + data[columnName];
+            tooltip += "</span>";
+        }
+        tooltip += "</div>";
+        return tooltip;
     }
 
     function renderPolygonLayer() {
@@ -240,9 +275,25 @@ function leafletmap(slice, payload) {
                 layer.on({
                     click: mapItemClick
                 });
-                // todo: move this to tooltip functionality
-                layer.bindPopup(getPopupContent(feature));
-
+                if (showTooltip) {
+                    var layerPopup;
+                    layer.on('mouseover', function (e) {
+                        var coordinates = e.latlng;
+                        var latlngArr = [coordinates.lat, coordinates.lng];
+                        if (mapInstance) {
+                            layerPopup = L.popup()
+                                .setLatLng(latlngArr)
+                                .setContent(e.target.feature.properties.tooltip)
+                                .openOn(mapInstance);
+                        }
+                    });
+                    layer.on('mouseout', function (e) {
+                        if (layerPopup && mapInstance) {
+                            mapInstance.closePopup(layerPopup);
+                            layerPopup = null;
+                        }
+                    });
+                }
             },
             pointToLayer: function (feature, latlng) {
                 var styles = getLayerStyles(feature)

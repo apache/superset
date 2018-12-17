@@ -1,3 +1,27 @@
 .color_column_div{
 
 }
+
+.active-layer{
+    stroke-width:5 !important;
+}
+
+/** 
+ remove close button from tooltip
+*/ 
+.leaflet-popup-close-button{
+  display: none;
+}
+
+.leaflet-popup-content-wrapper{
+    max-height: 300px;
+    max-width: 300px;
+    overflow: auto;
+}
+
+.leaflet-tooltip-title{
+    padding:0 !important;
+    margin:0 !important;
+    width:auto !important;
+    background:white !important
+}
