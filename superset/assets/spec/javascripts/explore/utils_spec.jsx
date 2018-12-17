@@ -14,6 +14,10 @@ describe('exploreUtils', () => {
     expect(uri1.toString()).toBe(uri2.toString());
   }
 
+  const expectedPayload = {
+    form_data: formData,
+  };
+
   describe('getExploreUrlAndPayload', () => {
     it('generates proper base url', () => {
       // This assertion is to show clearly the value of location.href
@@ -30,7 +34,7 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore/'),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generates proper json url', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -43,7 +47,7 @@ describe('exploreUtils', () => {
         URI(url),
         URI('/superset/explore_json/'),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generates proper json forced url', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -57,7 +61,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/')
           .search({ force: 'true' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generates proper csv URL', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -71,7 +75,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/')
           .search({ csv: 'true' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generates proper standalone URL', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -85,7 +89,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore/')
           .search({ standalone: 'true' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('preserves main URLs params', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -99,7 +103,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generate proper save slice url', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -113,7 +117,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
     it('generate proper saveas slice url', () => {
       const { url, payload } = getExploreUrlAndPayload({
@@ -127,7 +131,7 @@ describe('exploreUtils', () => {
         URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
-      expect(payload).toEqual(formData);
+      expect(payload).toEqual(expectedPayload);
     });
   });
 
@@ -199,7 +203,7 @@ describe('exploreUtils', () => {
   describe('getExploreLongUrl', () => {
     it('generates proper base url with form_data', () => {
       compareURI(
-        URI(getExploreLongUrl(formData, 'base')),
+        URI(getExploreLongUrl({ formData, endpointType: 'base' })),
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
     });
