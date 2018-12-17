@@ -888,7 +888,10 @@ class DruidFuncTestCase(unittest.TestCase):
         )
         qry_obj = client.groupby.call_args_list[0][1]
         self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
-        self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension']['label'])
+        self.assertEqual(
+            'sum1',
+            qry_obj['limit_spec']['columns'][0]['dimension']['label'],
+        )
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
@@ -906,7 +909,10 @@ class DruidFuncTestCase(unittest.TestCase):
         )
         qry_obj = client.groupby.call_args_list[1][1]
         self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
-        self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension']['label'])
+        self.assertEqual(
+            'div1',
+            qry_obj['limit_spec']['columns'][0]['dimension']['label'],
+        )
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
