@@ -586,6 +586,10 @@ class DruidFuncTestCase(unittest.TestCase):
 
     def test_metrics_and_post_aggs_tree(self):
         metrics = ['A', 'B', 'm1', 'm2']
+        metrics = [{
+            'label': metric,
+            'expressionType': 'BUILTIN',
+        } for metric in metrics]
         metrics_dict = {}
         for i in range(ord('A'), ord('K') + 1):
             emplace(metrics_dict, chr(i), True)
