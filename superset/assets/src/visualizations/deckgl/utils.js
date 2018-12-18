@@ -89,7 +89,7 @@ export function getBuckets(fd, features, accessor) {
   breakPoints.slice(1).forEach((value, i) => {
     const range = breakPoints[i] + ' - ' + breakPoints[i + 1];
     const mid = 0.5 * (parseInt(breakPoints[i], 10) + parseInt(breakPoints[i + 1], 10));
-   //fix polygon cannot show
+   // fix polygon doesn't show
    const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
     buckets[range] = {
       color: colorScaler({ [metricLabel || fd.metric]: mid }),
