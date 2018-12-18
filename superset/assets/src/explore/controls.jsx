@@ -2281,5 +2281,38 @@ export const controls = {
     description: t('Whether to normalize the histogram'),
     default: false,
   },
+
+  forecasting_enable: {
+    type: 'CheckboxControl',
+    label: t('Enable forecasting'),
+    renderTrigger: true,
+    description: t('Enable forecasting for the current data'),
+    default: false,
+  },
+
+  forecasting_horizon: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer, v.nonEmpty],
+    renderTrigger: false,
+    default: (props) => {
+      console.log('PROPS', props);
+      return 2;
+    },
+    label: t('Confidence'),
+    description: t('Forecasting horizon confidence'),
+    mapStateToProps: state => state,
+  },
+
+  forecasting_interval: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer, v.nonEmpty],
+    renderTrigger: false,
+    default: 2,
+    label: t('Confidence'),
+    description: t('Forecasting horizon confidence'),
+  },
+
 };
 export default controls;

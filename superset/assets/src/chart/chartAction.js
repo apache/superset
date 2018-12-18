@@ -10,6 +10,61 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
 
+const forecastingSeries = [
+  'forecasting:forecast',
+  'forecasting:lower',
+  'forecasting:upper',
+];
+
+const forecastingX = 1443682800000;
+const forecastingValues = {
+  'forecasting:forecast': 32.23,
+  'forecasting:lower': 15,
+  'forecasting:upper': 47,
+};
+
+const ACTION_PLUGINS = {
+  CHART_UPDATE_SUCCEEDED: [
+    {
+      mutator: response => {
+        // if (data)
+        const { form_data = {}, data = []} = response;
+        const series = data[0];
+        let newData = [...data];
+
+        if (series && form_data.forecasting_enable) {
+          const { values } = series;
+          if (values.length > 0) {
+            const lastActualSeriesPoint = series.values[series.values.length - 1];
+            // create forecasting series placeholder values
+            newData = forecastingSeries.reduce((allSeries, key) => [
+                ...allSeries,
+                {
+                  key,
+                  values: values.map(({ x }, index) => ({
+                    x,
+                    y: index === values.length - 1 ? lastActualSeriesPoint.y : null,
+                  })),
+                },
+              ], newData);
+
+            // for each series create a fake value having the same value as the previous one
+            newData = newData.map(track => ({
+              key: track.key,
+              values: [...track.values, { x: forecastingX, y: track.key.includes('forecasting') ? forecastingValues[track.key] : null }],
+            }));
+          }
+        }
+
+        return Promise.resolve({
+          ...response,
+          data: newData,
+        });
+      },
+    },
+  ],
+};
+
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
   return { type: CHART_UPDATE_STARTED, queryController, latestQueryFormData, key };
@@ -17,7 +72,16 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
 export function chartUpdateSucceeded(queryResponse, key) {
-  return { type: CHART_UPDATE_SUCCEEDED, queryResponse, key };
+  return function (dispatch) {
+
+    // loop through plugins ? what about chaining
+    // retrieve all plugins
+
+    const { mutator } = ACTION_PLUGINS.CHART_UPDATE_SUCCEEDED[0];
+    mutator(queryResponse).then((data) => {
+      dispatch({ type: CHART_UPDATE_SUCCEEDED, queryResponse: data, key });
+    });
+  };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
@@ -40,6 +104,7 @@ export function chartRenderingFailed(error, key, stackTrace) {
   return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
 }
 
+// TODO: this is where we receive data
 export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
 export function chartRenderingSucceeded(key) {
   return { type: CHART_RENDERING_SUCCEEDED, key };
@@ -139,6 +204,7 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
+// TODO: this is where we run queries
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
@@ -180,6 +246,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
           has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
           viz_type: formData.viz_type,
         });
+        // TODO: this is where we update data
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {

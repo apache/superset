@@ -36,6 +36,15 @@ export default {
     },
     NVD3TimeSeries[1],
     annotations,
+    {
+      label: t('Forecasting options'),
+      expanded: false,
+      controlSetRows: [
+        ['forecasting_enable'],
+        ['forecasting_horizon'],
+        ['forecasting_interval'],
+      ],
+    },
   ],
   controlOverrides: {
     x_axis_format: {
