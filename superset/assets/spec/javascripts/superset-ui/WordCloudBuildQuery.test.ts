@@ -3,8 +3,9 @@ import buildQuery from 'src/visualizations/wordcloud/buildQuery';
 describe('WordCloud buildQuery', () => {
   const formData = {
     datasource: '5__table',
-    granularity_sqla: 'ds',
+    granularity: 'ds',
     series: 'foo',
+    metric: 'simpleMetric',
   };
 
   it('should build groupby with series in form data', () => {
