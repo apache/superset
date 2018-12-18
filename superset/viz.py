@@ -1814,8 +1814,11 @@ class FilterBoxViz(BaseViz):
         groupby = self.form_data.get('groupby')
         if len(groupby) < 1 and not self.form_data.get('date_filter'):
             raise Exception(_('Pick at least one filter field'))
-        qry['metrics'] = [
-            self.form_data['metric']]
+        metric = {
+            'label': self.form_data['metric'],
+            'expressionType': 'BUILTIN',
+        }
+        qry['metrics'] = [metric]
         return qry
 
     def get_data(self, df):
