@@ -12,7 +12,7 @@ echo "[completed python build steps]"
 flask run -p 8081 --with-threads --reload --debugger &
 
 #block on the longer running javascript process
-time npm install
+time npm ci
 time npm run build
 echo "[completed js build steps]"
 

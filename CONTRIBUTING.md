@@ -261,8 +261,8 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# Install dependencies
-npm install
+# Install dependencies from `package-lock.json`
+npm ci
 ```
 
 #### Building
@@ -324,7 +324,7 @@ tox -e flake8
 
 # for javascript
 cd superset/assets
-npm install
+npm ci
 npm run lint
 ```
 
@@ -368,7 +368,6 @@ We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test
 
 ```bash
 cd superset/assets
-npm install
 npm run test
 ```
 

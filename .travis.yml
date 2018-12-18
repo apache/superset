@@ -54,7 +54,7 @@ jobs:
       before_install:
         - cd superset/assets
       install:
-        - npm install
+        - npm ci
       script:
         - npm run lint
         - npm run cover
