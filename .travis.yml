@@ -50,6 +50,7 @@ jobs:
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
     - language: node_js
       node_js: 8.9
+      env: TOXENV=javascript
       cache:
       before_install:
         - cd superset/assets
