@@ -45,7 +45,7 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from .base import (
     api, BaseSupersetView,
-    check_ownership,
+    check_ownership, get_user_roles,
     CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
     get_error_msg, handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
@@ -123,7 +123,7 @@ class DashboardFilter(SupersetFilter):
                                   Slice.perm.in_(list(datasource_perms))))
         )
 
-        if not g.user.is_anonymous():
+        if not g.user.is_anonymous:
             users_favorite_dash_query = (
                 db.session.query(Favorites.obj_id)
                 .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
@@ -2117,12 +2117,14 @@ class Superset(BaseSupersetView):
         session = db.session()
         Dashboard = models.Dashboard  # noqa
         dash = session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        admin_role = session.query(ab_models.Role).filter(ab_models.Role.name == 'Admin').one_or_none()
+        edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
 
         if action == 'select' or action == 'unselect':
-            if not g.user.is_authenticated():
+            if not g.user.is_authenticated:
                 return json_error_response('ERROR: user is not authenticated', status=401)
 
-            if not is_owner(dash, g.user):
+            if not edit_perm:
                 return json_error_response('ERROR: "{0}" cannot alter dashboard "{1}"'
                                            .format(g.user.username, dash.dashboard_title),
                                            status=403)

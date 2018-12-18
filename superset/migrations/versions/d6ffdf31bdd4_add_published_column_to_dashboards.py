@@ -1,7 +1,7 @@
-"""empty message
+"""Add published column to dashboards
 
 Revision ID: d6ffdf31bdd4
-Revises: 55e910a74826
+Revises: 6c7537a6004a
 Create Date: 2018-03-30 14:00:44.929483
 
 """

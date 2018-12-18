@@ -102,8 +102,9 @@ export const SAVE_PUBLISHED = 'SAVE_PUBLISHED';
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
     const urlSuffix = isPublished ? 'select' : 'unselect';
-    const url = `${PUBLISHED_BASE_URL}/${id}/published/${urlSuffix}/`;
-    $.get(url)
+    return SupersetClient.get({
+      endpoint: `${PUBLISHED_BASE_URL}/${id}/published/${urlSuffix}/`,
+    })
       .fail(() => {
         dispatch(
           addDangerToast(
@@ -111,7 +112,7 @@ export function savePublished(id, isPublished) {
           ),
         );
       })
-      .done(() => {
+      .then(() => {
         const nowPublished = isPublished ? 'published' : 'hidden';
         dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
         dispatch(togglePublished(isPublished));
@@ -122,8 +123,9 @@ export function savePublished(id, isPublished) {
 export const FETCH_PUBLISHED = 'FETCH_PUBLISHED';
 export function fetchPublished(id) {
   return function fetchPublishedThunk(dispatch) {
-    const url = `${PUBLISHED_BASE_URL}/${id}/published/get`;
-    $.get(url).done(data => dispatch(togglePublished(data.published)));
+    return SupersetClient.get({
+      endpoint: `${PUBLISHED_BASE_URL}/${id}/published/get`,
+    }).then(data => dispatch(togglePublished(data.published)));
   };
 }
 

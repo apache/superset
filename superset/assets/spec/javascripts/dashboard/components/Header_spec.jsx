@@ -64,7 +64,7 @@ describe('Header', () => {
 
     it('should render the PublishedStatus', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).to.have.lengthOf(1);
+      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
     });
 
     it('should render the FaveStar', () => {
@@ -101,7 +101,7 @@ describe('Header', () => {
 
     it('should render the PublishedStatus', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).to.have.lengthOf(1);
+      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
     });
 
     it('should render the FaveStar', () => {
@@ -143,7 +143,7 @@ describe('Header', () => {
 
     it('should render the PublishedStatus', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(PublishedStatus)).to.have.lengthOf(1);
+      expect(wrapper.find(PublishedStatus)).toHaveLength(1);
     });
 
     it('should render the HeaderActionsDropdown', () => {

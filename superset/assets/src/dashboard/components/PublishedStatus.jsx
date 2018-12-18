@@ -1,48 +1,99 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from '../../components/TooltipWrapper';
-import { t } from '../../locales';
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   fetchPublished: PropTypes.func.isRequired,
   isPublished: PropTypes.bool.isRequired,
+  savePublished: PropTypes.func.isRequired,
+  canEdit: PropTypes.bool.isRequired,
+  canSave: PropTypes.bool.isRequired,
+};
+
+const draftTooltip =
+  'This dashboard is not published which means it will not show up in the list of dashboards.' +
+  ' Favorite it to see it there or access it by using the URL directly. Click here to publish the dashboard.';
+
+const publishedTooltip =
+  'This dashboard is published. Click to make it a draft.';
+
+const divStyle = {
+  border: '1px dotted black',
+  backgroundColor: '#F9F9F9',
+  padding: '3px 7px 3px 7px',
+  fontFamily: 'Monospace',
+  fontSize: '15px',
 };
 
 export default class PublishedStatus extends React.Component {
   componentDidMount() {
+    this.togglePublished = this.togglePublished.bind(this);
     this.init = false;
     Promise.resolve(this.props.fetchPublished(this.props.dashboardId)).then(
       (this.init = true),
     );
   }
 
+  togglePublished() {
+    this.props.savePublished(this.props.dashboardId, !this.props.isPublished);
+  }
+
   render() {
-    const divStyle = {
-      border: '1px dotted black',
-      'background-color': '#F9F9F9',
-      padding: '3px 7px 3px 7px',
-      'font-family': 'Monospace',
-      'font-size': '15px',
-    };
-
-    const tooltip =
-      'This dashboard is not published which means it will not show up in the list of dashboards.' +
-      ' Favorite it to see it there or access it by using the URL directly.';
-
+    // Show everybody the draft badge
     if (!this.props.isPublished && this.init) {
+      if (this.props.canEdit && this.props.canSave) {
+        return (
+          <TooltipWrapper
+            label="Unpublished Dashboard"
+            placement="bottom"
+            tooltip={t(draftTooltip)}
+          >
+            <button
+              style={divStyle}
+              onClick={() => {
+                this.togglePublished();
+              }}
+            >
+              Draft
+            </button>
+          </TooltipWrapper>
+        );
+      }
       return (
         <TooltipWrapper
           label="Unpublished Dashboard"
           placement="bottom"
-          tooltip={t(tooltip)}
+          tooltip={t(draftTooltip)}
         >
-          <div style={divStyle}>DRAFT</div>
+          <div style={divStyle}>Draft</div>
         </TooltipWrapper>
       );
     }
 
-    return null; // Don't show anything for this dashboard if it's published
+    // Show the published badge for the owner of the dashboard to toggle
+    else if (this.props.canEdit && this.props.canSave) {
+      return (
+        <TooltipWrapper
+          label="Published Dashboard"
+          placement="bottom"
+          tooltip={t(publishedTooltip)}
+        >
+          <button
+            style={divStyle}
+            onClick={() => {
+              this.togglePublished();
+            }}
+          >
+            Published
+          </button>
+        </TooltipWrapper>
+      );
+    }
+
+    // Don't show anything if one doesn't own the dashboard and it is published
+    return null;
   }
 }
 
