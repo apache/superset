@@ -8,8 +8,9 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
+from sqlalchemy import create_engine
 import simplejson as json
-from superset import appbuilder, db, security_manager, utils
+from superset import app, appbuilder, db, security_manager, utils
 from superset.connectors.sqla.models import Alert, SqlaTable
 from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
@@ -411,9 +412,8 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         self.update_redirect()
 
     def get_deployment_names(self):
-        from sqlalchemy import create_engine
         deployments = set()
-        presto_engine = create_engine('presto://localhost:3894')
+        presto_engine = create_engine(app.config.get('PRESTO_ENGINE_URI'))
         presto_connection = presto_engine.connect()
         query = 'SHOW CATALOGS'
         try:

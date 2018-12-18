@@ -317,6 +317,7 @@ export default class AddAlertContainer extends React.Component {
                   onChange={this.handleAlertFieldChange.bind(this)}
                 />
               </label>
+              <p className="text-muted">Required for "Send to Datadog for alerting" execution type</p>
             </div>
             <hr />
             <div>
