@@ -35,7 +35,7 @@ const defaultProps = {
 export default class AddAlertContainer extends React.Component {
   constructor(props) {
     super(props);
-    let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing, deployment;
+    let edit, editId, name, datasourceId, datasourceValue, params, interval, description, isEditing, deployment, alertField;
     let tags = [];
     let execution = 'alert';
     const selectedItems = [];
@@ -62,6 +62,7 @@ export default class AddAlertContainer extends React.Component {
       description = edit.description;
       execution = edit.execution;
       deployment = edit.deployment;
+      alertField = edit.alert_field;
       datasourceValue = props.datasources.find(query => query.value.startsWith(datasourceId));
       tags = edit.tags.split(',');
     }
@@ -83,6 +84,7 @@ export default class AddAlertContainer extends React.Component {
       selectedItems,
       execution,
       deployment,
+      alertField,
       parsedJSON: null,
       isValid: true,
       newTag: '',
@@ -121,6 +123,10 @@ export default class AddAlertContainer extends React.Component {
     this.setState({name: event.target.value});
   }
 
+  handleAlertFieldChange(event) {
+    this.setState({alertField: event.target.value});
+  }
+
   handleDescriptionChange(event) {
     this.setState({description: event.target.value});
   }
@@ -143,8 +149,8 @@ export default class AddAlertContainer extends React.Component {
 
   saveAlert() {
     // If “Send to Datadog” selected, then the “Alert Field” parameter is required.
-    if (this.state.execution === 'alert' && this.state.params.indexOf('alert_field') === -1) {
-      alert('"alert_field" is required in the params')
+    if (this.state.execution === 'alert' && !this.state.alertField) {
+      alert('Please specify an alert field if using the "Send to Datadog for alerting" execution type')
       return
     }
     const data = {
@@ -156,6 +162,7 @@ export default class AddAlertContainer extends React.Component {
       execution: this.state.execution,
       description: this.state.description,
       deployment: this.state.deployment,
+      alert_field: this.state.alertField,
       tags: this.state.selectedItems.map((tag) => tag.label).join(','),
     };
     this.sendPostRequest(data)
@@ -288,6 +295,28 @@ export default class AddAlertContainer extends React.Component {
                 value={this.state.description}
                 onChange={this.handleDescriptionChange.bind(this)}
               />
+            </div>
+            <hr />
+            <div>
+              <p>Alert field</p>
+              <label>
+                <input
+                  type="text"
+                  placeholder="Specify an alert field"
+                  style={{
+                    marginRight: 20,
+                    width: 300,
+                    height: 30,
+                    borderRadius: 4,
+                    borderStyle: "solid",
+                    borderColor: "#d2d2d2",
+                    borderWidth: "1",
+                    padding: 10
+                  }}
+                  value={this.state.alertField}
+                  onChange={this.handleAlertFieldChange.bind(this)}
+                />
+              </label>
             </div>
             <hr />
             <div>

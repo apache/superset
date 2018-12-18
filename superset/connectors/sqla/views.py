@@ -399,6 +399,7 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
                         'tags': alert.tags,
                         'description': alert.description,
                         'deployment': alert.deployment,
+                        'alert_field': alert.alert_field,
                     }
                 }),
             )
@@ -411,19 +412,22 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
 
     def get_deployment_names(self):
         from sqlalchemy import create_engine
-        deployments = []
+        deployments = set()
         presto_engine = create_engine('presto://localhost:3894')
         presto_connection = presto_engine.connect()
         query = 'SHOW CATALOGS'
         try:
             results = presto_connection.execute(query)
+            deployments.add({'value': 'all_deployments', 'label': 'all_deployments'})
             for row in results:
                 deployment = row['Catalog']
                 if '_mysql' in deployment:
                     deployment = deployment.split('_mysql')[0]
-                deployments.append(deployment)
+                deployments.add({'value': deployment, 'label': deployment})
+            deployments = list(deployments)
         except:
             deployments = [
+                {'value': 'all_deployments', 'label': 'all_deployments'},
                 {'value': 'dignity', 'label': 'dignity'},
                 {'value': 'ech', 'label': 'ech'},
                 {'value': 'emory', 'label': 'emory'},
