@@ -5,6 +5,5 @@ npm --version
 node --version
 npm ci
 npm run lint
-npm run test
+npm run cover  # this also runs the tests, so no need to 'npm run test'
 npm run build
-npm run cover
