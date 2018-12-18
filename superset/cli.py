@@ -112,7 +112,7 @@ def runserver(debug, console_log, use_reloader, address, port, timeout, workers,
         logging.info(
             "The Gunicorn 'superset runserver' command is deprecated. Please "
             "use the 'gunicorn' command instead.")
-        addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
+        addr_str = f' unix:{socket} ' if socket else f' {address}:{port} '
         cmd = (
             'gunicorn '
             f'-w {workers} '
