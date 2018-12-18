@@ -212,7 +212,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     return Promise.all([
       queryPromise,
       dispatch(triggerQuery(false, key)),
-      dispatch(updateQueryFormData(payload, key)),
+      dispatch(updateQueryFormData(payload.form_data, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
   };
