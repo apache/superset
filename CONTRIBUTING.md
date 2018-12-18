@@ -153,7 +153,8 @@ and start a simple web server so we can check out the docs in a browser:
 
 ```bash
 cd docs/_build/html
-python -m SimpleHTTPServer
+python -m http.server # Python2 users should use SimpleHTTPServer
+
 ```
 
 This will start a small Python web server listening on port 8000. Point your
