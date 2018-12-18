@@ -189,6 +189,7 @@ def execute_sql(
                 query.schema,
                 user_name,
                 __name__,
+                security_manager,
             )
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
         logging.info('Handling cursor')
