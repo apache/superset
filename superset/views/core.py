@@ -641,6 +641,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         return redirect(
             '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
 
+    @log_this
+    @has_access
     @expose('/export_dashboards_form')
     def download_dashboards(self):
         if request.args.get('action') == 'go':
@@ -741,6 +743,7 @@ class KV(BaseSupersetView):
     """Used for storing and retrieving key value pairs"""
 
     @log_this
+    @has_access_api
     @expose('/store/', methods=['POST'])
     def store(self):
         try:
@@ -755,6 +758,7 @@ class KV(BaseSupersetView):
             status=200)
 
     @log_this
+    @has_access_api
     @expose('/<key_id>/', methods=['GET'])
     def get_value(self, key_id):
         kv = None
@@ -783,7 +787,8 @@ class R(BaseSupersetView):
             return redirect('/')
 
     @log_this
-    @expose('/shortner/', methods=['POST', 'GET'])
+    @has_access_api
+    @expose('/shortner/', methods=['POST'])
     def shortner(self):
         url = request.form.get('data')
         obj = models.Url(url=url)
@@ -793,12 +798,6 @@ class R(BaseSupersetView):
             '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
                 scheme=request.scheme, request=request, obj=obj),
             mimetype='text/plain')
-
-    @expose('/msg/')
-    def msg(self):
-        """Redirects to specified url while flash a message"""
-        flash(Markup(request.args.get('msg')), 'info')
-        return redirect(request.args.get('url'))
 
 
 appbuilder.add_view_no_menu(R)
@@ -2083,6 +2082,7 @@ class Superset(BaseSupersetView):
             [{'slice_id': slc.id, 'slice_name': slc.slice_name}
              for slc in slices]))
 
+    @has_access_api
     @expose('/favstar/<class_name>/<obj_id>/<action>/')
     def favstar(self, class_name, obj_id, action):
         """Toggle favorite stars on Slices and Dashboard"""
@@ -2677,6 +2677,7 @@ class Superset(BaseSupersetView):
         security_manager.assert_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
+    @has_access_api
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
         """Get the updated queries."""
