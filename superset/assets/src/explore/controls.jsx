@@ -2296,7 +2296,6 @@ export const controls = {
     validators: [v.integer, v.nonEmpty],
     renderTrigger: false,
     default: (props) => {
-      console.log('PROPS', props);
       return 2;
     },
     label: t('Confidence'),
@@ -2309,9 +2308,9 @@ export const controls = {
     isInt: true,
     validators: [v.integer, v.nonEmpty],
     renderTrigger: false,
-    default: 2,
-    label: t('Confidence'),
-    description: t('Forecasting horizon confidence'),
+    default: 80,
+    label: t('Confidence %'),
+    description: t('Forecasting horizon confidence in %'),
   },
 
 };
