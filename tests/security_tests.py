@@ -1,4 +1,6 @@
-from superset import app, security_manager
+import inspect
+
+from superset import app, appbuilder, security_manager
 from .base_tests import SupersetTestCase
 
 
@@ -11,9 +13,6 @@ def get_perm_tuples(role_name):
 
 class RolePermissionTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    def __init__(self, *args, **kwargs):
-        super(RolePermissionTests, self).__init__(*args, **kwargs)
 
     def assert_can_read(self, view_menu, permissions_set):
         self.assertIn(('can_show', view_menu), permissions_set)
@@ -216,3 +215,34 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
+
+    def test_views_are_secured(self):
+        """Preventing the addition of unsecured views without has_access decorator"""
+        # These FAB views are secured in their body as opposed to by decorators
+        method_whitelist = ('action', 'action_post')
+        # List of redirect & other benign views
+        views_whitelist = [
+            ['MyIndexView', 'index'],
+            ['UtilView', 'back'],
+            ['LocaleView', 'index'],
+            ['AuthDBView', 'login'],
+            ['AuthDBView', 'logout'],
+            ['R', 'index'],
+            ['Superset', 'log'],
+            ['Superset', 'theme'],
+            ['Superset', 'welcome'],
+        ]
+        unsecured_views = []
+        for view_class in appbuilder.baseviews:
+            class_name = view_class.__class__.__name__
+            for name, value in inspect.getmembers(view_class, predicate=inspect.ismethod):
+                if (
+                        name not in method_whitelist and
+                        [class_name, name] not in views_whitelist and
+                        hasattr(value, '_urls') and
+                        not hasattr(value, '_permission_name')
+                ):
+                    unsecured_views.append((class_name, name))
+        if unsecured_views:
+            view_str = '\n'.join([str(v) for v in unsecured_views])
+            raise Exception(f'Some views are not secured:\n{view_str}')

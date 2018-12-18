@@ -129,7 +129,8 @@ class ImportExportTests(SupersetTestCase):
             id=dash_id).first()
 
     def get_dash_by_slug(self, dash_slug):
-        return db.session.query(models.Dashboard).filter_by(
+        sesh = db.session()
+        return sesh.query(models.Dashboard).filter_by(
             slug=dash_slug).first()
 
     def get_datasource(self, datasource_id):
@@ -195,6 +196,7 @@ class ImportExportTests(SupersetTestCase):
             json.loads(expected_slc.params), json.loads(actual_slc.params))
 
     def test_export_1_dashboard(self):
+        self.login('admin')
         birth_dash = self.get_dash_by_slug('births')
         export_dash_url = (
             '/dashboard/export_dashboards_form?id={}&action=go'
@@ -206,6 +208,7 @@ class ImportExportTests(SupersetTestCase):
             object_hook=utils.decode_dashboards,
         )['dashboards']
 
+        birth_dash = self.get_dash_by_slug('births')
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
@@ -223,6 +226,7 @@ class ImportExportTests(SupersetTestCase):
             self.get_table_by_name('birth_names'), exported_tables[0])
 
     def test_export_2_dashboards(self):
+        self.login('admin')
         birth_dash = self.get_dash_by_slug('births')
         world_health_dash = self.get_dash_by_slug('world_health')
         export_dash_url = (
@@ -236,12 +240,15 @@ class ImportExportTests(SupersetTestCase):
             )['dashboards'],
             key=lambda d: d.dashboard_title)
         self.assertEquals(2, len(exported_dashboards))
+
+        birth_dash = self.get_dash_by_slug('births')
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
             json.loads(exported_dashboards[0].json_metadata)['remote_id'],
         )
 
+        world_health_dash = self.get_dash_by_slug('world_health')
         self.assert_dash_equals(world_health_dash, exported_dashboards[1])
         self.assertEquals(
             world_health_dash.id,
