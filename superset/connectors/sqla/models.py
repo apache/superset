@@ -276,6 +276,8 @@ class Alert(Model, AuditMixinNullable):
     name = Column(String(250))
     tags = Column(Text)
     description = Column(Text)
+    deployment = Column(String(250))
+    alert_field = Column(String(250))
 
 
 class SqlaTable(Model, BaseDatasource):
