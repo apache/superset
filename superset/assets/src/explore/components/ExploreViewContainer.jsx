@@ -159,7 +159,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleShortcuts(action, event) {
-    console.log("Hi Val!")
     match(action)
     .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
     .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
