@@ -32,7 +32,7 @@ from flask_appbuilder import Model
 
 from flask_babel import lazy_gettext as _
 
-from elasticsearch5 import Elasticsearch
+from elasticsearch import Elasticsearch
 
 from superset import conf, db, import_util, utils, security_manager
 from superset.utils import flasher
