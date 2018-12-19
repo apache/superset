@@ -270,12 +270,12 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('changed_on')
     def changed_on_(self):
-        return Markup(
-            '<span class="no-wrap">{}</span>'.format(self.changed_on))
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
 
     @renders('changed_on')
     def modified(self):
-        return humanize.naturaltime(datetime.now() - self.changed_on)
+        time_str = humanize.naturaltime(datetime.now() - self.changed_on)
+        return Markup(f'<span class="no-wrap">{time_str}</span>')
 
 
 class QueryResult(object):
