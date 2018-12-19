@@ -24,5 +24,17 @@ export default {
       'forecasting:lower': 16.947618678010087,
       'forecasting:upper': 69.58136270540608,
     },
+    {
+      Datetime: '2015-10-04T22:00:00Z',
+      'forecasting:forecast': 37.50254738920206,
+      'forecasting:lower': 5.136441614219757,
+      'forecasting:upper': 69.86865316418437,
+    },
+    {
+      Datetime: '2015-10-04T07:00:00Z',
+      'forecasting:forecast': 42.617215165808275,
+      'forecasting:lower': 3.4214691866050586,
+      'forecasting:upper': 81.81296114501151,
+    },
   ],
 };
