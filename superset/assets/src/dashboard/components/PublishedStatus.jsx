@@ -28,7 +28,7 @@ const divStyle = {
   backgroundColor: '#F9F9F9',
   padding: '3px 7px 3px 7px',
   fontFamily: 'Monospace',
-  fontSize: '15px',
+  fontSize: '16px',
 };
 
 export default class PublishedStatus extends React.Component {

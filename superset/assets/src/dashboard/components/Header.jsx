@@ -209,7 +209,7 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <span className="favstar">
+          <span className="publish">
             <PublishedStatus
               dashboardId={dashboardInfo.id}
               fetchPublished={this.props.fetchPublished}
