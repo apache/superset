@@ -146,7 +146,7 @@
     "@types/react-dom": "^16.0.9",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
-    "babel-eslint": "7.2.3",
+    "babel-eslint": "^10.0.1",
     "babel-jest": "^23.6.0",
     "babel-loader": "^7.1.4",
     "babel-plugin-css-modules-transform": "^1.1.0",
