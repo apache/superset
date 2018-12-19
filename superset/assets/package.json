@@ -67,7 +67,6 @@
     "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",
     "classnames": "^2.2.5",
-    "core-js": "^2.6.0",
     "d3": "^3.5.17",
     "d3-array": "^1.2.4",
     "d3-cloud": "^1.2.1",
@@ -141,6 +140,7 @@
     "viewport-mercator-project": "^5.0.0"
   },
   "devDependencies": {
+    "@babel/polyfill": "^7.0.0",
     "@types/jest": "^23.3.5",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
@@ -153,7 +153,6 @@
     "babel-plugin-dynamic-import-node": "^1.2.0",
     "babel-plugin-lodash": "^3.3.4",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
-    "babel-polyfill": "^6.26.0",
     "babel-preset-airbnb": "^2.1.1",
     "babel-preset-env": "^1.7.0",
     "cache-loader": "^1.2.2",
