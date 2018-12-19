@@ -52,6 +52,8 @@ import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 
+import forecastingControls from '../forecasting/controls';
+
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
@@ -2282,36 +2284,7 @@ export const controls = {
     default: false,
   },
 
-  forecasting_enable: {
-    type: 'CheckboxControl',
-    label: t('Enable forecasting'),
-    renderTrigger: true,
-    description: t('Enable forecasting for the current data'),
-    default: false,
-  },
-
-  forecasting_horizon: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer, v.nonEmpty],
-    renderTrigger: false,
-    default: (props) => {
-      return 2;
-    },
-    label: t('Confidence'),
-    description: t('Forecasting horizon confidence'),
-    mapStateToProps: state => state,
-  },
-
-  forecasting_interval: {
-    type: 'TextControl',
-    isInt: true,
-    validators: [v.integer, v.nonEmpty],
-    renderTrigger: false,
-    default: 80,
-    label: t('Confidence %'),
-    description: t('Forecasting horizon confidence in %'),
-  },
+  ...forecastingControls,
 
 };
 export default controls;

@@ -1,6 +1,7 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import forecastingSection from '../../forecasting/sections';
 
 export default {
   requiresTime: true,
@@ -36,15 +37,7 @@ export default {
     },
     NVD3TimeSeries[1],
     annotations,
-    {
-      label: t('Forecasting options'),
-      expanded: false,
-      controlSetRows: [
-        ['forecasting_enable'],
-        ['forecasting_horizon'],
-        ['forecasting_interval'],
-      ],
-    },
+    forecastingSection,
   ],
   controlOverrides: {
     x_axis_format: {

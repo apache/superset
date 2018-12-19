@@ -12,7 +12,6 @@ const forecastingSeries = [
  * @returns {Promise<{[p: string]: *}>}
  */
 export const mutator = (response) => {
-  // if (data)
   const { form_data = {}, data = [] } = response;
 
   // we only perform forecasting on the first series
