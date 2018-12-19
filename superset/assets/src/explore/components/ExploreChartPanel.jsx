@@ -5,6 +5,7 @@ import { ParentSize } from '@vx/responsive';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
+import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -28,6 +29,7 @@ const propTypes = {
   chart: chartPropShape,
   errorMessage: PropTypes.node,
   triggerRender: PropTypes.bool,
+  hotKeys: PropTypes.object,
 };
 
 class ExploreChartPanel extends React.PureComponent {
@@ -64,6 +66,20 @@ class ExploreChartPanel extends React.PureComponent {
   }
 
   render() {
+    if (this.props.hotKeys) {
+      const {
+        EXPLORE
+      } = this.props.hotKeys;
+      let d = []
+      Object.keys(EXPLORE).forEach((k) => {
+        d.push({
+          name: k,
+          descr: EXPLORE[k],
+          key: EXPLORE[k],
+        })
+      })
+    }
+
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
       const standaloneClass = 'background-transparent';
@@ -91,10 +107,32 @@ class ExploreChartPanel extends React.PureComponent {
     return (
       <div className="chart-container">
         <Panel
-          style={{ height: this.props.height }}
+          // style={{ height: this.props.height }}
           header={header}
         >
           {this.renderChart()}
+          <div style={{
+            marginTop: -81,
+            zIndex: 100,
+            float: 'right',
+          }}
+          >
+            <Hotkeys
+              header="Keyboard shortcuts"
+              hotkeys={[
+                {
+                  name: 'runQuery1',
+                  descr: 'ctrl+r',
+                  key: 'ctrl+r',
+                },
+                {
+                  name: 'runQuery2',
+                  key: 'ctrl+r',
+                  descr: 'ctrl+enter',
+                },
+              ]}
+            />
+          </div>
         </Panel>
       </div>
     );

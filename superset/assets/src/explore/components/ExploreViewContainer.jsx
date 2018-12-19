@@ -278,6 +278,7 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
+        hotKeys={keymap}
       />
     );
   }
@@ -292,7 +293,7 @@ class ExploreViewContainer extends React.Component {
         handler={this.handleShortcuts}
         targetNodeSelector={'body'}
         global
-        style={{ outline: 'none' }}
+        className="Shortcuts"
       ><div
         id="explore-container"
         className="container-fluid"
@@ -329,43 +330,6 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-8">{this.renderChartContainer()}</div>
         </div>
       </div>
-        <span className="m-l-5">
-          <Hotkeys
-            header="Keyboard shortcuts"
-            hotkeys={[
-              {
-                name: 'runQuery1',
-                key: 'ctrl+r',
-                descr: 'Run query',
-                func: this.runQuery,
-              },
-              {
-                name: 'runQuery2',
-                key: 'ctrl+enter',
-                descr: 'Run query',
-                func: this.runQuery,
-              },
-              {
-                name: 'newTab',
-                key: 'ctrl+t',
-                descr: 'New tab',
-                func: () => {
-                  this.props.actions.addQueryEditor({
-                    ...this.props.queryEditor,
-                    title: t('Untitled Query'),
-                    sql: '',
-                  });
-                },
-              },
-              {
-                name: 'stopQuery',
-                key: 'ctrl+x',
-                descr: 'Stop query',
-                func: this.stopQuery,
-              },
-            ]}
-          />
-          </span>
       </Shortcuts>
     );
   }
