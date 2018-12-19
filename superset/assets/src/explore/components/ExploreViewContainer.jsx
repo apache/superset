@@ -171,7 +171,11 @@ class ExploreViewContainer extends React.Component {
 
   addHistory({ isReplace = false, title }) {
     const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
-    const longUrl = getExploreLongUrl({ formData: this.props.form_data, forceExplore: true });
+    const longUrl = getExploreLongUrl({
+      formData: this.props.form_data,
+      forceExplore: true,
+      allowOverflow: false,
+    });
     try {
       if (isReplace) {
         history.replaceState(payload, title, longUrl);
