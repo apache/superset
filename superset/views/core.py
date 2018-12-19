@@ -21,7 +21,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import and_, create_engine, MetaData, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -45,9 +45,9 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from .base import (
     api, BaseSupersetView,
-    check_ownership, get_user_roles,
-    CsvResponse, data_payload_response, DeleteMixin, generate_download_headers,
-    get_error_msg, handle_api_exception, json_error_response, json_success,
+    check_ownership, CsvResponse, data_payload_response, DeleteMixin,
+    generate_download_headers, get_error_msg, get_user_roles,
+    handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
@@ -2111,31 +2111,34 @@ class Superset(BaseSupersetView):
         session.commit()
         return json_success(json.dumps({'count': count}))
 
-    @expose('/dashboard/<dashboard_id>/published/<action>/')
-    def published(self, dashboard_id, action):
-        """Toggles published status on dashboards"""
+    @api
+    @has_access_api
+    @expose('/dashboard/<dashboard_id>/published/', methods=('GET', 'POST'))
+    def publish(self, dashboard_id):
+        """Gets and toggles published status on dashboards"""
         session = db.session()
         Dashboard = models.Dashboard  # noqa
-        dash = session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
-        admin_role = session.query(ab_models.Role).filter(ab_models.Role.name == 'Admin').one_or_none()
-        edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+        Role = ab_models.Role
+        dash = session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+        admin_role = session.query(Role).filter(Role.name == 'Admin').one_or_none()
 
-        if action == 'select' or action == 'unselect':
-            if not g.user.is_authenticated:
-                return json_error_response('ERROR: user is not authenticated', status=401)
+        if request.method == 'GET':
+            if dash:
+                return json_success(json.dumps({'published': dash.published}))
+            else:
+                return json_error_response("ERROR: cannot find dashboard {0}"
+                                           .format(dashboard_id), status=404)
 
+        else:
+            edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
             if not edit_perm:
                 return json_error_response('ERROR: "{0}" cannot alter dashboard "{1}"'
                                            .format(g.user.username, dash.dashboard_title),
                                            status=403)
 
-        if action == 'select':
-            dash.published = True
-        elif action == 'unselect':
-            dash.published = False
-
-        session.commit()
-        return json_success(json.dumps({'published': dash.published}))
+            dash.published = str(request.form['published']).lower() == 'true'
+            session.commit()
+            return json_success(json.dumps({'published': dash.published}))
 
     @has_access
     @expose('/dashboard/<dashboard_id>/')

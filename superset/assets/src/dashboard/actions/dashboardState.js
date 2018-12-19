@@ -92,40 +92,37 @@ export function saveFaveStar(id, isStarred) {
   };
 }
 
-const PUBLISHED_BASE_URL = '/superset/dashboard';
 export const TOGGLE_PUBLISHED = 'TOGGLE_PUBLISHED';
 export function togglePublished(isPublished) {
   return { type: TOGGLE_PUBLISHED, isPublished };
 }
 
-export const SAVE_PUBLISHED = 'SAVE_PUBLISHED';
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
-    const urlSuffix = isPublished ? 'select' : 'unselect';
-    return SupersetClient.get({
-      endpoint: `${PUBLISHED_BASE_URL}/${id}/published/${urlSuffix}/`,
+    return SupersetClient.post({
+      endpoint: `/superset/dashboard/${id}/published/`,
+      postPayload: { published: isPublished },
     })
-      .fail(() => {
+      .then(() => {
+        const nowPublished = isPublished ? 'published' : 'hidden';
+        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
+        dispatch(togglePublished(isPublished));
+      })
+      .catch(() => {
         dispatch(
           addDangerToast(
             t('You do not have permissions to edit this dashboard.'),
           ),
         );
-      })
-      .then(() => {
-        const nowPublished = isPublished ? 'published' : 'hidden';
-        dispatch(addSuccessToast(t(`This dashboard is now ${nowPublished}`)));
-        dispatch(togglePublished(isPublished));
       });
   };
 }
 
-export const FETCH_PUBLISHED = 'FETCH_PUBLISHED';
 export function fetchPublished(id) {
   return function fetchPublishedThunk(dispatch) {
     return SupersetClient.get({
-      endpoint: `${PUBLISHED_BASE_URL}/${id}/published/get`,
-    }).then(data => dispatch(togglePublished(data.published)));
+      endpoint: `/superset/dashboard/${id}/published/`,
+    }).then(data => dispatch(togglePublished(data.json.published)));
   };
 }
 

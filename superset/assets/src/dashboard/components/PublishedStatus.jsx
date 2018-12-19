@@ -12,9 +12,13 @@ const propTypes = {
   canSave: PropTypes.bool.isRequired,
 };
 
-const draftTooltip =
+const draftButtonTooltip =
+  'This dashboard is not published which means it will not show up in the list of dashboards. ' +
+  'Click here to publish this dashboard.';
+
+const draftDivTooltip =
   'This dashboard is not published which means it will not show up in the list of dashboards.' +
-  ' Favorite it to see it there or access it by using the URL directly. Click here to publish the dashboard.';
+  ' Favorite it to see it there or access it by using the URL directly.';
 
 const publishedTooltip =
   'This dashboard is published. Click to make it a draft.';
@@ -43,12 +47,13 @@ export default class PublishedStatus extends React.Component {
   render() {
     // Show everybody the draft badge
     if (!this.props.isPublished && this.init) {
+      // if they can edit the dash, make the badge a button
       if (this.props.canEdit && this.props.canSave) {
         return (
           <TooltipWrapper
             label="Unpublished Dashboard"
             placement="bottom"
-            tooltip={t(draftTooltip)}
+            tooltip={t(draftButtonTooltip)}
           >
             <button
               style={divStyle}
@@ -65,7 +70,7 @@ export default class PublishedStatus extends React.Component {
         <TooltipWrapper
           label="Unpublished Dashboard"
           placement="bottom"
-          tooltip={t(draftTooltip)}
+          tooltip={t(draftDivTooltip)}
         >
           <div style={divStyle}>Draft</div>
         </TooltipWrapper>
