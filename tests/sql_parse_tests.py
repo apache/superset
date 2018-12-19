@@ -369,3 +369,35 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {'a', 'b', 'c', 'd', 'e', 'f'},
             self.extract_tables(query))
+
+    def test_basic_breakdown_statements(self):
+        multi_sql = """
+        SELECT * FROM ab_user;
+        SELECT * FROM ab_user LIMIT 1;
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 2)
+        expected = [
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)
+
+    def test_messy_breakdown_statements(self):
+        multi_sql = """
+        SELECT 1;\t\n\n\n  \t
+        \t\nSELECT 2;
+        SELECT * FROM ab_user;;;
+        SELECT * FROM ab_user LIMIT 1
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 4)
+        expected = [
+            'SELECT 1',
+            'SELECT 2',
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)

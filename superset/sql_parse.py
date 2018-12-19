@@ -46,7 +46,14 @@ class ParsedQuery(object):
         return self.sql.strip(' \t\n;')
 
     def get_statements(self):
-        return [str(statement) for statement in self._parsed]
+        """Returns a list of SQL statements as strings, stripped"""
+        statements = []
+        for statement in self._parsed:
+            if statement:
+                sql = str(statement).strip(' \n;\t')
+                if sql:
+                    statements.append(sql)
+        return statements
 
     @staticmethod
     def __precedes_table_name(token_value):
