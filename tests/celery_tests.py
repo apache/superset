@@ -124,6 +124,7 @@ class CeleryTestCase(SupersetTestCase):
 
     def test_run_sync_query_cta(self):
         main_db = get_main_database(db.session)
+        backend = main_db.backend
         db_id = main_db.id
         tmp_table_name = 'tmp_async_22'
         self.drop_table_if_exists(tmp_table_name, main_db)
@@ -138,7 +139,7 @@ class CeleryTestCase(SupersetTestCase):
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
-        if main_db.backend != 'postgresql':
+        if backend != 'postgresql':
             # TODO This test won't work in Postgres
             results = self.run_sql(db_id, query2.select_sql, 'sdf2134')
             self.assertEquals(results['status'], 'success')
