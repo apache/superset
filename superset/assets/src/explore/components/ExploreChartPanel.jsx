@@ -70,7 +70,7 @@ class ExploreChartPanel extends React.PureComponent {
       const {
         EXPLORE
       } = this.props.hotKeys;
-      let d = []
+      let d = [];
       Object.keys(EXPLORE).forEach((k) => {
         d.push({
           name: k,
@@ -107,7 +107,7 @@ class ExploreChartPanel extends React.PureComponent {
     return (
       <div className="chart-container">
         <Panel
-          // style={{ height: this.props.height }}
+          style={{ height: this.props.height }}
           header={header}
         >
           {this.renderChart()}
