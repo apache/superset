@@ -2126,7 +2126,7 @@ class Superset(BaseSupersetView):
             if dash:
                 return json_success(json.dumps({'published': dash.published}))
             else:
-                return json_error_response("ERROR: cannot find dashboard {0}"
+                return json_error_response('ERROR: cannot find dashboard {0}'
                                            .format(dashboard_id), status=404)
 
         else:
