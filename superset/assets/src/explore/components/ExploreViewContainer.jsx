@@ -24,8 +24,8 @@ import Hotkeys from '../../components/Hotkeys';
 // Prolly need to move this to a global context
 const keymap = {
   EXPLORE: {
-    RUN: ['command+r'],
-    SAVE: ['command+s'],
+    RUN: ['ctrl+r', 'ctrl+enter'],
+    SAVE: ['ctrl+s'],
   },
 };
 const shortcutManager = new ShortcutManager(keymap);
@@ -159,7 +159,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleShortcuts(action, event) {
-
+    console.log("Hi Val!")
     match(action)
     .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
     .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
