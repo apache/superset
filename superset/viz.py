@@ -41,6 +41,8 @@ from superset import app, cache, get_css_manifest_files, utils
 from superset.exceptions import NullValueException, SpatialException
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
+from superset.models.helpers import has_kerberos_ticket
+
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -227,6 +229,9 @@ class BaseViz(object):
 
     def query_obj(self):
         """Building a query object"""
+
+        has_kerberos_ticket()
+        
         form_data = self.form_data
         gb = form_data.get('groupby') or []
         metrics = self.all_metrics or []

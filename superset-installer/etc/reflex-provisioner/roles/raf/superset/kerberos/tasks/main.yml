@@ -1,0 +1,45 @@
+# Cleanup existing oauth assets directory if any
+# This step is crossed out because in the asset directory we have other assets too and therefore we don't want to do a massive
+# clean up. The risk of this is old files might get left behind when do big changes.
+- name: Cleanup exisitng krb5 config directory "{{ superset_kerberos_config_dir }}}"
+  file:
+    path: "{{ superset_kerberos_config_dir }}"
+    state: absent
+
+- name: Create base krb5 config directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - "{{ superset_kerberos_config_dir }}"
+
+- name: Copy default krb5 config directory from "{{ superset_config_dir }}/default" to "{{ superset_kerberos_config_dir }}"
+  copy:
+    src: "{{ superset_config_dir }}/default/"
+    dest: "{{ superset_kerberos_config_dir }}"
+    owner: root
+    group: root
+    mode: 0644
+    
+# Define customer config directory
+- name: Create the krb5 config superset_krb5_config_customer_dir variable
+  local_action: stat path={{ superset_config_dir }}/customers/{{ site_customer_name }}
+  register: superset_krb5_config_customer_dir
+
+
+# copy customer asset images
+- name: Copy customer asset images from "{{ superset_krb5_config_customer_dir.stat.path }}" to "{{ superset_kerberos_config_dir }}"
+  copy:
+    src: "{{ superset_krb5_config_customer_dir.stat.path }}/"
+    dest: "{{ superset_kerberos_config_dir }}"
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - superset_krb5_config_customer_dir.stat.exists and superset_krb5_config_customer_dir.stat.isdir
+
+    

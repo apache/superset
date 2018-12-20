@@ -7,11 +7,15 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     HOME=/home/work
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
     libffi-dev python3-dev libsasl2-dev libldap2-dev \
-    libsasl2-modules
+    libsasl2-modules libsasl2-2 libsasl2-modules-gssapi-mit krb5-user
     
 RUN mkdir -p $HOME/incubator-superset
+
+RUN mkdir -p /etc/security/keytabs/
 
 WORKDIR $HOME/incubator-superset
 
@@ -35,9 +39,9 @@ ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH
 
 COPY docker-init.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-init.sh
+
+RUN chmod +x /usr/local/bin
 
 EXPOSE 8088
 
 ENTRYPOINT ["docker-init.sh"]
-

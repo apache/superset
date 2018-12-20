@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+
+  auth-kerberized.sh: |-
+    #!/bin/sh
+    
+    principalKey=`klist -tke /etc/security/keytabs/{{ superset_hive_keytab_name }} | grep '@' | awk -F' ' '{print $4}'|head -1`
+    kinit -kt /etc/security/keytabs/{{ superset_hive_keytab_name }} $principalKey
+
+kind: ConfigMap
+metadata:
+  name: superset-configmap
+  namespace: {{ superset_kube_namespace }}

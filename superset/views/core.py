@@ -37,6 +37,9 @@ from superset import (
     app, appbuilder, cache, db, results_backend, security_manager, sql_lab, utils,
     viz,
 )
+
+from superset.models.helpers import has_kerberos_ticket
+
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -254,6 +257,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
     def pre_update(self, db):
+        has_kerberos_ticket()
         self.pre_add(db)
 
     def _delete(self, pk):
@@ -1705,6 +1709,8 @@ class Superset(BaseSupersetView):
 
             if configuration:
                 connect_args['configuration'] = configuration
+
+            has_kerberos_ticket()
 
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()

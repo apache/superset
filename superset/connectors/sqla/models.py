@@ -28,7 +28,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import QueryResult
+from superset.models.helpers import QueryResult, has_kerberos_ticket
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
 
@@ -798,6 +798,7 @@ class SqlaTable(Model, BaseDatasource):
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
+            has_kerberos_ticket()
             table = self.get_sqla_table_object()
         except Exception:
             raise Exception(_(

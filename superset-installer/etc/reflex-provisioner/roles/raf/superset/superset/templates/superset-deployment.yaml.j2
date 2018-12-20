@@ -38,13 +38,34 @@ spec:
           value: "6379"
         - name: SUPERSET_ENV
           value: local
+        - name: IS_KERBEROS_ENABLED
+          value: "{{ superset_kerberos_enabled }}"
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
         - containerPort: 8088
           hostPort: {{ superset_host_port }}
         resources: {}
+        volumeMounts:
+         - name: superset-configmap-volume
+           mountPath: /usr/local/bin/auth-kerberized.sh
+           subPath: auth-kerberized.sh
+         - name: krb5-keytab-config-path
+           mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
+         - name: krb5-config-path
+           mountPath: /etc/{{ superset_krb5_conf_name }}
       restartPolicy: {{ superset_docker_restart_policy }}
+      volumes:
+        - name: superset-configmap-volume
+          configMap:
+            name: superset-configmap
+            defaultMode: 0755
+        - name: krb5-keytab-config-path
+          hostPath:
+            path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
+        - name: krb5-config-path
+          hostPath:
+            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }}  
       nodeSelector:
         master-nodes: "true"
 status: {}
