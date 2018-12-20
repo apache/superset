@@ -1,4 +1,4 @@
-import { ChartProps } from '../../src/models/ChartProps';
+import ChartProps from '../../src/models/ChartProps';
 
 const RAW_FORM_DATA = {
   some_field: 1,
