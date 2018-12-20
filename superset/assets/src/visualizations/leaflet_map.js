@@ -1,8 +1,12 @@
 import './leaflet_map.css';
 // todo: use types to avoid full path of libs
 import '../../node_modules/leaflet/dist/leaflet.css';
-import * as  L from '../../node_modules/leaflet/dist/leaflet.js';
 import * as turf from '@turf/turf';
+import * as L from '../../node_modules/leaflet/dist/leaflet.js';
+import * as esri from '../../node_modules/esri-leaflet/dist/esri-leaflet.js';
+
+
+
 
 /**
  * Leaflet Map Visualization
@@ -35,6 +39,7 @@ function leafletmap(slice, payload) {
     var tooltipColumns = formData.all_columns_x;
     var enableClick = formData.chart_interactivity;
     var showTooltip = formData.rich_tooltip;
+    var useEsriJS = formData.labels_outside;
 
     function getDefaultPolygonStyles() {
         return {
@@ -216,7 +221,17 @@ function leafletmap(slice, payload) {
             maxZoom: max_zoom
         }).setView([def_lat, def_long], def_zoom, {});
 
-        L.tileLayer(def_mapserver, {}).addTo(mapInstance);
+        if (useEsriJS) {
+            // todo:add auth token support if nay required
+            // handle error/show notification if wrong server pass
+            esri.tiledMapLayer({
+                url: def_mapserver,
+                minZoom: min_zoom,
+                maxZoom: max_zoom
+            }).addTo(mapInstance);
+        } else {
+            L.tileLayer(def_mapserver, {}).addTo(mapInstance);
+        }
     }
 
     function mapItemClick(event) {
