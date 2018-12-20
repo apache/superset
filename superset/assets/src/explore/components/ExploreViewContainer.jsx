@@ -295,7 +295,7 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        hotKeys={getHotKeys}
+        hotKeys={getHotKeys()}
       />
     );
   }

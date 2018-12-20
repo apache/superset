@@ -105,7 +105,7 @@ class ExploreChartPanel extends React.PureComponent {
           >
             <Hotkeys
               header="Keyboard shortcuts"
-              hotkeys={this.props.hotKeys()}
+              hotkeys={this.props.hotKeys}
             />
           </div>
         </Panel>
