@@ -49,6 +49,7 @@ config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
+from superset.models.helpers import has_kerberos_ticket
 
 PASSWORD_MASK = 'X' * 10
 
