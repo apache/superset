@@ -1715,6 +1715,13 @@ class LeafletViz(BaseViz):
         fd = self.form_data
 
         d['columns'] = [fd.get('geojson'), fd.get('polygon')]
+
+        if (fd.get('all_columns_y') is not None ):
+            d['columns'].append(fd.get('all_columns_y'))
+
+        if (fd.get('latitude') is not None ):
+            d['columns'].append(fd.get('latitude'))
+
         if fd.get('adhoc_columns') is not None and len(fd.get('adhoc_columns')) > 0 :
             adhoc_columns = fd.get('adhoc_columns')
             extra_cols = []
@@ -1724,7 +1731,7 @@ class LeafletViz(BaseViz):
 
             d['columns'] += extra_cols
 
-        if fd.get('all_columns_x') is not None and len(fd.get('all_columns_x')) > 0 :  
+        if fd.get('all_columns_x') is not None and len(fd.get('all_columns_x')) > 0 :
               all_columns_x = fd.get('all_columns_x')
               d['columns'] += all_columns_x
 

@@ -5,10 +5,12 @@
 .active-layer{
     stroke-width:5 !important;
 }
-
-/** 
+.active-layer-canvas{
+  border: 1px solid red;
+}
+/**
  remove close button from tooltip
-*/ 
+*/
 .leaflet-popup-close-button{
   display: none;
 }
