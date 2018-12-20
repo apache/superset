@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import logging
 import re
+import subprocess
 
 from flask import escape, Markup
 from flask_appbuilder.models.decorators import renders
@@ -14,6 +15,7 @@ from sqlalchemy import and_, or_, UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
+import os
 
 from superset.utils.core import QueryStatus
 
@@ -26,6 +28,31 @@ def json_to_dict(json_str):
     else:
         return {}
 
+# the function will check if kerberos ticket is available 
+# there could be few of the cases where this function would be called
+# 1. When charts/dashboard query for hive data
+# 2. When hive data is being accessed with SQL queries via SQL editor
+# 3. When new datasource has to be added/updated
+# 4. When tables has to be added from existing datasource
+def has_kerberos_ticket():
+    IS_KERBEROS_ENABLED = get_env_variable('IS_KERBEROS_ENABLED')
+    # check if ticket is still valid, if not then 
+    # call a shell sricpt which will make a connection to kerberos cluster
+    if IS_KERBEROS_ENABLED is not None and subprocess.call(['klist', '-s']) == 0:
+        subprocess.call(['/usr/local/bin/auth-kerberized.sh'])
+
+def get_env_variable(var_name, default=None):
+    """Get the environment variable or raise exception."""
+    try:
+        if var_name in os.environ:
+            return os.environ[var_name]
+    except KeyError:
+        if default is not None:
+            return default
+        else:
+            error_msg = 'The environment variable {} was missing, abort...'\
+                        .format(var_name)
+            raise EnvironmentError(error_msg)
 
 class ImportMixin(object):
     export_parent = None

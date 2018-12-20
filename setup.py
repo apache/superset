@@ -79,7 +79,7 @@ setup(
         'pathlib2',
         'polyline',
         'pydruid>=0.4.3',
-        'pyhive>=0.4.0',
+        'pyhive>=0.6.0',
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.13',

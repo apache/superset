@@ -874,6 +874,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def inspector(self):
+        has_kerberos_ticket()
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
