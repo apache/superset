@@ -6,6 +6,7 @@ import { Panel } from 'react-bootstrap';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
+import EditableTitle from '../../components/EditableTitle';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -35,6 +36,24 @@ class ExploreChartPanel extends React.PureComponent {
   getHeight() {
     const headerHeight = this.props.standalone ? 0 : 100;
     return parseInt(this.props.height, 10) - headerHeight;
+  }
+
+  updateChartDescriptionOrSaveSlice(newDescription) {
+    const isNewDescription = !this.props.slice;
+    const params = {
+      description: newDescription,
+      action: isNewDescription ? 'saveas' : 'overwrite',
+    };
+    this.props.actions.saveSlice(this.props.form_data, params)
+      .then((data) => {
+        if (isNewDescription) {
+          this.props.actions.createNewSlice(
+            data.can_add, data.can_download, data.can_overwrite,
+            data.slice, data.form_data);
+        } else {
+          this.props.actions.updateChartDescription(newDescription);
+        }
+      });
   }
 
   renderChart() {
@@ -68,6 +87,16 @@ class ExploreChartPanel extends React.PureComponent {
     );
   }
 
+  renderChartDescription() {
+    let description;
+    if (this.props.slice) {
+      description = this.props.slice.description;
+    } else {
+      description = t('%s - chart description', this.props.table_name);
+    }
+    return description;
+  }
+
   render() {
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
@@ -95,6 +124,12 @@ class ExploreChartPanel extends React.PureComponent {
           header={header}
         >
           {this.renderChart()}
+          <EditableTitle
+            style={{ color: "#00A699" }}
+            title={this.renderChartDescription()}
+            canEdit={!this.props.slice || this.props.can_overwrite}
+            onSaveTitle={this.updateChartDescriptionOrSaveSlice.bind(this)}
+          />
         </Panel>
       </div>
     );

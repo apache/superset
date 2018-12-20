@@ -140,7 +140,7 @@ export default class EditableTitle extends React.PureComponent {
         <TooltipWrapper
           label="title"
           tooltip={this.props.canEdit ? t('click to edit') :
-              this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
+              this.props.noPermitTooltip || t('You don\'t have the rights to alter this.')}
         >
           {input}
         </TooltipWrapper>

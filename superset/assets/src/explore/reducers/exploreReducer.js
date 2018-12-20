@@ -99,6 +99,13 @@ export default function exploreReducer(state = {}, action) {
         slice: updatedSlice,
       };
     },
+    [actions.UPDATE_CHART_DESCRIPTION]() {
+      const updatedSlice = Object.assign({}, state.slice, { description: action.description });
+      return {
+        ...state,
+        slice: updatedSlice,
+      };
+    },
     [actions.RESET_FIELDS]() {
       return {
         ...state,
