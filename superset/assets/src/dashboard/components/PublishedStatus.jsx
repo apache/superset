@@ -34,10 +34,7 @@ const divStyle = {
 export default class PublishedStatus extends React.Component {
   componentDidMount() {
     this.togglePublished = this.togglePublished.bind(this);
-    this.init = false;
-    Promise.resolve(this.props.fetchPublished(this.props.dashboardId)).then(
-      (this.init = true),
-    );
+    this.props.fetchPublished(this.props.dashboardId);
   }
 
   togglePublished() {
@@ -46,7 +43,7 @@ export default class PublishedStatus extends React.Component {
 
   render() {
     // Show everybody the draft badge
-    if (!this.props.isPublished && this.init) {
+    if (!this.props.isPublished) {
       // if they can edit the dash, make the badge a button
       if (this.props.canEdit && this.props.canSave) {
         return (
