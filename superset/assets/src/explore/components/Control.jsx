@@ -98,6 +98,9 @@ export default class Control extends React.PureComponent {
           hovered={this.state.hovered}
           {...this.props}
         />
+        <p style={{color: "#aaa"}}>
+          {this.props.name === 'datasource' ? this.props.datasource.description : null}
+        </p>
       </div>
     );
   }
