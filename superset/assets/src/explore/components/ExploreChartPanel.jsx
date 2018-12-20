@@ -98,6 +98,7 @@ class ExploreChartPanel extends React.PureComponent {
   }
 
   render() {
+    const isDescription = true;
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
       $('body').addClass('background-transparent');
@@ -127,6 +128,7 @@ class ExploreChartPanel extends React.PureComponent {
           <EditableTitle
             style={{ color: "#00A699" }}
             title={this.renderChartDescription()}
+            isDescription={isDescription}
             canEdit={!this.props.slice || this.props.can_overwrite}
             onSaveTitle={this.updateChartDescriptionOrSaveSlice.bind(this)}
           />
