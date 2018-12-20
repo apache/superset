@@ -19,19 +19,22 @@ export interface ChartPropsConfig {
   annotationData?: AnnotationData;
   datasource?: SnakeCaseDatasource;
   filters?: Filters;
-  formData: SnakeCaseFormData;
-  height: number;
+  formData?: SnakeCaseFormData;
+  height?: number;
   onAddFilter?: HandlerFunction;
   onError?: HandlerFunction;
-  payload: QueryData;
+  payload?: QueryData;
   setControlValue?: HandlerFunction;
   setTooltip?: HandlerFunction;
-  width: number;
+  width?: number;
 }
 
 function NOOP() {}
 
-export class ChartProps {
+const DEFAULT_WIDTH = 800;
+const DEFAULT_HEIGHT = 600;
+
+export default class ChartProps {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
@@ -48,20 +51,33 @@ export class ChartProps {
   setTooltip: HandlerFunction;
   width: number;
 
-  constructor(config: ChartPropsConfig) {
-    this.width = config.width;
-    this.height = config.height;
-    this.annotationData = config.annotationData || {};
-    this.datasource = convertKeysToCamelCase(config.datasource);
-    this.rawDatasource = config.datasource || {};
-    this.filters = config.filters || [];
-    this.formData = convertKeysToCamelCase(config.formData);
-    this.rawFormData = config.formData;
-    this.onAddFilter = config.onAddFilter || NOOP;
-    this.onError = config.onError || NOOP;
-    this.payload = config.payload;
-    this.setControlValue = config.setControlValue || NOOP;
-    this.setTooltip = config.setTooltip || NOOP;
+  constructor(config: ChartPropsConfig = {}) {
+    const {
+      annotationData = {},
+      datasource = {},
+      filters = [],
+      formData = {},
+      onAddFilter = NOOP,
+      onError = NOOP,
+      payload = {},
+      setControlValue = NOOP,
+      setTooltip = NOOP,
+      width = DEFAULT_WIDTH,
+      height = DEFAULT_HEIGHT,
+    } = config;
+    this.width = width;
+    this.height = height;
+    this.annotationData = annotationData;
+    this.datasource = convertKeysToCamelCase(datasource);
+    this.rawDatasource = datasource;
+    this.filters = filters;
+    this.formData = convertKeysToCamelCase(formData);
+    this.rawFormData = formData;
+    this.onAddFilter = onAddFilter;
+    this.onError = onError;
+    this.payload = payload;
+    this.setControlValue = setControlValue;
+    this.setTooltip = setTooltip;
   }
 }
 

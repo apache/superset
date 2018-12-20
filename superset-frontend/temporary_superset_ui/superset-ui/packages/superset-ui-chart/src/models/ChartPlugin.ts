@@ -1,6 +1,6 @@
 import { isRequired, Plugin } from '@superset-ui/core';
-import { ChartMetadata } from './ChartMetadata';
-import { ChartProps } from './ChartProps';
+import ChartMetadata from './ChartMetadata';
+import ChartProps from './ChartProps';
 import { FormData } from '../query/FormData';
 import { QueryContext } from '../query/buildQueryContext';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
@@ -11,7 +11,7 @@ import getChartTransformPropsRegistry from '../registries/ChartTransformPropsReg
 const IDENTITY = (x: any) => x;
 
 type PromiseOrValue<T> = Promise<T> | T;
-type PromiseOrValueLoader<T> = () => PromiseOrValue<T>;
+type PromiseOrValueLoader<T> = () => PromiseOrValue<T> | PromiseOrValue<{ default: T }>;
 
 export type BuildQueryFunction = (formData: FormData) => QueryContext;
 
@@ -37,7 +37,7 @@ export interface ChartPluginConfig {
   loadChart?: PromiseOrValueLoader<Function>;
 }
 
-export class ChartPlugin extends Plugin {
+export default class ChartPlugin extends Plugin {
   metadata: ChartMetadata;
   loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction>;
   loadTransformProps: PromiseOrValueLoader<TransformPropsFunction>;
@@ -67,7 +67,7 @@ export class ChartPlugin extends Plugin {
     }
   }
 
-  register(): ChartPlugin {
+  register() {
     const { key = isRequired('config.key') } = this.config;
     getChartMetadataRegistry().registerValue(key, this.metadata);
     getChartBuildQueryRegistry().registerLoader(key, this.loadBuildQuery);
@@ -77,7 +77,9 @@ export class ChartPlugin extends Plugin {
     return this;
   }
 
-  configure(config: { [key: string]: any }): ChartPlugin {
-    return super.configure(config);
+  configure(config: { [key: string]: any }, replace?: boolean) {
+    super.configure(config, replace);
+
+    return this;
   }
 }

@@ -1,4 +1,4 @@
-import { ChartMetadata } from '../../src/models/ChartMetadata';
+import ChartMetadata from '../../src/models/ChartMetadata';
 
 describe('ChartMetadata', () => {
   it('exists', () => {

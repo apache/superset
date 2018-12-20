@@ -12,7 +12,7 @@ export interface ChartMetadataConfig {
   thumbnail: string;
 }
 
-export class ChartMetadata {
+export default class ChartMetadata {
   name: string;
   credits: Array<string>;
   description: string;
