@@ -28,6 +28,23 @@ const keymap = {
     SAVE: ['ctrl+s'],
   },
 };
+
+const {
+  EXPLORE,
+} = keymap;
+
+const getHotKeys = () => {
+  const d = [];
+  Object.keys(EXPLORE).forEach((k) => {
+    d.push({
+      name: k,
+      descr: EXPLORE[k][0],
+      key: k,
+    });
+  });
+  return d;
+};
+
 const shortcutManager = new ShortcutManager(keymap);
 
 const propTypes = {
@@ -278,7 +295,7 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        hotKeys={keymap}
+        hotKeys={getHotKeys}
       />
     );
   }

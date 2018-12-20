@@ -66,20 +66,6 @@ class ExploreChartPanel extends React.PureComponent {
   }
 
   render() {
-    if (this.props.hotKeys) {
-      const {
-        EXPLORE
-      } = this.props.hotKeys;
-      let d = [];
-      Object.keys(EXPLORE).forEach((k) => {
-        d.push({
-          name: k,
-          descr: EXPLORE[k],
-          key: EXPLORE[k],
-        })
-      })
-    }
-
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
       const standaloneClass = 'background-transparent';
@@ -119,18 +105,7 @@ class ExploreChartPanel extends React.PureComponent {
           >
             <Hotkeys
               header="Keyboard shortcuts"
-              hotkeys={[
-                {
-                  name: 'runQuery1',
-                  descr: 'ctrl+r',
-                  key: 'ctrl+r',
-                },
-                {
-                  name: 'runQuery2',
-                  key: 'ctrl+r',
-                  descr: 'ctrl+enter',
-                },
-              ]}
+              hotkeys={this.props.hotKeys()}
             />
           </div>
         </Panel>
