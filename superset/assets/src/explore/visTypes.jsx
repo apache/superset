@@ -131,11 +131,18 @@ export const visTypes = {
           ['viewport_zoom', 'mapbox_style'],
           ['min_radius','max_radius'],
           ['chart_interactivity'],
+          ['labels_outside'],
           ['ranges'],
         ],
       },
     ],
     controlOverrides: {
+      labels_outside:{
+        label: t('Use Esri Leaflet'),
+        default: false,
+        renderTrigger: false,
+        description: t('Use Esri Leaflet Library to render tiles for ArcGIS Server'),
+      },
       rich_tooltip:{
         label: t('Show tooltip'),
         renderTrigger: false,
