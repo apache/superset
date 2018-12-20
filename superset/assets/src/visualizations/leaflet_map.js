@@ -4,9 +4,7 @@ import '../../node_modules/leaflet/dist/leaflet.css';
 import * as turf from '@turf/turf';
 import * as L from '../../node_modules/leaflet/dist/leaflet.js';
 import * as esri from '../../node_modules/esri-leaflet/dist/esri-leaflet.js';
-
-
-
+import * as GRAPHICON from './graphIcon.js';
 
 /**
  * Leaflet Map Visualization
@@ -175,8 +173,13 @@ function leafletmap(slice, payload) {
         if (showTooltip) {
             obj.tooltip = getPopupContent(data)
         }
+        if(formData.hasOwnProperty('all_columns_y') && formData.all_columns_y){
+          obj.direction = data[formData.all_columns_y];
+        }
 
-
+        if(formData.hasOwnProperty('latitude') && formData.latitude){
+          obj.markerValue = data[formData.latitude];
+        }
         return obj;
     }
 
@@ -242,27 +245,34 @@ function leafletmap(slice, payload) {
         }
     }
 
-    function mapItemClick(event) {
-
-        if (enableClick) {
-            var selections = [];
-            // remove previous selected layers except selected
-            Object.values(event.target._map._targets).forEach(element => {
-                if (element.hasOwnProperty('_path') && element._path.classList.contains('active-layer') && event.target._leaflet_id != element._leaflet_id) {
-                    element._path.classList.remove('active-layer');
-                }
-            });
-
-            if (event.target._path.classList.contains('active-layer')) {
-                event.target._path.classList.remove('active-layer');
-            } else {
-                event.target._path.classList.add('active-layer');
-                selections = [event.target.feature.properties.id];
-            }
-
-            slice.addFilter(formData.geojson, selections, false);
+    function getSelection(event, property, cssClass){
+      var selections = [];
+      // remove previous selected layers except selected
+      Object.values(event.target._map._targets).forEach(element => {
+        if (element.hasOwnProperty(property) && element[property].classList.contains(cssClass)
+          && event.target._leaflet_id != element._leaflet_id) {
+            element[property].classList.remove(cssClass);
         }
+      });
+      if (event.target[property].classList.contains(cssClass)) {
+        event.target[property].classList.remove(cssClass);
+      } else {
+        event.target[property].classList.add(cssClass);
+        selections = [event.target.feature.properties.id];
+      }
+      return selections;
+    }
 
+    function mapItemClick(event) {
+      if (enableClick) {
+          var selections = [];
+          if(event.target.hasOwnProperty('_path')){
+            selections = getSelection(event, '_path', 'active-layer')
+          } else if(event.target.hasOwnProperty('_icon')){
+            selections = getSelection(event, '_icon', 'active-layer-canvas');
+          }
+          slice.addFilter(formData.geojson, selections, false);
+      }
     }
 
     function getSelectedColorColumn() {
@@ -319,9 +329,21 @@ function leafletmap(slice, payload) {
                 }
             },
             pointToLayer: function (feature, latlng) {
-                var styles = getLayerStyles(feature)
-                styles.radius = MARKER_RADIUS;
-                return L.circleMarker(latlng, styles).on('click', mapItemClick);
+              var styles = getLayerStyles(feature)
+              styles.radius = MARKER_RADIUS;
+              var node;
+              if(feature.properties.hasOwnProperty('direction')){
+                var myIcon = new GRAPHICON.ENB({
+                  color: feature.properties[getSelectedColorColumn()].color,
+                  directionValue: feature.properties.direction,
+                  markerValue: feature.properties.markerValue,
+                  className: 'my-div-icon',
+                });
+                node = L.marker(latlng, { icon: myIcon }).on('click', mapItemClick);
+              } else {
+                node = L.circleMarker(latlng, styles).on('click', mapItemClick);
+              }
+              return node;
             },
         }).addTo(mapInstance);
     }
