@@ -10,8 +10,8 @@ import * as esri from '../../node_modules/esri-leaflet/dist/esri-leaflet.js';
 
 /**
  * Leaflet Map Visualization
- * @param {*} slice 
- * @param {*} payload 
+ * @param {*} slice
+ * @param {*} payload
  */
 function leafletmap(slice, payload) {
 
@@ -64,7 +64,7 @@ function leafletmap(slice, payload) {
 
     function setLayout() {
         const container = slice.container;
-        // fix of leaflet js :: error 
+        // fix of leaflet js :: error
         //An error occurred while rendering the visualization: Error: Map container is already initialized.
         var el = container.el;
         if (el && el._leaflet_id) {
@@ -75,7 +75,7 @@ function leafletmap(slice, payload) {
     }
 
     function createColorColumns() {
-        // todo: current object is AdhocFilter,so propertynames are not match as we need 
+        // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         colorCols = {}
         if (formData.adhoc_columns && formData.adhoc_columns.length > 0) {
@@ -116,8 +116,25 @@ function leafletmap(slice, payload) {
         }
     }
 
+    function getRangeValue(val, max, min) {
+      if(max - min === 0) {
+        return 1;
+      }
+      return (val - min) / (max - min);
+    }
+
+    function colourGradientor(lowValueColor,highValueColor,p,max,min){
+        var rangeValue = getRangeValue(p,parseInt(max),parseInt(min));
+        var rgb = {}
+        rgb.r = parseInt((highValueColor.r - lowValueColor.r) * rangeValue + lowValueColor.r)
+        rgb.g = parseInt((highValueColor.g - lowValueColor.g) * rangeValue + lowValueColor.g)
+        rgb.b = parseInt((highValueColor.b - lowValueColor.b) * rangeValue + lowValueColor.b)
+        rgb.a = parseInt((highValueColor.a - lowValueColor.a) * rangeValue + lowValueColor.a)
+        return 'rgb('+rgb.r +',' + rgb.g +',' +rgb.b +','+rgb.a + ')';
+    }
+
     function getColorForColumnVaule(colname, colvalue) {
-        // todo: current object is AdhocFilter,so propertynames are not match as we need 
+        // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         var col = colorCols[colname];
         var minValue = col['operator'];
@@ -125,23 +142,14 @@ function leafletmap(slice, payload) {
         var minValueClr = col['comparator'];
         var maxValueClr = col['clause'];
 
-        // if  minValueClr is r,g,b,a typed Object
-        if (minValueClr instanceof Object) {
-            minValueClr = getRgbColor(minValueClr);
-        }
-
-        // if  minValueClr is r,g,b,a typed Object
-        if (maxValueClr instanceof Object) {
-            maxValueClr = getRgbColor(maxValueClr);
-        }
-
         // todo: add algo to decrease /increase color intensity ad per value
-        var colclr = minValueClr;
-        if (colvalue >= maxvalue) {
-
-            colclr = maxValueClr;
+        var colclr = getRgbColor(minValueClr);
+        if (colvalue > maxvalue) {
+          colclr = getRgbColor(maxValueClr);
         } else if (colvalue < minValue) {
-            colclr = MARKER_FILL_COLOR
+          colclr = MARKER_FILL_COLOR
+        } else {
+          colclr = colourGradientor(minValueClr, maxValueClr, colvalue,maxvalue,minValue);
         }
 
         return colclr;
