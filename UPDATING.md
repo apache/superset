@@ -3,6 +3,12 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.31.0
+From 0.31.0 onwards, we recommend not using the npm package `yarn` in
+favor of good old `npm install`. While yarn should still work just fine,
+you should probably align to guarantee builds similar to the ones we
+use in testing and across the community in general.
+
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson
   file included in the package was very large
