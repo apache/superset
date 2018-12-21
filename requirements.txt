@@ -10,8 +10,6 @@ asn1crypto==0.24.0        # via cryptography
 babel==2.6.0              # via flask-babel, flower
 billiard==3.5.0.4         # via celery
 bleach==3.0.2
-boto3==1.4.7
-botocore==1.7.48
 cachetools==3.0.0         # via google-auth
 cchardet==1.0.0           # via tabulator
 celery==4.2.0
@@ -25,7 +23,6 @@ croniter==0.3.25
 cryptography==1.9
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
-docutils==0.14            # via botocore
 et-xmlfile==1.0.1         # via openpyxl
 flask-appbuilder==1.12.1
 flask-babel==0.11.1       # via flask-appbuilder
@@ -50,7 +47,6 @@ isodate==0.6.0
 itsdangerous==0.24        # via flask
 jdcal==1.4                # via openpyxl
 jinja2==2.10              # via flask, flask-babel
-jmespath==0.9.3           # via boto3, botocore
 jsonlines==1.2.0          # via tabulator
 jsonschema==2.6.0         # via tableschema
 kombu==4.2.1              # via celery
@@ -83,7 +79,6 @@ requests==2.20.0
 retry==0.9.2
 rfc3986==1.1.0            # via tableschema
 rsa==4.0                  # via google-auth
-s3transfer==0.1.13        # via boto3
 sasl==0.2.1               # via thrift-sasl
 selenium==3.14.0
 simplejson==3.15.0

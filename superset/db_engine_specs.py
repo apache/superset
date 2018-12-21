@@ -20,7 +20,6 @@ import re
 import textwrap
 import time
 
-import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
@@ -1064,6 +1063,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                     column_info['name'],
                     convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
+
+        # Optional dependency
+        import boto3  # pylint: disable=import-error
 
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
