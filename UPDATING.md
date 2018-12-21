@@ -4,7 +4,11 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Superset 0.31.0
-From 0.31.0 onwards, we recommend not using the npm package `yarn` in
+* boto3 / botocore was removed from the dependency list. If you use s3
+as a place to store your SQL Lab result set or Hive uploads, you may
+have to rely on an alternate requirements.txt file to install those
+dependencies.
+* From 0.31.0 onwards, we recommend not using the npm package `yarn` in
 favor of good old `npm install`. While yarn should still work just fine,
 you should probably align to guarantee builds similar to the ones we
 use in testing and across the community in general.
