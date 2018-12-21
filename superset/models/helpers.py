@@ -29,8 +29,12 @@ def json_to_dict(json_str):
         return {}
 
 def boolify(str):
-    parsed = yaml.load(str)
-    return parsed
+    if str is not None:
+        parsed = yaml.load(str)
+        return parsed
+    else:
+        return False
+
 
 # the function will check if kerberos ticket is available 
 # there could be few of the cases where this function would be called
