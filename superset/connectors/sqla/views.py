@@ -162,7 +162,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
-        'description', 'owner',
+        'description', 'owners',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
     ]
@@ -171,7 +171,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
-        'database', 'schema', 'table_name', 'owner', 'is_sqllab_view',
+        'database', 'schema', 'table_name', 'owners', 'is_sqllab_view',
     )
     description_columns = {
         'slices': _(
@@ -233,7 +233,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'cache_timeout': _('Cache Timeout'),
         'table_name': _('Table Name'),
         'fetch_values_predicate': _('Fetch Values Predicate'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'main_dttm_col': _('Main Datetime Column'),
         'description': _('Description'),
         'is_sqllab_view': _('SQL Lab View'),
