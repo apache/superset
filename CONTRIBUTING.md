@@ -254,12 +254,6 @@ First, be sure you are using recent versions of NodeJS and npm. Using [nvm](http
 
 #### Prerequisite
 
-If needed, install yarn
-
-```bash
-npm install -g yarn
-```
-
 #### Installing Dependencies
 
 Install third-party dependencies listed in `package.json`:
@@ -268,8 +262,8 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# Install dependencies
-yarn install
+# Install dependencies from `package-lock.json`
+npm ci
 ```
 
 #### Building
@@ -302,7 +296,9 @@ npm run sync-backend
 
 #### Updating NPM packages
 
-After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
+Use npm in the prescribed way, making sure that
+`superset/assets/package-lock.json` is updated according to `npm`-prescribed
+best practices.
 
 #### Feature flags
 
@@ -329,7 +325,7 @@ tox -e flake8
 
 # for javascript
 cd superset/assets
-yarn install
+npm ci
 npm run lint
 ```
 
@@ -373,7 +369,6 @@ We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test
 
 ```bash
 cd superset/assets
-yarn install
 npm run test
 ```
 

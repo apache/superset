@@ -223,28 +223,23 @@ class SliceAdder extends React.Component {
             ))}
           </DropdownButton>
         </div>
-
         {this.props.isLoading && <Loading />}
-
-        {!this.props.isLoading &&
-          this.state.filteredSlices.length > 0 && (
-            <List
-              width={376}
-              height={slicesListHeight}
-              rowCount={this.state.filteredSlices.length}
-              deferredMeasurementCache={cache}
-              rowHeight={cache.rowHeight}
-              rowRenderer={this.rowRenderer}
-              searchTerm={this.state.searchTerm}
-              sortBy={this.state.sortBy}
-              selectedSliceIds={this.props.selectedSliceIds}
-            />
-          )}
-
+        {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
+          <List
+            width={376}
+            height={slicesListHeight}
+            rowCount={this.state.filteredSlices.length}
+            deferredMeasurementCache={cache}
+            rowHeight={cache.rowHeight}
+            rowRenderer={this.rowRenderer}
+            searchTerm={this.state.searchTerm}
+            sortBy={this.state.sortBy}
+            selectedSliceIds={this.props.selectedSliceIds}
+          />
+        )}
         {this.props.errorMessage && (
           <div className="error-message">{this.props.errorMessage}</div>
         )}
-
         {/* Drag preview is just a single fixed-position element */}
         <AddSliceDragPreview slices={this.state.filteredSlices} />
       </div>

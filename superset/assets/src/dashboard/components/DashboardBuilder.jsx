@@ -184,14 +184,12 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-
-          {this.props.editMode &&
-            this.props.showBuilderPane && (
-              <BuilderComponentPane
-                topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
-                toggleBuilderPane={this.props.toggleBuilderPane}
-              />
-            )}
+          {this.props.editMode && this.props.showBuilderPane && (
+            <BuilderComponentPane
+              topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
+              toggleBuilderPane={this.props.toggleBuilderPane}
+            />
+          )}
         </div>
         <ToastPresenter />
       </StickyContainer>
