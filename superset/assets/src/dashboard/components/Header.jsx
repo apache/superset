@@ -248,28 +248,26 @@ class Header extends React.PureComponent {
                 </Button>
               )}
 
-              {editMode &&
-                hasUnsavedChanges && (
-                  <Button
-                    bsSize="small"
-                    bsStyle={popButton ? 'primary' : undefined}
-                    onClick={this.overwriteDashboard}
-                  >
-                    {t('Save changes')}
-                  </Button>
-                )}
+              {editMode && hasUnsavedChanges && (
+                <Button
+                  bsSize="small"
+                  bsStyle={popButton ? 'primary' : undefined}
+                  onClick={this.overwriteDashboard}
+                >
+                  {t('Save changes')}
+                </Button>
+              )}
 
-              {editMode &&
-                !hasUnsavedChanges && (
-                  <Button
-                    bsSize="small"
-                    onClick={this.toggleEditMode}
-                    bsStyle={undefined}
-                    disabled={!userCanEdit}
-                  >
-                    {t('Switch to view mode')}
-                  </Button>
-                )}
+              {editMode && !hasUnsavedChanges && (
+                <Button
+                  bsSize="small"
+                  onClick={this.toggleEditMode}
+                  bsStyle={undefined}
+                  disabled={!userCanEdit}
+                >
+                  {t('Switch to view mode')}
+                </Button>
+              )}
 
               {editMode && (
                 <UndoRedoKeylisteners
@@ -280,17 +278,16 @@ class Header extends React.PureComponent {
             </div>
           )}
 
-          {!editMode &&
-            !hasUnsavedChanges && (
-              <Button
-                bsSize="small"
-                onClick={this.toggleEditMode}
-                bsStyle={popButton ? 'primary' : undefined}
-                disabled={!userCanEdit}
-              >
-                {t('Edit dashboard')}
-              </Button>
-            )}
+          {!editMode && !hasUnsavedChanges && (
+            <Button
+              bsSize="small"
+              onClick={this.toggleEditMode}
+              bsStyle={popButton ? 'primary' : undefined}
+              disabled={!userCanEdit}
+            >
+              {t('Edit dashboard')}
+            </Button>
+          )}
 
           <HeaderActionsDropdown
             addSuccessToast={this.props.addSuccessToast}

@@ -77,7 +77,7 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = []
 
 # Whether to run the web server in debug mode or not
-DEBUG = False
+DEBUG = os.environ.get('FLASK_ENV') == 'development'
 FLASK_USE_RELOAD = True
 
 # Whether to show the stacktrace on 500 error
@@ -285,7 +285,14 @@ BACKUP_COUNT = 30
 # Custom logger for auditing queries. This can be used to send ran queries to a
 # structured immutable store for auditing purposes. The function is called for
 # every query ran, in both SQL Lab and charts/dashboards.
-# def QUERY_LOGGER(database, query, schema=None, user=None, client=None):
+# def QUERY_LOGGER(
+#     database,
+#     query,
+#     schema=None,
+#     user=None,
+#     client=None,
+#     security_manager=None,
+# ):
 #     pass
 
 # Set this API key to enable Mapbox visualizations
