@@ -29,6 +29,10 @@ class Datasource(BaseSupersetView):
                     'this data source configuration'),
                 status='401',
             )
+
+        if 'owners' in datasource:
+            datasource['owners'] = db.session.query(orm_datasource.owner_class).filter(
+                orm_datasource.owner_class.id.in_(datasource['owners'])).all()
         orm_datasource.update_from_object(datasource)
         data = orm_datasource.data
         db.session.commit()
