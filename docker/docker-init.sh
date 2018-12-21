@@ -2,7 +2,7 @@
 
 set -ex
 
-  if [ $IS_KERBEROS_ENABLED ]; then
+  if [ $IS_KERBEROS_ENABLED == "True" ]; then
     echo "running kerberised superset"
     sh /usr/local/bin/auth-kerberized.sh
   fi
