@@ -475,6 +475,25 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp('/dashboard/list/')
         self.assertIn('/superset/dashboard/my_favorite_dash/', resp)
 
+    def test_user_can_not_view_unpublished_dash(self):
+        admin_user = security_manager.find_user('admin')
+        gamma_user = security_manager.find_user('gamma')
+
+        # Create a dashboard owned by admin and unpublished
+        dash = models.Dashboard()
+        dash.dashboard_title = 'My Dashboard'
+        dash.slug = 'my_dash'
+        dash.owners = [admin_user]
+        dash.slices = []
+        dash.published = False
+        db.session.merge(dash)
+        db.session.commit()
+
+        # Try to view dashboard as a gamma user
+        self.login(gamma_user.username)
+        resp = self.get_resp('/dashboard/list/')
+        self.assertNotIn('/superset/dashboard/my_dash/', resp)
+
 
 if __name__ == '__main__':
     unittest.main()
