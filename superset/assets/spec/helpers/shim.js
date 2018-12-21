@@ -1,5 +1,4 @@
 /* eslint no-native-reassign: 0 */
-import 'babel-polyfill';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import jsdom from 'jsdom';
 import { configure } from 'enzyme';

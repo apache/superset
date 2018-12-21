@@ -3,9 +3,7 @@ set -e
 cd "$(dirname "$0")"
 npm --version
 node --version
-npm install -g yarn
-yarn
-npm run lint
-npm run test
-npm run build
-npm run cover
+time npm ci
+time npm run lint
+time npm run cover  # this also runs the tests, so no need to 'npm run test'
+time npm run build
