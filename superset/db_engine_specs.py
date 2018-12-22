@@ -20,7 +20,6 @@ import re
 import textwrap
 import time
 
-import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
@@ -1065,6 +1064,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                     convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
 
+        # Optional dependency
+        import boto3  # pylint: disable=import-error
+
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
@@ -1541,16 +1543,16 @@ class TeradataEngineSpec(BaseEngineSpec):
     engine = 'teradata'
     limit_method = LimitMethod.WRAP_SQL
 
-    time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('minute', _('minute'), "TRUNC(CAST({col} as DATE), 'MI')", 'PT1M'),
-        Grain('hour', _('hour'), "TRUNC(CAST({col} as DATE), 'HH')", 'PT1H'),
-        Grain('day', _('day'), "TRUNC(CAST({col} as DATE), 'DDD')", 'P1D'),
-        Grain('week', _('week'), "TRUNC(CAST({col} as DATE), 'WW')", 'P1W'),
-        Grain('month', _('month'), "TRUNC(CAST({col} as DATE), 'MONTH')", 'P1M'),
-        Grain('quarter', _('quarter'), "TRUNC(CAST({col} as DATE), 'Q')", 'P0.25Y'),
-        Grain('year', _('year'), "TRUNC(CAST({col} as DATE), 'YEAR')", 'P1Y'),
-    )
+    time_grain_functions = {
+        None: '{col}',
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
+    }
 
 
 engines = {

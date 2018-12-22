@@ -2900,10 +2900,6 @@ combined-stream@^1.0.5, combined-stream@^1.0.6, combined-stream@~1.0.5, combined
   dependencies:
     delayed-stream "~1.0.0"
 
-combokeys@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/combokeys/-/combokeys-3.0.0.tgz#955c59a3959af40d26846ab6fc3c682448e7572e"
-
 comma-separated-tokens@^1.0.0:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/comma-separated-tokens/-/comma-separated-tokens-1.0.5.tgz#b13793131d9ea2d2431cf5b507ddec258f0ce0db"
@@ -4450,7 +4446,7 @@ eventemitter3@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.1.0.tgz#090b4d6cdbd645ed10bf750d4b5407942d7ba163"
 
-events@^1.0.0, events@^1.0.2:
+events@^1.0.0:
   version "1.1.1"
   resolved "http://registry.npmjs.org/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
 
@@ -8714,10 +8710,6 @@ pkg-dir@^3.0.0:
   dependencies:
     find-up "^3.0.0"
 
-platform@^1.3.0:
-  version "1.3.5"
-  resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.5.tgz#fb6958c696e07e2918d2eeda0f0bc9448d733444"
-
 pluralize@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/pluralize/-/pluralize-7.0.0.tgz#298b89df8b93b0221dbf421ad2b1b1ea23fc6777"
@@ -9597,17 +9589,6 @@ react-select@^1.0.0-rc.2, react-select@^1.0.0-rc.5:
     classnames "^2.2.4"
     prop-types "^15.5.8"
     react-input-autosize "^2.1.2"
-
-react-shortcuts@^1.6.2:
-  version "1.6.2"
-  resolved "https://registry.yarnpkg.com/react-shortcuts/-/react-shortcuts-1.6.2.tgz#ba43f4d7f33d0994ae9d65380fb6d5f03cc3b8cb"
-  dependencies:
-    combokeys "^3.0.0"
-    events "^1.0.2"
-    invariant "^2.1.0"
-    lodash "^4.15.0"
-    platform "^1.3.0"
-    prop-types "^15.5.8"
 
 react-sortable-hoc@^0.8.3:
   version "0.8.3"

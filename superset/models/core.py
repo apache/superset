@@ -813,7 +813,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         def _log_query(sql):
             if log_query:
-                log_query(engine.url, sql, schema, username, __name__)
+                log_query(engine.url, sql, schema, username, __name__, security_manager)
 
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
