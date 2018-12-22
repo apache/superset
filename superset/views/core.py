@@ -39,9 +39,10 @@ from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.sql_parse import SupersetQuery
+from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
+from superset.utils.dates import now_as_float
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -2244,7 +2245,7 @@ class Superset(BaseSupersetView):
         table.schema = data.get('schema')
         table.template_params = data.get('templateParams')
         table.is_sqllab_view = True
-        q = SupersetQuery(data.get('sql'))
+        q = ParsedQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
         cols = []
@@ -2390,11 +2391,11 @@ class Superset(BaseSupersetView):
         if not results_backend:
             return json_error_response("Results backend isn't configured")
 
-        read_from_results_backend_start = utils.now_as_float()
+        read_from_results_backend_start = now_as_float()
         blob = results_backend.get(key)
         stats_logger.timing(
             'sqllab.query.results_backend_read',
-            utils.now_as_float() - read_from_results_backend_start,
+            now_as_float() - read_from_results_backend_start,
         )
         if not blob:
             return json_error_response(
@@ -2488,7 +2489,7 @@ class Superset(BaseSupersetView):
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
-            start_time=utils.now_as_float(),
+            start_time=now_as_float(),
             tab_name=request.form.get('tab'),
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
@@ -2525,7 +2526,7 @@ class Superset(BaseSupersetView):
                     return_results=False,
                     store_results=not query.select_as_cta,
                     user_name=g.user.username if g.user else None,
-                    start_time=utils.now_as_float())
+                    start_time=now_as_float())
             except Exception as e:
                 logging.exception(e)
                 msg = _(

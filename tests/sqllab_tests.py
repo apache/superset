@@ -50,6 +50,16 @@ class SqlLabTests(SupersetTestCase):
         data = self.run_sql('SELECT * FROM unexistant_table', '2')
         self.assertLess(0, len(data['error']))
 
+    def test_multi_sql(self):
+        self.login('admin')
+
+        multi_sql = """
+        SELECT first_name FROM ab_user;
+        SELECT first_name FROM ab_user;
+        """
+        data = self.run_sql(multi_sql, '2234')
+        self.assertLess(0, len(data['data']))
+
     def test_explain(self):
         self.login('admin')
 

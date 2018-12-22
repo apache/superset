@@ -10,13 +10,12 @@ ON_KEYWORD = 'ON'
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
-class SupersetQuery(object):
+class ParsedQuery(object):
     def __init__(self, sql_statement):
         self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
         self._limit = None
-        # TODO: multistatement support
 
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
         self._parsed = sqlparse.parse(self.sql)
@@ -37,7 +36,7 @@ class SupersetQuery(object):
         return self._parsed[0].get_type() == 'SELECT'
 
     def is_explain(self):
-        return self.sql.strip().upper().startswith('EXPLAIN')
+        return self.stripped().upper().startswith('EXPLAIN')
 
     def is_readonly(self):
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
@@ -45,6 +44,16 @@ class SupersetQuery(object):
 
     def stripped(self):
         return self.sql.strip(' \t\n;')
+
+    def get_statements(self):
+        """Returns a list of SQL statements as strings, stripped"""
+        statements = []
+        for statement in self._parsed:
+            if statement:
+                sql = str(statement).strip(' \n;\t')
+                if sql:
+                    statements.append(sql)
+        return statements
 
     @staticmethod
     def __precedes_table_name(token_value):

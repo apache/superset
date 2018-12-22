@@ -1,3 +1,4 @@
+@import "../../stylesheets/less/cosmo/variables.less";
 body {
     overflow: hidden;
 }
@@ -168,8 +169,8 @@ div.Workspace {
 }
 
 .Resizer {
-    background: #000;
-    opacity: .2;
+    background: @brand-primary;
+    opacity: 0.5;
     z-index: 1;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
@@ -180,23 +181,24 @@ div.Workspace {
 }
 
 .Resizer:hover {
-    -webkit-transition: all 2s ease;
-    transition: all 2s ease;
+    -webkit-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+    opacity: 0.3;
 }
 
 .Resizer.horizontal {
     height: 10px;
     margin: -5px 0;
-    border-top: 5px solid rgba(255, 255, 255, 0);
-    border-bottom: 5px solid rgba(255, 255, 255, 0);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
     cursor: row-resize;
     width: 100%;
     padding: 1px;
 }
 
 .Resizer.horizontal:hover {
-    border-top: 5px solid rgba(0, 0, 0, 0.5);
-    border-bottom: 5px solid rgba(0, 0, 0, 0.5);
+    border-top: 5px solid @brand-primary;
+    border-bottom: 5px solid @brand-primary;
 }
 
 .Resizer.vertical {
