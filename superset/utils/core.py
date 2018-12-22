@@ -34,19 +34,18 @@ import pandas as pd
 import parsedatetime
 from past.builtins import basestring
 from pydruid.utils.having import Having
-import pytz
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
+from superset.utils.dates import datetime_to_epoch, EPOCH
 
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 PY3K = sys.version_info >= (3, 0)
-EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 ADHOC_METRIC_EXPRESSION_TYPES = {
     'SIMPLE': 'SIMPLE',
@@ -355,18 +354,6 @@ def pessimistic_json_iso_dttm_ser(obj):
 
     If one of object is not serializable to json, it will still succeed"""
     return json_iso_dttm_ser(obj, pessimistic=True)
-
-
-def datetime_to_epoch(dttm):
-    if dttm.tzinfo:
-        dttm = dttm.replace(tzinfo=pytz.utc)
-        epoch_with_tz = pytz.utc.localize(EPOCH)
-        return (dttm - epoch_with_tz).total_seconds() * 1000
-    return (dttm - EPOCH).total_seconds() * 1000
-
-
-def now_as_float():
-    return datetime_to_epoch(datetime.utcnow())
 
 
 def json_int_dttm_ser(obj):

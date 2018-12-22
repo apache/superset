@@ -165,7 +165,7 @@ class SupersetSecurityManager(SecurityManager):
             database, table_name, schema=table_schema)
 
     def rejected_datasources(self, sql, database, schema):
-        superset_query = sql_parse.SupersetQuery(sql)
+        superset_query = sql_parse.ParsedQuery(sql)
         return [
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]

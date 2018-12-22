@@ -148,18 +148,18 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.SupersetQuery(sql)
+            parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.limit
 
     @classmethod
     def get_query_with_new_limit(cls, sql, limit):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
