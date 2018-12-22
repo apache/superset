@@ -6,7 +6,7 @@ from superset import sql_parse
 class SupersetTestCase(unittest.TestCase):
 
     def extract_tables(self, query):
-        sq = sql_parse.SupersetQuery(query)
+        sq = sql_parse.ParsedQuery(query)
         return sq.tables
 
     def test_simple_select(self):
@@ -294,12 +294,12 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
 
     def test_update_not_select(self):
-        sql = sql_parse.SupersetQuery('UPDATE t1 SET col1 = NULL')
+        sql = sql_parse.ParsedQuery('UPDATE t1 SET col1 = NULL')
         self.assertEquals(False, sql.is_select())
         self.assertEquals(False, sql.is_readonly())
 
     def test_explain(self):
-        sql = sql_parse.SupersetQuery('EXPLAIN SELECT 1')
+        sql = sql_parse.ParsedQuery('EXPLAIN SELECT 1')
 
         self.assertEquals(True, sql.is_explain())
         self.assertEquals(False, sql.is_select())
@@ -369,3 +369,35 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {'a', 'b', 'c', 'd', 'e', 'f'},
             self.extract_tables(query))
+
+    def test_basic_breakdown_statements(self):
+        multi_sql = """
+        SELECT * FROM ab_user;
+        SELECT * FROM ab_user LIMIT 1;
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 2)
+        expected = [
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)
+
+    def test_messy_breakdown_statements(self):
+        multi_sql = """
+        SELECT 1;\t\n\n\n  \t
+        \t\nSELECT 2;
+        SELECT * FROM ab_user;;;
+        SELECT * FROM ab_user LIMIT 1
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 4)
+        expected = [
+            'SELECT 1',
+            'SELECT 2',
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)
