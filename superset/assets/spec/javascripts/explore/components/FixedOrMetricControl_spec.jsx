@@ -5,10 +5,10 @@ import { OverlayTrigger } from 'react-bootstrap';
 
 import FixedOrMetricControl from
   '../../../../src/explore/components/controls/FixedOrMetricControl';
-import SelectControl from
-  '../../../../src/explore/components/controls/SelectControl';
 import TextControl from
   '../../../../src/explore/components/controls/TextControl';
+import MetricsControl from
+  '../../../../src/explore/components/controls/MetricsControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
@@ -32,6 +32,6 @@ describe('FixedOrMetricControl', () => {
   it('renders a TextControl and a SelectControl', () => {
     const popOver = shallow(inst.renderPopover());
     expect(popOver.find(TextControl)).toHaveLength(1);
-    expect(popOver.find(SelectControl)).toHaveLength(1);
+    expect(popOver.find(MetricsControl)).toHaveLength(1);
   });
 });
