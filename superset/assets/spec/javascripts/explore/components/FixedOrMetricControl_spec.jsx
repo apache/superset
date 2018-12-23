@@ -5,10 +5,10 @@ import { OverlayTrigger } from 'react-bootstrap';
 
 import FixedOrMetricControl from
   '../../../../src/explore/components/controls/FixedOrMetricControl';
-import MetricsControl from
-  '../../../../src/explore/components/controls/MetricsControl';
 import TextControl from
   '../../../../src/explore/components/controls/TextControl';
+import SelectControl from
+  '../../../../src/explore/components/controls/SelectControl';
 import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
