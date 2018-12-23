@@ -14,17 +14,19 @@ down_revision = 'c829ff0b37d0'
 
 
 def upgrade():
-    op.drop_column('table_columns', 'avg')
-    op.drop_column('table_columns', 'max')
-    op.drop_column('table_columns', 'sum')
-    op.drop_column('table_columns', 'count_distinct')
-    op.drop_column('table_columns', 'min')
+    with op.batch_alter_table('table_columns') as batch_op:
+        batch_op.drop_column('avg')
+        batch_op.drop_column('max')
+        batch_op.drop_column('sum')
+        batch_op.drop_column('count_distinct')
+        batch_op.drop_column('min')
 
-    op.drop_column('columns', 'avg')
-    op.drop_column('columns', 'max')
-    op.drop_column('columns', 'sum')
-    op.drop_column('columns', 'count_distinct')
-    op.drop_column('columns', 'min')
+    with op.batch_alter_table('columns') as batch_op:
+        batch_op.drop_column('avg')
+        batch_op.drop_column('max')
+        batch_op.drop_column('sum')
+        batch_op.drop_column('count_distinct')
+        batch_op.drop_column('min')
 
 
 def downgrade():
