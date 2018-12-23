@@ -42,7 +42,7 @@ ENV PATH=/home/superset/superset/bin:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH
 
 RUN cd superset/assets \
-    && npm ci
+    && npm ci \
     && npm run sync-backend \
     && npm run build \
     && rm -rf node_modules
