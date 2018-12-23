@@ -536,8 +536,8 @@ class CoreTests(SupersetTestCase):
         )
         resp = self.get_json_resp(url)
         keys = [
-            'name', 'filterable_cols', 'gb_cols', 'type', 'all_cols',
-            'order_by_choices', 'metrics_combo', 'granularity_sqla',
+            'name', 'type',
+            'order_by_choices', 'granularity_sqla',
             'time_grain_sqla', 'id',
         ]
         for k in keys:
