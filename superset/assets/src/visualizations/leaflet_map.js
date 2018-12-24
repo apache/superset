@@ -21,12 +21,9 @@ function leafletmap(slice, payload) {
 
     const formData = slice.formData;
 
-    const MARKER_FILL_COLOR = getRgbColor(formData.color_picker);
     const MARKER_RADIUS = 10;
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
-
-
 
     var colorCols;
     var geoJson;
@@ -42,7 +39,6 @@ function leafletmap(slice, payload) {
     function getDefaultPolygonStyles() {
         return {
             color: getRgbColor(formData.stroke_color_picker),
-            fillColor: MARKER_FILL_COLOR,
             weight: MARKER_WEIGHT,
             opacity: MARKER_OPACITY,
             fillOpacity: formData.cell_size
@@ -115,6 +111,7 @@ function leafletmap(slice, payload) {
     }
 
     function getRangeValue(val, max, min) {
+      val = val < min ? min : (val > max ? max : val);
       if(max - min === 0) {
         return 1;
       }
@@ -141,15 +138,7 @@ function leafletmap(slice, payload) {
         var maxValueClr = col['clause'];
 
         // todo: add algo to decrease /increase color intensity ad per value
-        var colclr = getRgbColor(minValueClr);
-        if (colvalue > maxvalue) {
-          colclr = getRgbColor(maxValueClr);
-        } else if (colvalue < minValue) {
-          colclr = MARKER_FILL_COLOR
-        } else {
-          colclr = colourGradientor(minValueClr, maxValueClr, colvalue,maxvalue,minValue);
-        }
-
+        var colclr = colourGradientor(minValueClr, maxValueClr, colvalue,maxvalue,minValue);
         return colclr;
     }
 
