@@ -1,0 +1,13 @@
+#superset_certificate_files:
+ # - file_name:
+ #     "ComcastPolicyCA.pem"
+ #   file_content: |
+ #     -----BEGIN CERTIFICATE-----
+ #     UD2ziQ3pOeok0v09vAJt9oYt+sfUqQrgNvQxX3jSoqVDUddZr2sf25weNUli+jEl
+ #     -----END CERTIFICATE-----
+ # - file_name:
+ #     "ComcastRootCA.pem"
+ #   file_content: |
+ #     -----BEGIN CERTIFICATE-----
+ #     MIIFazCCA1OgAwIBAgIQBpQRAESEmqlLxVDdOWVrujANBgkqhkiG9w0BAQUFADBI
+#    -----END CERTIFICATE-----

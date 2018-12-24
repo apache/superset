@@ -17,6 +17,10 @@ RUN mkdir -p $HOME/incubator-superset
 
 RUN mkdir -p /etc/security/keytabs/
 
+RUN mkdir -p /etc/cert/
+
+RUN chmod +x /etc/cert/
+
 WORKDIR $HOME/incubator-superset
 
 COPY ./ ./

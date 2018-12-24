@@ -107,6 +107,7 @@ setup(
         'lxml==3.8.0',
         'numexpr==2.6.4',
         'xlrd==1.1.0',
+        'python-ldap==3.1.0'
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

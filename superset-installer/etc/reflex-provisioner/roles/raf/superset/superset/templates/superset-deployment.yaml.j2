@@ -40,6 +40,50 @@ spec:
           value: local
         - name: IS_KERBEROS_ENABLED
           value: "{{ superset_kerberos_enabled }}"
+        - name: AUTH_ROLE_ADMIN
+          value: "{{ SUPERSET_AUTH_ROLE_ADMIN }}"
+        - name: AUTH_ROLE_PUBLIC
+          value: "{{ SUPERSET_AUTH_ROLE_PUBLIC }}"
+        - name: AUTH_TYPE
+          value: "{{ SUPERSET_AUTH_TYPE }}"
+        - name: AUTH_USER_REGISTRATION
+          value: "{{ SUPERSET_AUTH_USER_REGISTRATION }}"
+        - name: AUTH_USER_REGISTRATION_ROLE 
+          value: "{{ SUPERSET_AUTH_USER_REGISTRATION_ROLE }}"
+        - name: AUTH_LDAP_USE_TLS
+          value: "{{ SUPERSET_AUTH_LDAP_USE_TLS }}"
+        - name: AUTH_LDAP_SERVER
+          value: "{{ SUPERSET_AUTH_LDAP_SERVER }}"
+        - name: AUTH_LDAP_BIND_USER
+          value: "{{ SUPERSET_AUTH_LDAP_BIND_USER }}"
+        - name: AUTH_LDAP_BIND_PASSWORD
+          value: "{{ SUPERSET_AUTH_LDAP_BIND_PASSWORD }}"
+        - name: AUTH_LDAP_TLS_DEMAND
+          value: "{{ SUPERSET_AUTH_LDAP_TLS_DEMAND }}"
+        - name: AUTH_LDAP_TLS_CACERTDIR
+          value: "{{ SUPERSET_AUTH_LDAP_TLS_CACERTDIR }}"
+        - name: AUTH_LDAP_TLS_CACERTFILE
+          value: "{{ SUPERSET_AUTH_LDAP_TLS_CACERTFILE }}"
+        - name: AUTH_LDAP_TLS_CERTFILE
+          value: "{{ SUPERSET_AUTH_LDAP_TLS_CERTFILE }}"
+        - name: AUTH_LDAP_TLS_KEYFILE
+          value: "{{ SUPERSET_AUTH_LDAP_TLS_KEYFILE }}"
+        - name: AUTH_LDAP_SEARCH
+          value: "{{ SUPERSET_AUTH_LDAP_SEARCH }}"
+        - name: AUTH_LDAP_UID_FIELD 
+          value: "{{ SUPERSET_AUTH_LDAP_UID_FIELD }}"
+        - name: AUTH_LDAP_FIRSTNAME_FIELD
+          value: "{{ SUPERSET_AUTH_LDAP_FIRSTNAME_FIELD }}"
+        - name: AUTH_LDAP_LASTNAME_FIELD
+          value: "{{ SUPERSET_AUTH_LDAP_LASTNAME_FIELD }}"
+        - name: AUTH_LDAP_EMAIL_FIELD
+          value: "{{ SUPERSET_AUTH_LDAP_EMAIL_FIELD }}"
+        - name: AUTH_LDAP_ALLOW_SELF_SIGNED
+          value: "{{ SUPERSET_AUTH_LDAP_ALLOW_SELF_SIGNED }}"
+        - name: AUTH_LDAP_APPEND_DOMAIN
+          value: "{{ SUPERSET_AUTH_LDAP_APPEND_DOMAIN }}"
+        - name: AUTH_LDAP_USERNAME_FORMAT
+          value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"  
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
@@ -50,6 +94,8 @@ spec:
          - name: superset-configmap-volume
            mountPath: /usr/local/bin/auth-kerberized.sh
            subPath: auth-kerberized.sh
+         - name: superset-cert-configmap-volume
+           mountPath: {{ SUPERSET_AUTH_LDAP_TLS_CACERTDIR }}
          - name: krb5-keytab-config-path
            mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
          - name: krb5-config-path
@@ -60,6 +106,10 @@ spec:
           configMap:
             name: superset-configmap
             defaultMode: 0755
+        - name: superset-cert-configmap-volume
+          configMap:
+            name: superset-cert-configmap
+            defaultMode: 0755    
         - name: krb5-keytab-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}

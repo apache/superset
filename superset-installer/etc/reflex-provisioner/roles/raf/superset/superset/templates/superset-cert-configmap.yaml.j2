@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+{% for item in superset_certificate_files %}
+  {{ item.file_name }}: |
+{{ item.file_content | indent(4, indentfirst=True) }} 
+
+{% endfor %}
+
+kind: ConfigMap
+metadata:
+  name: superset-cert-configmap
