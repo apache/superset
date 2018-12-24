@@ -17,10 +17,11 @@ RUN apt-get update -y
 # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
 RUN apt-get install -y apt-transport-https apt-utils
 
-# Install superset dependencies
-# https://superset.incubator.apache.org/installation.html#os-dependencies
-RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+RUN mkdir -p /etc/cert/
+
+RUN chmod +x /etc/cert/
+
+WORKDIR $HOME/incubator-superset
 
 # Install extra useful tool for development
 RUN apt-get install -y vim less postgresql-client redis-tools

@@ -42,6 +42,12 @@
     src: "{{ item.file }}.j2"
     dest: "{{ superset_host_k8s_dir }}/{{ item.file }}"
   with_items:
+    - name: superset-configmap
+      file: superset-configmap.yaml
+      type: configmap
+    - name: superset-cert-configmap
+      file: superset-cert-configmap.yaml
+      type: configmap
     - name: superset-deployment
       file: superset-deployment.yaml
       type: Deployment
