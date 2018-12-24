@@ -35,6 +35,16 @@ def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
     security_manager.sync_role_definitions()
+    role_admin = security_manager.find_role(security_manager.auth_role_admin)
+    username = firstname = lastname = password = "superset"
+    email = "superset@fab.org"
+    user = security_manager.find_user(username)
+    if user is None:
+        user = security_manager.add_user(username, firstname, lastname, email, role_admin, password)
+        if user:
+            print(Fore.GREEN+'Admin User {0} created.'.format(username))
+        else:
+            print(Fore.RED+'No user created an error occured')
 
 
 def debug_run(app, port, use_reloader):

@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.6.0
 
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 

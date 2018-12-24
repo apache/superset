@@ -67,6 +67,7 @@ setup(
         'flask-caching',
         'flask-compress',
         'flask-migrate',
+        'flask-sqlalchemy==2.1',
         'flask-wtf',
         'flower',  # deprecated
         'geopy',
@@ -80,6 +81,7 @@ setup(
         'parsedatetime',
         'pathlib2',
         'polyline',
+        'psycopg2-binary',
         'pydruid>=0.4.3',
         'pyhive>=0.4.0',
         'python-dateutil',
