@@ -98,6 +98,10 @@ setup(
         'croniter==0.3.25',
         'selenium==3.14.0',
         'retry==0.9.2',
+        'beautifulsoup4==4.6.0',
+        'bottleneck==1.2.1',
+        'xlrd==1.1.0',
+        'python-ldap==3.1.0'
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

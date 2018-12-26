@@ -41,14 +41,53 @@ pipeline {
   agent any
 
     environment {
-    // Define global environment variables in this section
+    // Define global environment variables in this 
+    WORKSPACE = pwd()
     buildNum = currentBuild.getNumber()
     buildType = BRANCH_NAME.split('/').first()
     branchVersion = BRANCH_NAME.split('/').last()
-    buildVersion = '1.0.4'
+    buildVersion = readFile "${env.WORKSPACE}/VERSION"
+    supersetInventoryFilePath = 'superset-installer/etc/reflex-provisioner/inventory/templates/group_vars/global/all/raf/superset.yml'
+    jenkinsInventoryFilePath = '${WORKSPACE}/${supersetInventoryFilePath}'
   }
   stages {
 
+    stage("Compute Docker Tag") {
+      steps {
+        echo "Run Commmands to compute Docker tag"
+        script {
+          echo "************* BUILD VERSION ********************"
+          echo "${env.buildVersion}"
+          echo "************************************************"
+          if (buildType in ['feature','fix','feat']) {
+            // docker tag for a feature or fix branch  
+            env.dockerTag = ( env.BRANCH_NAME.split('/')[1] =~ /.+-\d+/ )[0]
+          } else if (buildType ==~ /PR-.*/ ){
+            // docker tag for a pull request
+            env.dockerTag = buildType
+          } else if (buildType in ['master']) {
+            // docker tag for a master branch
+            env.dockerTagVersion = "${env.buildVersion}-${env.buildNum}"
+            env.dockerTagStage = "prod"
+            env.dockerTag = "${env.dockerTagVersion}-${env.dockerTagStage}"
+          } else if ( buildType in ['release'] ){
+            // docker tag for a release branch
+            env.dockerTagVersion = "${env.branchVersion}-${env.buildNum}"
+            env.dockerTagStage = "prod"
+            env.dockerTag = "${env.dockerTagVersion}-${env.dockerTagStage}"
+          }
+        }
+        echo "Computed Docker Tag !!"
+      }
+    }
+    stage("Update Superset Image Tag") {
+      steps {
+        // Updating Superset image tag in superset.yml
+        echo "Updating Superset image tag"
+        sh "make update_image_tag DOCKER_IMAGE_TAG=${env.dockerTag} SUPERSET_INVENTORY_FILE_PATH=${env.jenkinsInventoryFilePath}"
+        echo "Updated Superset image tag"
+      }
+    }
     stage("Build and test") {
       parallel {
 
@@ -104,6 +143,34 @@ pipeline {
       steps {
         // Stubs should be used to perform functional testing
         echo "Deploy the Artifact on ephemeral environment"
+      }
+    }
+
+    stage("Clean Previous Docker Images") {
+        steps {
+            echo "Removing previous docker images..."
+            sh "make docker_clean"
+        }
+    }
+
+    stage('Create Docker Image') {
+      steps {
+        echo "Creating docker build..."
+        sh "make docker_build"
+      }
+    }
+
+    stage('Tagging Docker Image') {
+      steps {
+        echo "Tagging docker image..."
+        sh "make docker_tag DOCKER_IMAGE_TAG=${env.dockerTag}"
+      }
+    }
+
+    stage("Push docker images to artifactory") {
+      steps {
+        echo "Pushing docker image to artifactory..."
+        sh "make docker_push DOCKER_IMAGE_TAG=${env.dockerTag}"
       }
     }
 
