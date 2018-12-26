@@ -49,6 +49,8 @@ RUN chmod +x /etc/cert
 RUN chmod +x /usr/local/bin
 RUN chown -R ${user}:${user} $HOME
 
+USER ${user}
+
 EXPOSE 8088
 
 ENTRYPOINT ["docker-init.sh"]
