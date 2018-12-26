@@ -28,8 +28,8 @@ from flask_babel import lazy_gettext as _
 from superset import dataframe_cache, db, security_manager, utils
 from superset.connectors.base.models import (
     BaseDatasource, BaseColumn, BaseMetric)
-from superset.models.helpers import QueryResult, set_perm
-from superset.utils import QueryStatus
+from superset.models.helpers import QueryResult
+from superset.utils.core import QueryStatus
 
 FORMATS = [
     ('csv', 'csv'),
@@ -935,5 +935,5 @@ def reconcile_metric_column(mapper, connection, target):
 sa.event.listen(PandasColumn, 'after_insert', reconcile_column_metrics)
 sa.event.listen(PandasColumn, 'after_update', reconcile_column_metrics)
 sa.event.listen(PandasMetric, 'before_delete', reconcile_metric_column)
-sa.event.listen(PandasDatasource, 'after_insert', set_perm)
-sa.event.listen(PandasDatasource, 'after_update', set_perm)
+sa.event.listen(PandasDatasource, 'after_insert', security_manager.set_perm)
+sa.event.listen(PandasDatasource, 'after_update', security_manager.set_perm)

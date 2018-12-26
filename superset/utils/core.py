@@ -356,6 +356,18 @@ def pessimistic_json_iso_dttm_ser(obj):
     return json_iso_dttm_ser(obj, pessimistic=True)
 
 
+def datetime_to_epoch(dttm):
+    if dttm.tzinfo:
+        dttm = dttm.replace(tzinfo=pytz.utc)
+        epoch_with_tz = pytz.utc.localize(EPOCH)
+        return (dttm - epoch_with_tz).total_seconds() * 1000
+    return (dttm - EPOCH).total_seconds() * 1000
+
+
+def now_as_float():
+    return datetime_to_epoch(datetime.utcnow())
+
+
 def json_int_dttm_ser(obj):
     """json serializer that deals with dates"""
     val = base_json_conv(obj)

@@ -37,6 +37,11 @@
   roles:
     - reflex-provisionner/load_vars
 
+- name: Superset kerberos config setup
+  hosts:
+    - master-nodes
+  roles:
+    - raf/superset/kerberos
 
 - name: Superset db creation
   hosts:

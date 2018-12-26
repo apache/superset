@@ -589,5 +589,5 @@ class ElasticDatasource(Model, BaseDatasource):
         )
 
 
-sa.event.listen(ElasticDatasource, 'after_insert', set_perm)
-sa.event.listen(ElasticDatasource, 'after_update', set_perm)
+sa.event.listen(ElasticDatasource, 'after_insert', security_manager.set_perm)
+sa.event.listen(ElasticDatasource, 'after_update', security_manager.set_perm)

@@ -1,7 +1,5 @@
 FROM python:3.6.5
 
-RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
-
 # Configure environment
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -11,20 +9,24 @@ ENV LANG=C.UTF-8 \
     
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash ${user}
 
-RUN apt-get update -y
+RUN apt-get install -y build-essential libssl-dev \
+    libffi-dev python3-dev libsasl2-dev libldap2-dev \
+    libsasl2-modules libsasl2-2 libsasl2-modules-gssapi-mit krb5-user
+    
+RUN mkdir -p $HOME/incubator-superset
 
-# Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-RUN apt-get install -y apt-transport-https apt-utils
+RUN mkdir -p /etc/security/keytabs/
 
 RUN mkdir -p /etc/cert/
 
 WORKDIR $HOME/incubator-superset
 
-# Install extra useful tool for development
-RUN apt-get install -y vim less postgresql-client redis-tools
+COPY ./ ./
+
+RUN pip install --upgrade setuptools pip && pip install wheel && python ./setup.py bdist_wheel && pip install ./dist/*.whl
 
 # Install nodejs for custom build
-# https://superset.incubator.apache.org/installation.html#making-your-own-build
+# https://github.com/apache/incubator-superset/blob/master/docs/installation.rst#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
 RUN curl -sL https://deb.nodesource.com/setup_8.x |  bash -
 RUN apt-get install -y nodejs
@@ -33,14 +35,12 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -; \
     apt-get update; \
     apt-get install -y yarn
 
-RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt -r requirements-dev.txt \
-    && rm -rf /root/.cache/pip
+RUN cd superset/assets && yarn && yarn run build && cd ../../
 
 ENV PATH=/home/${user}/incubator-superset/superset/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH
 
-COPY --chown=superset:superset superset superset
+COPY docker-init.sh /usr/local/bin/
 
 RUN chmod +x /etc/cert
 RUN chmod +x /usr/local/bin
@@ -48,4 +48,4 @@ RUN chown -R ${user}:${user} $HOME
 
 EXPOSE 8088
 
-EXPOSE 8088
+ENTRYPOINT ["docker-init.sh"]

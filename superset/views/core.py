@@ -28,7 +28,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend, security_manager, sql_lab, utils,
+    app, appbuilder, cache, db, results_backend, security_manager, sql_lab,
     viz,
 )
 
@@ -1763,7 +1763,8 @@ class Superset(BaseSupersetView):
 
             has_kerberos_ticket()
 
-            engine = create_engine(uri, connect_args=connect_args)
+            engine = create_engine(uri, **engine_params)
+
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:

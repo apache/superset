@@ -7,11 +7,9 @@ import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
-<<<<<<< HEAD
-=======
 import { VIZ_TYPES } from '../../../visualizations';
 import { supersetURL } from '../../../utils/common';
->>>>>>> feat(visuals):  add default click handler (#15)
+
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -156,6 +154,12 @@ class Chart extends React.Component {
 
   setHeaderRef(ref) {
     this.headerRef = ref;
+  }
+
+  itemClick(data) {
+    if (this.props.slice.form_data.hasOwnProperty('linked_slice') && this.props.slice.form_data.linked_slice) {
+      this.cloneSliceAndAddToDashboard(this.props.slice.form_data.linked_slice, data)
+    }
   }
 
   resize() {
