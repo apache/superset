@@ -4,13 +4,12 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 
 # Configure environment
 ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
-
-ENV ADMIN_USERNAME guavus
-ENV ADMIN_FIRST_NAME guavus
-ENV ADMIN_LAST_NAME user
-ENV ADMIN_EMAIL support@guavus.com
-ENV ADMIN_PWD Guavus@123
+    LC_ALL=C.UTF-8 \
+    user=guavus-raf \
+    HOME=/home/${user} \
+    DEBIAN_FRONTEND=noninteractive
+    
+RUN useradd --user-group --create-home --no-log-init --shell /bin/bash ${user}
 
 RUN apt-get update -y
 
@@ -18,8 +17,6 @@ RUN apt-get update -y
 RUN apt-get install -y apt-transport-https apt-utils
 
 RUN mkdir -p /etc/cert/
-
-RUN chmod +x /etc/cert/
 
 WORKDIR $HOME/incubator-superset
 
@@ -29,34 +26,25 @@ RUN apt-get install -y vim less postgresql-client redis-tools
 # Install nodejs for custom build
 # https://superset.incubator.apache.org/installation.html#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-    && apt-get install -y nodejs
-
-WORKDIR /home/superset
-
-COPY requirements.txt .
-COPY requirements-dev.txt .
+RUN curl -sL https://deb.nodesource.com/setup_8.x |  bash -
+RUN apt-get install -y nodejs
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -; \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list; \
+    apt-get update; \
+    apt-get install -y yarn
 
 RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
-USER superset
+ENV PATH=/home/${user}/incubator-superset/superset/bin:$PATH \
+    PYTHONPATH=./superset/:$PYTHONPATH
 
 COPY --chown=superset:superset superset superset
 
-ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH
-
-RUN cd superset/assets \
-    && npm ci \
-    && npm run sync-backend \
-    && npm run build \
-    && rm -rf node_modules
-
-COPY contrib/docker/docker-init.sh .
-COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x /etc/cert
+RUN chmod +x /usr/local/bin
+RUN chown -R ${user}:${user} $HOME
 
 EXPOSE 8088
 
