@@ -1,63 +1,45 @@
 FROM python:3.6.5
 
-RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
-
 # Configure environment
 ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    HOME=/home/work
 
-RUN apt-get update -y
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-RUN apt-get install -y apt-transport-https apt-utils
-
-# Install superset dependencies
-# https://superset.incubator.apache.org/installation.html#os-dependencies
 RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+    libffi-dev python3-dev libsasl2-dev libldap2-dev \
+    libsasl2-modules libsasl2-2 libsasl2-modules-gssapi-mit krb5-user
+    
+RUN mkdir -p $HOME/incubator-superset
 
-# Install extra useful tool for development
-RUN apt-get install -y vim less postgresql-client redis-tools
+RUN mkdir -p /etc/security/keytabs/
+
+WORKDIR $HOME/incubator-superset
+
+COPY ./ ./
+
+RUN pip install --upgrade setuptools pip && pip install wheel && python ./setup.py bdist_wheel && pip install ./dist/*.whl
 
 # Install nodejs for custom build
-# https://superset.incubator.apache.org/installation.html#making-your-own-build
+# https://github.com/apache/incubator-superset/blob/master/docs/installation.rst#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-    && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+RUN apt-get install -y nodejs
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -; \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list; \
+    apt-get update; \
+    apt-get install -y yarn
 
-# https://yarnpkg.com/lang/en/docs/install/#debian-stable
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
-    && apt-get install -y yarn
+RUN cd superset/assets && yarn && yarn run build && cd ../../
 
-WORKDIR /home/superset
+ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
+    PYTHONPATH=./superset/:$PYTHONPATH
 
-COPY requirements.txt .
-COPY requirements-dev.txt .
+COPY docker-init.sh /usr/local/bin/
 
-RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt -r requirements-dev.txt \
-    && rm -rf /root/.cache/pip
-
-USER superset
-
-COPY --chown=superset:superset superset superset
-
-ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH
-
-RUN cd superset/assets \
-    && yarn --non-interactive --frozen-lockfile --link-duplicates \
-    && yarn run sync-backend \
-    && yarn run build \
-    && rm -rf node_modules \
-    && yarn cache clean
-
-COPY contrib/docker/docker-init.sh .
-COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-
-HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
+RUN chmod +x /usr/local/bin
 
 EXPOSE 8088
+
+ENTRYPOINT ["docker-init.sh"]

@@ -16,13 +16,15 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import sqlalchemy as sqla
 
-from superset import appbuilder, db, security_manager, utils
+from superset import appbuilder, db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.views.base import BaseSupersetView
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, validate_json)
 from . import models
+
+from superset.utils.core import markdown, validate_json, error_msg_from_exception
 
 appbuilder.add_separator('Sources')
 
@@ -53,7 +55,7 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'filterable': _(
             'Whether this column is exposed in the `Filters` section '
             'of the explore view.'),
-        'json': utils.markdown(
+        'json': markdown(
             'this field can be used to specify  '
             'a `dimensionSpec` as documented [here]'
             '(http://elastic.io/docs/latest/querying/dimensionspecs.html). '
@@ -65,7 +67,7 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_update(self, col):
         col.generate_metrics()
-        utils.validate_json(col.json)
+        validate_json(col.json)
 
     def post_add(self, col):
         self.post_update(col)
@@ -86,7 +88,7 @@ class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'json': [validate_json],
     }
     description_columns = {
-        'metric_type': utils.markdown(
+        'metric_type': markdown(
             'use `postagg` as the metric type if you are defining a '
             '[Elastic Post Aggregation]'
             '(http://elastic.io/docs/latest/querying/post-aggregations.html)',
@@ -269,7 +271,7 @@ class Elastic(BaseSupersetView):
             except Exception as e:
                 flash(
                     'Error while processing cluster \'{}\'\n{}'.format(
-                        cluster_name, utils.error_msg_from_exception(e)),
+                        cluster_name, error_msg_from_exception(e)),
                     'danger')
                 logging.exception(e)
                 return redirect('/elasticclustermodelview/list/')

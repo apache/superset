@@ -109,6 +109,8 @@ export const visTypes = {
           ['adhoc_columns'],
           ['rich_tooltip'],
           ['all_columns_x'],
+          ['all_columns_y'],
+          ['latitude'],
           ['adhoc_filters'],
           ['row_limit', 'include_time'],
         ],
@@ -131,11 +133,18 @@ export const visTypes = {
           ['viewport_zoom', 'mapbox_style'],
           ['min_radius','max_radius'],
           ['chart_interactivity'],
+          ['labels_outside'],
           ['ranges'],
         ],
       },
     ],
     controlOverrides: {
+      labels_outside:{
+        label: t('Use Esri Leaflet'),
+        default: false,
+        renderTrigger: false,
+        description: t('Use Esri Leaflet Library to render tiles for ArcGIS Server'),
+      },
       rich_tooltip:{
         label: t('Show tooltip'),
         renderTrigger: false,
@@ -153,6 +162,19 @@ export const visTypes = {
         multi: true,
         default:[],
         description: t('Tooltip Data Columns'),
+      },
+      all_columns_y:{
+        label: 'Direction',
+        multi: false,
+        default: null,
+        description: t('Direction'),
+      },
+      latitude:{
+        label: 'Marker Value Field',
+        multi: false,
+        default: null,
+        validators: [],
+        description: t('Marker Value Field used for display information in markers as a text'),
       },
       cell_size:{
         default: .75,

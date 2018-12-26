@@ -45,6 +45,7 @@ custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 log_query = config.get('QUERY_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
+from superset.models.helpers import has_kerberos_ticket
 
 PASSWORD_MASK = 'X' * 10
 
@@ -874,6 +875,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def inspector(self):
+        has_kerberos_ticket()
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 

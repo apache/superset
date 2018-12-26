@@ -28,8 +28,12 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend,
-    security_manager, sql_lab, viz)
+    app, appbuilder, cache, db, results_backend, security_manager, sql_lab,
+    viz,
+)
+
+from superset.models.helpers import has_kerberos_ticket
+
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -257,6 +261,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
                 'schema_access', security_manager.get_schema_perm(db, schema))
 
     def pre_update(self, db):
+        has_kerberos_ticket()
         self.pre_add(db)
 
     def pre_delete(self, obj):
@@ -1755,7 +1760,10 @@ class Superset(BaseSupersetView):
             if configuration:
                 connect_args['configuration'] = configuration
 
+            has_kerberos_ticket()
+
             engine = create_engine(uri, **engine_params)
+
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:

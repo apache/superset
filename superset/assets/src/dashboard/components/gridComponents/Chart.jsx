@@ -112,6 +112,12 @@ class Chart extends React.Component {
     this.headerRef = ref;
   }
 
+  itemClick(data) {
+    if (this.props.slice.form_data.hasOwnProperty('linked_slice') && this.props.slice.form_data.linked_slice) {
+      this.cloneSliceAndAddToDashboard(this.props.slice.form_data.linked_slice, data)
+    }
+  }
+
   resize() {
     const { width, height } = this.props;
     this.setState(() => ({ width, height }));
@@ -223,6 +229,7 @@ class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            itemClick={this.itemClick}
           />
         </div>
       </div>

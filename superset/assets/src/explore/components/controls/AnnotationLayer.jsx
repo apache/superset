@@ -87,6 +87,7 @@ export default class AnnotationLayer extends React.PureComponent {
       opacity,
       style,
       width,
+      markerWidth,
       showMarkers,
       hideLine,
       value,
@@ -492,16 +493,10 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderDisplayConfiguration() {
-    const { color, opacity, style, width, showMarkers, hideLine, annotationType } = this.state;
-    const colorScheme = getCategoricalSchemeRegistry()
-      .get(this.props.colorScheme)
-      .colors
-      .concat();
-    if (
-      color &&
-      color !== AUTOMATIC_COLOR &&
-      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
-    ) {
+    const { color, opacity, style, width, markerWidth, showMarkers, hideLine, annotationType } = this.state;
+    const colorScheme = [...ALL_COLOR_SCHEMES[this.props.colorScheme]];
+    if (color && color !== AUTOMATIC_COLOR &&
+      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())) {
       colorScheme.push(color);
     }
     return (
@@ -562,26 +557,37 @@ export default class AnnotationLayer extends React.PureComponent {
           value={width}
           onChange={v => this.setState({ width: v })}
         />
-        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
-          <CheckboxControl
-            hovered
-            name="annotation-layer-show-markers"
-            label="Show Markers"
-            description={'Shows or hides markers for the time series'}
-            value={showMarkers}
-            onChange={v => this.setState({ showMarkers: v })}
-          />
-        )}
-        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
-          <CheckboxControl
-            hovered
-            name="annotation-layer-hide-line"
-            label="Hide Line"
-            description={'Hides the Line for the time series'}
-            value={hideLine}
-            onChange={v => this.setState({ hideLine: v })}
-          />
-        )}
+        {annotationType === AnnotationTypes.TIME_SERIES &&
+        <CheckboxControl
+          hovered
+          name="annotation-layer-show-markers"
+          label="Show Markers"
+          description={'Shows or hides markers for the time series'}
+          value={showMarkers}
+          onChange={v => this.setState({ showMarkers: v })}
+        />
+        }
+        {annotationType === AnnotationTypes.TIME_SERIES && showMarkers &&
+        <TextControl
+          hovered
+          name="annotation-layer-marker-width"
+          label={t('Marker Size')}
+          description={'Set the size of marker'}
+          isInt
+          value={markerWidth}
+          onChange={v => this.setState({ markerWidth: v })}
+        />
+        }
+        {annotationType === AnnotationTypes.TIME_SERIES &&
+        <CheckboxControl
+          hovered
+          name="annotation-layer-hide-line"
+          label="Hide Line"
+          description={'Hides the Line for the time series'}
+          value={hideLine}
+          onChange={v => this.setState({ hideLine: v })}
+        />
+        }
       </PopoverSection>
     );
   }

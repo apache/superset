@@ -1,13 +1,15 @@
 import './leaflet_map.css';
 // todo: use types to avoid full path of libs
 import '../../node_modules/leaflet/dist/leaflet.css';
-import * as  L from '../../node_modules/leaflet/dist/leaflet.js';
 import * as turf from '@turf/turf';
+import * as L from '../../node_modules/leaflet/dist/leaflet.js';
+import * as esri from '../../node_modules/esri-leaflet/dist/esri-leaflet.js';
+import * as GRAPHICON from './graphIcon.js';
 
 /**
  * Leaflet Map Visualization
- * @param {*} slice 
- * @param {*} payload 
+ * @param {*} slice
+ * @param {*} payload
  */
 function leafletmap(slice, payload) {
 
@@ -19,12 +21,9 @@ function leafletmap(slice, payload) {
 
     const formData = slice.formData;
 
-    const MARKER_FILL_COLOR = getRgbColor(formData.color_picker);
     const MARKER_RADIUS = 10;
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
-
-
 
     var colorCols;
     var geoJson;
@@ -35,11 +34,11 @@ function leafletmap(slice, payload) {
     var tooltipColumns = formData.all_columns_x;
     var enableClick = formData.chart_interactivity;
     var showTooltip = formData.rich_tooltip;
+    var useEsriJS = formData.labels_outside;
 
     function getDefaultPolygonStyles() {
         return {
             color: getRgbColor(formData.stroke_color_picker),
-            fillColor: MARKER_FILL_COLOR,
             weight: MARKER_WEIGHT,
             opacity: MARKER_OPACITY,
             fillOpacity: formData.cell_size
@@ -59,7 +58,7 @@ function leafletmap(slice, payload) {
 
     function setLayout() {
         const container = slice.container;
-        // fix of leaflet js :: error 
+        // fix of leaflet js :: error
         //An error occurred while rendering the visualization: Error: Map container is already initialized.
         var el = container.el;
         if (el && el._leaflet_id) {
@@ -70,7 +69,7 @@ function leafletmap(slice, payload) {
     }
 
     function createColorColumns() {
-        // todo: current object is AdhocFilter,so propertynames are not match as we need 
+        // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         colorCols = {}
         if (formData.adhoc_columns && formData.adhoc_columns.length > 0) {
@@ -111,8 +110,26 @@ function leafletmap(slice, payload) {
         }
     }
 
+    function getRangeValue(val, max, min) {
+      val = val < min ? min : (val > max ? max : val);
+      if(max - min === 0) {
+        return 1;
+      }
+      return (val - min) / (max - min);
+    }
+
+    function colourGradientor(lowValueColor,highValueColor,p,max,min){
+        var rangeValue = getRangeValue(p,parseInt(max),parseInt(min));
+        var rgb = {}
+        rgb.r = parseInt((highValueColor.r - lowValueColor.r) * rangeValue + lowValueColor.r)
+        rgb.g = parseInt((highValueColor.g - lowValueColor.g) * rangeValue + lowValueColor.g)
+        rgb.b = parseInt((highValueColor.b - lowValueColor.b) * rangeValue + lowValueColor.b)
+        rgb.a = parseInt((highValueColor.a - lowValueColor.a) * rangeValue + lowValueColor.a)
+        return 'rgb('+rgb.r +',' + rgb.g +',' +rgb.b +','+rgb.a + ')';
+    }
+
     function getColorForColumnVaule(colname, colvalue) {
-        // todo: current object is AdhocFilter,so propertynames are not match as we need 
+        // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         var col = colorCols[colname];
         var minValue = col['operator'];
@@ -120,25 +137,8 @@ function leafletmap(slice, payload) {
         var minValueClr = col['comparator'];
         var maxValueClr = col['clause'];
 
-        // if  minValueClr is r,g,b,a typed Object
-        if (minValueClr instanceof Object) {
-            minValueClr = getRgbColor(minValueClr);
-        }
-
-        // if  minValueClr is r,g,b,a typed Object
-        if (maxValueClr instanceof Object) {
-            maxValueClr = getRgbColor(maxValueClr);
-        }
-
         // todo: add algo to decrease /increase color intensity ad per value
-        var colclr = minValueClr;
-        if (colvalue >= maxvalue) {
-
-            colclr = maxValueClr;
-        } else if (colvalue < minValue) {
-            colclr = MARKER_FILL_COLOR
-        }
-
+        var colclr = colourGradientor(minValueClr, maxValueClr, colvalue,maxvalue,minValue);
         return colclr;
     }
 
@@ -162,8 +162,13 @@ function leafletmap(slice, payload) {
         if (showTooltip) {
             obj.tooltip = getPopupContent(data)
         }
+        if(formData.hasOwnProperty('all_columns_y') && formData.all_columns_y){
+          obj.direction = data[formData.all_columns_y];
+        }
 
-
+        if(formData.hasOwnProperty('latitude') && formData.latitude){
+          obj.markerValue = data[formData.latitude];
+        }
         return obj;
     }
 
@@ -216,30 +221,47 @@ function leafletmap(slice, payload) {
             maxZoom: max_zoom
         }).setView([def_lat, def_long], def_zoom, {});
 
-        L.tileLayer(def_mapserver, {}).addTo(mapInstance);
+        if (useEsriJS) {
+            // todo:add auth token support if nay required
+            // handle error/show notification if wrong server pass
+            esri.tiledMapLayer({
+                url: def_mapserver,
+                minZoom: min_zoom,
+                maxZoom: max_zoom
+            }).addTo(mapInstance);
+        } else {
+            L.tileLayer(def_mapserver, {}).addTo(mapInstance);
+        }
+    }
+
+    function getSelection(event, property, cssClass){
+      var selections = [];
+      // remove previous selected layers except selected
+      Object.values(event.target._map._targets).forEach(element => {
+        if (element.hasOwnProperty(property) && element[property].classList.contains(cssClass)
+          && event.target._leaflet_id != element._leaflet_id) {
+            element[property].classList.remove(cssClass);
+        }
+      });
+      if (event.target[property].classList.contains(cssClass)) {
+        event.target[property].classList.remove(cssClass);
+      } else {
+        event.target[property].classList.add(cssClass);
+        selections = [event.target.feature.properties.id];
+      }
+      return selections;
     }
 
     function mapItemClick(event) {
-
-        if (enableClick) {
-            var selections = [];
-            // remove previous selected layers except selected
-            Object.values(event.target._map._targets).forEach(element => {
-                if (element.hasOwnProperty('_path') && element._path.classList.contains('active-layer') && event.target._leaflet_id != element._leaflet_id) {
-                    element._path.classList.remove('active-layer');
-                }
-            });
-
-            if (event.target._path.classList.contains('active-layer')) {
-                event.target._path.classList.remove('active-layer');
-            } else {
-                event.target._path.classList.add('active-layer');
-                selections = [event.target.feature.properties.id];
-            }
-
-            slice.addFilter(formData.geojson, selections, false);
-        }
-
+      if (enableClick) {
+          var selections = [];
+          if(event.target.hasOwnProperty('_path')){
+            selections = getSelection(event, '_path', 'active-layer')
+          } else if(event.target.hasOwnProperty('_icon')){
+            selections = getSelection(event, '_icon', 'active-layer-canvas');
+          }
+          slice.addFilter(formData.geojson, selections, false);
+      }
     }
 
     function getSelectedColorColumn() {
@@ -296,9 +318,21 @@ function leafletmap(slice, payload) {
                 }
             },
             pointToLayer: function (feature, latlng) {
-                var styles = getLayerStyles(feature)
-                styles.radius = MARKER_RADIUS;
-                return L.circleMarker(latlng, styles).on('click', mapItemClick);
+              var styles = getLayerStyles(feature)
+              styles.radius = MARKER_RADIUS;
+              var node;
+              if(feature.properties.hasOwnProperty('direction')){
+                var myIcon = new GRAPHICON.ENB({
+                  color: feature.properties[getSelectedColorColumn()].color,
+                  directionValue: feature.properties.direction,
+                  markerValue: feature.properties.markerValue,
+                  className: 'my-div-icon',
+                });
+                node = L.marker(latlng, { icon: myIcon }).on('click', mapItemClick);
+              } else {
+                node = L.circleMarker(latlng, styles).on('click', mapItemClick);
+              }
+              return node;
             },
         }).addTo(mapInstance);
     }

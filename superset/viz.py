@@ -41,6 +41,8 @@ from superset.utils.core import (
     to_adhoc,
 )
 
+from superset.models.helpers import has_kerberos_ticket
+
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -253,6 +255,9 @@ class BaseViz(object):
 
     def query_obj(self):
         """Building a query object"""
+
+        has_kerberos_ticket()
+        
         form_data = self.form_data
         self.process_query_filters()
         gb = form_data.get('groupby') or []

@@ -118,6 +118,13 @@ pessimistic_connection_handling(db.engine)
 
 cache = setup_cache(app, conf.get('CACHE_CONFIG'))
 tables_cache = setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
+# For example:
+# DATAFRAME_CACHE_CONFIG = {
+#    'CACHE_TYPE': 'contrib.connectors.pandas.cache.dataframe',
+#    'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24,
+#    'CACHE_DIR': '/tmp/pandasdatasource_cache',
+#    'CACHE_THRESHOLD': 200}
+dataframe_cache = setup_cache(app, conf.get('DATAFRAME_CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + '/migrations')
 

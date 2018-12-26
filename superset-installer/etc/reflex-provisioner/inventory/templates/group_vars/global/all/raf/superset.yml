@@ -68,3 +68,15 @@ superset_docker_restart_policy: "Always"
 superset_host_base_dir: "/opt/guavus/superset"
 superset_host_k8s_dir: "{{ superset_host_base_dir }}/deployment/k8s"
 superset_host_sql_dir: "{{ superset_host_base_dir }}/deployment/sql"
+
+#------------------------------------------------------------------#
+#                      Kerberos Config                               #
+#------------------------------------------------------------------#
+superset_hive_keytab_name: "hive.service.keytab"
+superset_krb5_conf_name: "krb5.conf"
+
+superset_kerberos_config_dir: "{{ superset_host_base_dir }}/krb5-config"
+
+# Config Diretory
+superset_config_dir: "{{ role_path }}/../kerberos/files/config"
+superset_kerberos_enabled: false

@@ -22,11 +22,12 @@ from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
                         Text)
 from sqlalchemy.orm import backref, relationship
 
-from superset import db, import_util, security_manager, utils
+from superset import db, security_manager, utils
 from superset.connectors.base.models import (BaseColumn, BaseDatasource,
                                              BaseMetric)
-from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
-from superset.utils import flasher
+from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.utils.core import flasher
+from superset.utils.import_datasource import import_simple_obj, import_datasource
 
 
 class ElasticCluster(Model, AuditMixinNullable):
@@ -190,7 +191,7 @@ class ElasticColumn(Model, BaseColumn):
                 ElasticColumn.datasource_name == lookup_column.datasource_name,
                 ElasticColumn.column_name == lookup_column.column_name).first()
 
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_simple_obj(db.session, i_column, lookup_obj)
 
 
 class ElasticMetric(Model, BaseMetric):
@@ -239,7 +240,7 @@ class ElasticMetric(Model, BaseMetric):
             return db.session.query(ElasticMetric).filter(
                 ElasticMetric.datasource_name == lookup_metric.datasource_name,
                 ElasticMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class ElasticDatasource(Model, BaseDatasource):
@@ -365,7 +366,7 @@ class ElasticDatasource(Model, BaseDatasource):
         def lookup_cluster(d):
             return db.session.query(ElasticCluster).filter_by(
                 cluster_name=d.cluster_name).one()
-        return import_util.import_datasource(
+        return import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 
@@ -579,5 +580,5 @@ class ElasticDatasource(Model, BaseDatasource):
         )
 
 
-sa.event.listen(ElasticDatasource, 'after_insert', set_perm)
-sa.event.listen(ElasticDatasource, 'after_update', set_perm)
+sa.event.listen(ElasticDatasource, 'after_insert', security_manager.set_perm)
+sa.event.listen(ElasticDatasource, 'after_update', security_manager.set_perm)

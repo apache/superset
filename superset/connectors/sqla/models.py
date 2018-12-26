@@ -7,6 +7,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
 import sqlalchemy as sa
+import superset.utils.core as utils
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Text,
@@ -23,8 +24,10 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import QueryResult
-from superset.utils import core as utils, import_datasource
+from superset.utils.core import (
+    DTTM_ALIAS, QueryStatus
+)
+from superset.models.helpers import QueryResult, has_kerberos_ticket
 
 config = app.config
 
@@ -816,6 +819,7 @@ class SqlaTable(Model, BaseDatasource):
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
+            has_kerberos_ticket()
             table = self.get_sqla_table_object()
         except Exception as e:
             logging.exception(e)

@@ -54,8 +54,8 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'bleach>=3.0.2, <4.0.0',
-        'boto3>=1.4.7, <2.0.0',
-        'botocore>=1.7.0, <1.8.0',
+        'beautifulsoup4==4.6.0',
+        'bottleneck==1.2.1',
         'celery>=4.2.0, <5.0.0',
         'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
         'colorama',
@@ -67,7 +67,6 @@ setup(
         'flask-caching',
         'flask-compress',
         'flask-migrate',
-        'flask-sqlalchemy==2.1',
         'flask-wtf',
         'flower',  # deprecated
         'geopy',
@@ -81,9 +80,8 @@ setup(
         'parsedatetime',
         'pathlib2',
         'polyline',
-        'psycopg2-binary',
         'pydruid>=0.4.3',
-        'pyhive>=0.4.0',
+        'pyhive>=0.6.0',
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.13',
