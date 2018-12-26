@@ -3,9 +3,10 @@ FROM python:3.6.5
 MAINTAINER Arpit Agarwal <arpit.agarwal@guavus.com>
 
 # Configure environment
+ENV user=guavus-raf
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    user=guavus-raf \
     HOME=/home/${user} \
     DEBIAN_FRONTEND=noninteractive
     
