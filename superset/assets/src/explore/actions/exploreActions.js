@@ -120,6 +120,11 @@ export function updateChartTitle(slice_name) {
   return { type: UPDATE_CHART_TITLE, slice_name };
 }
 
+export const UPDATE_CHART_DESCRIPTION = 'UPDATE_CHART_DESCRIPTION';
+export function updateChartDescription(description) {
+  return { type: UPDATE_CHART_DESCRIPTION, description };
+}
+
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
 export function createNewSlice(can_add, can_download, can_overwrite, slice, form_data) {
   return { type: CREATE_NEW_SLICE, can_add, can_download, can_overwrite, slice, form_data };
