@@ -5,7 +5,6 @@ import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
-import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
 
 const propTypes = {
@@ -15,7 +14,7 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
 
   // from redux
-  chart: PropTypes.shape(chartPropType).isRequired,
+  chart: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,

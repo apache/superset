@@ -3508,7 +3508,8 @@ if (typeof define === "function" && define.amd) {
     return CalHeatMap;
   });
 } else if (typeof module === "object" && module.exports) {
-  module.exports = CalHeatMap;
+  // pass
 } else {
   window.CalHeatMap = CalHeatMap;
 }
+export default CalHeatMap;
