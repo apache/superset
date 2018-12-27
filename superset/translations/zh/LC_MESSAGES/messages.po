@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
-"POT-Creation-Date: 2018-06-07 00:14-0700\n"
+"POT-Creation-Date: 2018-06-07 00:22-0700\n"
 "PO-Revision-Date: 2018-01-08 17:47+0800\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -17,7 +17,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.5.3\n"
+"Generated-By: Babel 2.6.0\n"
 
 #: superset/assets/src/explore/controls.jsx:818 superset/db_engine_specs.py:343
 #: superset/db_engine_specs.py:393 superset/db_engine_specs.py:422
@@ -140,19 +140,19 @@ msgstr "表名"
 
 #: superset/forms.py:57
 msgid "Name of table to be created from csv data."
-msgstr ""
+msgstr "从CSV数据将创建的表的名称"
 
 #: superset/forms.py:61
 msgid "CSV File"
-msgstr ""
+msgstr "CSV文件"
 
 #: superset/forms.py:62
 msgid "Select a CSV file to be uploaded to a database."
-msgstr ""
+msgstr "选择一个CSV文件上传到数据库"
 
 #: superset/forms.py:64
 msgid "CSV Files Only!"
-msgstr ""
+msgstr "仅CSV文件！"
 
 #: superset/connectors/sqla/views.py:227 superset/forms.py:66
 #: superset/views/core.py:275 superset/views/sql_lab.py:24
@@ -162,33 +162,33 @@ msgstr "数据库"
 
 #: superset/forms.py:70
 msgid "Delimiter"
-msgstr ""
+msgstr "分隔符"
 
 #: superset/forms.py:71
 msgid "Delimiter used by CSV file (for whitespace use \\s+)."
-msgstr ""
+msgstr "CSV文件使用的分隔符　(空白请使用 \\s+)"
 
 #: superset/forms.py:75
 msgid "Table Exists"
-msgstr ""
+msgstr "表已存在"
 
 #: superset/forms.py:76
 msgid ""
 "If table exists do one of the following: Fail (do nothing), Replace (drop"
 " and recreate table) or Append (insert data)."
-msgstr ""
+msgstr "如果表已存在，执行其中一个：舍弃（什么都不做），替换（删除表并重建），或者追加(插入数据)"
 
 #: superset/forms.py:81
 msgid "Fail"
-msgstr ""
+msgstr "舍弃"
 
 #: superset/forms.py:81
 msgid "Replace"
-msgstr ""
+msgstr "替换"
 
 #: superset/forms.py:82
 msgid "Append"
-msgstr ""
+msgstr "追加"
 
 #: superset/connectors/sqla/views.py:230 superset/forms.py:85
 msgid "Schema"
@@ -200,13 +200,13 @@ msgstr ""
 
 #: superset/forms.py:91
 msgid "Header Row"
-msgstr ""
+msgstr "标题行"
 
 #: superset/forms.py:92
 msgid ""
 "Row containing the headers to use as column names (0 is first line of "
 "data). Leave empty if there is no header row."
-msgstr ""
+msgstr "作为列名的带有标题的行（０是第一行数据）。如果没有标题行则留空。"
 
 #: superset/forms.py:100
 msgid "Index Column"
@@ -327,7 +327,7 @@ msgstr "为[分组]和[指标]或[列]选择任何的字段，或者两个都不
 
 #: superset/viz.py:587
 msgid "Time Table View"
-msgstr ""
+msgstr "时间表视图"
 
 #: superset/viz.py:596 superset/viz.py:1495
 msgid "Pick at least one metric"
@@ -343,7 +343,7 @@ msgstr "透视表"
 
 #: superset/viz.py:642
 msgid "Please choose at least one 'Group by' field "
-msgstr ""
+msgstr "请至少选择一个分组字段"
 
 #: superset/viz.py:644
 msgid "Please choose at least one metric"
@@ -465,7 +465,7 @@ msgstr "直方图"
 
 #: superset/viz.py:1451
 msgid "Must have at least one numeric column specified"
-msgstr ""
+msgstr "必须至少指明一个数值列"
 
 #: superset/assets/src/explore/visTypes.js:110 superset/viz.py:1482
 msgid "Distribution - Bar Chart"
@@ -1508,7 +1508,7 @@ msgstr "Y轴的边界。当空时，边界是根据数据的最小/最大值动�
 
 #: superset/assets/src/explore/controls.jsx:224
 msgid "Ordering"
-msgstr "订购"
+msgstr "排序"
 
 #: superset/assets/src/explore/controls.jsx:232
 msgid "Fixed Color"
@@ -3921,11 +3921,11 @@ msgstr "看板"
 #: superset/assets/src/profile/components/Favorites.jsx:62
 #: superset/views/core.py:500 superset/views/core.py:573
 msgid "Charts"
-msgstr ""
+msgstr "图表"
 
 #: superset/assets/src/profile/components/Favorites.jsx:34
 msgid "No favorite charts yet, go click on stars!"
-msgstr ""
+msgstr "暂无收藏的图表，去点击星星吧！"
 
 #: superset/assets/src/profile/components/Favorites.jsx:50
 msgid "No favorite dashboards yet, go click on stars!"
@@ -4697,7 +4697,7 @@ msgstr "安全"
 
 #: superset/views/core.py:421
 msgid "List Charts"
-msgstr ""
+msgstr "图表列表"
 
 #: superset/views/core.py:422
 msgid "Show Chart"
@@ -4737,7 +4737,7 @@ msgstr "参数"
 
 #: superset/views/core.py:465 superset/views/core.py:512
 msgid "Chart"
-msgstr ""
+msgstr "图表"
 
 #: superset/views/core.py:532
 msgid "List Dashboards"
