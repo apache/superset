@@ -67,7 +67,7 @@ pyasn1-modules==0.2.2     # via google-auth
 pyasn1==0.4.4             # via pyasn1-modules, rsa
 pycparser==2.19           # via cffi
 pydruid==0.5.0
-pyhive==0.5.1
+pyhive==0.6.0
 pyparsing==2.3.0          # via moz-sql-parser
 python-dateutil==2.6.1
 python-editor==1.0.3      # via alembic
@@ -101,4 +101,5 @@ wtforms==2.2.1            # via flask-wtf
 xlrd==1.1.0               # via tabulator
 contextlib2==0.5.5
 elasticsearch==5.5.3
+python-ldap==3.1.0
 
