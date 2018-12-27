@@ -20,7 +20,7 @@ click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
 croniter==0.3.25
-cryptography==1.9
+cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
 et-xmlfile==1.0.1         # via openpyxl
