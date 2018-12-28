@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, Thead, Th } from 'reactable';
+import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import { isEqual, isEmpty } from 'lodash';
 import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
