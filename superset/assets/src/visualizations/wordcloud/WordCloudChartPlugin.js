@@ -1,6 +1,6 @@
 import { t } from '@superset-ui/translation';
-import ChartPlugin from '../core/models/ChartPlugin';
-import ChartMetadata from '../core/models/ChartMetadata';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import buildQuery from './buildQuery';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
@@ -15,6 +15,7 @@ export default class WordCloudChartPlugin extends ChartPlugin {
   constructor() {
     super({
       metadata,
+      buildQuery,
       transformProps,
       loadChart: () => import('./ReactWordCloud.js'),
     });

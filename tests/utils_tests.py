@@ -618,6 +618,10 @@ class UtilsTestCase(unittest.TestCase):
         expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
+        result = get_since_until(time_range='5 days : now')
+        expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
         with self.assertRaises(ValueError):
             get_since_until(time_range='tomorrow : yesterday')
 

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import shortid from 'shortid';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 
 import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
@@ -18,7 +19,6 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
@@ -39,7 +39,7 @@ export default function(bootstrapData) {
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      getScale().setColor(label, colorMap[label]);
+      CategoricalColorNamespace.getScale().setColor(label, colorMap[label]);
     });
   }
 

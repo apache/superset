@@ -19,7 +19,7 @@ class QueryContext:
             queries: List[Dict],
     ):
         self.datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
-                                                           datasource.get('id'),
+                                                           int(datasource.get('id')),
                                                            db.session)
         self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
 

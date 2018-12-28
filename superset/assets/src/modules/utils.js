@@ -1,40 +1,6 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
-import d3 from 'd3';
-import { formatDate, UTC } from './dates';
-
-const siFormatter = d3.format('.3s');
-
-export function defaultNumberFormatter(n) {
-  let si = siFormatter(n);
-  // Removing trailing `.00` if any
-  if (si.slice(-1) < 'A') {
-    si = parseFloat(si).toString();
-  }
-  return si;
-}
-
-export function d3FormatPreset(format) {
-  // like d3.format, but with support for presets like 'smart_date'
-  if (format === 'smart_date') {
-    return formatDate;
-  }
-  if (format) {
-    return d3.format(format);
-  }
-  return defaultNumberFormatter;
-}
-export const d3TimeFormatPreset = function (format) {
-  const effFormat = format || 'smart_date';
-  if (effFormat === 'smart_date') {
-    return formatDate;
-  }
-  const f = d3.time.format(effFormat);
-  return function (dttm) {
-    const d = UTC(new Date(dttm));
-    return f(d);
-  };
-};
+import { select as d3Select } from 'd3-selection';
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -47,7 +13,7 @@ export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
   text.each(function () {
-    const d3Text = d3.select(this);
+    const d3Text = d3Select(this);
     const words = d3Text.text().split(/\s+/);
     let word;
     let line = [];
@@ -118,20 +84,6 @@ export const fixDataTableBodyHeight = function ($tableDom, height) {
   $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
 
-export function d3format(format, number) {
-  const formatters = {};
-  // Formats a number and memoizes formatters to be reused
-  format = format || '.3s';
-  if (!(format in formatters)) {
-    formatters[format] = d3.format(format);
-  }
-  try {
-    return formatters[format](number);
-  } catch (e) {
-    return 'ERR';
-  }
-}
-
 export function formatSelectOptionsForRange(start, end) {
   // outputs array of arrays
   // formatSelectOptionsForRange(1, 5)
@@ -175,4 +127,14 @@ export function mainMetric(savedMetrics) {
     }
   }
   return metric;
+}
+
+export function roundDecimal(number, precision) {
+  let roundedNumber;
+  if (precision) {
+    roundedNumber = Math.round(number * (precision = Math.pow(10, precision))) / precision;
+  } else {
+    roundedNumber = Math.round(number);
+  }
+  return roundedNumber;
 }

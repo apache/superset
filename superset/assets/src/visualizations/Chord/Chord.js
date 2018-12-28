@@ -1,7 +1,8 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
+import { getNumberFormatter } from '@superset-ui/number-format';
 import './Chord.css';
 
 const propTypes = {
@@ -28,8 +29,8 @@ function Chord(element, props) {
 
   const div = d3.select(element);
   const { nodes, matrix } = data;
-  const f = d3.format(numberFormat);
-  const colorFn = getScale(colorScheme).toFunction();
+  const f = getNumberFormatter(numberFormat);
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;

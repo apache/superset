@@ -165,7 +165,7 @@ class RequestAccessTests(SupersetTestCase):
         override_me = security_manager.find_role('override_me')
         override_me.permissions.append(
             security_manager.find_permission_view_menu(
-                view_menu_name=self.get_table_by_name('long_lat').perm,
+                view_menu_name=self.get_table_by_name('energy_usage').perm,
                 permission_name='datasource_access'),
         )
         db.session.flush()
@@ -251,9 +251,9 @@ class RequestAccessTests(SupersetTestCase):
 
         gamma_user = security_manager.find_user(username='gamma')
         access_request1 = create_access_request(
-            session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
+            session, 'table', 'energy_usage', TEST_ROLE_1, 'gamma')
         create_access_request(
-            session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
+            session, 'table', 'energy_usage', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         # gamma gets granted database access
         database = session.query(models.Database).first()
@@ -351,9 +351,9 @@ class RequestAccessTests(SupersetTestCase):
             # Case 2. Extend the role to have access to the table
 
             access_request2 = create_access_request(
-                session, 'table', 'long_lat', TEST_ROLE_NAME, 'gamma')
+                session, 'table', 'energy_usage', TEST_ROLE_NAME, 'gamma')
             ds_2_id = access_request2.datasource_id
-            long_lat_perm = access_request2.datasource.perm
+            energy_usage_perm = access_request2.datasource.perm
 
             self.client.get(EXTEND_ROLE_REQUEST.format(
                 'table', access_request2.datasource_id, 'gamma', TEST_ROLE_NAME))
@@ -369,13 +369,13 @@ class RequestAccessTests(SupersetTestCase):
                 '[Superset] Access to the datasource {} was granted'.format(
                     self.get_table(ds_2_id).full_name), call_args[2]['Subject'])
             self.assertIn(TEST_ROLE_NAME, call_args[2].as_string())
-            self.assertIn('long_lat', call_args[2].as_string())
+            self.assertIn('energy_usage', call_args[2].as_string())
 
             # request was removed
             self.assertFalse(access_requests)
-            # table_role was extended to grant access to the long_lat table/
+            # table_role was extended to grant access to the energy_usage table/
             perm_view = security_manager.find_permission_view_menu(
-                'datasource_access', long_lat_perm)
+                'datasource_access', energy_usage_perm)
             TEST_ROLE = security_manager.find_role(TEST_ROLE_NAME)
             self.assertIn(perm_view, TEST_ROLE.permissions)
 

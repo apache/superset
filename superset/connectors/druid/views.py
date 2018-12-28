@@ -158,8 +158,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     edit_title = _('Edit Druid Cluster')
 
     add_columns = [
-        'verbose_name', 'coordinator_host', 'coordinator_port',
-        'coordinator_endpoint', 'broker_host', 'broker_port',
+        'verbose_name', 'broker_host', 'broker_port',
         'broker_endpoint', 'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
@@ -167,9 +166,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _('Cluster'),
-        'coordinator_host': _('Coordinator Host'),
-        'coordinator_port': _('Coordinator Port'),
-        'coordinator_endpoint': _('Coordinator Endpoint'),
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),
@@ -218,12 +214,12 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm', 'slices']
@@ -267,7 +263,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'datasource_link': _('Data Source'),
         'cluster': _('Cluster'),
         'description': _('Description'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'is_hidden': _('Is Hidden'),
         'filter_select_enabled': _('Enable Filter Select'),
         'default_endpoint': _('Default Endpoint'),

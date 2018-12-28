@@ -9,6 +9,8 @@ import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
+import CopyToClipboard from '../../components/CopyToClipboard';
+import { prepareCopyToClipboardTabularData } from '../../utils/common';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -28,11 +30,12 @@ const defaultProps = {
   csv: true,
   actions: {},
   cache: false,
+  database: {},
 };
 
 const SEARCH_HEIGHT = 46;
 
-const LOADING_STYLES = { position: 'relative', height: 50 };
+const LOADING_STYLES = { position: 'relative', minHeight: 100 };
 
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
@@ -111,6 +114,16 @@ export default class ResultSet extends React.PureComponent {
                   <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
                     <i className="fa fa-file-text-o" /> {t('.CSV')}
                   </Button>}
+
+                <CopyToClipboard
+                  text={prepareCopyToClipboardTabularData(this.props.query.results.data)}
+                  wrapped={false}
+                  copyNode={
+                    <Button bsSize="small">
+                      <i className="fa fa-clipboard" /> {t('Clipboard')}
+                    </Button>
+                  }
+                />
               </ButtonGroup>
             </div>
             <div className="pull-right">
@@ -218,11 +231,19 @@ export default class ResultSet extends React.PureComponent {
         </Button>
       );
     }
+    const progressMsg = query && query.extra && query.extra.progress ? query.extra.progress : null;
     return (
       <div style={LOADING_STYLES}>
+        <div>
+          {!progressBar && <Loading position="normal" />}
+        </div>
         <QueryStateLabel query={query} />
-        {!progressBar && <Loading />}
-        {progressBar}
+        <div>
+          {progressMsg && <Alert bsStyle="success">{progressMsg}</Alert>}
+        </div>
+        <div>
+          {progressBar}
+        </div>
         <div>
           {trackingUrl}
         </div>

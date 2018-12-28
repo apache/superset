@@ -1,21 +1,21 @@
-import d3 from 'd3';
-import getSequentialSchemeRegistry from '../../modules/colors/SequentialSchemeRegistrySingleton';
-import { colorScalerFactory, hexToRGB } from '../../modules/colors';
+import { extent } from 'd3-array';
+import { scaleThreshold } from 'd3-scale';
+import { getSequentialSchemeRegistry, SequentialScheme } from '@superset-ui/color';
+import { hexToRGB } from '../../modules/colors';
+
+const DEFAULT_NUM_BUCKETS = 10;
 
 export function getBreakPoints({
     break_points: formDataBreakPoints,
     num_buckets: formDataNumBuckets,
-    metric,
-  }, features) {
+  }, features, accessor) {
   if (!features) {
     return [];
   }
   if (formDataBreakPoints === undefined || formDataBreakPoints.length === 0) {
     // compute evenly distributed break points based on number of buckets
-    const numBuckets = formDataNumBuckets
-      ? parseInt(formDataNumBuckets, 10)
-      : 10;
-    const [minValue, maxValue] = d3.extent(features, d => d[metric]);
+    const numBuckets = formDataNumBuckets ? parseInt(formDataNumBuckets, 10) : DEFAULT_NUM_BUCKETS;
+    const [minValue, maxValue] = extent(features, accessor);
     const delta = (maxValue - minValue) / numBuckets;
     const precision = delta === 0
       ? 0
@@ -31,46 +31,49 @@ export function getBreakPointColorScaler({
     break_points: formDataBreakPoints,
     num_buckets: formDataNumBuckets,
     linear_color_scheme: linearColorScheme,
-    metric,
     opacity,
-  }, features) {
+  }, features, accessor) {
   const breakPoints = formDataBreakPoints || formDataNumBuckets
     ? getBreakPoints({
       break_points: formDataBreakPoints,
       num_buckets: formDataNumBuckets,
-      metric,
-    }, features)
+    }, features, accessor)
     : null;
-  const colors = Array.isArray(linearColorScheme)
-    ? linearColorScheme
-    : getSequentialSchemeRegistry().get(linearColorScheme).colors;
+  const colorScheme = Array.isArray(linearColorScheme)
+    ? new SequentialScheme({
+      id: 'custom',
+      colors: linearColorScheme,
+    })
+    : getSequentialSchemeRegistry().get(linearColorScheme);
 
   let scaler;
   let maskPoint;
   if (breakPoints !== null) {
     // bucket colors into discrete colors
-    const colorScaler = colorScalerFactory(colors);
     const n = breakPoints.length - 1;
     const bucketedColors = n > 1
-      ? [...Array(n).keys()].map(d => colorScaler(d / (n - 1)))
-      : [colors[colors.length - 1]];
+      ? colorScheme.getColors(n)
+      : [colorScheme.colors[colorScheme.colors.length - 1]];
 
     // repeat ends
-    bucketedColors.unshift(bucketedColors[0]);
-    bucketedColors.push(bucketedColors[n - 1]);
+    const first = bucketedColors[0];
+    const last = bucketedColors[bucketedColors.length - 1];
+    bucketedColors.unshift(first);
+    bucketedColors.push(last);
 
     const points = breakPoints.map(p => parseFloat(p));
-    scaler = d3.scale.threshold().domain(points).range(bucketedColors);
+    scaler = scaleThreshold().domain(points).range(bucketedColors);
     maskPoint = value => value > breakPoints[n] || value < breakPoints[0];
   } else {
     // interpolate colors linearly
-    scaler = colorScalerFactory(colors, features, d => d[metric]);
+    scaler = colorScheme.createLinearScale(extent(features, accessor));
     maskPoint = () => false;
   }
 
   return (d) => {
-    const c = hexToRGB(scaler(d[metric]));
-    if (maskPoint(d[metric])) {
+    const v = accessor(d);
+    const c = hexToRGB(scaler(v));
+    if (maskPoint(v)) {
       c[3] = 0;
     } else {
       c[3] = (opacity / 100.0) * 255;
@@ -79,15 +82,17 @@ export function getBreakPointColorScaler({
   };
 }
 
-export function getBuckets(fd, features) {
-  const breakPoints = getBreakPoints(fd, features, true);
-  const colorScaler = getBreakPointColorScaler(fd, features);
+export function getBuckets(fd, features, accessor) {
+  const breakPoints = getBreakPoints(fd, features, accessor);
+  const colorScaler = getBreakPointColorScaler(fd, features, accessor);
   const buckets = {};
   breakPoints.slice(1).forEach((value, i) => {
     const range = breakPoints[i] + ' - ' + breakPoints[i + 1];
     const mid = 0.5 * (parseInt(breakPoints[i], 10) + parseInt(breakPoints[i + 1], 10));
+   // fix polygon doesn't show
+   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
     buckets[range] = {
-      color: colorScaler({ [fd.metric]: mid }),
+      color: colorScaler({ [metricLabel || fd.metric]: mid }),
       enabled: true,
     };
   });

@@ -1,60 +1,10 @@
 import {
-  tickMultiFormat,
-  formatDate,
-  formatDateVerbose,
   fDuration,
   now,
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
- } from '../../../src/modules/dates';
-
-describe('tickMultiFormat', () => {
-  it('is a function', () => {
-    expect(typeof tickMultiFormat).toBe('function');
-  });
-});
-
-describe('formatDate', () => {
-  it('is a function', () => {
-    expect(typeof formatDate).toBe('function');
-  });
-
-  it('shows only year when 1st day of the year', () => {
-    expect(formatDate(new Date('2020-01-01'))).toBe('2020');
-  });
-
-  it('shows only month when 1st of month', () => {
-    expect(formatDate(new Date('2020-03-01'))).toBe('March');
-  });
-
-  it('does not show day of week when it is Sunday', () => {
-    expect(formatDate(new Date('2020-03-15'))).toBe('Mar 15');
-  });
-
-  it('shows weekday when it is not Sunday (and no ms/sec/min/hr)', () => {
-    expect(formatDate(new Date('2020-03-03'))).toBe('Tue 03');
-  });
-});
-
-describe('formatDateVerbose', () => {
-  it('is a function', () => {
-    expect(typeof formatDateVerbose).toBe('function');
-  });
-
-  it('shows only year when 1st day of the year', () => {
-    expect(formatDateVerbose(new Date('2020-01-01'))).toBe('2020');
-  });
-
-  it('shows month and year when 1st of month', () => {
-    expect(formatDateVerbose(new Date('2020-03-01'))).toBe('Mar 2020');
-  });
-
-  it('shows weekday when any day of the month', () => {
-    expect(formatDateVerbose(new Date('2020-03-03'))).toBe('Tue Mar 3');
-    expect(formatDateVerbose(new Date('2020-03-15'))).toBe('Sun Mar 15');
-  });
-});
+} from '../../../src/modules/dates';
 
 describe('fDuration', () => {
   it('is a function', () => {

@@ -12,12 +12,15 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
-from superset.models.helpers import AuditMixinNullable
+from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.utils.core import QueryStatus, user_label
 
 
-class Query(Model):
-    """ORM model for SQL query"""
+class Query(Model, ExtraJSONMixin):
+    """ORM model for SQL query
+
+    Now that SQL Lab support multi-statement execution, an entry in this
+    table may represent multiple SQL statements executed sequentially"""
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
@@ -105,6 +108,7 @@ class Query(Model):
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,
+            'extra': self.extra,
         }
 
     @property
@@ -115,7 +119,7 @@ class Query(Model):
         tab = (self.tab_name.replace(' ', '_').lower()
                if self.tab_name else 'notab')
         tab = re.sub(r'\W+', '', tab)
-        return 'sqllab_{tab}_{ts}'.format(**locals())
+        return f'sqllab_{tab}_{ts}'
 
 
 class SavedQuery(Model, AuditMixinNullable):
@@ -140,8 +144,8 @@ class SavedQuery(Model, AuditMixinNullable):
 
     @property
     def pop_tab_link(self):
-        return Markup("""
+        return Markup(f"""
             <a href="/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
-        """.format(**locals()))
+        """)

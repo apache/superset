@@ -35,26 +35,27 @@
  *
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
- * in tandem with `visTypes.js` that defines how controls are composed into sections for
+ * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
 import React from 'react';
 import { t } from '@superset-ui/translation';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
+
 import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
-import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
-import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+
+const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -161,6 +162,15 @@ const jsFunctionInfo = (
     </a>.
   </div>
 );
+
+function columnChoices(datasource) {
+  if (datasource && datasource.columns) {
+    return datasource.columns
+      .map(col => [col.column_name, col.verbose_name || col.column_name])
+      .sort((opt1, opt2) => opt1[1].toLowerCase() > opt2[1].toLowerCase() ? 1 : -1);
+  }
+  return [];
+}
 
 function jsFunctionControl(label, description, extraDescr = null, height = 100, defaultText = '') {
   return {
@@ -518,12 +528,12 @@ export const controls = {
       'Egypt',
       'France',
       'Germany',
-      'India',
       'Italy',
-      'Portugal',
+      'Japan',
       'Morocco',
       'Myanmar',
       'Netherlands',
+      'Portugal',
       'Russia',
       'Singapore',
       'Spain',
@@ -608,7 +618,7 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Point to your spatial columns'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -618,7 +628,7 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Point to your spatial columns'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -628,7 +638,7 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Point to your spatial columns'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -639,7 +649,7 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Select the longitude column'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -650,7 +660,7 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Select the latitude column'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -667,7 +677,17 @@ export const controls = {
     validators: [v.nonEmpty],
     description: t('Select the geojson column'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
+    }),
+  },
+
+  polygon: {
+    type: 'SelectControl',
+    label: t('Polygon Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points'),
+    mapStateToProps: state => ({
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -696,7 +716,7 @@ export const controls = {
     default: null,
     description: t('Columns to display'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -706,7 +726,7 @@ export const controls = {
     default: null,
     description: t('Columns to display'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -1076,26 +1096,22 @@ export const controls = {
   },
 
   series: {
-    type: 'SelectControl',
+    ...groupByControl,
     label: t('Series'),
+    multi: false,
     default: null,
     description: t('Defines the grouping of entities. ' +
     'Each series is shown as a specific color on the chart and ' +
     'has a legend toggle'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.gb_cols : [],
-    }),
   },
 
   entity: {
-    type: 'SelectControl',
+    ...groupByControl,
     label: t('Entity'),
     default: null,
+    multi: false,
     validators: [v.nonEmpty],
     description: t('This defines the element to be plotted on the chart'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.gb_cols : [],
-    }),
   },
 
   x: {
@@ -1683,7 +1699,7 @@ export const controls = {
     'Non-numerical columns will be used to label points. ' +
     'Leave empty to get a count of points in each cluster.'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -1743,7 +1759,7 @@ export const controls = {
     'Either a numerical column or `Auto`, which scales the point based ' +
     'on the largest cluster'),
     mapStateToProps: state => ({
-      choices: [].concat([['Auto', 'Auto']], state.datasource.all_cols),
+      choices: columnChoices(state.datasource),
     }),
   },
 
@@ -2135,7 +2151,7 @@ export const controls = {
     default: null,
     description: t('The database columns that contains lines information'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: columnChoices(state.datasource),
     }),
     validators: [v.nonEmpty],
   },

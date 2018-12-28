@@ -80,11 +80,14 @@ export default function exploreReducer(state = {}, action) {
       };
       if (control.renderTrigger) {
         changes.triggerRender = true;
+      } else {
+        changes.triggerRender = false;
       }
-      return {
+      const newState = {
         ...state,
         ...changes,
       };
+      return newState;
     },
     [actions.SET_EXPLORE_CONTROLS]() {
       return {

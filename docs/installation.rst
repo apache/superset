@@ -43,22 +43,29 @@ If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset
-    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
-    cp contrib/docker/superset_config.py superset/
-    bash -x docker-build.sh
-    docker-compose up -d
-    docker-compose exec superset bash
-    bash docker-init.sh
+    cd incubator-superset/contrib/docker
+    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
+    docker-compose run --rm superset ./docker-init.sh
+    # you can run this command everytime you need to start superset now:
+    docker-compose up
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
+From there, the container server will reload on modification of the superset python
+and javascript source code.
+Don't forget to reload the page to take the new frontend into account though.
+
+See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+for alternative way of serving the frontend.
+
+It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
+the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
-Or if you're curious and want to install superset from bottom up, then go 
-ahead.
+Or if you're curious and want to install superset from bottom up, then go ahead.
 
 OS dependencies
 ---------------
@@ -78,9 +85,9 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
-**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also: ::
+**Ubuntu 18.04** If you have python3.6 installed alongside with python2.7, as is default on **Ubuntu 18.04 LTS**, run this command also: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
 
 otherwise build for ``cryptography`` fails.
 
@@ -105,17 +112,18 @@ attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and r
 
 Python virtualenv
 -----------------
-It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv, for
-Python 2 you need to install it. If it's packaged for your operating systems install it from there
-otherwise you can install from pip: ::
+It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv.
+But if it's not installed in your environment for some reason, you can install it
+via the package for your operating systems, otherwise you can install from pip: ::
 
     pip install virtualenv
 
 You can create and activate a virtualenv by: ::
 
-    # virtualenv is shipped in Python 3 as pyvenv
-    virtualenv venv
-    . ./venv/bin/activate
+    # virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
+    # See https://docs.python.org/3.6/library/venv.html
+    python3 -m venv venv
+    . venv/bin/activate
 
 On windows the syntax for activating it is a bit different: ::
 
@@ -396,10 +404,6 @@ Make sure the user has privileges to access and use all required
 databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does
 not test for user rights during engine creation.
 
-*Note*: At the time of writing, there is a regression in the current stable version (1.1.2) of
-snowflake-sqlalchemy package that causes problems when used with Superset. It is recommended to
-use version 1.1.0 or try a newer version.
-
 See `Snowflake SQLAlchemy <https://github.com/snowflakedb/snowflake-sqlalchemy>`_.
 
 Teradata
@@ -551,6 +555,18 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
+DOMAIN SHARDING
+---------------
+
+Chrome allows up to 6 open connections per domain at a time. When there are more
+than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
+next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/pull/5039>`) adds domain sharding to Superset,
+and this feature will be enabled by configuration only (by default Superset
+doesn't allow cross-domain request).
+
+*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
+
+
 MIDDLEWARE
 ----------
 
@@ -583,14 +599,12 @@ Upgrading should be as straightforward as running::
     superset db upgrade
     superset init
 
-SQL Lab
--------
-SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
-databases. By default, queries are executed in the scope of a web
-request so they
-may eventually timeout as queries exceed the maximum duration of a web
-request in your environment, whether it'd be a reverse proxy or the Superset
-server itself.
+Celery Tasks
+------------
+On large analytic databases, it's common to run background jobs, reports
+and/or queries that execute for minutes or hours. In certain cases, we need
+to support long running tasks that execute beyond the typical web request's
+timeout (30-60 seconds).
 
 On large analytic databases, it's common to run queries that
 execute for minutes or hours.
@@ -614,15 +628,41 @@ have the same configuration.
 
     class CeleryConfig(object):
         BROKER_URL = 'redis://localhost:6379/0'
-        CELERY_IMPORTS = ('superset.sql_lab', )
+        CELERY_IMPORTS = (
+            'superset.sql_lab',
+            'superset.tasks',
+        )
         CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-        CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+        CELERYD_LOG_LEVEL = 'DEBUG'
+        CELERYD_PREFETCH_MULTIPLIER = 10
+        CELERY_ACKS_LATE = True
+        CELERY_ANNOTATIONS = {
+            'sql_lab.get_sql_results': {
+                'rate_limit': '100/s',
+            },
+            'email_reports.send': {
+                'rate_limit': '1/s',
+                'time_limit': 120,
+                'soft_time_limit': 150,
+                'ignore_result': True,
+            },
+        }
+        CELERYBEAT_SCHEDULE = {
+            'email_reports.schedule_hourly': {
+                'task': 'email_reports.schedule_hourly',
+                'schedule': crontab(minute=1, hour='*'),
+            },
+        }
 
     CELERY_CONFIG = CeleryConfig
 
-To start a Celery worker to leverage the configuration run: ::
+* To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+
+* To start a job which schedules periodic background jobs, run ::
+
+    celery beat --app=superset.tasks.celery_app:app
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
@@ -645,11 +685,65 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
-Note that it's important that all the worker nodes and web servers in
-the Superset cluster share a common metadata database.
-This means that SQLite will not work in this context since it has
-limited support for concurrency and
-typically lives on the local file system.
+**Important notes**
+
+* It is important that all the worker nodes and web servers in
+  the Superset cluster share a common metadata database.
+  This means that SQLite will not work in this context since it has
+  limited support for concurrency and
+  typically lives on the local file system.
+
+* There should only be one instance of ``celery beat`` running in your
+  entire setup. If not, background jobs can get scheduled multiple times
+  resulting in weird behaviors like duplicate delivery of reports,
+  higher than expected load / traffic etc.
+
+
+Email Reports
+-------------
+Email reports allow users to schedule email reports for
+
+* slice and dashboard visualization (Attachment or inline)
+* slice data (CSV attachment on inline table)
+
+Schedules are defined in crontab format and each schedule
+can have a list of recipients (all of them can receive a single mail,
+or separate mails). For audit purposes, all outgoing mails can have a
+mandatory bcc.
+
+**Requirements**
+
+* A selenium compatible driver & headless browser
+
+  * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
+  * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
+* Run `celery worker` and `celery beat` as follows ::
+
+    celery worker --app=superset.tasks.celery_app:app --pool=prefork -Ofair -c 4
+    celery beat --app=superset.tasks.celery_app:app
+
+**Important notes**
+
+* Be mindful of the concurrency setting for celery (using ``-c 4``).
+  Selenium/webdriver instances can consume a lot of CPU / memory on your servers.
+
+* In some cases, if you notice a lot of leaked ``geckodriver`` processes, try running
+  your celery processes with ::
+
+    celery worker --pool=prefork --max-tasks-per-child=128 ...
+
+* It is recommended to run separate workers for ``sql_lab`` and
+  ``email_reports`` tasks. Can be done by using ``queue`` field in ``CELERY_ANNOTATIONS``
+
+SQL Lab
+-------
+SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
+databases. By default, queries are executed in the scope of a web
+request so they may eventually timeout as queries exceed the maximum duration of a web
+request in your environment, whether it'd be a reverse proxy or the Superset
+server itself. In such cases, it is preferred to use ``celery`` to run the queries
+in the background. Please follow the examples/notes mentioned above to get your
+celery setup working.
 
 Also note that SQL Lab supports Jinja templating in queries and that it's
 possible to overload
@@ -664,6 +758,8 @@ in this dictionary are made available for users to use in their SQL.
     }
 
 
+Celery Flower
+-------------
 Flower is a web based tool for monitoring the Celery cluster which you can
 install from pip: ::
 
@@ -671,7 +767,7 @@ install from pip: ::
 
 and run via: ::
 
-    celery flower --app=superset.sql_lab:celery_app
+    celery flower --app=superset.tasks.celery_app:app
 
 Building from source
 ---------------------

@@ -68,7 +68,7 @@ def filter_values(column, default=None):
     Usage example:
         SELECT action, count(*) as times
         FROM logs
-        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" )
+        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
         GROUP BY 1
 
     :param column: column/filter name to lookup

@@ -3,6 +3,20 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.31.0
+* boto3 / botocore was removed from the dependency list. If you use s3
+as a place to store your SQL Lab result set or Hive uploads, you may
+have to rely on an alternate requirements.txt file to install those
+dependencies.
+* From 0.31.0 onwards, we recommend not using the npm package `yarn` in
+favor of good old `npm install`. While yarn should still work just fine,
+you should probably align to guarantee builds similar to the ones we
+use in testing and across the community in general.
+
+## Superset 0.29.0
+* India was removed from the "Country Map" visualization as the geojson
+  file included in the package was very large
+
 ## Superset 0.28.0
 * Support for Python 2 is deprecated, we only support >=3.6 from
   `0.28.0` onwards

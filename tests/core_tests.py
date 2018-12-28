@@ -62,6 +62,10 @@ class CoreTests(SupersetTestCase):
             data=dict(username='admin', password='wrongPassword'))
         self.assertIn('User confirmation needed', resp)
 
+    def test_dashboard_endpoint(self):
+        resp = self.client.get('/superset/dashboard/-1/')
+        assert resp.status_code == 404
+
     def test_slice_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -73,6 +77,9 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
+
+        resp = self.client.get('/superset/slice/-1/')
+        assert resp.status_code == 404
 
     def test_cache_key(self):
         self.login(username='admin')
@@ -266,7 +273,7 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'explore_json', slc.explore_json_url),
             ]
         for name, method, url in urls:
-            logging.info('[{name}]/[{method}]: {url}'.format(**locals()))
+            logging.info(f'[{name}]/[{method}]: {url}')
             self.client.get(url)
 
     def test_tablemodelview_list(self):
@@ -312,8 +319,8 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
             ]
         for name, method, url in urls:
-            print('[{name}]/[{method}]: {url}'.format(**locals()))
-            response = self.client.get(url)
+            print(f'[{name}]/[{method}]: {url}')
+            self.client.get(url)
 
     def test_doctests(self):
         modules = [utils, models, sql_lab]
@@ -471,8 +478,8 @@ class CoreTests(SupersetTestCase):
         self.login('admin')
         dbid = get_main_database(db.session).id
         self.get_json_resp(
-            '/superset/extra_table_metadata/{dbid}/'
-            'ab_permission_view/panoramix/'.format(**locals()))
+            f'/superset/extra_table_metadata/{dbid}/'
+            'ab_permission_view/panoramix/')
 
     def test_process_template(self):
         maindb = get_main_database(db.session)
@@ -529,8 +536,8 @@ class CoreTests(SupersetTestCase):
         )
         resp = self.get_json_resp(url)
         keys = [
-            'name', 'filterable_cols', 'gb_cols', 'type', 'all_cols',
-            'order_by_choices', 'metrics_combo', 'granularity_sqla',
+            'name', 'type',
+            'order_by_choices', 'granularity_sqla',
             'time_grain_sqla', 'id',
         ]
         for k in keys:

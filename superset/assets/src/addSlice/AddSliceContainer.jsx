@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
-import getChartMetadataRegistry from '../visualizations/core/registries/ChartMetadataRegistrySingleton';
+import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
