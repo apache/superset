@@ -181,7 +181,7 @@ export function getMaxLabelSize(svg, axisClass) {
   const tickTexts = svg.selectAll(`.${axisClass} g.tick text`);
   if (tickTexts.length > 0) {
     const lengths = tickTexts[0].map(text => text.getComputedTextLength());
-    return Math.ceil(Math.max(...lengths));
+    return Math.ceil(Math.max(0, ...lengths));
   }
   return 0;
 }
