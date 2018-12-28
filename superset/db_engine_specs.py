@@ -485,7 +485,7 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as DATE)',
-        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')", # all the following lines where modified for issue #6572, replacing TO_DATE with CAST as DATE
         'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
         'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
         'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
