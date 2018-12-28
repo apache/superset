@@ -7,7 +7,7 @@ import sqlSyntax from 'react-syntax-highlighter/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/languages/hljs/json';
 import github from 'react-syntax-highlighter/styles/hljs/github';
 import { DropdownButton, MenuItem, Row, Col, FormControl } from 'react-bootstrap';
-import { Table } from 'reactable';
+import { Table } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 

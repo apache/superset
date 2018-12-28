@@ -1,6 +1,6 @@
 import dist from 'distributions';
 import React from 'react';
-import { Table, Tr, Td, Thead, Th } from 'reactable';
+import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
 import PropTypes from 'prop-types';
 
 export const dataPropType = PropTypes.arrayOf(PropTypes.shape({

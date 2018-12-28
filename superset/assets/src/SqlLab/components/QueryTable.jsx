@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Table } from 'reactable';
+import { Table } from 'reactable-arc';
 import { Label, ProgressBar, Well } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
