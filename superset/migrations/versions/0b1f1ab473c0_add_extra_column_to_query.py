@@ -14,8 +14,10 @@ down_revision = '55e910a74826'
 
 
 def upgrade():
-    op.add_column('query', sa.Column('extra_json', sa.Text(), nullable=True))
+    with op.batch_alter_table('query') as batch_op:
+        batch_op.add_column(sa.Column('extra_json', sa.Text(), nullable=True))
 
 
 def downgrade():
-    op.drop_column('query', 'extra_json')
+    with op.batch_alter_table('query') as batch_op:
+        batch_op.drop_column('extra_json')
