@@ -3,7 +3,7 @@ import { mount } from 'enzyme';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Table } from 'reactable';
+import { Table } from 'reactable-arc';
 
 import DashboardTable from '../../../src/welcome/DashboardTable';
 import Loading from '../../../src/components/Loading';

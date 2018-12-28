@@ -1,7 +1,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import { Table, Thead, Td, Th, Tr } from 'reactable';
+import { Table, Thead, Td, Th, Tr } from 'reactable-arc';
 
 import AlteredSliceTag from '../../../src/components/AlteredSliceTag';
 import ModalTrigger from '../../../src/components/ModalTrigger';
