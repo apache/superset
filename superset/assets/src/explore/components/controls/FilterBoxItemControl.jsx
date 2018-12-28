@@ -27,7 +27,7 @@ const defaultProps = {
   multiple: true,
 };
 
-const STYLE_WIDTH = { width: 450 };
+const STYLE_WIDTH = { width: 350 };
 
 export default class FilterBoxItemControl extends React.Component {
   constructor(props) {
@@ -109,6 +109,7 @@ export default class FilterBoxItemControl extends React.Component {
         <FormRow
           label={t('Sort Ascending')}
           tooltip={t('Check for sorting ascending')}
+          isCheckbox
           control={
             <CheckboxControl
               value={this.state.asc}
@@ -118,6 +119,7 @@ export default class FilterBoxItemControl extends React.Component {
         />
         <FormRow
           label={t('Allow Multiple Selections')}
+          isCheckbox
           tooltip={t(
             'Multiple selections allowed, otherwise filter ' +
             'is limited to a single value')}
@@ -131,6 +133,7 @@ export default class FilterBoxItemControl extends React.Component {
         <FormRow
           label={t('Required')}
           tooltip={t('User must select a value for this filter')}
+          isCheckbox
           control={
             <CheckboxControl
               value={!this.state.clearable}
