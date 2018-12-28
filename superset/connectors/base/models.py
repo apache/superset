@@ -323,7 +323,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         which can be defined for each connector and
         defines which fields should be synced"""
         for attr in self.update_from_object_fields:
-            setattr(self, attr, obj.get(attr))
+            try:
+                setattr(self, attr, obj[attr])
+            except KeyError:
+                continue
 
         self.user_id = obj.get('owner')
 
