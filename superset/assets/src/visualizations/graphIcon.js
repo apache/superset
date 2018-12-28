@@ -46,13 +46,13 @@ function setTopLeft(div,top, left){
   div.style.left = left + 'px';
 }
 
-function setHexagonPosition(options,div){
+function setHexagonPosition(options, div) {
   if (options.directionValue > 240 && options.directionValue <= 360) {
-    setTopLeft(div, -35, -35);
+    setTopLeft(div, -30, -15);
   } else if (options.directionValue > 120 && options.directionValue <= 240) {
-    setTopLeft(div, -12.5, -47);
-  }else if(options.directionValue >=0 && options.directionValue <=120){
-    setTopLeft(div, -12.5, -21);
+    setTopLeft(div, -8, -28);
+  } else if (options.directionValue >= 0 && options.directionValue <= 120) {
+    setTopLeft(div, -8, -3);
   }
 }
 
