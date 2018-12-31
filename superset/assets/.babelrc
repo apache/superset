@@ -1,5 +1,5 @@
 {
-  "presets" : ["airbnb", "react", "env"],
+  "presets" : ["airbnb", "@babel/preset-react", "@babel/preset-env"],
   "plugins": ["lodash", "syntax-dynamic-import", "react-hot-loader/babel"],
   "env": {
     "test": {
