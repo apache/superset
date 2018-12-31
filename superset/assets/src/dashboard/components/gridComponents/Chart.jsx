@@ -155,12 +155,6 @@ class Chart extends React.Component {
     this.headerRef = ref;
   }
 
-  itemClick(data) {
-    if (this.props.slice.form_data.hasOwnProperty('linked_slice') && this.props.slice.form_data.linked_slice) {
-      this.cloneSliceAndAddToDashboard(this.props.slice.form_data.linked_slice, data)
-    }
-  }
-
   resize() {
     const { width, height } = this.props;
     this.setState(() => ({ width, height }));

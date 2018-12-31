@@ -53,6 +53,7 @@ import DeckPath from './DeckPath';
 import DeckPolygon from './DeckPolygon';
 import DeckScatter from './DeckScatter';
 import DeckScreengrid from './DeckScreengrid';
+import LeafletMap from './LeafletMap';
 
 export const controlPanelConfigs = {
   area: Area,
@@ -103,7 +104,7 @@ export const controlPanelConfigs = {
   deck_polygon: DeckPolygon,
   deck_scatter: DeckScatter,
   deck_screengrid: DeckScreengrid,
-
+  leaflet_map: LeafletMap
 };
 
 export default controlPanelConfigs;
@@ -127,6 +128,7 @@ export function sectionsToRender(vizType, datasourceType) {
 
   return [].concat(
     sectionsCopy.datasourceAndVizType,
+    sectionsCopy.linkedSlices,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     isFeatureEnabled(FeatureFlag.SCOPED_FILTER) ? sectionsCopy.filters : undefined,
     config.controlPanelSections,

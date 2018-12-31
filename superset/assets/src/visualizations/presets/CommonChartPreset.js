@@ -14,6 +14,7 @@ import PivotTableChartPlugin from '../PivotTable/PivotTableChartPlugin';
 import TableChartPlugin from '../Table/TableChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 import WordCloudChartPlugin from '../wordcloud/WordCloudChartPlugin';
+import LeafletMapChartPlugin from '../LeafletMap/LeafletMapChartPlugin';
 
 export default class CommonChartPreset extends Preset {
   constructor() {
@@ -35,6 +36,7 @@ export default class CommonChartPreset extends Preset {
         new TableChartPlugin().configure({ key: 'table' }),
         new TimeTableChartPlugin().configure({ key: 'time_table' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
+        new LeafletMapChartPlugin().configure({ key: 'leaflet_map'})
       ],
     });
   }

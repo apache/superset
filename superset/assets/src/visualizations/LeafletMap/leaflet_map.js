@@ -1,9 +1,9 @@
 import './leaflet_map.css';
 // todo: use types to avoid full path of libs
-import '../../node_modules/leaflet/dist/leaflet.css';
+import '../../../node_modules/leaflet/dist/leaflet.css';
 import * as turf from '@turf/turf';
-import * as L from '../../node_modules/leaflet/dist/leaflet.js';
-import * as esri from '../../node_modules/esri-leaflet/dist/esri-leaflet.js';
+import * as L from '../../../node_modules/leaflet/dist/leaflet.js';
+import * as esri from '../../../node_modules/esri-leaflet/dist/esri-leaflet.js';
 import * as GRAPHICON from './graphIcon.js';
 
 /**

@@ -21,6 +21,14 @@ export const datasourceAndVizType = {
   ],
 };
 
+export const linkedSlices = {
+  label: t('Publish & Subscribe'),
+  expanded: true,
+  controlSetRows: [
+    ['publish_columns', 'linked_slice']
+  ],
+};
+
 export const colorScheme = {
   label: t('Color Scheme'),
   controlSetRows: [
