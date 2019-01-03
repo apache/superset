@@ -6,6 +6,8 @@ import * as actions from '../../../../src/SqlLab/actions/sqlLab';
 import { query } from '../fixtures';
 
 describe('async actions', () => {
+  const mockBigNumber = '9223372036854775807';
+
   let dispatch;
 
   beforeEach(() => {
@@ -42,7 +44,7 @@ describe('async actions', () => {
 
   describe('fetchQueryResults', () => {
     const fetchQueryEndpoint = 'glob:*/superset/results/*';
-    fetchMock.get(fetchQueryEndpoint, '{ "data": "" }');
+    fetchMock.get(fetchQueryEndpoint, '{ "data": ' + mockBigNumber + ' }');
 
     const makeRequest = () => {
       const actionThunk = actions.fetchQueryResults(query);
@@ -64,6 +66,13 @@ describe('async actions', () => {
         expect(dispatch.args[0][0].type).toBe(actions.REQUEST_QUERY_RESULTS);
       });
     });
+
+    it('parses large number result without losing precision', () =>
+      makeRequest().then(() => {
+        expect(fetchMock.calls(fetchQueryEndpoint)).toHaveLength(1);
+        expect(dispatch.callCount).toBe(2);
+        expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(mockBigNumber);
+      }));
 
     it('calls querySuccess on fetch success', () =>
       makeRequest().then(() => {
@@ -88,7 +97,7 @@ describe('async actions', () => {
 
   describe('runQuery', () => {
     const runQueryEndpoint = 'glob:*/superset/sql_json/*';
-    fetchMock.post(runQueryEndpoint, { data: '' });
+    fetchMock.post(runQueryEndpoint, '{ "data": ' + mockBigNumber + ' }');
 
     const makeRequest = () => {
       const request = actions.runQuery(query);
@@ -110,6 +119,13 @@ describe('async actions', () => {
         expect(dispatch.args[0][0].type).toBe(actions.START_QUERY);
       });
     });
+
+    it('parses large number result without losing precision', () =>
+      makeRequest().then(() => {
+        expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+        expect(dispatch.callCount).toBe(2);
+        expect(dispatch.getCall(1).lastArg.results.data.toString()).toBe(mockBigNumber);
+      }));
 
     it('calls querySuccess on fetch success', () => {
       expect.assertions(3);
