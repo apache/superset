@@ -208,6 +208,7 @@ describe('Advanced analytics', () => {
 
     cy.get('span')
       .contains('Advanced Analytics')
+      .parent()
       .siblings()
       .first()
       .click();

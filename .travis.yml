@@ -5,42 +5,24 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=cypress-explore
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=cypress-sqllab
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=py36-mysql
@@ -51,17 +33,10 @@ jobs:
         - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-    - language: node_js
-      node_js: 8.9
-      cache:
-        yarn: true
+    - language: python
+      env: TOXENV=javascript
       before_install:
-        - cd superset/assets
-      install:
-        - yarn install --frozen-lockfile
-      script:
-        - npm run lint
-        - npm run cover
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=flake8
@@ -89,3 +64,8 @@ script:
   - tox
 after_success:
   - codecov
+cache:
+  pip: true
+  directories:
+    - ~/.npm
+    - ~/.cache
