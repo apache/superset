@@ -1423,6 +1423,7 @@ class Superset(BaseSupersetView):
             datasource_id, datasource_type, datasource_name):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
+        description = args.get('description')
         action = args.get('action')
         form_data, _ = self.get_form_data()
 
@@ -1436,7 +1437,8 @@ class Superset(BaseSupersetView):
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
-        slc.slice_name = slice_name
+        slc.slice_name = slice_name or slc.slice_name
+        slc.description = description or slc.description
 
         if action in ('saveas') and slice_add_perm:
             self.save_slice(slc)

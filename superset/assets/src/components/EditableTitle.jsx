@@ -6,6 +6,7 @@ import { t } from '../locales';
 
 const propTypes = {
   title: PropTypes.string,
+  isDescription: PropTypes.bool,
   canEdit: PropTypes.bool,
   onSaveTitle: PropTypes.func,
   noPermitTooltip: PropTypes.string,
@@ -15,6 +16,7 @@ const propTypes = {
 };
 const defaultProps = {
   title: t('Title'),
+  isDescription: false,
   canEdit: false,
   showTooltip: true,
   onSaveTitle: () => {},
@@ -133,14 +135,21 @@ export default class EditableTitle extends React.PureComponent {
         onBlur={this.handleBlur}
         onClick={this.handleClick}
         onKeyPress={this.handleKeyPress}
+        style={{
+          width: this.props.isDescription ? '100%' : 'auto'
+        }}
       />
     );
     if (this.props.showTooltip && !this.state.isEditing) {
       input = (
         <TooltipWrapper
           label="title"
-          tooltip={this.props.canEdit ? t('click to edit') :
-              this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
+          tooltip={
+            this.props.canEdit ? t('click to edit') :
+            this.props.noPermitTooltip
+            || `You don't have the rights to alter this
+            ${this.props.isDescription ? 'description.' : 'title.'}`
+          }
         >
           {input}
         </TooltipWrapper>

@@ -12,6 +12,7 @@ const App = () => (
   <AddAlertContainer
       datasources={bootstrapData.datasources}
       alertData={bootstrapData.alert_data}
+      deployments={bootstrapData.deployments}
   />
 );
 
