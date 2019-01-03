@@ -94,7 +94,7 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     }
     return baseColor;
   };
-  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0)
+  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode', 'fsa'].indexOf(fd.line_type) >= 0)
     ? setTooltipContent(fd)
     : undefined;
   return new PolygonLayer({
