@@ -3,7 +3,8 @@ import buildQuery from 'src/visualizations/wordcloud/buildQuery';
 describe('WordCloud buildQuery', () => {
   const formData = {
     datasource: '5__table',
-    granularity_sqla: 'ds',
+    granularity: 'ds',
+    metric: 'simpleMetric',
     series: 'foo',
   };
 

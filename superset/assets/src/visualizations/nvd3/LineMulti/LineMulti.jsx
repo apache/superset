@@ -81,7 +81,7 @@ class LineMulti extends React.Component {
         time_range: timeRange,
       };
       const addPrefix = prefixMetricWithSliceName;
-      return getJson(getExploreLongUrl(combinedFormData, 'json'))
+      return getJson(getExploreLongUrl({ formData: combinedFormData, endpointType: 'json' }))
         .then(data => data.map(({ key, values }) => ({
           key: addPrefix ? `${subslice.slice_name}: ${key}` : key,
           type: combinedFormData.viz_type,

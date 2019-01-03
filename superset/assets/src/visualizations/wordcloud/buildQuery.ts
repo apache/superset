@@ -6,5 +6,6 @@ export default function buildQuery(formData: FormData) {
   return buildQueryContext(formData, (baseQueryObject) => [{
     ...baseQueryObject,
     groupby: [formData.series],
+    time_range: formData.time_range,
   }]);
 }

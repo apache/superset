@@ -886,10 +886,10 @@ class DruidDatasource(Model, BaseDatasource):
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 adhoc_agg_configs.append(metric)
-            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:
-                saved_agg_names.add(metric)
+            elif metrics_dict[metric['label']].metric_type != POST_AGG_TYPE:
+                saved_agg_names.add(metric['label'])
             else:
-                postagg_names.append(metric)
+                postagg_names.append(metric['label'])
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs = OrderedDict()
@@ -1364,7 +1364,8 @@ class DruidDatasource(Model, BaseDatasource):
             cols += [DTTM_ALIAS]
         cols += query_obj.get('groupby') or []
         cols += query_obj.get('columns') or []
-        cols += query_obj.get('metrics') or []
+        metrics = query_obj.get('metrics') or []
+        cols += [metric['label'] for metric in metrics]
 
         cols = utils.get_metric_names(cols)
         cols = [col for col in cols if col in df.columns]

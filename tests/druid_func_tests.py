@@ -255,7 +255,10 @@ class DruidFuncTestCase(unittest.TestCase):
         post_aggs = ['some_agg']
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = []
-        metrics = ['metric1']
+        metrics = [{
+            'label': 'metric1',
+            'expressionType': 'BUILTIN',
+        }]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
         client.query_builder.last_query = Mock()
@@ -341,7 +344,10 @@ class DruidFuncTestCase(unittest.TestCase):
         post_aggs = ['some_agg']
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1']
-        metrics = ['metric1']
+        metrics = [{
+            'label': 'metric1',
+            'expressionType': 'BUILTIN',
+        }]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder.last_query.query_dict = {'mock': 0}
         # client.topn is called twice
@@ -415,7 +421,10 @@ class DruidFuncTestCase(unittest.TestCase):
         post_aggs = ['some_agg']
         ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1', 'col2']
-        metrics = ['metric1']
+        metrics = [{
+            'label': 'metric1',
+            'expressionType': 'BUILTIN',
+        }]
         ds.get_having_filters = Mock(return_value=[])
         client.query_builder = Mock()
         client.query_builder.last_query = Mock()
@@ -586,6 +595,10 @@ class DruidFuncTestCase(unittest.TestCase):
 
     def test_metrics_and_post_aggs_tree(self):
         metrics = ['A', 'B', 'm1', 'm2']
+        metrics = [{
+            'label': metric,
+            'expressionType': 'BUILTIN',
+        } for metric in metrics]
         metrics_dict = {}
         for i in range(ord('A'), ord('K') + 1):
             emplace(metrics_dict, chr(i), True)
@@ -688,11 +701,17 @@ class DruidFuncTestCase(unittest.TestCase):
             'label': 'My Adhoc Metric',
         }
 
-        metrics = ['some_sum']
+        some_sum = {
+            'label': 'some_sum',
+            'expressionType': 'BUILTIN',
+        }
+
+        metrics = [some_sum]
+
         saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert set(saved_metrics.keys()) == {'some_sum'}
+        assert set(saved_metrics.keys()) == {some_sum['label']}
         assert post_aggs == {}
 
         metrics = [adhoc_metric]
@@ -702,26 +721,36 @@ class DruidFuncTestCase(unittest.TestCase):
         assert set(saved_metrics.keys()) == set([adhoc_metric['label']])
         assert post_aggs == {}
 
-        metrics = ['some_sum', adhoc_metric]
+        metrics = [some_sum, adhoc_metric]
         saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert set(saved_metrics.keys()) == {'some_sum', adhoc_metric['label']}
+        assert set(saved_metrics.keys()) == {some_sum['label'], adhoc_metric['label']}
         assert post_aggs == {}
 
-        metrics = ['quantile_p95']
+        quantile_p95 = {
+            'label': 'quantile_p95',
+            'expressionType': 'BUILTIN',
+        }
+
+        metrics = [quantile_p95]
         saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        result_postaggs = set(['quantile_p95'])
+        result_postaggs = set([quantile_p95['label']])
         assert set(saved_metrics.keys()) == {'a_histogram'}
         assert set(post_aggs.keys()) == result_postaggs
 
-        metrics = ['aCustomPostAgg']
+        aCustomPostAgg = {
+            'label': 'aCustomPostAgg',
+            'expressionType': 'BUILTIN',
+        }
+        metrics = [aCustomPostAgg]
+
         saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        result_postaggs = set(['aCustomPostAgg'])
+        result_postaggs = set([aCustomPostAgg['label']])
         assert set(saved_metrics.keys()) == {'aCustomMetric'}
         assert set(post_aggs.keys()) == result_postaggs
 
@@ -804,31 +833,43 @@ class DruidFuncTestCase(unittest.TestCase):
         ds.metrics = list(metrics_dict.values())
 
         groupby = ['dim1']
-        metrics = ['count1']
+        metrics = [{
+            'label': 'count1',
+            'expressionType': 'BUILTIN',
+        }]
+
+        timeseries_limit_metric = {
+            'label': 'sum1',
+            'expressionType': 'BUILTIN',
+        }
         granularity = 'all'
         # get the counts of the top 5 'dim1's, order by 'sum1'
         ds.run_query(
             groupby, metrics, granularity, from_dttm, to_dttm,
-            timeseries_limit=5, timeseries_limit_metric='sum1',
+            timeseries_limit=5, timeseries_limit_metric=timeseries_limit_metric,
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.topn.call_args_list[0][1]
         self.assertEqual('dim1', qry_obj['dimension'])
-        self.assertEqual('sum1', qry_obj['metric'])
+        self.assertEqual('sum1', qry_obj['metric']['label'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
         self.assertEqual(set(), set(post_aggregations.keys()))
 
         # get the counts of the top 5 'dim1's, order by 'div1'
+        timeseries_limit_metric = {
+            'label': 'div1',
+            'expressionType': 'BUILTIN',
+        }
         ds.run_query(
             groupby, metrics, granularity, from_dttm, to_dttm,
-            timeseries_limit=5, timeseries_limit_metric='div1',
+            timeseries_limit=5, timeseries_limit_metric=timeseries_limit_metric,
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.topn.call_args_list[1][1]
         self.assertEqual('dim1', qry_obj['dimension'])
-        self.assertEqual('div1', qry_obj['metric'])
+        self.assertEqual('div1', qry_obj['metric']['label'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
@@ -836,28 +877,42 @@ class DruidFuncTestCase(unittest.TestCase):
 
         groupby = ['dim1', 'dim2']
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
+        timeseries_limit_metric = {
+            'label': 'sum1',
+            'expressionType': 'BUILTIN',
+        }
         ds.run_query(
             groupby, metrics, granularity, from_dttm, to_dttm,
-            timeseries_limit=5, timeseries_limit_metric='sum1',
+            timeseries_limit=5, timeseries_limit_metric=timeseries_limit_metric,
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[0][1]
         self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
-        self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        self.assertEqual(
+            'sum1',
+            qry_obj['limit_spec']['columns'][0]['dimension']['label'],
+        )
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
         self.assertEqual(set(), set(post_aggregations.keys()))
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
+        timeseries_limit_metric = {
+            'label': 'div1',
+            'expressionType': 'BUILTIN',
+        }
         ds.run_query(
             groupby, metrics, granularity, from_dttm, to_dttm,
-            timeseries_limit=5, timeseries_limit_metric='div1',
+            timeseries_limit=5, timeseries_limit_metric=timeseries_limit_metric,
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[1][1]
         self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
-        self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        self.assertEqual(
+            'div1',
+            qry_obj['limit_spec']['columns'][0]['dimension']['label'],
+        )
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
         self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))

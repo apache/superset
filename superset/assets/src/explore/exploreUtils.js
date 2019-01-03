@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
+import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 import { availableDomains } from '../utils/hostNamesConfig';
 
 export function getChartKey(explore) {
@@ -31,22 +32,34 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
     }).toString();
 }
 
-export function getURIDirectory(formData, endpointType = 'base') {
+export function getURIDirectory({
+  formData,
+  endpointType = 'base',
+  forceExplore,
+}) {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
     directory = '/superset/explore_json/';
   }
+  // const buildQueryRegistry = getChartBuildQueryRegistry();
+  if (formData.viz_type === 'word_cloud' && !forceExplore) {
+    directory = '/api/v1/query/';
+  }
   return directory;
 }
 
-export function getExploreLongUrl(formData, endpointType) {
+export function getExploreLongUrl({
+  formData,
+  endpointType,
+  forceExplore = false,
+}) {
   if (!formData.datasource) {
     return null;
   }
 
   const uri = new URI('/');
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory({ formData, endpointType, forceExplore });
   const search = uri.search(true);
   search.form_data = JSON.stringify(formData);
   if (endpointType === 'standalone') {
@@ -81,7 +94,7 @@ export function getExploreUrlAndPayload({
     uri = URI(URI(curUrl).search());
   }
 
-  const directory = getURIDirectory(formData, endpointType);
+  const directory = getURIDirectory({ formData, endpointType });
 
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
@@ -115,7 +128,12 @@ export function getExploreUrlAndPayload({
     });
   }
   uri = uri.search(search).directory(directory);
-  const payload = { ...formData };
+  let payload = { form_data: { ...formData } };
+
+  const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
+  if (buildQuery) {
+    payload = { query_context: buildQuery(formData) };
+  }
 
   return {
     url: uri.toString(),
