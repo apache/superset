@@ -38,7 +38,7 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
   let tooltipContentGenerator;
   if (fd.js_tooltip) {
     tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0) {
+  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode', 'fsa'].indexOf(fd.line_type) >= 0) {
     const metricLabel = fd.metric.label || fd.metric;
     tooltipContentGenerator = o => (
       <div>
