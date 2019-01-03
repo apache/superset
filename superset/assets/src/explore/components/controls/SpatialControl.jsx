@@ -33,6 +33,7 @@ const spatialTypes = {
   delimited: 'delimited',
   geohash: 'geohash',
   zipcode: 'zipcode',
+  fsa: 'fsa',
 };
 
 const propTypes = {
@@ -65,6 +66,7 @@ export default class SpatialControl extends React.Component {
       reverseCheckbox: v.reverseCheckbox || false,
       geohashCol: v.geohashCol || defaultCol,
       zipcodeCol: v.zipcodeCol || defaultCol,
+      fsaCol: v.fsaCol || defaultCol,
       value: null,
       errors: [],
     };
@@ -105,6 +107,12 @@ export default class SpatialControl extends React.Component {
       if (!value.zipcodeCol) {
         errors.push(errMsg);
       }
+    } else if (type === spatialTypes.fsa) {
+      value.fsaCol = this.state.fsaCol;
+      value.reverseCheckbox = this.state.reverseCheckbox;
+      if (!value.fsaCol) {
+        errors.push(errMsg);
+      }
     }
     this.setState({ value, errors });
     this.props.onChange(value, errors);
@@ -130,6 +138,8 @@ export default class SpatialControl extends React.Component {
       return `${this.state.geohashCol}`;
     } else if (this.state.type === spatialTypes.zipcode) {
       return `${this.state.zipcodeCol}`;
+    } else if (this.state.type === spatialTypes.fsa) {
+      return `${this.state.fsaCol}`;
     }
     return null;
   }
@@ -218,6 +228,21 @@ export default class SpatialControl extends React.Component {
               <Col md={6}>
                 Column
                 {this.renderSelect('zipcodeCol', spatialTypes.zipcode)}
+              </Col>
+              <Col md={6}>
+                {this.renderReverseCheckbox()}
+              </Col>
+            </Row>
+          </PopoverSection>
+          <PopoverSection
+            title={t('FSA')}
+            isSelected={this.state.type === spatialTypes.fsa}
+            onSelect={this.setType.bind(this, spatialTypes.fsa)}
+          >
+            <Row>
+              <Col md={6}>
+                Column
+                {this.renderSelect('fsaCol', spatialTypes.fsa)}
               </Col>
               <Col md={6}>
                 {this.renderReverseCheckbox()}
