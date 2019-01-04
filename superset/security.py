@@ -7,8 +7,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-
-from flask import g
+from flask_login import current_user, url_for
+from flask import g, request, session
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
@@ -81,6 +81,13 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 class SupersetSecurityManager(SecurityManager):
 
+    def has_access(self, permission_name, view_name):
+        if not current_user.is_authenticated():
+             login_path = url_for(self.appbuilder.sm.auth_view.__class__.__name__ + ".login")            
+             if not ('target_url' in session) and request.path != login_path:
+                session['target_url'] = request.url
+        return super(SupersetSecurityManager, self).has_access(permission_name, view_name)
+        
     def get_schema_perm(self, database, schema):
         if schema:
             return '[{}].[{}]'.format(database, schema)
