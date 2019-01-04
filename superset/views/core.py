@@ -9,7 +9,7 @@ import traceback
 from urllib import parse
 
 from flask import (
-    abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
+    abort, flash, g, Markup, redirect, render_template, request, session, Response, url_for,
 )
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
@@ -2750,6 +2750,23 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+
+        print("Welcome...{0}".format(UserAttribute.welcome_dashboard_id))  
+         
+        Dash = models.Dashboard  # noqa 
+        qry = (
+            db.session.query(
+                Dash
+            )
+        )
+
+        if session.get('orchestra'):
+            OrchestraOrigin = session['orchestra'].split('.')[0]
+            for dashboard in qry.all():
+                #print("Title: {0}".format(dashboard))
+                if OrchestraOrigin.lower() in dashboard.dashboard_title.lower() and 'Main '.lower() in dashboard.dashboard_title.lower():            
+                    return self.dashboard(str(dashboard.id))
+            
 
         welcome_dashboard_id = (
             db.session

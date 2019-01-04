@@ -10,9 +10,10 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="/superset/profile/{{ current_user.username }}/">
+      <a class="navbar-brand home" href="https://{{ session['orchestra'] }}"><img src="/static/assets/images/home.png" width="24"/></a>
+      <a class="navbar-brand appHome" href="/superset/profile/{{ current_user.username }}/">
         <img
-          width="126"
+          width="200"
           src="{{ appbuilder.app_icon }}"
           alt="{{ appbuilder.app_name }}"
         />

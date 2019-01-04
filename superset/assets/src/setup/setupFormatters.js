@@ -1,5 +1,28 @@
 import { getNumberFormatter, getNumberFormatterRegistry, createSiAtMostNDigitFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
+import { NumberFormatter } from '@superset-ui/number-format';
+
+function formatSecondsAsHourMinuteSeconds(time){
+  try {
+    // Hours, minutes and seconds
+    var hrs = ~~(time / 3600);
+    var mins = ~~((time % 3600) / 60);
+    var secs = ~~time % 60;
+
+    // Output like "1:01" or "4:03:59" or "123:03:59"
+    var ret = "";
+
+    //if (hrs > 0) {
+        ret += "" + hrs + ":" + (mins < 10 ? "0" : "");
+    //}
+
+    ret += "" + mins + ":" + (secs < 10 ? "0" : "");
+    ret += "" + secs;
+    return ret;
+  } catch (e) {
+    return 'Err';
+  }
+}
 
 export default function setupFormatters() {
   const defaultNumberFormatter = createSiAtMostNDigitFormatter({ n: 3 });
@@ -32,4 +55,13 @@ export default function setupFormatters() {
     .registerValue('smart_date', smartDateFormatter)
     .registerValue('smart_date_verbose', smartDateVerboseFormatter)
     .setDefaultKey('smart_date');
+
+
+
+  getNumberFormatterRegistry().registerValue('hh:mm:ss', new NumberFormatter({
+    id: 'hh:mm:ss',
+    formatFunc: v => formatSecondsAsHourMinuteSeconds(v)
+  }));
+
 }
+
