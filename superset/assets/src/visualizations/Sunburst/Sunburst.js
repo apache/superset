@@ -140,7 +140,7 @@ function Sunburst(element, props) {
     entering.append('svg:text')
         .attr('x', (breadcrumbDims.width + breadcrumbDims.tipTailWidth) / 2)
         .attr('y', breadcrumbDims.height / 4)
-        .attr('dy', '0.35em')
+        .attr('dy', '0.85em')
         .style('fill', function (d) {
           // Make text white or black based on the lightness of the background
           const col = d3.hsl(colorByCategory ?
