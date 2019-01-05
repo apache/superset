@@ -227,7 +227,7 @@ superset load_examples
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
 cd superset
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
+FLASK_ENV=development FLASK_APP=superset flask run -p 8088 --with-threads --reload --debugger
 ```
 
 #### Logging to the browser console
