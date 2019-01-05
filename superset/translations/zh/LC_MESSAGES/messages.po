@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
 "POT-Creation-Date: 2018-06-07 00:22-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: \n"
