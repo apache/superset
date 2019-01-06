@@ -58,8 +58,9 @@ from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
-from superset.utils.dates import now_as_float
+from superset.utils.dates import EPOCH, now_as_float
 from superset.utils.decorators import etag_cache
+
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -499,7 +500,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
     list_columns = [
-        'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
+        'slice_link', 'viz_type', 'datasource_link',
+        'creator', 'modified',
+    ]
     order_columns = ['viz_type', 'datasource_link', 'modified']
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'owners', 'dashboards',
@@ -576,7 +579,9 @@ class SliceAsync(SliceModelView):  # noqa
     route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
-        'creator', 'modified', 'icons', 'changed_on_humanized',
+        'creator', 'modified', 'icons', 'thumbnail_url',
+        'slice_url', 'created_by_name', 'changed_on',
+        'datasource_data_summary', 'changed_on_humanized',
     ]
     label_columns = {
         'icons': ' ',
@@ -709,7 +714,8 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
     route_base = '/dashboardasync'
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
-        'changed_on', 'url', 'changed_by_name',
+        'changed_on', 'url', 'changed_by_name', 'created_by_name',
+        'thumbnail_url', 'changed_on_humanized'
     ]
     label_columns = {
         'dashboard_link': _('Dashboard'),
@@ -1976,7 +1982,7 @@ class Superset(BaseSupersetView):
             'dttm': o.changed_on,
         } for o in qry.all()]
         return json_success(
-            json.dumps(payload, default=utils.json_int_dttm_ser))
+            json.dumps(payload, default=json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2015,7 +2021,7 @@ class Superset(BaseSupersetView):
             'viz_type': o.Slice.viz_type,
         } for o in qry.all()]
         return json_success(
-            json.dumps(payload, default=utils.json_int_dttm_ser))
+            json.dumps(payload, default=json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2797,7 +2803,7 @@ class Superset(BaseSupersetView):
         last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
+        last_updated_dt = EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
             db.session.query(Query)
@@ -2923,7 +2929,7 @@ class Superset(BaseSupersetView):
             'superset/basic.html',
             title=_("%(user)s's profile", user=username),
             entry='profile',
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(payload, default=utils.utils.json_iso_dttm_ser),
         )
 
     @has_access

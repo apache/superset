@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Table } from 'reactable-arc';
 
-import DashboardTable from '../../../src/welcome/DashboardTable';
+import DashboardCardTable from '../../../src/welcome/DashboardCardTable';
 import Loading from '../../../src/components/Loading';
 
 // store needed for withToasts(TableLoader)
@@ -39,10 +39,10 @@ fetchMock.get(dashboardsEndpoint, { result: mockDashboards });
 
 function setup() {
   // use mount because data fetching is triggered on mount
-  return mount(<DashboardTable />, { context: { store } });
+  return mount(<DashboardCardTable />, { context: { store } });
 }
 
-describe('DashboardTable', () => {
+describe('DashboardCardTable', () => {
   beforeEach(fetchMock.resetHistory);
 
   it('renders a Loading initially', () => {

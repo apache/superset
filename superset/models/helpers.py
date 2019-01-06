@@ -272,8 +272,13 @@ class AuditMixinNullable(AuditMixin):
         return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ''))
 
     def changed_by_name(self):
-        if self.created_by:
-            return escape('{}'.format(self.created_by))
+        if self.changed_by:
+            return escape('{}'.format(self.changed_by))
+        return ''
+
+    def created_by_name(self):
+        if self.changed_by:
+            return escape('{}'.format(self.changed_by))
         return ''
 
     @renders('created_by')

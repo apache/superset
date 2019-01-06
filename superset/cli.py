@@ -29,6 +29,8 @@ import yaml
 from superset import (
     app, appbuilder, data, db, security_manager,
 )
+from superset.models import core as models
+from superset.tasks.thumbnails import cache_chart_thumbnail, cache_dashboard_thumbnail
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
 
@@ -347,6 +349,29 @@ def flower(port, address):
     Popen(cmd, shell=True).wait()
 
 
+'''
+@app.cli.command()
+def test_email():
+    """Test that email is configured"""
+    from superset.utils.email import send_email_smtp
+    send_email_smtp(
+        to='max@preset.io',
+        subject='it works!',
+        html_content='<h1>SUPER</h1>',
+        config=app.config,
+    )
+    from superset.tasks.schedules import deliver_dashboard, deliver_slice
+    from superset.models.schedules import EmailDeliveryType, SliceEmailReportFormat
+    #dashboard = db.session.query(models.Dashboard).filter_by(id=2).one()
+    #deliver_dashboard(dashboard, [('max@preset.io', None)], EmailDeliveryType.inline)
+
+    slc = db.session.query(models.Slice).filter_by(id=76).one()
+    deliver_slice(
+        slc, [('max@preset.io', None)],
+        SliceEmailReportFormat.visualization, EmailDeliveryType.inline)
+'''
+
+
 @app.cli.command()
 def load_test_users():
     """
@@ -356,6 +381,50 @@ def load_test_users():
     """
     print(Fore.GREEN + 'Loading a set of users for unit tests')
     load_test_users_run()
+
+
+@app.cli.command()
+@click.option(
+    '--asynchronous', '-a', is_flag=True, default=False,
+    help='Trigger commands to run remotely on a worker')
+@click.option(
+    '--dashboards_only', '-d', is_flag=True, default=False,
+    help='Only process dashboards')
+@click.option(
+    '--charts_only', '-c', is_flag=True, default=False,
+    help='Only process charts')
+@click.option(
+    '--force', '-f', is_flag=True, default=False,
+    help='Force refresh, even if previously cached')
+def compute_thumbnails(asynchronous, dashboards_only, charts_only, force):
+    """Compute thumbnails"""
+    if not charts_only:
+        dashboards = db.session.query(models.Dashboard).all()
+        count = len(dashboards)
+        for i, dash in enumerate(dashboards):
+            if asynchronous:
+                func = cache_dashboard_thumbnail.delay
+                action = 'Triggering'
+            else:
+                func = cache_dashboard_thumbnail
+                action = 'Processing'
+            msg = f'{action} dashboard "{dash.dashboard_title}" ({i+1}/{count})'
+            click.secho(msg, fg='green')
+            func(dash.id, force=force)
+
+    if not dashboards_only:
+        slices = db.session.query(models.Slice).all()
+        count = len(slices)
+        for i, slc in enumerate(slices):
+            if asynchronous:
+                func = cache_chart_thumbnail.delay
+                action = 'Triggering'
+            else:
+                func = cache_chart_thumbnail
+                action = 'Processing'
+            msg = f'{action} chart "{slc.slice_name}" ({i+1}/{count})'
+            click.secho(msg, fg='green')
+            func(slc.id, force=force)
 
 
 def load_test_users_run():

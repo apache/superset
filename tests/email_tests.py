@@ -25,7 +25,7 @@ import unittest
 from unittest import mock
 
 from superset import app
-from superset.utils import core as utils
+from superset.utils.email import send_email_smtp, send_MIME_email
 from .utils import read_fixture
 
 send_email_test = mock.Mock()
@@ -35,12 +35,12 @@ class EmailSmtpTest(unittest.TestCase):
     def setUp(self):
         app.config['smtp_ssl'] = False
 
-    @mock.patch('superset.utils.core.send_MIME_email')
+    @mock.patch('superset.utils.email.send_MIME_email')
     def test_send_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')
         attachment.seek(0)
-        utils.send_email_smtp(
+        send_email_smtp(
             'to', 'subject', 'content', app.config, files=[attachment.name])
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
@@ -54,9 +54,9 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEApplication('attachment')
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-    @mock.patch('superset.utils.core.send_MIME_email')
+    @mock.patch('superset.utils.email.send_MIME_email')
     def test_send_smtp_data(self, mock_send_mime):
-        utils.send_email_smtp(
+        send_email_smtp(
             'to', 'subject', 'content', app.config, data={'1.txt': b'data'})
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
@@ -70,10 +70,10 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEApplication('data')
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-    @mock.patch('superset.utils.core.send_MIME_email')
+    @mock.patch('superset.utils.email.send_MIME_email')
     def test_send_smtp_inline_images(self, mock_send_mime):
         image = read_fixture('sample.png')
-        utils.send_email_smtp(
+        send_email_smtp(
             'to', 'subject', 'content', app.config, images=dict(blah=image))
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
@@ -87,12 +87,12 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEImage(image)
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-    @mock.patch('superset.utils.core.send_MIME_email')
+    @mock.patch('superset.utils.email.send_MIME_email')
     def test_send_bcc_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')
         attachment.seek(0)
-        utils.send_email_smtp(
+        send_email_smtp(
             'to', 'subject', 'content', app.config, files=[attachment.name],
             cc='cc', bcc='bcc')
         assert mock_send_mime.called
@@ -112,7 +112,7 @@ class EmailSmtpTest(unittest.TestCase):
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
         msg = MIMEMultipart()
-        utils.send_MIME_email('from', 'to', msg, app.config, dryrun=False)
+        send_MIME_email('from', 'to', msg, app.config, dryrun=False)
         mock_smtp.assert_called_with(
             app.config.get('SMTP_HOST'),
             app.config.get('SMTP_PORT'),
@@ -132,7 +132,7 @@ class EmailSmtpTest(unittest.TestCase):
         app.config['SMTP_SSL'] = True
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
-        utils.send_MIME_email(
+        send_MIME_email(
             'from', 'to', MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp.called
         mock_smtp_ssl.assert_called_with(
@@ -147,7 +147,7 @@ class EmailSmtpTest(unittest.TestCase):
         app.config['SMTP_PASSWORD'] = None
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
-        utils.send_MIME_email(
+        send_MIME_email(
             'from', 'to', MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp_ssl.called
         mock_smtp.assert_called_with(
@@ -159,7 +159,7 @@ class EmailSmtpTest(unittest.TestCase):
     @mock.patch('smtplib.SMTP_SSL')
     @mock.patch('smtplib.SMTP')
     def test_send_mime_dryrun(self, mock_smtp, mock_smtp_ssl):
-        utils.send_MIME_email(
+        send_MIME_email(
             'from', 'to', MIMEMultipart(), app.config, dryrun=True)
         assert not mock_smtp.called
         assert not mock_smtp_ssl.called

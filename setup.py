@@ -92,6 +92,7 @@ setup(
         'pandas>=0.18.0, <0.24.0',  # `pandas`>=0.24.0 changes datetimelike API
         'parsedatetime',
         'pathlib2',
+        'pillow==5.4.1',
         'polyline',
         'pydruid>=0.5.2',
         'python-dateutil',

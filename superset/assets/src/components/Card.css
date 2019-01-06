@@ -16,23 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
+.card {
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: 0 1px 1px 0 rgba(60,64,67,.16), 0 1px 3px 1px rgba(60,64,67,.25);
+  overflow: hidden;
+  transition: box-shadow 0.5s ease-in-out;
+}
+.card:hover {
+  box-shadow: 0 2px 2px 0 rgba(60,64,67,.30), 0 2px 4px 2px rgba(60,64,67,.55);
+}
+.card-header {
+  padding-top: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-bottom: 0px;
+}
+.card-body {
+  padding-top: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-bottom: 15px;
+}
+.card-body .text-muted{
+  color: #888;
+}
 
-import Welcome from '../../../src/welcome/Welcome';
+.card-header .fa {
+  margin-top: 10px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
 
-describe('Welcome', () => {
-  const mockedProps = {};
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<Welcome {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('renders 4 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(2);
-  });
-});
+.card img {
+  border-top: 1px solid #EEE;
+  border-bottom: 1px solid #EEE;
+}
+.card-title {
+  white-space: nowrap;
+  width: 100px;
+}

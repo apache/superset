@@ -16,23 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * Allows any component to act as a Dropdown toggle
+ * for instance a simple <i />.
+ * inspired from https://react-bootstrap.github.io/components/dropdowns/
+ * "Custom Dropdown Components" section
+ */
 import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
+import PropTypes from 'prop-types';
 
-import Welcome from '../../../src/welcome/Welcome';
+const propTypes = {
+  onClick: PropTypes.func,
+  children: PropTypes.node,
+};
+export default class ToggleWrapper extends React.Component {
+  constructor(props, context) {
+    super(props, context);
 
-describe('Welcome', () => {
-  const mockedProps = {};
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<Welcome {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('renders 4 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(2);
-  });
-});
+    this.handleClick = this.handleClick.bind(this);
+  }
+
+  handleClick(e) {
+    e.preventDefault();
+    this.props.onClick(e);
+  }
+
+  render() {
+    return (
+      <span href="" onClick={this.handleClick}>
+        {this.props.children}
+      </span>
+    );
+  }
+}
+ToggleWrapper.propTypes = propTypes;

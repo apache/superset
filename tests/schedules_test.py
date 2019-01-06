@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch, PropertyMock
 from flask_babel import gettext as __
 from selenium.common.exceptions import WebDriverException
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.models.core import Dashboard, Slice
 from superset.models.schedules import (
     DashboardEmailSchedule,
@@ -30,11 +30,11 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.tasks.schedules import (
-    create_webdriver,
     deliver_dashboard,
     deliver_slice,
     next_schedules,
 )
+from superset.utils.selenium import create_webdriver
 from .utils import read_fixture
 
 
@@ -149,19 +149,20 @@ class SchedulesTestCase(unittest.TestCase):
         self.assertEqual(schedules[59], datetime.strptime('2018-03-30 17:40:00', fmt))
         self.assertEqual(schedules[60], datetime.strptime('2018-05-04 17:10:00', fmt))
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     def test_create_driver(self, mock_driver_class):
         mock_driver = Mock()
         mock_driver_class.return_value = mock_driver
         mock_driver.find_elements_by_id.side_effect = [True, False]
 
-        create_webdriver()
-        create_webdriver()
+        alpha_user = security_manager.find_user(username='alpha')
+        with app.app_context():
+            create_webdriver(alpha_user, webdriver='firefox')
         mock_driver.add_cookie.assert_called_once()
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_deliver_dashboard_inline(self, mtime, send_email_smtp, driver_class):
         element = Mock()
         driver = Mock()
@@ -182,9 +183,9 @@ class SchedulesTestCase(unittest.TestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_deliver_dashboard_as_attachment(self, mtime, send_email_smtp, driver_class):
         element = Mock()
         driver = Mock()
@@ -213,9 +214,9 @@ class SchedulesTestCase(unittest.TestCase):
             element.screenshot_as_png,
         )
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_dashboard_chrome_like(self, mtime, send_email_smtp, driver_class):
         # Test functionality for chrome driver which does not support
         # element snapshots
@@ -236,6 +237,7 @@ class SchedulesTestCase(unittest.TestCase):
             id=self.dashboard_schedule).all()[0]
 
         deliver_dashboard(schedule)
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_called_once()
         send_email_smtp.assert_called_once()
@@ -246,9 +248,9 @@ class SchedulesTestCase(unittest.TestCase):
             driver.screenshot.return_value,
         )
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_deliver_email_options(self, mtime, send_email_smtp, driver_class):
         element = Mock()
         driver = Mock()
@@ -277,9 +279,9 @@ class SchedulesTestCase(unittest.TestCase):
         self.assertEquals(send_email_smtp.call_count, 2)
         self.assertEquals(send_email_smtp.call_args[1]['bcc'], self.BCC)
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_deliver_slice_inline_image(self, mtime, send_email_smtp, driver_class):
         element = Mock()
         driver = Mock()
@@ -308,9 +310,9 @@ class SchedulesTestCase(unittest.TestCase):
             element.screenshot_as_png,
         )
 
-    @patch('superset.tasks.schedules.firefox.webdriver.WebDriver')
+    @patch('superset.utils.selenium.firefox.webdriver.WebDriver')
     @patch('superset.tasks.schedules.send_email_smtp')
-    @patch('superset.tasks.schedules.time')
+    @patch('superset.utils.selenium.time')
     def test_deliver_slice_attachment(self, mtime, send_email_smtp, driver_class):
         element = Mock()
         driver = Mock()

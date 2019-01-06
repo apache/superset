@@ -27,7 +27,6 @@ from requests.exceptions import RequestException
 from sqlalchemy import and_, func
 
 from superset import app, db
-from superset.models.core import Dashboard, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import parse_human_datetime
@@ -169,6 +168,7 @@ class TopNDashboardsStrategy(Strategy):
         urls = []
         session = db.create_scoped_session()
 
+        from superset.models.core import Dashboard, Log
         records = (
             session
             .query(Log.dashboard_id, func.count(Log.dashboard_id))
@@ -182,6 +182,7 @@ class TopNDashboardsStrategy(Strategy):
             .all()
         )
         dash_ids = [record.dashboard_id for record in records]
+        from superset.models.core import Dashboard
         dashboards = (
             session
             .query(Dashboard)
@@ -262,6 +263,7 @@ class DashboardTagsStrategy(Strategy):
             .all()
         )
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
+        from superset.models.core import Slice
         tagged_charts = (
             session
             .query(Slice)

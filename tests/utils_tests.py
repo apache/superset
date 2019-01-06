@@ -24,13 +24,9 @@ import numpy
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
-    base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
     get_since_until,
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
-    JSONEncodedDict,
     memoized,
     merge_extra_filters,
     merge_request_params,
@@ -40,6 +36,7 @@ from superset.utils.core import (
     zlib_compress,
     zlib_decompress_to_string,
 )
+from superset.utils.json import base_json_conv, json_int_dttm_ser, json_iso_dttm_ser
 
 
 def mock_parse_human_datetime(s):
@@ -508,15 +505,6 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(
             datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>',
         )
-
-    def test_json_encoded_obj(self):
-        obj = {'a': 5, 'b': ['a', 'g', 5]}
-        val = '{"a": 5, "b": ["a", "g", 5]}'
-        jsonObj = JSONEncodedDict()
-        resp = jsonObj.process_bind_param(obj, 'dialect')
-        self.assertIn('"a": 5', resp)
-        self.assertIn('"b": ["a", "g", 5]', resp)
-        self.assertEquals(jsonObj.process_result_value(val, 'dialect'), obj)
 
     def test_validate_json(self):
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
