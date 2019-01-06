@@ -37,7 +37,6 @@ from selenium.webdriver import chrome, firefox
 import simplejson as json
 from werkzeug.utils import parse_cookie
 
-# Superset framework imports
 from superset import app, db, security_manager
 from superset.models.schedules import (
     EmailDeliveryType,
@@ -46,7 +45,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.tasks.celery_app import app as celery_app
-from superset.utils.core import get_email_address_list, send_email_smtp
+from superset.utils import core as utils
 
 # Globals
 config = app.config
@@ -66,13 +65,13 @@ def _get_recipients(schedule):
         to = schedule.recipients
         yield (to, bcc)
     else:
-        for to in get_email_address_list(schedule.recipients):
+        for to in utils.get_email_address_list(schedule.recipients):
             yield (to, bcc)
 
 
 def _deliver_email(schedule, subject, email):
     for (to, bcc) in _get_recipients(schedule):
-        send_email_smtp(
+        utils.send_email_smtp(
             to,
             subject,
             email.body,
@@ -85,8 +84,9 @@ def _deliver_email(schedule, subject, email):
         )
 
 
-def _generate_mail_content(schedule, screenshot, name, url):
-    if schedule.delivery_type == EmailDeliveryType.attachment:
+def _generate_mail_content(delivery_type, screenshot, name, url):
+    config = app.config
+    if delivery_type == EmailDeliveryType.attachment:
         images = None
         data = {"screenshot.png": screenshot}
         body = __(
@@ -94,7 +94,9 @@ def _generate_mail_content(schedule, screenshot, name, url):
             name=name,
             url=url,
         )
-    elif schedule.delivery_type == EmailDeliveryType.inline:
+    else:
+        # Implicit: delivery_type == EmailDeliveryType.inline:
+
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the ends
         domain = parseaddr(config.get("SMTP_MAIL_FROM"))[1].split("@")[1]
@@ -239,13 +241,10 @@ def deliver_dashboard(schedule):
         prefix=config.get("EMAIL_REPORTS_SUBJECT_PREFIX"),
         title=dashboard.dashboard_title,
     )
+    _deliver_email(_get_recipients(schedule), subject, email)
 
-    _deliver_email(schedule, subject, email)
 
-
-def _get_slice_data(schedule):
-    slc = schedule.slice
-
+def _get_slice_data(slc, delivery_type):
     slice_url = _get_url_path(
         "Superset.explore_json", csv="true", form_data=json.dumps({"slice_id": slc.id})
     )
@@ -266,7 +265,7 @@ def _get_slice_data(schedule):
     # TODO: Move to the csv module
     rows = [r.split(b",") for r in response.content.splitlines()]
 
-    if schedule.delivery_type == EmailDeliveryType.inline:
+    if delivery_type == EmailDeliveryType.inline:
         data = None
 
         # Parse the csv file and generate HTML
@@ -280,7 +279,7 @@ def _get_slice_data(schedule):
                 link=url,
             )
 
-    elif schedule.delivery_type == EmailDeliveryType.attachment:
+    elif delivery_type == EmailDeliveryType.attachment:
         data = {__("%(name)s.csv", name=slc.slice_name): response.content}
         body = __(
             '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
@@ -326,24 +325,25 @@ def _get_slice_visualization(schedule):
     return _generate_mail_content(schedule, screenshot, slc.slice_name, slice_url)
 
 
-def deliver_slice(schedule):
+def deliver_slice(slc, recipients, email_format, delivery_type):
     """
     Given a schedule, delivery the slice as an email report
     """
-    if schedule.email_format == SliceEmailReportFormat.data:
-        email = _get_slice_data(schedule)
-    elif schedule.email_format == SliceEmailReportFormat.visualization:
-        email = _get_slice_visualization(schedule)
+    config = app.config
+    if email_format == SliceEmailReportFormat.data:
+        email = _get_slice_data(slc, delivery_type)
+    elif email_format == SliceEmailReportFormat.visualization:
+        email = _get_slice_visualization(slc, delivery_type)
     else:
         raise RuntimeError("Unknown email report format")
 
     subject = __(
         "%(prefix)s %(title)s",
         prefix=config.get("EMAIL_REPORTS_SUBJECT_PREFIX"),
-        title=schedule.slice.slice_name,
+        title=slc.slice_name,
     )
 
-    _deliver_email(schedule, subject, email)
+    _deliver_email(recipients, subject, email)
 
 
 @celery_app.task(name="email_reports.send", bind=True, soft_time_limit=300)
@@ -362,9 +362,16 @@ def schedule_email_report(task, report_type, schedule_id, recipients=None):
         schedule.recipients = recipients
 
     if report_type == ScheduleType.dashboard.value:
-        deliver_dashboard(schedule)
+        deliver_dashboard(
+            schedule.dashboard, _get_recipients(schedule), schedule.delivery_type
+        )
     elif report_type == ScheduleType.slice.value:
-        deliver_slice(schedule)
+        deliver_slice(
+            schedule.slice,
+            _get_recipients(schedule),
+            schedule.email_format,
+            schedule.delivery_type,
+        )
     else:
         raise RuntimeError("Unknown report type")
 
@@ -412,6 +419,7 @@ def schedule_window(report_type, start_at, stop_at, resolution):
 @celery_app.task(name="email_reports.schedule_hourly")
 def schedule_hourly():
     """ Celery beat job meant to be invoked hourly """
+    config = app.config
 
     if not config.get("ENABLE_SCHEDULED_EMAIL_REPORTS"):
         logging.info("Scheduled email reports not enabled in config")

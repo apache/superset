@@ -108,6 +108,7 @@ def get_manifest():
 # Setup the cache prior to registering the blueprints.
 cache = setup_cache(app, conf.get("CACHE_CONFIG"))
 tables_cache = setup_cache(app, conf.get("TABLE_NAMES_CACHE_CONFIG"))
+thumbnail_cache = setup_cache(app, conf.get("THUMBNAIL_CACHE_CONFIG"))
 
 for bp in conf.get("BLUEPRINTS"):
     try:
@@ -119,6 +120,10 @@ for bp in conf.get("BLUEPRINTS"):
 
 if conf.get("SILENCE_FAB"):
     logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
+
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+logging.getLogger("selenium").setLevel(logging.ERROR)
+logging.getLogger("PIL").setLevel(logging.ERROR)
 
 if app.debug:
     app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member

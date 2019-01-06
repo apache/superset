@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch, PropertyMock
 from flask_babel import gettext as __
 from selenium.common.exceptions import WebDriverException
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.models.core import Dashboard, Slice
 from superset.models.schedules import (
     DashboardEmailSchedule,
@@ -30,11 +30,11 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.tasks.schedules import (
-    create_webdriver,
     deliver_dashboard,
     deliver_slice,
     next_schedules,
 )
+from superset.utils.selenium import create_webdriver
 from .utils import read_fixture
 
 
@@ -157,8 +157,9 @@ class SchedulesTestCase(unittest.TestCase):
         mock_driver_class.return_value = mock_driver
         mock_driver.find_elements_by_id.side_effect = [True, False]
 
-        create_webdriver()
-        create_webdriver()
+        alpha_user = security_manager.find_user(username='alpha')
+        with app.app_context():
+            create_webdriver(alpha_user, webdriver='firefox')
         mock_driver.add_cookie.assert_called_once()
 
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
@@ -249,6 +250,7 @@ class SchedulesTestCase(unittest.TestCase):
         )
 
         deliver_dashboard(schedule)
+
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_called_once()
         send_email_smtp.assert_called_once()

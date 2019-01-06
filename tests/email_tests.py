@@ -25,7 +25,7 @@ import unittest
 from unittest import mock
 
 from superset import app
-from superset.utils import core as utils
+from superset.utils.email import send_email_smtp, send_MIME_email
 from .utils import read_fixture
 
 send_email_test = mock.Mock()

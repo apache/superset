@@ -25,6 +25,7 @@ from email.mime.text import MIMEText
 from email.utils import formatdate
 import errno
 import functools
+import hashlib
 import json
 import logging
 import os

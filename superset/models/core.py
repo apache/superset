@@ -58,6 +58,7 @@ from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
+from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import cache as cache_util, core as utils
 from superset.viz import viz_types
 from urllib import parse  # noqa
@@ -186,6 +187,26 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def datasource(self):
         return self.get_datasource
+
+    @property
+    def thumbnail_url(self):
+        # SHA here is to force bypassing the browser cache when chart has changed
+        sha = utils.md5_hex(self.params, 6)
+        return f"/thumb/chart/{self.id}/{sha}/"
+
+    @property
+    def thumbnail_img(self):
+        return Markup(f'<img width="75" src="{self.thumbnail_url}">')
+
+    @property
+    def thumbnail_link(self):
+        return Markup(
+            f"""
+            <a href="{self.thumbnail_url}?force=true">
+                {self.thumbnail_img}
+            </a>
+        """
+        )
 
     def clone(self):
         return Slice(
@@ -710,6 +731,34 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             cls=utils.DashboardEncoder,
             indent=4,
         )
+
+    @property
+    def thumbnail_url(self):
+        # SHA here is to force bypassing the browser cache when chart has changed
+        sha = utils.md5_hex(self.position_json, 6)
+        return f"/thumb/dashboard/{self.id}/{sha}/"
+
+    @property
+    def thumbnail_img(self):
+        return Markup(f'<img width="150" src="{self.thumbnail_url}">')
+
+    @property
+    def thumbnail_link(self):
+        return Markup(
+            f"""
+            <a href="{self.thumbnail_url}?force=true">
+                {self.thumbnail_img}
+            </a>
+        """
+        )
+
+
+def event_after_dashboard_changed(mapper, connection, target):
+    cache_dashboard_thumbnail.delay(target.id, force=True)
+
+
+sqla.event.listen(Dashboard, "before_insert", event_after_dashboard_changed)
+sqla.event.listen(Dashboard, "before_update", event_after_dashboard_changed)
 
 
 class Database(Model, AuditMixinNullable, ImportMixin):

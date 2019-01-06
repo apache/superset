@@ -29,7 +29,6 @@ from superset import app, db, security_manager
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.utils.core import (
-    base_json_conv,
     convert_legacy_filters_into_adhoc,
     datetime_f,
     get_or_create_db,
@@ -49,6 +48,7 @@ from superset.utils.core import (
     zlib_compress,
     zlib_decompress_to_string,
 )
+from superset.utils.json import base_json_conv, json_int_dttm_ser, json_iso_dttm_ser
 
 
 def mock_parse_human_datetime(s):

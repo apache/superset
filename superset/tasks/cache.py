@@ -25,7 +25,6 @@ from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
 from superset import app, db
-from superset.models.core import Dashboard, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import parse_human_datetime
@@ -132,6 +131,8 @@ class DummyStrategy(Strategy):
 
     def get_urls(self):
         session = db.create_scoped_session()
+        from superset.models.core import Slice
+
         charts = session.query(Slice).all()
 
         return [get_url(chart) for chart in charts]
@@ -165,6 +166,8 @@ class TopNDashboardsStrategy(Strategy):
     def get_urls(self):
         urls = []
         session = db.create_scoped_session()
+
+        from superset.models.core import Dashboard, Log
 
         records = (
             session.query(Log.dashboard_id, func.count(Log.dashboard_id))
@@ -223,6 +226,8 @@ class DashboardTagsStrategy(Strategy):
             )
             .all()
         )
+        from superset.models.core import Dashboard, Slice
+
         dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
         for dashboard in tagged_dashboards:
