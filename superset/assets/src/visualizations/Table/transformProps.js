@@ -1,3 +1,54 @@
+const DTTM_ALIAS = '__timestamp';
+
+function transformData(data, formData) {
+  const columns = new Set([
+    ...formData.groupby,
+    ...formData.metrics,
+  ].map(column => column.label || column));
+
+  let records = data;
+
+  // handle timestamp columns
+  if (formData.includeTime) {
+    columns.unshift(DTTM_ALIAS);
+  }
+
+  // handle percentage columns.
+  const percentMetrics = (formData.percentMetrics || [])
+    .map(metric => metric.label || metric);
+  if (percentMetrics.length > 0) {
+    const sumPercentMetrics = data.reduce((sumMetrics, item) => {
+      const newSumMetrics = { ...sumMetrics };
+      percentMetrics.forEach((metric) => {
+        newSumMetrics[metric] = (sumMetrics[metric] || 0) + (item[metric] || 0);
+      });
+      return newSumMetrics;
+    }, {});
+    records = data.map((item) => {
+      const newItem = { ...item };
+      percentMetrics.forEach((metric) => {
+        newItem[`%${metric}`] = sumPercentMetrics[metric] !== 0
+          ? newItem[metric] / sumPercentMetrics[metric] : null;
+      });
+      return newItem;
+    });
+    percentMetrics.forEach((metric) => {
+      columns.add(`%${metric}`);
+    });
+  }
+
+  // handle sortedby column
+  if (formData.timeseriesLimitMetric) {
+    const metric = formData.timeseriesLimitMetric.label || formData.timeseriesLimitMetric;
+    columns.add(metric);
+  }
+
+  return {
+    records,
+    columns: [...columns],
+  };
+}
+
 export default function transformProps(chartProps) {
   const {
     height,
@@ -20,18 +71,13 @@ export default function transformProps(chartProps) {
     timeseriesLimitMetric,
   } = formData;
   const { columnFormats, verboseMap } = datasource;
-  const { records, columns } = payload.data;
+  const { records, columns } = transformData(payload.data, formData);
 
   const processedColumns = columns.map((key) => {
     let label = verboseMap[key];
     // Handle verbose names for percents
     if (!label) {
-      if (key[0] === '%') {
-        const cleanedKey = key.substring(1);
-        label = '% ' + (verboseMap[cleanedKey] || cleanedKey);
-      } else {
         label = key;
-      }
     }
     return {
       key,
@@ -39,6 +85,7 @@ export default function transformProps(chartProps) {
       format: columnFormats && columnFormats[key],
     };
   });
+
 
   return {
     height,
