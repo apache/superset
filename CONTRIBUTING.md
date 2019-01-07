@@ -431,7 +431,7 @@ fabmanager babel-extract --target superset/translations --output superset/transl
 ```
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) to translate the po file more convenience.There are some [tutorail in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit) can help you. 
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) to translate the `po` file more conveniently.There are some [tutorail in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
 For the translations
 to take effect:
