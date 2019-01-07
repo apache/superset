@@ -40,7 +40,7 @@ describe('CategoricalColorScale', () => {
       expect(c3).not.toBe(c1);
     });
     it('recycles colors when number of items exceed available colors', () => {
-      const colorSet = {};
+      const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const colors = [
         scale.getColor('pig'),
