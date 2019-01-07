@@ -42,7 +42,6 @@ export default function ExploreActionButtons({
           onClick={doExportChart}
           className="btn btn-default btn-sm"
           title={t('Export to .json')}
-          target="_blank"
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-code-o" /> .json
@@ -52,7 +51,6 @@ export default function ExploreActionButtons({
           onClick={doExportCSV}
           className={exportToCSVClasses}
           title={t('Export to .csv format')}
-          target="_blank"
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-text-o" /> .csv

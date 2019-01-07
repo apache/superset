@@ -50,14 +50,14 @@ describe('MetricOption', () => {
     wrapper = shallow(factory(props));
     expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
   });
-  it('sets target="_blank" when openInNewWindow is true', () => {
+  it('sets target="_self" when openInNewWindow is true', () => {
     props.url = 'https://github.com/apache/incubator-superset';
     wrapper = shallow(factory(props));
     expect(wrapper.find('a').prop('target')).toBeNull();
 
-    props.openInNewWindow = true;
+    props.openInNewWindow = false;
     wrapper = shallow(factory(props));
-    expect(wrapper.find('a').prop('target')).toBe('_blank');
+    expect(wrapper.find('a').prop('target')).toBe('_self');
   });
   it('shows a metric type label when showType is true', () => {
     props.showType = true;

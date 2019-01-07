@@ -133,7 +133,6 @@ class DatasourceControl extends React.PureComponent {
           >
             <a
               href={`/superset/sqllab?datasourceKey=${this.props.value}`}
-              target="_blank"
               rel="noopener noreferrer"
             >
               <i className="fa fa-flask m-r-5" />

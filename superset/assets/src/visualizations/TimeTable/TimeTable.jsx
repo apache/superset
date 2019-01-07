@@ -76,7 +76,6 @@ class TimeTable extends React.PureComponent {
           <a
             href={fullUrl}
             rel="noopener noreferrer"
-            target="_blank"
           >
             {column.label}
           </a>

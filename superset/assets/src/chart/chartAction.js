@@ -220,7 +220,7 @@ export function redirectSQLLab(formData) {
         }
         redirectUrl.searchParams.set('datasourceKey', formData.datasource);
         redirectUrl.searchParams.set('sql', json.query);
-        window.open(redirectUrl.href, '_blank');
+        window.open(redirectUrl.href, '_self');
       })
       .catch(() => dispatch(addDangerToast(t('An error occurred while loading the SQL'))));
   };

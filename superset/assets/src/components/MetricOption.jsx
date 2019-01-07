@@ -18,7 +18,7 @@ const defaultProps = {
 
 export default function MetricOption({ metric, openInNewWindow, showFormula, showType, url }) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
-  const link = url ? <a href={url} target={openInNewWindow ? '_blank' : null}>{verbose}</a> : verbose;
+  const link = url ? <a href={url}>{verbose}</a> : verbose;
   return (
     <div>
       {showType && <ColumnTypeLabel type="expression" />}

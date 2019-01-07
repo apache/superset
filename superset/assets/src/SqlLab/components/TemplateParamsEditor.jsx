@@ -68,7 +68,6 @@ export default class TemplateParamsEditor extends React.Component {
         by using&nbsp;
         <a
           href="http://superset.apache.org/sqllab.html#templating-with-jinja"
-          target="_blank"
           rel="noopener noreferrer"
         >
           Jinja templating

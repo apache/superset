@@ -138,7 +138,7 @@ class SliceHeaderControls extends React.PureComponent {
           )}
 
           {this.props.sliceCanEdit && (
-            <MenuItem href={slice.edit_url} target="_blank">
+            <MenuItem href={slice.edit_url}>
               {t('Edit chart metadata')}
             </MenuItem>
           )}
