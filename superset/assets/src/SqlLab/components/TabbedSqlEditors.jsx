@@ -145,6 +145,13 @@ class TabbedSqlEditors extends React.PureComponent {
   handleSelect(key) {
     if (key === 'add_tab') {
       this.newQueryEditor();
+    } else if (key === 'close_all_tabs') {
+      if (window.confirm('Are you sure you wish to clear all query editors?')) {
+        for (let i = 0; i < this.props.queryEditors.length; i++) {
+          const qe = this.props.queryEditors[i];
+          this.removeQueryEditor(qe);
+        }
+      }
     } else {
       this.props.actions.setActiveQueryEditor({ id: key });
     }
@@ -241,10 +248,20 @@ class TabbedSqlEditors extends React.PureComponent {
           eventKey="add_tab"
           disabled={this.props.offline}
         />
+        <Tab
+          title={
+            <div>
+              <i className="fa fa-close" />&nbsp;
+            </div>
+          }
+          eventKey="close_all_tabs"
+          disabled={this.props.offline}
+        />
       </Tabs>
     );
   }
 }
+
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 

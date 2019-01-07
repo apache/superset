@@ -147,10 +147,15 @@ describe('TabbedSqlEditors', () => {
   it('should handle select', () => {
     wrapper = getWrapper();
     sinon.spy(wrapper.instance(), 'newQueryEditor');
+    sinon.spy(wrapper.instance(), 'removeQueryEditor');
     sinon.stub(wrapper.instance().props.actions, 'setActiveQueryEditor');
+    sinon.stub(window, 'confirm').returns(true);
 
     wrapper.instance().handleSelect('add_tab');
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
+
+    wrapper.instance().handleSelect('close_all_tabs');
+    expect(wrapper.instance().removeQueryEditor.callCount).toBe(1);
 
     wrapper.instance().handleSelect('123');
     expect(wrapper.instance().props.actions.setActiveQueryEditor.getCall(0).args[0].id)
@@ -166,7 +171,7 @@ describe('TabbedSqlEditors', () => {
     expect(firstTab.find(SqlEditor)).toHaveLength(1);
 
     const lastTab = wrapper.find(Tab).last();
-    expect(lastTab.props().eventKey).toContain('add_tab');
+    expect(lastTab.props().eventKey).toContain('close_all_tabs');
   });
   it('should disable new tab when offline', () => {
     wrapper = getWrapper();
