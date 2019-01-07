@@ -761,8 +761,13 @@ class R(BaseSupersetView):
     @expose('/<url_id>')
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if url:
-            return redirect('/' + url.url)
+        if url and url.url:
+            explore_url = '//superset/explore/?'
+            if url.url.startswith(explore_url):
+                explore_url += f'r={url_id}'
+                return redirect(explore_url[1:])
+            else:
+                return redirect(url.url[1:])
         else:
             flash('URL to nowhere...', 'danger')
             return redirect('/')
