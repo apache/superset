@@ -1,7 +1,7 @@
 import { scaleLinear } from 'd3-scale';
-import ColorScheme from './ColorScheme';
+import ColorScheme, { ColorSchemeConfig } from './ColorScheme';
 
-function range(count) {
+function range(count: number) {
   const values = [];
   for (let i = 0; i < count; i += 1) {
     values.push(i);
@@ -10,14 +10,20 @@ function range(count) {
   return values;
 }
 
+export interface SequentialSchemeConfig extends ColorSchemeConfig {
+  isDiverging?: boolean;
+}
+
 export default class SequentialScheme extends ColorScheme {
-  constructor(input) {
-    super(input);
-    const { isDiverging = false } = input;
+  isDiverging: boolean;
+
+  constructor(config: SequentialSchemeConfig) {
+    super(config);
+    const { isDiverging = false } = config;
     this.isDiverging = isDiverging;
   }
 
-  createLinearScale(extent = [0, 1]) {
+  createLinearScale(extent: number[] = [0, 1]) {
     // Create matching domain
     // because D3 continuous scale uses piecewise mapping
     // between domain and range.
@@ -25,13 +31,13 @@ export default class SequentialScheme extends ColorScheme {
     const denominator = this.colors.length - 1;
     const domain = range(this.colors.length).map(i => valueScale(i / denominator));
 
-    return scaleLinear()
+    return scaleLinear<string>()
       .domain(domain)
       .range(this.colors)
       .clamp(true);
   }
 
-  getColors(numColors = this.colors.length) {
+  getColors(numColors: number = this.colors.length): string[] {
     if (numColors === this.colors.length) {
       return this.colors;
     }

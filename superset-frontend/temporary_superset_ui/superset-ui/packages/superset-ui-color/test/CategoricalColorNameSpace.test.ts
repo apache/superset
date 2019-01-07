@@ -55,6 +55,13 @@ describe('CategoricalColorNamespace', () => {
       expect(scale).toBeDefined();
       expect(scale.getColor('dog')).toBeDefined();
     });
+    it('returns a scale when a schemeId is not specified and there is no default key', () => {
+      getCategoricalSchemeRegistry().clearDefaultKey();
+      const namespace = getNamespace('new-space');
+      const scale = namespace.getScale();
+      expect(scale).toBeDefined();
+      getCategoricalSchemeRegistry().setDefaultKey('testColors');
+    });
     it('returns same scale if the scale with that name already exists in this namespace', () => {
       const namespace = getNamespace('test-get-scale2');
       const scale1 = namespace.getScale('testColors');

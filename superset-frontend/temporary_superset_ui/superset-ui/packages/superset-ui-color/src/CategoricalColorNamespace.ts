@@ -1,24 +1,30 @@
 import CategoricalColorScale from './CategoricalColorScale';
+import { ColorsLookup } from './types';
 import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
 import stringifyAndTrim from './stringifyAndTrim';
 
 export default class CategoricalColorNamespace {
-  constructor(name) {
+  name: string;
+  forcedItems: ColorsLookup;
+  scales: {
+    [key: string]: CategoricalColorScale;
+  };
+
+  constructor(name: string) {
     this.name = name;
     this.scales = {};
     this.forcedItems = {};
   }
 
-  getScale(schemeId) {
-    const id = schemeId || getCategoricalSchemeRegistry().getDefaultKey();
+  getScale(schemeId?: string) {
+    const id = schemeId || getCategoricalSchemeRegistry().getDefaultKey() || '';
     const scale = this.scales[id];
     if (scale) {
       return scale;
     }
-    const newScale = new CategoricalColorScale(
-      getCategoricalSchemeRegistry().get(id).colors,
-      this.forcedItems,
-    );
+    const scheme = getCategoricalSchemeRegistry().get(id);
+
+    const newScale = new CategoricalColorScale((scheme && scheme.colors) || [], this.forcedItems);
     this.scales[id] = newScale;
 
     return newScale;
@@ -31,17 +37,20 @@ export default class CategoricalColorNamespace {
    * @param {*} value value
    * @param {*} forcedColor color
    */
-  setColor(value, forcedColor) {
+  setColor(value: string, forcedColor: string) {
     this.forcedItems[stringifyAndTrim(value)] = forcedColor;
 
     return this;
   }
 }
 
-const namespaces = {};
+const namespaces: {
+  [key: string]: CategoricalColorNamespace;
+} = {};
+
 export const DEFAULT_NAMESPACE = 'GLOBAL';
 
-export function getNamespace(name = DEFAULT_NAMESPACE) {
+export function getNamespace(name: string = DEFAULT_NAMESPACE) {
   const instance = namespaces[name];
   if (instance) {
     return instance;
@@ -52,12 +61,12 @@ export function getNamespace(name = DEFAULT_NAMESPACE) {
   return newInstance;
 }
 
-export function getColor(value, schemeId, namespace) {
+export function getColor(value?: string, schemeId?: string, namespace?: string) {
   return getNamespace(namespace)
     .getScale(schemeId)
     .getColor(value);
 }
 
-export function getScale(scheme, namespace) {
+export function getScale(scheme?: string, namespace?: string) {
   return getNamespace(namespace).getScale(scheme);
 }
