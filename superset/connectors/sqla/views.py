@@ -270,7 +270,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         if flash_message:
             flash(_(
                 'The table was created. '
-                'As part of this two phase configuration '
+                'As part of this two-phase configuration '
                 'process, you should now click the edit button by '
                 'the new table to configure it.'), 'info')
 

@@ -61,7 +61,7 @@ QueryStatus = utils.QueryStatus
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     'This endpoint requires the `all_datasource_access` permission')
-DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
+DATASOURCE_MISSING_ERR = __('The data source seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
@@ -568,7 +568,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             'the widgets size and positions by using drag & drop in '
             'the dashboard view'),
         'css': _(
-            'The css for individual dashboards can be altered here, or '
+            'The CSS for individual dashboards can be altered here, or '
             'in the dashboard view where changes are immediately '
             'visible'),
         'slug': _('To get a readable URL for your dashboard'),
