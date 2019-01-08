@@ -122,6 +122,11 @@ class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
+        <span>
+            <a href={"/superset/explore/" + this.props.datasource.type + "/" + this.props.datasource.id + "/"}>
+                <i className="fa fa-bar-chart-o m-r-5" />
+            </a>
+        </span>
         {this.props.datasource.type === 'table' &&
           <OverlayTrigger
             placement="right"
