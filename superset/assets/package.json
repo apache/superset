@@ -202,7 +202,7 @@
     "webpack-assets-manifest": "^3.0.1",
     "webpack-bundle-analyzer": "^3.0.2",
     "webpack-cli": "^3.1.1",
-    "webpack-dev-server": "^3.1.7",
+    "webpack-dev-server": "^3.1.14",
     "webpack-sources": "^1.1.0"
   }
 }
