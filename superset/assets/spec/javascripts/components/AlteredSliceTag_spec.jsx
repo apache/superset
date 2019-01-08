@@ -284,4 +284,28 @@ describe('AlteredSliceTag', () => {
       expect(wrapper.instance().formatValue(filters, 'adhoc_filters')).toBe(expected);
     });
   });
+  describe('isEqualish', () => {
+    it('considers null, undefined, {} and [] as equal', () => {
+      const inst = wrapper.instance();
+      expect(inst.isEqualish(null, undefined)).toBe(true);
+      expect(inst.isEqualish(null, [])).toBe(true);
+      expect(inst.isEqualish(null, {})).toBe(true);
+      expect(inst.isEqualish(undefined, {})).toBe(true);
+    });
+    it('considers empty strings are the same as null', () => {
+      const inst = wrapper.instance();
+      expect(inst.isEqualish(undefined, '')).toBe(true);
+      expect(inst.isEqualish(null, '')).toBe(true);
+    });
+    it('considers deeply equal objects as equal', () => {
+      const inst = wrapper.instance();
+      expect(inst.isEqualish('', '')).toBe(true);
+      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { a: 1, b: 2, c: 3 })).toBe(true);
+      // Out of order
+      expect(inst.isEqualish({ a: 1, b: 2, c: 3 }, { b: 2, a: 1, c: 3 })).toBe(true);
+
+      // Actually  not equal
+      expect(inst.isEqualish({ a: 1, b: 2, z: 9 }, { a: 1, b: 2, c: 3 })).toBe(false);
+    });
+  });
 });

@@ -12,6 +12,24 @@ const propTypes = {
   currentFormData: PropTypes.object.isRequired,
 };
 
+function alterForComparison(value) {
+  // Considering `[]`, `{}`, `null` and `undefined` as identical
+  // for this purpose
+  if (value === undefined || value === null || value === '') {
+    return null;
+  } else if (typeof value === 'object') {
+    if (Array.isArray(value) && value.length === 0) {
+      return null;
+    }
+    const keys = Object.keys(value);
+    if (keys && keys.length === 0) {
+      return null;
+    }
+  }
+  return value;
+}
+
+
 export default class AlteredSliceTag extends React.Component {
 
   constructor(props) {
@@ -45,11 +63,15 @@ export default class AlteredSliceTag extends React.Component {
       if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
         continue;
       }
-      if (!isEqual(ofd[fdKey], cfd[fdKey])) {
+      if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
     }
     return diffs;
+  }
+
+  isEqualish(val1, val2) {
+    return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
   formatValue(value, key) {
