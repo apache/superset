@@ -59,6 +59,7 @@ logging.getLogger('tasks.email_reports').setLevel(logging.INFO)
 # Time in seconds, we will wait for the page to load and render
 PAGE_RENDER_WAIT = 30
 
+DATETIME_FORMAT = '%Y/%m/%d/%H/%M/%S'
 
 EmailContent = namedtuple('EmailContent', ['body', 'data', 'images'])
 
@@ -116,6 +117,20 @@ def _generate_mail_content(schedule, screenshot, name, url):
         )
 
     return EmailContent(body, data, images)
+
+
+def _get_subject(schedule, run_at, title):
+    if schedule.email_subject and run_at is not None:
+        run_at = datetime.strptime(run_at, DATETIME_FORMAT)
+        subject = __(run_at.strftime(schedule.email_subject))
+    else:
+        subject = __(
+            '%(prefix)s %(title)s',
+            prefix=config.get('EMAIL_REPORTS_SUBJECT_PREFIX'),
+            title=title,
+        )
+
+    return subject
 
 
 def _get_auth_cookies():
@@ -204,7 +219,7 @@ def destroy_webdriver(driver):
         pass
 
 
-def deliver_dashboard(schedule):
+def deliver_dashboard(schedule, run_at=None):
     """
     Given a schedule, delivery the dashboard as an email report
     """
@@ -217,7 +232,12 @@ def deliver_dashboard(schedule):
 
     # Create a driver, fetch the page, wait for the page to render
     driver = create_webdriver()
-    window = config.get('WEBDRIVER_WINDOW')['dashboard']
+
+    if schedule.screen_width and schedule.screen_height:
+        window = (schedule.screen_width, schedule.screen_height)
+    else:
+        window = config.get('WEBDRIVER_WINDOW')['dashboard']
+
     driver.set_window_size(*window)
     driver.get(dashboard_url)
     time.sleep(PAGE_RENDER_WAIT)
@@ -249,12 +269,7 @@ def deliver_dashboard(schedule):
         dashboard_url,
     )
 
-    subject = __(
-        '%(prefix)s %(title)s',
-        prefix=config.get('EMAIL_REPORTS_SUBJECT_PREFIX'),
-        title=dashboard.dashboard_title,
-    )
-
+    subject = _get_subject(schedule, run_at, dashboard.dashboard_title)
     _deliver_email(schedule, subject, email)
 
 
@@ -315,7 +330,11 @@ def _get_slice_visualization(schedule):
 
     # Create a driver, fetch the page, wait for the page to render
     driver = create_webdriver()
-    window = config.get('WEBDRIVER_WINDOW')['slice']
+    if schedule.screen_width and schedule.screen_height:
+        window = (schedule.screen_width, schedule.screen_height)
+    else:
+        window = config.get('WEBDRIVER_WINDOW')['slice']
+
     driver.set_window_size(*window)
 
     slice_url = _get_url_path(
@@ -353,7 +372,7 @@ def _get_slice_visualization(schedule):
     )
 
 
-def deliver_slice(schedule):
+def deliver_slice(schedule, run_at=None):
     """
     Given a schedule, delivery the slice as an email report
     """
@@ -364,17 +383,12 @@ def deliver_slice(schedule):
     else:
         raise RuntimeError('Unknown email report format')
 
-    subject = __(
-        '%(prefix)s %(title)s',
-        prefix=config.get('EMAIL_REPORTS_SUBJECT_PREFIX'),
-        title=schedule.slice.slice_name,
-    )
-
+    subject = _get_subject(schedule, run_at, schedule.slice.slice_name)
     _deliver_email(schedule, subject, email)
 
 
 @celery_app.task(name='email_reports.send', bind=True, soft_time_limit=300)
-def schedule_email_report(task, report_type, schedule_id, recipients=None):
+def schedule_email_report(task, report_type, schedule_id, run_at=None, recipients=None):
     model_cls = get_scheduler_model(report_type)
     schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
 
@@ -389,9 +403,9 @@ def schedule_email_report(task, report_type, schedule_id, recipients=None):
         schedule.recipients = recipients
 
     if report_type == ScheduleType.dashboard.value:
-        deliver_dashboard(schedule)
+        deliver_dashboard(schedule, run_at=run_at)
     elif report_type == ScheduleType.slice.value:
-        deliver_slice(schedule)
+        deliver_slice(schedule, run_at=run_at)
     else:
         raise RuntimeError('Unknown report type')
 
@@ -431,13 +445,15 @@ def schedule_window(report_type, start_at, stop_at, resolution):
             report_type,
             schedule.id,
         )
-
         # Schedule the job for the specified time window
         for eta in next_schedules(schedule.crontab,
                                   start_at,
                                   stop_at,
                                   resolution=resolution):
-            schedule_email_report.apply_async(args, eta=eta)
+            kwargs = dict(
+                run_at=eta.strftime(DATETIME_FORMAT),
+            )
+            schedule_email_report.apply_async(args, kwargs, eta=eta)
 
 
 @celery_app.task(name='email_reports.schedule_hourly')

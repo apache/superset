@@ -73,6 +73,9 @@ class EmailSchedule():
     recipients = Column(Text)
     deliver_as_group = Column(Boolean, default=False)
     delivery_type = Column(Enum(EmailDeliveryType))
+    email_subject = Column(String(80), default=None)
+    screen_width = Column(Integer, default=None)
+    screen_height = Column(Integer, default=None)
 
 
 class DashboardEmailSchedule(Model,

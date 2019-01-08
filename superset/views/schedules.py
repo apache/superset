@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 
 import enum
+from datetime import datetime
 
 from croniter import croniter
 from flask import flash, g
@@ -36,7 +37,10 @@ from superset.models.schedules import (
     ScheduleType,
     SliceEmailSchedule,
 )
-from superset.tasks.schedules import schedule_email_report
+from superset.tasks.schedules import (
+    DATETIME_FORMAT,
+    schedule_email_report,
+)
 from superset.utils.core import (
     get_email_address_list,
     json_iso_dttm_ser,
@@ -67,10 +71,18 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
 
     description_columns = {
         'deliver_as_group': 'If enabled, send a single email to all '
-        'recipients (in email/To: field)',
+                            'recipients (in email/To: field)',
         'crontab': 'Unix style crontab schedule to deliver emails. '
                    'Changes to schedules reflect in one hour.',
         'delivery_type': 'Indicates how the rendered content is delivered',
+        'email_subject': 'The subject for the email report. '
+                         'If empty, the dashboard/slice title is used. '
+                         '(Supports datetime strftime templates for the report '
+                         'schedule time).',
+        'screen_width': 'Screen width (in pixels) to use for generating reports. '
+                        'Leave empty for defaults.',
+        'screen_height': 'Screen height (in pixels) to use for generating reports. '
+                         'Leave empty for defaults.',
     }
 
     add_form_extra_fields = {
@@ -101,6 +113,13 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
         except Exception:
             raise SupersetException('Invalid email list')
 
+        try:
+            if obj.email_subject is not None:
+                subject = obj.email_subject.strip()
+                datetime.now().strftime(subject)
+        except Exception:
+            raise SupersetException('Invalid subject format')
+
         obj.user = obj.user or g.user
         if not croniter.is_valid(obj.crontab):
             raise SupersetException('Invalid crontab format')
@@ -113,7 +132,10 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
         if self._extra_data['test_email']:
             recipients = self._extra_data['test_email_recipients']
             args = (self.schedule_type, obj.id)
-            kwargs = dict(recipients=recipients)
+            kwargs = dict(
+                run_at=datetime.now().strftime(DATETIME_FORMAT),
+                recipients=recipients,
+            )
             schedule_email_report.apply_async(args=args, kwargs=kwargs)
 
         # Notify the user that schedule changes will be activate only in the
@@ -165,19 +187,25 @@ class DashboardEmailScheduleView(EmailScheduleView):
     list_columns = [
         'dashboard',
         'active',
+        'email_subject',
         'crontab',
         'user',
         'deliver_as_group',
         'delivery_type',
+        'screen_width',
+        'screen_height',
     ]
 
     add_columns = [
         'dashboard',
         'active',
+        'email_subject',
         'crontab',
         'recipients',
         'deliver_as_group',
         'delivery_type',
+        'screen_width',
+        'screen_height',
         'test_email',
         'test_email_recipients',
     ]
@@ -198,10 +226,13 @@ class DashboardEmailScheduleView(EmailScheduleView):
         'changed_on': _('Changed On'),
         'user': _('User'),
         'active': _('Active'),
+        'email_subject': _('Email Subject'),
         'crontab': _('Crontab'),
         'recipients': _('Recipients'),
         'deliver_as_group': _('Deliver As Group'),
         'delivery_type': _('Delivery Type'),
+        'screen_width': _('Screen Width'),
+        'screen_height': _('Screen Height'),
     }
 
     def pre_add(self, obj):
@@ -222,21 +253,27 @@ class SliceEmailScheduleView(EmailScheduleView):
     list_columns = [
         'slice',
         'active',
+        'email_subject',
         'crontab',
         'user',
         'deliver_as_group',
         'delivery_type',
         'email_format',
+        'screen_width',
+        'screen_height',
     ]
 
     add_columns = [
         'slice',
         'active',
+        'email_subject',
         'crontab',
         'recipients',
         'deliver_as_group',
         'delivery_type',
         'email_format',
+        'screen_width',
+        'screen_height',
         'test_email',
         'test_email_recipients',
     ]
@@ -258,11 +295,14 @@ class SliceEmailScheduleView(EmailScheduleView):
         'changed_on': _('Changed On'),
         'user': _('User'),
         'active': _('Active'),
+        'email_subject': _('Email Subject'),
         'crontab': _('Crontab'),
         'recipients': _('Recipients'),
         'deliver_as_group': _('Deliver As Group'),
         'delivery_type': _('Delivery Type'),
         'email_format': _('Email Format'),
+        'screen_width': _('Screen Width'),
+        'screen_height': _('Screen Height'),
     }
 
     def pre_add(self, obj):
