@@ -1455,7 +1455,7 @@ export const controls = {
     label: t('Search Box'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to include a client side search box'),
+    description: t('Whether to include a client-side search box'),
   },
 
   table_filter: {
@@ -1858,7 +1858,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Live render'),
     default: true,
-    description: t('Points and clusters will update as viewport is being changed'),
+    description: t('Points and clusters will update as the viewport is being changed'),
   },
 
   mapbox_color: {

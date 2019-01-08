@@ -2571,7 +2571,7 @@
       "label": "Search Box",
       "renderTrigger": true,
       "default": false,
-      "description": "Whether to include a client side search box"
+      "description": "Whether to include a client-side search box"
     },
     "table_filter": {
       "type": "CheckboxControl",
@@ -3036,7 +3036,7 @@
       "type": "CheckboxControl",
       "label": "Live render",
       "default": true,
-      "description": "Points and clusters will update as viewport is being changed"
+      "description": "Points and clusters will update as the viewport is being changed"
     },
     "mapbox_color": {
       "type": "SelectControl",
