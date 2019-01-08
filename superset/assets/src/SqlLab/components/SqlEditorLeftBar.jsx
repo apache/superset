@@ -168,7 +168,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     }
     const database = this.props.database || {};
     return (
-      <div className="clearfix sql-toolbar">
+      <div className="clearfix">
         <div>
           <AsyncSelect
             dataEndpoint={

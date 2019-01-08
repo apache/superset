@@ -82,7 +82,7 @@ class SqlEditor extends React.PureComponent {
   onResize() {
     const height = this.sqlEditorHeight();
     const editorPaneHeight = this.props.queryEditor.height || 200;
-    const splitPaneHandlerHeight = 15;
+    const splitPaneHandlerHeight = 8; // 4px of height + 4px of top-margin
     this.setState({
       editorPaneHeight,
       southPaneHeight: height - editorPaneHeight - splitPaneHandlerHeight,
@@ -218,8 +218,8 @@ class SqlEditor extends React.PureComponent {
       );
     }
     return (
-      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
-        <div className="pull-left">
+      <div className="sql-toolbar" id="js-sql-toolbar">
+        <div>
           <Form inline>
             <span className="m-r-5">
               <RunQueryActionButton
@@ -265,7 +265,7 @@ class SqlEditor extends React.PureComponent {
             </span>
           </Form>
         </div>
-        <div className="pull-right">
+        <div>
           <TemplateParamsEditor
             language="json"
             onChange={(params) => {
