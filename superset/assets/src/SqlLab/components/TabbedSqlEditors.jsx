@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
+import { Alert, DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
+import Dialog from 'react-bootstrap-dialog';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
@@ -41,6 +42,8 @@ class TabbedSqlEditors extends React.PureComponent {
       dataPreviewQueries: [],
       hideLeftBar: false,
     };
+    this.onConfirmClose = this.onConfirmClose.bind(this);
+    this.setDialogRef = this.setDialogRef.bind(this);
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
@@ -146,21 +149,48 @@ class TabbedSqlEditors extends React.PureComponent {
     if (key === 'add_tab') {
       this.newQueryEditor();
     } else if (key === 'close_all_tabs') {
-      if (window.confirm('Are you sure you wish to clear all query editors?')) {
-        for (let i = 0; i < this.props.queryEditors.length; i++) {
-          const qe = this.props.queryEditors[i];
-          this.removeQueryEditor(qe);
-        }
-      }
+      this.dialog.show({
+        title: t('Confirm closing all query editor tabs'),
+        bsSize: 'medium',
+        actions: [
+          Dialog.CancelAction(),
+          Dialog.OKAction(this.onConfirmClose),
+        ],
+        body: this.renderSaveDialog(),
+      });
     } else {
       this.props.actions.setActiveQueryEditor({ id: key });
     }
   }
+  onConfirmClose() {
+    for (let i = 0; i < this.props.queryEditors.length; i++) {
+      const qe = this.props.queryEditors[i];
+      this.removeQueryEditor(qe);
+    }
+    queryCount = 0;
+  }
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
   }
+  setDialogRef(ref) {
+    this.dialog = ref;
+  }
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
+  }
+  renderSaveDialog() {
+    return (
+      <div>
+        <Alert bsStyle="warning" className="pointer" onClick={this.hideAlert}>
+          <div>
+            <i className="fa fa-exclamation-triangle" />{' '}
+            {t(`Once all query editor tabs are closed, they cannot
+                be reopened.`)}
+          </div>
+        </Alert>
+        {t('Are you sure you want to close all query editor tabs?')}
+      </div>
+    );
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
@@ -251,12 +281,13 @@ class TabbedSqlEditors extends React.PureComponent {
         <Tab
           title={
             <div>
-              <i className="fa fa-close" />&nbsp;
+              <i className="fa fa-times-circle" />&nbsp;
             </div>
           }
           eventKey="close_all_tabs"
           disabled={this.props.offline}
         />
+        <Dialog ref={this.setDialogRef} />
       </Tabs>
     );
   }

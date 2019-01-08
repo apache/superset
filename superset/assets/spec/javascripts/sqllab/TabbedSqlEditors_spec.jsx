@@ -154,7 +154,7 @@ describe('TabbedSqlEditors', () => {
     wrapper.instance().handleSelect('add_tab');
     expect(wrapper.instance().newQueryEditor.callCount).toBe(1);
 
-    wrapper.instance().handleSelect('close_all_tabs');
+    wrapper.instance().onConfirmClose();
     expect(wrapper.instance().removeQueryEditor.callCount).toBe(1);
 
     wrapper.instance().handleSelect('123');

@@ -10,9 +10,9 @@ export default () => {
       cy.get('#a11y-query-editor-tabs > ul > li').then((tabList) => {
         const initialTabCount = tabList.length;
 
-        // add tab
+        // add tab (second to last tab)
         cy.get('#a11y-query-editor-tabs > ul > li')
-          .last()
+          .eq(initialTabCount - 2)
           .click();
 
         cy.get('#a11y-query-editor-tabs > ul > li').should('have.length', initialTabCount + 1);
