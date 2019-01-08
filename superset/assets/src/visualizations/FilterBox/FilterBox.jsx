@@ -11,16 +11,8 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
+import TIME_FILTER_MAP from '../../dashboard/util/filterOptions';
 import './FilterBox.css';
-
-// maps control names to their key in extra_filters
-const TIME_FILTER_MAP = {
-  time_range: '__time_range',
-  granularity_sqla: '__time_col',
-  time_grain_sqla: '__time_grain',
-  druid_time_origin: '__time_origin',
-  granularity: '__granularity',
-};
 
 const TIME_RANGE = '__time_range';
 

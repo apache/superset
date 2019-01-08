@@ -24,15 +24,6 @@ export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
-  let filters = {};
-  try {
-    // allow request parameter overwrite dashboard metadata
-    filters = JSON.parse(
-      getParam('preselect_filters') || dashboard.metadata.default_filters,
-    );
-  } catch (e) {
-    //
-  }
 
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
@@ -121,6 +112,59 @@ export default function(bootstrapData) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
   });
+
+  // applied filters
+  let filters = {};
+  try {
+    // preselect_filters={filterId: {cols: [vals]}}
+    const preselectFiltersParam = JSON.parse(
+      getParam('preselect_filters') || dashboard.metadata.default_filters,
+    );
+
+    // accept both old-style filters ({<filter_box_id>: { "col": ["val"], "__timegrain": "val"}})
+    // and new-style filters ({"col": ["val"], "col": ["val"]})
+    const preselectFilters = {};
+
+    const filterColumns = {};
+    Object.keys(preselectFiltersParam).forEach(key => {
+      const values = preselectFiltersParam[key];
+      if (Array.isArray(values)) {
+        // new-style filter, collect a list of {column: [vals]} filter objects
+        const currentVals = filterColumns[key] || [];
+        filterColumns[key] = [...currentVals, ...values];
+      } else {
+        // old-style filter, add to preselect filters directly
+        const currentVals = preselectFilters[key];
+        preselectFilters[key] = {
+          ...currentVals,
+          ...values,
+        };
+      }
+    });
+
+    const filterBoxes = Object.values(slices).filter(
+      slice => slice.viz_type === 'filter_box',
+    );
+
+    // for each filter_box, add a filter object if the filter_box uses the column
+    Object.keys(filterColumns).forEach(column => {
+      const values = filterColumns[column];
+      filterBoxes
+        .filter(slice => slice.form_data.groupby.includes(column))
+        .forEach(slice => {
+          const currentVals = preselectFilters[slice.slice_id];
+          preselectFilters[slice.slice_id] = {
+            ...currentVals,
+            [column]: values,
+          };
+        });
+    });
+
+    // allow request parameters to overwrite dashboard metadata
+    filters = preselectFilters;
+  } catch (e) {
+    //
+  }
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
