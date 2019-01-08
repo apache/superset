@@ -338,7 +338,7 @@ export const controls = {
     label: t('Linear Color Scheme'),
     choices: () => sequentialSchemeRegistry
       .values()
-      .map(value => [value.name, value.label]),
+      .map(value => [value.id, value.label]),
     default: 'blue_white_yellow',
     clearable: false,
     description: '',
