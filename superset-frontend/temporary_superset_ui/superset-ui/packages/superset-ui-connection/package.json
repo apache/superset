@@ -26,12 +26,14 @@
   },
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "devDependencies": {
+    "@types/fetch-mock": "^6.0.0",
     "fetch-mock": "^6.5.2",
     "node-fetch": "^2.2.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
-    "whatwg-fetch": "^2.0.4"
+    "whatwg-fetch": "^2.0.4",
+    "json-bigint": "^0.3.0"
   },
   "publishConfig": {
     "access": "public"
