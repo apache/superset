@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/connection",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Superset UI connection",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
-    "whatwg-fetch": "^2.0.4",
-    "json-bigint": "^0.3.0"
+    "json-bigint": "^0.3.0",
+    "whatwg-fetch": "^2.0.4"
   },
   "publishConfig": {
     "access": "public"
