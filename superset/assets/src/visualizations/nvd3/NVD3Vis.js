@@ -550,11 +550,11 @@ function nvd3Vis(element, props) {
       .call(chart);
 
     if (xLabelRotation > 0) {
+      // shift labels to the left so they look better
       const xTicks = svg.select('.nv-x.nv-axis > g').selectAll('g');
       xTicks
         .selectAll('text')
-        .attr('dx', -6.5)
-        .each((i, e) => console.log(this));
+        .attr('dx', -6.5);
     }
 
     // align yAxis1 and yAxis2 ticks
