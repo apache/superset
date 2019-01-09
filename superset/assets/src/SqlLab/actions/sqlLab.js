@@ -1,5 +1,4 @@
 import shortid from 'shortid';
-import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
