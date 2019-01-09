@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/time-format",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Superset UI time-format",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.7.0",
+    "@superset-ui/core": "^0.8.0",
     "d3-time": "^1.0.10",
     "d3-time-format": "^2.1.3"
   }
