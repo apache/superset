@@ -82,7 +82,7 @@ describe('callApi()', () => {
         expect(calls).toHaveLength(1);
 
         const fetchParams = calls[0][1];
-        const { body } = fetchParams;
+        const body = fetchParams.body as FormData;
 
         Object.keys(postPayload).forEach(key => {
           expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
@@ -102,7 +102,7 @@ describe('callApi()', () => {
         expect(calls).toHaveLength(1);
 
         const fetchParams = calls[0][1];
-        const { body } = fetchParams;
+        const body = fetchParams.body as FormData;
         expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
         expect(body.get('noValue')).toBeNull();
 
@@ -129,8 +129,8 @@ describe('callApi()', () => {
         const calls = fetchMock.calls(mockPostUrl);
         expect(calls).toHaveLength(2);
 
-        const stringified = calls[0][1].body;
-        const unstringified = calls[1][1].body;
+        const stringified = calls[0][1].body as FormData;
+        const unstringified = calls[1][1].body as FormData;
 
         Object.keys(postPayload).forEach(key => {
           expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));

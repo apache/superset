@@ -1,9 +1,22 @@
 import fetchMock from 'fetch-mock';
 
+import { BigNumber } from 'bignumber.js';
 import { SupersetClientClass, ClientConfig } from '../src/SupersetClientClass';
 import throwIfCalled from './utils/throwIfCalled';
 import { LOGIN_GLOB } from './fixtures/constants';
 
+/* NOTE: We're using fetchMock v6.5.2, but corresponding fetchMock type declaration files are only available for v6.0.2
+ * and v7+. It looks like there are behavior changes between v6 and v7 that break our tests, so upgrading to v7 is
+ * probably some work.
+ *
+ * To avoid this, we're using the type declarations for v6.0.2, but there is at least one API inconsistency between that
+ * type declaration file and the actual library we're using. It looks like `sendAsJson` was added sometime after that
+ * release, or else the type declaration file isn't completely accurate. To get around this, it's necessary to add
+ * a `@ts-ignore` decorator before references to `sendAsJson` (there's one instance of that in this file).
+ *
+ * The **right** solution is probably to upgrade to fetchMock v7 (and the latest type declaration) and fix the tests
+ * that become broken as a result.
+ */
 describe('SupersetClientClass', () => {
   beforeAll(() => {
     fetchMock.get(LOGIN_GLOB, { csrf_token: '' });
@@ -125,6 +138,8 @@ describe('SupersetClientClass', () => {
     it('does not set csrfToken if response is not json', () => {
       fetchMock.get(LOGIN_GLOB, '123', {
         overwriteRoutes: true,
+        // @TODO remove once fetchMock is upgraded to 7+, see note at top of this file
+        // @ts-ignore
         sendAsJson: false,
       });
 
@@ -246,7 +261,8 @@ describe('SupersetClientClass', () => {
     const mockGetUrl = `${protocol}//${host}${mockGetEndpoint}`;
     const mockPostUrl = `${protocol}//${host}${mockPostEndpoint}`;
     const mockTextUrl = `${protocol}//${host}${mockTextEndpoint}`;
-    const mockTextJsonResponse = '{ "value": 9223372036854775807 }';
+    const mockBigNumber = '9223372036854775807';
+    const mockTextJsonResponse = `{ "value": ${mockBigNumber} }`;
 
     fetchMock.get(mockGetUrl, { json: 'payload' });
     fetchMock.post(mockPostUrl, { json: 'payload' });
@@ -309,6 +325,21 @@ describe('SupersetClientClass', () => {
             client.get({ endpoint: mockGetEndpoint }),
           ]).then(() => {
             expect(fetchMock.calls(mockGetUrl)).toHaveLength(2);
+
+            return Promise.resolve();
+          }),
+        );
+      });
+
+      it('supports parsing a response as JSON while preserving precision of large numbers', () => {
+        expect.assertions(2);
+        const client = new SupersetClientClass({ protocol, host });
+
+        return client.init().then(() =>
+          client.get({ url: mockTextUrl }).then(({ json }) => {
+            expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+            // @ts-ignore
+            expect(json.value.toString()).toBe(new BigNumber(mockBigNumber).toString());
 
             return Promise.resolve();
           }),
@@ -424,6 +455,21 @@ describe('SupersetClientClass', () => {
         );
       });
 
+      it('supports parsing a response as JSON while preserving precision of large numbers', () => {
+        expect.assertions(2);
+        const client = new SupersetClientClass({ protocol, host });
+
+        return client.init().then(() =>
+          client.post({ url: mockTextUrl }).then(({ json }) => {
+            expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+            // @ts-ignore
+            expect(json.value.toString()).toBe(new BigNumber(mockBigNumber).toString());
+
+            return Promise.resolve();
+          }),
+        );
+      });
+
       it('supports parsing a response as text', () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
@@ -446,7 +492,7 @@ describe('SupersetClientClass', () => {
 
         return client.init().then(() =>
           client.post({ url: mockPostUrl, postPayload }).then(() => {
-            const formData = fetchMock.calls(mockPostUrl)[0][1].body;
+            const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
             expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
             Object.keys(postPayload).forEach(key => {
               expect(formData.get(key)).toBe(JSON.stringify(postPayload[key]));
@@ -464,7 +510,7 @@ describe('SupersetClientClass', () => {
 
         return client.init().then(() =>
           client.post({ url: mockPostUrl, postPayload, stringify: false }).then(() => {
-            const formData = fetchMock.calls(mockPostUrl)[0][1].body;
+            const formData = fetchMock.calls(mockPostUrl)[0][1].body as FormData;
             expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
             Object.keys(postPayload).forEach(key => {
               expect(formData.get(key)).toBe(String(postPayload[key]));

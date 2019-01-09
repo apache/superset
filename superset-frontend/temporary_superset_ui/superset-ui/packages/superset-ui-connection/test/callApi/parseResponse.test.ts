@@ -61,7 +61,7 @@ describe('parseResponse()', () => {
       .catch(error => {
         expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
         expect(error.stack).toBeDefined();
-        expect(error.message.includes('Unexpected token')).toBe(true);
+        expect(error.message.includes('Unexpected')).toBe(true);
 
         return Promise.resolve();
       });
