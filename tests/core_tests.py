@@ -677,19 +677,33 @@ class CoreTests(SupersetTestCase):
 
     def test_mssql_engine_spec_pymssql(self):
         # Test for case when tuple is returned (pymssql)
-        data = [(1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)), (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000))]
-        df = dataframe.SupersetDataFrame(list(data), [['col1'], ['col2'], ['col3']], MssqlEngineSpec)
+        data = [(1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
+                (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000))]
+        df = dataframe.SupersetDataFrame(
+            list(data),
+            [['col1'], ['col2'], ['col3']],
+            MssqlEngineSpec)
         data = df.data
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0], {'col1': 1, 'col2': 1, 'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
+        self.assertEqual(data[0],
+                         {'col1': 1,
+                          'col2': 1,
+                          'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
 
     def test_mssql_engine_spec_odbc(self):
         # Test for case when pyodbc.Row is returned (msodbc driver)
-        data = [Row((1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000))), Row((2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)))]
-        df = dataframe.SupersetDataFrame(list(data), [['col1'], ['col2'], ['col3']], MssqlEngineSpec)
+        data = [Row((1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000))),
+                Row((2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)))]
+        df = dataframe.SupersetDataFrame(
+            list(data),
+            [['col1'], ['col2'], ['col3']],
+            MssqlEngineSpec)
         data = df.data
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0], {'col1': 1, 'col2': 1, 'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
+        self.assertEqual(data[0],
+                         {'col1': 1,
+                          'col2': 1,
+                          'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
 
     def test_comments_in_sqlatable_query(self):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
