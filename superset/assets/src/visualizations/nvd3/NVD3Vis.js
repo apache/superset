@@ -280,6 +280,7 @@ function nvd3Vis(element, props) {
         }
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
+        chart.clipEdge(false);
         break;
 
       case 'time_pivot':
