@@ -280,6 +280,7 @@ function nvd3Vis(element, props) {
         }
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
+        chart.clipEdge(false);
         break;
 
       case 'time_pivot':
@@ -549,6 +550,14 @@ function nvd3Vis(element, props) {
       .attr('width', width)
       .call(chart);
 
+    if (xLabelRotation > 0) {
+      // shift labels to the left so they look better
+      const xTicks = svg.select('.nv-x.nv-axis > g').selectAll('g');
+      xTicks
+        .selectAll('text')
+        .attr('dx', -6.5);
+    }
+
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(['dual_line', 'line_multi'])) {
       const count = chart.yAxis1.ticks();
@@ -615,11 +624,15 @@ function nvd3Vis(element, props) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
       }
-      if (xLabelRotation === 45) {
-        margins.bottom = maxXAxisLabelHeight + marginPad;
-        margins.right = maxXAxisLabelHeight + marginPad;
-      } else if (staggerLabels) {
+      if (staggerLabels) {
         margins.bottom = 40;
+      } else {
+        margins.bottom = (
+          maxXAxisLabelHeight * Math.sin(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
+        margins.right = (
+          maxXAxisLabelHeight * Math.cos(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
       }
 
       if (isVizTypes(['dual_line', 'line_multi'])) {
