@@ -158,7 +158,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   removeAllOtherQueryEditors(cqe) {
     this.props.queryEditors
-      .map(qe => qe !== cqe && this.removeQueryEditor(qe));
+      .forEach(qe => qe !== cqe && this.removeQueryEditor(qe));
   }
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
