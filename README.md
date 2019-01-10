@@ -167,6 +167,7 @@ the world know they are using Superset. Join our growing community!
  - [Faasos](http://faasos.com/)
  - [GfK Data Lab](http://datalab.gfk.com)
  - [Konfío](http://konfio.mx)
+ - [Kuaishou](https://www.kuaishou.com/)
  - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://maieuticallabs.it)
@@ -192,5 +193,4 @@ the world know they are using Superset. Join our growing community!
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
  - [Fordeal](http://www.fordeal.com)
- - [Kuaishou](https://www.kuaishou.com/)
 
