@@ -51,8 +51,21 @@ export default class TextControl extends React.Component {
         value = parseInt(value, 10);
       }
     }
+
+    if(this.props.hasOwnProperty('textChange')){
+      this.props.textChange(value, errors);
+    }
     this.props.onChange(value, errors);
   }
+
+  componentWillReceiveProps(nextProps){
+    if(nextProps.value !== this.props.value){
+      if(typeof(this.props.onChange) === 'function'){
+        this.props.onChange(nextProps.value, [])
+      }
+    }
+  }
+
   render() {
     const { value: rawValue } = this.props;
     const value = typeof rawValue !== 'undefined' && rawValue !== null ? rawValue.toString() : '';
