@@ -1,10 +1,9 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import sinon from 'sinon';
 import { expect } from 'chai';
 
-import EditableTable from '../../../javascripts/components/EditableTitle';
+import EditableTable from '../../../src/components/EditableTitle';
 
 describe('EditableTitle', () => {
   const callback = sinon.spy();
@@ -19,7 +18,7 @@ describe('EditableTitle', () => {
     },
   };
   const editableWrapper = shallow(<EditableTable {...mockProps} />);
-  const notEditableWrapper = shallow(<EditableTable title="my title" />);
+  const notEditableWrapper = shallow(<EditableTable title="my title" onSaveTitle={callback} />);
   it('is valid', () => {
     expect(
       React.isValidElement(<EditableTable {...mockProps} />),
@@ -79,6 +78,13 @@ describe('EditableTitle', () => {
       editableWrapper.find('input').simulate('blur');
       expect(editableWrapper.find('input').props().type).to.equal('button');
       // no change
+      expect(callback.callCount).to.equal(0);
+    });
+    it('should not save empty title', () => {
+      editableWrapper.setState({ title: '' });
+      editableWrapper.find('input').simulate('blur');
+      expect(editableWrapper.find('input').props().type).to.equal('button');
+      expect(editableWrapper.find('input').props().value).to.equal('my title');
       expect(callback.callCount).to.equal(0);
     });
   });

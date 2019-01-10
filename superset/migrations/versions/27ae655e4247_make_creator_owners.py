@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Make creator owners
 
 Revision ID: 27ae655e4247

@@ -1,0 +1,48 @@
+version: '3'
+services:
+  redis:
+    image: redis:3.2
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis:/data
+  postgres:
+    image: postgres:10
+    restart: always
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_USER: superset
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  superset:
+    image: apache/incubator-superset
+    restart: always
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUPERSET_ENV: local
+    ports:
+      - 8088:8088
+    command: "tail -f /dev/null"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/home/work/incubator-superset
+      - superset-node-modules:/home/work/incubator-superset/superset/assets/node_modules
+volumes:
+  postgres:
+    external: false
+  redis:
+    external: false
+  superset-node-modules:
+    external: false

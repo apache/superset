@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add json_metadata to the tables table.
 
 Revision ID: b46fa1b0b39e

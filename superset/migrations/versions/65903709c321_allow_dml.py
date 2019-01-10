@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """allow_dml
 
 Revision ID: 65903709c321
@@ -5,6 +6,8 @@ Revises: 4500485bde7d
 Create Date: 2016-09-15 08:48:27.284752
 
 """
+
+import logging
 
 # revision identifiers, used by Alembic.
 revision = '65903709c321'

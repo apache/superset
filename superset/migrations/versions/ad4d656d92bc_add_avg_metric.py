@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add avg() to default metrics
 
 Revision ID: ad4d656d92bc

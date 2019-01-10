@@ -1,0 +1,43 @@
+.treemap text {
+  pointer-events: none;
+}
+
+.treemap .grandparent text {
+  font-weight: bold;
+}
+
+.treemap rect {
+  fill: none;
+  stroke: #fff;
+}
+
+.treemap rect.parent,
+.treemap .grandparent rect {
+  stroke-width: 2px;
+}
+
+.treemap rect.parent {
+    pointer-events: none;
+}
+
+.treemap .grandparent rect {
+  fill: #eee;
+}
+
+.treemap .grandparent:hover rect {
+  fill: #aaa;
+}
+
+.treemap .children rect.parent,
+.treemap .grandparent rect {
+  cursor: pointer;
+}
+
+.treemap .children rect.parent {
+  fill: #bbb;
+  fill-opacity: .5;
+}
+
+.treemap .children:hover rect.child {
+  fill: #bbb;
+}

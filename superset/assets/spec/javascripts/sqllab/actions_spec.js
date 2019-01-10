@@ -1,9 +1,8 @@
 /* eslint-disable no-unused-expressions */
-import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as actions from '../../../javascripts/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions';
 import { query } from './fixtures';
 
 describe('async actions', () => {
@@ -20,13 +19,15 @@ describe('async actions', () => {
 
   describe('saveQuery', () => {
     it('makes the ajax request', () => {
-      actions.saveQuery(query);
+      const thunk = actions.saveQuery(query);
+      thunk((/* mockDispatch */) => {});
       expect(ajaxStub.calledOnce).to.be.true;
     });
 
     it('calls correct url', () => {
       const url = '/savedqueryviewapi/api/create';
-      actions.saveQuery(query);
+      const thunk = actions.saveQuery(query);
+      thunk((/* mockDispatch */) => {});
       expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
     });
   });
@@ -54,7 +55,7 @@ describe('async actions', () => {
     });
 
     it('calls querySuccess on ajax success', () => {
-      ajaxStub.yieldsTo('success', { data: '' });
+      ajaxStub.yieldsTo('success', '{ "data": "" }');
       makeRequest();
       expect(dispatch.callCount).to.equal(2);
       expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_SUCCESS);
@@ -82,13 +83,6 @@ describe('async actions', () => {
     it('calls startQuery', () => {
       makeRequest();
       expect(dispatch.args[0][0].type).to.equal(actions.START_QUERY);
-    });
-
-    it('calls querySuccess on ajax success', () => {
-      ajaxStub.yieldsTo('success', { data: '' });
-      makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.QUERY_SUCCESS);
     });
 
     it('calls queryFailed on ajax error', () => {

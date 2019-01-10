@@ -1,0 +1,19 @@
+.play-slider {
+    position: relative;
+    height: 20px;
+    width: 100%;
+    margin: 0;
+}
+
+.slider.slider-horizontal {
+    width: 100% !important;
+}
+
+.slider-button {
+    color: #b3b3b3;
+    margin-right: 5px;
+}
+
+div.slider > div.tooltip.tooltip-main.top.in {
+    margin-left: 0 !important;
+}

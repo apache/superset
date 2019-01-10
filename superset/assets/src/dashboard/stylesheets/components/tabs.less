@@ -1,0 +1,84 @@
+.dashboard-component-tabs {
+  width: 100%;
+  background-color: white;
+
+  & .nav-tabs {
+    border-bottom: none;
+
+    /* by moving padding from <a/> to <li/> we can restrict the selected tab indicator to text width */
+    & > li {
+      margin: 0 16px;
+
+      & > a {
+        color: @almost-black;
+        border: none;
+        padding: 12px 0 14px 0;
+        font-size: 15px;
+        margin-right: 0;
+      }
+
+      & > a:hover {
+        border: none;
+        background: inherit;
+        color: @almost-black;
+      }
+
+      & > a:focus {
+        outline: none;
+        background: #fff;
+      }
+
+      & .dragdroppable-tab {
+        cursor: move;
+      }
+
+      & .drop-indicator {
+        top: -12px !important;
+        height: ~'calc(100% + 24px)' !important;
+      }
+
+      & .drop-indicator--left {
+        left: -12px !important;
+      }
+      & .drop-indicator--right {
+        right: -12px !important;
+      }
+
+      & .drop-indicator--bottom,
+      & .drop-indicator--top {
+        left: -12px !important;
+        width: ~'calc(100% + 24px)' !important; /* escape for .less */
+        opacity: 0.4;
+      }
+
+      & .fa-plus {
+        color: @gray-dark;
+        font-size: 14px;
+        margin-top: 3px;
+      }
+
+      & .editable-title input[type='button'] {
+        cursor: pointer;
+      }
+    }
+
+    & li.active > a {
+      border: none;
+    }
+
+    & li.active > a:after {
+      content: '';
+      position: absolute;
+      height: 3px;
+      width: 100%;
+      bottom: 0;
+      background: linear-gradient(to right, #e32464, #2c2261);
+    }
+  }
+
+  & .dashboard-component-tabs-content {
+    min-height: 48px;
+    margin-top: 1px;
+    position: relative;
+  }
+}

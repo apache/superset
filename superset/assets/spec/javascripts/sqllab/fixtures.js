@@ -1,5 +1,5 @@
 import sinon from 'sinon';
-import * as actions from '../../../javascripts/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions';
 
 export const mockedActions = sinon.stub(Object.assign({}, actions));
 
@@ -179,7 +179,7 @@ export const defaultQueryEditor = {
 export const queries = [
   {
     dbId: 1,
-    sql: 'SELECT *FROM superset.slices',
+    sql: 'SELECT * FROM superset.slices',
     sqlEditorId: 'SJ8YO72R',
     tab: 'Demo',
     runAsync: false,
@@ -197,7 +197,7 @@ export const queries = [
     rows: 42,
     endDttm: 1476910566798,
     limit_reached: false,
-    schema: null,
+    schema: 'test_schema',
     errorMessage: null,
     db: 'main',
     user: 'admin',
@@ -257,6 +257,77 @@ export const queries = [
     results: null,
   },
 ];
+export const queryWithBadColumns = {
+  ...queries[0],
+  results: {
+    data: queries[0].results.data,
+    columns: [{
+      is_date: true,
+      is_dim: false,
+      name: 'COUNT(*)',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'this_col_is_ok',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'a',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '1',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: '123',
+      type: 'STRING',
+    }, {
+      is_date: false,
+      is_dim: true,
+      name: 'CASE WHEN 1=1 THEN 1 ELSE 0 END',
+      type: 'STRING',
+    }],
+  },
+};
+export const databases = {
+  result: [{
+    allow_ctas: true,
+    allow_dml: true,
+    allow_run_async: false,
+    allow_run_sync: true,
+    database_name: 'main',
+    expose_in_sqllab: true,
+    force_ctas_schema: '',
+    id: 1,
+  }, {
+    allow_ctas: true,
+    allow_dml: false,
+    allow_run_async: true,
+    allow_run_sync: true,
+    database_name: 'Presto - Gold',
+    expose_in_sqllab: true,
+    force_ctas_schema: 'tmp',
+    id: 208,
+  }],
+};
+export const tables = {
+  tableLength: 3,
+  options: [{
+    value: 'birth_names',
+    label: 'birth_names',
+  }, {
+    value: 'energy_usage',
+    label: 'energy_usage',
+  }, {
+    value: 'wb_health_population',
+    label: 'wb_health_population',
+  }],
+};
 
 export const stoppedQuery = {
   dbId: 1,
@@ -285,15 +356,18 @@ export const runningQuery = {
 export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
-  alerts: [],
-  queries: {},
-  databases: {},
-  queryEditors: [defaultQueryEditor],
-  tabHistory: [defaultQueryEditor.id],
-  tables: [],
-  workspaceQueries: [],
-  queriesLastUpdate: 0,
-  activeSouthPaneTab: 'Results',
+  sqlLab: {
+    alerts: [],
+    queries: {},
+    databases: {},
+    queryEditors: [defaultQueryEditor],
+    tabHistory: [defaultQueryEditor.id],
+    tables: [],
+    workspaceQueries: [],
+    queriesLastUpdate: 0,
+    activeSouthPaneTab: 'Results',
+  },
+  messageToasts: [],
 };
 
 export const query = {

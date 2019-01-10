@@ -1,11 +1,10 @@
 import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { mount, shallow } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import HighlightedSql from '../../../javascripts/SqlLab/components/HighlightedSql';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
+import HighlightedSql from '../../../src/SqlLab/components/HighlightedSql';
+import ModalTrigger from '../../../src/components/ModalTrigger';
 
 
 describe('HighlightedSql', () => {
@@ -28,7 +27,9 @@ describe('HighlightedSql', () => {
     const pre = wrapper.find('pre');
     expect(pre).to.have.length(1);
     pre.simulate('click');
-    const modalBody = mount(wrapper.state().modalBody);
-    expect(modalBody.find(SyntaxHighlighter)).to.have.length(2);
+    setTimeout(() => {
+      const modalBody = mount(wrapper.state().modalBody);
+      expect(modalBody.find(SyntaxHighlighter)).to.have.length(2);
+    }, 10);
   });
 });

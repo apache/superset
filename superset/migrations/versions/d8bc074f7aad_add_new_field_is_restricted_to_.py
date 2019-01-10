@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add new field 'is_restricted' to SqlMetric and DruidMetric
 
 Revision ID: d8bc074f7aad
@@ -30,7 +31,7 @@ class SqlMetric(Base):
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     is_restricted = Column(Boolean, default=False, nullable=True)
-    
+
 def upgrade():
     op.add_column('metrics', sa.Column('is_restricted', sa.Boolean(), nullable=True))
     op.add_column('sql_metrics', sa.Column('is_restricted', sa.Boolean(), nullable=True))
@@ -38,7 +39,7 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # don't use models.DruidMetric 
+    # don't use models.DruidMetric
     # because it assumes the context is consistent with the application
     for obj in session.query(DruidMetric).all():
         obj.is_restricted = False

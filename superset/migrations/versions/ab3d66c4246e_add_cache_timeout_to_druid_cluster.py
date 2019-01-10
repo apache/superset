@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add_cache_timeout_to_druid_cluster
 
 Revision ID: ab3d66c4246e

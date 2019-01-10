@@ -1,0 +1,24 @@
+.dashboard-component-divider {
+  width: 100%;
+  padding: 8px 0; /* this is padding not margin to enable a larger mouse target */
+  background-color: transparent;
+}
+
+.dashboard-component-divider:after {
+  content: "";
+  height: 1px;
+  width: 100%;
+  background-color: @gray-light;
+  display: block;
+}
+
+.new-component-placeholder.divider-placeholder:after {
+  content: "";
+  height: 2px;
+  width: 100%;
+  background-color: @gray-light;
+}
+
+.dragdroppable .dashboard-component-divider {
+  cursor: move;
+}

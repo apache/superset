@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """saved_queries
 
 Revision ID: 2fcdcb35e487
@@ -5,7 +6,6 @@ Revises: a6c18f869a4e
 Create Date: 2017-03-29 15:04:35.734190
 
 """
-
 from alembic import op
 import sqlalchemy as sa
 
@@ -30,8 +30,8 @@ def upgrade():
         sa.Column('created_by_fk', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
         sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['user_id'], [u'ab_user.id'], ),
-        sa.ForeignKeyConstraint(['db_id'], [u'dbs.id'], ),
+        sa.ForeignKeyConstraint(['user_id'], ['ab_user.id'], ),
+        sa.ForeignKeyConstraint(['db_id'], ['dbs.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
 

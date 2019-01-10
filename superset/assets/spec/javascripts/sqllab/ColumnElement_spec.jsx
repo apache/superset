@@ -1,10 +1,9 @@
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { mockedActions, table } from './fixtures';
-import ColumnElement from '../../../javascripts/SqlLab/components/ColumnElement';
+import ColumnElement from '../../../src/SqlLab/components/ColumnElement';
 
 
 describe('ColumnElement', () => {

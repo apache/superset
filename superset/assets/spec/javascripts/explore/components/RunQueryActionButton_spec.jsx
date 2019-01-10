@@ -1,11 +1,10 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
 import RunQueryActionButton
-  from '../../../../javascripts/SqlLab/components/RunQueryActionButton';
-import Button from '../../../../javascripts/components/Button';
+  from '../../../../src/SqlLab/components/RunQueryActionButton';
+import Button from '../../../../src/components/Button';
 
 describe('RunQueryActionButton', () => {
   let wrapper;
@@ -16,6 +15,7 @@ describe('RunQueryActionButton', () => {
     runQuery: () => {}, // eslint-disable-line
     selectedText: null,
     stopQuery: () => {}, // eslint-disable-line
+    sql: '',
   };
 
   beforeEach(() => {

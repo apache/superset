@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Code related with dealing with legacy / change management"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset import frontend_config
 import re
+
+from superset import frontend_config
 
 FORM_DATA_KEY_WHITELIST = list(frontend_config.get('controls').keys()) + ['slice_id']
 
@@ -15,7 +18,7 @@ def cast_filter_data(form_data):
     flts = []
     having_flts = []
     fd = form_data
-    filter_pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
+    filter_pattern = re.compile(r"""((?:[^,"']|"[^"]*"|'[^']*')+)""")
     for i in range(0, 10):
         for prefix in ['flt', 'having']:
             col_str = '{}_col_{}'.format(prefix, i)
@@ -81,3 +84,10 @@ def cast_form_data(form_data):
     return d
 
 
+def update_time_range(form_data):
+    """Move since and until to time_range."""
+    if 'since' in form_data or 'until' in form_data:
+        form_data['time_range'] = '{} : {}'.format(
+            form_data.pop('since', '') or '',
+            form_data.pop('until', '') or '',
+        )

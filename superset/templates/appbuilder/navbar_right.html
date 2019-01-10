@@ -6,10 +6,10 @@
 {% if languages.keys()|length > 1 %}
 <li class="dropdown">
     <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
-       <div class="f16"><i class="flag {{languages[locale].get('flag')}}"></i><b class="caret"></b>
+       <div class="f16"><i class="flag {{languages[locale].get('flag')}}"></i>&nbsp;<b class="caret"></b>
        </div>
     </a>
-    <ul class="dropdown-menu">
+    <ul class="dropdown-menu" id="language-picker">
       <li class="dropdown">
         {% for lang in languages %}
             {% if lang != locale %}
@@ -27,7 +27,7 @@
 
 
 
-{% if not current_user.is_anonymous() %}
+{% if not current_user.is_anonymous %}
     <li class="dropdown">
       <a
         class="dropdown-toggle"

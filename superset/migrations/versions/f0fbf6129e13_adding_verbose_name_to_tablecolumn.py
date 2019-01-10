@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Adding verbose_name to tablecolumn
 
 Revision ID: f0fbf6129e13

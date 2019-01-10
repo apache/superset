@@ -1,0 +1,47 @@
+{
+  "color_picker": {
+    "a": 1,
+    "b": 135,
+    "g": 122,
+    "r": 0
+  },
+  "datasource": "12__table",
+  "filters": [],
+  "having": "",
+  "js_columns": [
+    "color"
+  ],
+  "js_datapoint_mutator": "d => {\n return {\n ...d,\n color: colors.hexToRGB(d.extraProps.color),\n }\n}",
+  "js_onclick_href": "",
+  "js_tooltip": "",
+  "mapbox_style": "mapbox://styles/mapbox/light-v9",
+  "reverse_long_lat": false,
+  "row_limit": 5000,
+  "since": "7 days ago",
+  "slice_id": 1013,
+  "time_grain_sqla": null,
+  "until": "now",
+  "geojson": "test_col",
+  "viewport": {
+    "altitude": 1.5,
+    "bearing": 0,
+    "height": 1094,
+    "latitude": 37.73671752604488,
+    "longitude": -122.18885402582598,
+    "maxLatitude": 85.05113,
+    "maxPitch": 60,
+    "maxZoom": 20,
+    "minLatitude": -85.05113,
+    "minPitch": 0,
+    "minZoom": 0,
+    "pitch": 0,
+    "width": 669,
+    "zoom": 9.51847667620428
+  },
+  "viz_type": "deck_geojson",
+  "where": "",
+  "granularity_sqla": null,
+  "autozoom": true,
+  "url_params": {},
+  "size": 100
+}

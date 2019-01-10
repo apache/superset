@@ -1,0 +1,77 @@
+.hover-menu {
+  opacity: 0;
+  position: absolute;
+  z-index: 10;
+  font-size: 14px;
+}
+
+.hover-menu--left {
+  width: 24px;
+  top: 50%;
+  transform: translate(0, -50%);
+  left: -24px;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
+  margin-bottom: 12px;
+}
+
+.hover-menu--top {
+  height: 24px;
+  top: -24px;
+  left: 50%;
+  transform: translate(-50%);
+  padding: 0 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Special cases */
+
+/* A row within a column has inset hover menu */
+.dragdroppable-column .dragdroppable-row .hover-menu--left {
+  left: -12px;
+  background: white;
+  border: 1px solid @gray-light;
+}
+
+/* A column within a column or tabs has inset hover menu */
+.dragdroppable-column .dragdroppable-column .hover-menu--top,
+.dashboard-component-tabs .dragdroppable-column .hover-menu--top {
+  top: -12px;
+  background: white;
+  border: 1px solid @gray-light;
+}
+
+/* move Tabs hover menu to top near actual Tabs */
+.dashboard-component-tabs > .hover-menu--left {
+  top: 0;
+  transform: unset;
+  background: transparent;
+}
+
+/* push Chart actions to upper right */
+.dragdroppable-column .dashboard-component-chart-holder > .hover-menu--top {
+  right: 8px;
+  top: 8px;
+  background: transparent;
+  border: none;
+  transform: unset;
+  left: unset;
+}
+
+.hover-menu--top > :nth-child(n):not(:only-child):not(:last-child) {
+  margin-right: 12px;
+}
+
+div:hover > .hover-menu,
+.hover-menu:hover {
+  opacity: 1;
+}

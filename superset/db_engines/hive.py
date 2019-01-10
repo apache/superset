@@ -1,5 +1,13 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from pyhive import hive
-from pythrifthiveapi.TCLIService import ttypes
+from TCLIService import ttypes
+from thrift import Thrift
 
 
 # TODO: contribute back to pyhive.
@@ -15,27 +23,28 @@ def fetch_logs(self, max_rows=1024,
     """
     try:
         req = ttypes.TGetLogReq(operationHandle=self._operationHandle)
-        logs = self._connection.client.GetLog(req)
+        logs = self._connection.client.GetLog(req).log
         return logs
-    except ttypes.TApplicationException as e:  # raised if Hive is used
+    # raised if Hive is used
+    except (ttypes.TApplicationException,
+            Thrift.TApplicationException):
         if self._state == self._STATE_NONE:
-            raise hive.ProgrammingError("No query yet")
+            raise hive.ProgrammingError('No query yet')
         logs = []
         while True:
             req = ttypes.TFetchResultsReq(
                 operationHandle=self._operationHandle,
                 orientation=ttypes.TFetchOrientation.FETCH_NEXT,
                 maxRows=self.arraysize,
-                fetchType=1  # 0: results, 1: logs
+                fetchType=1,  # 0: results, 1: logs
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)
-            assert not (
-                response.results.rows, 'expected data in columnar format'
-            )
+            assert not response.results.rows, \
+                'expected data in columnar format'
             assert len(response.results.columns) == 1, response.results.columns
             new_logs = hive._unwrap_column(response.results.columns[0])
             logs += new_logs
             if not new_logs:
                 break
-        return logs
+        return '\n'.join(logs)

@@ -1,0 +1,73 @@
+.dashboard-component-header {
+  width: 100%;
+  line-height: 1.1;
+  font-weight: 700;
+  padding: 16px 0;
+  color: @almost-black;
+}
+
+.dashboard--editing .dashboard-grid .dashboard-component-header:after {
+  border: 1px dashed transparent;
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dashboard--editing .dashboard-grid .dashboard-component-header:hover:after {
+  border: 1px dashed @indicator-color;
+  z-index: 2;
+}
+
+.dashboard-header .dashboard-component-header {
+  font-weight: 300;
+  width: auto;
+}
+
+.dashboard-header .undo-action,
+.dashboard-header .redo-action {
+  line-height: 18px;
+  font-size: 12px;
+}
+
+.dashboard--editing .dragdroppable-row .dashboard-component-header {
+  cursor: move;
+}
+
+.header-style-option {
+  font-weight: 700;
+  color: @almost-black;
+}
+
+/* note: sizes should be a multiple of the 8px grid unit so that rows in the grid align */
+.header-small {
+  font-size: 16px;
+}
+
+.header-medium {
+  font-size: 24px;
+}
+
+.header-large {
+  font-size: 32px;
+}
+
+.background--white .dashboard-component-header,
+.dashboard-component-header.background--white,
+.dashboard-component-tabs .dashboard-component-header,
+.dashboard-component-tabs .dashboard-component-divider {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/*
+ * grids add margin between items, so don't double pad within columns
+ * we'll not worry about double padding on top as it can serve as a visual separator
+ */
+.grid-column > :not(:only-child):not(:last-child) .dashboard-component-header {
+  margin-bottom: -16px;
+}
