@@ -192,4 +192,5 @@ the world know they are using Superset. Join our growing community!
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
  - [Fordeal](http://www.fordeal.com)
+ - [Kuaishou](https://www.kuaishou.com/)
 
