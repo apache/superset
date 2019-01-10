@@ -160,12 +160,16 @@ the world know they are using Superset. Join our growing community!
  1. [Capital Service S.A.](http://capitalservice.pl)
  1. [Clark.de](http://clark.de/)
  1. [CnOvit](http://www.cnovit.com/)
+ 1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
  1. [Douban](https://www.douban.com/)
  1. [Endress+Hauser](http://www.endress.com/)
  1. [FBK - ICT center](http://ict.fbk.eu)
  1. [Faasos](http://faasos.com/)
+ 1. [Fordeal](http://www.fordeal.com)
  1. [GfK Data Lab](http://datalab.gfk.com)
+ 1. [Grassroot](https://www.grassrootinstitute.org/)
+ 1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
  1. [Lime](https://www.limebike.com/)
@@ -175,10 +179,12 @@ the world know they are using Superset. Join our growing community!
  1. [PeopleDoc](https://www.people-doc.com)
  1. [Ona](https://ona.io)
  1. [Pronto Tools](http://www.prontotools.io)
+ 1. [QPID Health](http://www.qpidhealth.com/    )
  1. [Qunar](https://www.qunar.com/)
  1. [ScopeAI](https://www.getscopeai.com)
  1. [Shopee](https://shopee.sg)
  1. [Shopkick](https://www.shopkick.com)
+ 1. [Steamroot](https://streamroot.io/)
  1. [Showmax](https://tech.showmax.com)
  1. [Tails.com](https://tails.com)
  1. [THEICONIC](http://theiconic.com.au/)
@@ -192,4 +198,8 @@ the world know they are using Superset. Join our growing community!
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
+<<<<<<< HEAD
  1. [Fordeal](http://www.fordeal.com)
+=======
+
+>>>>>>> Add companies frmo https://stackshare.io/superset/in-stacks
