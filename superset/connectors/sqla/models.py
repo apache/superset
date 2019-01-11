@@ -9,7 +9,7 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
-    select, String, Table, Text,
+    select, String, Text,
 )
 from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
@@ -27,7 +27,6 @@ from superset.models.helpers import QueryResult
 from superset.utils import core as utils, import_datasource
 
 config = app.config
-metadata = Model.metadata  # pylint: disable=no-member
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -251,14 +250,6 @@ class SqlMetric(Model, BaseMetric):
         return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-sqlatable_user = Table(
-    'sqlatable_user', metadata,
-    Column('id', Integer, primary_key=True),
-    Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('table_id', Integer, ForeignKey('tables.id')),
-)
-
-
 class SqlaTable(Model, BaseDatasource):
 
     """An ORM object for SqlAlchemy table references"""
@@ -267,7 +258,6 @@ class SqlaTable(Model, BaseDatasource):
     query_language = 'sql'
     metric_class = SqlMetric
     column_class = TableColumn
-    owner_class = security_manager.user_model
 
     __tablename__ = 'tables'
     __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
@@ -276,7 +266,11 @@ class SqlaTable(Model, BaseDatasource):
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     fetch_values_predicate = Column(String(1000))
-    owners = relationship(owner_class, secondary=sqlatable_user, backref='tables')
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
+    owner = relationship(
+        security_manager.user_model,
+        backref='tables',
+        foreign_keys=[user_id])
     database = relationship(
         'Database',
         backref=backref('tables', cascade='all, delete-orphan'),

@@ -5,7 +5,8 @@ import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
-import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { chartPropType } from '../../../chart/chartReducer';
+import { slicePropShape } from '../../util/propShapes';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -14,7 +15,7 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
 
   // from redux
-  chart: PropTypes.shape(chartPropShape).isRequired,
+  chart: PropTypes.shape(chartPropType).isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
@@ -190,14 +191,15 @@ class Chart extends React.Component {
           and
              https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
-        {isExpanded && slice.description_markeddown && (
-          <div
-            className="slice_description bs-callout bs-callout-default"
-            ref={this.setDescriptionRef}
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-          />
-        )}
+        {isExpanded &&
+          slice.description_markeddown && (
+            <div
+              className="slice_description bs-callout bs-callout-default"
+              ref={this.setDescriptionRef}
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+            />
+          )}
 
         <div
           className={cx(

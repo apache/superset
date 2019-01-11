@@ -102,15 +102,17 @@ class WithPopoverMenu extends React.PureComponent {
         style={style}
       >
         {children}
-        {editMode && isFocused && menuItems.length > 0 && (
-          <div className="popover-menu">
-            {menuItems.map((node, i) => (
-              <div className="menu-item" key={`menu-item-${i}`}>
-                {node}
-              </div>
-            ))}
-          </div>
-        )}
+        {editMode &&
+          isFocused &&
+          menuItems.length > 0 && (
+            <div className="popover-menu">
+              {menuItems.map((node, i) => (
+                <div className="menu-item" key={`menu-item-${i}`}>
+                  {node}
+                </div>
+              ))}
+            </div>
+          )}
       </div>
     );
   }

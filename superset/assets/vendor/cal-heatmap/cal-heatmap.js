@@ -3498,4 +3498,17 @@ function arrayEquals(arrayA, arrayB) {
   return true;
 }
 
-export default CalHeatMap;
+/**
+ * AMD Loader
+ */
+if (typeof define === "function" && define.amd) {
+  define(["d3"], function() {
+    "use strict";
+
+    return CalHeatMap;
+  });
+} else if (typeof module === "object" && module.exports) {
+  module.exports = CalHeatMap;
+} else {
+  window.CalHeatMap = CalHeatMap;
+}

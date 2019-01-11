@@ -1,6 +1,6 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Table } from 'reactable-arc';
+import { Table } from 'reactable';
 
 import { queries } from './fixtures';
 import QueryTable from '../../../src/SqlLab/components/QueryTable';

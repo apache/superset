@@ -16,6 +16,19 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
+    [actions.POST_DATASOURCE_SUCCEEDED]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: false,
+      };
+    },
+    [actions.POST_DATASOURCE_FAILED]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: false,
+        controlPanelAlert: action.error,
+      };
+    },
     [actions.SET_DATASOURCE]() {
       return {
         ...state,

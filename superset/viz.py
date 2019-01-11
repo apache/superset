@@ -612,11 +612,14 @@ class TableViz(BaseViz):
         return data
 
     def json_dumps(self, obj, sort_keys=False):
-        return json.dumps(
-            obj,
-            default=utils.json_iso_dttm_ser,
-            sort_keys=sort_keys,
-            ignore_nan=True)
+        if self.form_data.get('all_columns'):
+            return json.dumps(
+                obj,
+                default=utils.json_iso_dttm_ser,
+                sort_keys=sort_keys,
+                ignore_nan=True)
+        else:
+            return super(TableViz, self).json_dumps(obj)
 
 
 class TimeTableViz(BaseViz):

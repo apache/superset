@@ -176,15 +176,16 @@ class DashboardGrid extends React.PureComponent {
                 />
               ))}
 
-          {isResizing && rowGuideTop && (
-            <div
-              className="grid-row-guide"
-              style={{
-                top: rowGuideTop,
-                width,
-              }}
-            />
-          )}
+          {isResizing &&
+            rowGuideTop && (
+              <div
+                className="grid-row-guide"
+                style={{
+                  top: rowGuideTop,
+                  width,
+                }}
+              />
+            )}
         </div>
       </div>
     );

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
+import { Table, Thead, Th, Tr, Td } from 'reactable';
 import { formatNumber } from '@superset-ui/number-format';
 import { formatTime } from '@superset-ui/time-format';
 

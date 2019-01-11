@@ -156,12 +156,15 @@ class Tabs extends React.PureComponent {
           dragSourceRef: tabsDragSourceRef,
         }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            {editMode && renderHoverMenu && (
-              <HoverMenu innerRef={tabsDragSourceRef} position="left">
-                <DragHandle position="left" />
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-            )}
+            {editMode &&
+              renderHoverMenu && (
+                <HoverMenu innerRef={tabsDragSourceRef} position="left">
+                  <DragHandle position="left" />
+                  <DeleteComponentButton
+                    onDelete={this.handleDeleteComponent}
+                  />
+                </HoverMenu>
+              )}
 
             <BootstrapTabs
               id={tabsComponent.id}
@@ -210,12 +213,13 @@ class Tabs extends React.PureComponent {
                 </BootstrapTab>
               ))}
 
-              {editMode && tabIds.length < MAX_TAB_COUNT && (
-                <BootstrapTab
-                  eventKey={NEW_TAB_INDEX}
-                  title={<div className="fa fa-plus" />}
-                />
-              )}
+              {editMode &&
+                tabIds.length < MAX_TAB_COUNT && (
+                  <BootstrapTab
+                    eventKey={NEW_TAB_INDEX}
+                    title={<div className="fa fa-plus" />}
+                  />
+                )}
             </BootstrapTabs>
 
             {/* don't indicate that a drop on root is allowed when tabs already exist */}

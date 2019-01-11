@@ -270,12 +270,12 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('changed_on')
     def changed_on_(self):
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+        return Markup(
+            '<span class="no-wrap">{}</span>'.format(self.changed_on))
 
     @renders('changed_on')
     def modified(self):
-        time_str = humanize.naturaltime(datetime.now() - self.changed_on)
-        return Markup(f'<span class="no-wrap">{time_str}</span>')
+        return humanize.naturaltime(datetime.now() - self.changed_on)
 
 
 class QueryResult(object):
@@ -294,23 +294,3 @@ class QueryResult(object):
         self.duration = duration
         self.status = status
         self.error_message = error_message
-
-
-class ExtraJSONMixin:
-    """Mixin to add an `extra` column (JSON) and utility methods"""
-    extra_json = sa.Column(sa.Text, default='{}')
-
-    @property
-    def extra(self):
-        try:
-            return json.loads(self.extra_json)
-        except Exception:
-            return {}
-
-    def set_extra_json(self, d):
-        self.extra_json = json.dumps(d)
-
-    def set_extra_json_key(self, key, value):
-        extra = self.extra
-        extra[key] = value
-        self.extra_json = json.dumps(extra)

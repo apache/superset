@@ -31,21 +31,21 @@ export default class ControlPanelSection extends React.Component {
     return (
       label &&
         <div>
-          <span>
-            <span onClick={this.toggleExpand.bind(this)}>{label}</span>
-            {' '}
-            {description && <InfoTooltipWithTrigger label={label} tooltip={description} />}
-            {hasErrors &&
-              <InfoTooltipWithTrigger
-                label="validation-errors"
-                bsStyle="danger"
-                tooltip="This section contains validation errors"
-              />}
-          </span>
           <i
-            className={`float-right fa-lg text-primary expander fa fa-angle-${this.state.expanded ? 'up' : 'down'}`}
+            className={`text-primary expander fa fa-caret-${this.state.expanded ? 'down' : 'right'}`}
             onClick={this.toggleExpand.bind(this)}
           />
+          {' '}
+          <span onClick={this.toggleExpand.bind(this)}>{label}</span>
+          {' '}
+          {description && <InfoTooltipWithTrigger label={label} tooltip={description} />}
+          {hasErrors &&
+            <InfoTooltipWithTrigger
+              label="validation-errors"
+              bsStyle="danger"
+              tooltip="This section contains validation errors"
+            />
+          }
         </div>);
   }
 

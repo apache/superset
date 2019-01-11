@@ -125,16 +125,17 @@ class HeaderActionsDropdown extends React.PureComponent {
           />
         )}
 
-        {hasUnsavedChanges && userCanSave && (
-          <div>
-            <MenuItem
-              eventKey="discard"
-              onSelect={HeaderActionsDropdown.discardChanges}
-            >
-              {t('Discard changes')}
-            </MenuItem>
-          </div>
-        )}
+        {hasUnsavedChanges &&
+          userCanSave && (
+            <div>
+              <MenuItem
+                eventKey="discard"
+                onSelect={HeaderActionsDropdown.discardChanges}
+              >
+                {t('Discard changes')}
+              </MenuItem>
+            </div>
+          )}
 
         {userCanSave && <MenuItem divider />}
 
