@@ -1,0 +1,26 @@
+.gitignore
+.gitattributes
+.coverage
+.coveragerc
+.codecov.yml
+.eslintrc
+.eslintignore
+.flake8
+.rat-excludes
+.*log
+.*pyc
+.*lock
+dist
+build
+superset.egg-info
+apache_superset.egg-info
+.idea
+.*sql
+.*zip
+.*lock
+# Generated doc files
+docs/_build/*
+_build/*
+_static/*
+.buildinfo
+searchindex.js
