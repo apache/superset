@@ -2289,6 +2289,15 @@ export const controls = {
     default: true,
   },
 
+  filter_configs: {
+    type: 'CollectionControl',
+    label: 'Filters',
+    description: t('Filter configuration for the filter box'),
+    validators: [v.nonEmpty],
+    controlName: 'FilterBoxItemControl',
+    mapStateToProps: ({ datasource }) => ({ datasource }),
+  },
+
   normalized: {
     type: 'CheckboxControl',
     label: t('Normalized'),

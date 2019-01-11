@@ -38,7 +38,7 @@ const defaultProps = {
   triggerRender: false,
 };
 
-class ChartRenderer extends React.PureComponent {
+class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
