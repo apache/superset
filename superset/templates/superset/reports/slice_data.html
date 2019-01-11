@@ -1,0 +1,31 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <p></p>
+    <b><a href="{{ link }}">Explore this data in Superset</a></b>
+    <p></p>
+    <table border='1' cellspacing='0' cellpadding='3'
+      style='border: 1px solid #c0c0c0; border-collapse: collapse;'>
+      <thead>
+        <tr>
+          <th colspan={{ columns | length }} bgcolor='#c0c0c0'>{{ name }}</th>
+        </tr>
+        <tr>
+          {%- for column in columns %}
+          <th bgcolor='#f0f0f0'>{{ column.decode('utf-8') | replace('_', ' ') | title }}</th>
+          {%- endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {%- for row in rows %}
+        <tr>
+          {%- for column in row %}
+          <td>{{ column.decode('utf-8') }}</td>
+          {%- endfor %}
+        </tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

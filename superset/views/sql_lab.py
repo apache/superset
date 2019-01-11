@@ -2,6 +2,7 @@
 from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
@@ -92,6 +93,7 @@ appbuilder.add_link(
 class SqlLab(BaseSupersetView):
     """The base views for Superset!"""
     @expose('/my_queries/')
+    @has_access
     def my_queries(self):
         """Assigns a list of found users to the given role."""
         return redirect(

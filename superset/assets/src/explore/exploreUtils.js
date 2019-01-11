@@ -3,6 +3,8 @@ import URI from 'urijs';
 import { getChartBuildQueryRegistry } from '@superset-ui/chart';
 import { availableDomains } from '../utils/hostNamesConfig';
 
+const MAX_URL_LENGTH = 8000;
+
 export function getChartKey(explore) {
   const slice = explore.slice;
   return slice ? (slice.slice_id) : 0;
@@ -52,6 +54,8 @@ export function getURIDirectory({
 export function getExploreLongUrl({
   formData,
   endpointType,
+  allowOverflow = true,
+  extraSearch = {},
   forceExplore = false,
 }) {
   if (!formData.datasource) {
@@ -61,11 +65,23 @@ export function getExploreLongUrl({
   const uri = new URI('/');
   const directory = getURIDirectory({ formData, endpointType, forceExplore });
   const search = uri.search(true);
+  Object.keys(extraSearch).forEach((key) => {
+    search[key] = extraSearch[key];
+  });
   search.form_data = JSON.stringify(formData);
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  return uri.directory(directory).search(search).toString();
+  const url = uri.directory(directory).search(search).toString();
+  if (!allowOverflow && url.length > MAX_URL_LENGTH) {
+    const minimalFormData = {
+      datasource: formData.datasource,
+      viz_type: formData.viz_type,
+    };
+    return getExploreLongUrl(
+      minimalFormData, endpointType, false, { URL_IS_TOO_LONG_TO_SHARE: null });
+  }
+  return url;
 }
 
 export function getExploreUrlAndPayload({

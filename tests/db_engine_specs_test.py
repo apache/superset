@@ -281,7 +281,10 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         time_grains = set(db_engine_specs.builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
         for cls_name, cls in inspect.getmembers(db_engine_specs):
-            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec):
+            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec) \
+                    and cls is not BaseEngineSpec:
+                # make sure time grain functions have been defined
+                self.assertGreater(len(cls.time_grain_functions), 0)
                 # make sure that all defined time grains are supported
                 defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
                 intersection = time_grains.intersection(defined_time_grains)
