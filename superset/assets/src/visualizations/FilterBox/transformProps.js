@@ -9,7 +9,7 @@ export default function transformProps(chartProps) {
   } = chartProps;
   const {
     dateFilter,
-    groupby,
+    filterConfigs,
     instantFiltering,
     showDruidTimeGranularity,
     showDruidTimeOrigin,
@@ -18,9 +18,10 @@ export default function transformProps(chartProps) {
   } = formData;
   const { verboseMap } = datasource;
 
-  const filtersFields = groupby.map(key => ({
-    key,
-    label: verboseMap[key] || key,
+  const filtersFields = filterConfigs.map(flt => ({
+    ...flt,
+    key: flt.column,
+    label: flt.label || verboseMap[flt.column] || flt.column,
   }));
 
   return {
