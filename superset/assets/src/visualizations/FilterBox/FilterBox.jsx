@@ -234,7 +234,7 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
-        options={data.map((opt) => {
+        options={data.sort((opt1, opt2) => (opt1.id < opt2.id) ? -1 : 1).map((opt) => {
           const perc = Math.round((opt.metric / max) * 100);
           const backgroundImage = (
             'linear-gradient(to right, lightgrey, ' +
