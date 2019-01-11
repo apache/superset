@@ -50,7 +50,7 @@ master_doc = 'index'
 # General information about the project.
 project = "Apache Superset"
 copyright = 'Copyright © 2018 The Apache Software Foundation, Licensed under the Apache License, Version 2.0.'
-author = u'Maxime Beauchemin'
+author = u'Apache Superset Dev'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -226,7 +226,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'superset.tex', u'Superset Documentation',
-   u'Maxime Beauchemin', 'manual'),
+   u'Apache Superset Dev', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

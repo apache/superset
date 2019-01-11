@@ -100,8 +100,8 @@ setup(
         'cors': ['flask-cors>=2.0.0'],
         'console_log': ['console_log==0.2.10'],
     },
-    author='Maxime Beauchemin',
-    author_email='maximebeauchemin@gmail.com',
+    author='Apache Superset Dev',
+    author_email='dev@superset.incubator.apache.org',
     url='https://github.com/apache/incubator-superset',
     download_url=(
         'https://github.com'
