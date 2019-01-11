@@ -6,7 +6,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter, formatNumber, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import 'nvd3/build/nv.d3.min.css';
 
@@ -127,6 +127,7 @@ const propTypes = {
     'dual_line',
   ]),
   xAxisFormat: PropTypes.string,
+  numberFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
   xAxisShowMinMax: PropTypes.bool,
   xIsLogScale: PropTypes.bool,
@@ -213,6 +214,7 @@ function nvd3Vis(element, props) {
     useRichTooltip,
     vizType,
     xAxisFormat,
+    numberFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
     xField,
@@ -264,6 +266,7 @@ function nvd3Vis(element, props) {
       isTruthy(showBrush) ||
       (showBrush === 'auto' && maxHeight >= MIN_HEIGHT_FOR_BRUSH && xTicksLayout !== '45°')
     );
+    const numberFormatter = getNumberFormatter(numberFormat);
 
     switch (vizType) {
       case 'line':
@@ -331,7 +334,7 @@ function nvd3Vis(element, props) {
       case 'pie':
         chart = nv.models.pieChart();
         colorKey = 'x';
-        chart.valueFormat(formatter);
+        chart.valueFormat(numberFormatter);
         if (isDonut) {
           chart.donut(true);
         }
@@ -341,18 +344,14 @@ function nvd3Vis(element, props) {
         chart.labelThreshold(0.05);
         chart.cornerRadius(true);
 
-        if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
+        if (['key', 'value', 'percent'].indexOf(pieLabelType) >= 0) {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${formatNumber(NumberFormats.SI, d.data.y)}`);
-        }
-
-        if (pieLabelType === 'percent' || pieLabelType === 'key_percent') {
+          chart.labelType(d => `${d.data.x}: ${numberFormatter(d.data.y)}`);
+        } else if (pieLabelType === 'key_percent') {
           const total = d3.sum(data, d => d.y);
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
-          if (pieLabelType === 'key_percent') {
-            chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
-          }
+          chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
         }
         // Pie chart does not need top margin
         chart.margin({ top: 0 });
