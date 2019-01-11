@@ -20,6 +20,7 @@ from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import (
     json_iso_dttm_ser,
     QueryStatus,
+    sources,
     zlib_compress,
 )
 from superset.utils.dates import now_as_float
@@ -226,6 +227,7 @@ def execute_sql_statements(
         schema=query.schema,
         nullpool=True,
         user_name=user_name,
+        source=sources.get('sql_lab', None),
     )
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)

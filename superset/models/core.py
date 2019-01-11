@@ -757,7 +757,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None, source=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -790,7 +790,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, security_manager)
+                url, params, effective_username, security_manager, source)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -801,7 +801,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_df(self, sql, schema):
         sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        engine = self.get_sqla_engine(schema=schema)
+        source_key = None
+        if request and request.referrer:
+            if '/superset/dashboard/' in request.referrer:
+                source_key = 'dashboard'
+            elif '/superset/explore/' in request.referrer:
+                source_key = 'chart'
+        engine = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get(source_key, None))
         username = utils.get_username()
 
         def needs_conversion(df_series):
@@ -860,7 +867,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True, latest_partition=False, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
-        eng = self.get_sqla_engine(schema=schema)
+        eng = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get('sql_lab', None))
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, engine=eng,
             limit=limit, show_cols=show_cols,

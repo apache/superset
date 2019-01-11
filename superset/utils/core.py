@@ -54,6 +54,12 @@ ADHOC_METRIC_EXPRESSION_TYPES = {
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
 
+sources = {
+    'chart': 0,
+    'dashboard': 1,
+    'sql_lab': 2,
+}
+
 
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
