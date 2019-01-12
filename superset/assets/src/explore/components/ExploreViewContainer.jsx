@@ -354,7 +354,7 @@ class ExploreViewContainer extends React.Component {
               header="Keyboard shortcuts"
               hotkeys={getHotKeys()}
             />
-            <br />
+            <br/>
             <ControlPanelsContainer
               actions={this.props.actions}
               form_data={this.props.form_data}
