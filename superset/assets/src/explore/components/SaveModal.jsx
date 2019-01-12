@@ -105,6 +105,7 @@ class SaveModal extends React.Component {
         dashboard = null;
     }
     sliceParams.goto_dash = gotodash;
+
     this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
       // Go to new slice url or dashboard url
       if (gotodash) {
