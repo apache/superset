@@ -1,3 +1,6 @@
+include NOTICE
+include LICENSE
+graft licenses/
 include README.md
 recursive-include superset/data *
 recursive-include superset/migrations *
