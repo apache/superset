@@ -144,12 +144,6 @@ export default function chartReducer(charts = {}, action) {
         annotationQuery,
       };
     },
-    [actions.SQLLAB_REDIRECT_FAILED](state) {
-      return { ...state,
-        chartStatus: 'failed',
-        chartAlert: t('An error occurred while redirecting to SQL Lab: %s', action.error),
-      };
-    },
   };
 
   /* eslint-disable no-param-reassign */

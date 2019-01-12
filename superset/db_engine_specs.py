@@ -148,18 +148,18 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.SupersetQuery(sql)
+            parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.limit
 
     @classmethod
     def get_query_with_new_limit(cls, sql, limit):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
@@ -485,13 +485,13 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as DATE)',
-        'PT1M': "TRUNC(TO_DATE({col}), 'MI')",
-        'PT1H': "TRUNC(TO_DATE({col}), 'HH')",
-        'P1D': "TRUNC(TO_DATE({col}), 'DDD')",
-        'P1W': "TRUNC(TO_DATE({col}), 'WW')",
-        'P1M': "TRUNC(TO_DATE({col}), 'MONTH')",
-        'P0.25Y': "TRUNC(TO_DATE({col}), 'Q')",
-        'P1Y': "TRUNC(TO_DATE({col}), 'YEAR')",
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod

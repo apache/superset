@@ -9,7 +9,7 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   annotationData: PropTypes.object,
-  datasource: PropTypes.array,
+  datasource: PropTypes.object,
   formData: PropTypes.object,
   onAddFilter: PropTypes.func,
   onError: PropTypes.func,

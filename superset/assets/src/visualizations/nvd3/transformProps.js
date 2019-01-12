@@ -45,6 +45,7 @@ export default function transformProps(chartProps) {
     xAxisFormat,
     xAxisLabel,
     xAxisShowminmax,
+    numberFormat,
     xLogScale,
     xTicksLayout,
     y,
@@ -83,6 +84,7 @@ export default function transformProps(chartProps) {
     leftMargin,
     lineInterpolation,
     maxBubbleSize: parseInt(maxBubbleSize, 10),
+    numberFormat,
     onBrushEnd: isTruthy(sendTimeRange) ? ((timeRange) => {
       onAddFilter('__time_range', timeRange, false, true);
     }) : undefined,

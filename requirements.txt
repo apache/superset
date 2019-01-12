@@ -19,8 +19,8 @@ chardet==3.0.4            # via requests
 click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
-croniter==0.3.25
-cryptography==1.9
+croniter==0.3.26
+cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
 et-xmlfile==1.0.1         # via openpyxl
@@ -38,7 +38,7 @@ flower==0.9.2
 future==0.16.0            # via pyhive
 geopy==1.11.0
 google-auth==1.6.1        # via gsheetsdb
-gsheetsdb==0.1.8
+gsheetsdb==0.1.9
 gunicorn==19.8.0
 humanize==0.5.1
 idna==2.6
@@ -80,7 +80,7 @@ retry==0.9.2
 rfc3986==1.1.0            # via tableschema
 rsa==4.0                  # via google-auth
 sasl==0.2.1               # via thrift-sasl
-selenium==3.14.0
+selenium==3.141.0
 simplejson==3.15.0
 six==1.11.0               # via bleach, cryptography, google-auth, gsheetsdb, isodate, jsonlines, linear-tsv, pathlib2, polyline, pydruid, python-dateutil, sasl, sqlalchemy-utils, tableschema, tabulator, thrift
 sqlalchemy-utils==0.32.21

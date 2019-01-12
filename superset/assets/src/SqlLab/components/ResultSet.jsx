@@ -35,7 +35,7 @@ const defaultProps = {
 
 const SEARCH_HEIGHT = 46;
 
-const LOADING_STYLES = { position: 'relative', height: 50 };
+const LOADING_STYLES = { position: 'relative', minHeight: 100 };
 
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
@@ -231,11 +231,19 @@ export default class ResultSet extends React.PureComponent {
         </Button>
       );
     }
+    const progressMsg = query && query.extra && query.extra.progress ? query.extra.progress : null;
     return (
       <div style={LOADING_STYLES}>
+        <div>
+          {!progressBar && <Loading position="normal" />}
+        </div>
         <QueryStateLabel query={query} />
-        {!progressBar && <Loading />}
-        {progressBar}
+        <div>
+          {progressMsg && <Alert bsStyle="success">{progressMsg}</Alert>}
+        </div>
+        <div>
+          {progressBar}
+        </div>
         <div>
           {trackingUrl}
         </div>

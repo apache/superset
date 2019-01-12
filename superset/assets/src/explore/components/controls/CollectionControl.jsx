@@ -9,6 +9,7 @@ import {
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import ControlHeader from '../ControlHeader';
 import controlMap from './';
+import './CollectionControl.css';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -82,6 +83,7 @@ export default class CollectionControl extends React.Component {
             </div>
             <div className="pull-left">
               <Control
+                {...this.props}
                 {...o}
                 onChange={this.onChange.bind(this, i)}
               />
@@ -101,7 +103,7 @@ export default class CollectionControl extends React.Component {
   }
   render() {
     return (
-      <div>
+      <div className="CollectionControl">
         <ControlHeader {...this.props} />
         {this.renderList()}
         <InfoTooltipWithTrigger

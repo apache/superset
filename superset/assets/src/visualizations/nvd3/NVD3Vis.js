@@ -6,7 +6,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
-import { getNumberFormatter, formatNumber, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import 'nvd3/build/nv.d3.min.css';
 
@@ -127,6 +127,7 @@ const propTypes = {
     'dual_line',
   ]),
   xAxisFormat: PropTypes.string,
+  numberFormat: PropTypes.string,
   xAxisLabel: PropTypes.string,
   xAxisShowMinMax: PropTypes.bool,
   xIsLogScale: PropTypes.bool,
@@ -213,6 +214,7 @@ function nvd3Vis(element, props) {
     useRichTooltip,
     vizType,
     xAxisFormat,
+    numberFormat,
     xAxisLabel,
     xAxisShowMinMax = false,
     xField,
@@ -264,6 +266,7 @@ function nvd3Vis(element, props) {
       isTruthy(showBrush) ||
       (showBrush === 'auto' && maxHeight >= MIN_HEIGHT_FOR_BRUSH && xTicksLayout !== '45°')
     );
+    const numberFormatter = getNumberFormatter(numberFormat);
 
     switch (vizType) {
       case 'line':
@@ -280,6 +283,7 @@ function nvd3Vis(element, props) {
         }
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
+        chart.clipEdge(false);
         break;
 
       case 'time_pivot':
@@ -330,7 +334,7 @@ function nvd3Vis(element, props) {
       case 'pie':
         chart = nv.models.pieChart();
         colorKey = 'x';
-        chart.valueFormat(formatter);
+        chart.valueFormat(numberFormatter);
         if (isDonut) {
           chart.donut(true);
         }
@@ -340,18 +344,14 @@ function nvd3Vis(element, props) {
         chart.labelThreshold(0.05);
         chart.cornerRadius(true);
 
-        if (pieLabelType !== 'key_percent' && pieLabelType !== 'key_value') {
+        if (['key', 'value', 'percent'].indexOf(pieLabelType) >= 0) {
           chart.labelType(pieLabelType);
         } else if (pieLabelType === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${formatNumber(NumberFormats.SI, d.data.y)}`);
-        }
-
-        if (pieLabelType === 'percent' || pieLabelType === 'key_percent') {
+          chart.labelType(d => `${d.data.x}: ${numberFormatter(d.data.y)}`);
+        } else if (pieLabelType === 'key_percent') {
           const total = d3.sum(data, d => d.y);
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
-          if (pieLabelType === 'key_percent') {
-            chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
-          }
+          chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
         }
         // Pie chart does not need top margin
         chart.margin({ top: 0 });
@@ -549,6 +549,14 @@ function nvd3Vis(element, props) {
       .attr('width', width)
       .call(chart);
 
+    if (xLabelRotation > 0) {
+      // shift labels to the left so they look better
+      const xTicks = svg.select('.nv-x.nv-axis > g').selectAll('g');
+      xTicks
+        .selectAll('text')
+        .attr('dx', -6.5);
+    }
+
     // align yAxis1 and yAxis2 ticks
     if (isVizTypes(['dual_line', 'line_multi'])) {
       const count = chart.yAxis1.ticks();
@@ -615,11 +623,15 @@ function nvd3Vis(element, props) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
       }
-      if (xLabelRotation === 45) {
-        margins.bottom = maxXAxisLabelHeight + marginPad;
-        margins.right = maxXAxisLabelHeight + marginPad;
-      } else if (staggerLabels) {
+      if (staggerLabels) {
         margins.bottom = 40;
+      } else {
+        margins.bottom = (
+          maxXAxisLabelHeight * Math.sin(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
+        margins.right = (
+          maxXAxisLabelHeight * Math.cos(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
       }
 
       if (isVizTypes(['dual_line', 'line_multi'])) {

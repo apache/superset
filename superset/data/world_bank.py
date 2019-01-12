@@ -86,7 +86,23 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type='filter_box',
                 date_filter=False,
-                groupby=['region', 'country_name'])),
+                filter_configs=[
+                    {
+                        'asc': False,
+                        'clearable': True,
+                        'column': 'region',
+                        'key': '2s98dfu',
+                        'metric': 'sum__SP_POP_TOTL',
+                        'multiple': True,
+                    }, {
+                        'asc': False,
+                        'clearable': True,
+                        'key': 'li3j2lk',
+                        'column': 'country_name',
+                        'metric': 'sum__SP_POP_TOTL',
+                        'multiple': True,
+                    },
+                ])),
         Slice(
             slice_name="World's Population",
             viz_type='big_number',

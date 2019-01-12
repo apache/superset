@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td } from 'reactable';
+import { Table, Tr, Td } from 'reactable-arc';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 

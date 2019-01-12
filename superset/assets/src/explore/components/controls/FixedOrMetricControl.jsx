@@ -2,9 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, Popover, OverlayTrigger } from 'react-bootstrap';
 
-import controls from '../../controls';
 import TextControl from './TextControl';
-import SelectControl from './SelectControl';
+import MetricsControl from './MetricsControl';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
@@ -17,7 +16,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.object,
   isFloat: PropTypes.bool,
-  datasource: PropTypes.object,
+  datasource: PropTypes.object.isRequired,
   default: PropTypes.shape({
     type: PropTypes.oneOf(['fix', 'metric']),
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -63,7 +62,6 @@ export default class FixedOrMetricControl extends React.Component {
   renderPopover() {
     const value = this.props.value || this.props.default;
     const type = value.type || controlTypes.fixed;
-    const metricsCombo = this.props.datasource ? this.props.datasource.metrics_combo : null;
     return (
       <Popover id="filter-popover">
         <div style={{ width: '240px' }}>
@@ -84,10 +82,10 @@ export default class FixedOrMetricControl extends React.Component {
             isSelected={type === controlTypes.metric}
             onSelect={() => { this.onChange(controlTypes.metric); }}
           >
-            <SelectControl
-              {...controls.metric}
+            <MetricsControl
               name="metric"
-              choices={metricsCombo}
+              datasource={this.state.datasource}
+              multi={false}
               onFocus={() => { this.setType(controlTypes.metric); }}
               onChange={this.setMetric}
               value={this.state.metricValue}
