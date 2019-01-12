@@ -17,7 +17,6 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
-import { match } from '../../utils/common';
 import Hotkeys from '../../components/Hotkeys';
 
 // Prolly need to move this to a global context
@@ -196,23 +195,6 @@ class ExploreViewContainer extends React.Component {
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
   }
-
-  handleShortcuts(action, event) {
-    match(action)
-    .on(hotKeyAction => hotKeyAction === 'RUN', () => this.onQuery())
-    .on(hotKeyAction => hotKeyAction === 'SAVE', () => {
-      this.props.actions.saveSlice(this.props.form_data, {
-        action: 'overwrite',
-        slice_id: this.props.slice.slice_id,
-        slice_name: this.props.slice.slice_name,
-        add_to_dash: 'noSave',
-        goto_dash: false,
-      }).then(({ data }) => {
-        window.location = data.slice.slice_url;
-      });
-    });
-  }
-
 
   findChangedControlKeys(prevControls, currentControls) {
     return Object.keys(currentControls).filter(
