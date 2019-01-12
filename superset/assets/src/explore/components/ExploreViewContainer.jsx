@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Shortcuts, ShortcutManager } from 'react-shortcuts';
+// import { Shortcuts, ShortcutManager } from 'react-shortcuts';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
@@ -45,7 +45,7 @@ const getHotKeys = () => {
   return d;
 };
 
-const shortcutManager = new ShortcutManager(keymap);
+// const shortcutManager = new ShortcutManager(keymap);
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -59,7 +59,7 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
-  childContextTypes: PropTypes.object.isRequired,
+  // childContextTypes: PropTypes.object.isRequired,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -88,17 +88,50 @@ class ExploreViewContainer extends React.Component {
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.handleShortcuts = this.handleShortcuts.bind(this);
+    this.handleKeydown = this.handleKeydown.bind(this);
   }
 
-  getChildContext() {
-    return { shortcuts: shortcutManager };
-  }
+  // getChildContext() {
+  //   return { shortcuts: shortcutManager };
+  // }
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
     this.addHistory({ isReplace: true });
     Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
+
+    console.log("adding listener")
+    document.addEventListener('keydown', this.handleKeydown);
+  }
+
+  componentWillUnmount() {
+    console.log("removing listener")
+    document.removeEventListener('keydown', this.handleKeydown);
+  }
+
+  handleKeydown(event) {
+    console.log(event)
+    const controlOrCommand = event.ctrlKey || event.metaKey;
+    if (controlOrCommand) {
+      const isEnter = event.key === 'Enter' || event.keyCode === 13;
+      const isS = event.key === 's' || event.keyCode === 83;
+      if (isEnter) {
+        this.onQuery()
+      } else if (isS) {
+        if (this.props.slice) {
+            this.props.actions.saveSlice(this.props.form_data, {
+              action: 'overwrite',
+              slice_id: this.props.slice.slice_id,
+              slice_name: this.props.slice.slice_name,
+              add_to_dash: 'noSave',
+              goto_dash: false,
+            }).then(({ data }) => {
+              window.location = data.slice.slice_url;
+            });
+          }
+        }
+      }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -305,13 +338,7 @@ class ExploreViewContainer extends React.Component {
       return this.renderChartContainer();
     }
     return (
-      <Shortcuts
-        name="EXPLORE"
-        handler={this.handleShortcuts}
-        targetNodeSelector={'body'}
-        global
-        className="Shortcuts"
-      ><div
+      <div
         id="explore-container"
         className="container-fluid"
         style={{ height: this.state.height, overflow: 'hidden' }}
@@ -347,15 +374,14 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-8">{this.renderChartContainer()}</div>
         </div>
       </div>
-      </Shortcuts>
     );
   }
 }
 
 ExploreViewContainer.propTypes = propTypes;
-ExploreViewContainer.childContextTypes = {
-  shortcuts: PropTypes.object.isRequired,
-};
+// ExploreViewContainer.childContextTypes = {
+//   shortcuts: PropTypes.object.isRequired,
+// };
 
 function mapStateToProps(state) {
   const { explore, charts, impressionId } = state;
