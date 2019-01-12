@@ -198,8 +198,3 @@ the world know they are using Superset. Join our growing community!
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
-<<<<<<< HEAD
- 1. [Fordeal](http://www.fordeal.com)
-=======
-
->>>>>>> Add companies frmo https://stackshare.io/superset/in-stacks
