@@ -290,7 +290,7 @@ class ExploreViewContainer extends React.Component {
         errorMessage={this.renderErrorMessage()}
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
-        onQuery={this.onQuery}
+        onQuery={this.onQuery.bind(this)}
       />
     );
   }
