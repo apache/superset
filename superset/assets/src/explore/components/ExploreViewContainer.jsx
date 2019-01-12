@@ -87,29 +87,6 @@ class ExploreViewContainer extends React.Component {
     Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
   }
 
-  handleKeydown(event) {
-    const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
-      const isEnter = event.key === 'Enter' || event.keyCode === 13;
-      const isS = event.key === 's' || event.keyCode === 83;
-      if (isEnter) {
-        this.onQuery()
-      } else if (isS) {
-        if (this.props.slice) {
-            this.props.actions.saveSlice(this.props.form_data, {
-              action: 'overwrite',
-              slice_id: this.props.slice.slice_id,
-              slice_name: this.props.slice.slice_name,
-              add_to_dash: 'noSave',
-              goto_dash: false,
-            }).then(({ data }) => {
-              window.location = data.slice.slice_url;
-            });
-          }
-        }
-      }
-  }
-
   componentWillReceiveProps(nextProps) {
     const wasRendered =
       ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
@@ -183,6 +160,29 @@ class ExploreViewContainer extends React.Component {
     }
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
+  }
+
+  handleKeydown(event) {
+    const controlOrCommand = event.ctrlKey || event.metaKey;
+    if (controlOrCommand) {
+      const isEnter = event.key === 'Enter' || event.keyCode === 13;
+      const isS = event.key === 's' || event.keyCode === 83;
+      if (isEnter) {
+        this.onQuery();
+      } else if (isS) {
+        if (this.props.slice) {
+            this.props.actions.saveSlice(this.props.form_data, {
+              action: 'overwrite',
+              slice_id: this.props.slice.slice_id,
+              slice_name: this.props.slice.slice_name,
+              add_to_dash: 'noSave',
+              goto_dash: false,
+            }).then(({ data }) => {
+              window.location = data.slice.slice_url;
+            });
+          }
+        }
+      }
   }
 
   findChangedControlKeys(prevControls, currentControls) {
@@ -311,7 +311,7 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <QueryAndSaveBtns
                 canAdd="True"
                 onQuery={this.onQuery}
@@ -322,15 +322,15 @@ class ExploreViewContainer extends React.Component {
                 errorMessage={this.renderErrorMessage()}
                 datasourceType={this.props.datasource_type}
               />
-            <div>
-              <Hotkeys
-                header="Keyboard shortcuts"
-                hotkeys={ getHotKeys() }
-                placement="right"
-              />
+              <div>
+                <Hotkeys
+                  header="Keyboard shortcuts"
+                  hotkeys={getHotKeys()}
+                  placement="right"
+                />
+              </div>
             </div>
-            </div>
-            <br/>
+            <br />
             <ControlPanelsContainer
               actions={this.props.actions}
               form_data={this.props.form_data}
