@@ -3,7 +3,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// import { Shortcuts, ShortcutManager } from 'react-shortcuts';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
@@ -45,8 +44,6 @@ const getHotKeys = () => {
   return d;
 };
 
-// const shortcutManager = new ShortcutManager(keymap);
-
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
@@ -59,7 +56,6 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
-  // childContextTypes: PropTypes.object.isRequired,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -91,22 +87,15 @@ class ExploreViewContainer extends React.Component {
     this.handleKeydown = this.handleKeydown.bind(this);
   }
 
-  // getChildContext() {
-  //   return { shortcuts: shortcutManager };
-  // }
-
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
+    document.addEventListener('keydown', this.handleKeydown);
     this.addHistory({ isReplace: true });
     Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
-
-    console.log("adding listener")
-    document.addEventListener('keydown', this.handleKeydown);
   }
 
   componentWillUnmount() {
-    console.log("removing listener")
     document.removeEventListener('keydown', this.handleKeydown);
   }
 
@@ -379,9 +368,6 @@ class ExploreViewContainer extends React.Component {
 }
 
 ExploreViewContainer.propTypes = propTypes;
-// ExploreViewContainer.childContextTypes = {
-//   shortcuts: PropTypes.object.isRequired,
-// };
 
 function mapStateToProps(state) {
   const { explore, charts, impressionId } = state;
