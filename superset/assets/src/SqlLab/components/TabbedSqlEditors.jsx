@@ -41,6 +41,10 @@ class TabbedSqlEditors extends React.PureComponent {
       dataPreviewQueries: [],
       hideLeftBar: false,
     };
+    this.removeQueryEditor = this.removeQueryEditor.bind(this);
+    this.renameTab = this.renameTab.bind(this);
+    this.toggleLeftBar = this.toggleLeftBar.bind(this);
+    this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(this);
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
@@ -152,6 +156,10 @@ class TabbedSqlEditors extends React.PureComponent {
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
   }
+  removeAllOtherQueryEditors(cqe) {
+    this.props.queryEditors
+      .forEach(qe => qe !== cqe && this.removeQueryEditor(qe));
+  }
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
   }
@@ -171,7 +179,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const tabTitle = (
         <div>
-          <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} />{' '}
+          <TabStatusIcon onClose={() => this.removeQueryEditor(qe)} tabState={state} />{' '}
           {qe.title}{' '}
           <DropdownButton
             bsSize="small"
@@ -179,23 +187,29 @@ class TabbedSqlEditors extends React.PureComponent {
             className="ddbtn-tab"
             title=""
           >
-            <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
+            <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
               <div className="icon-container">
                 <i className="fa fa-close" />
               </div>
               {t('Close tab')}
             </MenuItem>
-            <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
+            <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
               <div className="icon-container">
                 <i className="fa fa-i-cursor" />
               </div>
               {t('Rename tab')}
             </MenuItem>
-            <MenuItem eventKey="3" onClick={this.toggleLeftBar.bind(this)}>
+            <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
               <div className="icon-container">
                 <i className="fa fa-cogs" />
               </div>
               {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+            </MenuItem>
+            <MenuItem eventKey="4" onClick={() => this.removeAllOtherQueryEditors(qe)}>
+              <div className="icon-container">
+                <i className="fa fa-times-circle-o" />
+              </div>
+              {t('Close all other tabs')}
             </MenuItem>
           </DropdownButton>
         </div>
