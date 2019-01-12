@@ -28,7 +28,6 @@ const propTypes = {
   chart: chartPropShape,
   errorMessage: PropTypes.node,
   triggerRender: PropTypes.bool,
-  hotKeys: PropTypes.object,
 };
 
 class ExploreChartPanel extends React.PureComponent {
@@ -96,13 +95,6 @@ class ExploreChartPanel extends React.PureComponent {
           header={header}
         >
           {this.renderChart()}
-          <div style={{
-            marginTop: -81,
-            zIndex: 100,
-            float: 'right',
-          }}
-          >
-          </div>
         </Panel>
       </div>
     );
