@@ -340,20 +340,25 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <QueryAndSaveBtns
-              canAdd="True"
-              onQuery={this.onQuery}
-              onSave={this.toggleModal}
-              onStop={this.onStop}
-              loading={this.props.chart.chartStatus === 'loading'}
-              chartIsStale={this.state.chartIsStale}
-              errorMessage={this.renderErrorMessage()}
-              datasourceType={this.props.datasource_type}
-            />
-            <Hotkeys
-              header="Keyboard shortcuts"
-              hotkeys={getHotKeys()}
-            />
+            <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+              <QueryAndSaveBtns
+                canAdd="True"
+                onQuery={this.onQuery}
+                onSave={this.toggleModal}
+                onStop={this.onStop}
+                loading={this.props.chart.chartStatus === 'loading'}
+                chartIsStale={this.state.chartIsStale}
+                errorMessage={this.renderErrorMessage()}
+                datasourceType={this.props.datasource_type}
+              />
+            <div>
+              <Hotkeys
+                header="Keyboard shortcuts"
+                hotkeys={getHotKeys()}
+                placement="right"
+              />
+            </div>
+            </div>
             <br/>
             <ControlPanelsContainer
               actions={this.props.actions}

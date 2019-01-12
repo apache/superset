@@ -10,6 +10,7 @@ const propTypes = {
     func: PropTypes.func.isRequired,
   })).isRequired,
   header: PropTypes.string,
+  placement: PropTypes.string,
 };
 
 const defaultProps = {
@@ -49,7 +50,7 @@ export default class Hotkeys extends React.PureComponent {
       <OverlayTrigger
         overlay={this.renderPopover()}
         trigger={['hover', 'focus']}
-        placement="top"
+        placement={this.props.placement || "top"}
       >
         <i className="fa fa-keyboard-o fa-lg" />
       </OverlayTrigger>
