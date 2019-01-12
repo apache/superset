@@ -1,5 +1,5 @@
 include NOTICE
-include LICENSE
+include LICENSE.txt
 graft licenses/
 include README.md
 recursive-include superset/data *
