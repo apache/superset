@@ -317,7 +317,6 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        hotKeys={getHotKeys()}
       />
     );
   }
@@ -350,6 +349,10 @@ class ExploreViewContainer extends React.Component {
               chartIsStale={this.state.chartIsStale}
               errorMessage={this.renderErrorMessage()}
               datasourceType={this.props.datasource_type}
+            />
+            <Hotkeys
+              header="Keyboard shortcuts"
+              hotkeys={getHotKeys()}
             />
             <br />
             <ControlPanelsContainer

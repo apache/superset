@@ -5,7 +5,6 @@ import { ParentSize } from '@vx/responsive';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
-import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -103,10 +102,6 @@ class ExploreChartPanel extends React.PureComponent {
             float: 'right',
           }}
           >
-            <Hotkeys
-              header="Keyboard shortcuts"
-              hotkeys={this.props.hotKeys}
-            />
           </div>
         </Panel>
       </div>
