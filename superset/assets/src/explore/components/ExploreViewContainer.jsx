@@ -21,22 +21,16 @@ import Hotkeys from '../../components/Hotkeys';
 
 // Prolly need to move this to a global context
 const keymap = {
-  EXPLORE: {
-    RUN: ['ctrl+r', 'ctrl+enter'],
-    SAVE: ['ctrl+s'],
-  },
+    RUN: 'ctrl + r, ctrl + enter',
+    SAVE: 'ctrl + s',
 };
-
-const {
-  EXPLORE,
-} = keymap;
 
 const getHotKeys = () => {
   const d = [];
-  Object.keys(EXPLORE).forEach((k) => {
+  Object.keys(keymap).forEach((k) => {
     d.push({
       name: k,
-      descr: EXPLORE[k][0],
+      descr: keymap[k],
       key: k,
     });
   });
@@ -82,7 +76,6 @@ class ExploreViewContainer extends React.Component {
     this.onStop = this.onStop.bind(this);
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
-    this.handleShortcuts = this.handleShortcuts.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
   }
 
@@ -99,7 +92,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleKeydown(event) {
-    console.log(event)
     const controlOrCommand = event.ctrlKey || event.metaKey;
     if (controlOrCommand) {
       const isEnter = event.key === 'Enter' || event.keyCode === 13;
@@ -298,7 +290,7 @@ class ExploreViewContainer extends React.Component {
         errorMessage={this.renderErrorMessage()}
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
-        onQuery={this.onQuery.bind(this)}
+        onQuery={this.onQuery}
       />
     );
   }
