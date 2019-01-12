@@ -50,7 +50,7 @@ export default class Hotkeys extends React.PureComponent {
       <OverlayTrigger
         overlay={this.renderPopover()}
         trigger={['hover', 'focus']}
-        placement={this.props.placement || "top"}
+        placement={this.props.placement || 'top'}
       >
         <i className="fa fa-keyboard-o fa-lg" />
       </OverlayTrigger>

@@ -87,10 +87,6 @@ class ExploreViewContainer extends React.Component {
     Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
   }
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeydown);
-  }
-
   handleKeydown(event) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
     if (controlOrCommand) {
@@ -159,6 +155,7 @@ class ExploreViewContainer extends React.Component {
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('popstate', this.handlePopstate);
+    document.removeEventListener('keydown', this.handleKeydown);
   }
 
   onQuery() {
@@ -328,7 +325,7 @@ class ExploreViewContainer extends React.Component {
             <div>
               <Hotkeys
                 header="Keyboard shortcuts"
-                hotkeys={getHotKeys()}
+                hotkeys={ getHotKeys() }
                 placement="right"
               />
             </div>
