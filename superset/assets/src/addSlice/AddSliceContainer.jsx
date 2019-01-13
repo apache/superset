@@ -23,6 +23,8 @@ import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
 
+import VizTypeControl from '../explore/components/controls/VizTypeControl';
+
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
     label: PropTypes.string.isRequired,
@@ -65,8 +67,8 @@ export default class AddSliceContainer extends React.PureComponent {
     });
   }
 
-  changeVisType(e) {
-    this.setState({ visType: e.value });
+  changeVisType(visType) {
+    this.setState({ visType });
   }
 
   isBtnDisabled() {
@@ -108,17 +110,14 @@ export default class AddSliceContainer extends React.PureComponent {
           <br />
           <div>
             <p>{t('Choose a visualization type')}</p>
-            <Select
-              clearable={false}
+            <VizTypeControl
               name="select-vis-type"
-              style={styleSelectWidth}
               onChange={this.changeVisType}
-              options={types}
-              placeholder={t('Choose a visualization type')}
               value={this.state.visType}
             />
           </div>
           <br />
+          <hr />
           <Button
             bsStyle="primary"
             disabled={this.isBtnDisabled()}
