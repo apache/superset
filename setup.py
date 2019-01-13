@@ -58,7 +58,7 @@ with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
 
 
 setup(
-    name='superset',
+    name='apache-superset',
     description=(
         'A modern, enterprise-ready business intelligence web application'),
     long_description=long_description,
@@ -115,12 +115,11 @@ setup(
         'cors': ['flask-cors>=2.0.0'],
         'console_log': ['console_log==0.2.10'],
     },
-    author='Apache Superset Dev',
+    author='Apache Software Foundation',
     author_email='dev@superset.incubator.apache.org',
-    url='https://github.com/apache/incubator-superset',
+    url='http://superset.apache.org/',
     download_url=(
-        'https://github.com'
-        '/apache/incubator-superset/tarball/' + version_string
+        'https://dist.apache.org/repos/dist/release/superset/' + version_string
     ),
     classifiers=[
         'Programming Language :: Python :: 3.6',
