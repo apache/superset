@@ -2,7 +2,25 @@ cache:
   pip: true
 jobs:
   include:
+    # pre-test
+    - stage: pre-tests
+      language: python
+      python: 3.6
+      env: TOXENV=flake8
     - language: python
+      python: 3.6
+      env: TOXENV=pylint
+    - language: python
+      env:
+        - TOXENV=license-check
+        - TRAVIS_CACHE=$HOME/.travis_cache/
+      jdk:
+        - oraclejdk8
+      before_install:
+        - jdk_switcher use oraclejdk8
+    # test
+    - stage: test
+      language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
       services:
@@ -39,9 +57,6 @@ jobs:
         - nvm install 10.14.2
     - language: python
       python: 3.6
-      env: TOXENV=flake8
-    - language: python
-      python: 3.6
       env: TOXENV=py36-sqlite
       services:
         - redis-server
@@ -54,17 +69,6 @@ jobs:
       before_script:
         - psql -U postgres -c "CREATE DATABASE superset;"
         - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-    - language: python
-      python: 3.6
-      env: TOXENV=pylint
-    - language: python
-      env:
-        - TOXENV=license-check
-        - TRAVIS_CACHE=$HOME/.travis_cache/
-      jdk:
-        - oraclejdk8
-      before_install:
-        - jdk_switcher use oraclejdk8
 
 install:
   - pip install --upgrade pip
