@@ -1287,6 +1287,13 @@ class MssqlEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
+        if len(data) != 0 and type(data[0]).__name__ == 'Row':
+            data = [[elem for elem in r] for r in data]
+        return data
+
 
 class AthenaEngineSpec(BaseEngineSpec):
     engine = 'awsathena'
