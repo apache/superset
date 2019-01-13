@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
@@ -76,12 +75,6 @@ export default class AddSliceContainer extends React.PureComponent {
   }
 
   render() {
-    const types = getChartMetadataRegistry().entries()
-      .map(({ key, value }) => ({
-        value: key,
-        label: value.name,
-      }));
-
     return (
       <div className="container">
         <Panel header={<h3>{t('Create a new chart')}</h3>}>
