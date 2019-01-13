@@ -94,7 +94,6 @@ setup(
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unicodecsv',
-        'unidecode>=0.04.21',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

@@ -92,7 +92,6 @@ thrift-sasl==0.3.0
 thrift==0.11.0
 tornado==5.1.1            # via flower
 unicodecsv==0.14.1
-unidecode==1.0.22
 urllib3==1.22             # via requests, selenium
 vine==1.1.4               # via amqp
 webencodings==0.5.1       # via bleach
