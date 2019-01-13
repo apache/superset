@@ -23,7 +23,6 @@ import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
-from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
@@ -2614,8 +2613,7 @@ class Superset(BaseSupersetView):
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
-        response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(unidecode(query.name)))
+        response.headers['Content-Disposition'] = f'attachment; filename={query.name}.csv'
         logging.info('Ready to return response')
         return response
 
