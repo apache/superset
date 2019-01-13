@@ -360,7 +360,7 @@ def deliver_slice(schedule):
 @celery_app.task(name='email_reports.send', bind=True, soft_time_limit=300)
 def schedule_email_report(task, report_type, schedule_id, recipients=None):
     model_cls = get_scheduler_model(report_type)
-    schedule = db.session.query(model_cls).get(schedule_id)
+    schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
 
     # The user may have disabled the schedule. If so, ignore this
     if not schedule or not schedule.active:
