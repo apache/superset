@@ -47,7 +47,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
-from tableschema import Table
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
@@ -1071,6 +1070,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         upload_path = config['UPLOAD_FOLDER'] + \
             secure_filename(filename)
 
+        # Optional dependency
+        from tableschema import Table  # pylint: disable=import-error
         hive_table_schema = Table(upload_path).infer()
         column_name_and_type = []
         for column_info in hive_table_schema['fields']:
