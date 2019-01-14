@@ -2084,18 +2084,6 @@ class Superset(BaseSupersetView):
              for slc in slices]))
 
     @has_access_api
-    @expose('/dashboard/new/')
-    def new_dashboard(self):
-        """Creates a new, blank dashboard and redirects to it in edit mode"""
-        new_dashboard = models.Dashboard(
-            dashboard_title='[ untitled dashboard ]',
-            owners=[g.user],
-        )
-        db.session.add(new_dashboard)
-        db.session.commit()
-        return redirect(f'/superset/dashboard/{new_dashboard.id}/?edit=true')
-
-    @has_access_api
     @expose('/favstar/<class_name>/<obj_id>/<action>/')
     def favstar(self, class_name, obj_id, action):
         """Toggle favorite stars on Slices and Dashboard"""
