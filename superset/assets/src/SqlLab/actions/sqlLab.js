@@ -1,5 +1,4 @@
 import shortid from 'shortid';
-import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -111,11 +110,9 @@ export function fetchQueryResults(query) {
 
     return SupersetClient.get({
       endpoint: `/superset/results/${query.resultsKey}/`,
-      parseMethod: 'text',
     })
-      .then(({ text = '{}' }) => {
-        const bigIntJson = JSONbig.parse(text);
-        dispatch(querySuccess(query, bigIntJson));
+      .then(({ json = {} }) => {
+        dispatch(querySuccess(query, json));
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {
