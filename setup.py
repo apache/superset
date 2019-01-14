@@ -94,7 +94,6 @@ setup(
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unicodecsv',
-        'requests_kerberos',
         'urllib_kerberos'
     ],
     extras_require={
