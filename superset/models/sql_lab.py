@@ -149,3 +149,11 @@ class SavedQuery(Model, AuditMixinNullable):
                 <i class="fa fa-link"></i>
             </a>
         """)
+
+    @property
+    def user_email(self):
+        return self.user.email
+
+    @property
+    def sqlalchemy_uri(self):
+        return self.database.sqlalchemy_uri
