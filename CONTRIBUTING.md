@@ -431,8 +431,11 @@ fabmanager babel-extract --target superset/translations --output superset/transl
 ```
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. For the translations
-to take effect:
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) 
+to translate the `po` file more conveniently.
+There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
+
+For the translations to take effect:
 
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
@@ -446,6 +449,8 @@ If you get errors running `po2json`, you might be running the Ubuntu package wit
 name, rather than the NodeJS package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
+If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
+For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
 
 ### Creating a new language dictionary
 
