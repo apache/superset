@@ -41,6 +41,9 @@ from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
 
+from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+import subprocess
+
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
 metadata = Model.metadata  # pylint: disable=no-member
@@ -127,17 +130,51 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def get_datasources(self):
         endpoint = self.get_base_broker_url() + '/datasources'
-        return json.loads(requests.get(endpoint).text)
+
+        self.get_kerberos_auth()
+        enable_kerberos_falg = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        if enable_kerberos_falg:
+            kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
+            response = requests.get(endpoint, auth=kerberos_auth)
+        else :
+            response = requests.get(endpoint)
+
+        return json.loads(response.text)
+        #return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
             self.broker_host, self.broker_port) + '/status'
-        return json.loads(requests.get(endpoint).text)['version']
+
+        self.get_kerberos_auth()
+        enable_kerberos_falg = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        if enable_kerberos_falg:
+            kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
+            response = requests.get(endpoint, auth=kerberos_auth)
+        else :
+            response = requests.get(endpoint)
+
+        return json.loads(response.text)['version']
+        #return json.loads(requests.get(endpoint).text)['version']
 
     @property
     @utils.memoized
     def druid_version(self):
         return self.get_druid_version()
+
+    def get_kerberos_auth(self):
+        enable_kerberos_authentication = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        kerberos_keytab = conf.get('KERBEROS_KEYTAB', [])
+        kerberos_principal = conf.get('KERBEROS_PRINCIPAL', [])
+        if not enable_kerberos_authentication:
+            return False
+        #logging.info('JesseTong log: kerberos_keytab = '+ kerberos_keytab)
+        #logging.info('JesseTong log: kerberos_principal = '+ kerberos_principal)
+        #subprocess.call("kdestroy", shell=True)
+        kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
+        subprocess.call(kerberos_commands, shell=True)
+
+        return True
 
     def refresh_datasources(
             self,

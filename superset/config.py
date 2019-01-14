@@ -542,6 +542,14 @@ WEBDRIVER_CONFIGURATION = {}
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
+# Add the kerberos for druid
+# ENABLE_KERBEROS_AUTHENTICATION = True
+# KERBEROS_KEYTAB = "/etc/security/keytabs/superset.headless.keytab"
+# KERBEROS_PRINCIPAL = "superset-hadoop@WESURE.CN"
+# KERBEROS_REINIT_TIME_SEC = 3600
+
+ENABLE_KERBEROS_AUTHENTICATION = False
+
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
