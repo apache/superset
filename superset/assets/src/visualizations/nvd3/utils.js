@@ -4,6 +4,8 @@ import dompurify from 'dompurify';
 import { getNumberFormatter } from '@superset-ui/number-format';
 import { smartDateFormatter } from '@superset-ui/time-format';
 
+const MAX_LABEL_LENGTH = 24;
+
 // Regexp for the label added to time shifted series
 // (1 hour offset, 2 days offset, etc.)
 const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
@@ -236,4 +238,10 @@ export function setAxisShowMaxMin(axis, showminmax) {
   if (axis && axis.showMaxMin && showminmax !== undefined) {
     axis.showMaxMin(showminmax);
   }
+}
+
+export function truncateLabel(text) {
+  return text.length > MAX_LABEL_LENGTH
+    ? text.substr(0, MAX_LABEL_LENGTH - 1) + '…'
+    : text;
 }
