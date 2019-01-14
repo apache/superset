@@ -208,7 +208,7 @@ export default class TableSelector extends React.PureComponent {
     return (
       <div className="m-t-5">
         <div className="row">
-          <div className="col-md-11 col-xs-11" style={{ paddingRight: '2px' }}>
+          <div className="col-md-11 col-xs-11 p-r-2">
             <Select
               name="select-schema"
               placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
@@ -224,7 +224,7 @@ export default class TableSelector extends React.PureComponent {
               onChange={this.changeSchema}
             />
           </div>
-          <div className="col-md-1 col-xs-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
+          <div className="col-md-1 col-xs-1 p-l-0 p-t-8">
             <RefreshLabel
               onClick={() => this.onDatabaseChange({ id: this.props.dbId }, true)}
               tooltipContent={t('force refresh schema list')}
@@ -247,7 +247,7 @@ export default class TableSelector extends React.PureComponent {
     return (
       <div className="m-t-5">
         <div className="row">
-          <div className="col-md-11 col-xs-11" style={{ paddingRight: '2px' }}>
+          <div className="col-md-11 col-xs-11 p-r-2">
             {this.props.schema ? (
               <Select
                 name="select-table"
@@ -274,7 +274,7 @@ export default class TableSelector extends React.PureComponent {
               />
             )}
           </div>
-          <div className="col-md-1 col-xs-1" style={{ paddingTop: '8px', paddingLeft: '0px' }}>
+          <div className="col-md-1 col-xs-1 p-l-0 p-t-8">
             <RefreshLabel
               onClick={() => this.changeSchema({ value: this.props.schema }, true)}
               tooltipContent={t('force refresh table list')}
