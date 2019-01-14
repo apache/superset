@@ -1,5 +1,6 @@
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import buildQuery from './buildQuery';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../../modules/AnnotationTypes';
@@ -19,6 +20,7 @@ export default class TableChartPlugin extends ChartPlugin {
     super({
       metadata,
       transformProps,
+      buildQuery,
       loadChart: () => import('./ReactTable.js'),
     });
   }

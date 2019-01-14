@@ -59,23 +59,28 @@ export class Metrics {
   constructor(formData: FormData) {
     this.metrics = [];
     for (const key of Object.keys(MetricKey)) {
-      const metric = formData[MetricKey[key] as MetricKey];
-      if (metric) {
-        if (typeof metric === 'string') {
-          this.metrics.push({
-            label: metric,
-          });
-        } else {
-          // Note we further sanitize the metric label for BigQuery datasources
-          // TODO: move this logic to the client once client has more info on the
-          // the datasource
-          const label = metric.label || this.getDefaultLabel(metric);
-          this.metrics.push({
-            ...metric,
-            label,
-          });
-        }
+      let metrics = formData[MetricKey[key] as MetricKey] || [];
+      if (!Array.isArray(metrics)) {
+        metrics = [metrics];
       }
+      metrics.forEach(metric => {
+        if (metric) {
+          if (typeof metric === 'string') {
+            this.metrics.push({
+              label: metric,
+            });
+          } else {
+            // Note we further sanitize the metric label for BigQuery datasources
+            // TODO: move this logic to the client once client has more info on the
+            // the datasource
+            const label = metric.label || this.getDefaultLabel(metric);
+            this.metrics.push({
+              ...metric,
+              label,
+            });
+          }
+        }
+      })
     }
   }
 

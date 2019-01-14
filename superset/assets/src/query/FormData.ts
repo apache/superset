@@ -1,4 +1,4 @@
-import { AdhocMetric, MetricKey } from './Metric';
+import Metric, { AdhocMetric, MetricKey } from './Metric';
 
 // Type signature and utility functions for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -11,18 +11,34 @@ type Metrics = Partial<Record<MetricKey, AdhocMetric | string>>;
 
 type BaseFormData = {
   datasource: string;
+  where?: string;
+  groupby?: string[];
+  columns?: string[];
+  allColumns?: string[];
+  limit?: string;
+  rowLimit: string;
+  orderDesc: boolean;
+  timeseriesLimitMetric: Metric;
+  timeRange: string;
+  since: string;
+  until: string;
+
 } & Metrics;
 
 // FormData is either sqla-based or druid-based
 type SqlaFormData = {
   granularity_sqla: string;
-} & BaseFormData;
+  timeGrainSqla?: string;
+  having?: string;
+};
 
 type DruidFormData = {
   granularity: string;
-} & BaseFormData;
+  havingDruid?: string;
+  druidTimeOrigin?: string;
+};
 
-type FormData = SqlaFormData | DruidFormData;
+type FormData = BaseFormData & SqlaFormData & DruidFormData;
 export default FormData;
 
 export function getGranularity(formData: FormData): string {

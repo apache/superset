@@ -18,7 +18,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose('/v1/query', methods=['POST'])
+    @expose('/v1/query/', methods=['POST'])
     def query(self):
         """
         Takes a query_obj constructed in the client and returns payload data response
@@ -33,7 +33,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose('/v1/form_data', methods=['GET'])
+    @expose('/v1/form_data/', methods=['GET'])
     def query_form_data(self):
         """
         Takes a query_obj constructed in the client and returns payload data response

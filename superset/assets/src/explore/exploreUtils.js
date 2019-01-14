@@ -45,8 +45,9 @@ export function getURIDirectory({
     directory = '/superset/explore_json/';
   }
   // const buildQueryRegistry = getChartBuildQueryRegistry();
-  if (formData.viz_type === 'word_cloud' && !forceExplore) {
-    directory = '/api/v1/query/';
+  console.log(formData.viz_type);
+  if (formData.viz_type === 'word_cloud' || 'table' && !forceExplore) {
+    directory = '/api/v1/query';
   }
   return directory;
 }

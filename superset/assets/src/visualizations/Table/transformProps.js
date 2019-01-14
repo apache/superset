@@ -4,6 +4,7 @@ function transformData(data, formData) {
   const columns = new Set([
     ...formData.groupby,
     ...formData.metrics,
+    ...formData.allColumns,
   ].map(column => column.label || column));
 
   let records = data;
