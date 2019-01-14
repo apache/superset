@@ -63,7 +63,7 @@ export class Metrics {
       if (!Array.isArray(metrics)) {
         metrics = [metrics];
       }
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         if (metric) {
           if (typeof metric === 'string') {
             this.metrics.push({
@@ -80,7 +80,7 @@ export class Metrics {
             });
           }
         }
-      })
+      });
     }
   }
 

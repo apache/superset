@@ -28,36 +28,35 @@ export interface QueryObject {
 // specific viz, which is a subtype of the generic formData shared among all viz types.
 export default function buildQueryObject<T extends FormData>(formData: T): QueryObject {
   const extras = {
-    where: formData.where || '',
+    druid_time_origin: formData.druidTimeOrigin || '',
     having: formData.having || '',
     having_druid: formData.havingDruid || '',
     time_grain_sqla: formData.timeGrainSqla || '',
-    druid_time_origin: formData.druidTimeOrigin || '',
-  }
+    where: formData.where || '',
+  };
 
   const orgGroupby = formData.groupby || [];
   const orgColumns = formData.columns || [];
   const groupbySet = new Set(orgGroupby.concat(orgColumns));
   const limit = formData.limit ? Number(formData.limit) : 0;
-  const row_limit = Number(formData.rowLimit);
-  const order_desc = formData.orderDesc === undefined ? true : formData.orderDesc;
-  const is_timeseries = groupbySet.has(DTTM_ALIAS);
-
+  const rowLimit = Number(formData.rowLimit);
+  const orderDesc = formData.orderDesc === undefined ? true : formData.orderDesc;
+  const isTimeseries = groupbySet.has(DTTM_ALIAS);
 
   return {
-    granularity: getGranularity(formData),
-    metrics: new Metrics(formData).getMetrics(),
-    groupby: Array.from(groupbySet),
-    timeseries_limit_metric: formData.timeseriesLimitMetric,
-    time_range: formData.timeRange,
-    since: formData.since,
-    until: formData.until,
     extras,
-    timeseries_limit: limit,
-    row_limit,
-    order_desc,
-    is_timeseries,
-    prequeries: [],
+    granularity: getGranularity(formData),
+    groupby: Array.from(groupbySet),
     is_prequery: false,
+    is_timeseries: isTimeseries,
+    metrics: new Metrics(formData).getMetrics(),
+    order_desc: orderDesc,
+    prequeries: [],
+    row_limit: rowLimit,
+    since: formData.since,
+    time_range: formData.timeRange,
+    timeseries_limit: limit,
+    timeseries_limit_metric: formData.timeseriesLimitMetric,
+    until: formData.until,
   };
 }
