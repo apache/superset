@@ -25,7 +25,7 @@ function setup() {
 }
 
 describe('DashboardTable', () => {
-  afterEach(fetchMock.resetHistory);
+  beforeEach(fetchMock.resetHistory);
 
   it('renders a Loading initially', () => {
     const wrapper = setup();
