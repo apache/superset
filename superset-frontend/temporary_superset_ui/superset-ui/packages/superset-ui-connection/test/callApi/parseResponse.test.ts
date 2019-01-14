@@ -16,6 +16,7 @@ describe('parseResponse()', () => {
   const mockGetUrl = '/mock/get/url';
   const mockPostUrl = '/mock/post/url';
   const mockErrorUrl = '/mock/error/url';
+  const mockNoParseUrl = '/mock/noparse/url';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
@@ -24,6 +25,7 @@ describe('parseResponse()', () => {
   fetchMock.get(mockGetUrl, mockGetPayload);
   fetchMock.post(mockPostUrl, mockPostPayload);
   fetchMock.get(mockErrorUrl, () => Promise.reject(mockErrorPayload));
+  fetchMock.get(mockNoParseUrl, new Response('test response'));
 
   afterEach(fetchMock.reset);
 
@@ -86,12 +88,15 @@ describe('parseResponse()', () => {
     });
   });
 
+  it('throws if parseMethod is not null|json|text', () => {
+    const apiPromise = callApi({ url: mockNoParseUrl, method: 'GET' });
+
+    // @ts-ignore - 'something-else' is *intentionally* an invalid type
+    expect(() => parseResponse(apiPromise, 'something-else')).toThrow();
+  });
+
   it('resolves to the unmodified `Response` object if `parseMethod=null`', () => {
     expect.assertions(2);
-
-    const mockNoParseUrl = '/mock/noparse/url';
-    const mockResponse = new Response('test response');
-    fetchMock.get(mockNoParseUrl, mockResponse);
 
     const apiPromise = callApi({ url: mockNoParseUrl, method: 'GET' });
 
