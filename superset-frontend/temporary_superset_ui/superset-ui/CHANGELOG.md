@@ -1,5 +1,27 @@
 # @superset-ui : Change Log
 
+## v0.8.0
+
+### Features
+
+* Add SuperChart and convert to TypeScript
+* Allow metrics arrays in form data
+* Moved query module from `incubator-superset` into `superset-ui`
+* Add `reactify` function from `incubator-superset`
+
+### 🐞 Bug fixes
+
+* Handle `BigNumber` conversions to/from JSON without loss of precision
+
+### 🛠️ Internal
+
+* Use DefinitelyTyped's `fetch-mock` type def
+* Improved type def for `json-bigint`
+* Migrated `@superset-ui/chart` to TypeScript
+* Migrated `@superset-ui/color` to TypeScript
+* Migrated `@superset-ui/core` to TypeScript
+* Made `connection` and `color` packages peer dependencies
+
 ## v0.7.2
 
 ### ✨ Features

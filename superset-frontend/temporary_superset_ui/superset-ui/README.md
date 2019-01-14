@@ -67,9 +67,10 @@ across all packages using the syntax `yarn run test` (or `yarn run test:watch` f
 
 ### Publishing
 
-```
-yarn run release
-```
+**Prerequisite:** You'll need an [npmjs.com](https://npmjs.com) account that is part of the `superset-ui` organization.
+
+1. Make sure you're logged in to NPM from your shell. Run `npm login` if necessary.
+2. To make the release, run `yarn run release` and follow the prompts.
 
 ### License
 
