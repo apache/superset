@@ -53,7 +53,7 @@
     "@data-ui/xy-chart": "^0.0.61",
     "@superset-ui/chart": "^0.7.0",
     "@superset-ui/color": "^0.7.0",
-    "@superset-ui/connection": "^0.5.0",
+    "@superset-ui/connection": "^0.8.0",
     "@superset-ui/core": "^0.7.0",
     "@superset-ui/number-format": "^0.7.2",
     "@superset-ui/time-format": "^0.7.2",

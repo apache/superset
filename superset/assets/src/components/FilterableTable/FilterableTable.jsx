@@ -1,5 +1,6 @@
 import { List } from 'immutable';
 import PropTypes from 'prop-types';
+import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import {
   Column,
@@ -85,7 +86,7 @@ export default class FilterableTable extends PureComponent {
         if (['string', 'number'].indexOf(typeof (val)) >= 0) {
           newRow[k] = val;
         } else {
-          newRow[k] = JSON.stringify(val);
+          newRow[k] = JSONbig.stringify(val);
         }
       }
       return newRow;
