@@ -951,11 +951,11 @@ class BubbleViz(NVD3Viz):
         self.series = form_data.get('series') or self.entity
         d['row_limit'] = form_data.get('limit')
 
-        d['metrics'] = [
-            self.z_metric,
-            self.x_metric,
-            self.y_metric,
-        ]
+        d['metrics'] = []
+        if self.z_metric:
+            d['metrics'].append(self.z_metric)
+        d['metrics'].append(self.x_metric)
+        d['metrics'].append(self.y_metric)
         if not all(d['metrics'] + [self.entity]):
             raise Exception(_('Pick a metric for x, y and size'))
         return d
@@ -963,7 +963,8 @@ class BubbleViz(NVD3Viz):
     def get_data(self, df):
         df['x'] = df[[utils.get_metric_name(self.x_metric)]]
         df['y'] = df[[utils.get_metric_name(self.y_metric)]]
-        df['size'] = df[[utils.get_metric_name(self.z_metric)]]
+        # Bubble size is fixed to 1 if bubble size is not calculated
+        df['size'] = df[[utils.get_metric_name(self.z_metric)]] if self.z_metric else 1
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
 
