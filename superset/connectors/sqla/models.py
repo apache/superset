@@ -115,7 +115,9 @@ class TableColumn(Model, BaseColumn):
         label = label if label else self.column_name
         label = self.table.get_label(label)
         if not self.expression:
-            col = column(self.column_name).label(label)
+            db_engine_spec = self.table.database.db_engine_spec
+            type_ = db_engine_spec.get_sqla_column_type(self.type)
+            col = column(self.column_name, type_=type_).label(label)
         else:
             col = literal_column(self.expression).label(label)
         return col
