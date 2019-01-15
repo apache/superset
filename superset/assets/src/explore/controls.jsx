@@ -1132,6 +1132,7 @@ export const controls = {
     ...metric,
     label: t('Bubble Size'),
     default: null,
+    validators: [],
   },
 
   url: {

@@ -144,7 +144,9 @@ export function generateBubbleTooltipContent({
   );
   s += createHTMLRow(getLabel(xField), xFormatter(point.x));
   s += createHTMLRow(getLabel(yField), yFormatter(point.y));
-  s += createHTMLRow(getLabel(sizeField), sizeFormatter(point.size));
+  if (sizeField) {
+    s += createHTMLRow(getLabel(sizeField), sizeFormatter(point.size));
+  }
   s += '</table>';
   return s;
 }
