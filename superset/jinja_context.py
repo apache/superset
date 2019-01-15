@@ -42,7 +42,18 @@ BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
 
 
 def url_param(param, default=None):
-    """Get a url or post data parameter
+    """Read a url or post parameter and use it in your SQL Lab query
+
+    When in SQL Lab, it's possible to add arbitrary URL "query string"
+    parameters, and use those in your SQL code. For instance you can
+    alter your url and add `?foo=bar`, as in
+    `{domain}/superset/sqllab?foo=bar`. Then if your query is something like
+    SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed at
+    runtime and replaced by the value in the URL.
+
+    As you create a visualization form this SQL Lab query, you can pass
+    parameters in the explore view as well as from the dashboard, and
+    it should carry through to your queries.
 
     :param param: the parameter to lookup
     :type param: str
@@ -54,7 +65,7 @@ def url_param(param, default=None):
     # Supporting POST as well as get
     if request.form.get('form_data'):
         form_data = json.loads(request.form.get('form_data'))
-        url_params = form_data['url_params'] or {}
+        url_params = form_data.get('url_params') or {}
         return url_params.get(param, default)
     return default
 
