@@ -12,8 +12,14 @@ class DatasourceTests(SupersetTestCase):
 
     def test_external_metadata(self):
         self.login(username='admin')
-        tbl_id = self.get_table_by_name('birth_names').id
-        url = '/datasource/external_metadata/table/{}/'.format(tbl_id)
+        tbl = self.get_table_by_name('birth_names')
+        schema = tbl.schema or ''
+        url = (
+            f'/datasource/external_metadata/table/{tbl.id}/?'
+            f'db_id={tbl.database.id}&'
+            f'table_name={tbl.table_name}&'
+            f'schema={schema}&'
+        )
         resp = self.get_json_resp(url)
         col_names = {o.get('name') for o in resp}
         self.assertEquals(

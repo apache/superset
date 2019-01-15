@@ -14,14 +14,12 @@ const propTypes = {
     PropTypes.number,
     PropTypes.arrayOf(PropTypes.number),
   ]),
-  valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
   autoSelect: PropTypes.bool,
 };
 
 const defaultProps = {
   placeholder: t('Select ...'),
-  valueRenderer: o => (<div>{o.label}</div>),
   onAsyncError: () => {},
 };
 
