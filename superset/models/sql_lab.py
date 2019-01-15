@@ -122,7 +122,7 @@ class Query(Model, ExtraJSONMixin):
         return f'sqllab_{tab}_{ts}'
 
 
-class SavedQuery(Model, AuditMixinNullable):
+class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin):
     """ORM model for SQL query"""
 
     __tablename__ = 'saved_query'
