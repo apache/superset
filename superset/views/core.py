@@ -311,7 +311,7 @@ class DatabaseAsync(DatabaseView):
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_dml',
         'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
-        'allows_subquery',
+        'allows_subquery', 'backend',
     ]
 
 
