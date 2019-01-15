@@ -2,7 +2,7 @@ import NumberFormatterRegistry from '../src/NumberFormatterRegistry';
 import NumberFormatter from '../src/NumberFormatter';
 
 describe('NumberFormatterRegistry', () => {
-  let registry;
+  let registry: NumberFormatterRegistry;
   beforeEach(() => {
     registry = new NumberFormatterRegistry();
   });

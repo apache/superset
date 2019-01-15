@@ -5,7 +5,10 @@ export interface RegistryWithDefaultKeyConfig extends RegistryConfig {
   setFirstItemAsDefault?: boolean;
 }
 
-export default class RegistryWithDefaultKey<V> extends Registry<V> {
+export default class RegistryWithDefaultKey<
+  V,
+  W extends V | Promise<V> = V | Promise<V>
+> extends Registry<V, W> {
   initialDefaultKey?: string;
   defaultKey?: string;
   setFirstItemAsDefault: boolean;
@@ -41,7 +44,7 @@ export default class RegistryWithDefaultKey<V> extends Registry<V> {
     return this;
   }
 
-  registerLoader(key: string, loader: () => V | Promise<V>) {
+  registerLoader(key: string, loader: () => W) {
     super.registerLoader(key, loader);
     // If there is no default, set as default
     if (this.setFirstItemAsDefault && !this.defaultKey) {

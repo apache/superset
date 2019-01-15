@@ -11,7 +11,7 @@ interface ItemWithValue<T> {
 }
 
 interface ItemWithLoader<T> {
-  loader: () => T | Promise<T>;
+  loader: () => T;
 }
 
 export interface RegistryConfig {
@@ -19,11 +19,22 @@ export interface RegistryConfig {
   overwritePolicy?: OverwritePolicy;
 }
 
-export default class Registry<V> {
+/**
+ * Registry class
+ *
+ * Can use generic to specify type of item in the registry
+ * @type V Type of value
+ * @type W Type of value returned from loader function when using registerLoader().
+ * W can be either V, Promise<V> or V | Promise<V>
+ * Set W=V when does not support asynchronous loader.
+ * By default W is set to V | Promise<V> to support
+ * both synchronous and asynchronous loaders.
+ */
+export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
   name: string;
   overwritePolicy: OverwritePolicy;
   items: {
-    [key: string]: ItemWithValue<V> | ItemWithLoader<V>;
+    [key: string]: ItemWithValue<V> | ItemWithLoader<W>;
   };
 
   promises: {
@@ -70,7 +81,7 @@ export default class Registry<V> {
     return this;
   }
 
-  registerLoader(key: string, loader: () => V | Promise<V>) {
+  registerLoader(key: string, loader: () => W) {
     const item = this.items[key];
     const willOverwrite =
       this.has(key) && (('loader' in item && item.loader !== loader) || 'value' in item);
@@ -89,7 +100,7 @@ export default class Registry<V> {
     return this;
   }
 
-  get(key: string): V | Promise<V> | undefined {
+  get(key: string): V | W | undefined {
     const item = this.items[key];
     if (item !== undefined) {
       if ('loader' in item) {
@@ -109,7 +120,7 @@ export default class Registry<V> {
     }
     const item = this.get(key);
     if (item !== undefined) {
-      const newPromise = Promise.resolve(item);
+      const newPromise = Promise.resolve(item) as Promise<V>;
       this.promises[key] = newPromise;
 
       return newPromise;
@@ -120,7 +131,7 @@ export default class Registry<V> {
 
   getMap() {
     return this.keys().reduce<{
-      [key: string]: V | Promise<V> | undefined;
+      [key: string]: V | W | undefined;
     }>((prev, key) => {
       const map = prev;
       map[key] = this.get(key);
@@ -148,7 +159,7 @@ export default class Registry<V> {
     return Object.keys(this.items);
   }
 
-  values(): Array<V | Promise<V> | undefined> {
+  values(): (V | W | undefined)[] {
     return this.keys().map(key => this.get(key));
   }
 
@@ -156,14 +167,14 @@ export default class Registry<V> {
     return Promise.all(this.keys().map(key => this.getAsPromise(key)));
   }
 
-  entries(): Array<{ key: string; value: V | Promise<V> | undefined }> {
+  entries(): { key: string; value: V | W | undefined }[] {
     return this.keys().map(key => ({
       key,
       value: this.get(key),
     }));
   }
 
-  entriesAsPromise(): Promise<Array<{ key: string; value: V }>> {
+  entriesAsPromise(): Promise<{ key: string; value: V }[]> {
     const keys = this.keys();
 
     return Promise.all(keys.map(key => this.getAsPromise(key))).then(values =>
