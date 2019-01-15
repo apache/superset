@@ -10,7 +10,7 @@ export interface QueryObject {
   metrics: Metric[];
   extras: any;
   timeseries_limit: number;
-  timeseries_limit_metric: Metric;
+  timeseries_limit_metric: Metric | null;
   time_range: string;
   since: string;
   until: string;
@@ -19,6 +19,7 @@ export interface QueryObject {
   is_timeseries: boolean;
   prequeries: any[];
   is_prequery: boolean;
+  orderby: any[];
 }
 
 // Build the  common segments of all query objects (e.g. the granularity field derived from
@@ -28,10 +29,10 @@ export interface QueryObject {
 // specific viz, which is a subtype of the generic formData shared among all viz types.
 export default function buildQueryObject<T extends FormData>(formData: T): QueryObject {
   const extras = {
-    druid_time_origin: formData.druidTimeOrigin || '',
+    druid_time_origin: formData.druid_time_origin || '',
     having: formData.having || '',
-    having_druid: formData.havingDruid || '',
-    time_grain_sqla: formData.timeGrainSqla || '',
+    having_druid: formData.having_druid || '',
+    time_grain_sqla: formData.time_grain_sqla || '',
     where: formData.where || '',
   };
 
@@ -39,8 +40,8 @@ export default function buildQueryObject<T extends FormData>(formData: T): Query
   const orgColumns = formData.columns || [];
   const groupbySet = new Set(orgGroupby.concat(orgColumns));
   const limit = formData.limit ? Number(formData.limit) : 0;
-  const rowLimit = Number(formData.rowLimit);
-  const orderDesc = formData.orderDesc === undefined ? true : formData.orderDesc;
+  const rowLimit = Number(formData.row_limit);
+  const orderDesc = formData.order_desc === undefined ? true : formData.order_desc;
   const isTimeseries = groupbySet.has(DTTM_ALIAS);
 
   return {
@@ -54,9 +55,10 @@ export default function buildQueryObject<T extends FormData>(formData: T): Query
     prequeries: [],
     row_limit: rowLimit,
     since: formData.since,
-    time_range: formData.timeRange,
+    time_range: formData.time_range,
     timeseries_limit: limit,
-    timeseries_limit_metric: formData.timeseriesLimitMetric,
+    timeseries_limit_metric: Metrics.convertMetric(formData.timeseries_limit_metric),
     until: formData.until,
+    orderby: [],
   };
 }

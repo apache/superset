@@ -1,4 +1,4 @@
-import Metric, { AdhocMetric, MetricKey } from './Metric';
+import { MetricKey, MetricsKey, RawMetric } from './Metric';
 
 // Type signature and utility functions for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -8,36 +8,35 @@ import Metric, { AdhocMetric, MetricKey } from './Metric';
 // The Metrics in formData is either a string or a proper metric. It will be
 // unified into a proper Metric type during buildQuery (see `/query/Metrics.ts`).
 
-type RawMetric = AdhocMetric | string;
-type Metrics = Partial<Record<MetricKey, RawMetric | RawMetric[] >>;
+type Metrics = Partial<Record<MetricKey, RawMetric>>;
+type MetricsArray = Partial<Record<MetricsKey, RawMetric[]>>;
 
 type BaseFormData = {
   datasource: string;
   where?: string;
   groupby?: string[];
   columns?: string[];
-  allColumns?: string[];
+  all_columns?: string[];
   limit?: string;
-  rowLimit: string;
-  orderDesc: boolean;
-  timeseriesLimitMetric: Metric;
-  timeRange: string;
+  row_limit: string;
+  order_desc: boolean;
+  timeseries_limit_metric: RawMetric;
+  time_range: string;
   since: string;
   until: string;
-
-} & Metrics;
+} & Metrics & MetricsArray;
 
 // FormData is either sqla-based or druid-based
 type SqlaFormData = {
   granularity_sqla: string;
-  timeGrainSqla?: string;
+  time_grain_sqla?: string;
   having?: string;
 } & BaseFormData;
 
 type DruidFormData = {
   granularity: string;
-  havingDruid?: string;
-  druidTimeOrigin?: string;
+  having_druid?: string;
+  druid_time_origin?: string;
 } & BaseFormData;
 
 type FormData =  BaseFormData & SqlaFormData & DruidFormData;

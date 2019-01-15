@@ -25,27 +25,33 @@ class QueryObject:
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
             is_timeseries: bool = False,
+            timeseries_limit: int = 0,
             row_limit: int = app.config.get('ROW_LIMIT'),
-            limit: int = 0,
             timeseries_limit_metric: Optional[Dict] = None,
             order_desc: bool = True,
             extras: Optional[Dict] = None,
+            prequeries: Optional[Dict] = None,
+            is_prequery: bool = False,
+            columns: List[str] = None,
+            orderby: List[List] = None,
     ):
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
         self.is_timeseries = is_timeseries
         self.time_range = time_range
-        self.time_shift = time_shift
+        self.time_shift = utils.parse_human_timedelta(time_shift)
         self.groupby = groupby
         self.metrics = metrics
         self.row_limit = row_limit
         self.filter = filters if filters is not None else []
-        self.timeseries_limit = int(limit)
+        self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.prequeries = []
-        self.is_prequery = False
+        self.prequeries = prequeries
+        self.is_prequery = is_prequery
         self.extras = extras if extras is not None else {}
+        self.columns = columns if columns is not None else []
+        self.orderby = orderby if orderby is not None else []
 
     def to_dict(self):
         query_object_dict = {
@@ -63,8 +69,9 @@ class QueryObject:
             'prequeries': self.prequeries,
             'is_prequery': self.is_prequery,
             'extras': self.extras,
+            'columns': self.columns,
+            'orderby': self.orderby,
         }
-        query_object_dict.update(self.extras)
         return query_object_dict
 
     def cache_key(self, **extra):

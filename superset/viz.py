@@ -7,7 +7,6 @@ Superset can render.
 from collections import defaultdict, OrderedDict
 import copy
 from datetime import datetime, timedelta
-from functools import reduce
 import hashlib
 import inspect
 from itertools import product

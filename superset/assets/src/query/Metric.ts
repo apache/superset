@@ -7,13 +7,16 @@ export const LABEL_MAX_LENGTH = 43;
 // used as keys of form data jsons.
 export enum MetricKey {
   METRIC = 'metric',
-  METRICS = 'metrics',
-  PERCENT_METRICS = 'percent_metrics',
   RIGHT_AXIS_METRIC = 'metric_2',
   SECONDARY_METRIC = 'secondary_metric',
   X = 'x',
   Y = 'y',
   SIZE = 'size',
+}
+
+export enum MetricsKey {
+  METRICS = 'metrics',
+  PERCENT_METRICS = 'percent_metrics',
 }
 
 export enum Aggregate {
@@ -52,6 +55,8 @@ type Metric = {
 
 export default Metric;
 
+export type RawMetric = AdhocMetric | string;
+
 export class Metrics {
   // Use Array to maintain insertion order for metrics that are order sensitive
   private metrics: Metric[];
@@ -59,28 +64,42 @@ export class Metrics {
   constructor(formData: FormData) {
     this.metrics = [];
     for (const key of Object.keys(MetricKey)) {
-      let metrics = formData[MetricKey[key] as MetricKey] || [];
-      if (!Array.isArray(metrics)) {
-        metrics = [metrics];
+      let metric = formData[MetricKey[key] as MetricKey];
+      if (metric) {
+        this.addMetricToList(metric);
       }
-      metrics.forEach((metric) => {
-        if (metric) {
-          if (typeof metric === 'string') {
-            this.metrics.push({
-              label: metric,
-            });
-          } else {
-            // Note we further sanitize the metric label for BigQuery datasources
-            // TODO: move this logic to the client once client has more info on the
-            // the datasource
-            const label = metric.label || this.getDefaultLabel(metric);
-            this.metrics.push({
-              ...metric,
-              label,
-            });
-          }
-        }
-      });
+    }
+    for (const key of Object.keys(MetricsKey)) {
+      let metrics = formData[MetricsKey[key] as MetricsKey];
+      if (metrics) {
+        metrics.forEach((metric) => this.addMetricToList(metric));
+      }
+    }
+  }
+
+  protected addMetricToList(metric: RawMetric) {
+    const convertedMetric = Metrics.convertMetric(metric);
+    if (convertedMetric) {
+      this.metrics.push(convertedMetric);
+    }
+  }
+
+  static convertMetric(metric: RawMetric) {
+    if (!metric) {
+      return null;
+    } if (typeof metric === 'string') {
+      return {
+        label: metric,
+      };
+    } else {
+      // Note we further sanitize the metric label for BigQuery datasources
+      // TODO: move this logic to the client once client has more info on the
+      // the datasource
+      const label = metric.label || this.getDefaultLabel(metric);
+      return {
+        ...metric,
+        label,
+      };
     }
   }
 
@@ -92,7 +111,7 @@ export class Metrics {
     return this.metrics.map((m) => m.label);
   }
 
-  private getDefaultLabel(metric: AdhocMetric) {
+  static getDefaultLabel(metric: AdhocMetric) {
     let label: string;
     if (metric.expressionType === ExpressionType.SIMPLE) {
       label = `${metric.aggregate}(${(metric.column.columnName)})`;

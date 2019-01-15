@@ -72,7 +72,8 @@ export default function transformProps(chartProps) {
     timeseriesLimitMetric,
   } = formData;
   const { columnFormats, verboseMap } = datasource;
-  const { records, columns } = transformData(payload.data, formData);
+  const data = payload.data || payload[0].data;
+  const { records, columns } = transformData(data, formData);
 
   const processedColumns = columns.map((key) => {
     let label = verboseMap[key];
