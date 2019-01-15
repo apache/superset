@@ -8,6 +8,7 @@ import getClientErrorObject from '../utils/getClientErrorObject';
 
 import Button from '../components/Button';
 import Loading from '../components/Loading';
+import TableSelector from '../components/TableSelector';
 import CheckboxControl from '../explore/components/controls/CheckboxControl';
 import TextControl from '../explore/components/controls/TextControl';
 import SelectControl from '../explore/components/controls/SelectControl';
@@ -219,9 +220,8 @@ export class DatasourceEditor extends React.PureComponent {
     };
     this.props.onChange(datasource, this.state.errors);
   }
-
-  onDatasourceChange(newDatasource) {
-    this.setState({ datasource: newDatasource }, this.validateAndChange);
+  onDatasourceChange(datasource) {
+    this.setState({ datasource }, this.validateAndChange);
   }
 
   onDatasourcePropChange(attr, value) {
@@ -260,11 +260,15 @@ export class DatasourceEditor extends React.PureComponent {
   }
   syncMetadata() {
     const { datasource } = this.state;
+    const endpoint = (
+      `/datasource/external_metadata/${datasource.type}/${datasource.id}/` +
+      `?db_id=${datasource.database.id}` +
+      `&schema=${datasource.schema}` +
+      `&table_name=${datasource.datasource_name}`
+    );
     this.setState({ metadataLoading: true });
 
-    SupersetClient.get({
-      endpoint: `/datasource/external_metadata/${datasource.type}/${datasource.id}/`,
-    }).then(({ json }) => {
+    SupersetClient.get({ endpoint }).then(({ json }) => {
       this.mergeColumns(json);
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
@@ -319,6 +323,27 @@ export class DatasourceEditor extends React.PureComponent {
     const datasource = this.state.datasource;
     return (
       <Fieldset title={t('Basic')} item={datasource} onChange={this.onDatasourceChange}>
+        {this.state.isSqla &&
+          <Field
+            fieldKey="tableSelector"
+            label={t('Physical Table')}
+            control={
+              <TableSelector
+                dbId={datasource.database.id}
+                schema={datasource.schema}
+                tableName={datasource.datasource_name}
+                onSchemaChange={schema => this.onDatasourcePropChange('schema', schema)}
+                onDbChange={database => this.onDatasourcePropChange('database', database)}
+                onTableChange={table => this.onDatasourcePropChange('datasource_name', table)}
+                sqlLabMode={false}
+                clearable={false}
+                handleError={this.props.addDangerToast}
+              />}
+            descr={t(
+              'The pointer to a physical table. Keep in mind that the chart is ' +
+              'associated to this Superset logical table, and this logical table points ' +
+              'the physical table referenced here.')}
+          />}
         <Field
           fieldKey="description"
           label={t('Description')}

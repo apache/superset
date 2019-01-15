@@ -309,7 +309,6 @@ export const databases = {
   ],
 };
 export const tables = {
-  tableLength: 3,
   options: [
     {
       value: 'birth_names',
