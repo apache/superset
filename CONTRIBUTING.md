@@ -139,11 +139,11 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 Committers read issues/PRs and add labels to them. First, add category label.
 
-- **Category labels (a.k.a. hash labels):** These labels defines issue/PR type, such as `#bug`, `#feature`, `#refine`, `#doc`, `#SIP`, `#question`. Each issue/PR must have one hash label.
+- **Category labels (a.k.a. hash labels):** These labels that begin with `#` defines issue/PR type, such as `#bug`, `#feature`, `#refine`, `#doc`, `#SIP`, `#question`. Each issue/PR must have one hash label.
 
 Then add other types of labels as appropriate.
 
-- **Descriptive labels (a.k.a. dot labels):** These labels describe the details of the issue/PR, such as `.ui`, `.js`, `.install`, `.backend`, etc. Each issue/PR can have zero or more dot labels.
+- **Descriptive labels (a.k.a. dot labels):** These labels that begin with `.` describe the details of the issue/PR, such as `.ui`, `.js`, `.install`, `.backend`, etc. Each issue/PR can have zero or more dot labels.
 - **Need labels:** These labels have pattern `need:xxx`, which describe the work required to progress, such as `need:rebase`, `need:update`, `need:screenshot`.
 - **Risk labels:** These labels have pattern `risk:xxx`, which describe the potential risk on adopting the work, such as `risk:db-migration`. The intention was to better understand the impact and create awareness for PRs that need more rigorous testing.
 - **Status labels:** These labels describe the status (`abandoned`, `wontfix`, `cant-reproduce`). Issue/PRs that are rejected or closed without completion should have one or more status labels.
