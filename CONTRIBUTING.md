@@ -14,6 +14,7 @@ little bit helps, and credit will always be given.
   - [Submit Feedback](#submit-feedback)
   - [Ask Questions](#ask-questions)
 - [Pull Request Guidelines](#pull-request-guidelines)
+  - [Protocol](#protocol)
 - [Local development](#local-development)
   - [Documentation](#documentation)
   - [Flask server](#flask-server)
@@ -34,26 +35,36 @@ little bit helps, and credit will always be given.
 
 ## Types of Contributions
 
-### Report Bugs
+### Report Bug / Submit Feedback
 
-Report bugs through GitHub. If you are reporting a bug, please include:
+The best way to send feedback is to file an issue on GitHub.
+
+If you are reporting a bug, please include:
 
 - Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
+- Superset version.
 - Detailed steps to reproduce the bug.
+- Any details about your local setup that might be helpful in troubleshooting.
 
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+
+If you are proposing a feature:
+
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+
 ### Fix Bugs
 
-Look through the GitHub issues for bugs. Anything tagged with `bug` is
+Look through the GitHub issues. Issues tagged with `#bug` is
 open to whoever wants to implement it.
 
 ### Implement Features
 
-Look through the GitHub issues for features. Anything tagged with
-`feature` or `starter_task` is open to whoever wants to implement it.
+Look through the GitHub issues. Issues tagged with
+`#feature` is open to whoever wants to implement it.
 
 ### Improve Documentation
 
@@ -66,37 +77,61 @@ articles. See [Documentation](#documentation) for more details.
 
 If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
 
-### Submit Feedback
-
-The best way to send feedback is to file an issue on GitHub. If you are proposing a feature:
-
-- Explain in detail how it would work.
-- Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
-
 ### Ask Questions
 
 There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
 ## Pull Request Guidelines
 
-Before you submit a pull request from your forked repo, check that it
-meets these guidelines:
+A philosophy we would like to strong encourage is
 
-1.  The pull request should include tests, either as doctests,
-    unit tests, or both.
-2.  Run `tox` and resolve all errors and test failures.
-3.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make
-    sure to follow the sphinx compatible standards.
-4.  If the pull request adds a Python dependency include it in `setup.py`
-    denoting any specific restrictions and in `requirements.txt` pinned to a
-    specific version which ensures that the application build is deterministic.
-5.  Please rebase and resolve all conflicts before submitting.
-6.  Please ensure the necessary checks pass and that code coverage does not
-    decrease.
-7.  If you are asked to update your pull request with some changes there's
-    no need to create a new one. Push your changes to the same branch.
+> Before creating a PR, create an issue.
+
+**Bug fixes:** If you’re only fixing a small bug, it’s fine to submit a pull request right away but we highly recommend to file an issue detailing what you’re fixing. This is helpful in case we don’t accept that specific fix but want to keep track of the issue. Please keep in mind that the project maintainers reserve the rights to accept or reject incoming PRs, so it is better to separate the issue and the code to fix it from each other. In some cases, project maintainers may request you to create a separate issue from PR before proceeding.
+
+**Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a SIP for the PR before proceeding.
+
+**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we requires you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
+
+In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
+
+Finally, never submit a PR that will put master branch in broken state. If the PR is part of multiple PRs to complete a large feature and cannot work on its own, you can create a feature branch and merge all related PRs into the feature branch before creating a PR from feature branch to master.
+
+### Protocol
+
+#### Authoring
+
+- Fill in all sections of the PR template.
+- Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress)
+- **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
+  - Recommended capture tools ([Kapture](https://www.kapturecrm.com/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
+  - If no screenshot is provided, the commmitters will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
+- **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
+  - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
+  - For Javascript, include new libraries in `package.json`
+- **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
+- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
+- **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists and rebase your PR after the fix has been deployed to master.
+- **Code coverge:** Please ensure that code coverage does not decrease.
+- Replace `[WIP]` with `[READY]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
+- If the PR was not ready for review and inactive for > 30 days, we will close it due to inactivity. The author is welcome to re-open and update.
+
+#### Reviewing
+
+- Use constructive tone when writing reviews.
+- If there are changes required, state clearly what needs to be done before the PR can be approved.
+- If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
+- The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
+
+#### Merging
+
+- At least one approval is required for merging a PR.
+- After the PR is merged, [close the corresponding issue(s)](https://help.github.com/articles/closing-issues-using-keywords/).
+
+#### Post-merge Responsibility
+
+- Project maintainers may contact the PR author if new issues are introduced by the PR.
+- Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
 
 ## Setup Local Environment for Development
 
@@ -268,7 +303,7 @@ npm ci
 
 #### Building
 
-You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to it, updates to asset sources will be reflected in-browser without a refresh.
+You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to `http://localhost:9000`, updates to asset sources will be reflected in-browser without a refresh.
 
 ```bash
 # Run the dev server
@@ -431,7 +466,7 @@ fabmanager babel-extract --target superset/translations --output superset/transl
 ```
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) 
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
