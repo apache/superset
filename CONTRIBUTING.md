@@ -104,7 +104,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - Fill in all sections of the PR template.
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress)
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
-  - Recommended capture tools ([Kapture](https://www.kapturecrm.com/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
+  - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the commmitters will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
 - **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
