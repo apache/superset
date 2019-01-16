@@ -7,12 +7,12 @@ little bit helps, and credit will always be given.
 
 - [Types of Contributions](#types-of-contributions)
   - [Report Bugs](#report-bugs)
+  - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
+  - [Ask Questions](#ask-questions)
   - [Fix Bugs](#fix-bugs)
   - [Implement Features](#implement-features)
   - [Improve Documentation](#improve-documentation)
   - [Add Translations](#add-translations)
-  - [Submit Feedback](#submit-feedback)
-  - [Ask Questions](#ask-questions)
 - [Pull Request Guidelines](#pull-request-guidelines)
   - [Protocol](#protocol)
 - [Local development](#local-development)
@@ -35,11 +35,9 @@ little bit helps, and credit will always be given.
 
 ## Types of Contributions
 
-### Report Bug / Submit Feedback
+### Report Bug
 
-The best way to send feedback is to file an issue on GitHub.
-
-If you are reporting a bug, please include:
+The best way to report a bug is to file an issue on GitHub. Please include:
 
 - Your operating system name and version.
 - Superset version.
@@ -49,12 +47,15 @@ If you are reporting a bug, please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+### Submit Ideas or Feature Requests
 
-If you are proposing a feature:
+The best way is to file an issue on GitHub:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
 - Remember that this is a volunteer-driven project, and that contributions are welcome :)
+
+For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/incubator-superset/issues/5602)
 
 ### Fix Bugs
 
@@ -112,7 +113,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
 - **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
 - **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists and rebase your PR after the fix has been deployed to master.
-- **Code coverge:** Please ensure that code coverage does not decrease.
+- **Code coverage:** Please ensure that code coverage does not decrease.
 - Replace `[WIP]` with `[READY]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
 - If the PR was not ready for review and inactive for > 30 days, we will close it due to inactivity. The author is welcome to re-open and update.
 
@@ -126,12 +127,33 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Merging
 
 - At least one approval is required for merging a PR.
+- PR is usually left open for at least 24 hours before merging.
 - After the PR is merged, [close the corresponding issue(s)](https://help.github.com/articles/closing-issues-using-keywords/).
 
 #### Post-merge Responsibility
 
 - Project maintainers may contact the PR author if new issues are introduced by the PR.
 - Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
+
+## Managing Issues and PRs
+
+Committers read issues/PRs and add labels to them. First, add category label.
+
+- **Category labels (a.k.a. hash labels):** These labels defines issue/PR type, such as `#bug`, `#feature`, `#refine`, `#doc`, `#SIP`, `#question`. Each issue/PR must have one hash label.
+
+Then add other types of labels as appropriate.
+
+- **Descriptive labels (a.k.a. dot labels):** These labels describe the details of the issue/PR, such as `.ui`, `.js`, `.install`, `.backend`, etc. Each issue/PR can have zero or more dot labels.
+- **Need labels:** These labels have pattern `need:xxx`, which describe the work required to progress, such as `need:rebase`, `need:update`, `need:screenshot`.
+- **Risk labels:** These labels have pattern `risk:xxx`, which describe the potential risk on adopting the work, such as `risk:db-migration`. The intention was to better understand the impact and create awareness for PRs that need more rigorous testing.
+- **Status labels:** These labels describe the status (`abandoned`, `wontfix`, `cant-reproduce`). Issue/PRs that are rejected or closed without completion should have one or more status labels.
+- **Version labels:** These have the pattern `vx.x` such as `v0.28`. Version labels on issues describe the version the bug was reported on. Version labels on PR describe the version that the PR will be released with.
+
+Also update title to reflect the issue/PR content.
+
+If a PR title has `[READY]` in front, which means it is ready for review, add label `reviewable`.
+
+If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
 
 ## Setup Local Environment for Development
 
