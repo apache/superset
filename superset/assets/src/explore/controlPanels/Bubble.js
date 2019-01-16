@@ -50,5 +50,8 @@ export default {
     color_scheme: {
       renderTrigger: false,
     },
+    size: {
+      validators: [],
+    },
   },
 };
