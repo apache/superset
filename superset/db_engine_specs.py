@@ -983,20 +983,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         r'reduce = (?P<reduce_progress>[0-9]+)%.*')
 
     @classmethod
-    def patch(cls):
-        from pyhive import hive
-        from superset.db_engines import hive as patched_hive
-        from TCLIService import (
-            constants as patched_constants,
-            ttypes as patched_ttypes,
-            TCLIService as patched_TCLIService)
-
-        hive.TCLIService = patched_TCLIService
-        hive.constants = patched_constants
-        hive.ttypes = patched_ttypes
-        hive.Cursor.fetch_logs = patched_hive.fetch_logs
-
-    @classmethod
     def fetch_result_sets(cls, db, datasource_type):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type)
