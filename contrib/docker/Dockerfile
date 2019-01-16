@@ -34,12 +34,12 @@ RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
-USER superset
-
 COPY --chown=superset:superset superset superset
 
 ENV PATH=/home/superset/superset/bin:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH
+
+USER superset
 
 RUN cd superset/assets \
     && npm ci \

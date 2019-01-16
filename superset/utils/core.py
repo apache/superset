@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
 from builtins import object
@@ -53,6 +69,12 @@ ADHOC_METRIC_EXPRESSION_TYPES = {
 }
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
+
+sources = {
+    'chart': 0,
+    'dashboard': 1,
+    'sql_lab': 2,
+}
 
 
 def flasher(msg, severity=None):
