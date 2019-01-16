@@ -173,11 +173,11 @@ First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have on
 | `#bug` | Bug report | Bug fix |
 | `#code-quality` | Describe problem with code, architecture or productivity | Refactor, tests, tooling |
 | `#feature` | New feature request | New feature implementation |
-| `#refine` <td colspan=2> Minor improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding. |
-| `#doc` <td colspan=2>  Documentation |
+| `#refine` | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
+| `#doc` | Documentation | Documentation |
 | `#question` | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later. |  N/A |
 | `#SIP` | Superset Improvement Proposal | N/A |
-| `#ASF` <td colspan=2> Tasks related to Apache Software Foundation policy |
+| `#ASF` | Tasks related to Apache Software Foundation policy | Tasks related to Apache Software Foundation policy |
 
 Then add other types of labels as appropriate.
 
@@ -189,7 +189,7 @@ Then add other types of labels as appropriate.
 
 May also update title to reflect the issue/PR content if the author-provided title is not descriptive enough.
 
-If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review:code` and/or `review:design`.
+If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
 
