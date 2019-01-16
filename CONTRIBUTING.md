@@ -15,6 +15,7 @@ little bit helps, and credit will always be given.
   - [Add Translations](#add-translations)
 - [Pull Request Guidelines](#pull-request-guidelines)
   - [Protocol](#protocol)
+- [Managing Issues and PRs](#managing-issues-and-prs)
 - [Local development](#local-development)
   - [Documentation](#documentation)
   - [Flask server](#flask-server)
