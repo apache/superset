@@ -185,9 +185,9 @@ Then add other types of labels as appropriate.
 - **Need labels:** These labels have pattern `need:xxx`, which describe the work required to progress, such as `need:rebase`, `need:update`, `need:screenshot`.
 - **Risk labels:** These labels have pattern `risk:xxx`, which describe the potential risk on adopting the work, such as `risk:db-migration`. The intention was to better understand the impact and create awareness for PRs that need more rigorous testing.
 - **Status labels:** These labels describe the status (`abandoned`, `wontfix`, `cant-reproduce`, etc.) Issue/PRs that are rejected or closed without completion should have one or more status labels.
-- **Version labels:** These have the pattern `vx.x` such as `v0.28`. Version labels on issues describe the version the bug was reported on. Version labels on PR describe the version that the PR will be released with.
+- **Version labels:** These have the pattern `vx.x` such as `v0.28`. Version labels on issues describe the version the bug was reported on. Version labels on PR describe the first release that will include the PR.
 
-May also update title to reflect the issue/PR content if the author-provided title is not descriptive enough.
+Committers may also update title to reflect the issue/PR content if the author-provided title is not descriptive enough.
 
 If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
