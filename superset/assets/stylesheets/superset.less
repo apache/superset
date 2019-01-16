@@ -1,10 +1,10 @@
 @import './less/index.less';
 @import "./less/cosmo/variables.less";
 
-@datasource-sql-expression-width: 500px;
+@datasource-sql-expression-width: 450px;
 
 body {
-    margin: 0px !important;
+    margin: 0 !important;
 }
 
 .caret {
@@ -248,16 +248,19 @@ table.table-no-hover tr:hover {
 }
 
 .editable-title.datasource-sql-expression {
-  font-family: monospace;
+  font-family: @font-family-monospace;
+  font-size: 95%;
+  display: inline-block;
+  min-width: @datasource-sql-expression-width;
 }
 
 .editable-title.datasource-sql-expression input {
-  width: @datasource-sql-expression-width;
+  width: 95%;
   padding-bottom: 5px;
 }
 
 .editable-title.datasource-sql-expression textarea {
-  width: @datasource-sql-expression-width;
+  width: 95%;
 }
 
 .editable-title input[type="button"] {
