@@ -78,7 +78,8 @@ export default class EditableTitle extends React.PureComponent {
 
     // For multi-line values, we save the actual rendered height of the displayed text.
     // Later, when a textarea is constructed, we'll use this saved height.
-    this.contentHeight = this.contentRef.current.getBoundingClientRect().height;
+    this.contentHeight = (this.contentRef.current) ?
+      this.contentRef.current.getBoundingClientRect().height : null;
 
     this.setState({ isEditing: true });
   }
