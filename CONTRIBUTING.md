@@ -1,3 +1,22 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
 # Contributing
 
 Contributions are welcome and are greatly appreciated! Every
@@ -85,13 +104,15 @@ There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions
 
 ## Pull Request Guidelines
 
-A philosophy we would like to strong encourage is
+A philosophy we would like to strongly encourage is
 
 > Before creating a PR, create an issue.
 
+The purpose is to separate problem from possible solutions.
+
 **Bug fixes:** If you’re only fixing a small bug, it’s fine to submit a pull request right away but we highly recommend to file an issue detailing what you’re fixing. This is helpful in case we don’t accept that specific fix but want to keep track of the issue. Please keep in mind that the project maintainers reserve the rights to accept or reject incoming PRs, so it is better to separate the issue and the code to fix it from each other. In some cases, project maintainers may request you to create a separate issue from PR before proceeding.
 
-**Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a SIP for the PR before proceeding.
+**Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a `#SIP` for the PR before proceeding.
 
 **Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we requires you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
 
@@ -104,18 +125,18 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
-- Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress)
+- Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
-  - If no screenshot is provided, the commmitters will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
+  - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
 - **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
   - For Javascript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
 - **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
-- **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists and rebase your PR after the fix has been deployed to master.
+- **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
 - **Code coverage:** Please ensure that code coverage does not decrease.
-- Replace `[WIP]` with `[READY]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
+- Remove `[WIP]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
 - If the PR was not ready for review and inactive for > 30 days, we will close it due to inactivity. The author is welcome to re-open and update.
 
 #### Reviewing
@@ -138,9 +159,25 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 ## Managing Issues and PRs
 
-Committers read issues/PRs and add labels to them. First, add category label.
+To handle issues and PRs that are coming in, committers read issues/PRs and flag them with labels to categorize and help contributors spot where to take actions, as contributors usually have different expertises.
 
-- **Category labels (a.k.a. hash labels):** These labels that begin with `#` defines issue/PR type, such as `#bug`, `#code-quality`, `#feature`, `#refine`, `#doc`, `#SIP`, `#question`. Each issue/PR must have one hash label.
+Triaging goals
+
+- **For issues:** Categorize, screen issues, flag required actions from authors.
+- **For PRs:** Categorize, flag required actions from authors. If PR is ready for review, flag required actions from reviewers.
+
+First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
+
+| Label             | for Issue | for PR |
+|-------------------|-----------|--------|
+| `#bug` | Bug report | Bug fix |
+| `#code-quality` | Describe problem with code, architecture or productivity | Refactor, tests, tooling |
+| `#feature` | New feature request | New feature implementation |
+| `#refine` <td colspan=2> Minor improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding. |
+| `#doc` <td colspan=2>  Documentation |
+| `#question` | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later. |  N/A |
+| `#SIP` | Superset Improvement Proposal | N/A |
+| `#ASF` <td colspan=2> Tasks related to Apache Software Foundation policy |
 
 Then add other types of labels as appropriate.
 
@@ -150,9 +187,9 @@ Then add other types of labels as appropriate.
 - **Status labels:** These labels describe the status (`abandoned`, `wontfix`, `cant-reproduce`, etc.) Issue/PRs that are rejected or closed without completion should have one or more status labels.
 - **Version labels:** These have the pattern `vx.x` such as `v0.28`. Version labels on issues describe the version the bug was reported on. Version labels on PR describe the version that the PR will be released with.
 
-May also update title to reflect the issue/PR content if the author-provided title is not descriptive.
+May also update title to reflect the issue/PR content if the author-provided title is not descriptive enough.
 
-If a PR title has `[READY]` in front, which means it is ready for review, add label `reviewable`.
+If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review:code` and/or `review:design`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
 
