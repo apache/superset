@@ -25,19 +25,23 @@ import TooltipWrapper from './TooltipWrapper';
 const propTypes = {
   title: PropTypes.string,
   canEdit: PropTypes.bool,
+  multiLine: PropTypes.bool,
   onSaveTitle: PropTypes.func,
   noPermitTooltip: PropTypes.string,
   showTooltip: PropTypes.bool,
   emptyText: PropTypes.node,
   style: PropTypes.object,
+  extraClasses: PropTypes.object,
 };
 const defaultProps = {
   title: t('Title'),
   canEdit: false,
+  multiLine: false,
   showTooltip: true,
   onSaveTitle: () => {},
   emptyText: '<empty>',
   style: null,
+  extraClasses: null,
 };
 
 export default class EditableTitle extends React.PureComponent {
@@ -53,6 +57,9 @@ export default class EditableTitle extends React.PureComponent {
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+
+    // Used so we can access the DOM element if a user clicks on this component.
+    this.contentRef = React.createRef();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -68,6 +75,11 @@ export default class EditableTitle extends React.PureComponent {
     if (!this.props.canEdit || this.state.isEditing) {
       return;
     }
+
+    // For multi-line values, we save the actual rendered height of the displayed text.
+    // Later, when a textarea is constructed, we'll use this saved height.
+    this.contentHeight = this.contentRef.current.getBoundingClientRect().height;
+
     this.setState({ isEditing: true });
   }
 
@@ -140,8 +152,29 @@ export default class EditableTitle extends React.PureComponent {
     } else if (!this.state.isEditing) {
       value = this.props.emptyText;
     }
-    let input = (
+
+    // Construct an inline style based on previously-saved height of the rendered label. Only
+    // used in multi-line contexts.
+    const editStyle = (this.state.isEditing && this.contentHeight) ? { height: `${this.contentHeight}px` } : null;
+
+    // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
+    // be text or a button).
+    let input = this.props.multiLine && this.state.isEditing ? (
+      <textarea
+        ref={this.contentRef}
+        required
+        value={value}
+        className={!this.state.title ? 'text-muted' : null}
+        onKeyUp={this.handleKeyUp}
+        onChange={this.handleChange}
+        onBlur={this.handleBlur}
+        onClick={this.handleClick}
+        onKeyPress={this.handleKeyPress}
+        style={editStyle}
+      />
+    ) : (
       <input
+        ref={this.contentRef}
         required
         type={this.state.isEditing ? 'text' : 'button'}
         value={value}
@@ -168,6 +201,7 @@ export default class EditableTitle extends React.PureComponent {
       <span
         className={cx(
           'editable-title',
+          this.props.extraClasses,
           this.props.canEdit && 'editable-title--editable',
           this.state.isEditing && 'editable-title--editing',
         )}
