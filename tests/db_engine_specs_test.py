@@ -218,7 +218,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                     , b
                 FROM
                 table
-                LIMIT         1000            ;""",
+                LIMIT         1000""",
         )
 
     def test_get_datatype(self):
