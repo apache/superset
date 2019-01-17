@@ -34,7 +34,7 @@ class ParsedQuery(object):
         self._limit = None
 
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
-        self._parsed = sqlparse.parse(self.sql)
+        self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self.__extract_from_token(statement)
             self._limit = self._extract_limit_from_query(statement)
