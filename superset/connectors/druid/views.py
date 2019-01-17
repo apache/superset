@@ -50,11 +50,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable']
     add_columns = edit_columns
-    list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+    list_columns = ['column_name', 'verbose_name', 'type', 'groupby', 'filterable']
     can_delete = False
     page_size = 500
     label_columns = {
@@ -63,12 +61,6 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'datasource': _('Datasource'),
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
-        'verbose_name': _('Verbose Name'),
-        'description': _('Description'),
     }
     description_columns = {
         'filterable': _(

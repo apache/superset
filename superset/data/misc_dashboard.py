@@ -88,9 +88,9 @@ def load_misc_dashboard():
         "children": [],
         "id": "CHART-r19KVMNCE7",
         "meta": {
-            "chartId": 3978,
+            "chartId": 3971,
             "height": 34,
-            "sliceName": "Calendar Heatmap multiformat 7",
+            "sliceName": "Calendar Heatmap multiformat 0",
             "width": 4
         },
         "type": "CHART"
