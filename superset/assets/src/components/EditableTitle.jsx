@@ -25,19 +25,23 @@ import TooltipWrapper from './TooltipWrapper';
 const propTypes = {
   title: PropTypes.string,
   canEdit: PropTypes.bool,
+  multiLine: PropTypes.bool,
   onSaveTitle: PropTypes.func,
   noPermitTooltip: PropTypes.string,
   showTooltip: PropTypes.bool,
   emptyText: PropTypes.node,
   style: PropTypes.object,
+  extraClasses: PropTypes.oneOfType([PropTypes.arrayOf(PropTypes.string), PropTypes.string]),
 };
 const defaultProps = {
   title: t('Title'),
   canEdit: false,
+  multiLine: false,
   showTooltip: true,
   onSaveTitle: () => {},
   emptyText: '<empty>',
   style: null,
+  extraClasses: null,
 };
 
 export default class EditableTitle extends React.PureComponent {
@@ -53,6 +57,9 @@ export default class EditableTitle extends React.PureComponent {
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+
+    // Used so we can access the DOM element if a user clicks on this component.
+    this.contentRef = React.createRef();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -68,7 +75,13 @@ export default class EditableTitle extends React.PureComponent {
     if (!this.props.canEdit || this.state.isEditing) {
       return;
     }
-    this.setState({ isEditing: true });
+
+    // For multi-line values, save the actual rendered size of the displayed text.
+    // Later, if a textarea is constructed for editing the value, we'll need this.
+    const contentBoundingRect = (this.contentRef.current) ?
+      this.contentRef.current.getBoundingClientRect() : null;
+
+    this.setState({ isEditing: true, contentBoundingRect });
   }
 
   handleBlur() {
@@ -134,18 +147,43 @@ export default class EditableTitle extends React.PureComponent {
   }
 
   render() {
+    const { isEditing, title, contentBoundingRect } = this.state;
+    const { emptyText, multiLine, showTooltip, canEdit,
+      noPermitTooltip, style, extraClasses } = this.props;
+
     let value;
-    if (this.state.title) {
-      value = this.state.title;
-    } else if (!this.state.isEditing) {
-      value = this.props.emptyText;
+    if (title) {
+      value = title;
+    } else if (!isEditing) {
+      value = emptyText;
     }
-    let input = (
-      <input
+
+    // Construct an inline style based on previously-saved height of the rendered label. Only
+    // used in multi-line contexts.
+    const editStyle = (isEditing && contentBoundingRect) ? { height: `${contentBoundingRect.height}px` } : null;
+
+    // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
+    // be text or a button).
+    let input = multiLine && isEditing ? (
+      <textarea
+        ref={this.contentRef}
         required
-        type={this.state.isEditing ? 'text' : 'button'}
         value={value}
-        className={!this.state.title ? 'text-muted' : null}
+        className={!title ? 'text-muted' : null}
+        onKeyUp={this.handleKeyUp}
+        onChange={this.handleChange}
+        onBlur={this.handleBlur}
+        onClick={this.handleClick}
+        onKeyPress={this.handleKeyPress}
+        style={editStyle}
+      />
+    ) : (
+      <input
+        ref={this.contentRef}
+        required
+        type={isEditing ? 'text' : 'button'}
+        value={value}
+        className={!title ? 'text-muted' : null}
         onKeyUp={this.handleKeyUp}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
@@ -153,12 +191,12 @@ export default class EditableTitle extends React.PureComponent {
         onKeyPress={this.handleKeyPress}
       />
     );
-    if (this.props.showTooltip && !this.state.isEditing) {
+    if (showTooltip && !isEditing) {
       input = (
         <TooltipWrapper
           label="title"
-          tooltip={this.props.canEdit ? t('click to edit') :
-              this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
+          tooltip={canEdit ? t('click to edit') :
+            noPermitTooltip || t('You don\'t have the rights to alter this title.')}
         >
           {input}
         </TooltipWrapper>
@@ -168,10 +206,11 @@ export default class EditableTitle extends React.PureComponent {
       <span
         className={cx(
           'editable-title',
-          this.props.canEdit && 'editable-title--editable',
-          this.state.isEditing && 'editable-title--editing',
+          extraClasses,
+          canEdit && 'editable-title--editable',
+          isEditing && 'editable-title--editing',
         )}
-        style={this.props.style}
+        style={style}
       >
         {input}
       </span>
