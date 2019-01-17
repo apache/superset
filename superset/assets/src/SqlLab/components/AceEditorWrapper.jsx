@@ -124,8 +124,13 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.onChange(text);
   }
   getCompletions(aceEditor, session, pos, prefix, callback) {
-    console.log('here');
-    callback(null, this.state.words);
+    const completer = {
+      insertMatch: (editor, data) => {
+        editor.completer.insertMatch({ value: data.caption + ' ' });
+      },
+    };
+    const words = this.state.words.map(word => ({ ...word, completer }));
+    callback(null, words);
   }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
@@ -146,10 +151,6 @@ class AceEditorWrapper extends React.PureComponent {
     this.setState({ words }, () => {
       const completer = {
         getCompletions: this.getCompletions.bind(this),
-        insertMatch: (editor, data) => {
-          console.log('HERE IT IS');
-          editor.completer.insertMatch({ value: data.value + ' ' });
-        },
       };
       if (langTools) {
         langTools.setCompleters([completer]);
