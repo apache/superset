@@ -43,7 +43,6 @@ import withToasts from '../messageToasts/enhancers/withToasts';
 import './main.css';
 
 const checkboxGenerator = (d, onChange) => <CheckboxControl value={d} onChange={onChange} />;
-const styleMonospace = { fontFamily: 'monospace' };
 const DATA_TYPES = ['STRING', 'NUMBER', 'DATETIME'];
 
 function CollectionTabTitle({ title, collection }) {
@@ -540,7 +539,8 @@ export class DatasourceEditor extends React.PureComponent {
               canEdit
               title={v}
               onSaveTitle={onChange}
-              style={styleMonospace}
+              extraClasses={['datasource-sql-expression']}
+              multiLine
             />),
           description: (v, onChange, label) => (
             <StackedField
