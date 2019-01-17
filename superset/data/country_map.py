@@ -21,6 +21,7 @@ import pandas as pd
 from sqlalchemy import BigInteger, Date, String
 
 from superset import db
+from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import (
     DATA_FOLDER,
@@ -67,6 +68,11 @@ def load_country_map_data():
         obj = TBL(table_name='birth_france_by_region')
     obj.main_dttm_col = 'dttm'
     obj.database = utils.get_or_create_main_db()
+    if not any(col.metric_name == 'avg__2004' for col in obj.metrics):
+        obj.metrics.append(SqlMetric(
+            metric_name='avg__2004',
+            expression='AVG(2004)',
+        ))
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -79,7 +85,16 @@ def load_country_map_data():
         'where': '',
         'viz_type': 'country_map',
         'entity': 'DEPT_ID',
-        'metric': 'avg__2004',
+        'metric': {
+            'expressionType': 'SIMPLE',
+            'column': {
+                'type': 'INT',
+                'column_name': '2004',
+            },
+            'aggregate': 'AVG',
+            'label': 'Boys',
+            'optionName': 'metric_112342',
+        },
         'row_limit': 500000,
     }
 

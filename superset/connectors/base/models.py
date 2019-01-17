@@ -350,13 +350,8 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
-    groupby = Column(Boolean, default=False)
-    count_distinct = Column(Boolean, default=False)
-    sum = Column(Boolean, default=False)
-    avg = Column(Boolean, default=False)
-    max = Column(Boolean, default=False)
-    min = Column(Boolean, default=False)
-    filterable = Column(Boolean, default=False)
+    groupby = Column(Boolean, default=True)
+    filterable = Column(Boolean, default=True)
     description = Column(Text)
     is_dttm = None
 

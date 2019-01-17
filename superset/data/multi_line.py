@@ -45,8 +45,11 @@ def load_multi_line():
             'viz_type': 'line_multi',
             'line_charts': [ids[0]],
             'line_charts_2': [ids[1]],
-            'since': '1960-01-01',
+            'since': '1970',
+            'until': '1995',
             'prefix_metric_with_slice_name': True,
+            'show_legend': False,
+            'x_axis_format': '%Y',
         }),
     )
 
