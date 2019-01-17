@@ -196,8 +196,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             FROM
             table
             LIMIT 99990""",
-            """
-            SELECT
+            """SELECT
                 'LIMIT 777' AS a
                 , b
             FROM
@@ -214,13 +213,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT         99990            ;""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
                 table
-                LIMIT         1000            ;""",
+                LIMIT         1000""",
         )
 
     def test_get_datatype(self):
@@ -238,8 +236,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT 99990, 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
@@ -257,8 +254,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 table
                 LIMIT 99990
                 OFFSET 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
