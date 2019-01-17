@@ -25,6 +25,7 @@ import pandas as pd
 from sqlalchemy import DateTime, String
 
 from superset import db
+from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import (
     config,
@@ -67,6 +68,18 @@ def load_world_bank_health_n_pop():
     tbl.main_dttm_col = 'year'
     tbl.database = utils.get_or_create_main_db()
     tbl.filter_select_enabled = True
+
+    metrics = [
+        'sum__SP_POP_TOTL', 'sum__SH_DYN_AIDS', 'sum__SH_DYN_AIDS',
+        'sum__SP_RUR_TOTL_ZS', 'sum__SP_DYN_LE00_IN',
+    ]
+    for m in metrics:
+        if not any(col.metric_name == m for col in tbl.metrics):
+            tbl.metrics.append(SqlMetric(
+                metric_name=m,
+                expression=f'{m[:3]}({m[5:]})',
+            ))
+
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

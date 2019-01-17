@@ -169,6 +169,7 @@ the world know they are using Superset. Join our growing community!
  1. [Fordeal](http://www.fordeal.com)
  1. [GfK Data Lab](http://datalab.gfk.com)
  1. [Grassroot](https://www.grassrootinstitute.org/)
+ 1. [HuiShouBao](http://www.huishoubao.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)

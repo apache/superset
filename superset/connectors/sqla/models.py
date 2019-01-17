@@ -102,7 +102,7 @@ class TableColumn(Model, BaseColumn):
 
     export_fields = (
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
-        'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
+        'type', 'groupby',
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression',
     )
@@ -184,43 +184,6 @@ class TableColumn(Model, BaseColumn):
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
             return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
-
-    def get_metrics(self):
-        # TODO deprecate, this is not needed since MetricsControl
-        metrics = []
-        M = SqlMetric  # noqa
-        quoted = self.column_name
-        if self.sum:
-            metrics.append(M(
-                metric_name='sum__' + self.column_name,
-                metric_type='sum',
-                expression='SUM({})'.format(quoted),
-            ))
-        if self.avg:
-            metrics.append(M(
-                metric_name='avg__' + self.column_name,
-                metric_type='avg',
-                expression='AVG({})'.format(quoted),
-            ))
-        if self.max:
-            metrics.append(M(
-                metric_name='max__' + self.column_name,
-                metric_type='max',
-                expression='MAX({})'.format(quoted),
-            ))
-        if self.min:
-            metrics.append(M(
-                metric_name='min__' + self.column_name,
-                metric_type='min',
-                expression='MIN({})'.format(quoted),
-            ))
-        if self.count_distinct:
-            metrics.append(M(
-                metric_name='count_distinct__' + self.column_name,
-                metric_type='count_distinct',
-                expression='COUNT(DISTINCT {})'.format(quoted),
-            ))
-        return {m.metric_name: m for m in metrics}
 
 
 class SqlMetric(Model, BaseMetric):
@@ -878,7 +841,6 @@ class SqlaTable(Model, BaseDatasource):
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
-            metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
             metric_name='count',

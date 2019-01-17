@@ -2129,10 +2129,10 @@ class BaseDeckGLViz(BaseViz):
             return None
         try:
             p = Point(s)
+            return (p.latitude, p.longitude)  # pylint: disable=no-member
         except Exception:
             raise SpatialException(
                 _('Invalid spatial point encountered: %s' % s))
-        return (p.latitude, p.longitude)
 
     @staticmethod
     def reverse_geohash_decode(geohash_code):
