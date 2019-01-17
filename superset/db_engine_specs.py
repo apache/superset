@@ -1000,7 +1000,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls):
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         from superset.db_engines import hive as patched_hive
         from TCLIService import (
             constants as patched_constants,
@@ -1163,7 +1163,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
