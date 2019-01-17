@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from pyhive import hive
+from pyhive import hive  # pylint: disable=no-name-in-module
 from TCLIService import ttypes
 from thrift import Thrift
 
