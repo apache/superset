@@ -89,8 +89,8 @@ def load_multiformat_time_series():
             'metrics': ['count'],
             'granularity_sqla': col.column_name,
             'row_limit': config.get('ROW_LIMIT'),
-            'since': '1 year ago',
-            'until': 'now',
+            'since': '2015',
+            'until': '2016',
             'where': '',
             'viz_type': 'cal_heatmap',
             'domain_granularity': 'month',
@@ -98,11 +98,11 @@ def load_multiformat_time_series():
         }
 
         slc = Slice(
-            slice_name='Calendar Heatmap multiformat ' + str(i),
+            slice_name=f'Calendar Heatmap multiformat {i}',
             viz_type='cal_heatmap',
             datasource_type='table',
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)
-    misc_dash_slices.add(slc.slice_name)
+    misc_dash_slices.add('Calendar Heatmap multiformat 0')

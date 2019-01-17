@@ -23,7 +23,7 @@ import pandas as pd
 from sqlalchemy import DateTime, String
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import TableColumn
+from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.utils.core import get_or_create_main_db
 from .helpers import (
     config,
@@ -69,6 +69,12 @@ def load_birth_names():
         obj.columns.append(TableColumn(
             column_name='num_california',
             expression="CASE WHEN state = 'CA' THEN num ELSE 0 END",
+        ))
+
+    if not any(col.metric_name == 'sum__num' for col in obj.metrics):
+        obj.metrics.append(SqlMetric(
+            metric_name='sum__num',
+            expression='SUM(num)',
         ))
 
     db.session.merge(obj)

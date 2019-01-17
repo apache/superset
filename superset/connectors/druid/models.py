@@ -237,12 +237,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                     if col_obj.type == 'STRING':
                         col_obj.groupby = True
                         col_obj.filterable = True
-                    if col_obj.type == 'hyperUnique' or col_obj.type == 'thetaSketch':
-                        col_obj.count_distinct = True
-                    if col_obj.is_num:
-                        col_obj.sum = True
-                        col_obj.min = True
-                        col_obj.max = True
                 datasource.refresh_metrics()
         session.commit()
 
@@ -280,8 +274,7 @@ class DruidColumn(Model, BaseColumn):
 
     export_fields = (
         'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
-        'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json', 'verbose_name',
+        'filterable', 'description', 'dimension_spec_json', 'verbose_name',
     )
     update_from_object_fields = export_fields
     export_parent = 'datasource'
@@ -306,77 +299,6 @@ class DruidColumn(Model, BaseColumn):
             metric_type='count',
             json=json.dumps({'type': 'count', 'name': 'count'}),
         )
-        # Somehow we need to reassign this for UDAFs
-        if self.type in ('DOUBLE', 'FLOAT'):
-            corrected_type = 'DOUBLE'
-        else:
-            corrected_type = self.type
-
-        if self.sum and self.is_num:
-            mt = corrected_type.lower() + 'Sum'
-            name = 'sum__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='sum',
-                verbose_name='SUM({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-
-        if self.avg and self.is_num:
-            mt = corrected_type.lower() + 'Avg'
-            name = 'avg__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='avg',
-                verbose_name='AVG({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-
-        if self.min and self.is_num:
-            mt = corrected_type.lower() + 'Min'
-            name = 'min__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='min',
-                verbose_name='MIN({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-        if self.max and self.is_num:
-            mt = corrected_type.lower() + 'Max'
-            name = 'max__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='max',
-                verbose_name='MAX({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-        if self.count_distinct:
-            name = 'count_distinct__' + self.column_name
-            if self.type == 'hyperUnique' or self.type == 'thetaSketch':
-                metrics[name] = DruidMetric(
-                    metric_name=name,
-                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                    metric_type=self.type,
-                    json=json.dumps({
-                        'type': self.type,
-                        'name': name,
-                        'fieldName': self.column_name,
-                    }),
-                )
-            else:
-                metrics[name] = DruidMetric(
-                    metric_name=name,
-                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                    metric_type='count_distinct',
-                    json=json.dumps({
-                        'type': 'cardinality',
-                        'name': name,
-                        'fieldNames': [self.column_name]}),
-                )
         return metrics
 
     def refresh_metrics(self):

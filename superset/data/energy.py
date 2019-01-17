@@ -24,6 +24,7 @@ import pandas as pd
 from sqlalchemy import Float, String
 
 from superset import db
+from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import DATA_FOLDER, merge_slice, misc_dash_slices, Slice, TBL
 
@@ -51,6 +52,13 @@ def load_energy():
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'Energy consumption'
     tbl.database = utils.get_or_create_main_db()
+
+    if not any(col.metric_name == 'sum__value' for col in tbl.metrics):
+        tbl.metrics.append(SqlMetric(
+            metric_name='sum__value',
+            expression='SUM(value)',
+        ))
+
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
