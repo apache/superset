@@ -3,6 +3,19 @@
 {% if not locale %}
     {% set locale = 'en' %}
 {% endif %}
+
+{% if not current_user.is_anonymous %}
+    <li class="dropdown">
+        <button type="button" style="margin-top: 12px; margin-right: 30px;" data-toggle="dropdown" class="dropdown-toggle btn btn-sm btn-primary">
+          <i class="fa fa-plus"></i> {{ _("New") }}
+        </button>
+        <ul class="dropdown-menu">
+            <li><a href="/superset/sqllab"><span class="fa fa-fw fa-search"></span> {{_("SQL Query")}}</a></li>
+            <li><a href="/chart/add"><span class="fa fa-fw fa-bar-chart"></span> {{_("Chart")}}</a></li>
+            <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>
+        </ul>
+    </li>
+{% endif %}
 {% if languages.keys()|length > 1 %}
 <li class="dropdown">
     <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
@@ -24,8 +37,6 @@
     </ul>
 </li>
 {% endif %}
-
-
 
 {% if not current_user.is_anonymous %}
     <li class="dropdown">
