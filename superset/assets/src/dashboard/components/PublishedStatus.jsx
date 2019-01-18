@@ -13,15 +13,15 @@ const propTypes = {
 };
 
 const draftButtonTooltip =
-  'This dashboard is not published which means it will not show up in the list of dashboards. ' +
-  'Click here to publish this dashboard.';
+  t('This dashboard is not published which means it will not show up in the list of dashboards. ' +
+  'Click here to publish this dashboard.');
 
 const draftDivTooltip =
-  'This dashboard is not published which means it will not show up in the list of dashboards.' +
-  ' Favorite it to see it there or access it by using the URL directly.';
+  t('This dashboard is not published which means it will not show up in the list of dashboards.' +
+  ' Favorite it to see it there or access it by using the URL directly.');
 
 const publishedTooltip =
-  'This dashboard is published. Click to make it a draft.';
+  t('This dashboard is published. Click to make it a draft.');
 
 const divStyle = {
   border: '1px dotted black',
@@ -50,7 +50,7 @@ export default class PublishedStatus extends React.Component {
           <TooltipWrapper
             label="Unpublished Dashboard"
             placement="bottom"
-            tooltip={t(draftButtonTooltip)}
+            tooltip={draftButtonTooltip}
           >
             <button
               style={divStyle}
@@ -67,7 +67,7 @@ export default class PublishedStatus extends React.Component {
         <TooltipWrapper
           label="Unpublished Dashboard"
           placement="bottom"
-          tooltip={t(draftDivTooltip)}
+          tooltip={draftDivTooltip}
         >
           <div style={divStyle}>Draft</div>
         </TooltipWrapper>
@@ -80,7 +80,7 @@ export default class PublishedStatus extends React.Component {
         <TooltipWrapper
           label="Published Dashboard"
           placement="bottom"
-          tooltip={t(publishedTooltip)}
+          tooltip={publishedTooltip}
         >
           <button
             style={divStyle}

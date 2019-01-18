@@ -16,14 +16,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 Revision ID: a33a03f16c4a
-Revises: fb13d49b72f9
+Revises: 8b70aa3d0f87
 Create Date: 2019-01-14 16:00:26.344439
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'a33a03f16c4a'
-down_revision = 'fb13d49b72f9'
+down_revision = '8b70aa3d0f87'
 
 from alembic import op
 import sqlalchemy as sa

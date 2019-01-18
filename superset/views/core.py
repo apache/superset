@@ -117,47 +117,46 @@ class DashboardFilter(SupersetFilter):
         2. Those which the user has favorited
         3. Those which have been published (if they have access to at least one slice)
 
-    Show all dashboards for users which have the 'all_datasource_access' permission
+    If the user is an admin show them all dashboards.
+    This means they do not get curation but can still sort by "published"
+    if they wish to see those dashboards which are published first
     """
-
     def apply(self, query, func):  # noqa
         Dash = models.Dashboard
         User = ab_models.User
         Slice = models.Slice  # noqa
         Favorites = models.FavStar
 
-        # If user has all_datasource_access, show all dashboards
-        if security_manager.all_datasource_access():
+        user_roles = [role.name.lower() for role in list(self.get_user_roles())]
+        if 'admin' in user_roles:
             return query
 
         datasource_perms = self.get_view_menus('datasource_access')
-
+        all_datasource_access = security_manager.all_datasource_access()
         published_dash_query = (
             db.session.query(Dash.id)
                 .join(Dash.slices)
                 .filter(sqla.and_(Dash.published == True,  # noqa
-                                  Slice.perm.in_(list(datasource_perms))))
+                        sqla.or_(Slice.perm.in_(datasource_perms),
+                                 all_datasource_access)))
         )
 
-        if not g.user.is_anonymous:
-            users_favorite_dash_query = (
-                db.session.query(Favorites.obj_id)
-                .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
-                                  Favorites.class_name == 'Dashboard'))
-            )
-            owner_ids_query = (
-                db.session.query(Dash.id)
-                .join(Dash.owners)
-                .filter(User.id == User.get_user_id())
-            )
+        users_favorite_dash_query = (
+            db.session.query(Favorites.obj_id)
+            .filter(sqla.and_(Favorites.user_id == User.get_user_id(),
+                              Favorites.class_name == 'Dashboard'))
+        )
+        owner_ids_query = (
+            db.session.query(Dash.id)
+            .join(Dash.owners)
+            .filter(User.id == User.get_user_id())
+        )
 
-            query = query.filter(sqla.or_(
-                Dash.id.in_(owner_ids_query),
-                Dash.id.in_(published_dash_query),
-                Dash.id.in_(users_favorite_dash_query),
-            ))
-        else:
-            query = query.filter(Dash.id.in_(published_dash_query))
+        query = query.filter(sqla.or_(
+            Dash.id.in_(owner_ids_query),
+            Dash.id.in_(published_dash_query),
+            Dash.id.in_(users_favorite_dash_query),
+        ))
 
         return query
 
