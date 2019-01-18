@@ -1067,11 +1067,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        import pyhive
         from TCLIService import ttypes
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception('Query error', state.errorMessage)
-        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        try:
+            return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        except pyhive.exc.ProgrammingError:
+            return []
 
     @staticmethod
     def create_table_from_csv(form, table):
