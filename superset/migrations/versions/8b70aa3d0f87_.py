@@ -16,15 +16,15 @@
 # under the License.
 """empty message
 
-Revision ID: c829ff0b37d0
-Revises: ('4451805bbaa1', '1d9e835a84f9')
-Create Date: 2018-07-22 08:49:48.936117
+Revision ID: 8b70aa3d0f87
+Revises: ('fbd55e0f83eb', 'fb13d49b72f9')
+Create Date: 2019-01-17 08:31:55.781032
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'c829ff0b37d0'
-down_revision = ('4451805bbaa1', '1d9e835a84f9')
+revision = '8b70aa3d0f87'
+down_revision = ('fbd55e0f83eb', 'fb13d49b72f9')
 
 from alembic import op
 import sqlalchemy as sa
