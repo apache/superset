@@ -202,7 +202,7 @@ Make sure your machine meets the [OS dependencies](https://superset.incubator.ap
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv -p python3 venv . # setup a python3.6 virtualenv
+virtualenv -p python3 venv # setup a python3.6 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
@@ -254,12 +254,6 @@ First, be sure you are using recent versions of NodeJS and npm. Using [nvm](http
 
 #### Prerequisite
 
-If needed, install yarn
-
-```bash
-npm install -g yarn
-```
-
 #### Installing Dependencies
 
 Install third-party dependencies listed in `package.json`:
@@ -268,8 +262,8 @@ Install third-party dependencies listed in `package.json`:
 # From the root of the repository
 cd superset/assets
 
-# Install dependencies
-yarn install
+# Install dependencies from `package-lock.json`
+npm ci
 ```
 
 #### Building
@@ -302,7 +296,9 @@ npm run sync-backend
 
 #### Updating NPM packages
 
-After adding or upgrading an NPM package by changing `package.json`, you must run `yarn install`, which will regenerate the `yarn.lock` file. Then, be sure to commit the new `yarn.lock` so that other users' builds are reproducible. See [the Yarn docs](https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/) for more information.
+Use npm in the prescribed way, making sure that
+`superset/assets/package-lock.json` is updated according to `npm`-prescribed
+best practices.
 
 #### Feature flags
 
@@ -329,7 +325,7 @@ tox -e flake8
 
 # for javascript
 cd superset/assets
-yarn install
+npm ci
 npm run lint
 ```
 
@@ -373,7 +369,6 @@ We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test
 
 ```bash
 cd superset/assets
-yarn install
 npm run test
 ```
 
@@ -436,8 +431,11 @@ fabmanager babel-extract --target superset/translations --output superset/transl
 ```
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. For the translations
-to take effect:
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) 
+to translate the `po` file more conveniently.
+There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
+
+For the translations to take effect:
 
 ```bash
 # In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
@@ -451,6 +449,8 @@ If you get errors running `po2json`, you might be running the Ubuntu package wit
 name, rather than the NodeJS package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
+If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
+For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
 
 ### Creating a new language dictionary
 

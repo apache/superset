@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 import json
 
@@ -25,6 +41,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     baselink = None  # url portion pointing to ModelView endpoint
     column_class = None  # link to derivative of BaseColumn
     metric_class = None  # link to derivative of BaseMetric
+    owner_class = None
 
     # Used to do code highlighting when displaying the query in the UI
     query_language = None
@@ -45,7 +62,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
 
     sql = None
-    owner = None
+    owners = None
     update_from_object_fields = None
 
     @declared_attr
@@ -95,10 +112,6 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return None
 
     @property
-    def groupby_column_names(self):
-        return sorted([c.column_name for c in self.columns if c.groupby])
-
-    @property
     def filterable_column_names(self):
         return sorted([c.column_name for c in self.columns if c.filterable])
 
@@ -131,14 +144,6 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             if metric.metric_name not in exisiting_metrics:
                 metric.table_id = self.id
                 self.metrics += [metric]
-
-    @property
-    def metrics_combo(self):
-        return sorted(
-            [
-                (m.metric_name, m.verbose_name or m.metric_name or '')
-                for m in self.metrics],
-            key=lambda x: x[1])
 
     @property
     def short_data(self):
@@ -192,20 +197,18 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'cache_timeout': self.cache_timeout,
             'params': self.params,
             'perm': self.perm,
+            'edit_url': self.url,
 
             # sqla-specific
             'sql': self.sql,
 
-            # computed fields
-            'all_cols': utils.choicify(self.column_names),
+            # one to many
             'columns': [o.data for o in self.columns],
-            'edit_url': self.url,
-            'filterable_cols': utils.choicify(self.filterable_column_names),
-            'gb_cols': utils.choicify(self.groupby_column_names),
             'metrics': [o.data for o in self.metrics],
-            'metrics_combo': self.metrics_combo,
+
+            # TODO deprecate, move logic to JS
             'order_by_choices': order_by_choices,
-            'owner': self.owner.id if self.owner else None,
+            'owners': [owner.id for owner in self.owners],
             'verbose_map': verbose_map,
             'select_star': self.select_star,
         }
@@ -325,7 +328,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
-        self.user_id = obj.get('owner')
+        self.owners = obj.get('owners', [])
 
         # Syncing metrics
         metrics = self.get_fk_many_from_list(
@@ -347,13 +350,8 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
-    groupby = Column(Boolean, default=False)
-    count_distinct = Column(Boolean, default=False)
-    sum = Column(Boolean, default=False)
-    avg = Column(Boolean, default=False)
-    max = Column(Boolean, default=False)
-    min = Column(Boolean, default=False)
-    filterable = Column(Boolean, default=False)
+    groupby = Column(Boolean, default=True)
+    filterable = Column(Boolean, default=True)
     description = Column(Text)
     is_dttm = None
 

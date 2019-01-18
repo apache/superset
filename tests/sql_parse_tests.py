@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import unittest
 
 from superset import sql_parse
@@ -6,7 +22,7 @@ from superset import sql_parse
 class SupersetTestCase(unittest.TestCase):
 
     def extract_tables(self, query):
-        sq = sql_parse.SupersetQuery(query)
+        sq = sql_parse.ParsedQuery(query)
         return sq.tables
 
     def test_simple_select(self):
@@ -294,12 +310,12 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({'t1', 't2'}, self.extract_tables(query))
 
     def test_update_not_select(self):
-        sql = sql_parse.SupersetQuery('UPDATE t1 SET col1 = NULL')
+        sql = sql_parse.ParsedQuery('UPDATE t1 SET col1 = NULL')
         self.assertEquals(False, sql.is_select())
         self.assertEquals(False, sql.is_readonly())
 
     def test_explain(self):
-        sql = sql_parse.SupersetQuery('EXPLAIN SELECT 1')
+        sql = sql_parse.ParsedQuery('EXPLAIN SELECT 1')
 
         self.assertEquals(True, sql.is_explain())
         self.assertEquals(False, sql.is_select())
@@ -369,3 +385,35 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {'a', 'b', 'c', 'd', 'e', 'f'},
             self.extract_tables(query))
+
+    def test_basic_breakdown_statements(self):
+        multi_sql = """
+        SELECT * FROM ab_user;
+        SELECT * FROM ab_user LIMIT 1;
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 2)
+        expected = [
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)
+
+    def test_messy_breakdown_statements(self):
+        multi_sql = """
+        SELECT 1;\t\n\n\n  \t
+        \t\nSELECT 2;
+        SELECT * FROM ab_user;;;
+        SELECT * FROM ab_user LIMIT 1
+        """
+        parsed = sql_parse.ParsedQuery(multi_sql)
+        statements = parsed.get_statements()
+        self.assertEquals(len(statements), 4)
+        expected = [
+            'SELECT 1',
+            'SELECT 2',
+            'SELECT * FROM ab_user',
+            'SELECT * FROM ab_user LIMIT 1',
+        ]
+        self.assertEquals(statements, expected)

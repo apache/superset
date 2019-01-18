@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
 import json
@@ -34,11 +50,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable']
     add_columns = edit_columns
-    list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+    list_columns = ['column_name', 'verbose_name', 'type', 'groupby', 'filterable']
     can_delete = False
     page_size = 500
     label_columns = {
@@ -47,12 +61,6 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'datasource': _('Datasource'),
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
-        'verbose_name': _('Verbose Name'),
-        'description': _('Description'),
     }
     description_columns = {
         'filterable': _(
@@ -214,12 +222,12 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm', 'slices']
@@ -263,7 +271,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'datasource_link': _('Data Source'),
         'cluster': _('Cluster'),
         'description': _('Description'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'is_hidden': _('Is Hidden'),
         'filter_select_enabled': _('Enable Filter Select'),
         'default_endpoint': _('Default Endpoint'),

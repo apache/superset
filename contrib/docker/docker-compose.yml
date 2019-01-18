@@ -7,6 +7,7 @@ services:
       - 6379:6379
     volumes:
       - redis:/data
+
   postgres:
     image: postgres:10
     restart: unless-stopped
@@ -18,6 +19,7 @@ services:
       - 5432:5432
     volumes:
       - postgres:/var/lib/postgresql/data
+
   superset:
     build:
       context: ../../
@@ -44,6 +46,7 @@ services:
       - ./superset_config.py:/home/superset/superset/superset_config.py
       # this is needed for development, remove with SUPERSET_ENV=production
       - ../../superset:/home/superset/superset
+
 volumes:
   postgres:
     external: false

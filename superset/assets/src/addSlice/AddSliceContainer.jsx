@@ -1,9 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import { t } from '@superset-ui/translation';
-import { getChartMetadataRegistry } from '@superset-ui/chart';
+
+import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
@@ -47,8 +66,8 @@ export default class AddSliceContainer extends React.PureComponent {
     });
   }
 
-  changeVisType(e) {
-    this.setState({ visType: e.value });
+  changeVisType(visType) {
+    this.setState({ visType });
   }
 
   isBtnDisabled() {
@@ -56,12 +75,6 @@ export default class AddSliceContainer extends React.PureComponent {
   }
 
   render() {
-    const types = getChartMetadataRegistry().entries()
-      .map(({ key, value }) => ({
-        value: key,
-        label: value.name,
-      }));
-
     return (
       <div className="container">
         <Panel header={<h3>{t('Create a new chart')}</h3>}>
@@ -90,17 +103,14 @@ export default class AddSliceContainer extends React.PureComponent {
           <br />
           <div>
             <p>{t('Choose a visualization type')}</p>
-            <Select
-              clearable={false}
+            <VizTypeControl
               name="select-vis-type"
-              style={styleSelectWidth}
               onChange={this.changeVisType}
-              options={types}
-              placeholder={t('Choose a visualization type')}
               value={this.state.visType}
             />
           </div>
           <br />
+          <hr />
           <Button
             bsStyle="primary"
             disabled={this.isBtnDisabled()}

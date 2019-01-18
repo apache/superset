@@ -25,12 +25,6 @@ RUN apt-get install -y vim less postgresql-client redis-tools
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get install -y nodejs
 
-# https://yarnpkg.com/lang/en/docs/install/#debian-stable
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
-    && apt-get install -y yarn
-
 WORKDIR /home/superset
 
 COPY requirements.txt .
@@ -40,19 +34,18 @@ RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
-USER superset
-
 COPY --chown=superset:superset superset superset
 
 ENV PATH=/home/superset/superset/bin:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH
 
+USER superset
+
 RUN cd superset/assets \
-    && yarn --non-interactive --frozen-lockfile --link-duplicates \
-    && yarn run sync-backend \
-    && yarn run build \
-    && rm -rf node_modules \
-    && yarn cache clean
+    && npm ci \
+    && npm run sync-backend \
+    && npm run build \
+    && rm -rf node_modules
 
 COPY contrib/docker/docker-init.sh .
 COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh

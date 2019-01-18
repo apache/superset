@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Superset"""
 import csv
 import datetime
@@ -19,12 +35,14 @@ import sqlalchemy as sqla
 from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
+from superset.db_engine_specs import MssqlEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
+from .fixtures.pyodbcRow import Row
 
 
 class CoreTests(SupersetTestCase):
@@ -531,13 +549,13 @@ class CoreTests(SupersetTestCase):
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
         url = (
-            '/superset/fetch_datasource_metadata?' +
+            '/superset/fetch_datasource_metadata?'
             'datasourceKey=1__table'
         )
         resp = self.get_json_resp(url)
         keys = [
-            'name', 'filterable_cols', 'gb_cols', 'type', 'all_cols',
-            'order_by_choices', 'metrics_combo', 'granularity_sqla',
+            'name', 'type',
+            'order_by_choices', 'granularity_sqla',
             'time_grain_sqla', 'id',
         ]
         for k in keys:
@@ -672,6 +690,36 @@ class CoreTests(SupersetTestCase):
             data[1],
             {'data': pd.Timestamp('2017-11-18 22:06:30.061810+0100', tz=tz)},
         )
+
+    def test_mssql_engine_spec_pymssql(self):
+        # Test for case when tuple is returned (pymssql)
+        data = [(1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000)),
+                (2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000))]
+        df = dataframe.SupersetDataFrame(
+            list(data),
+            [['col1'], ['col2'], ['col3']],
+            MssqlEngineSpec)
+        data = df.data
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0],
+                         {'col1': 1,
+                          'col2': 1,
+                          'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
+
+    def test_mssql_engine_spec_odbc(self):
+        # Test for case when pyodbc.Row is returned (msodbc driver)
+        data = [Row((1, 1, datetime.datetime(2017, 10, 19, 23, 39, 16, 660000))),
+                Row((2, 2, datetime.datetime(2018, 10, 19, 23, 39, 16, 660000)))]
+        df = dataframe.SupersetDataFrame(
+            list(data),
+            [['col1'], ['col2'], ['col3']],
+            MssqlEngineSpec)
+        data = df.data
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0],
+                         {'col1': 1,
+                          'col2': 1,
+                          'col3': pd.Timestamp('2017-10-19 23:39:16.660000')})
 
     def test_comments_in_sqlatable_query(self):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
