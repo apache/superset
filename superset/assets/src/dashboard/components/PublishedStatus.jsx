@@ -12,16 +12,19 @@ const propTypes = {
   canSave: PropTypes.bool.isRequired,
 };
 
-const draftButtonTooltip =
-  t('This dashboard is not published which means it will not show up in the list of dashboards. ' +
-  'Click here to publish this dashboard.');
+const draftButtonTooltip = t(
+  'This dashboard is not published which means it will not show up in the list of dashboards. ' +
+    'Click here to publish this dashboard.',
+);
 
-const draftDivTooltip =
-  t('This dashboard is not published which means it will not show up in the list of dashboards.' +
-  ' Favorite it to see it there or access it by using the URL directly.');
+const draftDivTooltip = t(
+  'This dashboard is not published which means it will not show up in the list of dashboards.' +
+    ' Favorite it to see it there or access it by using the URL directly.',
+);
 
-const publishedTooltip =
-  t('This dashboard is published. Click to make it a draft.');
+const publishedTooltip = t(
+  'This dashboard is published. Click to make it a draft.',
+);
 
 const divStyle = {
   border: '1px dotted black',
