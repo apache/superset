@@ -146,7 +146,7 @@ class DashboardFilter(SupersetFilter):
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
-    list_title = _('List Databases')
+    list_title = _('Databases')
     show_title = _('Show Database')
     add_title = _('Add Database')
     edit_title = _('Edit Database')
@@ -446,7 +446,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/chart'
     datamodel = SQLAInterface(models.Slice)
 
-    list_title = _('List Charts')
+    list_title = _('Charts')
     show_title = _('Show Chart')
     add_title = _('Add Chart')
     edit_title = _('Edit Chart')
@@ -562,7 +562,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/dashboard'
     datamodel = SQLAInterface(models.Dashboard)
 
-    list_title = _('List Dashboards')
+    list_title = _('Dashboards')
     show_title = _('Show Dashboard')
     add_title = _('Add Dashboard')
     edit_title = _('Edit Dashboard')
@@ -694,7 +694,7 @@ appbuilder.add_view_no_menu(DashboardAddView)
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
 
-    list_title = _('List Log')
+    list_title = _('Logs')
     show_title = _('Show Log')
     add_title = _('Add Log')
     edit_title = _('Edit Log')
@@ -2883,10 +2883,10 @@ appbuilder.add_view_no_menu(Superset)
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
 
-    list_title = _('List Css Template')
-    show_title = _('Show Css Template')
-    add_title = _('Add Css Template')
-    edit_title = _('Edit Css Template')
+    list_title = _('CSS Templates')
+    show_title = _('Show CSS Template')
+    add_title = _('Add CSS Template')
+    edit_title = _('Edit CSS Template')
 
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
