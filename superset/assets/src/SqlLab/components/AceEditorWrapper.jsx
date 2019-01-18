@@ -124,7 +124,13 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.onChange(text);
   }
   getCompletions(aceEditor, session, pos, prefix, callback) {
-    callback(null, this.state.words);
+    const completer = {
+      insertMatch: (editor, data) => {
+        editor.completer.insertMatch({ value: data.caption + ' ' });
+      },
+    };
+    const words = this.state.words.map(word => ({ ...word, completer }));
+    callback(null, words);
   }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
