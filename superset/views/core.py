@@ -187,7 +187,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': utils.markdown(
             'Refer to the '
             '[SqlAlchemy docs]'
-            '(http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#'
+            '(http://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#'
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
