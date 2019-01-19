@@ -15,14 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
-from pyhive import hive  # pylint: disable=no-name-in-module
-from TCLIService import ttypes
-from thrift import Thrift
 
 
 # TODO: contribute back to pyhive.
 def fetch_logs(self, max_rows=1024,
-               orientation=ttypes.TFetchOrientation.FETCH_NEXT):
+               orientation=None):
     """Mocked. Retrieve the logs produced by the execution of the query.
     Can be called multiple times to fetch the logs produced after
     the previous call.
@@ -31,6 +28,10 @@ def fetch_logs(self, max_rows=1024,
     .. note::
         This is not a part of DB-API.
     """
+    from pyhive import hive
+    from TCLIService import ttypes
+    from thrift import Thrift
+    orientation = orientation or ttypes.TFetchOrientation.FETCH_NEXT
     try:
         req = ttypes.TGetLogReq(operationHandle=self._operationHandle)
         logs = self._connection.client.GetLog(req).log

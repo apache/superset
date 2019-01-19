@@ -17,7 +17,6 @@
 # pylint: disable=C,R,W
 import json
 
-from past.builtins import basestring
 from sqlalchemy import (
     and_, Boolean, Column, Integer, String, Text,
 )
@@ -218,7 +217,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             values, target_column_is_numeric=False, is_list_target=False):
         def handle_single_value(v):
             # backward compatibility with previous <select> components
-            if isinstance(v, basestring):
+            if isinstance(v, str):
                 v = v.strip('\t\n \'"')
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases

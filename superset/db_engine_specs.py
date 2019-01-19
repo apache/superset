@@ -40,7 +40,6 @@ import time
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
-from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
@@ -48,7 +47,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
-from tableschema import Table
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
@@ -143,7 +141,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_datatype(cls, type_code):
-        if isinstance(type_code, basestring) and len(type_code):
+        if isinstance(type_code, str) and len(type_code):
             return type_code.upper()
 
     @classmethod
@@ -709,7 +707,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, basestring) and len(datatype):
+        if datatype and isinstance(datatype, str) and len(datatype):
             return datatype
 
     @classmethod
@@ -1123,6 +1121,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         upload_path = config['UPLOAD_FOLDER'] + \
             secure_filename(filename)
 
+        # Optional dependency
+        from tableschema import Table  # pylint: disable=import-error
         hive_table_schema = Table(upload_path).infer()
         column_name_and_type = []
         for column_info in hive_table_schema['fields']:
