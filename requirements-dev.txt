@@ -14,4 +14,5 @@ pylint==1.9.2
 python-dotenv==0.10.1
 redis==2.10.6
 statsd==3.3.0
+thrift==0.11.0
 tox==3.5.3
