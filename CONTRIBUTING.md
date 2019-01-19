@@ -1,3 +1,22 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
 # Contributing
 
 Contributions are welcome and are greatly appreciated! Every
@@ -7,13 +26,15 @@ little bit helps, and credit will always be given.
 
 - [Types of Contributions](#types-of-contributions)
   - [Report Bugs](#report-bugs)
+  - [Submit Ideas or Feature Requests](#submit-ideas-or-feature-requests)
+  - [Ask Questions](#ask-questions)
   - [Fix Bugs](#fix-bugs)
   - [Implement Features](#implement-features)
   - [Improve Documentation](#improve-documentation)
   - [Add Translations](#add-translations)
-  - [Submit Feedback](#submit-feedback)
-  - [Ask Questions](#ask-questions)
 - [Pull Request Guidelines](#pull-request-guidelines)
+  - [Protocol](#protocol)
+- [Managing Issues and PRs](#managing-issues-and-prs)
 - [Local development](#local-development)
   - [Documentation](#documentation)
   - [Flask server](#flask-server)
@@ -34,26 +55,37 @@ little bit helps, and credit will always be given.
 
 ## Types of Contributions
 
-### Report Bugs
+### Report Bug
 
-Report bugs through GitHub. If you are reporting a bug, please include:
+The best way to report a bug is to file an issue on GitHub. Please include:
 
 - Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
+- Superset version.
 - Detailed steps to reproduce the bug.
+- Any details about your local setup that might be helpful in troubleshooting.
 
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+### Submit Ideas or Feature Requests
+
+The best way is to file an issue on GitHub:
+
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+
+For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/incubator-superset/issues/5602)
+
 ### Fix Bugs
 
-Look through the GitHub issues for bugs. Anything tagged with `bug` is
+Look through the GitHub issues. Issues tagged with `#bug` is
 open to whoever wants to implement it.
 
 ### Implement Features
 
-Look through the GitHub issues for features. Anything tagged with
-`feature` or `starter_task` is open to whoever wants to implement it.
+Look through the GitHub issues. Issues tagged with
+`#feature` is open to whoever wants to implement it.
 
 ### Improve Documentation
 
@@ -66,37 +98,100 @@ articles. See [Documentation](#documentation) for more details.
 
 If you are proficient in a non-English language, you can help translate text strings from Superset's UI. You can jump in to the existing language dictionaries at `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or even create a dictionary for a new language altogether. See [Translating](#translating) for more details.
 
-### Submit Feedback
-
-The best way to send feedback is to file an issue on GitHub. If you are proposing a feature:
-
-- Explain in detail how it would work.
-- Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
-
 ### Ask Questions
 
 There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
 ## Pull Request Guidelines
 
-Before you submit a pull request from your forked repo, check that it
-meets these guidelines:
+A philosophy we would like to strongly encourage is
 
-1.  The pull request should include tests, either as doctests,
-    unit tests, or both.
-2.  Run `tox` and resolve all errors and test failures.
-3.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make
-    sure to follow the sphinx compatible standards.
-4.  If the pull request adds a Python dependency include it in `setup.py`
-    denoting any specific restrictions and in `requirements.txt` pinned to a
-    specific version which ensures that the application build is deterministic.
-5.  Please rebase and resolve all conflicts before submitting.
-6.  Please ensure the necessary checks pass and that code coverage does not
-    decrease.
-7.  If you are asked to update your pull request with some changes there's
-    no need to create a new one. Push your changes to the same branch.
+> Before creating a PR, create an issue.
+
+The purpose is to separate problem from possible solutions.
+
+**Bug fixes:** If you’re only fixing a small bug, it’s fine to submit a pull request right away but we highly recommend to file an issue detailing what you’re fixing. This is helpful in case we don’t accept that specific fix but want to keep track of the issue. Please keep in mind that the project maintainers reserve the rights to accept or reject incoming PRs, so it is better to separate the issue and the code to fix it from each other. In some cases, project maintainers may request you to create a separate issue from PR before proceeding.
+
+**Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a `#SIP` for the PR before proceeding.
+
+**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we requires you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
+
+In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
+
+Finally, never submit a PR that will put master branch in broken state. If the PR is part of multiple PRs to complete a large feature and cannot work on its own, you can create a feature branch and merge all related PRs into the feature branch before creating a PR from feature branch to master.
+
+### Protocol
+
+#### Authoring
+
+- Fill in all sections of the PR template.
+- Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
+  - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
+  - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
+- **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
+  - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
+  - For Javascript, include new libraries in `package.json`
+- **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
+- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
+- **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
+- **Code coverage:** Please ensure that code coverage does not decrease.
+- Remove `[WIP]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
+- If the PR was not ready for review and inactive for > 30 days, we will close it due to inactivity. The author is welcome to re-open and update.
+
+#### Reviewing
+
+- Use constructive tone when writing reviews.
+- If there are changes required, state clearly what needs to be done before the PR can be approved.
+- If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
+- The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
+
+#### Merging
+
+- At least one approval is required for merging a PR.
+- PR is usually left open for at least 24 hours before merging.
+- After the PR is merged, [close the corresponding issue(s)](https://help.github.com/articles/closing-issues-using-keywords/).
+
+#### Post-merge Responsibility
+
+- Project maintainers may contact the PR author if new issues are introduced by the PR.
+- Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
+
+## Managing Issues and PRs
+
+To handle issues and PRs that are coming in, committers read issues/PRs and flag them with labels to categorize and help contributors spot where to take actions, as contributors usually have different expertises.
+
+Triaging goals
+
+- **For issues:** Categorize, screen issues, flag required actions from authors.
+- **For PRs:** Categorize, flag required actions from authors. If PR is ready for review, flag required actions from reviewers.
+
+First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
+
+| Label             | for Issue | for PR |
+|-------------------|-----------|--------|
+| `#bug` | Bug report | Bug fix |
+| `#code-quality` | Describe problem with code, architecture or productivity | Refactor, tests, tooling |
+| `#feature` | New feature request | New feature implementation |
+| `#refine` | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
+| `#doc` | Documentation | Documentation |
+| `#question` | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later. |  N/A |
+| `#SIP` | Superset Improvement Proposal | N/A |
+| `#ASF` | Tasks related to Apache Software Foundation policy | Tasks related to Apache Software Foundation policy |
+
+Then add other types of labels as appropriate.
+
+- **Descriptive labels (a.k.a. dot labels):** These labels that begin with `.` describe the details of the issue/PR, such as `.ui`, `.js`, `.install`, `.backend`, etc. Each issue/PR can have zero or more dot labels.
+- **Need labels:** These labels have pattern `need:xxx`, which describe the work required to progress, such as `need:rebase`, `need:update`, `need:screenshot`.
+- **Risk labels:** These labels have pattern `risk:xxx`, which describe the potential risk on adopting the work, such as `risk:db-migration`. The intention was to better understand the impact and create awareness for PRs that need more rigorous testing.
+- **Status labels:** These labels describe the status (`abandoned`, `wontfix`, `cant-reproduce`, etc.) Issue/PRs that are rejected or closed without completion should have one or more status labels.
+- **Version labels:** These have the pattern `vx.x` such as `v0.28`. Version labels on issues describe the version the bug was reported on. Version labels on PR describe the first release that will include the PR.
+
+Committers may also update title to reflect the issue/PR content if the author-provided title is not descriptive enough.
+
+If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
+
+If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
 
 ## Setup Local Environment for Development
 
@@ -268,7 +363,7 @@ npm ci
 
 #### Building
 
-You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to it, updates to asset sources will be reflected in-browser without a refresh.
+You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to `http://localhost:9000`, updates to asset sources will be reflected in-browser without a refresh.
 
 ```bash
 # Run the dev server
@@ -431,7 +526,7 @@ fabmanager babel-extract --target superset/translations --output superset/transl
 ```
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features) 
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
