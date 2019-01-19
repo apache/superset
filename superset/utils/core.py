@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from builtins import object
 from datetime import date, datetime, time, timedelta
 import decimal
 from email.mime.application import MIMEApplication
@@ -48,7 +47,6 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-from past.builtins import basestring
 from pydruid.utils.having import Having
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
@@ -88,7 +86,7 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
-class _memoized(object):  # noqa
+class _memoized:  # noqa
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -503,7 +501,7 @@ def table_has_constraint(table, name, db):
     return False
 
 
-class timeout(object):
+class timeout:
     """
     To be used in a ``with`` block and timeout its content.
     """
@@ -569,7 +567,7 @@ def pessimistic_connection_handling(some_engine):
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus(object):
+class QueryStatus:
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'
@@ -678,7 +676,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 
 
 def get_email_address_list(address_string):
-    if isinstance(address_string, basestring):
+    if isinstance(address_string, str):
         if ',' in address_string:
             address_string = address_string.split(',')
         elif '\n' in address_string:

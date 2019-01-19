@@ -43,7 +43,6 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
-from past.builtins import basestring
 import polyline
 import simplejson as json
 
@@ -1612,8 +1611,8 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
-        df['source'] = df['source'].astype(basestring)
-        df['target'] = df['target'].astype(basestring)
+        df['source'] = df['source'].astype(str)
+        df['target'] = df['target'].astype(str)
         recs = df.to_dict(orient='records')
 
         hierarchy = defaultdict(set)
