@@ -25,3 +25,5 @@ _build/*
 _static/*
 .buildinfo
 searchindex.js
+# Generated translations
+superset/translations/*/messages.json
