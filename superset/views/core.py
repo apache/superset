@@ -103,6 +103,15 @@ class DashboardFilter(SupersetFilter):
 
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
+            Dash = models.Dashboard  # noqa
+            User = security_manager.user_model
+            owner_ids_qry = (
+                db.session
+                .query(Dash.id)
+                .join(Dash.owners)
+                .filter(User.id == User.get_user_id())
+            )
+            query = query.filter(Dash.id.in_(owner_ids_qry))
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
