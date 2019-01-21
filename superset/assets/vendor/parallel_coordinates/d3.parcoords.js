@@ -1,3 +1,4 @@
+/* [LICENSE TBD] */
 module.exports = function(config) {
   var __ = {
     data: [],

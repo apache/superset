@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
 import gzip
@@ -9,6 +25,7 @@ import pandas as pd
 from sqlalchemy import DateTime, String
 
 from superset import db
+from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import (
     config,
@@ -51,6 +68,18 @@ def load_world_bank_health_n_pop():
     tbl.main_dttm_col = 'year'
     tbl.database = utils.get_or_create_main_db()
     tbl.filter_select_enabled = True
+
+    metrics = [
+        'sum__SP_POP_TOTL', 'sum__SH_DYN_AIDS', 'sum__SH_DYN_AIDS',
+        'sum__SP_RUR_TOTL_ZS', 'sum__SP_DYN_LE00_IN',
+    ]
+    for m in metrics:
+        if not any(col.metric_name == m for col in tbl.metrics):
+            tbl.metrics.append(SqlMetric(
+                metric_name=m,
+                expression=f'{m[:3]}({m[5:]})',
+            ))
+
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

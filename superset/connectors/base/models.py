@@ -1,7 +1,22 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 import json
 
-from past.builtins import basestring
 from sqlalchemy import (
     and_, Boolean, Column, Integer, String, Text,
 )
@@ -202,7 +217,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             values, target_column_is_numeric=False, is_list_target=False):
         def handle_single_value(v):
             # backward compatibility with previous <select> components
-            if isinstance(v, basestring):
+            if isinstance(v, str):
                 v = v.strip('\t\n \'"')
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases
@@ -334,13 +349,8 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
-    groupby = Column(Boolean, default=False)
-    count_distinct = Column(Boolean, default=False)
-    sum = Column(Boolean, default=False)
-    avg = Column(Boolean, default=False)
-    max = Column(Boolean, default=False)
-    min = Column(Boolean, default=False)
-    filterable = Column(Boolean, default=False)
+    groupby = Column(Boolean, default=True)
+    filterable = Column(Boolean, default=True)
     description = Column(Text)
     is_dttm = None
 

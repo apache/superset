@@ -1,4 +1,20 @@
 #!/usr/bin/env python
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
@@ -232,9 +248,9 @@ def refresh_druid(datasource, merge):
     help='Path to a single JSON file or path containing multiple JSON files'
          'files to import (*.json)')
 @click.option(
-    '--recursive', '-r',
+    '--recursive', '-r', is_flag=True, default=False,
     help='recursively search the path for json files')
-def import_dashboards(path, recursive=False):
+def import_dashboards(path, recursive):
     """Import dashboards from JSON"""
     p = Path(path)
     files = []
@@ -260,7 +276,7 @@ def import_dashboards(path, recursive=False):
     '--dashboard-file', '-f', default=None,
     help='Specify the the file to export to')
 @click.option(
-    '--print_stdout', '-p',
+    '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
 def export_dashboards(print_stdout, dashboard_file):
     """Export dashboards to JSON"""
@@ -284,9 +300,9 @@ def export_dashboards(print_stdout, dashboard_file):
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
 @click.option(
-    '--recursive', '-r',
+    '--recursive', '-r', is_flag=True, default=False,
     help='recursively search the path for yaml files')
-def import_datasources(path, sync, recursive=False):
+def import_datasources(path, sync, recursive):
     """Import datasources from YAML"""
     sync_array = sync.split(',')
     p = Path(path)
@@ -317,13 +333,13 @@ def import_datasources(path, sync, recursive=False):
     '--datasource-file', '-f', default=None,
     help='Specify the the file to export to')
 @click.option(
-    '--print_stdout', '-p',
+    '--print_stdout', '-p', is_flag=True, default=False,
     help='Print YAML to stdout')
 @click.option(
-    '--back-references', '-b',
+    '--back-references', '-b', is_flag=True, default=False,
     help='Include parent back references')
 @click.option(
-    '--include-defaults', '-d',
+    '--include-defaults', '-d', is_flag=True, default=False,
     help='Include fields containing defaults')
 def export_datasources(print_stdout, datasource_file,
                        back_references, include_defaults):
@@ -343,7 +359,7 @@ def export_datasources(print_stdout, datasource_file,
 
 @app.cli.command()
 @click.option(
-    '--back-references', '-b',
+    '--back-references', '-b', is_flag=True, default=False,
     help='Include parent back references')
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""

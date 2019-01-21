@@ -3,6 +3,12 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.32.0
+* If you use `Hive` or `Presto`, we've moved some dependencies that were
+  in the main package as optional now. To get these packages,
+  run `pip install superset[presto]` and/or `pip install superset[hive]` as
+  required.
+
 ## Superset 0.31.0
 * boto3 / botocore was removed from the dependency list. If you use s3
 as a place to store your SQL Lab result set or Hive uploads, you may

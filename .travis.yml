@@ -57,6 +57,15 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
+    - language: python
+      env:
+        - TOXENV=license-check
+        - TRAVIS_CACHE=$HOME/.travis_cache/
+      jdk:
+        - oraclejdk8
+      before_install:
+        - jdk_switcher use oraclejdk8
+
 install:
   - pip install --upgrade pip
   - pip install codecov tox
@@ -69,3 +78,4 @@ cache:
   directories:
     - ~/.npm
     - ~/.cache
+    - ~/.travis_cache/
