@@ -37,6 +37,12 @@ favor of good old `npm install`. While yarn should still work just fine,
 you should probably align to guarantee builds similar to the ones we
 use in testing and across the community in general.
 
+## Superset 0.30.0
+* 0.30.0 includes a db_migration that removes allow_run_sync. This may
+require downtime because during the migration if the db is migrated first,
+superset will get 500 errors when the code can't find the field (until
+the deploy finishes).
+
 ## Superset 0.29.0
 * India was removed from the "Country Map" visualization as the geojson
   file included in the package was very large
