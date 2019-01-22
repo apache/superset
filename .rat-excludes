@@ -6,7 +6,7 @@
 .eslintrc
 .eslintignore
 .flake8
-.prettierc
+.prettierrc
 .rat-excludes
 .*log
 .*pyc
@@ -36,3 +36,4 @@ searchindex.js
 requirements.txt
 # vendorized
 superset/assets/vendor/*
+superset/static/assets/vendor/*
