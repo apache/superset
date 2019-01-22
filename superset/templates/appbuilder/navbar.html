@@ -19,6 +19,7 @@
 {% set menu = appbuilder.menu %}
 {% set languages = appbuilder.languages %}
 {% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
+{% set app_icon_width = appbuilder.app.config.get('APP_ICON_WIDTH', 126) %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
   <div class="container-fluid">
@@ -30,7 +31,7 @@
       </button>
       <a class="navbar-brand" href="/superset/profile/{{ current_user.username }}/">
         <img
-          width="126"
+          width="{{ app_icon_width }}"
           src="{{ appbuilder.app_icon }}"
           alt="{{ appbuilder.app_name }}"
         />

@@ -110,6 +110,7 @@ APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON_WIDTH = 126
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
