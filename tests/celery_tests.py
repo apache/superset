@@ -20,8 +20,6 @@ import subprocess
 import time
 import unittest
 
-from past.builtins import basestring
-
 from superset import app, db
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
@@ -239,7 +237,7 @@ class CeleryTestCase(SupersetTestCase):
     @staticmethod
     def de_unicode_dict(d):
         def str_if_basestring(o):
-            if isinstance(o, basestring):
+            if isinstance(o, str):
                 return str(o)
             return o
         return {str_if_basestring(k): str_if_basestring(d[k]) for k in d}

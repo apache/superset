@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,17 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import click
-from flask.cli import FlaskGroup
+"""empty message
 
-from superset.cli import create_app
+Revision ID: 18dc26817ad2
+Revises: ('8b70aa3d0f87', 'a33a03f16c4a')
+Create Date: 2019-01-18 14:56:26.307684
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '18dc26817ad2'
+down_revision = ('8b70aa3d0f87', 'a33a03f16c4a')
+
+from alembic import op
+import sqlalchemy as sa
 
 
-@click.group(cls=FlaskGroup, create_app=create_app)
-def cli():
-    """This is a management script for the Superset application."""
+def upgrade():
     pass
 
 
-if __name__ == '__main__':
-    cli()
+def downgrade():
+    pass

@@ -29,7 +29,6 @@ import numpy as np
 import pandas as pd
 from pandas.core.common import _maybe_box_datetimelike
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from past.builtins import basestring
 
 from superset.utils.core import JS_MAX_INTEGER
 
@@ -144,7 +143,7 @@ class SupersetDataFrame(object):
     def is_date(np_dtype, db_type_str):
 
         def looks_daty(s):
-            if isinstance(s, basestring):
+            if isinstance(s, str):
                 return any([s.lower().startswith(ss) for ss in ('time', 'date')])
             return False
 
@@ -203,7 +202,7 @@ class SupersetDataFrame(object):
 
             if not db_type_str or db_type_str.upper() == 'OBJECT':
                 v = sample[col].iloc[0] if not sample[col].empty else None
-                if isinstance(v, basestring):
+                if isinstance(v, str):
                     column['type'] = 'STRING'
                 elif isinstance(v, int):
                     column['type'] = 'INT'
