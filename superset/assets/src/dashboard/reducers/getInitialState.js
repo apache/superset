@@ -187,6 +187,7 @@ export default function(bootstrapData) {
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
+      isPublished: dashboard.published,
       showBuilderPane: dashboard.dash_edit_perm && editMode,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,

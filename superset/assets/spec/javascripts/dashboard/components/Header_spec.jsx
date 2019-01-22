@@ -43,7 +43,6 @@ describe('Header', () => {
     fetchFaveStar: () => {},
     fetchCharts: () => {},
     saveFaveStar: () => {},
-    fetchPublished: () => {},
     savePublished: () => {},
     isPublished: () => {},
     startPeriodicRender: () => {},

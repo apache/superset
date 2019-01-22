@@ -449,6 +449,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'metadata': self.params_dict,
             'css': self.css,
             'dashboard_title': self.dashboard_title,
+            'published': self.published,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,

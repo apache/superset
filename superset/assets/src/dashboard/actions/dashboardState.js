@@ -136,14 +136,6 @@ export function savePublished(id, isPublished) {
   };
 }
 
-export function fetchPublished(id) {
-  return function fetchPublishedThunk(dispatch) {
-    return SupersetClient.get({
-      endpoint: `/superset/dashboard/${id}/published/`,
-    }).then(data => dispatch(togglePublished(data.json.published)));
-  };
-}
-
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
 export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };

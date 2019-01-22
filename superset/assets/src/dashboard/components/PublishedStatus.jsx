@@ -23,7 +23,6 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   dashboardId: PropTypes.number.isRequired,
-  fetchPublished: PropTypes.func.isRequired,
   isPublished: PropTypes.bool.isRequired,
   savePublished: PropTypes.func.isRequired,
   canEdit: PropTypes.bool.isRequired,
@@ -55,7 +54,6 @@ const divStyle = {
 export default class PublishedStatus extends React.Component {
   componentDidMount() {
     this.togglePublished = this.togglePublished.bind(this);
-    this.props.fetchPublished(this.props.dashboardId);
   }
 
   togglePublished() {

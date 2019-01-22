@@ -52,7 +52,6 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
-  fetchPublished: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
@@ -208,6 +207,7 @@ class Header extends React.PureComponent {
       onSave,
       updateCss,
       editMode,
+      isPublished,
       showBuilderPane,
       dashboardInfo,
       hasUnsavedChanges,
@@ -230,8 +230,7 @@ class Header extends React.PureComponent {
           <span className="publish">
             <PublishedStatus
               dashboardId={dashboardInfo.id}
-              fetchPublished={this.props.fetchPublished}
-              isPublished={this.props.isPublished}
+              isPublished={isPublished}
               savePublished={this.props.savePublished}
               canEdit={userCanEdit}
               canSave={userCanSaveAs}
