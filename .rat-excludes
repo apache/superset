@@ -13,6 +13,7 @@
 .*lock
 .*geojson
 licenses/*
+node_modules/*
 rat-results.txt
 babel-node
 dist
@@ -35,5 +36,4 @@ searchindex.js
 # auto generated
 requirements.txt
 # vendorized
-superset/assets/vendor/*
-superset/static/assets/vendor/*
+vendor/*
