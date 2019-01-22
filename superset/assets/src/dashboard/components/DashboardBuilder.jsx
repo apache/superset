@@ -35,6 +35,20 @@ import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
+import Omnibar from 'omnibar';
+function MathExtension(query) {
+  try {
+    return [
+      {
+        title: query,
+        subtitle: "Calculate: " + query
+      }
+    ];
+  } catch (err) {
+    return [];
+  }
+}
+
 import getDragDropManager from '../util/getDragDropManager';
 
 import {
@@ -115,6 +129,9 @@ class DashboardBuilder extends React.Component {
       <StickyContainer
         className={cx('dashboard', editMode && 'dashboard--editing')}
       >
+      <div style={{paddingBottom: 500}}>
+      <Omnibar placeholder="Enter an expression" extensions={[MathExtension]} />
+      </div>
         <Sticky>
           {({ style }) => (
             <DragDroppable
