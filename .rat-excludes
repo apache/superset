@@ -6,6 +6,7 @@
 .eslintrc
 .eslintignore
 .flake8
+.prettierc
 .rat-excludes
 .*log
 .*pyc
@@ -13,6 +14,7 @@
 .*geojson
 licenses/*
 rat-results.txt
+babel-node
 dist
 build
 superset.egg-info
@@ -30,4 +32,7 @@ _build/*
 _static/*
 .buildinfo
 searchindex.js
-
+# auto generated
+requirements.txt
+# vendorized
+superset/assets/vendor/*
