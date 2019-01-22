@@ -12,6 +12,7 @@
 .*pyc
 .*lock
 .*geojson
+DISCLAIMER
 licenses/*
 node_modules/*
 rat-results.txt
