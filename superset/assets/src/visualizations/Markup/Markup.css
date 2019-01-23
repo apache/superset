@@ -16,23 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Mustache from 'mustache';
-
-export default function iframeWidget(slice) {
-  const { selector, formData } = slice;
-  const { url } = formData;
-  const width = slice.width();
-  const height = slice.height();
-  const container = document.querySelector(selector);
-
-  const completedUrl = Mustache.render(url, {
-    width,
-    height,
-  });
-
-  const iframe = document.createElement('iframe');
-  iframe.style.width = '100%';
-  iframe.style.height = height;
-  iframe.setAttribute('src', completedUrl);
-  container.appendChild(iframe);
+.markup.slice_container {
+  margin: 10px;
+}
+.separator {
+  background-color: transparent !important;
+}
+.separator hr {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+}
+.separator .chart-header {
+  border: none !important;
 }
