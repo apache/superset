@@ -33,37 +33,37 @@ const defaultProps = {
   html: '',
 };
 
+const CONTAINER_STYLE = {
+  position: 'relative',
+  overflow: 'auto',
+};
+
 class Markup extends React.PureComponent {
   render() {
     const { className, height, isSeparator, html, cssFiles } = this.props;
 
-    const iframeHeight = isSeparator
-      ? height - 20
-      : height;
-
     return (
       <div
         className={className}
-        style={{
-          position: 'relative',
-          overflow: 'auto',
-        }}
+        style={CONTAINER_STYLE}
       >
         <iframe
           title="superset-markup"
           frameBorder={0}
-          height={iframeHeight}
+          height={isSeparator ? height - 20 : height}
           sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation"
-          srcDoc={`<html>
-            <head>
-              ${cssFiles.map(
-                href => `<link rel="stylesheet" type="text/css" href="${href}" />`,
-              )}
-            </head>
-            <body style="background-color: transparent;">
-              ${html}
-            </body>
-          </html>`}
+          srcDoc={`
+            <html>
+              <head>
+                ${cssFiles.map(
+                  href => `<link rel="stylesheet" type="text/css" href="${href}" />`,
+                )}
+              </head>
+              <body style="background-color: transparent;">
+                ${html}
+              </body>
+            </html>`
+          }
         />
       </div>
     );
