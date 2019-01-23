@@ -1,0 +1,76 @@
+{
+  "name": "@superset-ui/monorepo",
+  "version": "0.0.0",
+  "description": "Superset UI",
+  "private": true,
+  "scripts": {
+    "bootstrap": "lerna bootstrap",
+    "build": "yarn run build:cjs && yarn run build:esm",
+    "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
+    "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
+    "jest": "beemo jest --color --coverage --react",
+    "postrelease": "lerna run gh-pages",
+    "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn run test",
+    "prerelease": "yarn run build",
+    "pretest": "yarn run lint",
+    "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
+    "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
+    "test": "yarn run jest",
+    "test:watch": "beemo create-config jest --react && jest --watch"
+  },
+  "repository": "https://github.com/apache-superset/superset-ui.git",
+  "keywords": [
+    "apache",
+    "superset",
+    "data",
+    "analytics",
+    "analysis",
+    "visualization",
+    "react",
+    "d3",
+    "data-ui",
+    "vx"
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@data-ui/build-config": "^0.0.37",
+    "husky": "^1.1.2",
+    "lerna": "^3.2.1",
+    "lint-staged": "^8.0.4",
+    "yarn": "^1.9.4"
+  },
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "beemo": {
+    "module": "@data-ui/build-config",
+    "drivers": [
+      "babel",
+      "eslint",
+      {
+        "driver": "jest",
+        "env": {
+          "NODE_ENV": "test"
+        }
+      },
+      "prettier",
+      "typescript"
+    ]
+  },
+  "workspaces": [
+    "./packages/*"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}": [
+      "yarn run prettier --write",
+      "git add"
+    ]
+  }
+}

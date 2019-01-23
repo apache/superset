@@ -1,0 +1,46 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-chord",
+  "version": "0.0.0",
+  "description": "Superset Legacy Chart - Chord",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-legacy.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-legacy/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-legacy#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/core": "^0.7.0",
+    "@superset-ui/translation": "^0.7.0",
+    "d3": "^3.5.17",
+    "prop-types": "^15.6.2"
+  },
+  "devDependencies": {
+    "@superset-ui/chart": "^0.7.0",
+    "@superset-ui/color": "^0.7.0",
+    "@superset-ui/number-format": "0.7.2",
+    "@superset-ui/time-format": "0.7.2"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.7.0",
+    "@superset-ui/color": "^0.7.0",
+    "@superset-ui/number-format": "0.7.2",
+    "@superset-ui/time-format": "0.7.2"
+  }
+}
