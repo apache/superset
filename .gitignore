@@ -33,6 +33,7 @@ _modules
 _static
 build
 app.db
+apache_superset.egg-info/
 changelog.sh
 dist
 dump.rdb
