@@ -1,7 +1,7 @@
 language: node_js
 
 node_js:
-  - 10.7
+  - '10.10'
 
 cache:
   - npm: true
@@ -15,7 +15,7 @@ install:
   - yarn install
 
 before_script:
-  - yarn run build
+  - yarn build
 
 script:
   - yarn test

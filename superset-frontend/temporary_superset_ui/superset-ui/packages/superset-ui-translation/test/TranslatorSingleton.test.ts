@@ -2,7 +2,7 @@
 import mockConsole from 'jest-mock-console';
 import Translator from '../src/Translator';
 import { configure, t, tn } from '../src/TranslatorSingleton';
-import languagePackZh from './languagePacks/zh.json';
+import languagePackZh from './languagePacks/zh';
 
 describe('TranslatorSingleton', () => {
   describe('before configure()', () => {
