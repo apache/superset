@@ -1,4 +1,4 @@
-import Jed from 'jed';
+import Jed, { LanguagePack } from 'jed';
 
 const DEFAULT_LANGUAGE_PACK = {
   domain: 'superset',
@@ -13,27 +13,25 @@ const DEFAULT_LANGUAGE_PACK = {
   },
 };
 
+export { LanguagePack };
+
+export interface TranslatorConfig {
+  languagePack?: LanguagePack;
+}
+
 export default class Translator {
-  constructor({ languagePack = DEFAULT_LANGUAGE_PACK } = {}) {
+  i18n: Jed;
+
+  constructor(config: TranslatorConfig = {}) {
+    const { languagePack = DEFAULT_LANGUAGE_PACK } = config;
     this.i18n = new Jed(languagePack);
   }
 
-  translate(input, ...args) {
-    if (input === null || input === undefined) {
-      return input;
-    }
-
+  translate(input: string, ...args: any[]): string {
     return this.i18n.translate(input).fetch(...args);
   }
 
-  translateWithNumber(singular, plural, num = 0, ...args) {
-    if (singular === null || singular === undefined) {
-      return singular;
-    }
-    if (plural === null || plural === undefined) {
-      return plural;
-    }
-
+  translateWithNumber(singular: string, plural: string, num: number = 0, ...args: any[]): string {
     return this.i18n
       .translate(singular)
       .ifPlural(num, plural)
