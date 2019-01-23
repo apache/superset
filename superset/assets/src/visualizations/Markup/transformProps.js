@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.markup.slice_container {
-    margin: 10px;
-}
-.separator {
-    background-color: transparent !important;
-}
-.separator hr {
-    border: 0;
-    height: 1px;
-    background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
-}
-.separator .chart-header {
-    border: none !important;
+export default function transformProps(chartProps) {
+  const { height, payload, formData } = chartProps;
+  const { vizType } = formData;
+  const {
+    theme_css: cssFiles,
+    html,
+  } = payload.data;
+
+  return {
+    height,
+    cssFiles,
+    html,
+    isSeparator: vizType === 'separator',
+  };
 }
