@@ -123,21 +123,17 @@ export default class SuperChart extends React.PureComponent<SuperChartProps, {}>
     );
   }
 
-  processChartProps: (
-    input: {
-      chartProps: ChartProps;
-      preTransformProps?: TransformFunction<ChartProps>;
-      transformProps?: TransformFunction;
-      postTransformProps?: TransformFunction;
-    },
-  ) => any;
+  processChartProps: (input: {
+    chartProps: ChartProps;
+    preTransformProps?: TransformFunction<ChartProps>;
+    transformProps?: TransformFunction;
+    postTransformProps?: TransformFunction;
+  }) => any;
 
-  createLoadableRenderer: (
-    input: {
-      chartType: string;
-      overrideTransformProps?: TransformFunction;
-    },
-  ) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
+  createLoadableRenderer: (input: {
+    chartType: string;
+    overrideTransformProps?: TransformFunction;
+  }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
 
   renderChart(loaded: LoadedModules, props: RenderProps) {
     const Chart = getModule<typeof React.Component>(loaded.Chart);
