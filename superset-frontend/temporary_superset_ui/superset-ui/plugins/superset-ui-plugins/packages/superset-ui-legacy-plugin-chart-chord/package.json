@@ -34,13 +34,11 @@
   "devDependencies": {
     "@superset-ui/chart": "^0.7.0",
     "@superset-ui/color": "^0.7.0",
-    "@superset-ui/number-format": "0.7.2",
-    "@superset-ui/time-format": "0.7.2"
+    "@superset-ui/number-format": "0.7.2"
   },
   "peerDependencies": {
     "@superset-ui/chart": "^0.7.0",
     "@superset-ui/color": "^0.7.0",
-    "@superset-ui/number-format": "0.7.2",
-    "@superset-ui/time-format": "0.7.2"
+    "@superset-ui/number-format": "0.7.2"
   }
 }
