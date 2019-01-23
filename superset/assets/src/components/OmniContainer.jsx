@@ -17,39 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Select from 'react-select';
+import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import Omnibar from 'omnibar';
 
-function MathExtension(query) {
-  SupersetClient.get({
-      endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
-    })
-      .then(({ json }) => {
-        console.log(json.result);
+const getDashboards = query =>
+  // todo: Build a dedicated endpoint for dashboard searching
+  // i.e. superset/v1/api/dashboards?q=${query}
+   SupersetClient.get({
+        endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
       })
-      .catch(() => {
-        console.log('An error occurred while fethching Dashboards');
-      });
-  try {
-    return [
-      {
-        title: query,
-        subtitle: "Calculate: " + query
-      }
-    ];
-  } catch (err) {
-    return [];
-  }
-}
+        .then(({ json }) => json.result.map(item => ({
+            title: item.dashboard_title,
+            ...item,
+          }),
+        ))
+        .catch(() => ({
+            title: t('An error occurred while fethching Dashboards'),
+        }));
 
-export default class OmniContianer extends React.Component {
-  render() {
-    return <Omnibar placeholder="Enter an expression" extensions={[MathExtension]} />;
-  }
-}
 
-OmniContianer.propTypes = {};
-OmniContianer.defaultProps = {};
+const OmniContainer = () => <Omnibar placeholder="Search for dashboards.." extensions={[getDashboards]} />;
+export default OmniContainer;

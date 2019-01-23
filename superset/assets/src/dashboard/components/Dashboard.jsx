@@ -17,8 +17,10 @@
  * under the License.
  */
 import React from 'react';
+import { Modal } from 'react-bootstrap';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
+import $ from 'jquery';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import DashboardBuilder from '../containers/DashboardBuilder';
@@ -39,6 +41,7 @@ import {
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
 } from '../../logger';
+import OmniContianer from '../../components/OmniContainer';
 
 import '../stylesheets/index.less';
 
@@ -85,6 +88,10 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
+    this.state = {
+      showOmni: false,
+    };
+
     this.isFirstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
@@ -94,10 +101,13 @@ class Dashboard extends React.PureComponent {
     });
     Logger.start(this.actionLog);
     this.initTs = new Date().getTime();
+
+    this.handleKeydown = this.handleKeydown.bind(this);
   }
 
   componentDidMount() {
     Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
+    document.addEventListener('keydown', this.handleKeydown);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -203,9 +213,24 @@ class Dashboard extends React.PureComponent {
     }
   }
 
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeydown);
+  }
+
   // return charts in array
   getAllCharts() {
     return Object.values(this.props.charts);
+  }
+
+  handleKeydown(event) {
+    const controlOrCommand = event.ctrlKey || event.metaKey;
+    if (controlOrCommand) {
+      const isK = event.key === 'k' || event.keyCode === 83;
+      if (isK) {
+        this.setState({ showOmni: !this.state.showOmni });
+        $('.modal-dialog:first input').focus();
+      }
+    }
   }
 
   refreshExcept(filterKey) {
@@ -232,7 +257,14 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    return <DashboardBuilder />;
+    return (
+      <div>
+        <Modal show={this.state.showOmni}>
+          <OmniContianer />
+        </Modal>
+        <DashboardBuilder />
+      </div>
+    );
   }
 }
 

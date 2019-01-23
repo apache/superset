@@ -35,8 +35,6 @@ import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
-import OmniContianer from '../../components/OmniContainer';
-
 import getDragDropManager from '../util/getDragDropManager';
 
 import {
@@ -117,9 +115,6 @@ class DashboardBuilder extends React.Component {
       <StickyContainer
         className={cx('dashboard', editMode && 'dashboard--editing')}
       >
-      <div style={{paddingBottom: 500}}>
-      <OmniContianer/>
-      </div>
         <Sticky>
           {({ style }) => (
             <DragDroppable
