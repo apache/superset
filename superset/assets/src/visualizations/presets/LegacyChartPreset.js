@@ -30,6 +30,7 @@ import EventFlowChartPlugin from '../EventFlow/EventFlowChartPlugin';
 import ForceDirectedChartPlugin from '../ForceDirected/ForceDirectedChartPlugin';
 import HeatmapChartPlugin from '../Heatmap/HeatmapChartPlugin';
 import HorizonChartPlugin from '../Horizon/HorizonChartPlugin';
+import IframeChartPlugin from '../Iframe/IframeChartPlugin';
 import LineMultiChartPlugin from '../nvd3/LineMulti/LineMultiChartPlugin';
 import PairedTTestChartPlugin from '../PairedTTest/PairedTTestChartPlugin';
 import ParallelCoordinatesChartPlugin from '../ParallelCoordinates/ParallelCoordinatesChartPlugin';
@@ -57,6 +58,7 @@ export default class LegacyChartPreset extends Preset {
         new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
+        new IframeChartPlugin().configure({ key: 'iframe' }),
         new LineMultiChartPlugin().configure({ key: 'line_multi' }),
         new PairedTTestChartPlugin().configure({ key: 'paired_ttest' }),
         new ParallelCoordinatesChartPlugin().configure({ key: 'para' }),
