@@ -1,5 +1,5 @@
 import Translator from '../src/Translator';
-import languagePackZh from './languagePacks/zh.json';
+import languagePackZh from './languagePacks/zh';
 
 describe('Translator', () => {
   it('exists', () => {
@@ -24,12 +24,6 @@ describe('Translator', () => {
     const translator = new Translator({
       languagePack: languagePackZh,
     });
-    it('returns null for null input', () => {
-      expect(translator.translate(null)).toBeNull();
-    });
-    it('returns undefined for undefined input', () => {
-      expect(translator.translate(undefined)).toBeUndefined();
-    });
     it('returns original text for unknown text', () => {
       expect(translator.translate('abc')).toEqual('abc');
     });
@@ -47,18 +41,11 @@ describe('Translator', () => {
     const translator = new Translator({
       languagePack: languagePackZh,
     });
-    it('returns null if singular or plural is null', () => {
-      expect(translator.translateWithNumber(null, 'plural')).toBeNull();
-      expect(translator.translateWithNumber('singular', null)).toBeNull();
-      expect(translator.translateWithNumber(null, null)).toBeNull();
-    });
-    it('returns undefined if singular or plural is undefined', () => {
-      expect(translator.translateWithNumber(undefined, 'plural')).toBeUndefined();
-      expect(translator.translateWithNumber('singular', undefined)).toBeUndefined();
-      expect(translator.translateWithNumber(undefined, undefined)).toBeUndefined();
-    });
     it('returns original text for unknown text', () => {
       expect(translator.translateWithNumber('fish', 'fishes', 1)).toEqual('fish');
+    });
+    it('uses 0 as default value', () => {
+      expect(translator.translateWithNumber('box', 'boxes')).toEqual('boxes');
     });
     it('translates simple text', () => {
       expect(translator.translateWithNumber('second', 'seconds', 1)).toEqual('秒');

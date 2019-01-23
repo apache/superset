@@ -1,10 +1,10 @@
 /* eslint no-console: 0 */
-import Translator from './Translator';
+import Translator, { TranslatorConfig } from './Translator';
 
-let singleton;
+let singleton: Translator;
 let isConfigured = false;
 
-function configure(config) {
+function configure(config?: TranslatorConfig) {
   singleton = new Translator(config);
   isConfigured = true;
 
@@ -22,12 +22,12 @@ function getInstance() {
   return singleton;
 }
 
-function t(...args) {
-  return getInstance().translate(...args);
+function t(input: string, ...args: any[]) {
+  return getInstance().translate(input, ...args);
 }
 
-function tn(...args) {
-  return getInstance().translateWithNumber(...args);
+function tn(singular: string, plural: string, ...args: any[]) {
+  return getInstance().translateWithNumber(singular, plural, ...args);
 }
 
 export { configure, t, tn };
