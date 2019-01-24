@@ -55,6 +55,7 @@ export default function VirtualizedRendererWrap(renderer) {
         key={key}
         style={{ ...(option.style || {}), ...style }}
         title={option.title}
+        data-test={option.optionName}
         {...events}
       >
         {renderer(option)}

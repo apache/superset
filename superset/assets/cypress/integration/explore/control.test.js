@@ -89,8 +89,8 @@ describe('AdhocMetrics', () => {
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.select-clear').click();
       cy.get('.Select-control').click({ force: true });
-      cy.get('input').type('num{downarrow}', { force: true });
-      cy.get('.VirtualizedSelectFocusedOption')
+      cy.get('input').type('num', { force: true });
+      cy.get('.VirtualizedSelectOption[data-test=_col_num]')
         .trigger('mousedown')
         .click();
     });
