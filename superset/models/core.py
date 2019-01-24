@@ -801,7 +801,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params['connect_args'] = {'configuration': configuration}
+            d = params.get('connect_args', {})
+            d['configuration'] = configuration
+            params['connect_args'] = d
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
