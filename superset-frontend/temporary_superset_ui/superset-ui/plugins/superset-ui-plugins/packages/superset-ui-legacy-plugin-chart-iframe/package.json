@@ -1,0 +1,42 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-iframe",
+  "version": "0.0.0",
+  "description": "Superset Legacy Chart - Iframe",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-legacy.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-legacy/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-legacy#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/core": "^0.7.0",
+    "@superset-ui/translation": "^0.7.0",
+    "mustache": "^3.0.1",
+    "prop-types": "^15.6.2"
+  },
+  "devDependencies": {
+    "@superset-ui/chart": "^0.7.0",
+    "react": "^15 || ^16"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart": "^0.7.0",
+    "react": "^15 || ^16"
+  }
+}
