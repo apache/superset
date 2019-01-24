@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Chord Diagram'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class ChordChartPlugin extends ChartPlugin {
