@@ -17,21 +17,19 @@
  * under the License.
  */
 import React from 'react';
+import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
-import { throttle } from 'lodash';
+import { debounce } from 'lodash';
 import {
-  Col,
   FormGroup,
   InputGroup,
   Form,
   FormControl,
   Label,
   OverlayTrigger,
-  Row,
   Tooltip,
-  Collapse,
 } from 'react-bootstrap';
-import SplitPane from 'react-split-pane';
+import Split from 'react-split';
 import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
@@ -47,9 +45,13 @@ import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 
+const SQL_TOOLBAR_HEIGHT = 51;
+const GUTTER_HEIGHT = 5;
+const INITIAL_NORTH_PERCENT = 30;
+const INITIAL_SOUTH_PERCENT = 70;
+
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  getHeight: PropTypes.func.isRequired,
   database: PropTypes.object,
   latestQuery: PropTypes.object,
   tables: PropTypes.array.isRequired,
@@ -75,13 +77,17 @@ class SqlEditor extends React.PureComponent {
       ctas: '',
       sql: props.queryEditor.sql,
     };
+    this.sqlEditorRef = React.createRef();
 
     this.onResize = this.onResize.bind(this);
-    this.throttledResize = throttle(this.onResize, 250);
+    this.debouncedResize = debounce(this.onResize, 250);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
     this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
+    this.queryPane = this.queryPane.bind(this);
+    this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(this);
+    this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -91,21 +97,14 @@ class SqlEditor extends React.PureComponent {
     }
   }
   componentDidMount() {
-    this.onResize();
-    window.addEventListener('resize', this.throttledResize);
+    // We need to measure the height of the sql editor post render to figure the height of
+    // the south pane so it gets rendered properly
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({ height: this.getSqlEditorHeight() });
   }
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.throttledResize);
-  }
-  onResize() {
-    const height = this.sqlEditorHeight();
-    const editorPaneHeight = this.props.queryEditor.height || 200;
-    const splitPaneHandlerHeight = 8; // 4px of height + 4px of top-margin
-    this.setState({
-      editorPaneHeight,
-      southPaneHeight: height - editorPaneHeight - splitPaneHandlerHeight,
-      height,
-    });
+  onResize([northPercent, southPercent]) {
+    this.setState(this.getAceEditorAndSouthPaneHeights(
+      this.state.height, northPercent, southPercent));
 
     if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
@@ -113,6 +112,18 @@ class SqlEditor extends React.PureComponent {
   }
   onSqlChanged(sql) {
     this.setState({ sql });
+  }
+  // One layer of abstraction for easy spying in unit tests
+  getSqlEditorHeight() {
+    return this.sqlEditorRef.current.clientHeight;
+  }
+  // Return the heights for the ace editor and the south pane as an object
+  // given the height of the sql editor, north pane percent and south pane percent.
+  getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
+    return {
+      aceEditorHeight: height * northPercent / 100 - SQL_TOOLBAR_HEIGHT - GUTTER_HEIGHT / 2,
+      southPaneHeight: height * southPercent / 100,
+    };
   }
   getHotkeyConfig() {
     return [
@@ -187,9 +198,43 @@ class SqlEditor extends React.PureComponent {
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
-  sqlEditorHeight() {
-    const horizontalScrollbarHeight = 25;
-    return parseInt(this.props.getHeight(), 10) - horizontalScrollbarHeight;
+  queryPane() {
+    const hotkeys = this.getHotkeyConfig();
+    const { aceEditorHeight, southPaneHeight } = this.getAceEditorAndSouthPaneHeights(
+      this.state.height, INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT);
+    return (
+      <div className="queryPane">
+        <Split
+          sizes={[INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT]}
+          minSize={200}
+          direction="vertical"
+          gutterSize={GUTTER_HEIGHT}
+          onDragEnd={this.debouncedResize}
+        >
+          <div ref="ace">
+            <AceEditorWrapper
+              actions={this.props.actions}
+              onBlur={this.setQueryEditorSql}
+              onChange={this.onSqlChanged}
+              queryEditor={this.props.queryEditor}
+              sql={this.props.queryEditor.sql}
+              tables={this.props.tables}
+              height={`${this.state.aceEditorHeight || aceEditorHeight}px`}
+              hotkeys={hotkeys}
+            />
+            {this.renderEditorBottomBar(hotkeys)}
+          </div>
+          <div ref="south">
+            <SouthPane
+              editorQueries={this.props.editorQueries}
+              dataPreviewQueries={this.props.dataPreviewQueries}
+              actions={this.props.actions}
+              height={this.state.southPaneHeight || southPaneHeight}
+            />
+          </div>
+        </Split>
+      </div>
+    );
   }
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
@@ -305,74 +350,23 @@ class SqlEditor extends React.PureComponent {
     );
   }
   render() {
-    const height = this.sqlEditorHeight();
-    const defaultNorthHeight = this.props.queryEditor.height || 200;
-    const hotkeys = this.getHotkeyConfig();
     return (
-      <div
-        className="SqlEditor"
-        style={{
-          height: height + 'px',
-        }}
-      >
-        <Row>
-          <Collapse
-            in={!this.props.hideLeftBar}
-          >
-            <Col
-              xs={6}
-              sm={5}
-              md={4}
-              lg={3}
-            >
-              <SqlEditorLeftBar
-                height={height}
-                database={this.props.database}
-                queryEditor={this.props.queryEditor}
-                tables={this.props.tables}
-                actions={this.props.actions}
-              />
-            </Col>
-          </Collapse>
-          <Col
-            xs={this.props.hideLeftBar ? 12 : 6}
-            sm={this.props.hideLeftBar ? 12 : 7}
-            md={this.props.hideLeftBar ? 12 : 8}
-            lg={this.props.hideLeftBar ? 12 : 9}
-            style={{ height: this.state.height }}
-          >
-            <SplitPane
-              split="horizontal"
-              defaultSize={defaultNorthHeight}
-              minSize={100}
-              onChange={this.onResize}
-            >
-              <div ref="ace" style={{ width: '100%' }}>
-                <div>
-                  <AceEditorWrapper
-                    actions={this.props.actions}
-                    onBlur={this.setQueryEditorSql}
-                    onChange={this.onSqlChanged}
-                    queryEditor={this.props.queryEditor}
-                    sql={this.props.queryEditor.sql}
-                    tables={this.props.tables}
-                    height={((this.state.editorPaneHeight || defaultNorthHeight) - 50) + 'px'}
-                    hotkeys={hotkeys}
-                  />
-                  {this.renderEditorBottomBar(hotkeys)}
-                </div>
-              </div>
-              <div ref="south">
-                <SouthPane
-                  editorQueries={this.props.editorQueries}
-                  dataPreviewQueries={this.props.dataPreviewQueries}
-                  actions={this.props.actions}
-                  height={this.state.southPaneHeight || 0}
-                />
-              </div>
-            </SplitPane>
-          </Col>
-        </Row>
+      <div ref={this.sqlEditorRef} className="SqlEditor">
+        <CSSTransition
+          classNames="schemaPane"
+          in={!this.props.hideLeftBar}
+          timeout={300}
+        >
+          <div className="schemaPane">
+            <SqlEditorLeftBar
+              database={this.props.database}
+              queryEditor={this.props.queryEditor}
+              tables={this.props.tables}
+              actions={this.props.actions}
+            />
+          </div>
+        </CSSTransition>
+        {this.queryPane()}
       </div>
     );
   }
