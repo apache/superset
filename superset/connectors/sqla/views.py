@@ -37,7 +37,7 @@ from . import models
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
-    list_title = _('List Columns')
+    list_title = _('Columns')
     show_title = _('Show Column')
     add_title = _('Add Column')
     edit_title = _('Edit Column')
@@ -110,7 +110,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
-    list_title = _('List Metrics')
+    list_title = _('Metrics')
     show_title = _('Show Metric')
     add_title = _('Add Metric')
     edit_title = _('Edit Metric')
@@ -164,7 +164,7 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
 
-    list_title = _('List Tables')
+    list_title = _('Tables')
     show_title = _('Show Table')
     add_title = _('Import a table definition')
     edit_title = _('Edit Table')
