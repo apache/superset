@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/monorepo",
+  "name": "@superset-ui/legacy-monorepo",
   "version": "0.0.0",
-  "description": "Superset UI",
+  "description": "Superset UI Legacy",
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap",
@@ -21,7 +21,7 @@
     "test": "yarn run jest",
     "test:watch": "beemo create-config jest --react && jest --watch"
   },
-  "repository": "https://github.com/apache-superset/superset-ui.git",
+  "repository": "https://github.com/apache-superset/superset-ui-legacy.git",
   "keywords": [
     "apache",
     "superset",

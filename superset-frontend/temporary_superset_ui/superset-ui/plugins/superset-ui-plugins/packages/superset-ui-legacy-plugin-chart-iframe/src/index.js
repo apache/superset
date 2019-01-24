@@ -25,6 +25,7 @@ const metadata = new ChartMetadata({
   description: 'HTML Inline Frame',
   name: t('IFrame'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class IframeChartPlugin extends ChartPlugin {
