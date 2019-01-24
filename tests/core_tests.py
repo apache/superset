@@ -462,8 +462,8 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Charts' in self.get_resp('/chart/list/')
-        assert 'List Dashboard' in self.get_resp('/dashboard/list/')
+        assert 'Charts' in self.get_resp('/chart/list/')
+        assert 'Dashboards' in self.get_resp('/dashboard/list/')
 
     def test_csv_endpoint(self):
         self.login('admin')
