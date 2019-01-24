@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
+import logging
+
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -32,6 +34,8 @@ from superset.views.base import (
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
+
+logger = logging.getLogger(__name__)
 
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
@@ -269,12 +273,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
-        except Exception:
+        except Exception as e:
+            logger.exception(f'Got an error in pre_add for {table.name}')
             raise Exception(_(
                 'Table [{}] could not be found, '
                 'please double check your '
                 'database connection, schema, and '
-                'table name').format(table.name))
+                'table name, error: {}').format(table.name, str(e)))
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()

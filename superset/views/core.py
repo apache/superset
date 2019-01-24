@@ -1768,7 +1768,7 @@ class Superset(BaseSupersetView):
                 .get('engine_params', {}))
             connect_args = engine_params.get('connect_args')
 
-            if configuration:
+            if configuration and connect_args is not None:
                 connect_args['configuration'] = configuration
 
             engine = create_engine(uri, **engine_params)
