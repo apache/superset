@@ -4,32 +4,35 @@ interface LookupTable {
 
 export interface ChartMetadataConfig {
   name: string;
+  canBeAnnotationTypes?: Array<string>;
   credits?: Array<string>;
   description?: string;
   show?: boolean;
-  canBeAnnotationTypes?: Array<string>;
   supportedAnnotationTypes?: Array<string>;
   thumbnail: string;
+  useLegacyApi?: boolean;
 }
 
 export default class ChartMetadata {
   name: string;
+  canBeAnnotationTypesLookup: LookupTable;
   credits: Array<string>;
   description: string;
   show: boolean;
-  canBeAnnotationTypesLookup: LookupTable;
   supportedAnnotationTypes: Array<string>;
   thumbnail: string;
+  useLegacyApi: boolean;
 
   constructor(config: ChartMetadataConfig) {
     const {
       name,
+      canBeAnnotationTypes = [],
       credits = [],
       description = '',
       show = true,
-      canBeAnnotationTypes = [],
       supportedAnnotationTypes = [],
       thumbnail,
+      useLegacyApi = false,
     } = config;
 
     this.name = name;
@@ -47,6 +50,7 @@ export default class ChartMetadata {
     );
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
+    this.useLegacyApi = useLegacyApi;
   }
 
   canBeAnnotationType(type: string): boolean {
