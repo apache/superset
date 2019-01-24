@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # French translations for PROJECT.
 # Copyright (C) 2017 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -3166,7 +3182,7 @@ msgstr ""
 #: superset/assets/src/explore/visTypes.js:1563
 #: superset/assets/src/explore/visTypes.js:1624
 msgid "Query"
-msgstr "Reqête"
+msgstr "Requête"
 
 #: superset/assets/src/explore/visTypes.js:72
 msgid ""
@@ -4114,18 +4130,6 @@ msgstr "Éditer une cluster Druid"
 msgid "Cluster"
 msgstr "Cluster"
 
-#: superset/connectors/druid/views.py:172
-msgid "Coordinator Host"
-msgstr "Hôte du coordinator"
-
-#: superset/connectors/druid/views.py:173
-msgid "Coordinator Port"
-msgstr "Port du coordinator"
-
-#: superset/connectors/druid/views.py:174
-msgid "Coordinator Endpoint"
-msgstr "Endpoint du coordinator"
-
 #: superset/connectors/druid/views.py:175
 msgid "Broker Host"
 msgstr "Hôte du Broker"
@@ -4627,7 +4631,7 @@ msgid ""
 msgstr ""
 "Autorise les utilisateurs à lancer des requêtes synchrones, il s'agit de "
 "la configuration par défaut qui devrait fonctionner correctement pour des"
-" reqêtes exécutables depuis le web (<~1 minute)"
+" requêtes exécutables depuis le web (<~1 minute)"
 
 #: superset/views/core.py:238
 msgid ""
@@ -4975,7 +4979,7 @@ msgstr "Impossible de trouver le DruidCluster avec cluster_name = '%(name)s"
 
 #: superset/views/core.py:2413
 msgid "Query record was not created as expected."
-msgstr "L'enregistrement de la reqête n'a pas été créé comme prévu."
+msgstr "L'enregistrement de la requête n'a pas été créé comme prévu."
 
 #: superset/views/core.py:2724
 msgid "Template Name"
@@ -5023,7 +5027,7 @@ msgstr "Liste des requêtes sauvegardées"
 
 #: superset/views/sql_lab.py:44
 msgid "Show Saved Query"
-msgstr "Montrer les requếtes sauvagardées"
+msgstr "Montrer les requêtes sauvagardées"
 
 #: superset/views/sql_lab.py:45
 msgid "Add Saved Query"
@@ -5254,4 +5258,3 @@ msgstr "Requêtes sauvegardées"
 
 #~ msgid "Slice %(id)s not found"
 #~ msgstr "Slice %(id)s non trouvé"
-

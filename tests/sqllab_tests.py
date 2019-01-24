@@ -1,21 +1,31 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Sql Lab"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
 import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import db, security_manager, utils
+from superset import db, security_manager
 from superset.dataframe import SupersetDataFrame
 from superset.db_engine_specs import BaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.utils import get_main_database
+from superset.utils.core import datetime_to_epoch, get_main_database
 from .base_tests import SupersetTestCase
 
 
@@ -55,6 +65,16 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.run_sql('SELECT * FROM unexistant_table', '2')
         self.assertLess(0, len(data['error']))
+
+    def test_multi_sql(self):
+        self.login('admin')
+
+        multi_sql = """
+        SELECT first_name FROM ab_user;
+        SELECT first_name FROM ab_user;
+        """
+        data = self.run_sql(multi_sql, '2234')
+        self.assertLess(0, len(data['data']))
 
     def test_explain(self):
         self.login('admin')
@@ -121,7 +141,7 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/queries/{}'.format(
-                int(utils.datetime_to_epoch(now)) - 1000))
+                int(datetime_to_epoch(now)) - 1000))
         self.assertEquals(1, len(data))
 
         self.logout()
@@ -265,6 +285,29 @@ class SqlLabTests(SupersetTestCase):
         data = {'data': json.dumps(payload)}
         resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
         self.assertIn('table_id', resp)
+
+    def test_sql_limit(self):
+        self.login('admin')
+        test_limit = 1
+        data = self.run_sql(
+            'SELECT * FROM ab_user',
+            client_id='sql_limit_1')
+        self.assertGreater(len(data['data']), test_limit)
+        data = self.run_sql(
+            'SELECT * FROM ab_user',
+            client_id='sql_limit_2',
+            query_limit=test_limit)
+        self.assertEquals(len(data['data']), test_limit)
+        data = self.run_sql(
+            'SELECT * FROM ab_user LIMIT {}'.format(test_limit),
+            client_id='sql_limit_3',
+            query_limit=test_limit + 1)
+        self.assertEquals(len(data['data']), test_limit)
+        data = self.run_sql(
+            'SELECT * FROM ab_user LIMIT {}'.format(test_limit + 1),
+            client_id='sql_limit_4',
+            query_limit=test_limit)
+        self.assertEquals(len(data['data']), test_limit)
 
 
 if __name__ == '__main__':

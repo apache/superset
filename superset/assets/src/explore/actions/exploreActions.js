@@ -1,5 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
-const $ = window.$ = require('jquery');
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+import { addDangerToast } from '../../messageToasts/actions';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -50,24 +70,6 @@ export function resetControls() {
   return { type: RESET_FIELDS };
 }
 
-export function fetchDatasources() {
-  return function (dispatch) {
-    dispatch(fetchDatasourcesStarted());
-    const url = '/superset/datasources/';
-    $.ajax({
-      type: 'GET',
-      url,
-      success: (data) => {
-        dispatch(setDatasources(data));
-        dispatch(fetchDatasourcesSucceeded());
-      },
-      error(error) {
-        dispatch(fetchDatasourcesFailed(error.responseJSON.error));
-      },
-    });
-  };
-}
-
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -76,9 +78,8 @@ export function toggleFaveStar(isStarred) {
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
   return function (dispatch) {
-    const url = `${FAVESTAR_BASE_URL}/${sliceId}/count`;
-    $.get(url, (data) => {
-      if (data.count > 0) {
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count` }).then(({ json }) => {
+      if (json.count > 0) {
         dispatch(toggleFaveStar(true));
       }
     });
@@ -89,9 +90,9 @@ export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
   return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
-    const url = `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`;
-    $.get(url);
-    dispatch(toggleFaveStar(!isStarred));
+    SupersetClient.get({ endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/` })
+      .then(() => dispatch(toggleFaveStar(!isStarred)))
+      .catch(() => dispatch(addDangerToast(t('An error occurred while starring this chart'))));
   };
 }
 

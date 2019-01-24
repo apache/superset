@@ -1,14 +1,32 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
+import { SupersetClient } from '@superset-ui/connection';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import { t } from '../../locales';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
 
@@ -26,6 +44,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -52,14 +71,20 @@ class HeaderActionsDropdown extends React.PureComponent {
   componentWillMount() {
     injectCustomCss(this.state.css);
 
-    $.get('/csstemplateasyncmodelview/api/read', data => {
-      const cssTemplates = data.result.map(row => ({
-        value: row.template_name,
-        css: row.css,
-        label: row.template_name,
-      }));
-      this.setState({ cssTemplates });
-    });
+    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+      .then(({ json }) => {
+        const cssTemplates = json.result.map(row => ({
+          value: row.template_name,
+          css: row.css,
+          label: row.template_name,
+        }));
+        this.setState({ cssTemplates });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      });
   }
 
   changeCss(css) {
@@ -85,6 +110,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       onSave,
       userCanEdit,
       userCanSave,
+      isLoading,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
@@ -117,21 +143,20 @@ class HeaderActionsDropdown extends React.PureComponent {
           />
         )}
 
-        {hasUnsavedChanges &&
-          userCanSave && (
-            <div>
-              <MenuItem
-                eventKey="discard"
-                onSelect={HeaderActionsDropdown.discardChanges}
-              >
-                {t('Discard changes')}
-              </MenuItem>
-            </div>
-          )}
+        {hasUnsavedChanges && userCanSave && (
+          <div>
+            <MenuItem
+              eventKey="discard"
+              onSelect={HeaderActionsDropdown.discardChanges}
+            >
+              {t('Discard changes')}
+            </MenuItem>
+          </div>
+        )}
 
         {userCanSave && <MenuItem divider />}
 
-        <MenuItem onClick={forceRefreshAllCharts}>
+        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
         <RefreshIntervalModal

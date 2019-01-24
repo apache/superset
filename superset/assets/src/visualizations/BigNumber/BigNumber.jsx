@@ -1,10 +1,27 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import shortid from 'shortid';
 import { XYChart, AreaSeries, CrossHair, LinearGradient } from '@data-ui/xy-chart';
-
-import { brandColor } from '../../modules/colors';
-import { formatDateVerbose } from '../../modules/dates';
+import { BRAND_COLOR } from '@superset-ui/color';
+import { smartDateVerboseFormatter } from '@superset-ui/time-format';
 import { computeMaxFontSize } from '../../modules/visUtils';
 
 import './BigNumber.css';
@@ -27,7 +44,7 @@ const PROPORTION = {
 export function renderTooltipFactory(formatValue) {
   return function renderTooltip({ datum }) { // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
-    const formattedDate = formatDateVerbose(rawDate);
+    const formattedDate = smartDateVerboseFormatter(rawDate);
     const value = formatValue(rawValue);
 
     return (
@@ -51,30 +68,33 @@ const propTypes = {
   bigNumber: PropTypes.number.isRequired,
   formatBigNumber: PropTypes.func,
   subheader: PropTypes.string,
-  showTrendline: PropTypes.bool,
+  showTrendLine: PropTypes.bool,
   startYAxisAtZero: PropTypes.bool,
-  trendlineData: PropTypes.array,
+  trendLineData: PropTypes.array,
   mainColor: PropTypes.string,
-  gradientId: PropTypes.string,
   renderTooltip: PropTypes.func,
 };
 const defaultProps = {
   className: '',
   formatBigNumber: identity,
   subheader: '',
-  showTrendline: false,
+  showTrendLine: false,
   startYAxisAtZero: true,
-  trendlineData: null,
-  mainColor: brandColor,
-  gradientId: '',
+  trendLineData: null,
+  mainColor: BRAND_COLOR,
   renderTooltip: renderTooltipFactory(identity),
 };
 
-class BigNumberVis extends React.Component {
+class BigNumberVis extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.gradientId = shortid.generate();
+  }
+
   getClassName() {
-    const { className, showTrendline } = this.props;
+    const { className, showTrendLine } = this.props;
     const names = `big_number ${className}`;
-    if (showTrendline) {
+    if (showTrendLine) {
       return names;
     }
     return `${names} no_trendline`;
@@ -148,11 +168,10 @@ class BigNumberVis extends React.Component {
   renderTrendline(maxHeight) {
     const {
       width,
-      trendlineData,
+      trendLineData,
       mainColor,
       subheader,
       renderTooltip,
-      gradientId,
       startYAxisAtZero,
     } = this.props;
     return (
@@ -170,13 +189,13 @@ class BigNumberVis extends React.Component {
         snapTooltipToDataX
       >
         <LinearGradient
-          id={gradientId}
+          id={this.gradientId}
           from={mainColor}
           to="#fff"
         />
         <AreaSeries
-          data={trendlineData}
-          fill={`url(#${gradientId})`}
+          data={trendLineData}
+          fill={`url(#${this.gradientId})`}
           stroke={mainColor}
         />
         <CrossHair
@@ -192,10 +211,10 @@ class BigNumberVis extends React.Component {
   }
 
   render() {
-    const { showTrendline, height } = this.props;
+    const { showTrendLine, height } = this.props;
     const className = this.getClassName();
 
-    if (showTrendline) {
+    if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
       return (

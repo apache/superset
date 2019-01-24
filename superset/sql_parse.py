@@ -1,10 +1,20 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import logging
 
 import sqlparse
@@ -16,16 +26,15 @@ ON_KEYWORD = 'ON'
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
-class SupersetQuery(object):
+class ParsedQuery(object):
     def __init__(self, sql_statement):
         self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
         self._limit = None
-        # TODO: multistatement support
 
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
-        self._parsed = sqlparse.parse(self.sql)
+        self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self.__extract_from_token(statement)
             self._limit = self._extract_limit_from_query(statement)
@@ -43,7 +52,7 @@ class SupersetQuery(object):
         return self._parsed[0].get_type() == 'SELECT'
 
     def is_explain(self):
-        return self.sql.strip().upper().startswith('EXPLAIN')
+        return self.stripped().upper().startswith('EXPLAIN')
 
     def is_readonly(self):
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
@@ -51,6 +60,16 @@ class SupersetQuery(object):
 
     def stripped(self):
         return self.sql.strip(' \t\n;')
+
+    def get_statements(self):
+        """Returns a list of SQL statements as strings, stripped"""
+        statements = []
+        for statement in self._parsed:
+            if statement:
+                sql = str(statement).strip(' \n;\t')
+                if sql:
+                    statements.append(sql)
+        return statements
 
     @staticmethod
     def __precedes_table_name(token_value):
@@ -106,9 +125,9 @@ class SupersetQuery(object):
         exec_sql = ''
         sql = self.stripped()
         if overwrite:
-            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-        exec_sql += 'CREATE TABLE {table_name} AS \n{sql}'
-        return exec_sql.format(**locals())
+            exec_sql = f'DROP TABLE IF EXISTS {table_name};\n'
+        exec_sql += f'CREATE TABLE {table_name} AS \n{sql}'
+        return exec_sql
 
     def __extract_from_token(self, token):
         if not hasattr(token, 'tokens'):

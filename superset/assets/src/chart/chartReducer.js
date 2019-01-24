@@ -1,16 +1,35 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
+import { t } from '@superset-ui/translation';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { t } from '../locales';
 
 export const chart = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
+  chartStackTrace: null,
   chartUpdateEndTime: null,
-  chartUpdateStartTime: now(),
+  chartUpdateStartTime: 0,
   latestQueryFormData: {},
-  queryRequest: null,
+  queryController: null,
   queryResponse: null,
   triggerQuery: true,
   lastRendered: 0,
@@ -32,18 +51,21 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      return { ...state,
+      return {
+        ...state,
         chartStatus: 'loading',
+        chartStackTrace: null,
         chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
-        queryRequest: action.queryRequest,
+        queryController: action.queryController,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
       return { ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_RENDERING_SUCCEEDED](state) {
@@ -54,6 +76,7 @@ export default function chartReducer(charts = {}, action) {
     [actions.CHART_RENDERING_FAILED](state) {
       return { ...state,
         chartStatus: 'failed',
+        chartStackTrace: action.stackTrace,
         chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
       };
     },
@@ -67,6 +90,7 @@ export default function chartReducer(charts = {}, action) {
             'or you are simply querying a data source that is too large ' +
             'to be processed within the timeout range. ' +
             'If that is the case, we recommend that you summarize your data further.')),
+        chartUpdateEndTime: now(),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
@@ -75,10 +99,15 @@ export default function chartReducer(charts = {}, action) {
         chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
+        chartStackTrace: action.queryResponse ? action.queryResponse.stacktrace : null,
       };
     },
     [actions.TRIGGER_QUERY](state) {
-      return { ...state, triggerQuery: action.value };
+      return {
+        ...state,
+        triggerQuery: action.value,
+        chartStatus: 'loading',
+      };
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
@@ -131,12 +160,6 @@ export default function chartReducer(charts = {}, action) {
         annotationData,
         annotationError,
         annotationQuery,
-      };
-    },
-    [actions.SQLLAB_REDIRECT_FAILED](state) {
-      return { ...state,
-        chartStatus: 'failed',
-        chartAlert: t('An error occurred while redirecting to SQL Lab: %s', action.error),
       };
     },
   };

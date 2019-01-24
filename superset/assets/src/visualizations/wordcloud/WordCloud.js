@@ -1,7 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
-import { getScale } from '../../modules/CategoricalColorNamespace';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 
 const ROTATION = {
   square: () => Math.floor((Math.random() * 2)) * 90,
@@ -21,9 +39,7 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
-function wordCloud(element, props) {
-  PropTypes.checkPropTypes(propTypes, props, 'prop', 'WordCloud');
-
+function WordCloud(element, props) {
   const {
     data,
     width,
@@ -50,7 +66,7 @@ function wordCloud(element, props) {
     .fontWeight('bold')
     .fontSize(d => scale(d.size));
 
-  const colorFn = getScale(colorScheme).toFunction();
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   function draw(words) {
     chart.selectAll('*').remove();
@@ -78,43 +94,7 @@ function wordCloud(element, props) {
   layout.on('end', draw).start();
 }
 
-wordCloud.propTypes = propTypes;
+WordCloud.displayName = 'WordCloud';
+WordCloud.propTypes = propTypes;
 
-function transform(data, formData) {
-  const {
-    metric,
-    series,
-  } = formData;
-
-  const transformedData = data.map(datum => ({
-    text: datum[series],
-    size: datum[metric.label || metric],
-  }));
-
-  return transformedData;
-}
-
-function adaptor(slice, payload) {
-  const { selector, formData } = slice;
-
-  const {
-    rotation,
-    size_to: sizeTo,
-    size_from: sizeFrom,
-    color_scheme: colorScheme,
-  } = formData;
-  const element = document.querySelector(selector);
-
-  const data = transform(payload.data, formData);
-
-  return wordCloud(element, {
-    data,
-    width: slice.width(),
-    height: slice.height(),
-    rotation,
-    sizeRange: [sizeFrom, sizeTo],
-    colorScheme,
-  });
-}
-
-export default adaptor;
+export default WordCloud;

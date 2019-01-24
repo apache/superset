@@ -1,17 +1,52 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td, Thead, Th } from 'reactable';
-import { isEqual, isEmpty } from 'underscore';
-
+import { Table, Tr, Td, Thead, Th } from 'reactable-arc';
+import { isEqual, isEmpty } from 'lodash';
+import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
-import { t } from '../locales';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
   currentFormData: PropTypes.object.isRequired,
 };
+
+function alterForComparison(value) {
+  // Considering `[]`, `{}`, `null` and `undefined` as identical
+  // for this purpose
+  if (value === undefined || value === null || value === '') {
+    return null;
+  } else if (typeof value === 'object') {
+    if (Array.isArray(value) && value.length === 0) {
+      return null;
+    }
+    const keys = Object.keys(value);
+    if (keys && keys.length === 0) {
+      return null;
+    }
+  }
+  return value;
+}
+
 
 export default class AlteredSliceTag extends React.Component {
 
@@ -46,11 +81,15 @@ export default class AlteredSliceTag extends React.Component {
       if (['filters', 'having', 'having_filters', 'where'].includes(fdKey)) {
         continue;
       }
-      if (!isEqual(ofd[fdKey], cfd[fdKey])) {
+      if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
     }
     return diffs;
+  }
+
+  isEqualish(val1, val2) {
+    return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
   formatValue(value, key) {

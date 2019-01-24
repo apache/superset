@@ -1,10 +1,22 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+import logging
 
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
@@ -13,21 +25,23 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from past.builtins import basestring
 
-from superset import appbuilder, db, security_manager, utils
+from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
+from superset.utils import core as utils
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
 
+logger = logging.getLogger(__name__)
+
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
-    list_title = _('List Columns')
+    list_title = _('Columns')
     show_title = _('Show Column')
     add_title = _('Add Column')
     edit_title = _('Edit Column')
@@ -100,7 +114,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
-    list_title = _('List Metrics')
+    list_title = _('Metrics')
     show_title = _('Show Metric')
     add_title = _('Add Metric')
     edit_title = _('Edit Metric')
@@ -113,7 +127,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': utils.markdown(
             'a valid, *aggregating* SQL expression as supported by the '
             'underlying backend. Example: `count(DISTINCT userid)`', True),
-        'is_restricted': _('Whether the access to this metric is restricted '
+        'is_restricted': _('Whether access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
                            'are allowed to access this metric'),
@@ -154,20 +168,20 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
 
-    list_title = _('List Tables')
+    list_title = _('Tables')
     show_title = _('Show Table')
     add_title = _('Import a table definition')
     edit_title = _('Edit Table')
 
     list_columns = [
-        'link', 'database',
+        'link', 'database_name',
         'changed_by_', 'modified']
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
-        'description', 'owner',
+        'description', 'owners',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
     ]
@@ -176,7 +190,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
-        'database', 'schema', 'table_name', 'owner', 'is_sqllab_view',
+        'database', 'schema', 'table_name', 'owners', 'is_sqllab_view',
     )
     description_columns = {
         'slices': _(
@@ -229,6 +243,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'link': _('Table'),
         'changed_by_': _('Changed By'),
         'database': _('Database'),
+        'database_name': _('Database'),
         'changed_on_': _('Last Changed'),
         'filter_select_enabled': _('Enable Filter Select'),
         'schema': _('Schema'),
@@ -237,7 +252,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'cache_timeout': _('Cache Timeout'),
         'table_name': _('Table Name'),
         'fetch_values_predicate': _('Fetch Values Predicate'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'main_dttm_col': _('Main Datetime Column'),
         'description': _('Description'),
         'is_sqllab_view': _('SQL Lab View'),
@@ -258,12 +273,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
-        except Exception:
+        except Exception as e:
+            logger.exception(f'Got an error in pre_add for {table.name}')
             raise Exception(_(
                 'Table [{}] could not be found, '
                 'please double check your '
                 'database connection, schema, and '
-                'table name').format(table.name))
+                'table name, error: {}').format(table.name, str(e)))
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
@@ -274,7 +290,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         if flash_message:
             flash(_(
                 'The table was created. '
-                'As part of this two phase configuration '
+                'As part of this two-phase configuration '
                 'process, you should now click the edit button by '
                 'the new table to configure it.'), 'info')
 
@@ -289,7 +305,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def edit(self, pk):
         """Simple hack to redirect to explore view after saving"""
         resp = super(TableModelView, self).edit(pk)
-        if isinstance(resp, basestring):
+        if isinstance(resp, str):
             return resp
         return redirect('/superset/explore/table/{}/'.format(pk))
 

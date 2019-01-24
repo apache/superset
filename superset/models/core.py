@@ -1,11 +1,21 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from contextlib import closing
 from copy import copy, deepcopy
 from datetime import datetime
@@ -18,10 +28,8 @@ from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
-from future.standard_library import install_aliases
 import numpy
 import pandas as pd
-import six
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
@@ -36,20 +44,23 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
 import sqlparse
 
-from superset import app, db, db_engine_specs, security_manager, utils
+from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
-from superset.utils import MediumText
+from superset.utils import (
+    cache as cache_util,
+    core as utils,
+)
 from superset.viz import viz_types
-install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
+log_query = config.get('QUERY_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
@@ -205,7 +216,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
         # pylint: disable=no-member
-        return viz_class(self.datasource, form_data=d)
+        return viz_class(datasource=self.datasource, form_data=d)
 
     @property
     def description_markeddown(self):
@@ -264,8 +275,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data = {'slice_id': self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return (
-            '{base_url}/?form_data={params}'.format(**locals()))
+        return f'{base_url}/?form_data={params}'
 
     @property
     def slice_url(self):
@@ -285,7 +295,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     def slice_link(self):
         url = self.slice_url
         name = escape(self.slice_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_viz(self, force=False):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -305,6 +315,17 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             form_data=slice_params,
             force=force,
         )
+
+    @property
+    def icons(self):
+        return f"""
+        <a
+                href="{self.datasource_edit_url}"
+                data-toggle="tooltip"
+                title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """
 
     @classmethod
     def import_obj(cls, slc_to_import, slc_to_override, import_time=None):
@@ -373,7 +394,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
-    position_json = Column(MediumText())
+    position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
@@ -423,8 +444,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     def dashboard_link(self):
         title = escape(self.dashboard_title)
-        return Markup(
-            '<a href="{self.url}">{title}</a>'.format(**locals()))
+        return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
     def data(self):
@@ -643,25 +663,25 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
-    expose_in_sqllab = Column(Boolean, default=False)
-    allow_run_sync = Column(Boolean, default=True)
+    expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
-    allow_csv_upload = Column(Boolean, default=True)
+    allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
-        "engine_params": {}
+        "engine_params": {},
+        "metadata_cache_timeout": {},
+        "schemas_allowed_for_csv_upload": []
     }
     """))
     perm = Column(String(1000))
-
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
-                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'expose_in_sqllab', 'allow_run_async',
                      'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
@@ -699,6 +719,26 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def backend(self):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
+
+    @property
+    def metadata_cache_timeout(self):
+        return self.get_extra().get('metadata_cache_timeout', {})
+
+    @property
+    def schema_cache_enabled(self):
+        return 'schema_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def schema_cache_timeout(self):
+        return self.metadata_cache_timeout.get('schema_cache_timeout')
+
+    @property
+    def table_cache_enabled(self):
+        return 'table_cache_timeout' in self.metadata_cache_timeout
+
+    @property
+    def table_cache_timeout(self):
+        return self.metadata_cache_timeout.get('table_cache_timeout')
 
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
@@ -741,7 +781,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None, source=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -769,12 +809,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params['connect_args'] = {'configuration': configuration}
+            d = params.get('connect_args', {})
+            d['configuration'] = configuration
+            params['connect_args'] = d
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, security_manager)
+                url, params, effective_username, security_manager, source)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -784,8 +826,16 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [six.text_type(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        engine = self.get_sqla_engine(schema=schema)
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        source_key = None
+        if request and request.referrer:
+            if '/superset/dashboard/' in request.referrer:
+                source_key = 'dashboard'
+            elif '/superset/explore/' in request.referrer:
+                source_key = 'chart'
+        engine = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get(source_key, None))
+        username = utils.get_username()
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -794,12 +844,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
+        def _log_query(sql):
+            if log_query:
+                log_query(engine.url, sql, schema, username, __name__, security_manager)
+
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 for sql in sqls[:-1]:
+                    _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
                     cursor.fetchall()
 
+                _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
                 if cursor.description is not None:
@@ -821,7 +877,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def compile_sqla_query(self, qry, schema=None):
         engine = self.get_sqla_engine(schema=schema)
 
-        sql = six.text_type(
+        sql = str(
             qry.compile(
                 engine,
                 compile_kwargs={'literal_binds': True},
@@ -837,7 +893,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True, latest_partition=False, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
-        eng = self.get_sqla_engine(schema=schema)
+        eng = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get('sql_lab', None))
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, engine=eng,
             limit=limit, show_cols=show_cols,
@@ -854,32 +911,105 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
-    def all_table_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            tables_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'table', force=force)
-            return tables_dict.get('', [])
-        return sorted(
-            self.db_engine_spec.get_table_names(schema, self.inspector))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:table_list',
+        attribute_in_key='id')
+    def all_table_names_in_database(self, cache=False,
+                                    cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'table')
 
-    def all_view_names(self, schema=None, force=False):
-        if not schema:
-            if not self.allow_multi_schema_metadata_fetch:
-                return []
-            views_dict = self.db_engine_spec.fetch_result_sets(
-                self, 'view', force=force)
-            return views_dict.get('', [])
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema:None:view_list',
+        attribute_in_key='id')
+    def all_view_names_in_database(self, cache=False,
+                                   cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments."""
+        if not self.allow_multi_schema_metadata_fetch:
+            return []
+        return self.db_engine_spec.fetch_result_sets(self, 'view')
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_table_names_in_schema(self, schema, cache=False,
+                                  cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: table list
+        :rtype: list
+        """
+        tables = []
+        try:
+            tables = self.db_engine_spec.get_table_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
+        return tables
+
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:view_list'.format(
+            kwargs.get('schema')),
+        attribute_in_key='id')
+    def all_view_names_in_schema(self, schema, cache=False,
+                                 cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param schema: schema name
+        :type schema: str
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: view list
+        :rtype: list
+        """
         views = []
         try:
-            views = self.inspector.get_view_names(schema)
-        except Exception:
-            pass
+            views = self.db_engine_spec.get_view_names(
+                inspector=self.inspector, schema=schema)
+        except Exception as e:
+            logging.exception(e)
         return views
 
-    def all_schema_names(self):
-        return sorted(self.db_engine_spec.get_schema_names(self.inspector))
+    @cache_util.memoized_func(
+        key=lambda *args, **kwargs: 'db:{}:schema_list',
+        attribute_in_key='id')
+    def all_schema_names(self, cache=False, cache_timeout=None, force=False):
+        """Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param cache: whether cache is enabled for the function
+        :type cache: bool
+        :param cache_timeout: timeout in seconds for the cache
+        :type cache_timeout: int
+        :param force: whether to force refresh the cache
+        :type force: bool
+        :return: schema list
+        :rtype: list
+        """
+        return self.db_engine_spec.get_schema_names(self.inspector)
 
     @property
     def db_engine_spec(self):
@@ -916,6 +1046,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 extra = json.loads(self.extra)
             except Exception as e:
                 logging.error(e)
+                raise e
         return extra
 
     def get_table(self, table_name, schema=None):
@@ -938,6 +1069,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def get_foreign_keys(self, table_name, schema=None):
         return self.inspector.get_foreign_keys(table_name, schema)
+
+    def get_schema_access_for_csv_upload(self):
+        return self.get_extra().get('schemas_allowed_for_csv_upload', [])
 
     @property
     def sqlalchemy_uri_decrypted(self):
@@ -1102,11 +1236,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_grant={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_grant={r.name}'
             )
             href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
             action_list = action_list + '<li>' + href + '</li>'
@@ -1116,11 +1250,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def user_roles(self):
         action_list = ''
         for r in self.created_by.roles:  # pylint: disable=no-member
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_extend={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_extend={r.name}'
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
             if r.name in self.ROLES_BLACKLIST:

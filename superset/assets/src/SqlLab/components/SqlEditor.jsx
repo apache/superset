@@ -1,6 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import {
   Col,
   FormGroup,
@@ -14,20 +32,20 @@ import {
   Collapse,
 } from 'react-bootstrap';
 import SplitPane from 'react-split-pane';
+import { t } from '@superset-ui/translation';
 
 import Button from '../../components/Button';
+import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
-import ShareQuery from './ShareQuery';
+import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { t } from '../../locales';
-
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -39,6 +57,8 @@ const propTypes = {
   dataPreviewQueries: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   hideLeftBar: PropTypes.bool,
+  defaultQueryLimit: PropTypes.number.isRequired,
+  maxRow: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -80,7 +100,7 @@ class SqlEditor extends React.PureComponent {
   onResize() {
     const height = this.sqlEditorHeight();
     const editorPaneHeight = this.props.queryEditor.height || 200;
-    const splitPaneHandlerHeight = 15;
+    const splitPaneHandlerHeight = 8; // 4px of height + 4px of top-margin
     this.setState({
       editorPaneHeight,
       southPaneHeight: height - editorPaneHeight - splitPaneHandlerHeight,
@@ -131,8 +151,13 @@ class SqlEditor extends React.PureComponent {
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
+  setQueryLimit(queryLimit) {
+    this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
+  }
   runQuery() {
-    this.startQuery(!(this.props.database || {}).allow_run_sync);
+    if (this.props.database) {
+      this.startQuery(this.props.database.allow_run_async);
+    }
   }
   startQuery(runAsync = false, ctas = false) {
     const qe = this.props.queryEditor;
@@ -144,6 +169,7 @@ class SqlEditor extends React.PureComponent {
       schema: qe.schema,
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
+      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
       runAsync,
       ctas,
     };
@@ -210,8 +236,8 @@ class SqlEditor extends React.PureComponent {
       );
     }
     return (
-      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
-        <div className="pull-left">
+      <div className="sql-toolbar" id="js-sql-toolbar">
+        <div>
           <Form inline>
             <span className="m-r-5">
               <RunQueryActionButton
@@ -235,9 +261,20 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             <span className="m-r-5">
-              <ShareQuery queryEditor={qe} />
+              <ShareSqlLabQuery queryEditor={qe} />
             </span>
-            {ctasControls}
+            <span className="m-r-5">
+              {ctasControls}
+            </span>
+            <span className="inlineBlock m-r-5">
+              <LimitControl
+                value={(this.props.queryEditor.queryLimit !== undefined) ?
+                  this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
+                defaultQueryLimit={this.props.defaultQueryLimit}
+                maxRow={this.props.maxRow}
+                onChange={this.setQueryLimit.bind(this)}
+              />
+            </span>
             <span className="m-l-5">
               <Hotkeys
                 header="Keyboard shortcuts"
@@ -246,7 +283,7 @@ class SqlEditor extends React.PureComponent {
             </span>
           </Form>
         </div>
-        <div className="pull-right">
+        <div>
           <TemplateParamsEditor
             language="json"
             onChange={(params) => {

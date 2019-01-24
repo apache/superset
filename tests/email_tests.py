@@ -1,11 +1,23 @@
 # -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for email service in Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 import logging
 import tempfile
@@ -13,7 +25,9 @@ import unittest
 
 import mock
 
-from superset import app, utils
+from superset import app
+from superset.utils import core as utils
+from .utils import read_fixture
 
 send_email_test = mock.Mock()
 
@@ -22,7 +36,7 @@ class EmailSmtpTest(unittest.TestCase):
     def setUp(self):
         app.config['smtp_ssl'] = False
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_send_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')
@@ -41,7 +55,40 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEApplication('attachment')
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-    @mock.patch('superset.utils.send_MIME_email')
+    @mock.patch('superset.utils.core.send_MIME_email')
+    def test_send_smtp_data(self, mock_send_mime):
+        utils.send_email_smtp(
+            'to', 'subject', 'content', app.config, data={'1.txt': b'data'})
+        assert mock_send_mime.called
+        call_args = mock_send_mime.call_args[0]
+        logging.debug(call_args)
+        assert call_args[0] == app.config.get('SMTP_MAIL_FROM')
+        assert call_args[1] == ['to']
+        msg = call_args[2]
+        assert msg['Subject'] == 'subject'
+        assert msg['From'] == app.config.get('SMTP_MAIL_FROM')
+        assert len(msg.get_payload()) == 2
+        mimeapp = MIMEApplication('data')
+        assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
+
+    @mock.patch('superset.utils.core.send_MIME_email')
+    def test_send_smtp_inline_images(self, mock_send_mime):
+        image = read_fixture('sample.png')
+        utils.send_email_smtp(
+            'to', 'subject', 'content', app.config, images=dict(blah=image))
+        assert mock_send_mime.called
+        call_args = mock_send_mime.call_args[0]
+        logging.debug(call_args)
+        assert call_args[0] == app.config.get('SMTP_MAIL_FROM')
+        assert call_args[1] == ['to']
+        msg = call_args[2]
+        assert msg['Subject'] == 'subject'
+        assert msg['From'] == app.config.get('SMTP_MAIL_FROM')
+        assert len(msg.get_payload()) == 2
+        mimeapp = MIMEImage(image)
+        assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
+
+    @mock.patch('superset.utils.core.send_MIME_email')
     def test_send_bcc_smtp(self, mock_send_mime):
         attachment = tempfile.NamedTemporaryFile()
         attachment.write(b'attachment')

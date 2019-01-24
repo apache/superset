@@ -1,7 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Table, Tr, Td } from 'reactable';
-import $ from 'jquery';
+import { Table, Tr, Td } from 'reactable-arc';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
+
+import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from '../components/Loading';
 import '../../stylesheets/reactable-pagination.css';
 
@@ -9,9 +30,10 @@ const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
   mutator: PropTypes.func,
   columns: PropTypes.arrayOf(PropTypes.string),
+  addDangerToast: PropTypes.func.isRequired,
 };
 
-export default class TableLoader extends React.PureComponent {
+class TableLoader extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -19,20 +41,34 @@ export default class TableLoader extends React.PureComponent {
       data: [],
     };
   }
+
   componentWillMount() {
-    $.get(this.props.dataEndpoint, (data) => {
-      let actualData = data;
-      if (this.props.mutator) {
-        actualData = this.props.mutator(data);
-      }
-      this.setState({ data: actualData, isLoading: false });
-    });
+    const { dataEndpoint, mutator } = this.props;
+
+    SupersetClient.get({ endpoint: dataEndpoint })
+      .then(({ json }) => {
+        const data = mutator ? mutator(json) : json;
+        this.setState({ data, isLoading: false });
+      })
+      .catch(() => {
+        this.setState({ isLoading: false });
+        this.props.addDangerToast(t('An error occurred'));
+      });
   }
+
   render() {
     if (this.state.isLoading) {
       return <Loading />;
     }
-    const tableProps = Object.assign({}, this.props);
+
+    const {
+      addDangerToast,
+      addInfoToast,
+      addSuccessToast,
+      addWarningToast,
+      ...tableProps
+    } = this.props;
+
     let { columns } = this.props;
     if (!columns && this.state.data.length > 0) {
       columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
@@ -70,4 +106,7 @@ export default class TableLoader extends React.PureComponent {
     );
   }
 }
+
 TableLoader.propTypes = propTypes;
+
+export default withToasts(TableLoader);

@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Migrate num_period_compare and period_ratio_type
 
 Revision ID: 3dda56f1c4c6
@@ -5,8 +21,6 @@ Revises: bddc498dd179
 Create Date: 2018-07-05 15:19:14.609299
 
 """
-
-from __future__ import division
 
 # revision identifiers, used by Alembic.
 
@@ -19,7 +33,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 
 from superset import db
-from superset.utils import parse_human_timedelta
+from superset.utils.core import parse_human_timedelta
 
 revision = '3dda56f1c4c6'
 down_revision = 'bddc498dd179'

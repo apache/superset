@@ -1,6 +1,22 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import moment from 'moment';
-
-const d3 = require('d3');
 
 export function UTC(dttm) {
   return new Date(
@@ -12,117 +28,6 @@ export function UTC(dttm) {
     dttm.getUTCSeconds(),
   );
 }
-
-export const tickMultiFormat = (() => {
-  const formatMillisecond = d3.time.format('.%Lms');
-  const formatSecond = d3.time.format(':%Ss');
-  const formatMinute = d3.time.format('%I:%M');
-  const formatHour = d3.time.format('%I %p');
-  const formatDay = d3.time.format('%a %d');
-  const formatWeek = d3.time.format('%b %d');
-  const formatMonth = d3.time.format('%B');
-  const formatYear = d3.time.format('%Y');
-
-  return function tickMultiFormatConcise(date) {
-    let formatter;
-    if (d3.time.second(date) < date) {
-      formatter = formatMillisecond;
-    } else if (d3.time.minute(date) < date) {
-      formatter = formatSecond;
-    } else if (d3.time.hour(date) < date) {
-      formatter = formatMinute;
-    } else if (d3.time.day(date) < date) {
-      formatter = formatHour;
-    } else if (d3.time.month(date) < date) {
-      formatter = d3.time.week(date) < date ? formatDay : formatWeek;
-    } else if (d3.time.year(date) < date) {
-      formatter = formatMonth;
-    } else {
-      formatter = formatYear;
-    }
-
-    return formatter(date);
-  };
-})();
-
-export const tickMultiFormatVerbose = d3.time.format.multi([
-  [
-    '.%L',
-    function (d) {
-      return d.getMilliseconds();
-    },
-  ],
-  // If there are millisections, show  only them
-  [
-    ':%S',
-    function (d) {
-      return d.getSeconds();
-    },
-  ],
-  // If there are seconds, show only them
-  [
-    '%a %b %d, %I:%M %p',
-    function (d) {
-      return d.getMinutes() !== 0;
-    },
-  ],
-  // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
-  [
-    '%a %b %d, %I %p',
-    function (d) {
-      return d.getHours() !== 0;
-    },
-  ],
-  // If there are hours that are multiples of 3, show date and AM/PM
-  [
-    '%a %b %e',
-    function (d) {
-      return d.getDate() >= 10;
-    },
-  ],
-  // If not the first of the month: "Tue Mar 2"
-  [
-    '%a %b%e',
-    function (d) {
-      return d.getDate() > 1;
-    },
-  ],
-  // If >= 10th of the month, compensate for padding : "Sun Mar 15"
-  [
-    '%b %Y',
-    function (d) {
-      return d.getMonth() !== 0 && d.getDate() === 1;
-    },
-  ],
-  // If the first of the month: 'Mar 2020'
-  [
-    '%Y',
-    function () {
-      return true;
-    },
-  ],  // fall back on just year: '2020'
-]);
-export const formatDate = function (dttm) {
-  const d = UTC(new Date(dttm));
-  return tickMultiFormat(d);
-};
-
-export const formatDateVerbose = function (dttm) {
-  const d = UTC(new Date(dttm));
-  return tickMultiFormatVerbose(d);
-};
-
-export const formatDateThunk = function (format) {
-  if (!format) {
-    return formatDateVerbose;
-  }
-
-  const formatter = d3.time.format(format);
-  return (dttm) => {
-    const d = UTC(new Date(dttm));
-    return formatter(d);
-  };
-};
 
 export const fDuration = function (t1, t2, format = 'HH:mm:ss.SS') {
   const diffSec = t2 - t1;

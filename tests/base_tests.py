@@ -1,50 +1,45 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
-import logging
-import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 from mock import Mock
 import pandas as pd
 
-from superset import app, cli, db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.utils import get_main_database
-
+from superset.utils.core import get_main_database
 
 BASE_DIR = app.config.get('BASE_DIR')
 
 
 class SupersetTestCase(unittest.TestCase):
-    requires_examples = False
-    examples_loaded = False
 
     def __init__(self, *args, **kwargs):
-        if (
-            self.requires_examples and
-            not os.environ.get('examples_loaded')
-        ):
-            logging.info('Loading examples')
-            cli.load_examples_run(load_test_data=True)
-            logging.info('Done loading examples')
-            security_manager.sync_role_definitions()
-            os.environ['examples_loaded'] = '1'
-        else:
-            security_manager.sync_role_definitions()
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
 
-        cli.load_test_users_run()
+    @classmethod
+    def create_druid_test_objects(cls):
         # create druid cluster and druid datasources
         session = db.session
         cluster = (
@@ -77,10 +72,13 @@ class SupersetTestCase(unittest.TestCase):
             .one()
         )
 
-    def get_or_create(self, cls, criteria, session):
+    def get_or_create(self, cls, criteria, session, **kwargs):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
+        obj.__dict__.update(**kwargs)
+        session.add(obj)
+        session.commit()
         return obj
 
     def login(self, username='admin', password='general'):
@@ -172,7 +170,8 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 security_manager.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
+    def run_sql(self, sql, client_id=None, user_name=None, raise_on_error=False,
+                query_limit=None):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
@@ -181,7 +180,7 @@ class SupersetTestCase(unittest.TestCase):
             '/superset/sql_json/',
             raise_on_error=False,
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
-                      client_id=client_id),
+                      client_id=client_id, queryLimit=query_limit),
         )
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')

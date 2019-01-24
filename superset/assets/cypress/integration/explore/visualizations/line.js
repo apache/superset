@@ -1,62 +1,60 @@
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
-describe('Line', () => {
+export default () => describe('Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
-  it('Test line chart with adhoc metric', () => {
-    cy.server();
+  beforeEach(() => {
     cy.login();
+    cy.server();
+    cy.route('POST', '/superset/explore_json/**').as('getJson');
+  });
 
+  it('Test line chart with adhoc metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with groupby', () => {
-    cy.server();
-    cy.login();
-
     const metrics = ['count'];
     const groupby = ['gender'];
 
     const formData = { ...LINE_CHART_DEFAULTS, metrics, groupby };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with simple filter', () => {
-    cy.server();
-    cy.login();
-
     const metrics = ['count'];
-    const filters = [
-      {
-        expressionType: 'SIMPLE',
-        subject: 'name',
-        operator: 'in',
-        comparator: ['Aaron', 'Amy', 'Andrea'],
-        clause: 'WHERE',
-        sqlExpression: null,
-        fromFormData: true,
-        filterOptionName: 'filter_4y6teao56zs_ebjsvwy48c',
-      },
-    ];
+    const filters = [SIMPLE_FILTER];
 
     const formData = { ...LINE_CHART_DEFAULTS, metrics, adhoc_filters: filters };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with series limit sort asc', () => {
-    cy.server();
-    cy.login();
-
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics: [NUM_METRIC],
@@ -65,15 +63,11 @@ describe('Line', () => {
       timeseries_limit_metric: NUM_METRIC,
     };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with series limit sort desc', () => {
-    cy.server();
-    cy.login();
-
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics: [NUM_METRIC],
@@ -83,28 +77,20 @@ describe('Line', () => {
       order_desc: true,
     };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with rolling avg', () => {
-    cy.server();
-    cy.login();
-
     const metrics = [NUM_METRIC];
 
     const formData = { ...LINE_CHART_DEFAULTS, metrics, rolling_type: 'mean', rolling_periods: 10 };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with time shift 1 year', () => {
-    cy.server();
-    cy.login();
-
     const metrics = [NUM_METRIC];
 
     const formData = {
@@ -114,15 +100,11 @@ describe('Line', () => {
       comparison_type: 'values',
     };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with time shift yoy', () => {
-    cy.server();
-    cy.login();
-
     const metrics = [NUM_METRIC];
 
     const formData = {
@@ -132,15 +114,11 @@ describe('Line', () => {
       comparison_type: 'ratio',
     };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
   it('Test line chart with time shift percentage change', () => {
-    cy.server();
-    cy.login();
-
     const metrics = [NUM_METRIC];
 
     const formData = {
@@ -150,8 +128,83 @@ describe('Line', () => {
       comparison_type: 'percentage',
     };
 
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+  });
+
+  it('Test verbose name shows up in legend', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('text.nv-legend-text').contains('COUNT(*)');
+  });
+
+  it('Test hidden annotation', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+      annotation_layers: [{
+        name: 'Goal+line',
+        annotationType: 'FORMULA',
+        sourceType: '',
+        value: 'y=140000',
+        overrides: { time_range: null },
+        show: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+        color: null,
+        opacity: '',
+        style: 'solid',
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+      }],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      // Goal line annotation doesn't show up in legend
+      cy.get('.nv-legend-text').should('have.length', 1);
+    });
+  });
+
+  it('Test event annotation time override', () => {
+    cy.request('/chart/api/read?_flt_3_slice_name=Daily+Totals').then((response) => {
+      const value = response.body.pks[0];
+      const formData = {
+        ...LINE_CHART_DEFAULTS,
+        metrics: ['count'],
+        annotation_layers: [{
+          name: 'Yearly date',
+          annotationType: 'EVENT',
+          sourceType: 'table',
+          value,
+          overrides: { time_range: null },
+          show: true,
+          titleColumn: 'ds',
+          descriptionColumns: ['ds'],
+          timeColumn: 'ds',
+          color: null,
+          opacity: '',
+          style: 'solid',
+          width: 1,
+          showMarkers: false,
+          hideLine: false,
+        }],
+      };
+      cy.visitChartByParams(JSON.stringify(formData));
+    });
+
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      cy.get('.nv-event-annotation-layer-0').children().should('have.length', 44);
+    });
   });
 });

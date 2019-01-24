@@ -1,14 +1,25 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
 from flask import escape
+from sqlalchemy import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -17,8 +28,6 @@ from .base_tests import SupersetTestCase
 
 
 class DashboardTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(DashboardTests, self).__init__(*args, **kwargs)
@@ -59,6 +68,15 @@ class DashboardTests(SupersetTestCase):
             urls[dash.dashboard_title] = dash.url
         for title, url in urls.items():
             assert escape(title) in self.client.get(url).data.decode('utf-8')
+
+    def test_new_dashboard(self):
+        self.login(username='admin')
+        dash_count_before = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        url = '/dashboard/new/'
+        resp = self.get_resp(url)
+        self.assertIn('[ untitled dashboard ]', resp)
+        dash_count_after = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        self.assertEquals(dash_count_before + 1, dash_count_after)
 
     def test_dashboard_modes(self):
         self.login(username='admin')
@@ -211,7 +229,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         new_slice = db.session.query(models.Slice).filter_by(
-            slice_name='Mapbox Long/Lat').first()
+            slice_name='Energy Force Layout').first()
         existing_slice = db.session.query(models.Slice).filter_by(
             slice_name='Name Cloud').first()
         data = {
@@ -225,7 +243,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         new_slice = db.session.query(models.Slice).filter_by(
-            slice_name='Mapbox Long/Lat').first()
+            slice_name='Energy Force Layout').first()
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
@@ -233,7 +251,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         dash.slices = [
-            o for o in dash.slices if o.slice_name != 'Mapbox Long/Lat']
+            o for o in dash.slices if o.slice_name != 'Energy Force Layout']
         db.session.commit()
 
     def test_remove_slices(self, username='admin'):

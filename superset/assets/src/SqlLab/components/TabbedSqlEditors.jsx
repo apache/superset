@@ -1,29 +1,50 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
+import { t } from '@superset-ui/translation';
 
-import * as Actions from '../actions';
+import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
-import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
-import { t } from '../../locales';
 import TabStatusIcon from './TabStatusIcon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   defaultDbId: PropTypes.number,
+  defaultQueryLimit: PropTypes.number.isRequired,
+  maxRow: PropTypes.number.isRequired,
   databases: PropTypes.object.isRequired,
   queries: PropTypes.object.isRequired,
   queryEditors: PropTypes.array,
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
   getHeight: PropTypes.func.isRequired,
+  offline: PropTypes.bool,
 };
 const defaultProps = {
   queryEditors: [],
+  offline: false,
 };
 
 let queryCount = 1;
@@ -38,6 +59,10 @@ class TabbedSqlEditors extends React.PureComponent {
       dataPreviewQueries: [],
       hideLeftBar: false,
     };
+    this.removeQueryEditor = this.removeQueryEditor.bind(this);
+    this.renameTab = this.renameTab.bind(this);
+    this.toggleLeftBar = this.toggleLeftBar.bind(this);
+    this.removeAllOtherQueryEditors = this.removeAllOtherQueryEditors.bind(this);
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
@@ -135,6 +160,7 @@ class TabbedSqlEditors extends React.PureComponent {
       sql: `${t(
         '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.',
       )}\n\nSELECT ...`,
+      queryLimit: this.props.defaultQueryLimit,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -147,6 +173,10 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
+  }
+  removeAllOtherQueryEditors(cqe) {
+    this.props.queryEditors
+      .forEach(qe => qe !== cqe && this.removeQueryEditor(qe));
   }
   toggleLeftBar() {
     this.setState({ hideLeftBar: !this.state.hideLeftBar });
@@ -167,7 +197,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const tabTitle = (
         <div>
-          <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} />{' '}
+          <TabStatusIcon onClose={() => this.removeQueryEditor(qe)} tabState={state} />{' '}
           {qe.title}{' '}
           <DropdownButton
             bsSize="small"
@@ -175,24 +205,29 @@ class TabbedSqlEditors extends React.PureComponent {
             className="ddbtn-tab"
             title=""
           >
-            <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
+            <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
               <div className="icon-container">
                 <i className="fa fa-close" />
               </div>
               {t('Close tab')}
             </MenuItem>
-            <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
+            <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
               <div className="icon-container">
                 <i className="fa fa-i-cursor" />
               </div>
               {t('Rename tab')}
             </MenuItem>
-            {qe && <CopyQueryTabUrl queryEditor={qe} />}
-            <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
+            <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
               <div className="icon-container">
                 <i className="fa fa-cogs" />
               </div>
               {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+            </MenuItem>
+            <MenuItem eventKey="4" onClick={() => this.removeAllOtherQueryEditors(qe)}>
+              <div className="icon-container">
+                <i className="fa fa-times-circle-o" />
+              </div>
+              {t('Close all other tabs')}
             </MenuItem>
           </DropdownButton>
         </div>
@@ -212,6 +247,8 @@ class TabbedSqlEditors extends React.PureComponent {
                   database={database}
                   actions={this.props.actions}
                   hideLeftBar={this.state.hideLeftBar}
+                  defaultQueryLimit={this.props.defaultQueryLimit}
+                  maxRow={this.props.maxRow}
                 />
               )}
             </div>
@@ -234,6 +271,7 @@ class TabbedSqlEditors extends React.PureComponent {
             </div>
           }
           eventKey="add_tab"
+          disabled={this.props.offline}
         />
       </Tabs>
     );
@@ -242,7 +280,7 @@ class TabbedSqlEditors extends React.PureComponent {
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
 
-function mapStateToProps({ sqlLab }) {
+function mapStateToProps({ sqlLab, common }) {
   return {
     databases: sqlLab.databases,
     queryEditors: sqlLab.queryEditors,
@@ -250,6 +288,9 @@ function mapStateToProps({ sqlLab }) {
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
     defaultDbId: sqlLab.defaultDbId,
+    offline: sqlLab.offline,
+    defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
+    maxRow: common.conf.SQL_MAX_ROW,
   };
 }
 function mapDispatchToProps(dispatch) {

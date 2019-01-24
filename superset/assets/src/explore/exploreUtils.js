@@ -1,9 +1,41 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
+import { availableDomains } from '../utils/hostNamesConfig';
+
+const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
   const slice = explore.slice;
   return slice ? (slice.slice_id) : 0;
+}
+
+let requestCounter = 0;
+function getHostName(allowDomainSharding = false) {
+  let currentIndex = 0;
+  if (allowDomainSharding) {
+    currentIndex = requestCounter % availableDomains.length;
+    requestCounter += 1;
+  }
+
+  return availableDomains[currentIndex];
 }
 
 export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
@@ -22,13 +54,13 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
 export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
   let directory = '/superset/explore/';
-  if (['json', 'csv', 'query'].indexOf(endpointType) >= 0) {
+  if (['json', 'csv', 'query', 'results', 'samples'].indexOf(endpointType) >= 0) {
     directory = '/superset/explore_json/';
   }
   return directory;
 }
 
-export function getExploreLongUrl(formData, endpointType) {
+export function getExploreLongUrl(formData, endpointType, allowOverflow = true, extraSearch = {}) {
   if (!formData.datasource) {
     return null;
   }
@@ -36,11 +68,23 @@ export function getExploreLongUrl(formData, endpointType) {
   const uri = new URI('/');
   const directory = getURIDirectory(formData, endpointType);
   const search = uri.search(true);
+  Object.keys(extraSearch).forEach((key) => {
+    search[key] = extraSearch[key];
+  });
   search.form_data = JSON.stringify(formData);
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  return uri.directory(directory).search(search).toString();
+  const url = uri.directory(directory).search(search).toString();
+  if (!allowOverflow && url.length > MAX_URL_LENGTH) {
+    const minimalFormData = {
+      datasource: formData.datasource,
+      viz_type: formData.viz_type,
+    };
+    return getExploreLongUrl(
+      minimalFormData, endpointType, false, { URL_IS_TOO_LONG_TO_SHARE: null });
+  }
+  return url;
 }
 
 export function getExploreUrlAndPayload({
@@ -49,6 +93,7 @@ export function getExploreUrlAndPayload({
   force = false,
   curUrl = null,
   requestParams = {},
+  allowDomainSharding = false,
 }) {
   if (!formData.datasource) {
     return null;
@@ -57,7 +102,13 @@ export function getExploreUrlAndPayload({
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof
   // the window.location).
-  let uri = new URI([location.protocol, '//', location.host].join(''));
+  let uri = new URI({
+    protocol: location.protocol.slice(0, -1),
+    hostname: getHostName(allowDomainSharding),
+    port: location.port ? location.port : '',
+    path: '/',
+  });
+
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -81,6 +132,12 @@ export function getExploreUrlAndPayload({
   if (endpointType === 'query') {
     search.query = 'true';
   }
+  if (endpointType === 'results') {
+    search.results = 'true';
+  }
+  if (endpointType === 'samples') {
+    search.samples = 'true';
+  }
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
     paramNames.forEach((name) => {
@@ -99,7 +156,11 @@ export function getExploreUrlAndPayload({
 }
 
 export function exportChart(formData, endpointType) {
-  const { url, payload } = getExploreUrlAndPayload({ formData, endpointType });
+  const { url, payload } = getExploreUrlAndPayload({
+    formData,
+    endpointType,
+    allowDomainSharding: false,
+  });
 
   const exploreForm = document.createElement('form');
   exploreForm.action = url;

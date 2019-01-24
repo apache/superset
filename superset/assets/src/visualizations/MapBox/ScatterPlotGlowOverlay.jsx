@@ -1,16 +1,31 @@
-import d3 from 'd3';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import Immutable from 'immutable';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ViewportMercator from 'viewport-mercator-project';
-import {
-  kmToPixels,
-  rgbLuminance,
-  isNumeric,
-  MILES_PER_KM,
-} from '../../utils/common';
+import { roundDecimal } from '../../modules/utils';
+import { kmToPixels, MILES_PER_KM } from '../../modules/geo';
+import { rgbLuminance } from '../../utils/common';
 
 const propTypes = {
+  aggregation: PropTypes.string,
   locations: PropTypes.instanceOf(Immutable.List).isRequired,
   lngLatAccessor: PropTypes.func,
   renderWhileDragging: PropTypes.bool,
@@ -33,6 +48,30 @@ const defaultProps = {
 const contextTypes = {
   viewport: PropTypes.object,
   isDragging: PropTypes.bool,
+};
+
+const computeClusterLabel = (properties, aggregation) => {
+  const count = properties.get('point_count');
+  if (!aggregation) {
+    return count;
+  }
+  if (aggregation === 'sum' || aggregation === 'min' || aggregation === 'max') {
+    return properties.get(aggregation);
+  }
+  const sum = properties.get('sum');
+  const mean = sum / count;
+  if (aggregation === 'mean') {
+    return Math.round(100 * mean) / 100;
+  }
+    const squaredSum = properties.get('squaredSum');
+    const variance = (squaredSum / count) - Math.pow(sum / count, 2);
+    if (aggregation === 'var') {
+      return Math.round(100 * variance) / 100;
+    } else if (aggregation === 'stdev') {
+      return Math.round(100 * Math.sqrt(variance)) / 100;
+    }
+    // fallback to point_count, this really shouldn't happen
+    return count;
 };
 
 class ScatterPlotGlowOverlay extends React.Component {
@@ -90,34 +129,14 @@ class ScatterPlotGlowOverlay extends React.Component {
     const mercator = new ViewportMercator(props);
     const rgb = props.rgb;
     const clusterLabelMap = [];
-    let maxLabel = -1;
 
     props.locations.forEach(function (location, i) {
       if (location.get('properties').get('cluster')) {
-        let clusterLabel = location.get('properties').get('metric')
-          ? location.get('properties').get('metric')
-          : location.get('properties').get('point_count');
-
-        if (clusterLabel instanceof Immutable.List) {
-          clusterLabel = clusterLabel.toArray();
-          if (props.aggregatorName === 'mean') {
-            clusterLabel = d3.mean(clusterLabel);
-          } else if (props.aggregatorName === 'median') {
-            clusterLabel = d3.median(clusterLabel);
-          } else if (props.aggregatorName === 'stdev') {
-            clusterLabel = d3.deviation(clusterLabel);
-          } else {
-            clusterLabel = d3.variance(clusterLabel);
-          }
-        }
-
-        clusterLabel = isNumeric(clusterLabel)
-          ? d3.round(clusterLabel, 2)
-          : location.get('properties').get('point_count');
-        maxLabel = Math.max(clusterLabel, maxLabel);
-        clusterLabelMap[i] = clusterLabel;
+        clusterLabelMap[i] = computeClusterLabel(location.get('properties'),
+            props.aggregation);
       }
     }, this);
+    const maxLabel = Math.max(...Object.values(clusterLabelMap));
 
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
@@ -127,7 +146,7 @@ class ScatterPlotGlowOverlay extends React.Component {
     if ((props.renderWhileDragging || !props.isDragging) && props.locations) {
       props.locations.forEach(function _forEach(location, i) {
         const pixel = mercator.project(props.lngLatAccessor(location));
-        const pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
+        const pixelRounded = [roundDecimal(pixel[0], 1), roundDecimal(pixel[1], 1)];
 
         if (pixelRounded[0] + radius >= 0
               && pixelRounded[0] - radius < props.width
@@ -136,8 +155,8 @@ class ScatterPlotGlowOverlay extends React.Component {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
-            const scaledRadius = d3.round(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
-            const fontHeight = d3.round(scaledRadius * 0.5, 1);
+            const scaledRadius = roundDecimal(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
+            const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
             const gradient = ctx.createRadialGradient(
               pixelRounded[0], pixelRounded[1], scaledRadius,
               pixelRounded[0], pixelRounded[1], 0,
@@ -149,7 +168,7 @@ class ScatterPlotGlowOverlay extends React.Component {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (isNumeric(clusterLabel)) {
+            if (Number.isFinite(parseFloat(clusterLabel))) {
               if (clusterLabel >= 10000) {
                 clusterLabel = Math.round(clusterLabel / 1000) + 'k';
               } else if (clusterLabel >= 1000) {
@@ -173,16 +192,18 @@ class ScatterPlotGlowOverlay extends React.Component {
             if (radiusProperty !== null) {
               const pointLatitude = props.lngLatAccessor(location)[1];
               if (props.pointRadiusUnit === 'Kilometers') {
-                pointLabel = d3.round(pointRadius, 2) + 'km';
+                pointLabel = roundDecimal(pointRadius, 2) + 'km';
                 pointRadius = kmToPixels(pointRadius, pointLatitude, props.zoom);
               } else if (props.pointRadiusUnit === 'Miles') {
-                pointLabel = d3.round(pointRadius, 2) + 'mi';
+                pointLabel = roundDecimal(pointRadius, 2) + 'mi';
                 pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, props.zoom);
               }
             }
 
             if (pointMetric !== null) {
-              pointLabel = isNumeric(pointMetric) ? d3.round(pointMetric, 2) : pointMetric;
+              pointLabel = Number.isFinite(parseFloat(pointMetric))
+                ? roundDecimal(pointMetric, 2)
+                : pointMetric;
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column
@@ -190,13 +211,13 @@ class ScatterPlotGlowOverlay extends React.Component {
               pointRadius = defaultRadius;
             }
 
-            ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(pointRadius, 1), 0, Math.PI * 2);
+            ctx.arc(pixelRounded[0], pixelRounded[1], roundDecimal(pointRadius, 1), 0, Math.PI * 2);
             ctx.fillStyle = 'rgb(' + rgb[1] + ', ' + rgb[2] + ', ' + rgb[3] + ')';
             ctx.fill();
 
             if (pointLabel !== undefined) {
               this.drawText(ctx, pixelRounded, {
-                fontHeight: d3.round(pointRadius, 1),
+                fontHeight: roundDecimal(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
                 rgb,

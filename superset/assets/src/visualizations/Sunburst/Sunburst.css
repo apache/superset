@@ -1,0 +1,68 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+.sunburst text {
+  text-rendering: optimizeLegibility;
+}
+.sunburst path {
+  stroke: #ddd;
+  stroke-width: 0.5px;
+}
+.sunburst .center-label {
+  text-anchor: middle;
+  fill: #333;
+  pointer-events: none;
+}
+.sunburst .path-abs-percent {
+  font-size: 3em;
+  font-weight: 700;
+}
+.sunburst .path-cond-percent {
+  font-size: 2em;
+}
+.sunburst .path-metrics {
+  color: #777;
+}
+.sunburst .path-ratio {
+  color: #777;
+}
+
+.sunburst .breadcrumbs text {
+  font-weight: 600;
+  font-size: 1.2em;
+  text-anchor: middle;
+  fill: #333;
+}
+
+/* dashboard specific */
+.dashboard .sunburst text {
+  font-size: 1em;
+}
+.dashboard .sunburst .path-abs-percent {
+  font-size: 2em;
+  font-weight: 700;
+}
+.dashboard .sunburst .path-cond-percent {
+  font-size: 1.5em;
+}
+.dashboard .sunburst .path-metrics {
+  font-size: 1em;
+}
+.dashboard .sunburst .path-ratio {
+  font-size: 1em;
+}
