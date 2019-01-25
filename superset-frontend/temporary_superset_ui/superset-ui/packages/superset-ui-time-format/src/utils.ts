@@ -29,23 +29,24 @@ import {
   utcSaturday,
   utcMonth,
   utcYear,
+  CountableTimeInterval,
 } from 'd3-time';
 
 function createUtils(useLocalTime = false) {
-  let floorSecond;
-  let floorMinute;
-  let floorHour;
-  let floorDay;
-  let floorWeek;
-  let floorWeekStartOnSunday;
-  let floorWeekStartOnMonday;
-  let floorWeekStartOnTuesday;
-  let floorWeekStartOnWednesday;
-  let floorWeekStartOnThursday;
-  let floorWeekStartOnFriday;
-  let floorWeekStartOnSaturday;
-  let floorMonth;
-  let floorYear;
+  let floorSecond: CountableTimeInterval;
+  let floorMinute: CountableTimeInterval;
+  let floorHour: CountableTimeInterval;
+  let floorDay: CountableTimeInterval;
+  let floorWeek: CountableTimeInterval;
+  let floorWeekStartOnSunday: CountableTimeInterval;
+  let floorWeekStartOnMonday: CountableTimeInterval;
+  let floorWeekStartOnTuesday: CountableTimeInterval;
+  let floorWeekStartOnWednesday: CountableTimeInterval;
+  let floorWeekStartOnThursday: CountableTimeInterval;
+  let floorWeekStartOnFriday: CountableTimeInterval;
+  let floorWeekStartOnSaturday: CountableTimeInterval;
+  let floorMonth: CountableTimeInterval;
+  let floorYear: CountableTimeInterval;
   if (useLocalTime) {
     floorSecond = timeSecond;
     floorMinute = timeMinute;
@@ -93,20 +94,20 @@ function createUtils(useLocalTime = false) {
     floorWeekStartOnSaturday,
     floorMonth,
     floorYear,
-    hasMillisecond: date => floorSecond(date) < date,
-    hasSecond: date => floorMinute(date) < date,
-    hasMinute: date => floorHour(date) < date,
-    hasHour: date => floorDay(date) < date,
-    isNotFirstDayOfMonth: date => floorMonth(date) < date,
-    isNotFirstDayOfWeek: date => floorWeek(date) < date,
-    isNotFirstDayOfWeekStartOnSunday: date => floorWeekStartOnSunday(date) < date,
-    isNotFirstDayOfWeekStartOnMonday: date => floorWeekStartOnMonday(date) < date,
-    isNotFirstDayOfWeekStartOnTuesday: date => floorWeekStartOnTuesday(date) < date,
-    isNotFirstDayOfWeekStartOnWednesday: date => floorWeekStartOnWednesday(date) < date,
-    isNotFirstDayOfWeekStartOnThursday: date => floorWeekStartOnThursday(date) < date,
-    isNotFirstDayOfWeekStartOnFriday: date => floorWeekStartOnFriday(date) < date,
-    isNotFirstDayOfWeekStartOnSaturday: date => floorWeekStartOnSaturday(date) < date,
-    isNotFirstMonth: date => floorYear(date) < date,
+    hasMillisecond: (date: Date) => floorSecond(date) < date,
+    hasSecond: (date: Date) => floorMinute(date) < date,
+    hasMinute: (date: Date) => floorHour(date) < date,
+    hasHour: (date: Date) => floorDay(date) < date,
+    isNotFirstDayOfMonth: (date: Date) => floorMonth(date) < date,
+    isNotFirstDayOfWeek: (date: Date) => floorWeek(date) < date,
+    isNotFirstDayOfWeekStartOnSunday: (date: Date) => floorWeekStartOnSunday(date) < date,
+    isNotFirstDayOfWeekStartOnMonday: (date: Date) => floorWeekStartOnMonday(date) < date,
+    isNotFirstDayOfWeekStartOnTuesday: (date: Date) => floorWeekStartOnTuesday(date) < date,
+    isNotFirstDayOfWeekStartOnWednesday: (date: Date) => floorWeekStartOnWednesday(date) < date,
+    isNotFirstDayOfWeekStartOnThursday: (date: Date) => floorWeekStartOnThursday(date) < date,
+    isNotFirstDayOfWeekStartOnFriday: (date: Date) => floorWeekStartOnFriday(date) < date,
+    isNotFirstDayOfWeekStartOnSaturday: (date: Date) => floorWeekStartOnSaturday(date) < date,
+    isNotFirstMonth: (date: Date) => floorYear(date) < date,
   };
 }
 
