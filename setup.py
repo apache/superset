@@ -109,7 +109,7 @@ setup(
         'cors': ['flask-cors>=2.0.0'],
         'console_log': ['console_log==0.2.10'],
         'hive': [
-            'pyhive>=0.4.0',
+            'pyhive>=0.6.1',
             'tableschema',
             'thrift-sasl>=0.2.1',
             'thrift>=0.9.3',
