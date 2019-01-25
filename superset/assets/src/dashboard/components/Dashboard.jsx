@@ -40,6 +40,7 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
+  LOG_ACTIONS_OMNIBAR_TRIGGERED,
 } from '../../logger';
 import OmniContianer from '../../components/OmniContainer';
 
@@ -229,6 +230,14 @@ class Dashboard extends React.PureComponent {
       if (isK) {
         this.setState({ showOmni: !this.state.showOmni });
         $('.modal-dialog:first input').focus();
+        Logger.send(
+          new ActionLog({
+            impressionId: this.props.impressionId,
+            source: 'dashboard',
+            sourceId: this.props.dashboardInfo.id,
+            eventNames: LOG_ACTIONS_OMNIBAR_TRIGGERED,
+          }),
+        );
       }
     }
   }
