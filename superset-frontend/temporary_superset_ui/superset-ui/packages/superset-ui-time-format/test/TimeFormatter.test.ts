@@ -3,11 +3,18 @@ import TimeFormatter, { PREVIEW_TIME } from '../src/TimeFormatter';
 describe('TimeFormatter', () => {
   describe('new TimeFormatter(config)', () => {
     it('requires config.id', () => {
-      expect(() => new TimeFormatter()).toThrow();
+      expect(
+        () =>
+          // @ts-ignore -- intentionally pass invalid input
+          new TimeFormatter({
+            formatFunc: () => 'test',
+          }),
+      ).toThrow();
     });
     it('requires config.formatFunc', () => {
       expect(
         () =>
+          // @ts-ignore -- intentionally pass invalid input
           new TimeFormatter({
             id: 'my_format',
           }),
@@ -17,7 +24,7 @@ describe('TimeFormatter', () => {
   describe('formatter is also a format function itself', () => {
     const formatter = new TimeFormatter({
       id: 'year_only',
-      formatFunc: value => `${value.getFullYear()}`,
+      formatFunc: (value: Date) => `${value.getFullYear()}`,
     });
     it('returns formatted value', () => {
       expect(formatter(PREVIEW_TIME)).toEqual('2017');
@@ -33,10 +40,10 @@ describe('TimeFormatter', () => {
       formatFunc: value => `${value.getFullYear()}`,
     });
     it('handles null', () => {
-      expect(formatter.format(null)).toBeNull();
+      expect(formatter.format(null)).toEqual('null');
     });
     it('handles undefined', () => {
-      expect(formatter.format(undefined)).toBeUndefined();
+      expect(formatter.format(undefined)).toEqual('undefined');
     });
     it('otherwise returns formatted value', () => {
       expect(formatter.format(PREVIEW_TIME)).toEqual('2017');

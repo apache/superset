@@ -2,12 +2,29 @@ import { utcFormat, timeFormat } from 'd3-time-format';
 import { utcUtils, localTimeUtils } from '../utils';
 import TimeFormatter from '../TimeFormatter';
 
+type FormatsByStep = Partial<{
+  millisecond: string;
+  second: string;
+  minute: string;
+  hour: string;
+  day: string;
+  week: string;
+  month: string;
+  year: string;
+}>;
+
 export default function createMultiFormatter({
   id,
   label,
   description,
   formats = {},
   useLocalTime = false,
+}: {
+  id: string;
+  label?: string;
+  description?: string;
+  formats?: FormatsByStep;
+  useLocalTime?: boolean;
 }) {
   const {
     millisecond = '.%L',
@@ -41,7 +58,7 @@ export default function createMultiFormatter({
     isNotFirstMonth,
   } = useLocalTime ? localTimeUtils : utcUtils;
 
-  function multiFormatFunc(date) {
+  function multiFormatFunc(date: Date) {
     if (hasMillisecond(date)) {
       return formatMillisecond;
     } else if (hasSecond(date)) {
@@ -61,7 +78,7 @@ export default function createMultiFormatter({
 
   return new TimeFormatter({
     description,
-    formatFunc: date => multiFormatFunc(date)(date),
+    formatFunc: (date: Date) => multiFormatFunc(date)(date),
     id,
     label,
     useLocalTime,
