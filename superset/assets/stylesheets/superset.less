@@ -475,20 +475,17 @@ g.annotation-container {
     position:relative;
     padding-right: 40px;
 }
-
-.reactable-header-sortable::before{
+.reactable-header-sortable::after {
     font: normal normal normal 14px/1 FontAwesome;
     content: "\f0dc";
-    position: absolute;
-    top: 6px;
-    right: 5px;
+    margin-left: 10px;
     color: @brand-primary;
 }
-.reactable-header-sort-asc::before{
+.reactable-header-sort-asc::after{
     content: "\f0de";
     color: @brand-primary;
 }
-.reactable-header-sort-desc::before{
+.reactable-header-sort-desc::after{
     content: "\f0dd";
     color: @brand-primary;
 }
