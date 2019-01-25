@@ -2,7 +2,7 @@ import TimeFormatterRegistry from '../src/TimeFormatterRegistry';
 import { TimeFormats, TimeFormatter, PREVIEW_TIME } from '../src';
 
 describe('TimeFormatterRegistry', () => {
-  let registry;
+  let registry: TimeFormatterRegistry;
   beforeEach(() => {
     registry = new TimeFormatterRegistry();
   });
