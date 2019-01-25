@@ -176,10 +176,12 @@ AnnotationLayerControl.defaultProps = defaultProps;
 // directly, could not figure out how to get access to the color_scheme
 function mapStateToProps({ charts, explore }) {
   const chartKey = getChartKey(explore);
+  const chart = charts[chartKey] || charts[0] || {};
+
   return {
     colorScheme: (explore.controls || {}).color_scheme.value,
-    annotationError: charts[chartKey].annotationError,
-    annotationQuery: charts[chartKey].annotationQuery,
+    annotationError: chart.annotationError,
+    annotationQuery: chart.annotationQuery,
     vizType: explore.controls.viz_type.value,
   };
 }
