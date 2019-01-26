@@ -35,7 +35,7 @@ little bit helps, and credit will always be given.
 - [Pull Request Guidelines](#pull-request-guidelines)
   - [Protocol](#protocol)
 - [Managing Issues and PRs](#managing-issues-and-prs)
-- [Local development](#local-development)
+- [Setup Local Environment for Development](#setup-local-environment-for-development)
   - [Documentation](#documentation)
   - [Flask server](#flask-server)
   - [Frontend assets](#frontend-assets)
