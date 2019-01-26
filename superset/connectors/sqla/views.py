@@ -367,44 +367,6 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         db.session.commit()
         return jsonify(success=True)
 
-    @expose('/<pk>', methods=['GET', 'POST'])
-    @has_access
-    def edit(self, pk):
-        alert = self.datamodel.get(pk)
-        if request.method == 'POST':
-            data = request.get_json()
-            modified_alert = self.datamodel.get(data['edit_id'])
-            for attribute in data:
-                setattr(modified_alert, attribute, data[attribute])
-            db.session.commit()
-            return jsonify(success=True)
-        else:
-            datasources = db.session.query(SqlaTable).all()
-            datasources = [
-                {"value": str(d.id) + "__" + d.type, "label": repr(d)}
-                for d in datasources
-            ]
-            deployments = self.get_deployment_names()
-            return self.render_template(
-                'superset/add_alert.html',
-                bootstrap_data=json.dumps({
-                    'datasources': sorted(datasources, key=lambda d: d['label']),
-                    'deployments': deployments,
-                    'alert_data': {
-                        'edit_id': alert.id,
-                        'name': alert.name,
-                        'table_id': alert.table_id,
-                        'params': alert.params,
-                        'interval': alert.interval._name_,
-                        'execution': alert.execution._name_,
-                        'tags': alert.tags,
-                        'description': alert.description,
-                        'deployment': alert.deployment,
-                        'alert_field': alert.alert_field,
-                    }
-                }),
-            )
-
     def _delete(self, pk):
         alert = self.datamodel.get(pk)
         db.session.delete(alert)
