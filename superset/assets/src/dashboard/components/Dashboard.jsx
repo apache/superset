@@ -103,8 +103,6 @@ class Dashboard extends React.PureComponent {
     this.initTs = new Date().getTime();
 
     this.handleKeydown = this.handleKeydown.bind(this);
-
-    this.exampleRef = React.createRef();
   }
 
   componentDidMount() {
