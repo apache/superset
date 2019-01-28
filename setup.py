@@ -57,7 +57,7 @@ setup(
         'boto3>=1.4.7, <2.0.0',
         'botocore>=1.7.0, <1.8.0',
         'celery>=4.2.0, <5.0.0',
-        'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
+        'click>=6.0, <7.0.0',  # `click`>=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
         'cryptography',
@@ -74,7 +74,7 @@ setup(
         'idna',
         'isodate',
         'markdown>=3.0',
-        'pandas>=0.18.0',
+        'pandas>=0.18.0, <0.24.0',  # `pandas`>=0.24.0 changes datetimelike API
         'parsedatetime',
         'pathlib2',
         'polyline',
