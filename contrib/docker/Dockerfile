@@ -58,3 +58,6 @@ HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 8088
+
+# Install AWS CLI
+RUN pip install awscli --user
