@@ -1,0 +1,43 @@
+{
+  "name": "@superset-ui/demo",
+  "version": "0.8.0",
+  "description": "Storybook for Superset UI ✨",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "gh-pages:clean": "rm -rf _gh-pages",
+    "gh-pages:build": "build-storybook -o _gh-pages -c storybook-config",
+    "gh-pages:publish": "git-directory-deploy --directory _gh-pages",
+    "gh-pages": "npm run gh-pages:clean && npm run gh-pages:build && npm run gh-pages:publish && npm run gh-pages:clean",
+    "storybook": "start-storybook -p 9001 -c storybook-config"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "storybook",
+    "superset",
+    "ui",
+    "visualization",
+    "analysis",
+    "data"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "dependencies": {
+    "@babel/core": "^7.1.2",
+    "@storybook/addon-knobs": "^4.0.2",
+    "@storybook/addon-options": "^4.0.3",
+    "@storybook/react": "^4.0.2",
+    "@superset-ui/legacy-plugin-chart-chord": "0.0.0",
+    "babel-loader": "^8.0.4",
+    "git-directory-deploy": "^1.5.1",
+    "react": "^16.6.0",
+    "react-dom": "^16.6.0",
+    "storybook-addon-jsx": "^5.4.0"
+  }
+}
