@@ -53,7 +53,7 @@ def has_kerberos_ticket():
     IS_KERBEROS_ENABLED = boolify(get_env_variable('IS_KERBEROS_ENABLED'))
     # check if ticket is still valid, if not then 
     # call a shell sricpt which will make a connection to kerberos cluster
-    if IS_KERBEROS_ENABLED is True and subprocess.call(['klist', '-s']) == 0:
+    if IS_KERBEROS_ENABLED is True:
         subprocess.call(['/usr/local/bin/auth-kerberized.sh'])
 
 def get_env_variable(var_name, default=None):
