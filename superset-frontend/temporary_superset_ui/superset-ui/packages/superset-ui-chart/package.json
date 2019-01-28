@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "SuperChart and related modules",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.8.0",
+    "@superset-ui/core": "^0.9.0",
     "@types/react": "^16.7.17",
     "@types/react-loadable": "^5.4.2",
     "prop-types": "^15.6.2",
@@ -34,7 +34,7 @@
     "reselect": "^4.0.0"
   },
   "devDependencies": {
-    "@superset-ui/connection": "^0.8.0",
+    "@superset-ui/connection": "^0.9.0",
     "@types/fetch-mock": "^6.0.4",
     "fetch-mock": "^7.2.5",
     "node-fetch": "^2.2.0",
