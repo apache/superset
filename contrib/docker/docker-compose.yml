@@ -7,26 +7,24 @@ services:
       - 6379:6379
     volumes:
       - redis:/data
-  postgres:
-    image: postgres:10
+  mysql:
+    image: mariadb:10.3
     restart: always
     environment:
-      POSTGRES_DB: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_USER: superset
-    ports:
-      - 5432:5432
-    volumes:
-      - postgres:/var/lib/postgresql/data
+      MYSQL_DATABASE: superset
+      MYSQL_ROOT_PASSWORD: superset
+      MYSQL_USER: superset
+      MYSQL_PASSWORD: superset
   superset:
     image: apache/incubator-superset
     restart: always
     environment:
-      POSTGRES_DB: superset
-      POSTGRES_USER: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
+      MYSQL_DB: superset
+      MYSQL_USER: superset
+      MYSQL_ROOT_PASSWORD: superset
+      MYSQL_PASSWORD: superset
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUPERSET_ENV: local
@@ -34,14 +32,12 @@ services:
       - 8088:8088
     command: "tail -f /dev/null"
     depends_on:
-      - postgres
+      - mysql
       - redis
     volumes:
       - .:/home/work/incubator-superset
       - superset-node-modules:/home/work/incubator-superset/superset/assets/node_modules
 volumes:
-  postgres:
-    external: false
   redis:
     external: false
   superset-node-modules:
