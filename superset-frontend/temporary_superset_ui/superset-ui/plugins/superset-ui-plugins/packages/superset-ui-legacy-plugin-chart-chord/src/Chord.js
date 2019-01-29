@@ -40,7 +40,7 @@ function Chord(element, props) {
   element.innerHTML = '';
 
   const div = d3.select(element);
-  div.classed('superset-ui-legacy-chart-chord', true);
+  div.classed('superset-legacy-chart-chord', true);
   const { nodes, matrix } = data;
   const f = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);

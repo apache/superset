@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Force-directed Graph'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class ForceDirectedChartPlugin extends ChartPlugin {
