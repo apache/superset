@@ -17,7 +17,7 @@ RUN apt-get update -y
 RUN apt-get update -y && apt-get install -y build-essential libssl-dev \
     libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
 
-RUN apt-get install -y vim less postgresql-client redis-tools
+RUN apt-get install -y vim less postgresql-client mysql-client redis-tools
 
 # Install nodejs for custom build
 # https://github.com/apache/incubator-superset/blob/master/docs/installation.rst#making-your-own-build
@@ -36,9 +36,9 @@ WORKDIR $HOME/incubator-superset
 COPY ./ ./
 
 RUN pip install --upgrade setuptools pip
-RUN pip install -e . && pip install -r requirements-dev.txt
+RUN pip install -e . && pip install -r requirements-dev.txt && pip install awscli --user
 
-ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
+ENV PATH=/home/work/incubator-superset/superset/bin:/home/work/.local/bin:$PATH \
     PYTHONPATH=./superset/:$PYTHONPATH
 
 COPY docker-entrypoint.sh /usr/local/bin/
@@ -58,6 +58,3 @@ HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 8088
-
-# Install AWS CLI
-RUN pip install awscli --user
