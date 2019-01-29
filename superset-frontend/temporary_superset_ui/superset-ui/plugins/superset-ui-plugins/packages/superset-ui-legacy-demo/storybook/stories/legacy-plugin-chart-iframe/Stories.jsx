@@ -10,7 +10,7 @@ export default [
           formData: {
             url: 'https://www.youtube.com/embed/AdSZJzb-aX8',
           },
-          height: 400,
+          height: 600,
         }}
       />
     ),
