@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-ui-legacy-chart-chord svg #circle circle {
+.superset-legacy-chart-chord svg #circle circle {
   fill: none;
   pointer-events: all;
 }
 
-.superset-ui-legacy-chart-chord svg .group path {
+.superset-legacy-chart-chord svg .group path {
   fill-opacity: .6;
 }
 
-.superset-ui-legacy-chart-chord svg path.chord {
+.superset-legacy-chart-chord svg path.chord {
   stroke: #000;
   stroke-width: .25px;
 }
 
-.superset-ui-legacy-chart-chord svg #circle:hover path.fade {
+.superset-legacy-chart-chord svg #circle:hover path.fade {
   opacity: 0.2;
 }

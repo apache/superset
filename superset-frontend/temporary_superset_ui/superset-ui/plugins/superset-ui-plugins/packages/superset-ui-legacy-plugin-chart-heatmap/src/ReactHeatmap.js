@@ -16,22 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-force-directed path.link {
-  fill: none;
-  stroke: #000;
-  stroke-width: 1.5px;
-}
+import { reactify } from '@superset-ui/chart';
+import Component from './Heatmap';
 
-.superset-legacy-chart-force-directed circle {
-  fill: #ccc;
-  stroke: #000;
-  stroke-width: 1.5px;
-  stroke-opacity: 1;
-  opacity: 0.75;
-}
-
-.superset-legacy-chart-force-directed text {
-  fill: #000;
-  font: 10px sans-serif;
-  pointer-events: none;
-}
+export default reactify(Component);
