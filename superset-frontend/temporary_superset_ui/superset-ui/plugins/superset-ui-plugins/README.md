@@ -13,6 +13,7 @@ These packages are extracted with minimal changes (almost as-is).
 | Package | Version |
 |--|--|
 | [@superset-ui/legacy-plugin-chart-chord](https://github.com/apache-superset/superset-ui-legacy/tree/master/packages/superset-ui-legacy-plugin-chart-chord) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-chord.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-chord.svg?style=flat-square) |
+| [@superset-ui/legacy-plugin-chart-force-directed](https://github.com/apache-superset/superset-ui-legacy/tree/master/packages/superset-ui-legacy-plugin-chart-force-directed) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square) |
 | [@superset-ui/legacy-plugin-chart-iframe](https://github.com/apache-superset/superset-ui-legacy/tree/master/packages/superset-ui-legacy-plugin-chart-iframe) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-iframe.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-iframe.svg?style=flat-square) |
 | [@superset-ui/legacy-plugin-chart-markup](https://github.com/apache-superset/superset-ui-legacy/tree/master/packages/superset-ui-legacy-plugin-chart-markup) | [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-markup.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-markup.svg?style=flat-square) |
 
