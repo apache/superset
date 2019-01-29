@@ -1,8 +1,28 @@
 import { setAddon, storiesOf } from '@storybook/react';
 import { withKnobs } from '@storybook/addon-knobs';
 import JSXAddon from 'storybook-addon-jsx';
+import categoricalD3 from '@superset-ui/color/esm/colorSchemes/categorical/d3';
+import sequentialCommon from '@superset-ui/color/esm/colorSchemes/sequential/common';
+import sequentialD3 from '@superset-ui/color/esm/colorSchemes/sequential/d3';
+import { getCategoricalSchemeRegistry, getSequentialSchemeRegistry } from '@superset-ui/color';
 
 setAddon(JSXAddon);
+
+// Register color schemes
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+[categoricalD3].forEach(group => {
+  group.forEach(scheme => {
+    categoricalSchemeRegistry.registerValue(scheme.id, scheme);
+  });
+});
+categoricalSchemeRegistry.setDefaultKey('d3Category10');
+
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
+[sequentialCommon, sequentialD3].forEach(group => {
+  group.forEach(scheme => {
+    sequentialSchemeRegistry.registerValue(scheme.id, scheme);
+  });
+});
 
 const EMPTY_EXAMPLES = [
   {

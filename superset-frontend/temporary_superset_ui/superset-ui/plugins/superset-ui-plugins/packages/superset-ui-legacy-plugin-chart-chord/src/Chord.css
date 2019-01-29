@@ -17,19 +17,19 @@
  * under the License.
  */
 .chord svg #circle circle {
-    fill: none;
-    pointer-events: all;
+  fill: none;
+  pointer-events: all;
 }
 
 .chord svg .group path {
-    fill-opacity: .6;
+  fill-opacity: .6;
 }
 
 .chord svg path.chord {
-    stroke: #000;
-    stroke-width: .25px;
+  stroke: #000;
+  stroke-width: .25px;
 }
 
 .chord svg #circle:hover path.fade {
-    opacity: 0.2;
+  opacity: 0.2;
 }
