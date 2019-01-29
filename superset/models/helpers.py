@@ -97,10 +97,13 @@ class ImportMixin(object):
 
     @classmethod
     def import_from_dict(cls, session, dict_rep, parent=None,
-                         recursive=True, sync=[]):
+                         recursive=True, sync=[], respect_id=True):
         """Import obj from a dictionary"""
         parent_refs = cls._parent_foreign_key_mappings()
         export_fields = set(cls.export_fields) | set(parent_refs.keys())
+        logging.info(f'Doing the import_from_dict for the {cls}, with {dict_rep}, '
+                     f'respect_id={respect_id}')
+        given_id = dict_rep.get('id', None) if respect_id else None
         new_children = {c: dict_rep.get(c) for c in cls.export_children
                         if c in dict_rep}
         unique_constrains = cls._unique_constrains()
@@ -128,14 +131,20 @@ class ImportMixin(object):
                         for k in parent_refs.keys()])
 
         # Add filter for unique constraints
-        ucs = [and_(*[getattr(cls, k) == dict_rep.get(k)
-               for k in cs if dict_rep.get(k) is not None])
-               for cs in unique_constrains]
-        filters.append(or_(*ucs))
+        if unique_constrains:
+            ucs = [and_(*[getattr(cls, k) == dict_rep.get(k)
+                   for k in cs if dict_rep.get(k) is not None])
+                   for cs in unique_constrains]
+            filters.append(or_(*ucs))
+        elif given_id:
+            logging.info(f'Not given any unique constraint, so adding an id check for'
+                         f'{getattr(cls, "id")} equal to {given_id}')
+            filters.append(getattr(cls, 'id') == given_id)
 
         # Check if object already exists in DB, break if more than one is found
         try:
             obj_query = session.query(cls).filter(and_(*filters))
+            logging.info(f'Did the query {str(obj_query)} to find existing for {cls}')
             obj = obj_query.one_or_none()
         except MultipleResultsFound as e:
             logging.error('Error importing %s \n %s \n %s', cls.__name__,
