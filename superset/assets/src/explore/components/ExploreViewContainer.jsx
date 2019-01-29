@@ -109,6 +109,9 @@ class ExploreViewContainer extends React.Component {
     const wasRendered =
       ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
     const isRendered = ['rendered', 'failed', 'stopped'].indexOf(nextProps.chart.chartStatus) > -1;
+    if (nextProps.chart.id !== this.props.chart.id) {
+      this.loadingLog.sourceId = nextProps.chart.id;
+    }
     if (!wasRendered && isRendered) {
       Logger.send(this.loadingLog);
     }
