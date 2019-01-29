@@ -1,8 +1,51 @@
 # @superset-ui : Change Log
 
+## v0.9.1
+
+### 🐞 Bug fixes
+
+* Fix TypeScript declaration for package `jed` with `@superset-ui/translation` distribution.
+
+## v0.9.0
+
+### ✨ Features
+
+* Add `useLegacyApi` field to `ChartMetadata`. This flag will help us determine whether to use the new `/api/v1/query` endpoint or the legacy one.
+* Add two generics to `Registry<V, W>`
+  * `V` is type of value in the registry
+  * `W` is type of value returned from `loader` function when using `.registerLoader(key, loader)`.
+  * `W` can be either `V`, `Promise<V>` or `V | Promise<V>`
+  * Set `W=V` when does not support asynchronous loader. Making return type of `.get()` become `V` instead of `Promise<V>`
+  * By default, `W` is set to `V | Promise<V>` to support both synchronous and asynchronous loaders.
+* Include and link TypeScript declaration for package `jed` with `@superset-ui/translation` distribution.
+
+### 🛠️ Internal
+
+* Convert `@superset-ui/number-format` to TypeScript
+* Convert `@superset-ui/time-format` to TypeScript
+* Convert `@superset-ui/translation` to TypeScript
+
+### 💔 BREAKING CHANGES
+
+* Make number formatter always returns `string`. This is different from previous behavior.
+
+|Value|formatted value (before)|formatted value (after)|
+|------------|------------|-----------|
+| `null` | `null` | `'null'` |
+| `undefined` | `undefined` | `'undefined'` |
+| `NaN` | `NaN` | `'NaN'` |
+
+* Make time formatter always returns `string`. This is different from previous behavior.
+
+|Value|formatted value (before)|formatted value (after)|
+|------------|------------|-----------|
+| `null` | `null` | `'null'` |
+| `undefined` | `undefined` | `'undefined'` |
+| `NaN` | `NaN` | `'NaN'` |
+
 ## v0.8.0
 
-### Features
+### ✨ Features
 
 * Add SuperChart and convert to TypeScript
 * Allow metrics arrays in form data
