@@ -40,6 +40,7 @@ function Chord(element, props) {
   element.innerHTML = '';
 
   const div = d3.select(element);
+  div.classed('chord', true);
   const { nodes, matrix } = data;
   const f = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
