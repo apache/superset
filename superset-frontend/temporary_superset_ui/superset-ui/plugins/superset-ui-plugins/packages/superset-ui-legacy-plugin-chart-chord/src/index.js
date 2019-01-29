@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
 export default class ChordChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactChord.js'),
+      loadChart: () => import('./ReactChord'),
       metadata,
       transformProps,
     });
