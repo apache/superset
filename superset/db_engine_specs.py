@@ -46,6 +46,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.types import UnicodeText
 import sqlparse
 from werkzeug.utils import secure_filename
 
@@ -399,6 +400,15 @@ class BaseEngineSpec(object):
         """
         label = cls.mutate_label(label)
         return quoted_name(label, True) if cls.force_column_alias_quotes else label
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        """
+        Return a sqlalchemy native column type that corresponds to the column type
+        defined in the data source (optional). Needs to be overridden if column requires
+        special handling (see MSSQL for example of NCHAR/NVARCHAR handling).
+        """
+        return None
 
     @staticmethod
     def mutate_label(label):
@@ -1361,6 +1371,12 @@ class MssqlEngineSpec(BaseEngineSpec):
         if len(data) != 0 and type(data[0]).__name__ == 'Row':
             data = [[elem for elem in r] for r in data]
         return data
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        if isinstance(type_, str) and re.match(r'^N(VAR){0-1}CHAR', type_):
+            return UnicodeText()
+        return None
 
 
 class AthenaEngineSpec(BaseEngineSpec):
