@@ -38,6 +38,7 @@
     "@superset-ui/connection": "^0.9.0",
     "@superset-ui/legacy-plugin-chart-chord": "0.0.0",
     "@superset-ui/legacy-plugin-chart-force-directed": "0.0.0",
+    "@superset-ui/legacy-plugin-chart-heatmap": "0.0.0",
     "@superset-ui/legacy-plugin-chart-iframe": "0.0.0",
     "@superset-ui/legacy-plugin-chart-markup": "0.0.0",
     "@superset-ui/translation": "^0.9.1",
