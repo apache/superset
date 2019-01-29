@@ -31,7 +31,7 @@ const metadata = new ChartMetadata({
 export default class IframeChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./Iframe.jsx'),
+      loadChart: () => import('./Iframe'),
       metadata,
       transformProps,
     });
