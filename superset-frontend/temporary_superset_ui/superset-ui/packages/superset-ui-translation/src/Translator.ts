@@ -1,4 +1,5 @@
-import Jed, { LanguagePack } from 'jed';
+import UntypedJed from 'jed';
+import { Jed, LanguagePack } from './jed';
 
 const DEFAULT_LANGUAGE_PACK = {
   domain: 'superset',
@@ -24,7 +25,7 @@ export default class Translator {
 
   constructor(config: TranslatorConfig = {}) {
     const { languagePack = DEFAULT_LANGUAGE_PACK } = config;
-    this.i18n = new Jed(languagePack);
+    this.i18n = new UntypedJed(languagePack) as Jed;
   }
 
   translate(input: string, ...args: any[]): string {
