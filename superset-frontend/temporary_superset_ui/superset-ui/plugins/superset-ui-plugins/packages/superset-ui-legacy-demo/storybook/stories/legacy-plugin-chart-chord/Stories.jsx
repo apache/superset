@@ -6,7 +6,6 @@ export default [
   {
     renderStory: () => (
       <SuperChart
-        className="chord"
         chartType="chord"
         chartProps={{
           formData: {

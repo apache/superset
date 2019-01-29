@@ -6,7 +6,6 @@ export default [
   {
     renderStory: () => (
       <SuperChart
-        className="force-directed"
         chartType="force-directed"
         chartProps={{
           formData: {},
