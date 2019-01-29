@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.force-directed path.link {
+.superset-ui-legacy-chart-force-directed path.link {
   fill: none;
   stroke: #000;
   stroke-width: 1.5px;
 }
 
-.force-directed circle {
+.superset-ui-legacy-chart-force-directed circle {
   fill: #ccc;
   stroke: #000;
   stroke-width: 1.5px;
@@ -30,7 +30,7 @@
   opacity: 0.75;
 }
 
-.force-directed text {
+.superset-ui-legacy-chart-force-directed text {
   fill: #000;
   font: 10px sans-serif;
   pointer-events: none;
