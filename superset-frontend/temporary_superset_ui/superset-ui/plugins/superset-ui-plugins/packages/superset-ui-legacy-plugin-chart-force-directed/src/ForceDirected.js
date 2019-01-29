@@ -40,7 +40,7 @@ const propTypes = {
 function ForceDirected(element, props) {
   const { data, width, height, linkLength = 200, charge = -500 } = props;
   const div = d3.select(element);
-  div.classed('superset-ui-legacy-chart-force-directed', true);
+  div.classed('superset-legacy-chart-force-directed', true);
 
   const links = data;
   const nodes = {};

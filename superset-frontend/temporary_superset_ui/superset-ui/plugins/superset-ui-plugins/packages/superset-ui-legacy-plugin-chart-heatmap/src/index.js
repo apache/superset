@@ -16,22 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-force-directed path.link {
-  fill: none;
-  stroke: #000;
-  stroke-width: 1.5px;
-}
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-.superset-legacy-chart-force-directed circle {
-  fill: #ccc;
-  stroke: #000;
-  stroke-width: 1.5px;
-  stroke-opacity: 1;
-  opacity: 0.75;
-}
+const metadata = new ChartMetadata({
+  credits: ['http://bl.ocks.org/mbostock/3074470'],
+  description: '',
+  name: t('Heatmap'),
+  thumbnail,
+});
 
-.superset-legacy-chart-force-directed text {
-  fill: #000;
-  font: 10px sans-serif;
-  pointer-events: none;
+export default class HeatmapChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      loadChart: () => import('./ReactHeatmap.js'),
+      metadata,
+      transformProps,
+    });
+  }
 }
