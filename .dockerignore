@@ -1,0 +1,7 @@
+.cache
+.cache/*
+.tox
+.tox/*
+.idea/*
+.gitignore
+.git/*
