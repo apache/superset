@@ -1,8 +1,8 @@
 import IframeChartPlugin from '@superset-ui/legacy-plugin-chart-iframe';
-import IframeStories from './IframeStories';
+import Stories from './Stories';
 
 new IframeChartPlugin().configure({ key: 'iframe' }).register();
 
 export default {
-  examples: [...IframeStories],
+  examples: [...Stories],
 };

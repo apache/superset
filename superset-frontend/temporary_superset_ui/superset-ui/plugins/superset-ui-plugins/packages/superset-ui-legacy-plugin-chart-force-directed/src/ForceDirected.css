@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.directed_force path.link {
+.force-directed path.link {
   fill: none;
   stroke: #000;
   stroke-width: 1.5px;
 }
 
-.directed_force circle {
+.force-directed circle {
   fill: #ccc;
   stroke: #000;
   stroke-width: 1.5px;
@@ -30,7 +30,7 @@
   opacity: 0.75;
 }
 
-.directed_force text {
+.force-directed text {
   fill: #000;
   font: 10px sans-serif;
   pointer-events: none;
