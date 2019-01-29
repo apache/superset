@@ -25,12 +25,13 @@ const metadata = new ChartMetadata({
   description: 'HTML Markup',
   name: t('Markup'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class IframeChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./Markup.jsx'),
+      loadChart: () => import('./Markup'),
       metadata,
       transformProps,
     });
