@@ -9,7 +9,7 @@
 /* eslint-disable */
 
 import d3tip from 'd3-tip';
-import '../../stylesheets/d3tip.css';
+import './d3tip.css';
 
 var d3 = typeof require === "function" ? require("d3") : window.d3;
 
