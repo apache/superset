@@ -102,7 +102,7 @@ class TableColumn(Model, BaseColumn):
 
     export_fields = (
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
-        'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
+        'type', 'groupby',
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression',
     )
@@ -112,10 +112,12 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        db_engine_spec = self.table.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(label if label else self.column_name)
+        label = label if label else self.column_name
+        label = self.table.get_label(label)
         if not self.expression:
-            col = column(self.column_name).label(label)
+            db_engine_spec = self.table.database.db_engine_spec
+            type_ = db_engine_spec.get_sqla_column_type(self.type)
+            col = column(self.column_name, type_=type_).label(label)
         else:
             col = literal_column(self.expression).label(label)
         return col
@@ -135,10 +137,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        label = self.table.get_label(utils.DTTM_ALIAS)
+
         pdf = self.python_date_format
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not self.expression and not time_grain and not is_epoch:
-            return column(self.column_name, type_=DateTime).label(utils.DTTM_ALIAS)
+            return column(self.column_name, type_=DateTime).label(label)
 
         expr = self.expression or self.column_name
         if is_epoch:
@@ -152,7 +156,7 @@ class TableColumn(Model, BaseColumn):
             grain = self.table.database.grains_dict().get(time_grain)
             if grain:
                 expr = grain.function.format(col=expr)
-        return literal_column(expr, type_=DateTime).label(utils.DTTM_ALIAS)
+        return literal_column(expr, type_=DateTime).label(label)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -185,43 +189,6 @@ class TableColumn(Model, BaseColumn):
                 self.type or '', dttm)
             return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
 
-    def get_metrics(self):
-        # TODO deprecate, this is not needed since MetricsControl
-        metrics = []
-        M = SqlMetric  # noqa
-        quoted = self.column_name
-        if self.sum:
-            metrics.append(M(
-                metric_name='sum__' + self.column_name,
-                metric_type='sum',
-                expression='SUM({})'.format(quoted),
-            ))
-        if self.avg:
-            metrics.append(M(
-                metric_name='avg__' + self.column_name,
-                metric_type='avg',
-                expression='AVG({})'.format(quoted),
-            ))
-        if self.max:
-            metrics.append(M(
-                metric_name='max__' + self.column_name,
-                metric_type='max',
-                expression='MAX({})'.format(quoted),
-            ))
-        if self.min:
-            metrics.append(M(
-                metric_name='min__' + self.column_name,
-                metric_type='min',
-                expression='MIN({})'.format(quoted),
-            ))
-        if self.count_distinct:
-            metrics.append(M(
-                metric_name='count_distinct__' + self.column_name,
-                metric_type='count_distinct',
-                expression='COUNT(DISTINCT {})'.format(quoted),
-            ))
-        return {m.metric_name: m for m in metrics}
-
 
 class SqlMetric(Model, BaseMetric):
 
@@ -244,8 +211,8 @@ class SqlMetric(Model, BaseMetric):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        db_engine_spec = self.table.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(label if label else self.metric_name)
+        label = label if label else self.metric_name
+        label = self.table.get_label(label)
         return literal_column(self.expression).label(label)
 
     @property
@@ -286,7 +253,10 @@ class SqlaTable(Model, BaseDatasource):
     owner_class = security_manager.user_model
 
     __tablename__ = 'tables'
-    __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
+    __table_args__ = (UniqueConstraint('database_id',
+                                       'schema',
+                                       'table_name',
+                                       name='uq_table_in_db_schema'),)
 
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
@@ -323,6 +293,21 @@ class SqlaTable(Model, BaseDatasource):
         'MIN': sa.func.MIN,
         'MAX': sa.func.MAX,
     }
+
+    def get_label(self, label):
+        """Conditionally mutate a label to conform to db engine requirements
+        and store mapping from mutated label to original label
+
+        :param label: original label
+        :return: Either a string or sqlalchemy.sql.elements.quoted_name if required
+        by db engine
+        """
+        db_engine_spec = self.database.db_engine_spec
+        sqla_label = db_engine_spec.make_label_compatible(label)
+        mutated_label = str(sqla_label)
+        if label != mutated_label:
+            self.mutated_labels[mutated_label] = label
+        return sqla_label
 
     def __repr__(self):
         return self.name
@@ -523,8 +508,8 @@ class SqlaTable(Model, BaseDatasource):
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get('expressionType')
-        db_engine_spec = self.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(metric.get('label'))
+        label = utils.get_metric_name(metric)
+        label = self.get_label(label)
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
@@ -577,6 +562,9 @@ class SqlaTable(Model, BaseDatasource):
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
+        # Initialize empty cache to store mutated labels
+        self.mutated_labels = {}
+
         orderby = orderby or []
 
         # For backward compatibility
@@ -606,8 +594,8 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr = literal_column('COUNT(*)').label(
-                db_engine_spec.make_label_compatible('count'))
+            label = self.get_label('ccount')
+            main_metric_expr = literal_column('COUNT(*)').label(label)
 
         select_exprs = []
         groupby_exprs = []
@@ -732,7 +720,8 @@ class SqlaTable(Model, BaseDatasource):
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
-                inner_main_metric_expr = main_metric_expr.label('mme_inner__')
+                label = self.get_label('mme_inner__')
+                inner_main_metric_expr = main_metric_expr.label(label)
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs)
                 subq = subq.select_from(tbl)
@@ -760,8 +749,11 @@ class SqlaTable(Model, BaseDatasource):
 
                 on_clause = []
                 for i, gb in enumerate(groupby):
-                    on_clause.append(
-                        groupby_exprs[i] == column(gb + '__'))
+                    # in this case the column name, not the alias, needs to be
+                    # conditionally mutated, as it refers to the column alias in
+                    # the inner query
+                    col_name = self.get_label(gb + '__')
+                    on_clause.append(groupby_exprs[i] == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
@@ -813,6 +805,8 @@ class SqlaTable(Model, BaseDatasource):
         df = None
         try:
             df = self.database.get_df(sql, self.schema)
+            if self.mutated_labels:
+                df = df.rename(index=str, columns=self.mutated_labels)
         except Exception as e:
             status = utils.QueryStatus.FAILED
             logging.exception(e)
@@ -855,7 +849,6 @@ class SqlaTable(Model, BaseDatasource):
             .filter(or_(TableColumn.column_name == col.name
                         for col in table.columns)))
         dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
-        db_engine_spec = self.database.db_engine_spec
 
         for col in table.columns:
             try:
@@ -868,17 +861,16 @@ class SqlaTable(Model, BaseDatasource):
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype)
-                dbcol.groupby = dbcol.is_string
-                dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
             else:
                 dbcol.type = datatype
+            dbcol.groupby = True
+            dbcol.filterable = True
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
-            metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
             metric_name='count',
@@ -888,9 +880,6 @@ class SqlaTable(Model, BaseDatasource):
         ))
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
-        for metric in metrics:
-            metric.metric_name = db_engine_spec.mutate_expression_label(
-                metric.metric_name)
         self.add_missing_metrics(metrics)
         db.session.merge(self)
         db.session.commit()

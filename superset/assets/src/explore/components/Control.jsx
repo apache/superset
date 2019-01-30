@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import './Control.css';
 import controlMap from './controls';
 
 const controlTypes = Object.keys(controlMap);
@@ -106,6 +107,7 @@ export default class Control extends React.PureComponent {
     const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (
       <div
+        className="Control"
         data-test={this.props.name}
         style={divStyle}
         onMouseEnter={this.setHover.bind(this, true)}

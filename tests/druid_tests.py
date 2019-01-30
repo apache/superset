@@ -372,11 +372,6 @@ class DruidTests(SupersetTestCase):
             .filter(DruidMetric.metric_name.like('%__metric1'))
         )
 
-        self.assertEqual(
-            {metric.metric_name for metric in metrics},
-            {'max__metric1', 'min__metric1', 'sum__metric1'},
-        )
-
         for metric in metrics:
             agg, _ = metric.metric_name.split('__')
 

@@ -110,6 +110,7 @@ APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON_WIDTH = 126
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -557,6 +558,9 @@ WEBDRIVER_CONFIGURATION = {}
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
+
+# Send user to a link where they can report bugs
+BUG_REPORT_URL = None
 
 
 try:

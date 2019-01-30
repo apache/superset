@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
+import logging
+
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -23,7 +25,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from past.builtins import basestring
 
 from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
@@ -34,11 +35,13 @@ from superset.views.base import (
 )
 from . import models
 
+logger = logging.getLogger(__name__)
+
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
-    list_title = _('List Columns')
+    list_title = _('Columns')
     show_title = _('Show Column')
     add_title = _('Add Column')
     edit_title = _('Edit Column')
@@ -111,7 +114,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
-    list_title = _('List Metrics')
+    list_title = _('Metrics')
     show_title = _('Show Metric')
     add_title = _('Add Metric')
     edit_title = _('Edit Metric')
@@ -165,7 +168,7 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
 
-    list_title = _('List Tables')
+    list_title = _('Tables')
     show_title = _('Show Table')
     add_title = _('Import a table definition')
     edit_title = _('Edit Table')
@@ -270,12 +273,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
-        except Exception:
+        except Exception as e:
+            logger.exception(f'Got an error in pre_add for {table.name}')
             raise Exception(_(
                 'Table [{}] could not be found, '
                 'please double check your '
                 'database connection, schema, and '
-                'table name').format(table.name))
+                'table name, error: {}').format(table.name, str(e)))
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
@@ -301,7 +305,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def edit(self, pk):
         """Simple hack to redirect to explore view after saving"""
         resp = super(TableModelView, self).edit(pk)
-        if isinstance(resp, basestring):
+        if isinstance(resp, str):
             return resp
         return redirect('/superset/explore/table/{}/'.format(pk))
 

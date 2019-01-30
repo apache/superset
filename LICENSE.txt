@@ -227,3 +227,9 @@ BSD 3-Clause licenses
 ========================================================================
 
     (BSD 3 License) parallel-coordinates v0.7.0 (http://syntagmatic.github.com/parallel-coordinates/)
+
+========================================================================
+Creative Commons Attribution 4.0
+========================================================================
+
+    (Creative Commons Attribution 4.0) diva-gis (http://www.diva-gis.org/Data)

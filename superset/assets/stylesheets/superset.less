@@ -1,8 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 @import './less/index.less';
 @import "./less/cosmo/variables.less";
 
+@datasource-sql-expression-width: 450px;
+
 body {
-    margin: 0px !important;
+    margin: 0 !important;
 }
 
 .caret {
@@ -230,10 +250,35 @@ table.table-no-hover tr:hover {
   cursor: initial;
 }
 
+.editable-title textarea {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: initial;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+}
+
 .editable-title input[type="text"] {
   border: 1px solid #ccc;
   border-radius: 2px;
   padding: 2px;
+}
+
+.editable-title.datasource-sql-expression {
+  font-family: @font-family-monospace;
+  font-size: 95%;
+  display: inline-block;
+  min-width: @datasource-sql-expression-width;
+}
+
+.editable-title.datasource-sql-expression input {
+  width: 95%;
+  padding-bottom: 5px;
+}
+
+.editable-title.datasource-sql-expression textarea {
+  width: 95%;
 }
 
 .editable-title input[type="button"] {
@@ -430,20 +475,17 @@ g.annotation-container {
     position:relative;
     padding-right: 40px;
 }
-
-.reactable-header-sortable::before{
+.reactable-header-sortable::after {
     font: normal normal normal 14px/1 FontAwesome;
     content: "\f0dc";
-    position: absolute;
-    top: 6px;
-    right: 5px;
+    margin-left: 10px;
     color: @brand-primary;
 }
-.reactable-header-sort-asc::before{
+.reactable-header-sort-asc::after{
     content: "\f0de";
     color: @brand-primary;
 }
-.reactable-header-sort-desc::before{
+.reactable-header-sort-desc::after{
     content: "\f0dd";
     color: @brand-primary;
 }

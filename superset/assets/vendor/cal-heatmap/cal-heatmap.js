@@ -1,3 +1,4 @@
+// [LICENSE TBD]
 /* Copied and altered from http://cal-heatmap.com/ , alterations around:
  * - tuning tooltips
  * - supporting multi-colors scales

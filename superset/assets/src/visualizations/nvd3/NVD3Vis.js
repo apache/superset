@@ -44,7 +44,6 @@ import {
   tryNumify,
   setAxisShowMaxMin,
   stringifyTimeRange,
-  truncateLabel,
   wrapTooltip,
 } from './utils';
 import {
@@ -627,8 +626,6 @@ function nvd3Vis(element, props) {
       if (chart.xAxis) {
         margins.bottom = 28;
       }
-      // truncate labels that are too long
-      d3.selectAll('.nv-x.nv-axis .tick text').text(truncateLabel);
       const maxYAxisLabelWidth = getMaxLabelSize(svg, chart.yAxis2 ? 'nv-y1' : 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(svg, 'nv-x');
       margins.left = maxYAxisLabelWidth + marginPad;
@@ -713,9 +710,6 @@ function nvd3Vis(element, props) {
         .attr('width', width)
         .attr('height', height)
         .call(chart);
-
-      // truncate labels that are too long
-      d3.selectAll('.nv-x.nv-axis .tick text').text(truncateLabel);
 
       // on scroll, hide tooltips. throttle to only 4x/second.
       window.addEventListener('scroll', throttle(hideTooltips, 250));
