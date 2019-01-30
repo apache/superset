@@ -2,20 +2,20 @@ const path = require('path');
 const assert = require('yeoman-assert');
 const helpers = require('yeoman-test');
 
-describe('generator-superset:app', () => {
+describe('generator-superset:legacy-plugin-chart-demo', () => {
   let dir;
 
   beforeAll(() => {
     dir = process.cwd();
 
-    return helpers.run(path.join(__dirname, '../generators/app')).withPrompts({
-      subgenerator: 'package',
-      name: 'my-package',
-    });
+    return helpers
+      .run(path.join(__dirname, '../generators/legacy-plugin-chart-demo'))
+      .withPrompts({ packageName: '4d-pie-chart', packageLabel: '4DPieChart' })
+      .withOptions({ skipInstall: true });
   });
 
   it('creates files', () => {
-    assert.file(['package.json', 'README.md', 'src/index.js', 'test/index.test.js']);
+    assert.file(['index.js', 'Stories.jsx']);
   });
 
   /*
