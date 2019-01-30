@@ -76,7 +76,7 @@ class HorizonChart extends React.PureComponent {
     }
 
     return (
-      <div className={`horizon-chart ${className}`}>
+      <div className={`superset-legacy-chart-horizon ${className}`}>
         {data.map(row => (
           <HorizonRow
             key={row.key}
