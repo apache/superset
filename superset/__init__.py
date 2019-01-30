@@ -208,6 +208,10 @@ security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
 
+# Merge user defined feature flags with default feature flags
+feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS')
+feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
+
 # Registering sources
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
 module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
