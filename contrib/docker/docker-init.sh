@@ -50,6 +50,4 @@ gunicorn --certfile=${APP_HOME}/cert.pem  --keyfile=${APP_HOME}/keyfile.pem -w 5
   --timeout 1200 \
   --limit-request-line 0 \
   --limit-request-field_size 0 \
-  --access-logfile /var/log/superset.log \
-  --error-logfile /var/log/superset-debug.log \
   superset:app
