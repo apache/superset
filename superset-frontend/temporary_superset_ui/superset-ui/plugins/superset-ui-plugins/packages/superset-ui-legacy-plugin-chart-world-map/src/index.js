@@ -22,17 +22,16 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  credits: ['https://github.com/wa0x6e/cal-heatmap'],
+  credits: ['http://datamaps.github.io/'],
   description: '',
-  name: t('Calendar Heatmap'),
+  name: t('World Map'),
   thumbnail,
-  useLegacyApi: true,
 });
 
-export default class ChordChartPlugin extends ChartPlugin {
+export default class WorldMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactCalendar'),
+      loadChart: () => import('./ReactWorldMap.js'),
       metadata,
       transformProps,
     });

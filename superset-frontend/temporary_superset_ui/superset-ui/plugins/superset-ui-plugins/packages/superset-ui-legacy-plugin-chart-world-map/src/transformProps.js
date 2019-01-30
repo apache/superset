@@ -16,25 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+export default function transformProps(chartProps) {
+  const { height, formData, payload } = chartProps;
+  const { maxBubbleSize, showBubbles } = formData;
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/wa0x6e/cal-heatmap'],
-  description: '',
-  name: t('Calendar Heatmap'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class ChordChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactCalendar'),
-      metadata,
-      transformProps,
-    });
-  }
+  return {
+    data: payload.data,
+    height,
+    maxBubbleSize: parseInt(maxBubbleSize, 10),
+    showBubbles,
+  };
 }
