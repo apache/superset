@@ -10,9 +10,9 @@ This plugin provides Histogram for Superset.
 Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
 
 ```js
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
+import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 
-new ChordChartPlugin()
+new HistogramChartPlugin()
   .configure({ key: 'histogram' })
   .register();
 ```
