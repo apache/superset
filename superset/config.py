@@ -563,6 +563,15 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 BUG_REPORT_URL = None
 
 
+# Add the kerbero for Druid
+ENABLE_KERBEROS_AUTHENTICATION = False
+
+# ENABLE_KERBEROS_AUTHENTICATION = True
+# KERBEROS_KEYTAB = "/etc/security/keytabs/superset.headless.keytab"
+# KERBEROS_PRINCIPAL = "superset-hadoop@WESURE.CN"
+# KERBEROS_REINIT_TIME_SEC = 3600
+
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
