@@ -10,9 +10,9 @@ This plugin provides Heatmap for Superset.
 Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
 
 ```js
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
+import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 
-new ChordChartPlugin()
+new HeatmapChartPlugin()
   .configure({ key: 'heatmap' })
   .register();
 ```

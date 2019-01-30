@@ -25,6 +25,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Histogram'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class HistogramChartPlugin extends ChartPlugin {

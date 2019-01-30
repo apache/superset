@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Heatmap'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class HeatmapChartPlugin extends ChartPlugin {
