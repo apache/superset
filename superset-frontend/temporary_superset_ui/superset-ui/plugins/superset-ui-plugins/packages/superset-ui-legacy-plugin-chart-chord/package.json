@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-chord",
   "version": "0.0.0",
-  "description": "Superset Legacy Chart - Chord",
+  "description": "Superset Legacy Chart - Chord Diagram",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
