@@ -35,6 +35,7 @@ export interface RequestBase {
   headers?: Headers;
   host?: Host;
   mode?: Mode;
+  method?: Method;
   parseMethod?: ParseMethod;
   postPayload?: PostPayload;
   signal?: Signal;
