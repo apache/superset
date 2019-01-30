@@ -39,6 +39,7 @@ from superset.utils.core import (
     zlib_compress,
     zlib_decompress_to_string,
 )
+from superset.utils.feature_flags import is_feature_enabled
 
 
 def mock_parse_human_datetime(s):
@@ -756,3 +757,11 @@ class UtilsTestCase(unittest.TestCase):
         }
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEquals(form_data, expected)
+
+    @patch.dict('superset.feature_flags', {'FOO': True}, clear=True)
+    def test_existing_feature_flags(self):
+        self.assertTrue(is_feature_enabled('FOO'))
+
+    @patch.dict('superset.feature_flags', {}, clear=True)
+    def test_nonexistent_feature_flags(self):
+        self.assertFalse(is_feature_enabled('FOO'))
