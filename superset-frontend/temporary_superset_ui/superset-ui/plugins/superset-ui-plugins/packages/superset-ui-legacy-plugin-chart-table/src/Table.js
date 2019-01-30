@@ -83,6 +83,7 @@ function TableVis(element, props) {
   } = props;
 
   const $container = $(element);
+  $container.addClass('superset-legacy-chart-table');
 
   const metrics = (rawMetrics || [])
     .map(m => m.label || m)
