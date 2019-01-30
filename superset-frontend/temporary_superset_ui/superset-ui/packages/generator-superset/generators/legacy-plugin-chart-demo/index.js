@@ -15,25 +15,25 @@ module.exports = class extends Generator {
     this.answers = await this.prompt([
       {
         type: 'input',
-        name: 'name',
+        name: 'packageName',
         message: 'Package name:',
-        default: _.kebabCase(this.appname.replace('superset ui', '').trim()), // Default to current folder name
+        default: _.kebabCase(this.appname.replace('legacy plugin chart', '').trim()), // Default to current folder name
+      },
+      {
+        type: 'input',
+        name: 'packageLabel',
+        message: 'Package label:',
+        default: _.capitalize(_.camelCase(this.appname.replace('legacy plugin chart', '').trim())), // Default to current folder name
       },
     ]);
   }
 
   writing() {
+    this.fs.copyTpl(this.templatePath('index.js'), this.destinationPath('index.js'), this.answers);
     this.fs.copyTpl(
-      this.templatePath('_package.json'),
-      this.destinationPath('package.json'),
+      this.templatePath('Stories.jsx'),
+      this.destinationPath('Stories.jsx'),
       this.answers,
     );
-    this.fs.copyTpl(
-      this.templatePath('README.md'),
-      this.destinationPath('README.md'),
-      this.answers,
-    );
-    this.fs.copy(this.templatePath('src/index.js'), this.destinationPath('src/index.js'));
-    this.fs.copy(this.templatePath('test/index.js'), this.destinationPath('test/index.test.js'));
   }
 };

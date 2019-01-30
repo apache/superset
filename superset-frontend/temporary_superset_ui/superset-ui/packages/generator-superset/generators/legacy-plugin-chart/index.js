@@ -15,9 +15,17 @@ module.exports = class extends Generator {
     this.answers = await this.prompt([
       {
         type: 'input',
-        name: 'name',
+        name: 'packageName',
         message: 'Package name:',
-        default: _.kebabCase(this.appname.replace('superset ui', '').trim()), // Default to current folder name
+        default: _.kebabCase(this.appname.replace('superset ui legacy plugin chart', '').trim()), // Default to current folder name
+      },
+      {
+        type: 'input',
+        name: 'description',
+        message: 'Description:',
+        default: _.capitalize(
+          _.startCase(this.appname.replace('superset ui legacy plugin chart', '').trim()),
+        ), // Default to current folder name
       },
     ]);
   }
@@ -28,12 +36,9 @@ module.exports = class extends Generator {
       this.destinationPath('package.json'),
       this.answers,
     );
-    this.fs.copyTpl(
-      this.templatePath('README.md'),
-      this.destinationPath('README.md'),
-      this.answers,
-    );
-    this.fs.copy(this.templatePath('src/index.js'), this.destinationPath('src/index.js'));
-    this.fs.copy(this.templatePath('test/index.js'), this.destinationPath('test/index.test.js'));
+    this.fs.copyTpl(this.templatePath('README.md'), this.destinationPath('README.md'), {
+      ...this.answers,
+      packageLabel: _.capitalize(_.camelCase(this.answers.packageName)),
+    });
   }
 };
