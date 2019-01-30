@@ -48,6 +48,7 @@ superset-ui/
 ```sh
 git clone ...superset-ui-legacy && cd superset-ui-legacy
 yarn install
+yarn build
 ```
 
 ### Builds, linting, and testing
