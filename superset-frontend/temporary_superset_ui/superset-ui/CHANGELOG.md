@@ -1,5 +1,12 @@
 # @superset-ui : Change Log
 
+## v0.9.2
+
+### ✨ Features
+
+* Add more subgenerators to create package and demo in `superset-ui-legacy`
+* Support put and delete HTTP methods in `SupersetClient`
+
 ## v0.9.1
 
 ### 🐞 Bug fixes
