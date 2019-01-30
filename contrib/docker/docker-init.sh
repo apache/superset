@@ -2,6 +2,29 @@
 
 set -ex
 
+export APP_NAME=superset
+export APP_HOME=/home/work
+
+if [ "${ENVIRONMENT}" = "" ] || [ "${STACK}" = "" ]; then
+    echo "ENVIRONMENT and STACK environment variables must be set" >&2
+    exit 1
+fi
+
+# autodetect AWS_REGION if not specified
+if [ "${AWS_REGION}" = "" ]; then
+    EC2_AVAIL_ZONE=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
+    EC2_REGION="`echo \"$EC2_AVAIL_ZONE\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
+    export AWS_REGION="${EC2_REGION}"
+fi
+
+CONFIG_S3_URI="s3://qventus-app-config-${ENVIRONMENT}-${AWS_REGION}/${APP_NAME}/${ENVIRONMENT}/${STACK}"
+
+# autodetect latest CONFIG_REVISION if not specified
+if [ "${CONFIG_REVISION}" = "" ]; then
+    export CONFIG_REVISION=$(aws s3 cp "${CONFIG_S3_URI}/latest.txt" -)
+fi
+
+
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
 fabmanager create-admin --app superset
 
@@ -20,5 +43,21 @@ cd superset/assets && npm run build && cd ../../
 # Start superset worker for SQL Lab
 superset worker &
 
-# To start a development web server, use the -d switch
-superset runserver -d
+# fetch SSL certificates
+for name in cert keyfile ; do
+    aws ssm get-parameter \
+        --region "${AWS_REGION}" \
+        --with-decryption \
+        --output text --query "Parameter.Value" \
+        --name "/${ENVIRONMENT}/${STACK}/ssl/${name}" \
+        > "${APP_HOME}/${name}.pem"
+done
+
+gunicorn --certfile=${APP_HOME}/cert.pem  --keyfile=${APP_HOME}/keyfile.pem -w 50 -k gevent \
+  -b  0.0.0.0:8088 \
+  --timeout 1200 \
+  --limit-request-line 0 \
+  --limit-request-field_size 0 \
+  --access-logfile /var/log/superset.log \
+  --error-logfile /var/log/superset-debug.log \
+  superset:app
