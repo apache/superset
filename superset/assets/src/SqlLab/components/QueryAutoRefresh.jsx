@@ -72,6 +72,8 @@ class QueryAutoRefresh extends React.PureComponent {
         }).catch(() => {
           this.props.actions.setUserOffline(true);
         });
+    } else {
+      this.props.actions.setUserOffline(false);
     }
   }
   render() {
