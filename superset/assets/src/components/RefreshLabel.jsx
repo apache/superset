@@ -18,12 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label } from 'react-bootstrap';
 import TooltipWrapper from './TooltipWrapper';
 
 const propTypes = {
   onClick: PropTypes.func,
-  className: PropTypes.string,
   tooltipContent: PropTypes.string.isRequired,
 };
 
@@ -33,6 +31,8 @@ class RefreshLabel extends React.PureComponent {
     this.state = {
       hovered: false,
     };
+    this.mouseOver = this.mouseOver.bind(this);
+    this.mouseOut = this.mouseOut.bind(this);
   }
 
   mouseOver() {
@@ -44,23 +44,17 @@ class RefreshLabel extends React.PureComponent {
   }
 
   render() {
-    const labelStyle = this.state.hovered ? 'primary' : 'default';
-    const tooltip = 'Click to ' + this.props.tooltipContent;
+    const labelStyle = this.state.hovered ? 'primary' : 'muted';
     return (
       <TooltipWrapper
-        tooltip={tooltip}
+        tooltip={this.props.tooltipContent}
         label="cache-desc"
       >
-        <Label
-          className={this.props.className}
-          bsStyle={labelStyle}
-          style={{ fontSize: '13px', marginRight: '5px', cursor: 'pointer' }}
-          onClick={this.props.onClick}
-          onMouseOver={this.mouseOver.bind(this)}
-          onMouseOut={this.mouseOut.bind(this)}
-        >
-          <i className="fa fa-refresh" />
-        </Label>
+        <i
+          className={`fa fa-refresh pointer text-${labelStyle}`}
+          onMouseEnter={this.mouseOver}
+          onMouseOut={this.mouseOut}
+        />
       </TooltipWrapper>);
   }
 }
