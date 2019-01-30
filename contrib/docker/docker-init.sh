@@ -17,14 +17,6 @@ if [ "${AWS_REGION}" = "" ]; then
     export AWS_REGION="${EC2_REGION}"
 fi
 
-CONFIG_S3_URI="s3://qventus-app-config-${ENVIRONMENT}-${AWS_REGION}/${APP_NAME}/${ENVIRONMENT}/${STACK}"
-
-# autodetect latest CONFIG_REVISION if not specified
-if [ "${CONFIG_REVISION}" = "" ]; then
-    export CONFIG_REVISION=$(aws s3 cp "${CONFIG_S3_URI}/latest.txt" -)
-fi
-
-
 # Create an admin user (you will be prompted to set username, first and last name before setting a password)
 fabmanager create-admin --app superset
 
@@ -44,7 +36,7 @@ cd superset/assets && npm run build && cd ../../
 superset worker &
 
 # fetch SSL certificates
-for name in cert keyfile ; do
+for name in cert privkey ; do
     aws ssm get-parameter \
         --region "${AWS_REGION}" \
         --with-decryption \
