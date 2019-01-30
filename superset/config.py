@@ -186,9 +186,12 @@ LANGUAGES = {
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are on by default go here. Their
-# values can be overridden by those in super_config.py
-FEATURE_FLAGS = {}
+# Feature flags that are set by default go here. Their values can be
+# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
+# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
+# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
+DEFAULT_FEATURE_FLAGS = {}
 
 # ---------------------------------------------------
 # Image and file configuration
