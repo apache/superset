@@ -256,35 +256,51 @@ describe('SupersetClientClass', () => {
     const protocol = 'https:';
     const host = 'HOST';
     const mockGetEndpoint = '/get/url';
+    const mockRequestEndpoint = '/request/url';
     const mockPostEndpoint = '/post/url';
+    const mockPutEndpoint = '/put/url';
+    const mockDeleteEndpoint = '/delete/url';
     const mockTextEndpoint = '/text/endpoint';
     const mockGetUrl = `${protocol}//${host}${mockGetEndpoint}`;
+    const mockRequestUrl = `${protocol}//${host}${mockRequestEndpoint}`;
     const mockPostUrl = `${protocol}//${host}${mockPostEndpoint}`;
     const mockTextUrl = `${protocol}//${host}${mockTextEndpoint}`;
+    const mockPutUrl = `${protocol}//${host}${mockPutEndpoint}`;
+    const mockDeleteUrl = `${protocol}//${host}${mockDeleteEndpoint}`;
     const mockBigNumber = '9223372036854775807';
     const mockTextJsonResponse = `{ "value": ${mockBigNumber} }`;
 
     fetchMock.get(mockGetUrl, { json: 'payload' });
     fetchMock.post(mockPostUrl, { json: 'payload' });
+    fetchMock.put(mockPutUrl, { json: 'payload' });
+    fetchMock.delete(mockDeleteUrl, { json: 'payload' });
+    fetchMock.delete(mockRequestUrl, { json: 'payload' });
     fetchMock.get(mockTextUrl, mockTextJsonResponse);
     fetchMock.post(mockTextUrl, mockTextJsonResponse);
 
     it('checks for authentication before every get and post request', () => {
-      expect.assertions(3);
+      expect.assertions(6);
       const authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
       const client = new SupersetClientClass({ protocol, host });
 
       return client.init().then(() =>
-        Promise.all([client.get({ url: mockGetUrl }), client.post({ url: mockPostUrl })]).then(
-          () => {
-            expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-            expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-            expect(authSpy).toHaveBeenCalledTimes(2);
-            authSpy.mockRestore();
+        Promise.all([
+          client.get({ url: mockGetUrl }),
+          client.post({ url: mockPostUrl }),
+          client.put({ url: mockPutUrl }),
+          client.delete({ url: mockDeleteUrl }),
+          client.request({ url: mockRequestUrl, method: 'DELETE' }),
+        ]).then(() => {
+          expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
+          expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+          expect(fetchMock.calls(mockDeleteUrl)).toHaveLength(1);
+          expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
+          expect(fetchMock.calls(mockRequestUrl)).toHaveLength(1);
+          expect(authSpy).toHaveBeenCalledTimes(5);
+          authSpy.mockRestore();
 
-            return Promise.resolve();
-          },
-        ),
+          return Promise.resolve();
+        }),
       );
     });
 
