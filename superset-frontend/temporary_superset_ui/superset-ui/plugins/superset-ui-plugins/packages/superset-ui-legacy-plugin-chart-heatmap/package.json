@@ -26,22 +26,22 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.0",
+    "@superset-ui/core": "^0.9.x",
     "d3": "^3.5.17",
     "d3-svg-legend": "^1.x",
     "d3-tip": "^0.9.1",
     "prop-types": "^15.6.2"
   },
   "devDependencies": {
-    "@superset-ui/chart": "^0.9.0",
-    "@superset-ui/color": "^0.9.0",
-    "@superset-ui/number-format": "^0.9.0",
-    "@superset-ui/translation": "^0.9.1"
+    "@superset-ui/chart": "^0.9.x",
+    "@superset-ui/color": "^0.9.x",
+    "@superset-ui/number-format": "^0.9.x",
+    "@superset-ui/translation": "^0.9.x"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.9.0",
-    "@superset-ui/color": "^0.9.0",
-    "@superset-ui/number-format": "^0.9.0",
-    "@superset-ui/translation": "^0.9.1"
+    "@superset-ui/chart": "^0.9.x",
+    "@superset-ui/color": "^0.9.x",
+    "@superset-ui/number-format": "^0.9.x",
+    "@superset-ui/translation": "^0.9.x"
   }
 }
