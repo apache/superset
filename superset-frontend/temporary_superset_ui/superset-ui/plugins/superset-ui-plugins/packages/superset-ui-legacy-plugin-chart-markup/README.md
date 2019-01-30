@@ -10,9 +10,9 @@ This plugin provides Markup for Superset.
 Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
 
 ```js
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-markup';
+import MarkupChartPlugin from '@superset-ui/legacy-plugin-chart-markup';
 
-new ChordChartPlugin()
+new MarkupChartPlugin()
   .configure({ key: 'markup' })
   .register();
 ```
