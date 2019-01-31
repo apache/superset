@@ -22,7 +22,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2018-06-07 00:22-0700\n"
-"PO-Revision-Date: 2019-01-30 21:32+0900\n"
+"PO-Revision-Date: 2019-01-31 20:31+0900\n"
 "Language: ko\n"
 "Language-Team: ko <LL@li.org>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -60,7 +60,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1366 superset/db_engine_specs.py:1397
 #: superset/db_engine_specs.py:1417
 msgid "minute"
-msgstr ""
+msgstr "분"
 
 #: superset/db_engine_specs.py:348 superset/db_engine_specs.py:396
 #: superset/db_engine_specs.py:424 superset/db_engine_specs.py:457
@@ -70,7 +70,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1335 superset/db_engine_specs.py:1367
 #: superset/db_engine_specs.py:1398 superset/db_engine_specs.py:1420
 msgid "hour"
-msgstr ""
+msgstr "시간"
 
 #: superset/db_engine_specs.py:350 superset/db_engine_specs.py:397
 #: superset/db_engine_specs.py:425 superset/db_engine_specs.py:463
@@ -80,7 +80,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1336 superset/db_engine_specs.py:1368
 #: superset/db_engine_specs.py:1399 superset/db_engine_specs.py:1423
 msgid "day"
-msgstr ""
+msgstr "일"
 
 #: superset/db_engine_specs.py:352 superset/db_engine_specs.py:398
 #: superset/db_engine_specs.py:426 superset/db_engine_specs.py:470
@@ -90,7 +90,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1369 superset/db_engine_specs.py:1400
 #: superset/db_engine_specs.py:1426
 msgid "week"
-msgstr ""
+msgstr "주"
 
 #: superset/db_engine_specs.py:354 superset/db_engine_specs.py:399
 #: superset/db_engine_specs.py:427 superset/db_engine_specs.py:473
@@ -100,7 +100,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1338 superset/db_engine_specs.py:1370
 #: superset/db_engine_specs.py:1401 superset/db_engine_specs.py:1430
 msgid "month"
-msgstr ""
+msgstr "월"
 
 #: superset/db_engine_specs.py:356 superset/db_engine_specs.py:400
 #: superset/db_engine_specs.py:428 superset/db_engine_specs.py:476
@@ -110,7 +110,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1371 superset/db_engine_specs.py:1402
 #: superset/db_engine_specs.py:1433
 msgid "quarter"
-msgstr ""
+msgstr "분기"
 
 #: superset/db_engine_specs.py:358 superset/db_engine_specs.py:401
 #: superset/db_engine_specs.py:429 superset/db_engine_specs.py:481
@@ -120,7 +120,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1372 superset/db_engine_specs.py:1403
 #: superset/db_engine_specs.py:1437
 msgid "year"
-msgstr ""
+msgstr "년"
 
 #: superset/db_engine_specs.py:513 superset/db_engine_specs.py:647
 #: superset/db_engine_specs.py:1254
@@ -138,19 +138,19 @@ msgstr ""
 
 #: superset/db_engine_specs.py:1197 superset/db_engine_specs.py:1291
 msgid "5 minute"
-msgstr ""
+msgstr "5분"
 
 #: superset/db_engine_specs.py:1200
 msgid "half hour"
-msgstr ""
+msgstr "30분"
 
 #: superset/db_engine_specs.py:1294
 msgid "10 minute"
-msgstr ""
+msgstr "10분"
 
 #: superset/connectors/sqla/views.py:234 superset/forms.py:56
 msgid "Table Name"
-msgstr ""
+msgstr "테이블 명"
 
 #: superset/forms.py:57
 msgid "Name of table to be created from csv data."
@@ -1049,28 +1049,28 @@ msgstr ""
 #: superset/assets/src/SqlLab/components/VisualizeModal.jsx:254
 #: superset/assets/src/explore/visTypes.js:285
 msgid "Chart Type"
-msgstr ""
+msgstr "차트 유형"
 
 #: superset/assets/src/SqlLab/components/VisualizeModal.jsx:257
 msgid "[Chart Type]"
-msgstr ""
+msgstr "[차트 유형]"
 
 #: superset/assets/src/SqlLab/components/VisualizeModal.jsx:265
 msgid "Datasource Name"
-msgstr ""
+msgstr "데이터소스 명"
 
 #: superset/assets/src/SqlLab/components/VisualizeModal.jsx:269
 msgid "datasource name"
-msgstr ""
+msgstr "데이터소스 명"
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:59
 msgid "Create a new chart"
-msgstr ""
+msgstr "새 차트 생성"
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:61
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:69
 msgid "Choose a datasource"
-msgstr ""
+msgstr "데이터소스 선택"
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:75
 msgid ""
@@ -1080,16 +1080,16 @@ msgstr ""
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:79
 msgid "Superset tutorial"
-msgstr ""
+msgstr "Superset 튜토리얼"
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:84
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:91
 msgid "Choose a visualization type"
-msgstr ""
+msgstr "시각화 유형 선택"
 
 #: superset/assets/src/addSlice/AddSliceContainer.jsx:101
 msgid "Create new chart"
-msgstr ""
+msgstr "새 차트 생성"
 
 #: superset/assets/src/chart/chartAction.js:169
 msgid "Unexpected error: "
@@ -1251,7 +1251,7 @@ msgstr ""
 #: superset/assets/src/dashboard/components/Controls.jsx:185
 #: superset/assets/src/dashboard/components/SliceAdder.jsx:196
 msgid "Add Charts"
-msgstr ""
+msgstr "차트 추가"
 
 #: superset/assets/src/dashboard/components/Controls.jsx:186
 msgid "Add some charts to this dashboard"
@@ -1296,39 +1296,39 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:20
 msgid "10 seconds"
-msgstr ""
+msgstr "10초"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:21
 msgid "30 seconds"
-msgstr ""
+msgstr "30초"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:22
 msgid "1 minute"
-msgstr ""
+msgstr "1분"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:23
 msgid "5 minutes"
-msgstr ""
+msgstr "5분"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:24
 msgid "30 minutes"
-msgstr ""
+msgstr "30분"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:25
 msgid "1 hour"
-msgstr ""
+msgstr "1시간"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:26
 msgid "6 hours"
-msgstr ""
+msgstr "6시간"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:27
 msgid "12 hours"
-msgstr ""
+msgstr "12시간"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:28
 msgid "24 hours"
-msgstr ""
+msgstr "24시간"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:43
 msgid "Refresh Interval"
@@ -1394,13 +1394,13 @@ msgstr ""
 #: superset/connectors/druid/views.py:52 superset/views/core.py:404
 #: superset/views/core.py:428 superset/views/core.py:460
 msgid "Datasource"
-msgstr "데이터 소스"
+msgstr "데이터소스"
 
 #: superset/assets/src/dashboard/components/SliceAdder.jsx:186
 #: superset/views/core.py:576 superset/views/core.py:643
 #: superset/views/sql_lab.py:63
 msgid "Modified"
-msgstr ""
+msgstr "수정됨"
 
 #: superset/assets/src/dashboard/components/SliceAdder.jsx:205
 msgid "Add a new chart to the dashboard"
@@ -3933,11 +3933,11 @@ msgstr ""
 #: superset/assets/src/profile/components/Security.jsx:23
 #: superset/views/core.py:313
 msgid "Databases"
-msgstr ""
+msgstr "데이터베이스"
 
 #: superset/assets/src/profile/components/Security.jsx:34
 msgid "Datasources"
-msgstr ""
+msgstr "데이터소스"
 
 #: superset/assets/src/profile/components/UserInfo.jsx:19
 msgid "Profile picture provided by Gravatar"
@@ -4116,7 +4116,7 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:193
 msgid "Druid Clusters"
-msgstr ""
+msgstr "Druid 클러스터"
 
 #: superset/connectors/druid/views.py:196 superset/connectors/druid/views.py:298
 #: superset/connectors/druid/views.py:347 superset/connectors/druid/views.py:355
@@ -4209,15 +4209,15 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:296
 msgid "Druid Datasources"
-msgstr ""
+msgstr "Druid 데이터소스"
 
 #: superset/connectors/druid/views.py:344
 msgid "Scan New Datasources"
-msgstr ""
+msgstr "새 데이터소스 스캔"
 
 #: superset/connectors/druid/views.py:352
 msgid "Refresh Druid Metadata"
-msgstr ""
+msgstr "Druid 메타데이터 새로고침"
 
 #: superset/connectors/sqla/models.py:527
 msgid ""
@@ -4418,7 +4418,7 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:311
 msgid "Tables"
-msgstr ""
+msgstr "테이블"
 
 #: superset/templates/appbuilder/navbar_right.html:41
 msgid "Profile"
@@ -4434,7 +4434,7 @@ msgstr ""
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:37
 msgid "Record Count"
-msgstr ""
+msgstr "레코드 수"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:46
 msgid "No records found"
@@ -4442,7 +4442,7 @@ msgstr ""
 
 #: superset/templates/superset/import_dashboards.html:11
 msgid "Import dashboards"
-msgstr ""
+msgstr "대시보드 가져오기"
 
 #: superset/templates/superset/request_access.html:2
 msgid "No Access!"
@@ -4463,7 +4463,7 @@ msgstr ""
 
 #: superset/views/annotations.py:49
 msgid "Annotation Layers"
-msgstr ""
+msgstr "주석 레이어"
 
 #: superset/views/annotations.py:52 superset/views/annotations.py:60
 #: superset/views/core.py:306 superset/views/core.py:2739
@@ -4473,7 +4473,7 @@ msgstr "관리"
 
 #: superset/views/annotations.py:57
 msgid "Annotations"
-msgstr ""
+msgstr "주석"
 
 #: superset/views/base.py:79
 #, python-format
@@ -4494,7 +4494,7 @@ msgstr ""
 
 #: superset/views/base.py:188
 msgid "Delete"
-msgstr ""
+msgstr "삭제"
 
 #: superset/views/base.py:189
 msgid "Delete all Really?"
@@ -4610,7 +4610,7 @@ msgstr ""
 
 #: superset/views/core.py:273
 msgid "Allow DML"
-msgstr ""
+msgstr "DML 허용"
 
 #: superset/views/core.py:274
 msgid "CTAS Schema"
@@ -4643,7 +4643,7 @@ msgstr ""
 
 #: superset/views/core.py:302
 msgid "Import Dashboards"
-msgstr ""
+msgstr "대시보드 가져오기"
 
 #: superset/views/core.py:334
 msgid "CSV to Database configuration"
@@ -4771,7 +4771,7 @@ msgstr ""
 
 #: superset/views/core.py:570 superset/views/core.py:640
 msgid "Dashboard"
-msgstr ""
+msgstr "대시보드"
 
 #: superset/views/core.py:572
 msgid "Slug"
@@ -4847,7 +4847,7 @@ msgstr ""
 
 #: superset/views/core.py:1407 superset/views/core.py:1420
 msgid "dashboard"
-msgstr ""
+msgstr "대시보드"
 
 #: superset/views/core.py:1955
 msgid ""
@@ -4884,11 +4884,11 @@ msgstr ""
 
 #: superset/views/core.py:2736
 msgid "CSS Templates"
-msgstr ""
+msgstr "CSS 템플릿"
 
 #: superset/views/core.py:2747
 msgid "SQL Editor"
-msgstr ""
+msgstr "SQL 편집기"
 
 #: superset/views/core.py:2752 superset/views/core.py:2762
 msgid "SQL Lab"
@@ -4896,11 +4896,11 @@ msgstr "SQL Lab"
 
 #: superset/views/core.py:2757
 msgid "Query Search"
-msgstr ""
+msgstr "쿼리 검색"
 
 #: superset/views/core.py:2767
 msgid "Upload a CSV"
-msgstr ""
+msgstr "CSV 업로드"
 
 #: superset/views/sql_lab.py:25
 msgid "Status"
@@ -4916,7 +4916,7 @@ msgstr ""
 
 #: superset/views/sql_lab.py:34
 msgid "Queries"
-msgstr ""
+msgstr "쿼리"
 
 #: superset/views/sql_lab.py:43
 msgid "List Saved Query"
@@ -4944,4 +4944,4 @@ msgstr ""
 
 #: superset/views/sql_lab.py:86
 msgid "Saved Queries"
-msgstr ""
+msgstr "저장된 쿼리"
