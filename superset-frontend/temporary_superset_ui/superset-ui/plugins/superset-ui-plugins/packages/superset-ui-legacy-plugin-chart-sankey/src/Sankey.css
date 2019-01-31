@@ -16,25 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+.superset-legacy-chart-sankey .node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
 
-const metadata = new ChartMetadata({
-  credits: ['https://bl.ocks.org/mbostock/911ad09bdead40ec0061'],
-  description: '',
-  name: t('Treemap'),
-  thumbnail,
-  useLegacyApi: true,
-});
+.superset-legacy-chart-sankey .node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
 
-export default class TreemapChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactTreemap.js'),
-      metadata,
-      transformProps,
-    });
-  }
+.superset-legacy-chart-sankey .link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+
+.superset-legacy-chart-sankey .link:hover {
+  stroke-opacity: .5;
+}
+
+.superset-legacy-chart-sankey-tooltip {
+  position: absolute;
+  width: auto;
+  background: #ddd;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 200;
+  color: #333;
+  border: 1px solid #fff;
+  text-align: center;
+  pointer-events: none;
 }
