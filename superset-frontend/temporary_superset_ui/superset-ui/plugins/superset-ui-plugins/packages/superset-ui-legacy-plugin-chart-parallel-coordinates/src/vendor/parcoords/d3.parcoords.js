@@ -1,4 +1,5 @@
 /* [LICENSE TBD] */
+/* eslint-disable */
 module.exports = function(config) {
   var __ = {
     data: [],

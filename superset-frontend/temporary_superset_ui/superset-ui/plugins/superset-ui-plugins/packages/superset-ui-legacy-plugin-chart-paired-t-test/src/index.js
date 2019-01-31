@@ -16,10 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-parallel-coordinates div.grid {
-    overflow: auto;
-}
+import { t } from '@superset-ui/translation';
+import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-.superset-legacy-chart-parallel-coordinates .grid div.row:hover {
-    background-color: #CCC;
+const metadata = new ChartMetadata({
+  description: '',
+  name: t('Paired t-test Table'),
+  thumbnail,
+  useLegacyApi: true,
+});
+
+export default class PairedTTestChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      loadChart: () => import('./PairedTTest'),
+      metadata,
+      transformProps,
+    });
+  }
 }
