@@ -9,7 +9,7 @@ export default [
         chartType="force-directed"
         chartProps={{
           formData: {},
-          height: 600,
+          height: 400,
           payload: {
             data: [
               {
@@ -439,7 +439,7 @@ export default [
               },
             ],
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),
