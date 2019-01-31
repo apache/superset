@@ -49,6 +49,7 @@
     "@superset-ui/legacy-plugin-chart-world-map": "0.0.0",
     "@superset-ui/translation": "^0.9.x",
     "babel-loader": "^8.0.4",
+    "bootstrap": "^3.3.6",
     "git-directory-deploy": "^1.5.1",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",

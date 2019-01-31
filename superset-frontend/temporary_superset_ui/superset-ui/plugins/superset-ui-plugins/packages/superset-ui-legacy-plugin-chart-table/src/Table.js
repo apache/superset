@@ -20,17 +20,16 @@
 /* eslint-disable babel/no-invalid-this, babel/new-cap, no-negated-condition */
 /* eslint-disable prefer-destructuring, react/forbid-prop-types */
 import d3 from 'd3';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
-import dt from 'datatables.net-bs';
-import 'datatables.net-bs/css/dataTables.bootstrap.css';
+import dt from 'datatables.net-bs/js/dataTables.bootstrap';
 import dompurify from 'dompurify';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import fixTableHeight from './utils/fixTableHeight';
+import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import './Table.css';
 
-dt(window, $);
+const $ = dt.$;
 
 const propTypes = {
   // Each object is { field1: value1, field2: value2 }
