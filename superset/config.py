@@ -181,6 +181,7 @@ LANGUAGES = {
     'pt': {'flag': 'pt', 'name': 'Portuguese'},
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
+    'ko': {'flag': 'kr', 'name': 'Korean'},
 }
 
 # ---------------------------------------------------
