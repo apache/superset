@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-shadow, no-param-reassign, sort-keys */
+/* eslint-disable no-param-reassign, sort-keys */
 /* eslint-disable func-names, no-magic-numbers, babel/no-invalid-this */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
@@ -87,25 +87,38 @@ function Treemap(element, props) {
 
   const formatNumber = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
-  const data = clone(rawData);
+  const rootNodes = clone(rawData);
+
+  // Aggregate the values for internal nodes. This is normally done by the
+  // treemap layout, but not here because of our custom implementation.
+  // We also take a snapshot of the original children (originalChildren) to avoid
+  // the children being overwritten when when layout is computed.
+  const accumulate = function(d) {
+    d.originalChildren = d.children;
+    if (d.originalChildren) {
+      d.value = d.children.reduce((p, v) => p + accumulate(v), 0);
+    }
+
+    return d.value;
+  };
 
   function draw(data, eltWidth, eltHeight) {
     const navBarHeight = 36;
     const navBarTitleSize = navBarHeight / 3;
     const navBarBuffer = 10;
-    const width = eltWidth - margin.left - margin.right;
-    const height = eltHeight - navBarHeight - navBarBuffer - margin.top - margin.bottom;
+    const cellWidth = eltWidth - margin.left - margin.right;
+    const cellHeight = eltHeight - navBarHeight - navBarBuffer - margin.top - margin.bottom;
     let transitioning;
 
     const x = d3.scale
       .linear()
-      .domain([0, width])
-      .range([0, width]);
+      .domain([0, cellWidth])
+      .range([0, cellWidth]);
 
     const y = d3.scale
       .linear()
-      .domain([0, height])
-      .range([0, height]);
+      .domain([0, cellHeight])
+      .range([0, cellHeight]);
 
     const treemap = d3.layout
       .treemap()
@@ -133,12 +146,12 @@ function Treemap(element, props) {
 
     grandparent
       .append('rect')
-      .attr('width', width)
+      .attr('width', cellWidth)
       .attr('height', navBarHeight);
 
     grandparent
       .append('text')
-      .attr('x', width / 2)
+      .attr('x', cellWidth / 2)
       .attr('y', navBarHeight / 2 + navBarTitleSize / 2)
       .style('font-size', `${navBarTitleSize}px`)
       .style('text-anchor', 'middle');
@@ -146,8 +159,8 @@ function Treemap(element, props) {
     const initialize = function(root) {
       root.x = 0;
       root.y = 0;
-      root.dx = width;
-      root.dy = height;
+      root.dx = cellWidth;
+      root.dy = cellHeight;
       root.depth = 0;
     };
 
@@ -186,19 +199,6 @@ function Treemap(element, props) {
       return d.parent ? `${name(d.parent)} / ${d.name} (${value})` : `${d.name} (${value})`;
     };
 
-    // Aggregate the values for internal nodes. This is normally done by the
-    // treemap layout, but not here because of our custom implementation.
-    // We also take a snapshot of the original children (originalChildren) to avoid
-    // the children being overwritten when when layout is computed.
-    const accumulate = function(d) {
-      d.originalChildren = d.children;
-      if (d.originalChildren) {
-        d.value = d.children.reduce((p, v) => p + accumulate(v), 0);
-      }
-
-      return d.value;
-    };
-
     // Compute the treemap layout recursively such that each group of siblings
     // uses the same size (1x1) rather than the dimensions of the parent cell.
     // This optimizes the layout for the current zoom state. Note that a wrapper
@@ -208,9 +208,7 @@ function Treemap(element, props) {
     // coordinates. This lets us use a viewport to zoom.
     const layout = function(d) {
       if (d.originalChildren) {
-        treemap.nodes({
-          originalChildren: d.originalChildren,
-        });
+        treemap.nodes({ originalChildren: d.originalChildren, children: d.children });
         d.originalChildren.forEach(c => {
           c.x = d.x + c.x * d.dx;
           c.y = d.y + c.y * d.dy;
@@ -336,8 +334,8 @@ function Treemap(element, props) {
   }
 
   div.selectAll('*').remove();
-  const eachHeight = height / data.length;
-  data.forEach(d => draw(d, width, eachHeight));
+  const eachHeight = height / rootNodes.length;
+  rootNodes.forEach(d => draw(d, width, eachHeight));
 }
 
 Treemap.displayName = 'Treemap';
