@@ -38,7 +38,6 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
-  LOG_ACTIONS_OMNIBAR_TRIGGERED,
 } from '../../logger';
 import OmniContianer from '../../components/OmniContainer';
 
