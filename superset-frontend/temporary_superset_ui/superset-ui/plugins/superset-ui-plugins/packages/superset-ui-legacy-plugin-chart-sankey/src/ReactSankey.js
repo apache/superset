@@ -16,25 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+import { reactify } from '@superset-ui/chart';
+import Component from './Sankey';
 
-const metadata = new ChartMetadata({
-  credits: ['https://bl.ocks.org/mbostock/911ad09bdead40ec0061'],
-  description: '',
-  name: t('Treemap'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class TreemapChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./ReactTreemap.js'),
-      metadata,
-      transformProps,
-    });
-  }
-}
+export default reactify(Component);
