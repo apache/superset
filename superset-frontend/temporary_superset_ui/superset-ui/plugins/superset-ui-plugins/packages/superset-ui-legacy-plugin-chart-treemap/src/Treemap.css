@@ -16,46 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 .superset-legacy-chart-treemap text {
+  font-size: 11px;
   pointer-events: none;
 }
 
-.superset-legacy-chart-treemap .grandparent text {
-  font-weight: bold;
+.superset-legacy-chart-treemap tspan:last-child {
+  font-size: 9px;
+  fill-opacity: 0.8;
 }
 
-.superset-legacy-chart-treemap rect {
-  fill: none;
-  stroke: #fff;
+.superset-legacy-chart-treemap .node rect {
+  shape-rendering: crispEdges;
 }
 
-.superset-legacy-chart-treemap rect.parent,
-.superset-legacy-chart-treemap .grandparent rect {
-  stroke-width: 2px;
-}
-
-.superset-legacy-chart-treemap rect.parent {
-    pointer-events: none;
-}
-
-.superset-legacy-chart-treemap .grandparent rect {
-  fill: #eee;
-}
-
-.superset-legacy-chart-treemap .grandparent:hover rect {
-  fill: #aaa;
-}
-
-.superset-legacy-chart-treemap .children rect.parent,
-.superset-legacy-chart-treemap .grandparent rect {
-  cursor: pointer;
-}
-
-.superset-legacy-chart-treemap .children rect.parent {
-  fill: #bbb;
-  fill-opacity: .5;
-}
-
-.superset-legacy-chart-treemap .children:hover rect.child {
-  fill: #bbb;
+.superset-legacy-chart-treemap .node--hover rect {
+  stroke: #000;
 }

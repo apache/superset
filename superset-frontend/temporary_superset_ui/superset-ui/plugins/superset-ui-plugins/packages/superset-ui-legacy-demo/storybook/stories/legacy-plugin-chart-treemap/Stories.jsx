@@ -17,7 +17,7 @@ export default [
           payload: {
             data: [
               {
-                name: 'sum__SP_POP_TOTL',
+                name: 'Total Population',
                 children: [
                   {
                     name: 'East Asia & Pacific',
