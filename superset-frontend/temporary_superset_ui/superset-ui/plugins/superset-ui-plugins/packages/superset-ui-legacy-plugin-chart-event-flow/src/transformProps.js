@@ -19,7 +19,7 @@
 import { cleanEvents, TS, EVENT_NAME, ENTITY_ID } from '@data-ui/event-flow';
 
 export default function transformProps(chartProps) {
-  const { formData, payload } = chartProps;
+  const { formData, payload, width, height } = chartProps;
   const { allColumnsX, entity, minLeafNodeEventCount } = formData;
   const { data } = payload;
 
@@ -39,9 +39,11 @@ export default function transformProps(chartProps) {
 
     return {
       data: cleanData,
+      height,
       initialMinEventCount: minLeafNodeEventCount,
+      width,
     };
   }
 
-  return { data: null };
+  return { data: null, height, width };
 }
