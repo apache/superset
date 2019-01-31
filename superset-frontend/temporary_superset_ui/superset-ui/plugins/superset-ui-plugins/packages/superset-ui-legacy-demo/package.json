@@ -38,6 +38,7 @@
     "@superset-ui/connection": "^0.9.x",
     "@superset-ui/legacy-plugin-chart-calendar": "0.0.0",
     "@superset-ui/legacy-plugin-chart-chord": "0.0.0",
+    "@superset-ui/legacy-plugin-chart-event-flow": "0.0.0",
     "@superset-ui/legacy-plugin-chart-force-directed": "0.0.0",
     "@superset-ui/legacy-plugin-chart-heatmap": "0.0.0",
     "@superset-ui/legacy-plugin-chart-histogram": "0.0.0",
