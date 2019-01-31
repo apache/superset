@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-parallel-coordinates div.grid {
-    overflow: auto;
-}
+export default function transformProps(chartProps) {
+  const { formData, payload } = chartProps;
+  const { groupby, liftvaluePrecision, metrics, pvaluePrecision, significanceLevel } = formData;
 
-.superset-legacy-chart-parallel-coordinates .grid div.row:hover {
-    background-color: #CCC;
+  return {
+    alpha: significanceLevel,
+    data: payload.data,
+    groups: groupby,
+    liftValPrec: parseInt(liftvaluePrecision, 10),
+    metrics,
+    pValPrec: parseInt(pvaluePrecision, 10),
+  };
 }

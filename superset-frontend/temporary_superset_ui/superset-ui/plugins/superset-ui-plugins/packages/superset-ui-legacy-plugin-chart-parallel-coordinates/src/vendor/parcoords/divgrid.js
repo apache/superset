@@ -1,4 +1,5 @@
 /* [LICENSE TBD] */
+/* eslint-disable */
 // from http://bl.ocks.org/3687826
 module.exports = function(config) {
   var columns = [];
