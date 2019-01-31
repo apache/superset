@@ -19,35 +19,41 @@
 /* eslint-disable no-magic-numbers, react/forbid-prop-types */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { App, withParentSize } from '@data-ui/event-flow';
+import { App } from '@data-ui/event-flow';
 import { t } from '@superset-ui/translation';
 
 const propTypes = {
   data: PropTypes.array,
+  height: PropTypes.number,
   /* eslint-disable-next-line */
   initialMinEventCount: PropTypes.number,
+  width: PropTypes.number,
 };
 const defaultProps = {
   data: null,
+  height: 400,
+  width: 400,
 };
 
-function isExplorer() {
-  return /explore/.test(window.location.pathname);
-}
-
-// The slice container overflows ~80px in explorer,
-// so we have to correct for this.
-const ResponsiveVis = withParentSize(({ parentWidth, parentHeight, ...rest }) => (
-  <App width={parentWidth} height={parentHeight - (isExplorer() ? 80 : 0)} {...rest} />
-));
-
 function CustomEventFlow(props) {
-  const { data, initialMinEventCount } = props;
+  const { data, height, initialMinEventCount, width } = props;
   if (data) {
-    return <ResponsiveVis data={data} initialMinEventCount={initialMinEventCount} />;
+    return (
+      <App
+        width={width}
+        height={height}
+        data={data}
+        initialMinEventCount={initialMinEventCount}
+        initialShowControls={false}
+      />
+    );
   }
 
-  return <div>{t('Sorry, there appears to be no data')}</div>;
+  return (
+    <div style={{ height, width }}>
+      <div>{t('Sorry, there appears to be no data')}</div>
+    </div>
+  );
 }
 
 CustomEventFlow.propTypes = propTypes;
