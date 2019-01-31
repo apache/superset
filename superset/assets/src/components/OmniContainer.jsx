@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { Modal } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -37,6 +38,18 @@ const getDashboards = query =>
             title: t('An error occurred while fethching Dashboards'),
         }));
 
-
-const OmniContainer = () => <Omnibar placeholder="Search for dashboards.." extensions={[getDashboards]} />;
-export default OmniContainer;
+export default class OmniContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showOmni: true,
+    };
+  }
+  render() {
+      return (
+        <Modal show={this.state.showOmni} ref={this.exampleRef}>
+          <Omnibar placeholder="Search for dashboards.." extensions={[getDashboards]} />
+        </Modal>
+      )
+  }
+}

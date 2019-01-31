@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { Modal } from 'react-bootstrap';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
@@ -88,10 +87,6 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.state = {
-      showOmni: false,
-    };
-
     this.isFirstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
@@ -272,12 +267,10 @@ class Dashboard extends React.PureComponent {
 
   render() {
     return (
-      <div>
-        <Modal show={this.state.showOmni} ref={this.exampleRef}>
-          <OmniContianer />
-        </Modal>
+      <React.Fragment>
+        <OmniContianer />
         <DashboardBuilder />
-      </div>
+      </React.Fragment>
     );
   }
 }
