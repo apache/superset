@@ -55,6 +55,7 @@ class OmniContainer extends React.Component {
       showOmni: false,
     };
     this.handleKeydown = this.handleKeydown.bind(this);
+    this.omniBar = React.createRef();
   }
 
   componentDidMount() {
@@ -74,8 +75,7 @@ class OmniContainer extends React.Component {
 
         // Get first input in the modal div
         document
-          .getElementsByClassName('modal-dialog')[0]
-          .getElementsByTagName('input')[0]
+          .getElementsByClassName('Omnibar')[0]
           .focus();
 
         Logger.send(
@@ -92,8 +92,8 @@ class OmniContainer extends React.Component {
 
   render() {
       return (
-        <Modal show={this.state.showOmni} ref={this.exampleRef}>
-          <Omnibar placeholder="Search for dashboards.." extensions={[getDashboards]} />
+        <Modal show={this.state.showOmni} >
+          <Omnibar className="Omnibar" placeholder="Search for dashboards.." extensions={[getDashboards]} ref={this.omniBar} />
         </Modal>
       );
   }

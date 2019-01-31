@@ -96,13 +96,10 @@ class Dashboard extends React.PureComponent {
     });
     Logger.start(this.actionLog);
     this.initTs = new Date().getTime();
-
-    this.handleKeydown = this.handleKeydown.bind(this);
   }
 
   componentDidMount() {
     Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
-    document.addEventListener('keydown', this.handleKeydown);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -208,38 +205,9 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeydown);
-  }
-
   // return charts in array
   getAllCharts() {
     return Object.values(this.props.charts);
-  }
-
-  handleKeydown(event) {
-    const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
-      const isK = event.key === 'k' || event.keyCode === 83;
-      if (isK) {
-        this.setState({ showOmni: !this.state.showOmni });
-
-        // Get first input in the modal div
-        document
-          .getElementsByClassName('modal-dialog')[0]
-          .getElementsByTagName('input')[0]
-          .focus();
-
-        Logger.send(
-          new ActionLog({
-            impressionId: this.props.impressionId,
-            source: 'dashboard',
-            sourceId: this.props.dashboardInfo.id,
-            eventNames: LOG_ACTIONS_OMNIBAR_TRIGGERED,
-          }),
-        );
-      }
-    }
   }
 
   refreshExcept(filterKey) {
