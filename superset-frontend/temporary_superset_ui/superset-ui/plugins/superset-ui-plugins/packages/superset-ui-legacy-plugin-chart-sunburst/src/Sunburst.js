@@ -279,7 +279,7 @@ function Sunburst(element, props) {
       .style('opacity', 1)
       .style('stroke', null)
       .style('stroke-width', null)
-      .each('end', function() {
+      .each('end', function end() {
         d3.select(this).on('mouseenter', mouseenter);
       });
   }
