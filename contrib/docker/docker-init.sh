@@ -45,7 +45,7 @@ for name in cert privkey ; do
         > "${APP_HOME}/${name}.pem"
 done
 
-gunicorn --certfile=${APP_HOME}/cert.pem  --keyfile=${APP_HOME}/keyfile.pem -w 50 -k gevent \
+gunicorn --certfile=${APP_HOME}/cert.pem  --keyfile=${APP_HOME}/privkey.pem -w 50 -k gevent \
   -b  0.0.0.0:8088 \
   --timeout 1200 \
   --limit-request-line 0 \
