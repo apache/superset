@@ -22,17 +22,17 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  credits: ['https://bl.ocks.org/mbostock/911ad09bdead40ec0061'],
+  credits: ['https://bl.ocks.org/kerryrodden/7090426'],
   description: '',
-  name: t('Treemap'),
+  name: t('Sunburst Chart'),
   thumbnail,
   useLegacyApi: true,
 });
 
-export default class TreemapChartPlugin extends ChartPlugin {
+export default class SunburstChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactTreemap.js'),
+      loadChart: () => import('./ReactSunburst.js'),
       metadata,
       transformProps,
     });
