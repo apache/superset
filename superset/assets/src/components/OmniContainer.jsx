@@ -55,7 +55,6 @@ class OmniContainer extends React.Component {
       showOmni: false,
     };
     this.handleKeydown = this.handleKeydown.bind(this);
-    this.omniBar = React.createRef();
   }
 
   componentDidMount() {
@@ -93,7 +92,7 @@ class OmniContainer extends React.Component {
   render() {
       return (
         <Modal show={this.state.showOmni} >
-          <Omnibar className="Omnibar" placeholder="Search for dashboards.." extensions={[getDashboards]} ref={this.omniBar} />
+          <Omnibar className="Omnibar" placeholder="Search for dashboards.." extensions={[getDashboards]} />
         </Modal>
       );
   }
