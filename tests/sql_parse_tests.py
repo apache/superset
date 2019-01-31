@@ -167,7 +167,6 @@ class SupersetTestCase(unittest.TestCase):
     # DESCRIBE | DESC qualifiedName
     def test_describe(self):
         self.assertEquals({'t1'}, self.extract_tables('DESCRIBE t1'))
-        self.assertEquals({'t1'}, self.extract_tables('DESC t1'))
 
     # SHOW PARTITIONS FROM qualifiedName (WHERE booleanExpression)?
     # (ORDER BY sortItem (',' sortItem)*)? (LIMIT limit=(INTEGER_VALUE | ALL))?
@@ -347,6 +346,42 @@ class SupersetTestCase(unittest.TestCase):
             WHERE a.id = b.id and b.id = c.id"""
         self.assertEquals(
             {'table_a', 'table_b', 'table_c'},
+            self.extract_tables(query))
+
+    def test_mixed_from_clause(self):
+        query = """SELECT *
+            FROM table_a AS a, (select * from table_b) AS b, table_c as c
+            WHERE a.id = b.id and b.id = c.id"""
+        self.assertEquals(
+            {'table_a', 'table_b', 'table_c'},
+            self.extract_tables(query))
+
+    def test_nested_selects(self):
+        query = """
+            select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
+            from INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
+        """
+        self.assertEquals(
+            {'INFORMATION_SCHEMA.COLUMNS'},
+            self.extract_tables(query))
+        query = """
+            select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
+            from INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME="bi_achivement_daily"),0x7e)));
+        """
+        self.assertEquals(
+            {'INFORMATION_SCHEMA.COLUMNS'},
+            self.extract_tables(query))
+
+    def test_mixed_from_clause(self):
+        query = """
+            select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
+            from INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
+        """
+        self.assertEquals(
+            {'INFORMATION_SCHEMA.COLUMNS'},
             self.extract_tables(query))
 
     def test_complex_extract_tables3(self):

@@ -23,7 +23,9 @@ from sqlparse.tokens import Keyword, Name
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT', 'SELECT'}
 ON_KEYWORD = 'ON'
-PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
+PRECEDES_TABLE_NAME = {
+    'FROM', 'JOIN', 'DESCRIBE', 'WITH', 'LEFT JOIN', 'RIGHT JOIN',
+}
 
 
 class ParsedQuery(object):
@@ -72,13 +74,6 @@ class ParsedQuery(object):
         return statements
 
     @staticmethod
-    def __precedes_table_name(token_value):
-        for keyword in PRECEDES_TABLE_NAME:
-            if keyword in token_value:
-                return True
-        return False
-
-    @staticmethod
     def __get_full_name(identifier):
         if len(identifier.tokens) > 1 and identifier.tokens[1].value == '.':
             return '{}.{}'.format(identifier.tokens[0].value,
@@ -86,19 +81,12 @@ class ParsedQuery(object):
         return identifier.get_real_name()
 
     @staticmethod
-    def __is_result_operation(keyword):
-        for operation in RESULT_OPERATIONS:
-            if operation in keyword.upper():
-                return True
-        return False
-
-    @staticmethod
     def __is_identifier(token):
         return isinstance(token, (IdentifierList, Identifier))
 
     def __process_identifier(self, identifier):
         # exclude subselects
-        if '(' not in '{}'.format(identifier):
+        if '(' not in str(identifier):
             self._table_names.add(self.__get_full_name(identifier))
             return
 
@@ -129,39 +117,40 @@ class ParsedQuery(object):
         exec_sql += f'CREATE TABLE {table_name} AS \n{sql}'
         return exec_sql
 
-    def __extract_from_token(self, token):
+    def __extract_from_token(self, token, depth=0):
         if not hasattr(token, 'tokens'):
             return
 
         table_name_preceding_token = False
 
         for item in token.tokens:
+            logging.debug(('  ' * depth) + str(item.ttype) + str(item.value))
             if item.is_group and not self.__is_identifier(item):
-                self.__extract_from_token(item)
+                self.__extract_from_token(item, depth=depth + 1)
 
-            if item.ttype in Keyword:
-                if self.__precedes_table_name(item.value.upper()):
-                    table_name_preceding_token = True
-                    continue
-
-            if not table_name_preceding_token:
+            if (
+                    item.ttype in Keyword and (
+                        item.value.upper() in PRECEDES_TABLE_NAME or
+                        item.value.upper().endswith(' JOIN')
+                    )):
+                table_name_preceding_token = True
                 continue
 
-            if item.ttype in Keyword or item.value == ',':
-                if (self.__is_result_operation(item.value) or
-                        item.value.upper() == ON_KEYWORD):
-                    table_name_preceding_token = False
-                    continue
-                # FROM clause is over
-                break
+            if item.ttype in Keyword:
+                table_name_preceding_token = False
+                continue
 
-            if isinstance(item, Identifier):
-                self.__process_identifier(item)
-
-            if isinstance(item, IdentifierList):
+            if table_name_preceding_token:
+                if isinstance(item, Identifier):
+                    self.__process_identifier(item)
+                elif isinstance(item, IdentifierList):
+                    for token in item.tokens:
+                        if self.__is_identifier(token):
+                            self.__process_identifier(token)
+            elif isinstance(item, IdentifierList):
                 for token in item.tokens:
-                    if self.__is_identifier(token):
-                        self.__process_identifier(token)
+                    if not self.__is_identifier(token):
+                        self.__extract_from_token(item, depth=depth + 1)
 
     def _get_limit_from_token(self, token):
         if token.ttype == sqlparse.tokens.Literal.Number.Integer:
