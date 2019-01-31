@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Treemap'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class TreemapChartPlugin extends ChartPlugin {
