@@ -5,43 +5,51 @@ import * as turf from '@turf/turf';
 import * as L from '../../../node_modules/leaflet/dist/leaflet.js';
 import * as esri from '../../../node_modules/esri-leaflet/dist/esri-leaflet.js';
 import * as GRAPHICON from './graphIcon.js';
+import PropTypes from 'prop-types';
+
+const propTypes = {
+    payload: PropTypes.object,
+    formData: PropTypes.object,
+    height: PropTypes.number,
+    onAddFilter: PropTypes.func,
+  };
+
+function NOOP() {} 
 
 /**
  * Leaflet Map Visualization
- * @param {*} slice
- * @param {*} payload
+ * @param {*} element
+ * @param {*} props
  */
-function leafletmap(slice, payload) {
+function leafletmap(element, props) {
+ 
+    const {height, payload, formData ,onAddFilter = NOOP } = props;
 
-    console.log(slice, payload);
     const POLYGON = 'Polygon';
     const CONVEX = 'Convex';
     const CONCAVE = 'Concave';
     const POINT = 'Point';
-
-    const formData = slice.formData;
-
     const MARKER_RADIUS = 10;
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
-
+    const LEAFLET_VIS_ID = 'leafllet-chart-id';
     var colorCols;
     var geoJson;
     var mapInstance;
     var mapLayerType;
     var selectedColorColumn;
     var geoJsonLayer;
-    var tooltipColumns = formData.all_columns_x;
-    var enableClick = formData.chart_interactivity;
-    var showTooltip = formData.rich_tooltip;
-    var useEsriJS = formData.labels_outside;
+    var tooltipColumns = formData.allColumnsX;
+    var enableClick = formData.chartInteractivity;
+    var showTooltip = formData.richTooltip;
+    var useEsriJS = formData.labelsOutside;
 
     function getDefaultPolygonStyles() {
         return {
-            color: getRgbColor(formData.stroke_color_picker),
+            color: getRgbColor(formData.strokeColorPicker),
             weight: MARKER_WEIGHT,
             opacity: MARKER_OPACITY,
-            fillOpacity: formData.cell_size
+            fillOpacity: formData.cellSize
         }
     }
 
@@ -50,30 +58,30 @@ function leafletmap(slice, payload) {
     }
 
     function setMapLayerType() {
-        var map_style = formData.mapbox_style;
+        var map_style = formData.mapboxStyle;
         var types = map_style.split('-');
         mapLayerType = (types.length == 2) ? types[1] : types[0];
-        console.log(map_style, mapLayerType);
     }
 
     function setLayout() {
-        const container = slice.container;
+        const container = element;
         // fix of leaflet js :: error 
         //An error occurred while rendering the visualization: Error: Map container is already initialized.
-        var el = container.el;
+        var el = container;
         if (el && el._leaflet_id) {
             el._leaflet_id = null;
         }
-        container.css('height', slice.height());
-        container.css('overflow', 'auto');
+        container.id = LEAFLET_VIS_ID
+        container.style.height =  height;
+        container.style.overflow =  'auto';
     }
 
     function createColorColumns() {
         // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         colorCols = {}
-        if (formData.adhoc_columns && formData.adhoc_columns.length > 0) {
-            formData.adhoc_columns.forEach(element => {
+        if (formData.adhocColumns && formData.adhocColumns.length > 0) {
+            formData.adhocColumns.forEach(element => {
                 colorCols[element['subject']] = element;
             });
         }
@@ -162,8 +170,8 @@ function leafletmap(slice, payload) {
         if (showTooltip) {
             obj.tooltip = getPopupContent(data)
         }
-        if(formData.hasOwnProperty('all_columns_y') && formData.all_columns_y){
-          obj.direction = data[formData.all_columns_y];
+        if(formData.hasOwnProperty('allColumnsY') && formData.allColumnsY){
+          obj.direction = data[formData.allColumnsY];
         }
 
         if(formData.hasOwnProperty('latitude') && formData.latitude){
@@ -208,14 +216,14 @@ function leafletmap(slice, payload) {
 
     function renderBasicMap() {
 
-        const def_lat = formData.viewport_latitude;
-        const def_long = formData.viewport_longitude;
-        const def_zoom = formData.viewport_zoom;
+        const def_lat = formData.viewportLatitude;
+        const def_long = formData.viewportLongitude;
+        const def_zoom = formData.viewportZoom;
         const def_mapserver = formData.ranges;
-        const min_zoom = formData.min_radius;
-        const max_zoom = formData.max_radius;
+        const min_zoom = formData.minRadius;
+        const max_zoom = formData.maxRadius;
 
-        mapInstance = L.map(slice.containerId, {
+        mapInstance = L.map(LEAFLET_VIS_ID, {
             minZoom: min_zoom,
             maxZoom: max_zoom
         }).setView([def_lat, def_long], def_zoom, {});
@@ -259,7 +267,7 @@ function leafletmap(slice, payload) {
           } else if(event.target.hasOwnProperty('_icon')){
             selections = getSelection(event, '_icon', 'active-layer-canvas');
           }
-          slice.addFilter(formData.geojson, selections, false);
+          onAddFilter(formData.geojson, selections, false);
       }
     }
 
@@ -385,4 +393,6 @@ function leafletmap(slice, payload) {
     init();
 }
 
+leafletmap.displayName = 'Leaflet Map';
+leafletmap.propTypes = propTypes;
 module.exports = leafletmap;

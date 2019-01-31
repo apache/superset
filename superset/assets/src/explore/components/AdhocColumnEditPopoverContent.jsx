@@ -1,9 +1,9 @@
 import React from 'react';
+import d3 from 'd3';
 import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import { CompactPicker } from 'react-color';
 import TextControl from './controls/TextControl';
-import { ALL_COLOR_SCHEMES }  from '../../modules/colors'
 import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
@@ -15,6 +15,7 @@ import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
 
+const d3Category10 = d3.scale.category10().range();
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -110,7 +111,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
             <td>
             <CompactPicker
             color={adhocFilter.comparator}
-            colors={ALL_COLOR_SCHEMES['d3Category10']}
+            colors={d3Category10}
             onChangeComplete={this.onComparatorChange}
           />
             </td>
@@ -128,7 +129,7 @@ export default class AdhocColumnEditPopoverContent extends React.Component {
             <td>
             <CompactPicker
             color={adhocFilter.clause}
-            colors={ALL_COLOR_SCHEMES['d3Category10']}
+            colors={d3Category10}
             onChangeComplete={this.onSqlExpressionClauseChange}
              />
             </td>
