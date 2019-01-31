@@ -279,7 +279,7 @@ function Rose(element, props) {
   let arcSt = computeArcStates(datum);
 
   function tween(target, resFunc) {
-    return function(d) {
+    return function doTween(d) {
       const interpolate = d3.interpolate(copyArc(d), copyArc(target));
 
       return t => resFunc(Object.assign(d, interpolate(t)));
