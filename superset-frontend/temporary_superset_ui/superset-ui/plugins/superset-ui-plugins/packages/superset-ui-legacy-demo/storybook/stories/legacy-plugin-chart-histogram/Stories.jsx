@@ -16,7 +16,7 @@ export default [
             xAxisLabel: 'Score',
             yAxisLabel: 'Count',
           },
-          height: 600,
+          height: 400,
           payload: {
             data: [
               {
@@ -80,7 +80,7 @@ export default [
               },
             ],
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),

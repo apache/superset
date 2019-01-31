@@ -27,7 +27,7 @@ export default [
             yAxisFormat: '.3s',
             yscaleInterval: '1',
           },
-          height: 600,
+          height: 400,
           payload: {
             data: {
               records: [
@@ -196,7 +196,7 @@ export default [
               extents: [0.1, 24.9],
             },
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),
