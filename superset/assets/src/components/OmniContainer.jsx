@@ -18,10 +18,20 @@
  */
 import React from 'react';
 import { Modal } from 'react-bootstrap';
+import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
-
 import Omnibar from 'omnibar';
+import {
+  Logger,
+  ActionLog,
+  LOG_ACTIONS_OMNIBAR_TRIGGERED,
+} from '../logger';
+
+const propTypes = {
+  impressionId: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number.isRequired,
+};
 
 const getDashboards = query =>
   // todo: Build a dedicated endpoint for dashboard searching
@@ -38,18 +48,56 @@ const getDashboards = query =>
             title: t('An error occurred while fethching Dashboards'),
         }));
 
-export default class OmniContainer extends React.Component {
+class OmniContainer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      showOmni: true,
+      showOmni: false,
     };
+    this.handleKeydown = this.handleKeydown.bind(this);
   }
+
+  componentDidMount() {
+    document.addEventListener('keydown', this.handleKeydown);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeydown);
+  }
+
+  handleKeydown(event) {
+    const controlOrCommand = event.ctrlKey || event.metaKey;
+    if (controlOrCommand) {
+      const isK = event.key === 'k' || event.keyCode === 83;
+      if (isK) {
+        this.setState({ showOmni: !this.state.showOmni });
+
+        // Get first input in the modal div
+        document
+          .getElementsByClassName('modal-dialog')[0]
+          .getElementsByTagName('input')[0]
+          .focus();
+
+        Logger.send(
+          new ActionLog({
+            impressionId: this.props.impressionId, // impo
+            source: 'dashboard',
+            sourceId: this.props.dashboardId, // sourceId: this.props.dashboardId
+            eventNames: LOG_ACTIONS_OMNIBAR_TRIGGERED,
+          }),
+        );
+      }
+    }
+  }
+
   render() {
       return (
         <Modal show={this.state.showOmni} ref={this.exampleRef}>
           <Omnibar placeholder="Search for dashboards.." extensions={[getDashboards]} />
         </Modal>
-      )
+      );
   }
 }
+
+OmniContainer.propTypes = propTypes;
+export default OmniContainer;

@@ -266,9 +266,14 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
+    const {
+      impressionId,
+      dashboardInfo: { id },
+    } = this.props;
+
     return (
       <React.Fragment>
-        <OmniContianer />
+        <OmniContianer impressionId={impressionId} dashboardId={id} />
         <DashboardBuilder />
       </React.Fragment>
     );
