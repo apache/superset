@@ -12,7 +12,7 @@ export default [
             colorScheme: 'd3Category10',
             yAxisFormat: '.2f',
           },
-          height: 600,
+          height: 400,
           payload: {
             data: {
               matrix: [
@@ -26,7 +26,7 @@ export default [
               nodes: ['Hong Kong', 'Tokyo', 'Taipei', 'Beijing', 'Bangkok', 'Jakarta', 'Singapore'],
             },
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),
