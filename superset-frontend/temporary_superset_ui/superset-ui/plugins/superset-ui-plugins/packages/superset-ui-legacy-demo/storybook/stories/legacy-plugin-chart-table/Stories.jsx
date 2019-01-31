@@ -29,7 +29,7 @@ export default [
             tableTimestampFormat: '%Y-%m-%d %H:%M:%S',
             timeseriesLimitMetric: null,
           },
-          height: 600,
+          height: 400,
           payload: {
             data: {
               columns: ['name', 'sum__num'],
@@ -77,7 +77,7 @@ export default [
               ],
             },
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),

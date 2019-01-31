@@ -21,7 +21,7 @@ export default [
             showValues: false,
             showMetricName: true,
           },
-          height: 600,
+          height: 400,
           payload: {
             data: {
               data: {
@@ -123,7 +123,7 @@ export default [
               range: 13,
             },
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),
