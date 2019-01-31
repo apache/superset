@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-param-reassign, sort-keys */
+/* eslint-disable no-shadow, no-param-reassign, sort-keys */
 /* eslint-disable func-names, no-magic-numbers, babel/no-invalid-this */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
@@ -208,7 +208,7 @@ function Treemap(element, props) {
     // coordinates. This lets us use a viewport to zoom.
     const layout = function(d) {
       if (d.originalChildren) {
-        treemap.nodes({ originalChildren: d.originalChildren, children: d.children });
+        treemap.nodes({ originalChildren: d.originalChildren });
         d.originalChildren.forEach(c => {
           c.x = d.x + c.x * d.dx;
           c.y = d.y + c.y * d.dy;
