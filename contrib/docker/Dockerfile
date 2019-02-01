@@ -33,28 +33,31 @@ RUN mkdir $HOME/incubator-superset
 
 WORKDIR $HOME/incubator-superset
 
-COPY ./ ./
+COPY requirements.txt .
+COPY requirements-dev.txt .
 
-RUN pip install --upgrade setuptools pip
-RUN pip install -e . && pip install -r requirements-dev.txt && pip install awscli --user
+RUN pip install --upgrade setuptools pip \
+    && pip install -r requirements.txt -r requirements-dev.txt \
+    && rm -rf /root/.cache/pip \
+    && pip install awscli --user
 
-ENV PATH=/home/work/incubator-superset/superset/bin:/home/work/.local/bin:$PATH \
-    PYTHONPATH=./superset/:$PYTHONPATH
+COPY --chown=work:work superset superset
 
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-RUN ln -s usr/local/bin/docker-entrypoint.sh /entrypoint.sh # backwards compat
-
-COPY ./superset ./superset
-RUN chown -R work:work $HOME
+ENV PATH=/home/work/superset/bin:/home/work/.local/bin:$PATH \
+    PYTHONPATH=/home/work/superset/:$PYTHONPATH
 
 USER work
 
-RUN cd superset/assets && yarn
-RUN cd superset/assets && npm run build
+RUN cd superset/assets \
+    && npm ci \
+    && npm run sync-backend \
+    && npm run build \
+    && rm -rf node_modules
+
+COPY contrib/docker/docker-init.sh .
+COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
-
-ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 8088
