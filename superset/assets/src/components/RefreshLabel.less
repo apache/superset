@@ -16,31 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import TooltipWrapper from './TooltipWrapper';
+@import "../../stylesheets/less/cosmo/variables.less";
 
-import './RefreshLabel.less';
-
-const propTypes = {
-  onClick: PropTypes.func,
-  tooltipContent: PropTypes.string.isRequired,
-};
-
-class RefreshLabel extends React.PureComponent {
-  render() {
-    return (
-      <TooltipWrapper
-        tooltip={this.props.tooltipContent}
-        label="cache-desc"
-      >
-        <i
-          className="RefreshLabel fa fa-refresh pointer"
-          onClick={this.props.onClick}
-        />
-      </TooltipWrapper>);
-  }
+.RefreshLabel:hover {
+  color: @brand-primary;
 }
-RefreshLabel.propTypes = propTypes;
 
-export default RefreshLabel;
+.RefreshLabel {
+  color: @gray-light;
+}
