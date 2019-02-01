@@ -19,10 +19,10 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from mock import Mock
+from mock import Mock, patch
 import pandas as pd
 
-from superset import app, db, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -185,3 +185,11 @@ class SupersetTestCase(unittest.TestCase):
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')
         return resp
+
+    @patch.dict('superset.feature_flags', {'FOO': True}, clear=True)
+    def test_existing_feature_flags(self):
+        self.assertTrue(is_feature_enabled('FOO'))
+
+    @patch.dict('superset.feature_flags', {}, clear=True)
+    def test_nonexistent_feature_flags(self):
+        self.assertFalse(is_feature_enabled('FOO'))
