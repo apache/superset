@@ -410,6 +410,10 @@ export enum FeatureFlag {
 }
 ```
 
+`superset/config.py` contains `DEFAULT_FEATURE_FLAGS` which will be overwritten by
+those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
+in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
+
 ## Linting
 
 Lint the project with:
