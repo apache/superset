@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import { getSequentialSchemeRegistry } from '@superset-ui/color';
 import { getNumberFormatter } from '@superset-ui/number-format';
+import countries from './countries';
 import './CountryMap.css';
 
 const propTypes = {
@@ -42,15 +43,7 @@ const propTypes = {
 const maps = {};
 
 function CountryMap(element, props) {
-  const {
-    data,
-    width,
-    height,
-    country,
-    linearColorScheme,
-    mapBaseUrl = '/static/assets/src/visualizations/CountryMap/countries',
-    numberFormat,
-  } = props;
+  const { data, width, height, country, linearColorScheme, numberFormat } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
@@ -218,7 +211,7 @@ function CountryMap(element, props) {
   if (map) {
     drawMap(map);
   } else {
-    const url = `${mapBaseUrl}/${countryKey}.geojson`;
+    const url = countries[countryKey];
     d3.json(url, (error, mapData) => {
       if (!error) {
         maps[countryKey] = mapData;
