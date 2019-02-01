@@ -16,24 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import thumbnail from './images/thumbnail.png';
+/* eslint-disable sort-keys */
+function transformData(data, formData) {
+  const { metric, series } = formData;
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/williaster/data-ui'],
-  description: '',
-  name: t('Event Flow'),
-  thumbnail,
-  useLegacyApi: true,
-});
+  const transformedData = data.map(datum => ({
+    size: datum[metric.label || metric],
+    text: datum[series],
+  }));
 
-export default class EventFlowChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./EventFlow'),
-      loadTransformProps: () => import('./transformProps.js'),
-      metadata,
-    });
-  }
+  return transformedData;
+}
+
+export default function transformProps(chartProps) {
+  const { width, height, formData, payload } = chartProps;
+  const { colorScheme, rotation, sizeTo, sizeFrom } = formData;
+
+  return {
+    width,
+    height,
+    data: transformData(payload.data, formData),
+    colorScheme,
+    rotation,
+    sizeRange: [sizeFrom, sizeTo],
+  };
 }
