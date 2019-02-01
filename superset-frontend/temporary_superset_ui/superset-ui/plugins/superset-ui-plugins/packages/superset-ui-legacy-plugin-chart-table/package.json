@@ -26,7 +26,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.x",
     "d3": "^3.5.17",
     "datatables.net-bs": "^1.10.15",
     "dompurify": "^1.0.3",

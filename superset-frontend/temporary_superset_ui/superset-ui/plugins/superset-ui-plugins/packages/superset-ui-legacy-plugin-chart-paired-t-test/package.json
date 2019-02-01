@@ -26,7 +26,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.x",
     "distributions": "^1.0.0",
     "prop-types": "^15.6.2",
     "reactable-arc": "0.14.42"
