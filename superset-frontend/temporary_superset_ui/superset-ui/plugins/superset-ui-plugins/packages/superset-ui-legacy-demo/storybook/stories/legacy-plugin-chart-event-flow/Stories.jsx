@@ -9,8 +9,6 @@ const data = sampleEvents.twentyUsers.allEvents.map(({ ENTITY_ID, EVENT_NAME, TS
   userId: ENTITY_ID,
 }));
 
-console.log('data', data);
-
 export default [
   {
     renderStory: () => (
