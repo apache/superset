@@ -26,7 +26,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.x",
     "d3": "^3.5.17",
     "d3-svg-legend": "^1.x",
     "d3-tip": "^0.9.1",

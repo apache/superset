@@ -28,7 +28,6 @@
   "dependencies": {
     "@data-ui/histogram": "^0.0.64",
     "@data-ui/theme": "^0.0.62",
-    "@superset-ui/core": "^0.9.x",
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",
     "@vx/scale": "^0.0.165",

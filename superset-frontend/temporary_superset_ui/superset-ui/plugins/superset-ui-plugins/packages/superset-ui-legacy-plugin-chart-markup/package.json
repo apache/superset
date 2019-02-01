@@ -26,7 +26,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.x",
     "prop-types": "^15.6.2"
   },
   "devDependencies": {
