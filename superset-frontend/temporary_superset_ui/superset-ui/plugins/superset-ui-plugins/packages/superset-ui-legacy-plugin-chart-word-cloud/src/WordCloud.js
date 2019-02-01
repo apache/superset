@@ -46,6 +46,7 @@ function WordCloud(element, props) {
   const { data, width, height, rotation, sizeRange, colorScheme } = props;
 
   const chart = d3.select(element);
+  chart.classed('superset-legacy-chart-word-cloud', true);
   const size = [width, height];
   const rotationFn = ROTATION[rotation] || ROTATION.flat;
 
