@@ -374,16 +374,6 @@ class SupersetTestCase(unittest.TestCase):
             {'INFORMATION_SCHEMA.COLUMNS'},
             self.extract_tables(query))
 
-    def test_mixed_from_clause(self):
-        query = """
-            select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
-            from INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
-        """
-        self.assertEquals(
-            {'INFORMATION_SCHEMA.COLUMNS'},
-            self.extract_tables(query))
-
     def test_complex_extract_tables3(self):
         query = """SELECT somecol AS somecol
             FROM
