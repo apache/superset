@@ -26,15 +26,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.0",
     "prop-types": "^15.6.2"
   },
   "devDependencies": {
-    "@superset-ui/chart": "^0.9.0",
-    "@superset-ui/translation": "^0.9.1"
+    "@superset-ui/chart": "latest",
+    "@superset-ui/translation": "latest"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.9.0",
-    "@superset-ui/translation": "^0.9.1"
+    "@superset-ui/chart": "latest",
+    "@superset-ui/translation": "latest"
   }
 }
