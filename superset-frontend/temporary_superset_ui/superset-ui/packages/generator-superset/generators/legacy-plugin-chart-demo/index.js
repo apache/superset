@@ -23,7 +23,7 @@ module.exports = class extends Generator {
         type: 'input',
         name: 'packageLabel',
         message: 'Package label:',
-        default: _.capitalize(_.camelCase(this.appname.replace('legacy plugin chart', '').trim())), // Default to current folder name
+        default: _.upperFirst(_.camelCase(this.appname.replace('legacy plugin chart', '').trim())), // Default to current folder name
       },
     ]);
   }
