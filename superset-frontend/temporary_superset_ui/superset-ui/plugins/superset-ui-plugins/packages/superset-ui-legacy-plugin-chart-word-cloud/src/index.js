@@ -18,22 +18,23 @@
  */
 import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
+import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  credits: ['https://github.com/williaster/data-ui'],
+  credits: ['https://github.com/jasondavies/d3-cloud'],
   description: '',
-  name: t('Event Flow'),
+  name: t('Word Cloud'),
   thumbnail,
   useLegacyApi: true,
 });
 
-export default class EventFlowChartPlugin extends ChartPlugin {
+export default class WordCloudChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./EventFlow'),
-      loadTransformProps: () => import('./transformProps.js'),
+      loadChart: () => import('./ReactWordCloud.js'),
       metadata,
+      transformProps,
     });
   }
 }

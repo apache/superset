@@ -54,6 +54,7 @@
     "@superset-ui/legacy-plugin-chart-sunburst": "0.0.0",
     "@superset-ui/legacy-plugin-chart-table": "0.0.0",
     "@superset-ui/legacy-plugin-chart-treemap": "0.0.0",
+    "@superset-ui/legacy-plugin-chart-word-cloud": "0.0.0",
     "@superset-ui/legacy-plugin-chart-world-map": "0.0.0",
     "@superset-ui/translation": "^0.9.x",
     "babel-loader": "^8.0.4",
