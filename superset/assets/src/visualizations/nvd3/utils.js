@@ -166,9 +166,9 @@ export function generateBubbleTooltipContent({
 }
 
 export function hideTooltips() {
-  const target = document.querySelector('.nvtooltip');
-  if (target) {
-    target.style.opacity = 0;
+  const targets = document.querySelectorAll('.nvtooltip');
+  if (targets.length > 0) {
+    targets.forEach(t => t.remove());
   }
 }
 
