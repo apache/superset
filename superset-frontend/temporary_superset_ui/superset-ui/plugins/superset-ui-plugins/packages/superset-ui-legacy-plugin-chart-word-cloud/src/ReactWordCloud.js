@@ -16,24 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
-import thumbnail from './images/thumbnail.png';
+import { reactify } from '@superset-ui/chart';
+import Component from './WordCloud';
 
-const metadata = new ChartMetadata({
-  credits: ['https://github.com/williaster/data-ui'],
-  description: '',
-  name: t('Event Flow'),
-  thumbnail,
-  useLegacyApi: true,
-});
-
-export default class EventFlowChartPlugin extends ChartPlugin {
-  constructor() {
-    super({
-      loadChart: () => import('./EventFlow'),
-      loadTransformProps: () => import('./transformProps.js'),
-      metadata,
-    });
-  }
-}
+export default reactify(Component);
