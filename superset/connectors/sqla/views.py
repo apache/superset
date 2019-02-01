@@ -381,11 +381,12 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         try:
             results = presto_connection.execute(query)
             deployments.append({'value': 'all_deployments', 'label': 'all_deployments'})
+            deployments.append({'value': 'hive', 'label': 'hive'})
             for row in results:
                 deployment = row['Catalog']
                 if '_mysql' in deployment:
                     deployment = deployment.split('_mysql')[0]
-                deployments.append({'value': deployment, 'label': deployment})
+                    deployments.append({'value': deployment, 'label': deployment})
         except:
             deployments = [
                 {'value': 'all_deployments', 'label': 'all_deployments'},
