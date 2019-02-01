@@ -79,7 +79,7 @@ setup(
         'idna',
         'isodate',
         'markdown<3.0.0',
-        'pandas>=0.18.0',
+        'pandas>=0.18.0, <0.24.0',
         'parsedatetime',
         'pathlib2',
         'polyline',
@@ -107,7 +107,10 @@ setup(
         'lxml==3.8.0',
         'numexpr==2.6.4',
         'xlrd==1.1.0',
-        'python-ldap==3.1.0'
+        'python-ldap==3.1.0',
+        'requests-kerberos==0.12.0',
+        'django==2.1.5'
+
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

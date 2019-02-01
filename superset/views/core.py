@@ -62,6 +62,7 @@ from .base import (
 )
 from .utils import bootstrap_user_data
 from superset.views.superset_decorators import redirect_to_target_url
+from superset.db_engines.hive import get_updated_connect_args, remove_http_params_from
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -1686,9 +1687,10 @@ class Superset(BaseSupersetView):
                     uri = database.sqlalchemy_uri_decrypted
 
             configuration = {}
+        
+            url = make_url(uri)
 
             if database and uri:
-                url = make_url(uri)
                 db_engine = models.Database.get_db_engine_spec_for_backend(
                     url.get_backend_name())
                 db_engine.patch()
@@ -1707,6 +1709,9 @@ class Superset(BaseSupersetView):
                 .get('extras', {})
                 .get('engine_params', {})
                 .get('connect_args', {}))
+
+            connect_args.update(get_updated_connect_args(url,connect_args))
+            remove_http_params_from(url,connect_args)
 
             if configuration:
                 connect_args['configuration'] = configuration
