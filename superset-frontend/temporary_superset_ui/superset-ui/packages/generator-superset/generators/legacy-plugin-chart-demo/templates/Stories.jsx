@@ -9,11 +9,11 @@ export default [
         chartType="<%= packageName %>"
         chartProps={{
           formData: {},
-          height: 600,
+          height: 400,
           payload: {
             data: [],
           },
-          width: 600,
+          width: 400,
         }}
       />
     ),

@@ -1,15 +1,10 @@
 /* eslint-disable sort-keys */
 
 const Generator = require('yeoman-generator');
-const chalk = require('chalk');
-const yosay = require('yosay');
 const _ = require('lodash');
 
 module.exports = class extends Generator {
   async prompting() {
-    // Have Yeoman greet the user.
-    this.log(yosay(`Welcome to the rad ${chalk.red('generator-superset')} generator!`));
-
     this.option('skipInstall');
 
     this.answers = await this.prompt([
@@ -18,6 +13,23 @@ module.exports = class extends Generator {
         name: 'name',
         message: 'Package name:',
         default: _.kebabCase(this.appname.replace('superset ui', '').trim()), // Default to current folder name
+      },
+      {
+        type: 'list',
+        name: 'language',
+        message: 'Choose language',
+        choices: [
+          {
+            name: 'typescript',
+            value: 'typescript',
+            short: 't',
+          },
+          {
+            name: 'javascript',
+            value: 'javascript',
+            short: 'j',
+          },
+        ],
       },
     ]);
   }
@@ -33,7 +45,11 @@ module.exports = class extends Generator {
       this.destinationPath('README.md'),
       this.answers,
     );
-    this.fs.copy(this.templatePath('src/index.js'), this.destinationPath('src/index.js'));
-    this.fs.copy(this.templatePath('test/index.js'), this.destinationPath('test/index.test.js'));
+    const ext = this.answers.language === 'typescript' ? 'ts' : 'js';
+    this.fs.copy(this.templatePath('src/index.js'), this.destinationPath(`src/index.${ext}`));
+    this.fs.copy(
+      this.templatePath('test/index.js'),
+      this.destinationPath(`test/index.test.${ext}`),
+    );
   }
 };
