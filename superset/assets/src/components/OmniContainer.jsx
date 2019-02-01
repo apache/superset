@@ -21,6 +21,7 @@ import { Modal } from 'react-bootstrap';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Omnibar from 'omnibar';
 import {
   Logger,
@@ -67,7 +68,7 @@ class OmniContainer extends React.Component {
 
   handleKeydown(event) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
+    if (controlOrCommand && isFeatureEnabled(FeatureFlag.OMNIBAR)) {
       const isK = event.key === 'k' || event.keyCode === 83;
       if (isK) {
         this.setState({ showOmni: !this.state.showOmni });
