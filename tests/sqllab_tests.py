@@ -307,7 +307,7 @@ class SqlLabTests(SupersetTestCase):
             'SELECT * FROM ab_user LIMIT {}'.format(test_limit + 1),
             client_id='sql_limit_4',
             query_limit=test_limit)
-        self.assertEquals(len(data['data']), test_limit)
+        self.assertEquals(len(data['data']), test_limit + 1)
 
 
 if __name__ == '__main__':

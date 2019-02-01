@@ -2471,12 +2471,14 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
-        limit = int(request.form.get('queryLimit', 0))
-        if limit < 0:
+        default_limit = int(request.form.get('queryLimit', 0))
+        if default_limit < 0:
             logging.warning(
-                'Invalid limit of {} specified. Defaulting to max limit.'.format(limit))
-            limit = 0
-        limit = limit or app.config.get('SQL_MAX_ROW')
+                'Invalid default limit of {} specified. Defaulting to max limit.'.format(
+                    default_limit))
+            default_limit = 0
+        max_limit = app.config.get('SQL_MAX_ROW')
+        default_limit = default_limit or max_limit
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2502,10 +2504,13 @@ class Superset(BaseSupersetView):
             )
 
         client_id = request.form.get('client_id') or utils.shortid()[:10]
-        limits = [mydb.db_engine_spec.get_limit_from_sql(sql), limit]
+        user_specified_limit = mydb.db_engine_spec.get_limit_from_sql(sql)
+        if user_specified_limit and max_limit:
+            user_specified_limit = min(user_specified_limit, max_limit)
+
         query = Query(
             database_id=int(database_id),
-            limit=min(lim for lim in limits if lim is not None),
+            limit=user_specified_limit if user_specified_limit else default_limit,
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
