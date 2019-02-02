@@ -37,6 +37,6 @@ describe('RefreshIntervalModal', () => {
   });
   it('should render a interval seconds', () => {
     const wrapper = mount(<RefreshIntervalModal {...mockedProps} />);
-    expect(wrapper.prop('refreshFrequency')).to.equal(10);
+    expect(wrapper.prop('refreshFrequency')).toEqual(10);
   });
 });

@@ -102,6 +102,11 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
   }
 
+  componentDidMount() {
+    const refreshFrequency = this.props.refreshFrequency;
+    this.props.startPeriodicRender(refreshFrequency * 1000);
+  }
+
   componentWillReceiveProps(nextProps) {
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
