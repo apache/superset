@@ -39,6 +39,7 @@ import {
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
 } from '../../logger';
+import OmniContianer from '../../components/OmniContainer';
 
 import '../stylesheets/index.less';
 
@@ -232,7 +233,17 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    return <DashboardBuilder />;
+    const {
+      impressionId,
+      dashboardInfo: { id },
+    } = this.props;
+
+    return (
+      <React.Fragment>
+        <OmniContianer impressionId={impressionId} dashboardId={id} />
+        <DashboardBuilder />
+      </React.Fragment>
+    );
   }
 }
 
