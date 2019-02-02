@@ -138,7 +138,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000)')
 
     @classmethod
     def get_datatype(cls, type_code):
