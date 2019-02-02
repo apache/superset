@@ -214,7 +214,7 @@ _feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
 
 
 def get_feature_flags():
-    return app.get('GET_FEATURE_FLAGS')(_feature_flags)
+    return app.config.get('GET_FEATURE_FLAGS')(_feature_flags)
 
 
 def is_feature_enabled(feature):

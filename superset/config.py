@@ -205,7 +205,11 @@ DEFAULT_FEATURE_FLAGS = {}
 #     ffc = copy(ff)
 #     ffc['some_feature'] = g.user and g.user.id == 5
 #     return ffc
-GET_FEATURE_FLAGS = lambda x: x
+
+
+def GET_FEATURE_FLAGS(d):
+    return d
+
 
 # ---------------------------------------------------
 # Image and file configuration
