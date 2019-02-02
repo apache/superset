@@ -73,7 +73,6 @@ class OmniContainer extends React.Component {
       if (isK) {
         this.setState({ showOmni: !this.state.showOmni });
 
-        // Get first input in the modal div
         document
           .getElementsByClassName('Omnibar')[0]
           .focus();
