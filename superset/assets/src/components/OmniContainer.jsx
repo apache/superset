@@ -92,7 +92,7 @@ class OmniContainer extends React.Component {
 
   render() {
       return (
-        <Modal show={this.state.showOmni} >
+        <Modal show={this.state.showOmni} style={{ marginTop: '25%' }}>
           <Omnibar className="Omnibar" placeholder="Search all dashboards" extensions={[getDashboards]} />
         </Modal>
       );
