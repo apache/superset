@@ -209,15 +209,17 @@ security_manager = appbuilder.sm
 results_backend = app.config.get('RESULTS_BACKEND')
 
 # Merge user defined feature flags with default feature flags
-feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS')
-feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
+_feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS')
+_feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
+
+
+def get_feature_flags():
+    return app.get('GET_FEATURE_FLAGS')(_feature_flags)
 
 
 def is_feature_enabled(feature):
-    """
-    Utility function for checking whether a feature is turned on
-    """
-    return feature_flags.get(feature)
+    """Utility function for checking whether a feature is turned on"""
+    return get_feature_flags().get(feature)
 
 
 # Registering sources

@@ -193,3 +193,7 @@ class SupersetTestCase(unittest.TestCase):
     @patch.dict('superset.feature_flags', {}, clear=True)
     def test_nonexistent_feature_flags(self):
         self.assertFalse(is_feature_enabled('FOO'))
+
+    def test_feature_flags(self):
+        self.assertEquals(is_feature_enabled('foo'), 'bar')
+        self.assertEquals(is_feature_enabled('super'), 'set')
