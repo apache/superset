@@ -20,6 +20,7 @@
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
+  OMNIBAR = 'OMNIBAR',
 }
 
 export type FeatureFlagMap = {
