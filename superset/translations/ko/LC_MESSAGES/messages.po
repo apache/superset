@@ -22,7 +22,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2018-06-07 00:22-0700\n"
-"PO-Revision-Date: 2019-01-31 20:31+0900\n"
+"PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Language: ko\n"
 "Language-Team: ko <LL@li.org>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -50,7 +50,7 @@ msgstr ""
 #: superset/db_engine_specs.py:1233 superset/db_engine_specs.py:1333
 #: superset/db_engine_specs.py:1396 superset/db_engine_specs.py:1414
 msgid "second"
-msgstr ""
+msgstr "초"
 
 #: superset/db_engine_specs.py:346 superset/db_engine_specs.py:395
 #: superset/db_engine_specs.py:423 superset/db_engine_specs.py:452
@@ -158,7 +158,7 @@ msgstr ""
 
 #: superset/forms.py:61
 msgid "CSV File"
-msgstr ""
+msgstr "CSV 파일"
 
 #: superset/forms.py:62
 msgid "Select a CSV file to be uploaded to a database."
@@ -172,11 +172,11 @@ msgstr ""
 #: superset/views/core.py:275 superset/views/sql_lab.py:24
 #: superset/views/sql_lab.py:61
 msgid "Database"
-msgstr ""
+msgstr "데이터베이스"
 
 #: superset/forms.py:70
 msgid "Delimiter"
-msgstr ""
+msgstr "구분자"
 
 #: superset/forms.py:71
 msgid "Delimiter used by CSV file (for whitespace use \\s+)."
@@ -184,7 +184,7 @@ msgstr ""
 
 #: superset/forms.py:75
 msgid "Table Exists"
-msgstr ""
+msgstr "테이블 존재"
 
 #: superset/forms.py:76
 msgid ""
@@ -194,11 +194,11 @@ msgstr ""
 
 #: superset/forms.py:81
 msgid "Fail"
-msgstr ""
+msgstr "실패"
 
 #: superset/forms.py:81
 msgid "Replace"
-msgstr ""
+msgstr "바꾸기"
 
 #: superset/forms.py:82
 msgid "Append"
@@ -206,7 +206,7 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:230 superset/forms.py:85
 msgid "Schema"
-msgstr ""
+msgstr "스키마"
 
 #: superset/forms.py:86
 msgid "Specify a schema (if database flavour supports this)."
@@ -1158,7 +1158,7 @@ msgstr ""
 #: superset/assets/src/components/URLShortLinkButton.jsx:38
 #: superset/assets/src/explore/components/EmbedCodeButton.jsx:68
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "클립보드에 복사하기"
 
 #: superset/assets/src/components/CopyToClipboard.jsx:72
 msgid "Not successful"
@@ -1170,16 +1170,16 @@ msgstr ""
 
 #: superset/assets/src/components/CopyToClipboard.jsx:91
 msgid "Copied!"
-msgstr ""
+msgstr "복사됨!"
 
 #: superset/assets/src/components/EditableTitle.jsx:14 superset/views/core.py:571
 #: superset/views/core.py:641
 msgid "Title"
-msgstr ""
+msgstr "제목"
 
 #: superset/assets/src/components/EditableTitle.jsx:105
 msgid "click to edit title"
-msgstr ""
+msgstr "클릭하여 제목 수정하기"
 
 #: superset/assets/src/components/EditableTitle.jsx:106
 msgid "You don't have the rights to alter this title."
@@ -1242,7 +1242,7 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/Controls.jsx:172
 msgid "Email"
-msgstr ""
+msgstr "이메일"
 
 #: superset/assets/src/dashboard/components/Controls.jsx:173
 msgid "Email a link to this dashboard"
@@ -1259,7 +1259,7 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/Controls.jsx:197
 msgid "Edit CSS"
-msgstr ""
+msgstr "CSS 수정"
 
 #: superset/assets/src/dashboard/components/Controls.jsx:198
 msgid "Change the style of the dashboard using CSS code"
@@ -1267,11 +1267,11 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/CssEditor.jsx:45
 msgid "Load a template"
-msgstr ""
+msgstr "템플릿 불러오기"
 
 #: superset/assets/src/dashboard/components/CssEditor.jsx:48
 msgid "Load a CSS template"
-msgstr ""
+msgstr "CSS 템플릿 불러오기"
 
 #: superset/assets/src/dashboard/components/CssEditor.jsx:60
 #: superset/views/core.py:578
@@ -1332,7 +1332,7 @@ msgstr "24시간"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:43
 msgid "Refresh Interval"
-msgstr ""
+msgstr "새로고침 간격"
 
 #: superset/assets/src/dashboard/components/RefreshIntervalModal.jsx:46
 msgid "Choose the refresh frequency for this dashboard"
@@ -1348,7 +1348,7 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/SaveModal.jsx:95
 msgid "Error"
-msgstr ""
+msgstr "에러"
 
 #: superset/assets/src/dashboard/components/SaveModal.jsx:96
 msgid "You must pick a name for the new dashboard"
@@ -1356,7 +1356,7 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/SaveModal.jsx:111
 msgid "Save Dashboard"
-msgstr ""
+msgstr "대시보드 저장"
 
 #: superset/assets/src/dashboard/components/SaveModal.jsx:119
 #, python-format
@@ -1404,11 +1404,11 @@ msgstr "수정됨"
 
 #: superset/assets/src/dashboard/components/SliceAdder.jsx:205
 msgid "Add a new chart to the dashboard"
-msgstr ""
+msgstr "대시보드에 새 차트 추가"
 
 #: superset/assets/src/dashboard/components/SliceAdder.jsx:211
 msgid "Add Charts to Dashboard"
-msgstr ""
+msgstr "대시보드에 차트 추가"
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:65
 #, python-format
@@ -1429,7 +1429,7 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:107
 msgid "Move chart"
-msgstr ""
+msgstr "차트 이동"
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:127
 msgid "Toggle chart description"
@@ -1437,11 +1437,11 @@ msgstr ""
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:138
 msgid "Edit chart"
-msgstr ""
+msgstr "차트 수정"
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:148
 msgid "Export CSV"
-msgstr ""
+msgstr "CSV 내보내기"
 
 #: superset/assets/src/dashboard/components/SliceHeader.jsx:158
 msgid "Explore chart"
@@ -1465,7 +1465,7 @@ msgstr ""
 
 #: superset/assets/src/explore/controls.jsx:121
 msgid "Metrics"
-msgstr ""
+msgstr "메트릭"
 
 #: superset/assets/src/explore/controls.jsx:135
 #: superset/assets/src/explore/controls.jsx:226
@@ -1476,7 +1476,7 @@ msgstr ""
 #: superset/assets/src/explore/visTypes.js:1452
 #: superset/connectors/druid/views.py:133 superset/connectors/sqla/views.py:131
 msgid "Metric"
-msgstr ""
+msgstr "메트릭"
 
 #: superset/assets/src/explore/controls.jsx:149
 msgid ""
@@ -4904,15 +4904,15 @@ msgstr "CSV 업로드"
 
 #: superset/views/sql_lab.py:25
 msgid "Status"
-msgstr ""
+msgstr "상태"
 
 #: superset/views/sql_lab.py:26
 msgid "Start Time"
-msgstr ""
+msgstr "시작 시간"
 
 #: superset/views/sql_lab.py:27 superset/views/sql_lab.py:64
 msgid "End Time"
-msgstr ""
+msgstr "종료 시간"
 
 #: superset/views/sql_lab.py:34
 msgid "Queries"
@@ -4920,19 +4920,19 @@ msgstr "쿼리"
 
 #: superset/views/sql_lab.py:43
 msgid "List Saved Query"
-msgstr ""
+msgstr "저장된 쿼리 목록"
 
 #: superset/views/sql_lab.py:44
 msgid "Show Saved Query"
-msgstr ""
+msgstr "저장된 쿼리 보기"
 
 #: superset/views/sql_lab.py:45
 msgid "Add Saved Query"
-msgstr ""
+msgstr "저장된 쿼리 추가"
 
 #: superset/views/sql_lab.py:46
 msgid "Edit Saved Query"
-msgstr ""
+msgstr "저장된 쿼리 수정"
 
 #: superset/views/sql_lab.py:65
 msgid "Pop Tab Link"
