@@ -405,6 +405,11 @@ You can also use `PyAthena` library(no java required) like this ::
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
+MSSQL
+-----
+
+Full Unicode support requires SQLAlchemy 1.3 or later.
+
 Snowflake
 ---------
 
@@ -615,6 +620,18 @@ Upgrading should be as straightforward as running::
     pip install superset --upgrade
     superset db upgrade
     superset init
+
+We recommend to follow standard best practices when upgrading Superset, such
+as taking a database backup prior to the upgrade, upgrading a staging
+environment prior to upgrading production, and upgrading production while less
+users are active on the platform.
+
+.. note ::
+   Some upgrades may contain backward-incompatible changes, or require
+   scheduling downtime, when that is the case, contributors attach notes in
+   ``UPDATING.md`` in the repository. It's recommended to review this
+   file prior to running an upgrade.
+
 
 Celery Tasks
 ------------

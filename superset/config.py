@@ -187,9 +187,12 @@ LANGUAGES = {
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are on by default go here. Their
-# values can be overridden by those in super_config.py
-FEATURE_FLAGS = {}
+# Feature flags that are set by default go here. Their values can be
+# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
+# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
+# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
+DEFAULT_FEATURE_FLAGS = {}
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -562,6 +565,16 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+
+# What is the Last N days relative in the time selector to:
+# 'today' means it is midnight (00:00:00) of today in the local timezone
+# 'now' means it is relative to the query issue time
+DEFAULT_RELATIVE_END_TIME = 'today'
+
+# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
+# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
+# localtime (in the tz where the superset webserver is running)
+IS_EPOCH_S_TRULY_UTC = False
 
 
 try:

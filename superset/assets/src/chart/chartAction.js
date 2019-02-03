@@ -152,6 +152,13 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+// in the sql lab -> explore flow, user can inline edit chart title,
+// then the chart will be assigned a new slice_id
+export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
+export function updateChartId(newId, key = 0) {
+  return { type: UPDATE_CHART_ID, newId, key };
+}
+
 export const ADD_CHART = 'ADD_CHART';
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
