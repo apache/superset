@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint no-console: 0 */
-import { SupersetClient } from '@superset-ui/connection';
 
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance
@@ -80,11 +79,10 @@ export const Logger = {
       });
     }
 
-    SupersetClient.post({
-      endpoint,
-      postPayload: { events: eventData },
-      parseMethod: null,
-    });
+    const formData = new FormData();
+    formData.append('events', JSON.stringify(eventData));
+    console.log('i am sending...' + Array.from(formData))
+    navigator.sendBeacon(endpoint, formData);
 
     // flush events for this logger
     log.events = {}; // eslint-disable-line no-param-reassign
