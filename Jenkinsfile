@@ -71,7 +71,7 @@ pipeline {
     stage("Push rpm images in artifactory"){
       steps{
         script{
-          rpm_push( env.buildType, 'dist/installer', 'ggn-dev-rpms/superset' )
+          rpm_push( env.buildType, 'dist/installer', 'ggn-dev-rpms/raf' )
         }
       }
     }
