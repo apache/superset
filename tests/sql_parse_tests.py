@@ -411,6 +411,21 @@ class SupersetTestCase(unittest.TestCase):
             {'a', 'b', 'c', 'd', 'e', 'f'},
             self.extract_tables(query))
 
+    def test_complex_cte_with_prefix(self):
+        query = """
+        WITH CTE__test (SalesPersonID, SalesOrderID, SalesYear)
+        AS (
+            SELECT SalesPersonID, SalesOrderID, YEAR(OrderDate) AS SalesYear
+            FROM SalesOrderHeader
+            WHERE SalesPersonID IS NOT NULL
+        )
+        SELECT SalesPersonID, COUNT(SalesOrderID) AS TotalSales, SalesYear
+        FROM CTE__test
+        GROUP BY SalesYear, SalesPersonID
+        ORDER BY SalesPersonID, SalesYear;
+        """
+        self.assertEquals({'SalesOrderHeader'}, self.extract_tables(query))
+
     def test_basic_breakdown_statements(self):
         multi_sql = """
         SELECT * FROM ab_user;

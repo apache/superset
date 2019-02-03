@@ -26,6 +26,7 @@ ON_KEYWORD = 'ON'
 PRECEDES_TABLE_NAME = {
     'FROM', 'JOIN', 'DESCRIBE', 'WITH', 'LEFT JOIN', 'RIGHT JOIN',
 }
+CTE_PREFIX = 'CTE__'
 
 
 class ParsedQuery(object):
@@ -87,7 +88,9 @@ class ParsedQuery(object):
     def __process_identifier(self, identifier):
         # exclude subselects
         if '(' not in str(identifier):
-            self._table_names.add(self.__get_full_name(identifier))
+            table_name = self.__get_full_name(identifier)
+            if not table_name.startswith(CTE_PREFIX):
+                self._table_names.add(self.__get_full_name(identifier))
             return
 
         # store aliases
@@ -130,8 +133,8 @@ class ParsedQuery(object):
 
             if (
                     item.ttype in Keyword and (
-                        item.value.upper() in PRECEDES_TABLE_NAME or
-                        item.value.upper().endswith(' JOIN')
+                        item.normalized in PRECEDES_TABLE_NAME or
+                        item.normalized.endswith(' JOIN')
                     )):
                 table_name_preceding_token = True
                 continue
@@ -144,9 +147,8 @@ class ParsedQuery(object):
                 if isinstance(item, Identifier):
                     self.__process_identifier(item)
                 elif isinstance(item, IdentifierList):
-                    for token in item.tokens:
-                        if self.__is_identifier(token):
-                            self.__process_identifier(token)
+                    for token in item.get_identifiers():
+                        self.__process_identifier(token)
             elif isinstance(item, IdentifierList):
                 for token in item.tokens:
                     if not self.__is_identifier(token):
