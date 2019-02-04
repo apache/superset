@@ -196,19 +196,18 @@ DEFAULT_FEATURE_FLAGS = {}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
-# can alter it, and returns a similar dict.
-# GET_FEATURE_FLAGS can be used to implement progressive rollouts,
+# can alter it, and returns a similar dict. Note the dict of feature
+# flags passed to the function is a deepcopy of the dict in the config,
+# and can therefore be mutated without side-effect
+#
+# GET_FEATURE_FLAGS_FUNC can be used to implement progressive rollouts,
 # role-based features, or a full on A/B testing framework.
 #
 # from flask import g, request
-# def GET_FEATURE_FLAGS(ff):
-#     ffc = copy(ff)
-#     ffc['some_feature'] = g.user and g.user.id == 5
-#     return ffc
-
-
-def GET_FEATURE_FLAGS(d):
-    return d
+# def GET_FEATURE_FLAGS_FUNC(ff):
+#     ff['some_feature'] = g.user and g.user.id == 5
+#     return ff
+GET_FEATURE_FLAGS_FUNC = None
 
 
 # ---------------------------------------------------

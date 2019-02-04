@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=C,R,W
 """Package's main module!"""
+from copy import deepcopy
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -214,7 +215,10 @@ _feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
 
 
 def get_feature_flags():
-    return app.config.get('GET_FEATURE_FLAGS')(_feature_flags)
+    GET_FEATURE_FLAGS_FUNC = app.config.get('GET_FEATURE_FLAGS_FUNC')
+    if GET_FEATURE_FLAGS_FUNC:
+        return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
+    return _feature_flags
 
 
 def is_feature_enabled(feature):

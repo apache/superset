@@ -33,7 +33,7 @@ SQL_MAX_ROW = 666
 FEATURE_FLAGS = {
     'foo': 'bar',
 }
-def GET_FEATURE_FLAGS(ff):
+def GET_FEATURE_FLAGS_FUNC(ff):
     ff_copy = copy(ff)
     ff_copy['super'] = 'set'
     return ff_copy
