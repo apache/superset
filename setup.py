@@ -104,6 +104,7 @@ setup(
         'sqlalchemy-utils',
         'sqlparse',
         'unicodecsv',
+        'wtforms-json',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
