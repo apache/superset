@@ -757,7 +757,6 @@ class CoreTests(SupersetTestCase):
             {'form_data': json.dumps(form_data)},
         )
         self.assertEqual(data['status'], utils.QueryStatus.FAILED)
-        assert 'KeyError' in data['stacktrace']
 
     def test_slice_payload_viz_markdown(self):
         self.login(username='admin')

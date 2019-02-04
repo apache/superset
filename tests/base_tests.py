@@ -26,6 +26,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.core import Database
 from superset.utils.core import get_main_database
 
 BASE_DIR = app.config.get('BASE_DIR')
@@ -98,6 +99,9 @@ class SupersetTestCase(unittest.TestCase):
 
     def get_table_by_name(self, name):
         return db.session.query(SqlaTable).filter_by(table_name=name).one()
+
+    def get_database_by_id(self, db_id):
+        return db.session.query(Database).filter_by(id=db_id).one()
 
     def get_druid_ds_by_name(self, name):
         return db.session.query(DruidDatasource).filter_by(
