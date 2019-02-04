@@ -109,13 +109,13 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn('SUCCESS', resp)
 
-    def test_save_dash_with_filter(self, username='admin'):
+    def test_save_dash_with_filter_id(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
 
         positions = self.get_mock_positions(dash)
-        filters = {str(dash.slices[0].id): {'region': ['North America']}}
+        filters = {str(dash.slices[0].id): {'__time_grain': 'PT1H'}}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
@@ -129,9 +129,63 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn('SUCCESS', resp)
 
-        updatedDash = db.session.query(models.Dashboard).filter_by(
+        updated_dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
-        new_url = updatedDash.url
+        new_url = updated_dash.url
+        self.assertIn('__time_grain', new_url)
+
+        resp = self.get_resp(new_url)
+        self.assertIn('PT1H', resp)
+
+    def test_save_dash_with_invalid_filter_id(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+
+        # add an invalid filter slice
+        positions = self.get_mock_positions(dash)
+        filters = {str(99999): {'__time_grain': 'PT1H'}}
+        default_filters = json.dumps(filters)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'default_filters': default_filters,
+        }
+
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn('SUCCESS', resp)
+
+        updated_dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+        new_url = updated_dash.url
+        self.assertNotIn('__time_grain', new_url)
+
+    def test_save_dash_with_filter(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+
+        positions = self.get_mock_positions(dash)
+        filters = {'region': ['North America']}
+        default_filters = json.dumps(filters)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'default_filters': default_filters,
+        }
+
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn('SUCCESS', resp)
+
+        updated_dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+        new_url = updated_dash.url
         self.assertIn('region', new_url)
 
         resp = self.get_resp(new_url)
@@ -144,7 +198,7 @@ class DashboardTests(SupersetTestCase):
 
         # add an invalid filter slice
         positions = self.get_mock_positions(dash)
-        filters = {str(99999): {'region': ['North America']}}
+        filters = {'invalid_column': ['North America']}
         default_filters = json.dumps(filters)
         data = {
             'css': '',
@@ -158,9 +212,9 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn('SUCCESS', resp)
 
-        updatedDash = db.session.query(models.Dashboard).filter_by(
+        updated_dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
-        new_url = updatedDash.url
+        new_url = updated_dash.url
         self.assertNotIn('region', new_url)
 
     def test_save_dash_with_dashboard_title(self, username='admin'):

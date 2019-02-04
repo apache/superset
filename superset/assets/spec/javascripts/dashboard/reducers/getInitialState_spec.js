@@ -53,7 +53,7 @@ describe('getInitialState reducer applies filters', () => {
       slice_id: 35,
       form_data: {
         viz_type: 'filter_box',
-        groupby: ['column'],
+        filter_configs: [{ column: 'column' }],
         datasource: '2__table',
       },
     };
@@ -74,7 +74,7 @@ describe('getInitialState reducer applies filters', () => {
       slice_id: 35,
       form_data: {
         viz_type: 'filter_box',
-        groupby: ['column'],
+        filter_configs: [{ column: 'column' }],
         datasource: '2__table',
       },
     };
@@ -135,13 +135,13 @@ describe('getInitialState reducer applies filters', () => {
       slice_id: 35,
       form_data: {
         viz_type: 'filter_box',
-        groupby: ['column'],
+        filter_configs: [{ column: 'column' }],
         datasource: '2__table',
       },
     };
 
     const metadata = {
-      default_filters: '{"35": {"column": ["val"]}}',
+      default_filters: '{"column": ["val"]}',
     };
 
     const { bootstrapData } = setup([filter], metadata);
@@ -161,13 +161,13 @@ describe('getInitialState reducer applies filters', () => {
       slice_id: 35,
       form_data: {
         viz_type: 'filter_box',
-        groupby: ['column1', 'column2'],
+        filter_configs: [{ column: 'column1' }, { column: 'column2' }],
         datasource: '2__table',
       },
     };
 
     const metadata = {
-      default_filters: '{"35": {"column1": ["val1"]}}',
+      default_filters: '{"column1": ["val1"]}',
     };
 
     const { bootstrapData } = setup([filter], metadata);

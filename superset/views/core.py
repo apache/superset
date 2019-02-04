@@ -1696,10 +1696,16 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+
+        columns = set()
+        for ds in dashboard.datasources:
+           columns |= set({column.column_name for column in ds.columns})
+
         default_filters_data = json.loads(data.get('default_filters', '{}'))
         applicable_filters = \
             {key: v for key, v in default_filters_data.items()
-             if int(key) in slice_ids}
+             if key in columns or (key.isdigit() and int(key) in slice_ids)}
+
         md['default_filters'] = json.dumps(applicable_filters)
         dashboard.json_metadata = json.dumps(md)
 

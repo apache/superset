@@ -163,12 +163,13 @@ export default function(bootstrapData) {
     const filterBoxes = Object.values(slices).filter(
       slice => slice.viz_type === 'filter_box',
     );
-
     // for each filter_box, add a filter object if the filter_box uses the column
     Object.keys(filterColumns).forEach(column => {
       const values = filterColumns[column];
       filterBoxes
-        .filter(slice => slice.form_data.groupby.includes(column))
+        .filter(slice =>
+          slice.form_data.filter_configs.map(fc => fc.column).includes(column),
+        )
         .forEach(slice => {
           const currentVals = preselectFilters[slice.slice_id];
           preselectFilters[slice.slice_id] = {

@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 import ModalTrigger from '../../components/ModalTrigger';
 import Checkbox from '../../components/Checkbox';
 import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
+import { flattenFilters } from '../util/filterOptions';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -102,7 +103,7 @@ class SaveModal extends React.PureComponent {
       expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
-      default_filters: JSON.stringify(filters),
+      default_filters: JSON.stringify(flattenFilters(filters)),
       duplicate_slices: this.state.duplicateSlices,
     };
 

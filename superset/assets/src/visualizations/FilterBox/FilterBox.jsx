@@ -29,7 +29,7 @@ import Control from '../../explore/components/Control';
 import controls from '../../explore/controls';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
-import TIME_FILTER_MAP from '../../dashboard/util/filterOptions';
+import { TIME_FILTER_MAP } from '../../dashboard/util/filterOptions';
 import './FilterBox.css';
 
 const TIME_RANGE = '__time_range';

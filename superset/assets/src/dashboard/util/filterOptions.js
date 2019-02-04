@@ -18,7 +18,7 @@
  */
 
 // maps control names to their key in extra_filters
-const TIME_FILTER_MAP = {
+export const TIME_FILTER_MAP = {
   time_range: '__time_range',
   granularity_sqla: '__time_col',
   time_grain_sqla: '__time_grain',
@@ -26,4 +26,31 @@ const TIME_FILTER_MAP = {
   granularity: '__granularity',
 };
 
-export default TIME_FILTER_MAP;
+export function flattenFilters(filters = {}) {
+  // convert filters object into object of {column: [vals], etc.}
+  const filterColumns = {};
+  const timeFilters = Object.values(TIME_FILTER_MAP);
+
+  Object.keys(filters).forEach(filterId => {
+    const filter = filters[filterId];
+    Object.keys(filter).forEach(column => {
+      if (timeFilters.includes(column)) {
+        // time filters still require a chart ID as e.g., timegrain can't be shared by multiple filters
+        const currentFilters = filterColumns[filterId] || {};
+        filterColumns[filterId] = {
+          ...currentFilters,
+          [column]: filter[column],
+        };
+      } else {
+        // append column selections to existing filters
+        const set = new Set([
+          ...(filterColumns[column] || []),
+          ...filter[column],
+        ]);
+        filterColumns[column] = Array.from(set);
+      }
+    });
+  });
+
+  return filterColumns;
+}

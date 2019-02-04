@@ -27,6 +27,7 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
+import { flattenFilters } from '../util/filterOptions';
 import { chartPropShape } from '../util/propShapes';
 import {
   UNDO_LIMIT,
@@ -166,7 +167,7 @@ class Header extends React.PureComponent {
       expanded_slices: expandedSlices,
       css,
       dashboard_title: dashboardTitle,
-      default_filters: JSON.stringify(filters),
+      default_filters: JSON.stringify(flattenFilters(filters)),
     };
 
     // make sure positions data less than DB storage limitation:
