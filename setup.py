@@ -74,8 +74,8 @@ setup(
         'humanize',
         'idna',
         'isodate',
-        'markdown>=3.0',
-        'pandas>=0.18.0',
+        'markdown<3.0.0',
+        'pandas>=0.18.0, <0.24.0',
         'parsedatetime',
         'pathlib2',
         'polyline',
@@ -95,10 +95,17 @@ setup(
         'thrift-sasl>=0.2.1',
         'unicodecsv',
         'unidecode>=0.04.21',
-        'croniter==0.3.25',
-        'selenium==3.14.0',
-        'retry==0.9.2',
-        'python-ldap==3.1.0'
+        'beautifulsoup4==4.6.0',
+        'bottleneck==1.2.1',
+        'feather-format==0.4.0',
+        'html5lib==0.999999999',
+        'lxml==3.8.0',
+        'numexpr==2.6.4',
+        'xlrd==1.1.0',
+        'python-ldap==3.1.0',
+        'requests-kerberos==0.12.0',
+        'django==2.1.5'
+
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

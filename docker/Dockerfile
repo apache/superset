@@ -1,9 +1,10 @@
 FROM python:3.6.5
 
 # Configure environment
+ENV user=guavus-raf
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    user=guavus-raf \
     HOME=/home/${user} \
     DEBIAN_FRONTEND=noninteractive
     
@@ -45,6 +46,8 @@ COPY docker-init.sh /usr/local/bin/
 RUN chmod +x /etc/cert
 RUN chmod +x /usr/local/bin
 RUN chown -R ${user}:${user} $HOME
+
+USER ${user}
 
 EXPOSE 8088
 

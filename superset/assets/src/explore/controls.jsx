@@ -1910,6 +1910,41 @@ export const controls = {
     label: t('Ranges'),
     default: '',
     description: t('Ranges to highlight with shading'),
+    arcGIS_state : {
+      true: {
+        lastValue: '',
+        isValueChanged:false
+      },
+      false :{
+        lastValue: '',
+        isValueChanged:false
+      }
+    },
+    mapStateToProps: (state) => {
+      const props = {};
+      if (state && state.controls) {
+        props.options = state.controls.ranges;
+        if(state.controls.hasOwnProperty('labels_outside')){
+          const val = props.options.arcGIS_state[state.controls.labels_outside.value];
+          if(val.isValueChanged){
+            props.options.value = val.lastValue;
+          } else {
+            props.options.value = (state.controls.labels_outside.value) ? '' : props.options.default;
+          }
+        }
+      }
+      props.textChange = (e) => {
+        if(state.controls.hasOwnProperty('labels_outside')){
+          const labelOutsideValue = state.controls.labels_outside.value
+          if(!props.options.arcGIS_state[labelOutsideValue].isValueChanged){
+            props.options.arcGIS_state[labelOutsideValue].isValueChanged = true;
+          }
+          props.options.arcGIS_state[labelOutsideValue].lastValue = e;
+        }
+      }
+
+      return props;
+    }
   },
 
   range_labels: {

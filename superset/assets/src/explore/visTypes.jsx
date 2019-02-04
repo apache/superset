@@ -139,7 +139,7 @@ export const visTypes = {
     ],
     controlOverrides: {
       labels_outside:{
-        label: t('Use Esri Leaflet'),
+        label: t('Use arcGIS Server'),
         default: false,
         renderTrigger: false,
         description: t('Use Esri Leaflet Library to render tiles for ArcGIS Server'),
@@ -240,6 +240,7 @@ export const visTypes = {
         description: t('Map Server URL'),
         renderTrigger: false,
         default: 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+        validators: [v.nonEmpty]
       },
       row_limit:{
         default: 50,

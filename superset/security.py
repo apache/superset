@@ -1,8 +1,8 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
-
-from flask import g
+from flask_login import current_user, url_for
+from flask import g, request, session
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
@@ -79,6 +79,50 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 class SupersetSecurityManager(SecurityManager):
 
+    def __init__(self,appbuilder):
+        appbuilder.get_app.config.setdefault('AUTH_LDAP_SEARCH_FILTER', '')
+        super(SupersetSecurityManager, self).__init__(appbuilder)
+    
+    @property
+    def auth_ldap_search_filter(self):
+        return self.appbuilder.get_app.config['AUTH_LDAP_SEARCH_FILTER']
+
+    def _search_ldap(self, ldap, con, username):
+        """
+            Searches LDAP for user, assumes ldap_search is set.
+
+            :param ldap: The ldap module reference
+            :param con: The ldap connection
+            :param username: username to match with auth_ldap_uid_field
+            :return: ldap object array
+        """
+        if self.auth_ldap_append_domain:
+            username = username + '@' + self.auth_ldap_append_domain
+
+        if self.auth_ldap_search_filter:
+            filter_str = "(&%s(%s=%s))" % (self.auth_ldap_search_filter, self.auth_ldap_uid_field, username)
+        else:
+            filter_str = "(%s=%s)" % (self.auth_ldap_uid_field, username)
+      
+        user = con.search_s(self.auth_ldap_search,
+                            ldap.SCOPE_SUBTREE,
+                            filter_str,
+                            [self.auth_ldap_firstname_field,
+                             self.auth_ldap_lastname_field,
+                             self.auth_ldap_email_field
+                            ])
+        if user:
+            if not user[0][0]:
+                return None
+        return user
+
+    def has_access(self, permission_name, view_name):
+        if not current_user.is_authenticated():
+             login_path = url_for(self.appbuilder.sm.auth_view.__class__.__name__ + ".login")            
+             if not ('target_url' in session) and request.path != login_path:
+                session['target_url'] = request.url
+        return super(SupersetSecurityManager, self).has_access(permission_name, view_name)
+        
     def get_schema_perm(self, database, schema):
         if schema:
             return '[{}].[{}]'.format(database, schema)

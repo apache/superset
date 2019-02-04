@@ -28,3 +28,29 @@
     width:auto !important;
     background:white !important
 }
+
+/* style for map legend */
+
+#map-legend-container{
+  margin-top: 30px;
+}
+
+.map-legend-div{
+  width: 20px;
+  height:10px;
+  margin-left: 2px;
+}
+
+.map-legend-container-horizontal{
+  display: flex;
+}
+.map-legend-container-horizontal .map-legend-div{
+  margin-left: 0px;
+  margin-top: 4px;
+}
+
+.map-legend-label{
+  width: 20px;
+  text-align: center;
+  margin-left: 2px;
+}

@@ -5,16 +5,7 @@ import * as turf from '@turf/turf';
 import * as L from '../../../node_modules/leaflet/dist/leaflet.js';
 import * as esri from '../../../node_modules/esri-leaflet/dist/esri-leaflet.js';
 import * as GRAPHICON from './graphIcon.js';
-import PropTypes from 'prop-types';
-
-const propTypes = {
-    payload: PropTypes.object,
-    formData: PropTypes.object,
-    height: PropTypes.number,
-    onAddFilter: PropTypes.func,
-  };
-
-function NOOP() {} 
+import { LegendComponent } from './legend_component.js';
 
 /**
  * Leaflet Map Visualization
@@ -126,8 +117,8 @@ function leafletmap(element, props) {
       return (val - min) / (max - min);
     }
 
-    function colourGradientor(lowValueColor,highValueColor,p,max,min){
-        var rangeValue = getRangeValue(p,parseInt(max),parseInt(min));
+    function colourGradientor(lowValueColor, highValueColor, colvalue, max, min){
+        var rangeValue = getRangeValue(colvalue, parseFloat(max), parseFloat(min));
         var rgb = {}
         rgb.r = parseInt((highValueColor.r - lowValueColor.r) * rangeValue + lowValueColor.r)
         rgb.g = parseInt((highValueColor.g - lowValueColor.g) * rangeValue + lowValueColor.g)
@@ -136,7 +127,7 @@ function leafletmap(element, props) {
         return 'rgb('+rgb.r +',' + rgb.g +',' +rgb.b +','+rgb.a + ')';
     }
 
-    function getColorForColumnVaule(colname, colvalue) {
+    function getColorForColumnValue(colname, colvalue) {
         // todo: current object is AdhocFilter,so propertynames are not match as we need
         // create AdhocColumn with correct names
         var col = colorCols[colname];
@@ -154,7 +145,7 @@ function leafletmap(element, props) {
         return {
             'name': colname,
             'value': colvalue,
-            'color': getColorForColumnVaule(colname, colvalue)
+            'color': getColorForColumnValue(colname, colvalue)
         }
     }
 
@@ -349,6 +340,7 @@ function leafletmap(element, props) {
         mapInstance.removeLayer(geoJsonLayer);
         console.log(selectedColorColumn);
         renderPolygonLayer();
+        addMapLegends();
     }
     function getColumnOptions() {
         var str = "<select>";
@@ -379,6 +371,25 @@ function leafletmap(element, props) {
         renderBasicMap();
         renderPolygonLayer();
         addColumnsDropdownToMap();
+        addMapLegends();
+    }
+
+    function addMapLegends(){
+      var colname  = getSelectedColorColumn()
+      var col = colorCols[colname];
+      var legend = new LegendComponent({
+        minValue: col['operator'],
+        maxvalue: col['sqlExpression'],
+        L: L,
+        id: 'map-legend-container',
+        getLegendColor: getLegendColor,
+        mapInstance: mapInstance
+      });
+      legend.addMapLegend();
+    }
+
+    function getLegendColor(val){
+      return getColorForColumnValue(getSelectedColorColumn(), val)
     }
 
     function init() {
