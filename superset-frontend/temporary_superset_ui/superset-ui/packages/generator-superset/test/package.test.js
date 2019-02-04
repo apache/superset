@@ -7,15 +7,32 @@ describe('generator-superset:package', () => {
 
   beforeAll(() => {
     dir = process.cwd();
-
-    return helpers
-      .run(path.join(__dirname, '../generators/package'))
-      .withPrompts({ name: 'my-package' })
-      .withOptions({ skipInstall: true });
   });
 
-  it('creates files', () => {
-    assert.file(['package.json', 'README.md', 'src/index.js', 'test/index.test.js']);
+  describe('typescript', () => {
+    beforeAll(() =>
+      helpers
+        .run(path.join(__dirname, '../generators/package'))
+        .withPrompts({ name: 'my-package', language: 'typescript' })
+        .withOptions({ skipInstall: true }),
+    );
+
+    it('creates files', () => {
+      assert.file(['package.json', 'README.md', 'src/index.ts', 'test/index.test.ts']);
+    });
+  });
+
+  describe('javascript', () => {
+    beforeAll(() =>
+      helpers
+        .run(path.join(__dirname, '../generators/package'))
+        .withPrompts({ name: 'my-package', language: 'javascript' })
+        .withOptions({ skipInstall: true }),
+    );
+
+    it('creates files', () => {
+      assert.file(['package.json', 'README.md', 'src/index.js', 'test/index.test.js']);
+    });
   });
 
   /*

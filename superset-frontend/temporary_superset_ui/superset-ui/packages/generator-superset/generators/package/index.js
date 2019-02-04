@@ -18,6 +18,7 @@ module.exports = class extends Generator {
         type: 'list',
         name: 'language',
         message: 'Choose language',
+        default: 'typescript',
         choices: [
           {
             name: 'typescript',

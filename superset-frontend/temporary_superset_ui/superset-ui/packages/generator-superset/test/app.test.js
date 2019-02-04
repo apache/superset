@@ -15,7 +15,7 @@ describe('generator-superset:app', () => {
   });
 
   it('creates files', () => {
-    assert.file(['package.json', 'README.md', 'src/index.js', 'test/index.test.js']);
+    assert.file(['package.json', 'README.md', 'src/index.ts', 'test/index.test.ts']);
   });
 
   /*
