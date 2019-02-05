@@ -13,7 +13,7 @@ const IDENTITY = (x: any) => x;
 type PromiseOrValue<T> = Promise<T> | T;
 type PromiseOrValueLoader<T> = () => PromiseOrValue<T> | PromiseOrValue<{ default: T }>;
 
-export type BuildQueryFunction = (formData: FormData) => QueryContext;
+export type BuildQueryFunction<T extends FormData> = (formData: T) => QueryContext;
 
 export type TransformPropsFunction = (
   chartProps: ChartProps,
@@ -21,12 +21,12 @@ export type TransformPropsFunction = (
   [key: string]: any;
 };
 
-export interface ChartPluginConfig {
+export interface ChartPluginConfig<T extends FormData> {
   metadata: ChartMetadata;
   // use buildQuery for immediate value
-  buildQuery?: BuildQueryFunction;
+  buildQuery?: BuildQueryFunction<T>;
   // use loadBuildQuery for dynamic import (lazy-loading)
-  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction>;
+  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
   // use transformProps for immediate value
   transformProps?: TransformPropsFunction;
   // use loadTransformProps for dynamic import (lazy-loading)
@@ -37,13 +37,13 @@ export interface ChartPluginConfig {
   loadChart?: PromiseOrValueLoader<Function>;
 }
 
-export default class ChartPlugin extends Plugin {
+export default class ChartPlugin<T extends FormData = FormData> extends Plugin {
   metadata: ChartMetadata;
-  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction>;
+  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
   loadTransformProps: PromiseOrValueLoader<TransformPropsFunction>;
   loadChart: PromiseOrValueLoader<Function>;
 
-  constructor(config: ChartPluginConfig) {
+  constructor(config: ChartPluginConfig<T>) {
     super();
     const {
       metadata,

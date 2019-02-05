@@ -53,7 +53,7 @@ describe('ChartPlugin', () => {
           loadBuildQuery: () => buildQuery,
         });
         if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction;
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction<FormData>;
           expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         }
       });
@@ -65,7 +65,7 @@ describe('ChartPlugin', () => {
           buildQuery,
         });
         if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction;
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction<FormData>;
           expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         }
       });
