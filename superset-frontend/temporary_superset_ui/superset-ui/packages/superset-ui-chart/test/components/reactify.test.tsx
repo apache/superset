@@ -8,7 +8,7 @@ describe('reactify(renderFn)', () => {
     const container = element;
     container.innerHTML = '';
     const child = document.createElement('b');
-    child.innerHTML = props.content;
+    child.innerHTML = props.content || '';
     container.appendChild(child);
   });
 

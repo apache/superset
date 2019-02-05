@@ -5,6 +5,7 @@ interface PlainObject {
   [key: string]: any;
 }
 
+// TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
 type CamelCaseDatasource = PlainObject;
 type SnakeCaseDatasource = PlainObject;
