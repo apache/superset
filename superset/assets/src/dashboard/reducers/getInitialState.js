@@ -150,6 +150,9 @@ export default function(bootstrapData) {
         // new-style filter, collect a list of {column: [vals]} filter objects
         const currentVals = filterColumns[key] || [];
         filterColumns[key] = [...currentVals, ...values];
+      } else if (isNaN(key)) {
+        // new-style single-value filter {column: value}
+        filterColumns[key] = values;
       } else {
         // old-style filter, add to preselect filters directly
         const currentVals = preselectFilters[key];

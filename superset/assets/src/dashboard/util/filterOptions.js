@@ -41,13 +41,16 @@ export function flattenFilters(filters = {}) {
           ...currentFilters,
           [column]: filter[column],
         };
-      } else {
+      } else if (Array.isArray(filter[column])) {
         // append column selections to existing filters
         const set = new Set([
           ...(filterColumns[column] || []),
           ...filter[column],
         ]);
         filterColumns[column] = Array.from(set);
+      } else {
+        // single-value filter
+        filterColumns[column] = filter[column];
       }
     });
   });
