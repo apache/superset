@@ -74,7 +74,7 @@ def flatten_filters(filters):
                 # time filters still require a chart ID as e.g., __time_grain can't be shared by multiple filterBoxes
                 current_filters = filter_columns.get(filter_id, {})
                 filter_columns[filter_id] = {**current_filters, **{column: values}}
-            else if isinstance(values, list):
+            elif isinstance(values, list):
                 # append column selections to existing filters
                 values_set = set(filter_columns.get(column, []))
                 values_set |= set(values)

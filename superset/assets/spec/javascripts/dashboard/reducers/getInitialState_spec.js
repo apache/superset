@@ -90,13 +90,34 @@ describe('getInitialState reducer applies filters', () => {
     });
   });
 
+  it('should apply single-value filters to slices from preselect_filters', () => {
+    const filter = {
+      slice_id: 35,
+      form_data: {
+        viz_type: 'filter_box',
+        filter_configs: [{ column: 'column', multiple: false }],
+        datasource: '2__table',
+      },
+    };
+    const { bootstrapData } = setup([filter]);
+
+    applyDefaultFormData.mockReturnValue({});
+    getParam.mockReturnValue('{"column":"val"}');
+
+    expect(getInitialState(bootstrapData).dashboardState.filters).toEqual({
+      35: {
+        column: 'val',
+      },
+    });
+  });
+
   it('should apply mixed-style filters to slices from preselect_filters', () => {
     const filters = [
       {
         slice_id: 35,
         form_data: {
           viz_type: 'filter_box',
-          groupby: ['column1', 'column2'],
+          filter_configs: [{ column: 'column1' }, { column: 'column2' }],
           datasource: '2__table',
         },
       },
@@ -104,7 +125,7 @@ describe('getInitialState reducer applies filters', () => {
         slice_id: 45,
         form_data: {
           viz_type: 'filter_box',
-          groupby: ['column1'],
+          filter_configs: [{ column: 'column1' }],
           datasource: '2__table',
         },
       },
