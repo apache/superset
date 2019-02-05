@@ -920,7 +920,8 @@ def ensure_path_exists(path):
 def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
-                    time_shift: Optional[str] = None) -> (datetime, datetime):
+                    time_shift: Optional[str] = None,
+                    relative_end: Optional[str] = None) -> (datetime, datetime):
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -946,13 +947,13 @@ def get_since_until(time_range: Optional[str] = None,
 
     """
     separator = ' : '
-    today = parse_human_datetime('today')
+    relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (today - relativedelta(days=1), today),
-        'Last week': (today - relativedelta(weeks=1), today),
-        'Last month': (today - relativedelta(months=1), today),
-        'Last quarter': (today - relativedelta(months=3), today),
-        'Last year': (today - relativedelta(years=1), today),
+        'Last day': (relative_end - relativedelta(days=1), relative_end),
+        'Last week': (relative_end - relativedelta(weeks=1), relative_end),
+        'Last month': (relative_end - relativedelta(months=1), relative_end),
+        'Last quarter': (relative_end - relativedelta(months=3), relative_end),
+        'Last year': (relative_end - relativedelta(years=1), relative_end),
     }
 
     if time_range:
@@ -969,17 +970,17 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = today - relativedelta(**{grain: int(num)})
-                until = today
+                since = relative_end - relativedelta(**{grain: int(num)})
+                until = relative_end
             else:  # rel == 'Next'
-                since = today
-                until = today + relativedelta(**{grain: int(num)})
+                since = relative_end
+                until = relative_end + relativedelta(**{grain: int(num)})
     else:
         since = since or ''
         if since:
             since = add_ago_to_since(since)
         since = parse_human_datetime(since)
-        until = parse_human_datetime(until or 'now')
+        until = parse_human_datetime(until) if until else relative_end
 
     if time_shift:
         time_shift = parse_human_timedelta(time_shift)

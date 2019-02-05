@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+from collections import OrderedDict
 from datetime import datetime
 import logging
 
@@ -127,12 +128,13 @@ class TableColumn(Model, BaseColumn):
         return self.table
 
     def get_time_filter(self, start_dttm, end_dttm):
+        is_epoch_in_utc = config.get('IS_EPOCH_S_TRULY_UTC', False)
         col = self.get_sqla_col(label='__time')
         l = []  # noqa: E741
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            l.append(col >= text(self.dttm_sql_literal(start_dttm, is_epoch_in_utc)))
         if end_dttm:
-            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+            l.append(col <= text(self.dttm_sql_literal(end_dttm, is_epoch_in_utc)))
         return and_(*l)
 
     def get_timestamp_expression(self, time_grain):
@@ -166,7 +168,7 @@ class TableColumn(Model, BaseColumn):
                 TableColumn.column_name == lookup_column.column_name).first()
         return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
-    def dttm_sql_literal(self, dttm):
+    def dttm_sql_literal(self, dttm, is_epoch_in_utc):
         """Convert datetime object to a SQL expression string
 
         If database_expression is empty, the internal dttm
@@ -179,10 +181,15 @@ class TableColumn(Model, BaseColumn):
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf:
+            if is_epoch_in_utc:
+                seconds_since_epoch = dttm.timestamp()
+            else:
+                seconds_since_epoch = (dttm - datetime(1970, 1, 1)).total_seconds()
+            seconds_since_epoch = int(seconds_since_epoch)
             if tf == 'epoch_s':
-                return str((dttm - datetime(1970, 1, 1)).total_seconds())
+                return str(seconds_since_epoch)
             elif tf == 'epoch_ms':
-                return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+                return str(seconds_since_epoch * 1000)
             return "'{}'".format(dttm.strftime(tf))
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
@@ -253,10 +260,7 @@ class SqlaTable(Model, BaseDatasource):
     owner_class = security_manager.user_model
 
     __tablename__ = 'tables'
-    __table_args__ = (UniqueConstraint('database_id',
-                                       'schema',
-                                       'table_name',
-                                       name='uq_table_in_db_schema'),)
+    __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
 
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
@@ -598,26 +602,25 @@ class SqlaTable(Model, BaseDatasource):
             main_metric_expr = literal_column('COUNT(*)').label(label)
 
         select_exprs = []
-        groupby_exprs = []
+        groupby_exprs_sans_timestamp = OrderedDict()
 
         if groupby:
             select_exprs = []
-            inner_select_exprs = []
-            inner_groupby_exprs = []
             for s in groupby:
-                col = cols[s]
-                outer = col.get_sqla_col()
-                inner = col.get_sqla_col(col.column_name + '__')
+                if s in cols:
+                    outer = cols[s].get_sqla_col()
+                else:
+                    outer = literal_column(f'({s})').label(self.get_label(s))
 
-                groupby_exprs.append(outer)
+                groupby_exprs_sans_timestamp[outer.name] = outer
                 select_exprs.append(outer)
-                inner_groupby_exprs.append(inner)
-                inner_select_exprs.append(inner)
         elif columns:
             for s in columns:
-                select_exprs.append(cols[s].get_sqla_col())
+                select_exprs.append(
+                    cols[s].get_sqla_col() if s in cols else literal_column(s))
             metrics_exprs = []
 
+        groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
         if granularity:
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
@@ -626,7 +629,7 @@ class SqlaTable(Model, BaseDatasource):
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
-                groupby_exprs += [timestamp]
+                groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
             # Use main dttm column to support index with secondary dttm columns
             if db_engine_spec.time_secondary_columns and \
@@ -642,7 +645,7 @@ class SqlaTable(Model, BaseDatasource):
         tbl = self.get_from_clause(template_processor)
 
         if not columns:
-            qry = qry.group_by(*groupby_exprs)
+            qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []
         having_clause_and = []
@@ -722,9 +725,15 @@ class SqlaTable(Model, BaseDatasource):
                 # require a unique inner alias
                 label = self.get_label('mme_inner__')
                 inner_main_metric_expr = main_metric_expr.label(label)
+                inner_groupby_exprs = []
+                inner_select_exprs = []
+                for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
+                    inner = gby_obj.label(gby_name + '__')
+                    inner_groupby_exprs.append(inner)
+                    inner_select_exprs.append(inner)
+
                 inner_select_exprs += [inner_main_metric_expr]
-                subq = select(inner_select_exprs)
-                subq = subq.select_from(tbl)
+                subq = select(inner_select_exprs).select_from(tbl)
                 inner_time_filter = dttm_col.get_time_filter(
                     inner_from_dttm or from_dttm,
                     inner_to_dttm or to_dttm,
@@ -748,12 +757,12 @@ class SqlaTable(Model, BaseDatasource):
                 subq = subq.limit(timeseries_limit)
 
                 on_clause = []
-                for i, gb in enumerate(groupby):
+                for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = self.get_label(gb + '__')
-                    on_clause.append(groupby_exprs[i] == column(col_name))
+                    col_name = self.get_label(gby_name + '__')
+                    on_clause.append(gby_obj == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
@@ -775,24 +784,23 @@ class SqlaTable(Model, BaseDatasource):
                     'order_desc': True,
                 }
                 result = self.query(subquery_obj)
-                cols = {col.column_name: col for col in self.columns}
                 dimensions = [
                     c for c in result.df.columns
-                    if c not in metrics and c in cols
+                    if c not in metrics and c in groupby_exprs_sans_timestamp
                 ]
-                top_groups = self._get_top_groups(result.df, dimensions)
+                top_groups = self._get_top_groups(result.df,
+                                                  dimensions,
+                                                  groupby_exprs_sans_timestamp)
                 qry = qry.where(top_groups)
 
         return qry.select_from(tbl)
 
-    def _get_top_groups(self, df, dimensions):
-        cols = {col.column_name: col for col in self.columns}
+    def _get_top_groups(self, df, dimensions, groupby_exprs):
         groups = []
         for unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
-                col_obj = cols.get(dimension)
-                group.append(col_obj.get_sqla_col() == row[dimension])
+                group.append(groupby_exprs[dimension] == row[dimension])
             groups.append(and_(*group))
 
         return or_(*groups)

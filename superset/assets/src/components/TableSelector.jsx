@@ -20,12 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
-import { ControlLabel, Col, Label } from 'react-bootstrap';
+import { ControlLabel, Col, Label, Row } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
 import AsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
+import './TableSelector.css';
 
 const propTypes = {
   dbId: PropTypes.number.isRequired,
@@ -196,8 +197,16 @@ export default class TableSelector extends React.PureComponent {
         {db.database_name}
       </span>);
   }
-  renderDatabaseSelect() {
+  renderSelectRow(select, refreshBtn) {
     return (
+      <Row>
+        <Col md={11}>{select}</Col>
+        <Col md={1} className="refresh-col">{refreshBtn}</Col>
+      </Row>
+    );
+  }
+  renderDatabaseSelect() {
+    return this.renderSelectRow(
       <AsyncSelect
         dataEndpoint={
           '/databaseasync/api/' +
@@ -225,30 +234,26 @@ export default class TableSelector extends React.PureComponent {
   renderSchema() {
     return (
       <div className="m-t-5">
-        <div className="row">
-          <div className="col-md-11 col-xs-11 p-r-2">
-            <Select
-              name="select-schema"
-              placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
-              options={this.state.schemaOptions}
-              value={this.props.schema}
-              valueRenderer={o => (
-                <div>
-                  <span className="text-muted">{t('Schema:')}</span> {o.label}
-                </div>
-              )}
-              isLoading={this.state.schemaLoading}
-              autosize={false}
-              onChange={this.changeSchema}
-            />
-          </div>
-          <div className="col-md-1 col-xs-1 p-l-0 p-t-8">
-            <RefreshLabel
-              onClick={() => this.onDatabaseChange({ id: this.props.dbId }, true)}
-              tooltipContent={t('force refresh schema list')}
-            />
-          </div>
-        </div>
+        {this.renderSelectRow(
+          <Select
+            name="select-schema"
+            placeholder={t('Select a schema (%s)', this.state.schemaOptions.length)}
+            options={this.state.schemaOptions}
+            value={this.props.schema}
+            valueRenderer={o => (
+              <div>
+                <span className="text-muted">{t('Schema:')}</span> {o.label}
+              </div>
+            )}
+            isLoading={this.state.schemaLoading}
+            autosize={false}
+            onChange={this.changeSchema}
+          />,
+          <RefreshLabel
+            onClick={() => this.onDatabaseChange({ id: this.props.dbId }, true)}
+            tooltipContent={t('Force refresh schema list')}
+          />,
+        )}
       </div>
     );
   }
@@ -262,43 +267,37 @@ export default class TableSelector extends React.PureComponent {
       tableSelectDisabled = true;
     }
     const options = this.addOptionIfMissing(this.state.tableOptions, this.state.tableName);
+    const select = this.props.schema ? (
+      <Select
+        name="select-table"
+        ref="selectTable"
+        isLoading={this.state.tableLoading}
+        placeholder={t('Select table or type table name')}
+        autosize={false}
+        onChange={this.changeTable}
+        filterOptions={this.state.filterOptions}
+        options={options}
+        value={this.state.tableName}
+      />) : (
+        <Select
+          async
+          name="async-select-table"
+          ref="selectTable"
+          placeholder={tableSelectPlaceholder}
+          disabled={tableSelectDisabled}
+          autosize={false}
+          onChange={this.changeTable}
+          value={this.state.tableName}
+          loadOptions={this.getTableNamesBySubStr}
+        />);
     return (
       <div className="m-t-5">
-        <div className="row">
-          <div className="col-md-11 col-xs-11 p-r-2">
-            {this.props.schema ? (
-              <Select
-                name="select-table"
-                ref="selectTable"
-                isLoading={this.state.tableLoading}
-                placeholder={t('Select table or type table name')}
-                autosize={false}
-                onChange={this.changeTable}
-                filterOptions={this.state.filterOptions}
-                options={options}
-                value={this.state.tableName}
-              />
-            ) : (
-              <Select
-                async
-                name="async-select-table"
-                ref="selectTable"
-                placeholder={tableSelectPlaceholder}
-                disabled={tableSelectDisabled}
-                autosize={false}
-                onChange={this.changeTable}
-                value={this.state.tableName}
-                loadOptions={this.getTableNamesBySubStr}
-              />
-            )}
-          </div>
-          <div className="col-md-1 col-xs-1 p-l-0 p-t-8">
-            <RefreshLabel
-              onClick={() => this.changeSchema({ value: this.props.schema }, true)}
-              tooltipContent={t('force refresh table list')}
-            />
-          </div>
-        </div>
+        {this.renderSelectRow(
+          select,
+          <RefreshLabel
+            onClick={() => this.changeSchema({ value: this.props.schema }, true)}
+            tooltipContent={t('Force refresh table list')}
+          />)}
       </div>);
   }
   renderSeeTableLabel() {
@@ -318,21 +317,22 @@ export default class TableSelector extends React.PureComponent {
       </div>);
   }
   render() {
-    if (this.props.horizontal) {
-      return (
-        <div>
-          <Col md={4}>{this.renderDatabaseSelect()}</Col>
-          <Col md={4}>{this.renderSchema()}</Col>
-          <Col md={4}>{this.renderTable()}</Col>
-        </div>);
-    }
     return (
-      <div>
-        <div>{this.renderDatabaseSelect()}</div>
-        <div className="m-t-5">{this.renderSchema()}</div>
-        {this.props.sqlLabMode && this.renderSeeTableLabel()}
-        <div className="m-t-5">{this.renderTable()}</div>
-      </div>);
+      <div className="TableSelector">
+        {this.props.horizontal ?
+          <div>
+            <Col md={4}>{this.renderDatabaseSelect()}</Col>
+            <Col md={4}>{this.renderSchema()}</Col>
+            <Col md={4}>{this.renderTable()}</Col>
+          </div> :
+          <div>
+            <div>{this.renderDatabaseSelect()}</div>
+            <div className="m-t-5">{this.renderSchema()}</div>
+            {this.props.sqlLabMode && this.renderSeeTableLabel()}
+            <div className="m-t-5">{this.renderTable()}</div>
+          </div>}
+      </div>
+    );
   }
 }
 TableSelector.propTypes = propTypes;
