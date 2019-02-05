@@ -1,6 +1,6 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
-import { ChartProps, ChartMetadata, ChartPlugin, SuperChart } from '../../src';
+import { ChartProps, ChartMetadata, ChartPlugin, FormData, SuperChart } from '../../src';
 
 describe('SuperChart', () => {
   const TestComponent = (props: any) => (
@@ -8,7 +8,7 @@ describe('SuperChart', () => {
   );
   const chartProps = new ChartProps();
 
-  class MyChartPlugin extends ChartPlugin {
+  class MyChartPlugin extends ChartPlugin<FormData> {
     constructor() {
       super({
         metadata: new ChartMetadata({
@@ -21,7 +21,7 @@ describe('SuperChart', () => {
     }
   }
 
-  class SecondChartPlugin extends ChartPlugin {
+  class SecondChartPlugin extends ChartPlugin<FormData> {
     constructor() {
       super({
         metadata: new ChartMetadata({
@@ -34,7 +34,7 @@ describe('SuperChart', () => {
     }
   }
 
-  class SlowChartPlugin extends ChartPlugin {
+  class SlowChartPlugin extends ChartPlugin<FormData> {
     constructor() {
       super({
         metadata: new ChartMetadata({
