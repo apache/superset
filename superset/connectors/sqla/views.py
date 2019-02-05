@@ -374,19 +374,19 @@ class AlertModelView(DatasourceModelView, DeleteMixin):  # noqa
         self.update_redirect()
 
     def get_deployment_names(self):
-        deployments = set()
+        deployments = []
         presto_engine = create_engine(app.config.get('PRESTO_ENGINE_URI'))
         presto_connection = presto_engine.connect()
         query = 'SHOW CATALOGS'
         try:
             results = presto_connection.execute(query)
-            deployments.add({'value': 'all_deployments', 'label': 'all_deployments'})
+            deployments.append({'value': 'all_deployments', 'label': 'all_deployments'})
+            deployments.append({'value': 'hive', 'label': 'hive'})
             for row in results:
                 deployment = row['Catalog']
                 if '_mysql' in deployment:
                     deployment = deployment.split('_mysql')[0]
-                deployments.add({'value': deployment, 'label': deployment})
-            deployments = list(deployments)
+                    deployments.append({'value': deployment, 'label': deployment})
         except:
             deployments = [
                 {'value': 'all_deployments', 'label': 'all_deployments'},
