@@ -56,9 +56,9 @@ def upgrade():
                 try:
                     default_filters = json.loads(default_filters_json)
                     new_default_filters = flatten_filters(default_filters)
-                    json_metadata['default_filters'] = json.dumps(default_filters)
+                    json_metadata['default_filters'] = json.dumps(new_default_filters)
                     dashboard.json_metadata = json.dumps(json_metadata)
-                except Exception:
+                except Exception as err:
                     pass
 
     session.commit()
@@ -68,8 +68,8 @@ def flatten_filters(filters):
     filter_columns = {}
     time_filters =  ['__time_range', '__time_col', '__time_grain', '__time_origin', '__granularity']
 
-    for filter_id, filter in filters.items():
-        for column, values in filter:
+    for filter_id, filter_value in filters.items():
+        for column, values in filter_value.items():
             if column in time_filters:
                 # time filters still require a chart ID as e.g., __time_grain can't be shared by multiple filterBoxes
                 current_filters = filter_columns.get(filter_id, {})
@@ -79,6 +79,10 @@ def flatten_filters(filters):
                 values_set = set(filter_columns.get(column, []))
                 values_set |= set(values)
                 filter_columns[column] = values_set
+
+    for column, values in filter_columns.items():
+        if isinstance(values, set):
+            filter_columns[column] = list(values)
 
     return filter_columns
 
