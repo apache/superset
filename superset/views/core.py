@@ -1760,9 +1760,10 @@ class Superset(BaseSupersetView):
                 .get('extras', {})
                 .get('engine_params', {}))
             connect_args = engine_params.get('connect_args')
-
-            connect_args.update(get_updated_connect_args(url,connect_args))
-            remove_http_params_from(url,connect_args)
+            
+            if(connect_args):
+                connect_args.update(get_updated_connect_args(url,connect_args))
+                remove_http_params_from(url,connect_args)
 
             if configuration:
                 connect_args['configuration'] = configuration

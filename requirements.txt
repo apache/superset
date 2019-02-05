@@ -102,4 +102,6 @@ xlrd==1.1.0               # via tabulator
 contextlib2==0.5.5
 elasticsearch==5.5.3
 python-ldap==3.1.0
+requests-kerberos==0.12.0
+django==2.1.5
 

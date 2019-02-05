@@ -1,8 +1,8 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
-from flask_login import current_user, url_for
-from flask import g, request, session
+from flask_login import current_user
+from flask import g, request, session,url_for
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
@@ -79,6 +79,8 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 class SupersetSecurityManager(SecurityManager):
 
+    # todo: delete below methods related to AUTH_LDAP_SEARCH_FILTER  as this will available in 1.12.2 FB release
+
     def __init__(self,appbuilder):
         appbuilder.get_app.config.setdefault('AUTH_LDAP_SEARCH_FILTER', '')
         super(SupersetSecurityManager, self).__init__(appbuilder)
@@ -117,7 +119,7 @@ class SupersetSecurityManager(SecurityManager):
         return user
 
     def has_access(self, permission_name, view_name):
-        if not current_user.is_authenticated():
+        if not current_user.is_authenticated:
              login_path = url_for(self.appbuilder.sm.auth_view.__class__.__name__ + ".login")            
              if not ('target_url' in session) and request.path != login_path:
                 session['target_url'] = request.url
