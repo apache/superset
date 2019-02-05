@@ -14,17 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""flatten_default_filters.py
+"""flatten default_filters
 
-Revision ID: 607f4ccc1c53
-Revises: 8d49a37823bf
-Create Date: 2019-01-31 13:56:28.647647
+Revision ID: 3914fc1790f8
+Revises: c617da68de7d
+Create Date: 2019-02-05 14:10:38.040030
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '607f4ccc1c53'
-down_revision = '8d49a37823bf'
+revision = '3914fc1790f8'
+down_revision = 'c617da68de7d'
 
 from alembic import op
 from sqlalchemy import (Column, Integer, Text)
