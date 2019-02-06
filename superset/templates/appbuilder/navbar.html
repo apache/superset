@@ -20,7 +20,7 @@
 {% set languages = appbuilder.languages %}
 {% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
 {% set app_icon_width = appbuilder.app.config.get('APP_ICON_WIDTH', 126) %}
-{% set logo_target_path = appbuilder.app.config.get('LOGO_TARGET_PATH', '/profile/{}/'.format(current_user.username)) %}
+{% set logo_target_path = appbuilder.app.config.get('LOGO_TARGET_PATH') or '/profile/{}/'.format(current_user.username) %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
   <div class="container-fluid">

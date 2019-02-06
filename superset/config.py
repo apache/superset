@@ -112,6 +112,10 @@ APP_NAME = 'Superset'
 APP_ICON = '/static/assets/images/superset-logo@2x.png'
 APP_ICON_WIDTH = 126
 
+# Uncomment to specify where clicking the logo would take the user
+# e.g. setting it to '/welcome' would take the user to '/superset/welcome'
+LOGO_TARGET_PATH = None
+
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
 # tz.tzlocal() : Using local timezone
