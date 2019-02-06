@@ -1,5 +1,16 @@
 # @superset-ui : Change Log
 
+## v0.9.3
+
+### ✨ Features
+
+* Add new package `@superset-ui/dimension`
+* Add new package `@superset-ui/plugin-chart-word-cloud`
+
+### 🛠️ Internal
+
+* Minor update and additional unit tests for generator
+
 ## v0.9.2
 
 ### ✨ Features
