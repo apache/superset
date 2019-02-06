@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.9.0",
+  "version": "0.9.3",
   "description": "Storybook for Superset UI ✨",
   "private": true,
   "main": "index.js",
@@ -33,7 +33,7 @@
     "@storybook/addon-knobs": "^4.0.2",
     "@storybook/addon-options": "^4.0.3",
     "@storybook/react": "^4.0.2",
-    "@superset-ui/color": "^0.9.0",
+    "@superset-ui/color": "^0.9.3",
     "babel-loader": "^8.0.4",
     "git-directory-deploy": "^1.5.1",
     "react": "^16.6.0",
