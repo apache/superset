@@ -115,6 +115,18 @@ class BaseEngineSpec(object):
     arraysize = None
 
     @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        # if epoch, translate to DATE using db specific conf
+        if pdf == 'epoch_s':
+            expr = cls.epoch_to_dttm().format(col=expr)
+        elif pdf == 'epoch_ms':
+            expr = cls.epoch_ms_to_dttm().format(col=expr)
+
+        if grain:
+            expr = grain.function.format(col=expr)
+        return expr
+
+    @classmethod
     def get_time_grains(cls):
         blacklist = config.get('TIME_GRAIN_BLACKLIST', [])
         grains = builtin_time_grains.copy()
@@ -123,6 +135,16 @@ class BaseEngineSpec(object):
         grain_addon_functions = config.get('TIME_GRAIN_ADDON_FUNCTIONS', {})
         grain_functions.update(grain_addon_functions.get(cls.engine, {}))
         return _create_time_grains_tuple(grains, grain_functions, blacklist)
+
+    @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Some databases will just return the group-by field into the select, but don't
+        # allow the group-by field to be put into the select list.
+        return select_exprs
+
+    @classmethod
+    def mutate_df_columns(cls, df, sql, labels_expected):
+        pass
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -1411,6 +1433,64 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls):
         return 'from_unixtime({col})'
+
+
+class PinotEngineSpec(BaseEngineSpec):
+    engine = 'pinot'
+    allows_subquery = False
+    inner_joins = False
+
+    _time_grain_to_datetimeconvert = {
+        'PT1S': '1:SECONDS',
+        'PT1M': '1:MINUTES',
+        'PT1H': '1:HOURS',
+        'P1D': '1:DAYS',
+        'P1Y': '1:YEARS',
+        'P1M': '1:MONTHS',
+    }
+
+    # Pinot does its own conversion below
+    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
+
+    @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        is_epoch = pdf in ('epoch_s', 'epoch_ms')
+        if not is_epoch:
+            raise NotImplementedError('Pinot currently only supports epochs')
+        # The DATETIMECONVERT pinot udf is documented at
+        # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
+        # We are not really converting any time units, just bucketing them.
+        seconds_or_ms = 'MILLISECONDS' if pdf == 'epoch_ms' else 'SECONDS'
+        tf = f'1:{seconds_or_ms}:EPOCH'
+        granularity = cls._time_grain_to_datetimeconvert.get(time_grain)
+        if not granularity:
+            raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
+        # In pinot the output is a string since there is no timestamp column like pg
+        return f'DATETIMECONVERT({expr}, "{tf}", "{tf}", "{granularity}")'
+
+    @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Pinot does not want the group by expr's to appear in the select clause
+        select_sans_groupby = []
+        # We want identity and not equality, so doing the filtering manually
+        for s in select_exprs:
+            for gr in groupby_exprs:
+                if s is gr:
+                    break
+            else:
+                select_sans_groupby.append(s)
+        return select_sans_groupby
+
+    @classmethod
+    def mutate_df_columns(cls, df, sql, labels_expected):
+        if df is not None and \
+                not df.empty and \
+                labels_expected is not None:
+            if len(df.columns) != len(labels_expected):
+                raise Exception(f'For {sql}, df.columns: {df.columns}'
+                                f' differs from {labels_expected}')
+            else:
+                df.columns = labels_expected
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):
