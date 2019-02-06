@@ -1,4 +1,4 @@
-import BigNumberTotalChartPlugin from '@superset-ui/legacy-plugin-chart-big-number-total';
+import { BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import Stories from './Stories';
 
 new BigNumberTotalChartPlugin().configure({ key: 'big-number-total' }).register();
