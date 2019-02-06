@@ -55,6 +55,13 @@ class Datasource(BaseSupersetView):
         db.session.commit()
         return self.json_response(data)
 
+    @expose('/get/<datasource_type>/<datasource_id>/')
+    @has_access_api
+    def get(self, datasource_type, datasource_id):
+        orm_datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
+        return self.json_response(orm_datasource.data)
+
     @expose('/external_metadata/<datasource_type>/<datasource_id>/')
     @has_access_api
     def external_metadata(self, datasource_type=None, datasource_id=None):

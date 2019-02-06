@@ -193,6 +193,19 @@
   font-weight: normal;
 }
 
+.btn.label-btn {
+  background-color: #808e95;
+  font-weight: normal;
+  color: #fff;
+  padding: 5px 4px 4px;
+  border:0;
+}
+
+.label-btn:hover {
+  background-color: #808e95;
+  color: #fff;
+}
+
 .adhoc-filter-simple-column-dropdown {
   margin-top: 20px;
 }

@@ -21,7 +21,9 @@ import PropTypes from 'prop-types';
 import {
   Col,
   Collapse,
+  DropdownButton,
   Label,
+  MenuItem,
   OverlayTrigger,
   Row,
   Tooltip,
@@ -33,6 +35,7 @@ import ControlHeader from '../ControlHeader';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
 import DatasourceModal from '../../../datasource/DatasourceModal';
+import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -52,11 +55,10 @@ class DatasourceControl extends React.PureComponent {
     super(props);
     this.state = {
       showEditDatasourceModal: false,
-      loading: true,
-      showDatasource: false,
-      datasources: null,
+      showChangeDatasourceModal: false,
+      menuExpanded: false,
     };
-    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
+    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.renderDatasource = this.renderDatasource.bind(this);
   }
@@ -65,11 +67,23 @@ class DatasourceControl extends React.PureComponent {
     this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
 
+  onChange(vizType) {
+    this.props.onChange(vizType);
+    this.setState({ showChangeDatasourceModal: false });
+  }
+
+  toggleChangeDatasourceModal() {
+    this.setState(({ showChangeDatasourceModal }) => ({
+      showChangeDatasourceModal: !showChangeDatasourceModal,
+    }));
+  }
+
   toggleEditDatasourceModal() {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
   }
+
   renderDatasource() {
     const datasource = this.props.datasource;
     return (
@@ -103,6 +117,7 @@ class DatasourceControl extends React.PureComponent {
       </div>
     );
   }
+
   render() {
     return (
       <div>
@@ -113,10 +128,44 @@ class DatasourceControl extends React.PureComponent {
             <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
           }
         >
-          <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }} className="m-r-5">
-            {this.props.datasource.name}
-          </Label>
+          <div className="btn-group">
+            <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }}>
+              {this.props.datasource.name}
+            </Label>
+          </div>
         </OverlayTrigger>
+        <DropdownButton
+          noCaret
+          title={
+            <span>
+              <i className={`float-right expander fa fa-angle-${this.state.menuExpanded ? 'up' : 'down'}`} />
+            </span>}
+          className="label label-btn m-r-5"
+          bsSize="sm"
+          id="datasource_menu"
+        >
+          <MenuItem
+            eventKey="3"
+            onClick={this.toggleEditDatasourceModal}
+          >
+            {t('Edit Datasource')}
+          </MenuItem>
+          {this.props.datasource.type === 'table' &&
+            <MenuItem
+              eventKey="3"
+              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('Explore in SQL Lab')}
+            </MenuItem>}
+          <MenuItem
+            eventKey="3"
+            onClick={this.toggleChangeDatasourceModal}
+          >
+            {t('Change Datasource')}
+          </MenuItem>
+        </DropdownButton>
         <OverlayTrigger
           placement="right"
           overlay={
@@ -132,29 +181,18 @@ class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
-        {this.props.datasource.type === 'table' &&
-          <OverlayTrigger
-            placement="right"
-            overlay={
-              <Tooltip id={'datasource-sqllab'}>
-                {t('Explore this datasource in SQL Lab')}
-              </Tooltip>
-            }
-          >
-            <a
-              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i className="fa fa-flask m-r-5" />
-            </a>
-          </OverlayTrigger>}
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
           datasource={this.props.datasource}
           show={this.state.showEditDatasourceModal}
           onDatasourceSave={this.props.onDatasourceSave}
           onHide={this.toggleEditDatasourceModal}
+        />
+        <ChangeDatasourceModal
+          onDatasourceSave={this.props.onDatasourceSave}
+          onHide={this.toggleChangeDatasourceModal}
+          show={this.state.showChangeDatasourceModal}
+          onChange={this.props.onChange}
         />
       </div>
     );
