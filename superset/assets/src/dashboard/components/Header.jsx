@@ -33,6 +33,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
+import { safeStringify } from '../../utils/safeStringify';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -166,11 +167,11 @@ class Header extends React.PureComponent {
       expanded_slices: expandedSlices,
       css,
       dashboard_title: dashboardTitle,
-      default_filters: JSON.stringify(filters),
+      default_filters: safeStringify(filters),
     };
 
     // make sure positions data less than DB storage limitation:
-    const positionJSONLength = JSON.stringify(positions).length;
+    const positionJSONLength = safeStringify(positions).length;
     const limit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
       DASHBOARD_POSITION_DATA_LIMIT;

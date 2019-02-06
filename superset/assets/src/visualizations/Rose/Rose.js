@@ -24,6 +24,7 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import './Rose.css';
+import { safeStringify } from '../../utils/safeStringify';
 
 const propTypes = {
   // Data is an object hashed by numeric value, perhaps timestamp
@@ -307,7 +308,7 @@ function Rose(element, props) {
   let inTransition = false;
   const ae = roseWrap
     .selectAll('g')
-    .data(JSON.parse(JSON.stringify(arcSt.data))) // deep copy data state
+    .data(JSON.parse(safeStringify(arcSt.data))) // deep copy data state
     .enter()
     .append('g')
     .attr('class', 'segment')
@@ -319,7 +320,7 @@ function Rose(element, props) {
 
   const labels = labelsWrap
     .selectAll('g')
-    .data(JSON.parse(JSON.stringify(arcSt.labels)))
+    .data(JSON.parse(safeStringify(arcSt.labels)))
     .enter()
     .append('g')
     .attr('class', 'roseLabel')
@@ -333,7 +334,7 @@ function Rose(element, props) {
 
   const groupLabels = groupLabelsWrap
     .selectAll('g')
-    .data(JSON.parse(JSON.stringify(arcSt.groupLabels)))
+    .data(JSON.parse(safeStringify(arcSt.groupLabels)))
     .enter()
     .append('g');
 

@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { createSelector } from 'reselect';
 import { getChartComponentRegistry, getChartTransformPropsRegistry, ChartProps } from '@superset-ui/chart';
 import createLoadableRenderer from './createLoadableRenderer';
+import { safeStringify } from '../../../utils/safeStringify';
 
 const IDENTITY = x => x;
 
@@ -133,7 +134,7 @@ class SuperChart extends React.PureComponent {
         <div className="alert alert-warning" role="alert">
           <strong>ERROR</strong>&nbsp;
           <code>chartType="{chartType}"</code> &mdash;
-          {JSON.stringify(error)}
+          {safeStringify(error)}
         </div>
       );
     }
