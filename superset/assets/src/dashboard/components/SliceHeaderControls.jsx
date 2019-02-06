@@ -164,9 +164,7 @@ class SliceHeaderControls extends React.PureComponent {
           )}
 
           {this.props.supersetCanCSV && (
-            <MenuItem onClick={this.exportCSV}>
-              {t('Export CSV')}
-            </MenuItem>
+            <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
           )}
 
           {this.props.supersetCanExplore && (
