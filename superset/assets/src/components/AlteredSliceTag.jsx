@@ -24,6 +24,7 @@ import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
+import { safeStringify } from '../utils/safeStringify';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
@@ -112,7 +113,7 @@ export default class AlteredSliceTag extends React.Component {
     } else if (controls[key] && controls[key].type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;
     } else if (controls[key] && controls[key].type === 'CollectionControl') {
-      return value.map(v => JSON.stringify(v)).join(', ');
+      return value.map(v => safeStringify(v)).join(', ');
     } else if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     } else if (value.constructor === Array) {
@@ -120,7 +121,7 @@ export default class AlteredSliceTag extends React.Component {
     } else if (typeof value === 'string' || typeof value === 'number') {
       return value;
     }
-    return JSON.stringify(value);
+    return safeStringify(value);
   }
 
   renderRows() {
