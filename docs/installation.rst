@@ -1,3 +1,20 @@
+..  Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+..    http://www.apache.org/licenses/LICENSE-2.0
+
+..  Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 Installation & Configuration
 ============================
 
@@ -100,7 +117,7 @@ that the required dependencies are installed: ::
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
     brew install pkg-config libffi openssl python
-    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==1.9
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
 
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
@@ -388,6 +405,11 @@ You can also use `PyAthena` library(no java required) like this ::
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
+MSSQL
+-----
+
+Full Unicode support requires SQLAlchemy 1.3 or later.
+
 Snowflake
 ---------
 
@@ -598,6 +620,18 @@ Upgrading should be as straightforward as running::
     pip install superset --upgrade
     superset db upgrade
     superset init
+
+We recommend to follow standard best practices when upgrading Superset, such
+as taking a database backup prior to the upgrade, upgrading a staging
+environment prior to upgrading production, and upgrading production while less
+users are active on the platform.
+
+.. note ::
+   Some upgrades may contain backward-incompatible changes, or require
+   scheduling downtime, when that is the case, contributors attach notes in
+   ``UPDATING.md`` in the repository. It's recommended to review this
+   file prior to running an upgrade.
+
 
 Celery Tasks
 ------------

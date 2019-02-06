@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """The main config file for Superset
 
@@ -164,14 +180,18 @@ LANGUAGES = {
     'pt': {'flag': 'pt', 'name': 'Portuguese'},
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
+    'ko': {'flag': 'kr', 'name': 'Korean'},
 }
 
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are on by default go here. Their
-# values can be overridden by those in super_config.py
-FEATURE_FLAGS = {}
+# Feature flags that are set by default go here. Their values can be
+# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
+# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
+# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
+DEFAULT_FEATURE_FLAGS = {}
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -255,9 +275,7 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict([
     ('superset.connectors.sqla.models', ['SqlaTable']),
-    ('superset.connectors.druid.models', ['DruidDatasource']),
-    ('superset.connectors.elastic.models', ['ElasticDatasource']),
-    ('contrib.connectors.pandas.models', ['PandasDatasource']),
+    ('superset.connectors.druid.models', ['DruidDatasource'])
 ])
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
@@ -547,6 +565,19 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 #add timezone and copyright property for footer display
 TIMEZONE = 'UTC'
 COPYRIGHT = '© 2018 Guavus'
+# Send user to a link where they can report bugs
+BUG_REPORT_URL = None
+
+# What is the Last N days relative in the time selector to:
+# 'today' means it is midnight (00:00:00) of today in the local timezone
+# 'now' means it is relative to the query issue time
+DEFAULT_RELATIVE_END_TIME = 'today'
+
+# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
+# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
+# localtime (in the tz where the superset webserver is running)
+IS_EPOCH_S_TRULY_UTC = False
+
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

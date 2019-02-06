@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
@@ -13,6 +29,7 @@ at all. The classes here will use a common interface to specify all this.
 The general idea is to use static classes and an inheritance scheme.
 """
 from collections import namedtuple
+import hashlib
 import inspect
 import logging
 import os
@@ -23,15 +40,14 @@ import time
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
-from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.types import UnicodeText
 import sqlparse
-from tableschema import Table
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
@@ -99,6 +115,18 @@ class BaseEngineSpec(object):
     arraysize = None
 
     @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        # if epoch, translate to DATE using db specific conf
+        if pdf == 'epoch_s':
+            expr = cls.epoch_to_dttm().format(col=expr)
+        elif pdf == 'epoch_ms':
+            expr = cls.epoch_ms_to_dttm().format(col=expr)
+
+        if grain:
+            expr = grain.function.format(col=expr)
+        return expr
+
+    @classmethod
     def get_time_grains(cls):
         blacklist = config.get('TIME_GRAIN_BLACKLIST', [])
         grains = builtin_time_grains.copy()
@@ -107,6 +135,16 @@ class BaseEngineSpec(object):
         grain_addon_functions = config.get('TIME_GRAIN_ADDON_FUNCTIONS', {})
         grain_functions.update(grain_addon_functions.get(cls.engine, {}))
         return _create_time_grains_tuple(grains, grain_functions, blacklist)
+
+    @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Some databases will just return the group-by field into the select, but don't
+        # allow the group-by field to be put into the select list.
+        return select_exprs
+
+    @classmethod
+    def mutate_df_columns(cls, df, sql, labels_expected):
+        pass
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -122,11 +160,11 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000)')
 
     @classmethod
     def get_datatype(cls, type_code):
-        if isinstance(type_code, basestring) and len(type_code):
+        if isinstance(type_code, str) and len(type_code):
             return type_code.upper()
 
     @classmethod
@@ -376,16 +414,35 @@ class BaseEngineSpec(object):
     @classmethod
     def make_label_compatible(cls, label):
         """
-        Return a sqlalchemy.sql.elements.quoted_name if the engine requires
-        quoting of aliases to ensure that select query and query results
-        have same case.
+        Conditionally mutate and/or quote a sql column/expression label. If
+        force_column_alias_quotes is set to True, return the label as a
+        sqlalchemy.sql.elements.quoted_name object to ensure that the select query
+        and query results have same case. Otherwise return the mutated label as a
+        regular string.
         """
-        if cls.force_column_alias_quotes is True:
-            return quoted_name(label, True)
-        return label
+        label = cls.mutate_label(label)
+        return quoted_name(label, True) if cls.force_column_alias_quotes else label
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        """
+        Return a sqlalchemy native column type that corresponds to the column type
+        defined in the data source (optional). Needs to be overridden if column requires
+        special handling (see MSSQL for example of NCHAR/NVARCHAR handling).
+        """
+        return None
 
     @staticmethod
-    def mutate_expression_label(label):
+    def mutate_label(label):
+        """
+        Most engines support mixed case aliases that can include numbers
+        and special characters, like commas, parentheses etc. For engines that
+        have restrictions on what types of aliases are supported, this method
+        can be overridden to ensure that labels conform to the engine's
+        limitations. Mutated labels should be deterministic (input label A always
+        yields output label X) and unique (input labels A and B don't yield the same
+        output label X).
+        """
         return label
 
 
@@ -474,7 +531,15 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    force_column_alias_quotes = True
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Redshift only supports lowercase column names and aliases.
+        :param str label: Original label which might include uppercase letters
+        :return: String that is supported by the database
+        """
+        return label.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
@@ -485,13 +550,13 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as DATE)',
-        'PT1M': "TRUNC(TO_DATE({col}), 'MI')",
-        'PT1H': "TRUNC(TO_DATE({col}), 'HH')",
-        'P1D': "TRUNC(TO_DATE({col}), 'DDD')",
-        'P1W': "TRUNC(TO_DATE({col}), 'WW')",
-        'P1M': "TRUNC(TO_DATE({col}), 'MONTH')",
-        'P0.25Y': "TRUNC(TO_DATE({col}), 'Q')",
-        'P1Y': "TRUNC(TO_DATE({col}), 'YEAR')",
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
@@ -500,11 +565,26 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
+    @staticmethod
+    def mutate_label(label):
+        """
+        Oracle 12.1 and earlier support a maximum of 30 byte length object names, which
+        usually means 30 characters.
+        :param str label: Original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        if len(label) > 30:
+            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            # truncate the hash to first 30 characters
+            return hashed_label[:30]
+        return label
+
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as TIMESTAMP)'
@@ -537,6 +617,20 @@ class Db2EngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Db2 for z/OS supports a maximum of 30 byte length object names, which usually
+        means 30 characters.
+        :param str label: Original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        if len(label) > 30:
+            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            # truncate the hash to first 30 characters
+            return hashed_label[:30]
+        return label
 
 
 class SqliteEngineSpec(BaseEngineSpec):
@@ -645,7 +739,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, basestring) and len(datatype):
+        if datatype and isinstance(datatype, str) and len(datatype):
             return datatype
 
     @classmethod
@@ -984,7 +1078,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls):
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         from superset.db_engines import hive as patched_hive
         from TCLIService import (
             constants as patched_constants,
@@ -1003,11 +1097,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        import pyhive
         from TCLIService import ttypes
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception('Query error', state.errorMessage)
-        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        try:
+            return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        except pyhive.exc.ProgrammingError:
+            return []
 
     @staticmethod
     def create_table_from_csv(form, table):
@@ -1055,6 +1153,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         upload_path = config['UPLOAD_FOLDER'] + \
             secure_filename(filename)
 
+        # Optional dependency
+        from tableschema import Table  # pylint: disable=import-error
         hive_table_schema = Table(upload_path).infer()
         column_name_and_type = []
         for column_info in hive_table_schema['fields']:
@@ -1147,7 +1247,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
@@ -1287,6 +1387,19 @@ class MssqlEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
+        if len(data) != 0 and type(data[0]).__name__ == 'Row':
+            data = [[elem for elem in r] for r in data]
+        return data
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        if isinstance(type_, str) and re.match(r'^N(VAR){0-1}CHAR', type_):
+            return UnicodeText()
+        return None
+
 
 class AthenaEngineSpec(BaseEngineSpec):
     engine = 'awsathena'
@@ -1320,6 +1433,64 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls):
         return 'from_unixtime({col})'
+
+
+class PinotEngineSpec(BaseEngineSpec):
+    engine = 'pinot'
+    allows_subquery = False
+    inner_joins = False
+
+    _time_grain_to_datetimeconvert = {
+        'PT1S': '1:SECONDS',
+        'PT1M': '1:MINUTES',
+        'PT1H': '1:HOURS',
+        'P1D': '1:DAYS',
+        'P1Y': '1:YEARS',
+        'P1M': '1:MONTHS',
+    }
+
+    # Pinot does its own conversion below
+    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
+
+    @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        is_epoch = pdf in ('epoch_s', 'epoch_ms')
+        if not is_epoch:
+            raise NotImplementedError('Pinot currently only supports epochs')
+        # The DATETIMECONVERT pinot udf is documented at
+        # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
+        # We are not really converting any time units, just bucketing them.
+        seconds_or_ms = 'MILLISECONDS' if pdf == 'epoch_ms' else 'SECONDS'
+        tf = f'1:{seconds_or_ms}:EPOCH'
+        granularity = cls._time_grain_to_datetimeconvert.get(time_grain)
+        if not granularity:
+            raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
+        # In pinot the output is a string since there is no timestamp column like pg
+        return f'DATETIMECONVERT({expr}, "{tf}", "{tf}", "{granularity}")'
+
+    @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Pinot does not want the group by expr's to appear in the select clause
+        select_sans_groupby = []
+        # We want identity and not equality, so doing the filtering manually
+        for s in select_exprs:
+            for gr in groupby_exprs:
+                if s is gr:
+                    break
+            else:
+                select_sans_groupby.append(s)
+        return select_sans_groupby
+
+    @classmethod
+    def mutate_df_columns(cls, df, sql, labels_expected):
+        if df is not None and \
+                not df.empty and \
+                labels_expected is not None:
+            if len(df.columns) != len(labels_expected):
+                raise Exception(f'For {sql}, df.columns: {df.columns}'
+                                f' differs from {labels_expected}')
+            else:
+                df.columns = labels_expected
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):
@@ -1401,16 +1572,30 @@ class BQEngineSpec(BaseEngineSpec):
         return data
 
     @staticmethod
-    def mutate_expression_label(label):
-        mutated_label = re.sub('[^\w]+', '_', label)
-        if not re.match('^[a-zA-Z_]+.*', mutated_label):
-            raise SupersetTemplateException('BigQuery field_name used is invalid {}, '
-                                            'should start with a letter or '
-                                            'underscore'.format(mutated_label))
-        if len(mutated_label) > 128:
-            raise SupersetTemplateException('BigQuery field_name {}, should be atmost '
-                                            '128 characters'.format(mutated_label))
-        return mutated_label
+    def mutate_label(label):
+        """
+        BigQuery field_name should start with a letter or underscore, contain only
+        alphanumeric characters and be at most 128 characters long. Labels that start
+        with a number are prefixed with an underscore. Any unsupported characters are
+        replaced with underscores and an md5 hash is added to the end of the label to
+        avoid possible collisions. If the resulting label exceeds 128 characters, only
+        the md5 sum is returned.
+        :param str label: the original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        hashed_label = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+
+        # if label starts with number, add underscore as first character
+        mutated_label = '_' + label if re.match(r'^\d', label) else label
+
+        # replace non-alphanumeric characters with underscores
+        mutated_label = re.sub(r'[^\w]+', '_', mutated_label)
+        if mutated_label != label:
+            # add md5 hash to label to avoid possible collisions
+            mutated_label += hashed_label
+
+        # return only hash if length of final label exceeds 128 chars
+        return mutated_label if len(mutated_label) <= 128 else hashed_label
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):

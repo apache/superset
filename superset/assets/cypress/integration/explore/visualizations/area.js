@@ -1,3 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import readResponseBlob from '../../../utils/readResponseBlob';
+
 export default () => describe('Area', () => {
   const AREA_FORM_DATA = {
     datasource: '2__table',
@@ -53,11 +73,12 @@ export default () => describe('Area', () => {
       ...AREA_FORM_DATA,
       groupby: ['region'],
     });
+
     cy.get('.nv-area').should('have.length', 7);
   });
 
   it('should work with groupby and filter', () => {
-    verify({
+    cy.visitChartByParams(JSON.stringify({
       ...AREA_FORM_DATA,
       groupby: ['region'],
       adhoc_filters: [{
@@ -70,6 +91,18 @@ export default () => describe('Area', () => {
         fromFormData: true,
         filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
       }],
+    }));
+
+    cy.wait('@getJson').then(async (xhr) => {
+      cy.verifyResponseCodes(xhr);
+
+      const responseBody = await readResponseBlob(xhr.response.body);
+
+      // Make sure data is sorted correctly
+      const firstRow = responseBody.data[0].values;
+      const secondRow = responseBody.data[1].values;
+      expect(firstRow[firstRow.length - 1].y).to.be.greaterThan(secondRow[secondRow.length - 1].y);
+      cy.verifySliceContainer('svg');
     });
     cy.get('.nv-area').should('have.length', 2);
   });

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
@@ -52,13 +70,18 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    */
   constructor(props) {
     super(props);
-    this.state = this.getInitialStateFromProps(props);
+    this.state = this.getStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
+  }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.payload.form_data !== this.state.formData) {
+      this.setState({ ...this.getStateFromProps(nextProps) });
+    }
   }
   onValuesChange(values) {
     this.setState({
@@ -70,7 +93,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   onViewportChange(viewport) {
     this.setState({ viewport });
   }
-  getInitialStateFromProps(props, state) {
+  getStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
     const categories = getCategories(props.formData, features);

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -17,6 +35,25 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
+import Hotkeys from '../../components/Hotkeys';
+
+// Prolly need to move this to a global context
+const keymap = {
+    RUN: 'ctrl + r, ctrl + enter',
+    SAVE: 'ctrl + s',
+};
+
+const getHotKeys = () => {
+  const d = [];
+  Object.keys(keymap).forEach((k) => {
+    d.push({
+      name: k,
+      descr: keymap[k],
+      key: k,
+    });
+  });
+  return d;
+};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -57,11 +94,13 @@ class ExploreViewContainer extends React.Component {
     this.onStop = this.onStop.bind(this);
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
+    this.handleKeydown = this.handleKeydown.bind(this);
   }
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
+    document.addEventListener('keydown', this.handleKeydown);
     this.addHistory({ isReplace: true });
     Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
   }
@@ -70,6 +109,9 @@ class ExploreViewContainer extends React.Component {
     const wasRendered =
       ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
     const isRendered = ['rendered', 'failed', 'stopped'].indexOf(nextProps.chart.chartStatus) > -1;
+    if (nextProps.chart.id !== this.props.chart.id) {
+      this.loadingLog.sourceId = nextProps.chart.id;
+    }
     if (!wasRendered && isRendered) {
       Logger.send(this.loadingLog);
     }
@@ -111,6 +153,7 @@ class ExploreViewContainer extends React.Component {
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('popstate', this.handlePopstate);
+    document.removeEventListener('keydown', this.handleKeydown);
   }
 
   onQuery() {
@@ -138,6 +181,29 @@ class ExploreViewContainer extends React.Component {
     }
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
+  }
+
+  handleKeydown(event) {
+    const controlOrCommand = event.ctrlKey || event.metaKey;
+    if (controlOrCommand) {
+      const isEnter = event.key === 'Enter' || event.keyCode === 13;
+      const isS = event.key === 's' || event.keyCode === 83;
+      if (isEnter) {
+        this.onQuery();
+      } else if (isS) {
+        if (this.props.slice) {
+            this.props.actions.saveSlice(this.props.form_data, {
+              action: 'overwrite',
+              slice_id: this.props.slice.slice_id,
+              slice_name: this.props.slice.slice_name,
+              add_to_dash: 'noSave',
+              goto_dash: false,
+            }).then(({ data }) => {
+              window.location = data.slice.slice_url;
+            });
+          }
+        }
+      }
   }
 
   findChangedControlKeys(prevControls, currentControls) {
@@ -255,10 +321,7 @@ class ExploreViewContainer extends React.Component {
       <div
         id="explore-container"
         className="container-fluid"
-        style={{
-          height: this.state.height,
-          overflow: 'hidden',
-        }}
+        style={{ height: this.state.height, overflow: 'hidden' }}
       >
         {this.state.showModal && (
           <SaveModal
@@ -269,16 +332,25 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <QueryAndSaveBtns
-              canAdd="True"
-              onQuery={this.onQuery}
-              onSave={this.toggleModal}
-              onStop={this.onStop}
-              loading={this.props.chart.chartStatus === 'loading'}
-              chartIsStale={this.state.chartIsStale}
-              errorMessage={this.renderErrorMessage()}
-              datasourceType={this.props.datasource_type}
-            />
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <QueryAndSaveBtns
+                canAdd="True"
+                onQuery={this.onQuery}
+                onSave={this.toggleModal}
+                onStop={this.onStop}
+                loading={this.props.chart.chartStatus === 'loading'}
+                chartIsStale={this.state.chartIsStale}
+                errorMessage={this.renderErrorMessage()}
+                datasourceType={this.props.datasource_type}
+              />
+              <div>
+                <Hotkeys
+                  header="Keyboard shortcuts"
+                  hotkeys={getHotKeys()}
+                  placement="right"
+                />
+              </div>
+            </div>
             <br />
             <ControlPanelsContainer
               actions={this.props.actions}

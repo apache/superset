@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { Preset } from '@superset-ui/core';
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
@@ -12,7 +30,9 @@ import EventFlowChartPlugin from '../EventFlow/EventFlowChartPlugin';
 import ForceDirectedChartPlugin from '../ForceDirected/ForceDirectedChartPlugin';
 import HeatmapChartPlugin from '../Heatmap/HeatmapChartPlugin';
 import HorizonChartPlugin from '../Horizon/HorizonChartPlugin';
+import IframeChartPlugin from '../Iframe/IframeChartPlugin';
 import LineMultiChartPlugin from '../nvd3/LineMulti/LineMultiChartPlugin';
+import MarkupChartPlugin from '../Markup/MarkupChartPlugin';
 import PairedTTestChartPlugin from '../PairedTTest/PairedTTestChartPlugin';
 import ParallelCoordinatesChartPlugin from '../ParallelCoordinates/ParallelCoordinatesChartPlugin';
 import RoseChartPlugin from '../Rose/RoseChartPlugin';
@@ -39,7 +59,10 @@ export default class LegacyChartPreset extends Preset {
         new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
+        new IframeChartPlugin().configure({ key: 'iframe' }),
         new LineMultiChartPlugin().configure({ key: 'line_multi' }),
+        new MarkupChartPlugin().configure({ key: 'markup' }),
+        new MarkupChartPlugin().configure({ key: 'separator' }),
         new PairedTTestChartPlugin().configure({ key: 'paired_ttest' }),
         new ParallelCoordinatesChartPlugin().configure({ key: 'para' }),
         new RoseChartPlugin().configure({ key: 'rose' }),

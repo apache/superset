@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime, timedelta
 import inspect
@@ -23,7 +39,6 @@ import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
-from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
@@ -67,7 +82,7 @@ QueryStatus = utils.QueryStatus
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     'This endpoint requires the `all_datasource_access` permission')
-DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
+DATASOURCE_MISSING_ERR = __('The data source seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
@@ -137,7 +152,7 @@ class DashboardFilter(SupersetFilter):
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
-    list_title = _('List Databases')
+    list_title = _('Databases')
     show_title = _('Show Database')
     add_title = _('Add Database')
     edit_title = _('Edit Database')
@@ -178,7 +193,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': utils.markdown(
             'Refer to the '
             '[SqlAlchemy docs]'
-            '(http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#'
+            '(http://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#'
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
@@ -319,7 +334,7 @@ class DatabaseAsync(DatabaseView):
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_dml',
         'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
-        'allows_subquery',
+        'allows_subquery', 'backend',
     ]
 
 
@@ -438,7 +453,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/chart'
     datamodel = SQLAInterface(models.Slice)
 
-    list_title = _('List Charts')
+    list_title = _('Charts')
     show_title = _('Show Chart')
     add_title = _('Add Chart')
     edit_title = _('Edit Chart')
@@ -554,7 +569,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/dashboard'
     datamodel = SQLAInterface(models.Dashboard)
 
-    list_title = _('List Dashboards')
+    list_title = _('Dashboards')
     show_title = _('Show Dashboard')
     add_title = _('Add Dashboard')
     edit_title = _('Edit Dashboard')
@@ -575,7 +590,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             'the widgets size and positions by using drag & drop in '
             'the dashboard view'),
         'css': _(
-            'The css for individual dashboards can be altered here, or '
+            'The CSS for individual dashboards can be altered here, or '
             'in the dashboard view where changes are immediately '
             'visible'),
         'slug': _('To get a readable URL for your dashboard'),
@@ -686,7 +701,7 @@ appbuilder.add_view_no_menu(DashboardAddView)
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
 
-    list_title = _('List Log')
+    list_title = _('Logs')
     show_title = _('Show Log')
     add_title = _('Add Log')
     edit_title = _('Edit Log')
@@ -768,8 +783,13 @@ class R(BaseSupersetView):
     @expose('/<url_id>')
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if url:
-            return redirect('/' + url.url)
+        if url and url.url:
+            explore_url = '//superset/explore/?'
+            if url.url.startswith(explore_url):
+                explore_url += f'r={url_id}'
+                return redirect(explore_url[1:])
+            else:
+                return redirect(url.url[1:])
         else:
             flash('URL to nowhere...', 'danger')
             return redirect('/')
@@ -1397,7 +1417,7 @@ class Superset(BaseSupersetView):
                 form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
-        slc.params = json.dumps(form_data)
+        slc.params = json.dumps(form_data, indent=2, sort_keys=True)
         slc.datasource_name = datasource_name
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
@@ -1765,7 +1785,7 @@ class Superset(BaseSupersetView):
                 connect_args.update(get_updated_connect_args(url,connect_args))
                 remove_http_params_from(url,connect_args)
 
-            if configuration:
+            if configuration and connect_args is not None:
                 connect_args['configuration'] = configuration
 
             has_kerberos_ticket()
@@ -2629,8 +2649,7 @@ class Superset(BaseSupersetView):
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
-        response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(unidecode(query.name)))
+        response.headers['Content-Disposition'] = f'attachment; filename={query.name}.csv'
         logging.info('Ready to return response')
         return response
 
@@ -2885,10 +2904,10 @@ appbuilder.add_view_no_menu(Superset)
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
 
-    list_title = _('List Css Template')
-    show_title = _('Show Css Template')
-    add_title = _('Add Css Template')
-    edit_title = _('Edit Css Template')
+    list_title = _('CSS Templates')
+    show_title = _('Show CSS Template')
+    add_title = _('Add CSS Template')
+    edit_title = _('Edit CSS Template')
 
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']

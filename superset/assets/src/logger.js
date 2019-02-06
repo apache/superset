@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint no-console: 0 */
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -140,6 +158,7 @@ export const LOG_ACTIONS_REFRESH_DASHBOARD = 'force_refresh_dashboard';
 export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
 export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART = 'export_csv_dashboard_chart';
 export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
+export const LOG_ACTIONS_OMNIBAR_TRIGGERED = 'omnibar_dashboard_triggered';
 
 export const DASHBOARD_EVENT_NAMES = [
   LOG_ACTIONS_MOUNT_DASHBOARD,
@@ -152,6 +171,7 @@ export const DASHBOARD_EVENT_NAMES = [
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_REFRESH_DASHBOARD,
+  LOG_ACTIONS_OMNIBAR_TRIGGERED,
 ];
 
 export const EXPLORE_EVENT_NAMES = [

@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import io
 import json
 import os
@@ -42,7 +58,7 @@ with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
 
 
 setup(
-    name='superset',
+    name='apache-superset',
     description=(
         'A modern, enterprise-ready business intelligence web application'),
     long_description=long_description,
@@ -55,11 +71,12 @@ setup(
     install_requires=[
         'bleach>=3.0.2, <4.0.0',
         'celery>=4.2.0, <5.0.0',
-        'click>=6.0, <7.0.0',  # click >=7 forces "-" instead of "_"
+        'click>=6.0, <7.0.0',  # `click`>=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
-        'cryptography',
         'elasticsearch',
+        'croniter==0.3.25',
+        'cryptography>=2.4.2',
         'flask>=1.0.0, <2.0.0',
         'flask-appbuilder>=1.12.1, <2.0.0',
         'flask-caching',
@@ -67,32 +84,28 @@ setup(
         'flask-migrate',
         'flask-sqlalchemy==2.3.2',
         'flask-wtf',
-        'flower',  # deprecated
         'geopy',
-        'gsheetsdb>=0.1.8',
         'gunicorn',  # deprecated
         'humanize',
         'idna',
         'isodate',
-        'markdown<3.0.0',
-        'pandas>=0.18.0, <0.24.0',
+        'markdown>=3.0',
+        'pandas>=0.18.0, <0.24.0',  # `pandas`>=0.24.0 changes datetimelike API
         'parsedatetime',
         'pathlib2',
         'polyline',
         'psycopg2-binary',
         'pydruid>=0.4.3',
-        'pyhive>=0.6.0',
         'python-dateutil',
         'python-geohash',
         'pyyaml>=3.13',
         'requests>=2.20.0',
+        'retry>=0.9.2',
+        'selenium>=3.14.0',
         'simplejson>=3.15.0',
         'sqlalchemy',
         'sqlalchemy-utils',
         'sqlparse',
-        'tableschema',
-        'thrift>=0.9.3',
-        'thrift-sasl>=0.2.1',
         'unicodecsv',
         'unidecode>=0.04.21',
         'beautifulsoup4==4.6.0',
@@ -104,19 +117,26 @@ setup(
         'xlrd==1.1.0',
         'python-ldap==3.1.0',
         'requests-kerberos==0.12.0',
-        'django==2.1.5'
-
+        'django==2.1.5',
+        'wtforms-json',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
         'console_log': ['console_log==0.2.10'],
+        'hive': [
+            'pyhive>=0.6.1',
+            'tableschema',
+            'thrift-sasl>=0.2.1',
+            'thrift>=0.9.3',
+        ],
+        'presto': ['pyhive>=0.4.0'],
+        'gsheets': ['gsheetsdb>=0.1.9'],
     },
-    author='Maxime Beauchemin',
-    author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/apache/incubator-superset',
+    author='Apache Software Foundation',
+    author_email='dev@superset.incubator.apache.org',
+    url='http://superset.apache.org/',
     download_url=(
-        'https://github.com'
-        '/apache/incubator-superset/tarball/' + version_string
+        'https://dist.apache.org/repos/dist/release/superset/' + version_string
     ),
     classifiers=[
         'Programming Language :: Python :: 3.6',
