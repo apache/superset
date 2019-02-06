@@ -3717,6 +3717,15 @@
       "description": "Whether to fill the objects",
       "default": true
     },
+    "filter_configs": {
+      "type": "CollectionControl",
+      "label": "Filters",
+      "description": "Filter configuration for the filter box",
+      "validators": [
+        null
+      ],
+      "controlName": "FilterBoxItemControl"
+    },
     "normalized": {
       "type": "CheckboxControl",
       "label": "Normalized",
