@@ -33,7 +33,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
-import { safeStringify } from 'src/utils/safeStringify';
+import { safeStringify } from '../../utils/safeStringify';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

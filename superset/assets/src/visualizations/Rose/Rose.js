@@ -24,7 +24,7 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import './Rose.css';
-import { safeStringify } from 'src/utils/safeStringify';
+import { safeStringify } from '../../utils/safeStringify';
 
 const propTypes = {
   // Data is an object hashed by numeric value, perhaps timestamp

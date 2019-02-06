@@ -24,7 +24,7 @@ import { t } from '@superset-ui/translation';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
-import { safeStringify } from 'src/utils/safeStringify';
+import { safeStringify } from '../utils/safeStringify';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,

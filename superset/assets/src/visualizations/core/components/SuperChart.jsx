@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { createSelector } from 'reselect';
 import { getChartComponentRegistry, getChartTransformPropsRegistry, ChartProps } from '@superset-ui/chart';
 import createLoadableRenderer from './createLoadableRenderer';
-import { safeStringify } from 'src/utils/safeStringify';
+import { safeStringify } from '../../../utils/safeStringify';
 
 const IDENTITY = x => x;
 
