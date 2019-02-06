@@ -119,6 +119,8 @@ class DatasourceControl extends React.PureComponent {
   }
 
   render() {
+    const { menuExpanded, showChangeDatasourceModal, showEditDatasourceModal } = this.state;
+    const { datasource, onChange, onDatasourceSave, value } = this.props;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -130,7 +132,7 @@ class DatasourceControl extends React.PureComponent {
         >
           <div className="btn-group">
             <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }}>
-              {this.props.datasource.name}
+              {datasource.name}
             </Label>
           </div>
         </OverlayTrigger>
@@ -138,7 +140,7 @@ class DatasourceControl extends React.PureComponent {
           noCaret
           title={
             <span>
-              <i className={`float-right expander fa fa-angle-${this.state.menuExpanded ? 'up' : 'down'}`} />
+              <i className={`float-right expander fa fa-angle-${menuExpanded ? 'up' : 'down'}`} />
             </span>}
           className="label label-btn m-r-5"
           bsSize="sm"
@@ -150,10 +152,10 @@ class DatasourceControl extends React.PureComponent {
           >
             {t('Edit Datasource')}
           </MenuItem>
-          {this.props.datasource.type === 'table' &&
+          {datasource.type === 'table' &&
             <MenuItem
               eventKey="3"
-              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
+              href={`/superset/sqllab?datasourceKey=${value}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -183,16 +185,16 @@ class DatasourceControl extends React.PureComponent {
         </OverlayTrigger>
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
-          datasource={this.props.datasource}
-          show={this.state.showEditDatasourceModal}
-          onDatasourceSave={this.props.onDatasourceSave}
+          datasource={datasource}
+          show={showEditDatasourceModal}
+          onDatasourceSave={onDatasourceSave}
           onHide={this.toggleEditDatasourceModal}
         />
         <ChangeDatasourceModal
-          onDatasourceSave={this.props.onDatasourceSave}
+          onDatasourceSave={onDatasourceSave}
           onHide={this.toggleChangeDatasourceModal}
-          show={this.state.showChangeDatasourceModal}
-          onChange={this.props.onChange}
+          show={showChangeDatasourceModal}
+          onChange={onChange}
         />
       </div>
     );

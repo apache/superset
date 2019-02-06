@@ -61,7 +61,6 @@ class ChangeDatasourceModal extends React.PureComponent {
     if (this.searchRef) {
       this.searchRef.focus();
     }
-    const that = this;
     if (!this.state.datasources) {
       SupersetClient.get({
         endpoint: '/superset/datasources/',
@@ -83,10 +82,10 @@ class ChangeDatasourceModal extends React.PureComponent {
             type: ds.type,
           }));
 
-          that.setState({ loading: false, datasources });
+          this.setState({ loading: false, datasources });
         })
         .catch((response) => {
-          that.setState({ loading: false });
+          this.setState({ loading: false });
           getClientErrorObject(response).then(({ error }) => {
             this.props.addDangerToast(error.error || error.statusText || error);
           });
@@ -117,10 +116,13 @@ class ChangeDatasourceModal extends React.PureComponent {
   }
 
   render() {
+    const { datasources, filter, loading } = this.state;
+    const { show, onHide } = this.props;
+
     return (
       <Modal
-        show={this.props.show}
-        onHide={this.props.onHide}
+        show={show}
+        onHide={onHide}
         onEnter={this.onEnterModal}
         onExit={this.setSearchRef}
         bsSize="lg"
@@ -137,20 +139,20 @@ class ChangeDatasourceModal extends React.PureComponent {
               }}
               type="text"
               bsSize="sm"
-              value={this.state.filter}
+              value={filter}
               placeholder={t('Search / Filter')}
               onChange={this.changeSearch}
             />
           </div>
-          {this.state.loading && <Loading />}
-          {this.state.datasources && (
+          {loading && <Loading />}
+          {datasources && (
             <Table
               columns={['name', 'type', 'schema', 'connection', 'creator']}
               className="table table-condensed"
-              data={this.state.datasources}
+              data={datasources}
               itemsPerPage={20}
               filterable={['rawName', 'type', 'connection', 'schema', 'creator']}
-              filterBy={this.state.filter}
+              filterBy={filter}
               hideFilterInput
             />
           )}
