@@ -45,7 +45,9 @@ const propTypes = {
 class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
+
     this.removeAlert = this.removeAlert.bind(this);
+    this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
   getControlData(controlName) {
@@ -96,15 +98,17 @@ class ControlPanelsContainer extends React.Component {
 
     const { validationErrors, provideFormDataToProps } = controlData;
 
-    return (<Control
-      name={name}
-      key={`control-${name}`}
-      value={formData[name]}
-      validationErrors={validationErrors}
-      actions={actions}
-      formData={provideFormDataToProps ? formData : null}
-      {...additionalProps}
-    />);
+    return (
+      <Control
+        name={name}
+        key={`control-${name}`}
+        value={formData[name]}
+        validationErrors={validationErrors}
+        actions={actions}
+        formData={provideFormDataToProps ? formData : null}
+        {...additionalProps}
+      />
+    );
   }
   renderControlPanelSection(section) {
     const { controls } = this.props;
@@ -135,12 +139,16 @@ class ControlPanelsContainer extends React.Component {
                 // When the item is a React element
                 return controlItem;
               } else if (isPlainObject(controlItem) && controlItem.name && controlItem.config) {
-                // When the item is { name, config }
+                // When the item is { name, config }, meaning the control config
+                // is specified directly. Do not have to look up by name from
+                // centralized configs.
                 const { name, config } = controlItem;
 
                 return this.renderControl(name, config);
               } else if (controls[controlItem]) {
-                // When the item is string name;
+                // When the item is string name, meaning the control config
+                // is not specified directly. Have to look up the config from
+                // centralized configs.
                 const name = controlItem;
 
                 return this.renderControl(name, controlConfigs[name]);
