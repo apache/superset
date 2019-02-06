@@ -493,7 +493,7 @@ DASHBOARD_TEMPLATE_ID = None
 # username. The function receives the connection uri object, connection
 # params, the username, and returns the mutated uri and params objects.
 # Example:
-#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager, source):
 #       user = security_manager.find_user(username=username)
 #       if user and user.email:
 #           uri.username = user.email
