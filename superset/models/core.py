@@ -48,6 +48,7 @@ from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
@@ -358,6 +359,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         logging.info('Final slice: {}'.format(slc_to_import.to_json()))
         session.flush()
         return slc_to_import.id
+
+    @property
+    def url(self):
+        return (
+            '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'
+            .format(self.id)
+        )
 
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
@@ -1253,3 +1261,14 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+# events for updating tags
+sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)
