@@ -1699,7 +1699,7 @@ class Superset(BaseSupersetView):
 
         columns = set()
         for ds in dashboard.datasources:
-           columns |= set({column.column_name for column in ds.columns})
+            columns |= set({column.column_name for column in ds.columns})
 
         default_filters_data = json.loads(data.get('default_filters', '{}'))
         applicable_filters = \
