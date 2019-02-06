@@ -1,5 +1,5 @@
 {
-  "name": "@superset-ui/legacy-plugin-chart-big-number",
+  "name": "@superset-ui/legacy-preset-chart-big-number",
   "version": "0.0.0",
   "description": "Superset Legacy Chart - Big Number",
   "sideEffects": false,
