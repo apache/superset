@@ -22,14 +22,15 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { isPlainObject } from 'lodash';
 import { t } from '@superset-ui/translation';
 
 import controlPanelConfigs, { sectionsToRender } from '../controlPanels';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
-import controls from '../controls';
-import * as actions from '../actions/exploreActions';
+import controlConfigs from '../controls';
+import * as exploreActions from '../actions/exploreActions';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -45,7 +46,6 @@ class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
     this.removeAlert = this.removeAlert.bind(this);
-    this.getControlData = this.getControlData.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
   getControlData(controlName) {
@@ -55,7 +55,7 @@ class ControlPanelsContainer extends React.Component {
 
     const control = this.props.controls[controlName];
     // Identifying mapStateToProps function to apply (logic can't be in store)
-    let mapF = controls[controlName].mapStateToProps;
+    let mapF = controlConfigs[controlName].mapStateToProps;
 
     // Looking to find mapStateToProps override for this viz type
     const config = controlPanelConfigs[this.props.controls.viz_type.value] || {};
@@ -75,13 +75,46 @@ class ControlPanelsContainer extends React.Component {
   removeAlert() {
     this.props.actions.removeControlPanelAlert();
   }
+  renderControl(name, config) {
+    const { actions, controls, exploreState, form_data: formData } = this.props;
+
+    // Looking to find mapStateToProps override for this viz type
+    const controlPanelConfig = controlPanelConfigs[controls.viz_type.value].controlOverrides || {};
+    const overrides = controlPanelConfig[name];
+
+    // Identifying mapStateToProps function to apply (logic can't be in store)
+    const mapFn = (overrides && overrides.mapStateToProps)
+      ? overrides.mapStateToProps
+      : config.mapStateToProps;
+
+    const controlData = controls[name];
+
+    // Applying mapStateToProps if needed
+    const additionalProps = mapFn
+      ? { ...controlData, ...mapFn(exploreState, controlData, actions) }
+      : controlData;
+
+    const { validationErrors, provideFormDataToProps } = controlData;
+
+    return (<Control
+      name={name}
+      key={`control-${name}`}
+      value={formData[name]}
+      validationErrors={validationErrors}
+      actions={actions}
+      formData={provideFormDataToProps ? formData : null}
+      {...additionalProps}
+    />);
+  }
   renderControlPanelSection(section) {
-    const ctrls = this.props.controls;
+    const { controls } = this.props;
+
     const hasErrors = section.controlSetRows.some(rows => rows.some(s => (
-        ctrls[s] &&
-        ctrls[s].validationErrors &&
-        (ctrls[s].validationErrors.length > 0)
+      controls[s] &&
+      controls[s].validationErrors &&
+      (controls[s].validationErrors.length > 0)
     )));
+
     return (
       <ControlPanelSection
         key={section.label}
@@ -94,21 +127,23 @@ class ControlPanelsContainer extends React.Component {
           <ControlRow
             key={`controlsetrow-${i}`}
             className="control-row"
-            controls={controlSets.map((controlName) => {
-              if (!controlName) {
+            controls={controlSets.map((controlItem) => {
+              if (!controlItem) {
+                // When the item is invalid
                 return null;
-              } else if (React.isValidElement(controlName)) {
-                return controlName;
-              } else if (ctrls[controlName]) {
-                return (<Control
-                  name={controlName}
-                  key={`control-${controlName}`}
-                  value={this.props.form_data[controlName]}
-                  validationErrors={ctrls[controlName].validationErrors}
-                  actions={this.props.actions}
-                  formData={ctrls[controlName].provideFormDataToProps ? this.props.form_data : null}
-                  {...this.getControlData(controlName)}
-                />);
+              } else if (React.isValidElement(controlItem)) {
+                // When the item is a React element
+                return controlItem;
+              } else if (isPlainObject(controlItem) && controlItem.name && controlItem.config) {
+                // When the item is { name, config }
+                const { name, config } = controlItem;
+
+                return this.renderControl(name, config);
+              } else if (controls[controlItem]) {
+                // When the item is string name;
+                const name = controlItem;
+
+                return this.renderControl(name, controlConfigs[name]);
               }
               return null;
             })}
@@ -124,10 +159,10 @@ class ControlPanelsContainer extends React.Component {
     allSectionsToRender.forEach((section) => {
       if (section.controlSetRows.some(rows => rows.some(
         control => (
-          controls[control] &&
+          controlConfigs[control] &&
           (
-            !controls[control].renderTrigger ||
-            controls[control].tabOverride === 'data'
+            !controlConfigs[control].renderTrigger ||
+            controlConfigs[control].tabOverride === 'data'
           )
         )))) {
         querySectionsToRender.push(section);
@@ -178,7 +213,7 @@ function mapStateToProps({ explore }) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators(actions, dispatch),
+    actions: bindActionCreators(exploreActions, dispatch),
   };
 }
 
