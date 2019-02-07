@@ -25,6 +25,7 @@ import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import IframeChartPlugin from '@superset-ui/legacy-plugin-chart-iframe';
 import MarkupChartPlugin from '@superset-ui/legacy-plugin-chart-markup';
+import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
@@ -37,7 +38,6 @@ import BulletChartPlugin from '../nvd3/Bullet/BulletChartPlugin';
 import CompareChartPlugin from '../nvd3/Compare/CompareChartPlugin';
 import DualLineChartPlugin from '../nvd3/DualLine/DualLineChartPlugin';
 import LineMultiChartPlugin from '../nvd3/LineMulti/LineMultiChartPlugin';
-import PairedTTestChartPlugin from '../PairedTTest/PairedTTestChartPlugin';
 import TimePivotChartPlugin from '../nvd3/TimePivot/TimePivotChartPlugin';
 
 export default class LegacyChartPreset extends Preset {
