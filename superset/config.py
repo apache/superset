@@ -275,7 +275,9 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict([
     ('superset.connectors.sqla.models', ['SqlaTable']),
-    ('superset.connectors.druid.models', ['DruidDatasource'])
+    ('superset.connectors.druid.models', ['DruidDatasource']),
+    ('superset.connectors.elastic.models', ['ElasticDatasource']),
+    ('contrib.connectors.pandas.models', ['PandasDatasource'])
 ])
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []

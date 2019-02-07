@@ -33,11 +33,16 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.ElasticColumn)
     edit_columns = [
         'column_name', 'description', 'json', 'datasource',
-        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable', 
+        # 'count_distinct', 'sum', 'min', 
+        # 'max'
+        ]
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+        'column_name', 'type', 'groupby', 'filterable', 
+        # 'count_distinct',
+        # 'sum', 'min', 'max'
+        ]
     can_delete = False
     page_size = 500
     label_columns = {
@@ -46,10 +51,10 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'datasource': _('Datasource'),
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
+        # 'count_distinct': _('Count Distinct'),
+        # 'sum': _('Sum'),
+        # 'min': _('Min'),
+        # 'max': _('Max'),
     }
     description_columns = {
         'filterable': _(

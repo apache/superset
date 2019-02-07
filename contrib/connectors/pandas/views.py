@@ -75,11 +75,14 @@ class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'datasource', 'count_distinct', 'sum', 'avg', 'min', 'max']
+        'datasource', 
+        # 'count_distinct', 'sum', 'avg', 'min', 'max'
+        ]
     add_columns = edit_columns
     list_columns = [
         'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
-        'count_distinct', 'sum', 'avg', 'min', 'max']
+        # 'count_distinct', 'sum', 'avg', 'min', 'max'
+        ]
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -102,11 +105,11 @@ class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
         'datasource': _('Datasource'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'avg': _('Average'),
-        'min': _('Min'),
-        'max': _('Max'),
+        # 'count_distinct': _('Count Distinct'),
+        # 'sum': _('Sum'),
+        # 'avg': _('Average'),
+        # 'min': _('Min'),
+        # 'max': _('Max'),
         'type': _('Type'),
     }
 
