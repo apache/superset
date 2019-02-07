@@ -10,15 +10,17 @@ export default [
         chartProps={{
           formData: {
             metric: 'sum__num',
-            "subheader": "total female participants",
+            subheader: 'total female participants',
             vizType: 'big_number_total',
             yAxisFormat: '.3s',
           },
           height: 400,
           payload: {
-            data: [{
-              "sum__num": 32546308
-            }],
+            data: [
+              {
+                sum__num: 32546308,
+              },
+            ],
           },
           width: 400,
         }}
