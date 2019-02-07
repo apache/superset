@@ -1,6 +1,7 @@
 import { setAddon, storiesOf } from '@storybook/react';
 import { withKnobs } from '@storybook/addon-knobs';
 import JSXAddon from 'storybook-addon-jsx';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 setAddon(JSXAddon);
 

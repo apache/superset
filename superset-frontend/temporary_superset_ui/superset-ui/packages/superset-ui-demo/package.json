@@ -34,8 +34,12 @@
     "@storybook/addon-options": "^4.0.3",
     "@storybook/react": "^4.0.2",
     "@superset-ui/color": "^0.9.3",
+    "@superset-ui/number-format": "^0.9.3",
+    "@superset-ui/time-format": "^0.9.3",
     "babel-loader": "^8.0.4",
+    "bootstrap": "^4.2.1",
     "git-directory-deploy": "^1.5.1",
+    "prop-types": "^15.6.2",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
     "storybook-addon-jsx": "^5.4.0"
