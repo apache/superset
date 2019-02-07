@@ -43,7 +43,7 @@ const PROPORTION = {
 };
 
 export function renderTooltipFactory(formatValue) {
-  return function renderTooltip({ datum }) {
+  function renderTooltip({ datum }) {
     // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
     const formattedDate = smartDateVerboseFormatter(rawDate);
@@ -56,7 +56,16 @@ export function renderTooltipFactory(formatValue) {
         <strong>{value}</strong>
       </div>
     );
+  }
+
+  renderTooltip.propTypes = {
+    datum: PropTypes.shape({
+      x: PropTypes.instanceOf(Date),
+      y: PropTypes.number,
+    }).isRequired,
   };
+
+  return renderTooltip;
 }
 
 function identity(x) {
