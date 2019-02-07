@@ -89,6 +89,6 @@ export default [
       />
     ),
     storyName: 'BigNumberChartPlugin',
-    storyPath: 'plugin-chart-big-number',
+    storyPath: 'preset-chart-big-number|BigNumberChartPlugin',
   },
 ];
