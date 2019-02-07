@@ -191,7 +191,6 @@ class ChartRenderer extends React.Component {
         {this.renderTooltip()}
         <SuperChart
           id={`chart-id-${chartId}`}
-        <SuperChart
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
           chartProps={skipChartRendering ? null : this.prepareChartProps()}
