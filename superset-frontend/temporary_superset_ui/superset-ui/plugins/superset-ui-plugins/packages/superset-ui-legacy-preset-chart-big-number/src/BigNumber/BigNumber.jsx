@@ -43,7 +43,8 @@ const PROPORTION = {
 };
 
 export function renderTooltipFactory(formatValue) {
-  return function renderTooltip({ datum }) { // eslint-disable-line
+  return function renderTooltip({ datum }) {
+    // eslint-disable-line
     const { x: rawDate, y: rawValue } = datum;
     const formattedDate = smartDateVerboseFormatter(rawDate);
     const value = formatValue(rawValue);
@@ -94,12 +95,12 @@ class BigNumberVis extends React.PureComponent {
 
   getClassName() {
     const { className, showTrendLine } = this.props;
-    const names = `big_number ${className}`;
+    const names = `superset-legacy-chart-big-number ${className}`;
     if (showTrendLine) {
       return names;
     }
 
-    return `${names} no_trendline`;
+    return `${names} no-trendline`;
   }
 
   createTemporaryContainer() {
@@ -121,14 +122,14 @@ class BigNumberVis extends React.PureComponent {
       text,
       maxWidth: Math.floor(width),
       maxHeight,
-      className: 'header_line',
+      className: 'header-line',
       container,
     });
     document.body.removeChild(container);
 
     return (
       <div
-        className="header_line"
+        className="header-line"
         style={{
           fontSize,
           height: maxHeight,
@@ -149,7 +150,7 @@ class BigNumberVis extends React.PureComponent {
         text: subheader,
         maxWidth: Math.floor(width),
         maxHeight,
-        className: 'subheader_line',
+        className: 'subheader-line',
         container,
       });
       document.body.removeChild(container);
@@ -157,7 +158,7 @@ class BigNumberVis extends React.PureComponent {
 
     return (
       <div
-        className="subheader_line"
+        className="subheader-line"
         style={{
           fontSize,
           height: maxHeight,
@@ -216,7 +217,7 @@ class BigNumberVis extends React.PureComponent {
 
       return (
         <div className={className}>
-          <div className="text_container" style={{ height: allTextHeight }}>
+          <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderHeader(Math.ceil(PROPORTION.HEADER_WITH_TRENDLINE * height))}
             {this.renderSubheader(Math.ceil(PROPORTION.SUBHEADER_WITH_TRENDLINE * height))}
           </div>
