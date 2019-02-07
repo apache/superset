@@ -71,9 +71,10 @@ export default class ColorSchemeControl extends React.PureComponent {
     // For categorical scheme, display all the colors
     // For sequential scheme, show 10 or interpolate to 10.
     // Sequential schemes usually have at most 10 colors.
-    const colors = isLinear
-      ? currentScheme.getColors(10)
-      : currentScheme.colors;
+    let colors = [];
+    if (currentScheme) {
+      colors = isLinear ? currentScheme.getColors(10) : currentScheme.colors;
+    }
 
     return (
       <ul className="color-scheme-container">
