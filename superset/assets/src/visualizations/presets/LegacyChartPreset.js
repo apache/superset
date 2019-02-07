@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
+import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import { Preset } from '@superset-ui/core';
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
 import HierarchyChartPreset from './HierarchyChartPreset';
 import MapChartPreset from './MapChartPreset';
 import BulletChartPlugin from '../nvd3/Bullet/BulletChartPlugin';
-import CalendarChartPlugin from '../Calendar/CalendarChartPlugin';
-import ChordChartPlugin from '../Chord/ChordChartPlugin';
 import CompareChartPlugin from '../nvd3/Compare/CompareChartPlugin';
 import DualLineChartPlugin from '../nvd3/DualLine/DualLineChartPlugin';
 import EventFlowChartPlugin from '../EventFlow/EventFlowChartPlugin';
