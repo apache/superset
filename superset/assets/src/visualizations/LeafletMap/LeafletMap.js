@@ -1,4 +1,4 @@
-import './leaflet_map.css';
+import './LeafletMap.css';
 // todo: use types to avoid full path of libs
 import '../../../node_modules/leaflet/dist/leaflet.css';
 import * as turf from '@turf/turf';
@@ -21,7 +21,7 @@ function NOOP() {}
  * @param {*} element
  * @param {*} props
  */
-function leafletmap(element, props) {
+function LeafletMap(element, props) {
  
     const {height, payload, formData ,onAddFilter = NOOP } = props;
 
@@ -393,6 +393,6 @@ function leafletmap(element, props) {
     init();
 }
 
-leafletmap.displayName = 'Leaflet Map';
-leafletmap.propTypes = propTypes;
-module.exports = leafletmap;
+LeafletMap.displayName = 'Leaflet Map';
+LeafletMap.propTypes = propTypes;
+export default LeafletMap;

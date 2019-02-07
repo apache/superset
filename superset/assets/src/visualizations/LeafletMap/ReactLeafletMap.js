@@ -1,4 +1,4 @@
 import reactify from '../../utils/reactify';
-import Component from './leaflet_map';
+import Component from './LeafletMap';
 
 export default reactify(Component);

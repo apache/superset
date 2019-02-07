@@ -39,6 +39,7 @@ import MetricsControl from './MetricsControl';
 import AdhocFilterControl from './AdhocFilterControl';
 import FilterPanel from './FilterPanel';
 import FilterBoxItemControl from './FilterBoxItemControl';
+import AdhocColumnControl from './AdhocColumnControl'
 
 const controlMap = {
   AnnotationLayerControl,
@@ -64,5 +65,6 @@ const controlMap = {
   AdhocFilterControl,
   FilterPanel,
   FilterBoxItemControl,
+  AdhocColumnControl,
 };
 export default controlMap;
