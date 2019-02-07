@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-force-directed",
-  "version": "0.0.0",
+  "version": "0.0.1-alpha.0",
   "description": "Superset Legacy Chart - Force-directed Graph",
   "sideEffects": false,
   "main": "lib/index.js",
