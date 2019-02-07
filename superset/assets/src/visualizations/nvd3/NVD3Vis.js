@@ -616,8 +616,12 @@ function nvd3Vis(element, props) {
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
       }
       if (xLabelRotation === 45) {
-        margins.bottom = maxXAxisLabelHeight + marginPad;
-        margins.right = maxXAxisLabelHeight + marginPad;
+        margins.bottom = (
+          maxXAxisLabelHeight * Math.sin(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
+        margins.right = (
+          maxXAxisLabelHeight * Math.cos(Math.PI * xLabelRotation / 180)
+        ) + marginPad;
       } else if (staggerLabels) {
         margins.bottom = 40;
       }
