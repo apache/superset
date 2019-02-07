@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
+import { flatMap, flow } from 'lodash/fp';
 import controls from './controls';
 import controlPanelConfigs, { sectionsToRender } from './controlPanels';
 
@@ -46,14 +47,14 @@ export function validateControl(control) {
   return control;
 }
 
-
-export function getControlNames(vizType, datasourceType) {
-  const controlNames = [];
-  sectionsToRender(vizType, datasourceType).forEach(
-    section => section.controlSetRows.forEach(
-      fsr => fsr.forEach(
-        f => controlNames.push(f))));
-  return controlNames;
+function getControlItems(vizType, datasourceType) {
+  return flow(
+    flatMap(section => section.controlSetRows),
+    flatMap(row => row.filter(c => c && !React.isValidElement(c))
+      .map(c => c.name && c.config
+        ? c
+        : { name: c, config: controls[c] })),
+  )(sectionsToRender(vizType, datasourceType));
 }
 
 function handleDeprecatedControls(formData) {
@@ -81,38 +82,35 @@ export function getControlsState(state, form_data) {
 
   handleDeprecatedControls(formData);
 
-  const controlNames = getControlNames(vizType, state.datasource.type);
+  const controlItems = getControlItems(vizType, state.datasource.type);
 
   const viz = controlPanelConfigs[vizType] || {};
   const controlOverrides = viz.controlOverrides || {};
   const controlsState = {};
-  controlNames.forEach((k) => {
-    if (React.isValidElement(k)) {
-      // no state
-      return;
-    }
-    const control = Object.assign({}, controls[k], controlOverrides[k]);
+  controlItems.forEach(({ name, config }) => {
+    const control = { ...config, ...controlOverrides[name] };
     if (control.mapStateToProps) {
       Object.assign(control, control.mapStateToProps(state, control));
       delete control.mapStateToProps;
     }
 
-    formData[k] = (control.multi && formData[k] && !Array.isArray(formData[k])) ? [formData[k]]
-      : formData[k];
+    formData[name] = (control.multi && formData[name] && !Array.isArray(formData[name]))
+      ? [formData[name]]
+      : formData[name];
 
     // If the value is not valid anymore based on choices, clear it
     if (
       control.type === 'SelectControl' &&
       !control.freeForm &&
       control.choices &&
-      k !== 'datasource' &&
-      formData[k]
+      name !== 'datasource' &&
+      formData[name]
     ) {
       const choiceValues = control.choices.map(c => c[0]);
-      if (control.multi && formData[k].length > 0) {
-        formData[k] = formData[k].filter(el => choiceValues.indexOf(el) > -1);
-      } else if (!control.multi && choiceValues.indexOf(formData[k]) < 0) {
-        delete formData[k];
+      if (control.multi && formData[name].length > 0) {
+        formData[name] = formData[name].filter(el => choiceValues.indexOf(el) > -1);
+      } else if (!control.multi && choiceValues.indexOf(formData[name]) < 0) {
+        delete formData[name];
       }
     }
 
@@ -121,13 +119,13 @@ export function getControlsState(state, form_data) {
     }
     control.validationErrors = [];
     control.value = control.default;
-    // formData[k]'s type should match control value type
-    if (formData[k] !== undefined &&
-      (Array.isArray(formData[k]) && control.multi || !control.multi)
+    // formData[name]'s type should match control value type
+    if (formData[name] !== undefined &&
+      (Array.isArray(formData[name]) && control.multi || !control.multi)
     ) {
-      control.value = formData[k];
+      control.value = formData[name];
     }
-    controlsState[k] = validateControl(control);
+    controlsState[name] = validateControl(control);
   });
   if (viz.onInit) {
     return viz.onInit(controlsState);
@@ -139,22 +137,19 @@ export function applyDefaultFormData(form_data) {
   const datasourceType = form_data.datasource.split('__')[1];
   const vizType = form_data.viz_type || 'table';
   const viz = controlPanelConfigs[vizType] || {};
-  const controlNames = getControlNames(vizType, datasourceType);
+  const controlItems = getControlItems(vizType, datasourceType);
   const controlOverrides = viz.controlOverrides || {};
   const formData = {};
-  controlNames.forEach((k) => {
-    const control = Object.assign({}, controls[k]);
-    if (controlOverrides[k]) {
-      Object.assign(control, controlOverrides[k]);
-    }
-    if (form_data[k] === undefined) {
+  controlItems.forEach(({ name, config }) => {
+    const control = { ...config, ...controlOverrides[name] };
+    if (form_data[name] === undefined) {
       if (typeof control.default === 'function') {
-        formData[k] = control.default(controls[k]);
+        formData[name] = control.default(config);
       } else {
-        formData[k] = control.default;
+        formData[name] = control.default;
       }
     } else {
-      formData[k] = form_data[k];
+      formData[name] = form_data[name];
     }
   });
   return formData;
