@@ -27,6 +27,6 @@ export default [
       />
     ),
     storyName: 'BigNumberTotalChartPlugin',
-    storyPath: 'plugin-chart-big-number-total',
+    storyPath: 'preset-chart-big-number|BigNumberTotalChartPlugin',
   },
 ];
