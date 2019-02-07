@@ -18,6 +18,16 @@
  */
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
+import EventFlowChartPlugin from '@superset-ui/legacy-plugin-chart-event-flow';
+import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
+import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
+import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
+import IframeChartPlugin from '@superset-ui/legacy-plugin-chart-iframe';
+import MarkupChartPlugin from '@superset-ui/legacy-plugin-chart-markup';
+import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
+import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
+import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+
 import { Preset } from '@superset-ui/core';
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
@@ -26,17 +36,8 @@ import MapChartPreset from './MapChartPreset';
 import BulletChartPlugin from '../nvd3/Bullet/BulletChartPlugin';
 import CompareChartPlugin from '../nvd3/Compare/CompareChartPlugin';
 import DualLineChartPlugin from '../nvd3/DualLine/DualLineChartPlugin';
-import EventFlowChartPlugin from '../EventFlow/EventFlowChartPlugin';
-import ForceDirectedChartPlugin from '../ForceDirected/ForceDirectedChartPlugin';
-import HeatmapChartPlugin from '../Heatmap/HeatmapChartPlugin';
-import HorizonChartPlugin from '../Horizon/HorizonChartPlugin';
-import IframeChartPlugin from '../Iframe/IframeChartPlugin';
 import LineMultiChartPlugin from '../nvd3/LineMulti/LineMultiChartPlugin';
-import MarkupChartPlugin from '../Markup/MarkupChartPlugin';
 import PairedTTestChartPlugin from '../PairedTTest/PairedTTestChartPlugin';
-import ParallelCoordinatesChartPlugin from '../ParallelCoordinates/ParallelCoordinatesChartPlugin';
-import RoseChartPlugin from '../Rose/RoseChartPlugin';
-import SankeyChartPlugin from '../Sankey/SankeyChartPlugin';
 import TimePivotChartPlugin from '../nvd3/TimePivot/TimePivotChartPlugin';
 
 export default class LegacyChartPreset extends Preset {
