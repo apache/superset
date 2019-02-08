@@ -215,7 +215,7 @@ export function tipFactory(layer) {
         ? layer.descriptionColumns.map(c => d[c])
         : Object.values(d);
 
-      return `<div><strong>${title}</strong></div><br/>` + `<div>${body.join(', ')}</div>`;
+      return `<div><strong>${title}</strong></div><br/><div>${body.join(', ')}</div>`;
     });
 }
 
