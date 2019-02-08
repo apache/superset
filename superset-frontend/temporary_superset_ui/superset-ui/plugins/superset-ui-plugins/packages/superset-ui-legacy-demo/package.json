@@ -59,6 +59,7 @@
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.0.1-alpha.0",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.0.1-alpha.0",
     "@superset-ui/legacy-preset-chart-big-number": "^0.0.1-alpha.0",
+    "@superset-ui/legacy-preset-chart-nvd3": "^0.0.1-alpha.0",
     "@superset-ui/translation": "^0.9.x",
     "babel-loader": "^8.0.4",
     "bootstrap": "^3.3.6",
