@@ -1,6 +1,7 @@
 /* eslint-disable no-magic-numbers */
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
+import data from './data';
 
 export default [
   {
@@ -15,13 +16,7 @@ export default [
             yAxisFormat: '.3s',
           },
           height: 400,
-          payload: {
-            data: [
-              {
-                sum__num: 32546308,
-              },
-            ],
-          },
+          payload: { data },
           width: 400,
         }}
       />
