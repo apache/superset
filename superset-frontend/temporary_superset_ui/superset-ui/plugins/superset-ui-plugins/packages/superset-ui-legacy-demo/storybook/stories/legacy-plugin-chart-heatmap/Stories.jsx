@@ -200,7 +200,7 @@ export default [
         }}
       />
     ),
-    storyName: 'HeatmapChartPlugin',
-    storyPath: 'plugin-chart-heatmap',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-heatmap|HeatmapChartPlugin',
   },
 ];

@@ -31,7 +31,7 @@ export default [
         }}
       />
     ),
-    storyName: 'PivotTableChartPlugin',
-    storyPath: 'plugin-chart-pivot-table',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-pivot-table|PivotTableChartPlugin',
   },
 ];

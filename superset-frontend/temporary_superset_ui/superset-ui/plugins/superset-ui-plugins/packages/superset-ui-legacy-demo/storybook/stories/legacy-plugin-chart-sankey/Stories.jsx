@@ -70,7 +70,7 @@ export default [
         }}
       />
     ),
-    storyName: 'SankeyChartPlugin',
-    storyPath: 'plugin-chart-sankey',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-sankey|SankeyChartPlugin',
   },
 ];

@@ -26,7 +26,7 @@ export default [
         }}
       />
     ),
-    storyName: 'EventFlowChartPlugin',
-    storyPath: 'plugin-chart-event-flow',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-event-flow|EventFlowChartPlugin',
   },
 ];
