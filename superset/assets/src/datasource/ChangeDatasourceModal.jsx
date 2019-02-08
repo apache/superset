@@ -110,7 +110,9 @@ class ChangeDatasourceModal extends React.PureComponent {
         this.props.onChange(datasource.uid);
       })
       .catch((response) => {
-        this.props.addDangerToast(`Failed to get datasource: ${response.statusText}`);
+        getClientErrorObject(response).then(({ error }) => {
+          this.props.addDangerToast(error.error || error.statusText || error);
+        });
       });
     this.props.onHide();
   }

@@ -60,6 +60,18 @@ class Datasource(BaseSupersetView):
     def get(self, datasource_type, datasource_id):
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
+
+        if not orm_datasource:
+            return json_error_response(
+                'This datasource does not exist',
+                status='400',
+            )
+        elif not orm_datasource.data:
+            return json_error_response(
+                'Error fetching datasource data.',
+                status='500',
+            )
+
         return self.json_response(orm_datasource.data)
 
     @expose('/external_metadata/<datasource_type>/<datasource_id>/')
