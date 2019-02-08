@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable sort-keys, react/require-default-props, react/forbid-prop-types */
+/* eslint-disable promise/always-return, promise/catch-or-return */
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { getExploreLongUrl } from '../../../explore/exploreUtils';
+import { getExploreLongUrl } from '../vendor/superset/exploreUtils';
 import ReactNVD3 from '../ReactNVD3';
 import transformProps from '../transformProps';
 
@@ -72,7 +73,7 @@ class LineMulti extends React.Component {
 
   loadData(props) {
     const { formData, payload } = props;
-    const slices = payload.data.slices;
+    const { slices } = payload.data;
     const {
       extraFilters,
       filters,
