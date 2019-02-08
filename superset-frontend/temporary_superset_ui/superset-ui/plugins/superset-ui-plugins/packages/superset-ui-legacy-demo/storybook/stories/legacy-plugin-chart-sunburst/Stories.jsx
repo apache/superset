@@ -32,7 +32,7 @@ export default [
         }}
       />
     ),
-    storyName: 'SunburstChartPlugin',
-    storyPath: 'plugin-chart-sunburst',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-sunburst|SunburstChartPlugin',
   },
 ];

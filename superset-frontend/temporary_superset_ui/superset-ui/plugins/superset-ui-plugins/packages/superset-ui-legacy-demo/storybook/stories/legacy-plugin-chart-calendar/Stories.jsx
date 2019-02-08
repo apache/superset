@@ -127,7 +127,7 @@ export default [
         }}
       />
     ),
-    storyName: 'CalendarChartPlugin',
-    storyPath: 'plugin-chart-calendar',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-calendar|CalendarChartPlugin',
   },
 ];

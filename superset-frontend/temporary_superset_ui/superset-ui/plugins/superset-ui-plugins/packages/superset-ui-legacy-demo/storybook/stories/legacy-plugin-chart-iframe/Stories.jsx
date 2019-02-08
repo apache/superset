@@ -14,7 +14,7 @@ export default [
         }}
       />
     ),
-    storyName: 'IframeChartPlugin',
-    storyPath: 'plugin-chart-iframe',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-iframe|IframeChartPlugin',
   },
 ];

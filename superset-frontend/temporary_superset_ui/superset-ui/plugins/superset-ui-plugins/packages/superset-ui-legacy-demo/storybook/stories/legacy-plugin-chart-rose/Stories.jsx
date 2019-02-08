@@ -952,7 +952,7 @@ export default [
         }}
       />
     ),
-    storyName: 'RoseChartPlugin',
-    storyPath: 'plugin-chart-rose',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-rose|RoseChartPlugin',
   },
 ];

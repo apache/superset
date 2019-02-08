@@ -125,7 +125,7 @@ export default [
         }}
       />
     ),
-    storyName: 'PartitionChartPlugin',
-    storyPath: 'plugin-chart-partition',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-partition|PartitionChartPlugin',
   },
 ];

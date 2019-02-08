@@ -926,7 +926,7 @@ export default [
         }}
       />
     ),
-    storyName: 'HorizonChartPlugin',
-    storyPath: 'plugin-chart-horizon',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-horizon|HorizonChartPlugin',
   },
 ];
