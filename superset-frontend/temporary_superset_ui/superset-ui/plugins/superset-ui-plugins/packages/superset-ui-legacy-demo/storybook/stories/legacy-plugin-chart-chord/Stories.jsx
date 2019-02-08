@@ -30,7 +30,7 @@ export default [
         }}
       />
     ),
-    storyName: 'ChordChartPlugin',
-    storyPath: 'plugin-chart-chord',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-chord|ChordChartPlugin',
   },
 ];

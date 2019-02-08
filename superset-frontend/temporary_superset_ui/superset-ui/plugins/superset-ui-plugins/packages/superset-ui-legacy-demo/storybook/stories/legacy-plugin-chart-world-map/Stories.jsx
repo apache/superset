@@ -322,7 +322,7 @@ export default [
         }}
       />
     ),
-    storyName: 'WorldMapChartPlugin',
-    storyPath: 'plugin-chart-world-map',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-world-map|WorldMapChartPlugin',
   },
 ];

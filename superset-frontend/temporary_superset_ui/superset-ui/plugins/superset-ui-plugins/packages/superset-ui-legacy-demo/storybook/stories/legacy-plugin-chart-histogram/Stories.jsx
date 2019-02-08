@@ -84,7 +84,7 @@ export default [
         }}
       />
     ),
-    storyName: 'HistogramChartPlugin',
-    storyPath: 'plugin-chart-histogram',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-histogram|HistogramChartPlugin',
   },
 ];

@@ -406,7 +406,7 @@ export default [
         }}
       />
     ),
-    storyName: 'CountryMapChartPlugin',
-    storyPath: 'plugin-chart-country-map',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-country-map|CountryMapChartPlugin',
   },
 ];

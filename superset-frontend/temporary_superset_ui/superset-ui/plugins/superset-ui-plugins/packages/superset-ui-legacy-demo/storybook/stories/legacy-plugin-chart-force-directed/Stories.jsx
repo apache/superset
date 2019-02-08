@@ -443,7 +443,7 @@ export default [
         }}
       />
     ),
-    storyName: 'ForceDirectedChartPlugin',
-    storyPath: 'plugin-chart-force-directed',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-force-directed|ForceDirectedChartPlugin',
   },
 ];

@@ -425,7 +425,7 @@ export default [
         }}
       />
     ),
-    storyName: 'WordCloudChartPlugin',
-    storyPath: 'plugin-chart-word-cloud',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-word-cloud|WordCloudChartPlugin',
   },
 ];

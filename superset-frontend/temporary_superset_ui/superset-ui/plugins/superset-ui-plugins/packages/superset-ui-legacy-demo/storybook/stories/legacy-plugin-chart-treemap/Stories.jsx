@@ -55,7 +55,7 @@ export default [
         }}
       />
     ),
-    storyName: 'TreemapChartPlugin',
-    storyPath: 'plugin-chart-treemap',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-treemap|TreemapChartPlugin',
   },
 ];
