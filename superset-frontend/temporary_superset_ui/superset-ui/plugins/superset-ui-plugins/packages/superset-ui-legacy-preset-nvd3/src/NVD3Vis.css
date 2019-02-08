@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.slice_container.dist_bar {
+.superset-legacy-chart-nvd3-dist-bar {
   overflow-x: auto !important;
 }
 
-.dist_bar svg.nvd3-svg {
+.superset-legacy-chart-nvd3-dist-bar svg.nvd3-svg {
   width: auto;
   font-size: 14px;
 }
 
-.bar {
+.superset-legacy-chart-nvd3-bar {
   overflow-x: auto !important;
 }
 
-.bar svg.nvd3-svg {
+.superset-legacy-chart-nvd3-bar svg.nvd3-svg {
   width: auto;
 }
 
