@@ -85,7 +85,7 @@ export default [
         }}
       />
     ),
-    storyName: 'ParallelCoordinatesChartPlugin',
-    storyPath: 'plugin-chart-parallel-coordinates',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-parallel-coordinates|ParallelCoordinatesChartPlugin',
   },
 ];

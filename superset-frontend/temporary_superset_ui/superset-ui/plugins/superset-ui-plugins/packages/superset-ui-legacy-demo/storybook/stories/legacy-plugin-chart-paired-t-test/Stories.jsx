@@ -704,7 +704,7 @@ export default [
         }}
       />
     ),
-    storyName: 'PairedTTestChartPlugin',
-    storyPath: 'plugin-chart-paired-t-test',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-paired-t-test|PairedTTestChartPlugin',
   },
 ];

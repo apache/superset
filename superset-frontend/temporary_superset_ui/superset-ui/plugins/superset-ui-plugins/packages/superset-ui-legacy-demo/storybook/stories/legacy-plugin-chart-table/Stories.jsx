@@ -81,7 +81,7 @@ export default [
         }}
       />
     ),
-    storyName: 'TableChartPlugin',
-    storyPath: 'plugin-chart-table',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-table|TableChartPlugin',
   },
 ];
