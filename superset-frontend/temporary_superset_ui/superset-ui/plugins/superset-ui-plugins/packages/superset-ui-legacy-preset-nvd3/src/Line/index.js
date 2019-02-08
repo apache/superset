@@ -20,7 +20,7 @@ import { t } from '@superset-ui/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/chart';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
-import { ANNOTATION_TYPES } from '../../../modules/AnnotationTypes';
+import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
 
 const metadata = new ChartMetadata({
   canBeAnnotationTypes: [ANNOTATION_TYPES.TIME_SERIES],
