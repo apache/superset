@@ -27,6 +27,7 @@ import './Treemap.css';
 
 // Declare PropTypes for recursive data structures
 // https://github.com/facebook/react/issues/5676
+/* eslint-disable-next-line  no-undef */
 const lazyFunction = f => () => f().apply(this, arguments);
 
 const leafType = PropTypes.shape({
