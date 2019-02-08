@@ -32,11 +32,13 @@
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
     "dompurify": "^1.0.3",
+    "fast-safe-stringify": "^2.0.6",
     "lodash": "^4.17.11",
     "mathjs": "^3.20.2",
     "moment": "^2.20.1",
     "nvd3": "1.8.6",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.6.2",
+    "urijs": "^1.19.1"
   },
   "devDependencies": {
     "@superset-ui/chart": "^0.9.x",

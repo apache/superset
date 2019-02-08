@@ -16,19 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-g.superset path {
-   stroke-dasharray: 5, 5;
-}
-
-.nvtooltip tr.highlight td {
-  font-weight: bold;
-  font-size: 15px !important;
-}
-
-text.nv-axislabel {
-  font-size: 14px;
-}
-
 .slice_container.dist_bar {
   overflow-x: auto !important;
 }
@@ -36,10 +23,6 @@ text.nv-axislabel {
 .dist_bar svg.nvd3-svg {
   width: auto;
   font-size: 14px;
-}
-
-.nv-x text{
-  font-size: 12px;
 }
 
 .bar {
@@ -50,65 +33,82 @@ text.nv-axislabel {
   width: auto;
 }
 
-text.nv-axislabel {
+.superset-legacy-chart-nvd3 .nv-x text{
+  font-size: 12px;
+}
+
+.superset-legacy-chart-nvd3 g.superset path {
+  stroke-dasharray: 5, 5;
+}
+
+.superset-legacy-chart-nvd3 .nvtooltip tr.highlight td {
+ font-weight: bold;
+ font-size: 15px !important;
+}
+
+.superset-legacy-chart-nvd3 text.nv-axislabel {
+ font-size: 14px;
+}
+
+.superset-legacy-chart-nvd3 text.nv-axislabel {
   font-size: 14px !important;
 }
 
-g.solid path, line.solid {
+.superset-legacy-chart-nvd3 g.solid path, .superset-legacy-chart-nvd3 line.solid {
   stroke-dasharray: unset;
 }
 
-g.dashed path, line.dashed {
+.superset-legacy-chart-nvd3 g.dashed path, .superset-legacy-chart-nvd3 line.dashed {
   stroke-dasharray: 5, 5;
 }
 
-g.longDashed path, line.longDashed {
+.superset-legacy-chart-nvd3 g.longDashed path, .superset-legacy-chart-nvd3 line.longDashed {
   stroke-dasharray: 10, 2;
 }
 
-g.dotted path, line.dotted {
+.superset-legacy-chart-nvd3 g.dotted path, .superset-legacy-chart-nvd3 line.dotted {
   stroke-dasharray: 1, 1;
 }
 
-g.opacityLow path, line.opacityLow {
+.superset-legacy-chart-nvd3 g.opacityLow path, .superset-legacy-chart-nvd3 line.opacityLow {
   stroke-opacity: .2
 }
 
-g.opacityMedium path, line.opacityMedium {
+.superset-legacy-chart-nvd3 g.opacityMedium path, .superset-legacy-chart-nvd3 line.opacityMedium {
   stroke-opacity: .5
 }
 
-g.opacityHigh path, line.opacityHigh {
+.superset-legacy-chart-nvd3 g.opacityHigh path, .superset-legacy-chart-nvd3 line.opacityHigh {
   stroke-opacity: .8
 }
 
-g.time-shift-0 path, line.time-shift-0 {
+.superset-legacy-chart-nvd3 g.time-shift-0 path, .superset-legacy-chart-nvd3 line.time-shift-0 {
   stroke-dasharray: 5, 5;
 }
-g.time-shift-1 path, line.time-shift-1 {
+.superset-legacy-chart-nvd3 g.time-shift-1 path, .superset-legacy-chart-nvd3 line.time-shift-1 {
   stroke-dasharray: 1, 5;
 }
-g.time-shift-2 path, line.time-shift-2 {
+.superset-legacy-chart-nvd3 g.time-shift-2 path, .superset-legacy-chart-nvd3 line.time-shift-2 {
   stroke-dasharray: 10, 5;
 }
-g.time-shift-3 path, line.time-shift-3 {
+.superset-legacy-chart-nvd3 g.time-shift-3 path, .superset-legacy-chart-nvd3 line.time-shift-3 {
   stroke-dasharray: 5, 1;
 }
-g.time-shift-4 path, line.time-shift-4 {
+.superset-legacy-chart-nvd3 g.time-shift-4 path, .superset-legacy-chart-nvd3 line.time-shift-4 {
   stroke-dasharray: 5, 10;
 }
-g.time-shift-5 path, line.time-shift-5 {
+.superset-legacy-chart-nvd3 g.time-shift-5 path, .superset-legacy-chart-nvd3 line.time-shift-5 {
   stroke-dasharray: 0.9;
 }
-g.time-shift-6 path, line.time-shift-6 {
+.superset-legacy-chart-nvd3 g.time-shift-6 path, .superset-legacy-chart-nvd3 line.time-shift-6 {
   stroke-dasharray: 15, 10, 5;
 }
-g.time-shift-7 path, line.time-shift-7 {
+.superset-legacy-chart-nvd3 g.time-shift-7 path, .superset-legacy-chart-nvd3 line.time-shift-7 {
   stroke-dasharray: 15, 10, 5, 10;
 }
-g.time-shift-8 path, line.time-shift-8 {
+.superset-legacy-chart-nvd3 g.time-shift-8 path, .superset-legacy-chart-nvd3 line.time-shift-8 {
   stroke-dasharray: 15, 10, 5, 10, 15;
 }
-g.time-shift-9 path, line.time-shift-9 {
+.superset-legacy-chart-nvd3 g.time-shift-9 path, .superset-legacy-chart-nvd3 line.time-shift-9 {
   stroke-dasharray: 5, 5, 1, 5;
 }

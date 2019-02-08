@@ -29,8 +29,8 @@ import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 import 'nvd3/build/nv.d3.min.css';
-
-import ANNOTATION_TYPES, { applyNativeColumns } from '../../modules/AnnotationTypes';
+/* eslint-disable-next-line */
+import ANNOTATION_TYPES, { applyNativeColumns } from './vendor/superset/AnnotationTypes';
 import isTruthy from './utils/isTruthy';
 import {
   cleanColorInput,
@@ -260,6 +260,7 @@ function nvd3Vis(element, props) {
 
   const drawGraph = function drawGraph() {
     const d3Element = d3.select(element);
+    d3Element.classed('superset-legacy-chart-nvd3', true);
     let svg = d3Element.select('svg');
     if (svg.empty()) {
       svg = d3Element.append('svg');
