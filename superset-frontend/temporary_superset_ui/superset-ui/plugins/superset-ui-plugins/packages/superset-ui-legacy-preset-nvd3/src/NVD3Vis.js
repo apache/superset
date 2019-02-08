@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-magic-numbers, complexity, sort-keys */
 /* eslint-disable no-plusplus, react/forbid-prop-types */
-import { throttle } from 'lodash';
+import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
@@ -261,6 +261,7 @@ function nvd3Vis(element, props) {
   const drawGraph = function drawGraph() {
     const d3Element = d3.select(element);
     d3Element.classed('superset-legacy-chart-nvd3', true);
+    d3Element.classed(`superset-legacy-chart-nvd3-${kebabCase(vizType)}`, true);
     let svg = d3Element.select('svg');
     if (svg.empty()) {
       svg = d3Element.append('svg');
