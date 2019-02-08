@@ -6,7 +6,7 @@ export default [
   {
     renderStory: () => (
       <SuperChart
-        chartType="area"
+        chartType="bar"
         chartProps={{
           datasource: {
             verboseMap: {},
@@ -23,7 +23,7 @@ export default [
             showControls: false,
             showLegend: true,
             stackedStyle: 'stack',
-            vizType: 'area',
+            vizType: 'bar',
             xAxisFormat: '%Y',
             xAxisLabel: '',
             xAxisShowminmax: false,
@@ -1166,7 +1166,7 @@ export default [
         }}
       />
     ),
-    storyName: 'Stacked',
-    storyPath: 'preset-chart-nvd3|AreaChartPlugin',
+    storyName: 'Basic',
+    storyPath: 'preset-chart-nvd3|BarChartPlugin',
   },
 ];
