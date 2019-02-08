@@ -20,10 +20,9 @@ import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { ChartProps } from '@superset-ui/chart';
+import { ChartProps, SuperChart } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
-import SuperChart from '../visualizations/core/components/SuperChart';
 
 const propTypes = {
   annotationData: PropTypes.object,
