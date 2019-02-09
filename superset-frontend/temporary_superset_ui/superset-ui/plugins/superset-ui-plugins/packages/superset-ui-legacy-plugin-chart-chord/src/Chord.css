@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-chord svg #circle circle {
+
+ .superset-legacy-chart-chord svg #circle circle {
   fill: none;
   pointer-events: all;
 }

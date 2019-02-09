@@ -78,7 +78,7 @@ class CustomHistogram extends React.PureComponent {
 
     return (
       <WithLegend
-        className={`histogram-chart ${className}`}
+        className={`superset-legacy-chart-histogram ${className}`}
         width={width}
         height={height}
         position="top"

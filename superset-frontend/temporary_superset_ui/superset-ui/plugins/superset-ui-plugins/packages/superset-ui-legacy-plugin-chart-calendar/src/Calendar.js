@@ -87,7 +87,9 @@ function Calendar(element, props) {
   const valueFormatter = getNumberFormatter(valueFormat);
   const timeFormatter = getTimeFormatter(timeFormat);
 
-  const container = d3Select(element).style('height', height);
+  const container = d3Select(element)
+    .classed('superset-legacy-chart-calendar', true)
+    .style('height', height);
   container.selectAll('*').remove();
   const div = container.append('div');
 

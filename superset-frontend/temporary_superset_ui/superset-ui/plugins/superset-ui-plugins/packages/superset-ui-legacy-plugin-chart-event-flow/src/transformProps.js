@@ -32,7 +32,8 @@ export default function transformProps(chartProps) {
     const accessorFunctions = {
       [ENTITY_ID]: datum => String(datum[userKey]),
       [EVENT_NAME]: datum => datum[eventNameKey],
-      [TS]: datum => new Date(datum.__timestamp), // eslint-disable-line no-underscore-dangle
+      // eslint-disable-next-line no-underscore-dangle
+      [TS]: datum => new Date(datum.__timestamp),
     };
 
     const cleanData = cleanEvents(data, accessorFunctions);

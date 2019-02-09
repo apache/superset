@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 .superset-legacy-chart-sunburst text {
   text-rendering: optimizeLegibility;
 }
@@ -50,6 +51,7 @@
 }
 
 /* dashboard specific */
+/*
 .dashboard .superset-legacy-chart-sunburst text {
   font-size: 1em;
 }
@@ -66,3 +68,4 @@
 .dashboard .superset-legacy-chart-sunburst .path-ratio {
   font-size: 1em;
 }
+*/

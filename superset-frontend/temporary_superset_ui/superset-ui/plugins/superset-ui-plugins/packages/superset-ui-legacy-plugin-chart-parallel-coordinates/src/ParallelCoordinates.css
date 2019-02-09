@@ -17,9 +17,9 @@
  * under the License.
  */
 .superset-legacy-chart-parallel-coordinates div.grid {
-    overflow: auto;
+  overflow: auto;
 }
 
 .superset-legacy-chart-parallel-coordinates .grid div.row:hover {
-    background-color: #CCC;
+  background-color: #CCC;
 }

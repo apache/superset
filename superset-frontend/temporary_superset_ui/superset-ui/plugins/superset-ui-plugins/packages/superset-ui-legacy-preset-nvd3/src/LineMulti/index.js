@@ -25,6 +25,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Multiple Line Charts'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class LineChartPlugin extends ChartPlugin {
