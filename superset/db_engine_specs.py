@@ -418,9 +418,14 @@ class BaseEngineSpec(object):
         force_column_alias_quotes is set to True, return the label as a
         sqlalchemy.sql.elements.quoted_name object to ensure that the select query
         and query results have same case. Otherwise return the mutated label as a
-        regular string.
+        regular string. If maxmimum supported column name length is exceeded,
+        return an md5 hash.
         """
         label = cls.mutate_label(label)
+        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
+            label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            # make sure hash doesn't exceed max length
+            label = label[:cls.max_column_name_length]
         return quoted_name(label, True) if cls.force_column_alias_quotes else label
 
     @classmethod
@@ -432,20 +437,17 @@ class BaseEngineSpec(object):
         """
         return None
 
-    @classmethod
-    def mutate_label(cls, label):
+    @staticmethod
+    def mutate_label(label):
         """
-        If maxmimum supported column name length is exceeded, return an md5 hash.
-        For engines that have restrictions on what types of aliases are supported,
-        this method can be overridden to ensure that labels conform to the engine's
+        Most engines support mixed case aliases that can include numbers
+        and special characters, like commas, parentheses etc. For engines that
+        have restrictions on what types of aliases are supported, this method
+        can be overridden to ensure that labels conform to the engine's
         limitations. Mutated labels should be deterministic (input label A always
         yields output label X) and unique (input labels A and B don't yield the same
         output label X).
         """
-
-        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
-            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
-            return hashed_label[:cls.max_column_name_length]
         return label
 
 
@@ -538,14 +540,14 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
     max_column_name_length = 127
 
-    @classmethod
-    def mutate_label(cls, label):
+    @staticmethod
+    def mutate_label(label):
         """
         Redshift only supports lowercase column names and aliases.
         :param str label: Original label which might include uppercase letters
         :return: String that is supported by the database
         """
-        return super().mutate_label(label.lower())
+        return label.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
@@ -1420,14 +1422,14 @@ class AthenaEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return 'from_unixtime({col})'
 
-    @classmethod
-    def mutate_label(cls, label):
+    @staticmethod
+    def mutate_label(label):
         """
         Athena only supports lowercase column names and aliases.
         :param str label: Original label which might include uppercase letters
         :return: String that is supported by the database
         """
-        return super().mutate_label(label.lower())
+        return label.lower()
 
 
 class PinotEngineSpec(BaseEngineSpec):
@@ -1557,15 +1559,15 @@ class BQEngineSpec(BaseEngineSpec):
             data = [r.values() for r in data]
         return data
 
-    @classmethod
-    def mutate_label(cls, label):
+    @staticmethod
+    def mutate_label(label):
         """
         BigQuery field_name should start with a letter or underscore, contain only
         alphanumeric characters and be at most 128 characters long. Labels that start
         with a number are prefixed with an underscore. Any unsupported characters are
         replaced with underscores and an md5 hash is added to the end of the label to
-        avoid possible collisions. If the resulting label exceeds 128 characters, only
-        the md5 sum is returned.
+        avoid possible collisions.
+
         :param str label: the original label which might include unsupported characters
         :return: String that is supported by the database
         """
@@ -1580,9 +1582,7 @@ class BQEngineSpec(BaseEngineSpec):
             # add md5 hash to label to avoid possible collisions
             mutated_label += hashed_label
 
-        # return only hash if length of final label exceeds max column name length
-        max_length = cls.max_column_name_length
-        return mutated_label if len(mutated_label) <= max_length else hashed_label
+        return mutated_label
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
