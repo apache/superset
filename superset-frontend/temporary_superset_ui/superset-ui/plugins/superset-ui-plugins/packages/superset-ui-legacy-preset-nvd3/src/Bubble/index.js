@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Bubble Chart'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class BubbleChartPlugin extends ChartPlugin {

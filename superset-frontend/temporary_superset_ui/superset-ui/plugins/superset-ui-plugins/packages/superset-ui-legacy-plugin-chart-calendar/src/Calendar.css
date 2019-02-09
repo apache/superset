@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.cal_heatmap {
+
+ .superset-legacy-chart-calendar {
   padding: 10px;
   position: static !important;
   overflow: auto !important;
 }
 
-.cal_heatmap .ch-tooltip {
+.superset-legacy-chart-calendar .ch-tooltip {
   margin-left: 20px;
   margin-top: 5px;
 }

@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Pie Chart'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class PieChartPlugin extends ChartPlugin {

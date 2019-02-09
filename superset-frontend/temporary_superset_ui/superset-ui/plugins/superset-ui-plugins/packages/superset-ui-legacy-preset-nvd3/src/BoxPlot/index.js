@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Box Plot'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class BoxPlotChartPlugin extends ChartPlugin {

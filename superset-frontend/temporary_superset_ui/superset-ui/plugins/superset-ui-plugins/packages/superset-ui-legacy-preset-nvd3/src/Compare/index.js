@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: t('A line chart component where you can compare the % change over time'),
   name: t('Time-series Percent Change'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class CompareChartPlugin extends ChartPlugin {

@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Dual Line Chart'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class DualLineChartPlugin extends ChartPlugin {

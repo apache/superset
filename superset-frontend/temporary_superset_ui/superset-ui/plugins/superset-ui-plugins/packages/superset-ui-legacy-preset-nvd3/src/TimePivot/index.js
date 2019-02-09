@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Time-series Period Pivot'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class TimePivotChartPlugin extends ChartPlugin {

@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: t('A bar chart where the x axis is time'),
   name: t('Bar Chart'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class DistBarChartPlugin extends ChartPlugin {
