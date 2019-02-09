@@ -111,8 +111,10 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
+    supports_column_aliases = True
     force_column_alias_quotes = False
     arraysize = None
+    max_column_name_length = None
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -141,10 +143,6 @@ class BaseEngineSpec(object):
         # Some databases will just return the group-by field into the select, but don't
         # allow the group-by field to be put into the select list.
         return select_exprs
-
-    @classmethod
-    def mutate_df_columns(cls, df, sql, labels_expected):
-        pass
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -287,6 +285,8 @@ class BaseEngineSpec(object):
                     schema=schema, force=True,
                     cache=db.table_cache_enabled,
                     cache_timeout=db.table_cache_timeout)
+            else:
+                raise Exception(f'Unsupported datasource_type: {datasource_type}')
             all_result_sets += [
                 '{}.{}'.format(schema, t) for t in all_datasource_names]
         return all_result_sets
@@ -432,17 +432,20 @@ class BaseEngineSpec(object):
         """
         return None
 
-    @staticmethod
-    def mutate_label(label):
+    @classmethod
+    def mutate_label(cls, label):
         """
-        Most engines support mixed case aliases that can include numbers
-        and special characters, like commas, parentheses etc. For engines that
-        have restrictions on what types of aliases are supported, this method
-        can be overridden to ensure that labels conform to the engine's
+        If maxmimum supported column name length is exceeded, return an md5 hash.
+        For engines that have restrictions on what types of aliases are supported,
+        this method can be overridden to ensure that labels conform to the engine's
         limitations. Mutated labels should be deterministic (input label A always
         yields output label X) and unique (input labels A and B don't yield the same
         output label X).
         """
+
+        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
+            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            return hashed_label[:cls.max_column_name_length]
         return label
 
 
@@ -482,6 +485,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
+    max_column_name_length = 63
 
     @classmethod
     def get_table_names(cls, inspector, schema):
@@ -494,6 +498,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
     force_column_alias_quotes = True
+    max_column_name_length = 256
 
     time_grain_functions = {
         None: '{col}',
@@ -531,21 +536,23 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
+    max_column_name_length = 127
 
-    @staticmethod
-    def mutate_label(label):
+    @classmethod
+    def mutate_label(cls, label):
         """
         Redshift only supports lowercase column names and aliases.
         :param str label: Original label which might include uppercase letters
         :return: String that is supported by the database
         """
-        return label.lower()
+        return super().mutate_label(label.lower())
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+    max_column_name_length = 30
 
     time_grain_functions = {
         None: '{col}',
@@ -584,6 +591,7 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+    max_column_name_length = 30
 
     time_grain_functions = {
         None: '{col}',
@@ -617,20 +625,6 @@ class Db2EngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
-
-    @staticmethod
-    def mutate_label(label):
-        """
-        Db2 for z/OS supports a maximum of 30 byte length object names, which usually
-        means 30 characters.
-        :param str label: Original label which might include unsupported characters
-        :return: String that is supported by the database
-        """
-        if len(label) > 30:
-            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
-            # truncate the hash to first 30 characters
-            return hashed_label[:30]
-        return label
 
 
 class SqliteEngineSpec(BaseEngineSpec):
@@ -668,6 +662,9 @@ class SqliteEngineSpec(BaseEngineSpec):
                 schema=schema, force=True,
                 cache=db.table_cache_enabled,
                 cache_timeout=db.table_cache_timeout)
+        else:
+            raise Exception(f'Unsupported datasource_type: {datasource_type}')
+
         all_result_sets += [
             '{}.{}'.format(schema, t) for t in all_datasource_names]
         return all_result_sets
@@ -687,6 +684,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    max_column_name_length = 64
 
     time_grain_functions = {
         None: '{col}',
@@ -1060,6 +1058,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     """Reuses PrestoEngineSpec functionality."""
 
     engine = 'hive'
+    max_column_name_length = 767
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -1366,6 +1365,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
     limit_method = LimitMethod.WRAP_SQL
+    max_column_name_length = 128
 
     time_grain_functions = {
         None: '{col}',
@@ -1434,11 +1434,21 @@ class AthenaEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return 'from_unixtime({col})'
 
+    @classmethod
+    def mutate_label(cls, label):
+        """
+        Athena only supports lowercase column names and aliases.
+        :param str label: Original label which might include uppercase letters
+        :return: String that is supported by the database
+        """
+        return super().mutate_label(label.lower())
+
 
 class PinotEngineSpec(BaseEngineSpec):
     engine = 'pinot'
     allows_subquery = False
     inner_joins = False
+    supports_column_aliases = False
 
     _time_grain_to_datetimeconvert = {
         'PT1S': '1:SECONDS',
@@ -1481,17 +1491,6 @@ class PinotEngineSpec(BaseEngineSpec):
                 select_sans_groupby.append(s)
         return select_sans_groupby
 
-    @classmethod
-    def mutate_df_columns(cls, df, sql, labels_expected):
-        if df is not None and \
-                not df.empty and \
-                labels_expected is not None:
-            if len(df.columns) != len(labels_expected):
-                raise Exception(f'For {sql}, df.columns: {df.columns}'
-                                f' differs from {labels_expected}')
-            else:
-                df.columns = labels_expected
-
 
 class ClickHouseEngineSpec(BaseEngineSpec):
     """Dialect for ClickHouse analytical DB."""
@@ -1532,6 +1531,7 @@ class BQEngineSpec(BaseEngineSpec):
 
     As contributed by @mxmzdlv on issue #945"""
     engine = 'bigquery'
+    max_column_name_length = 128
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -1571,8 +1571,8 @@ class BQEngineSpec(BaseEngineSpec):
             data = [r.values() for r in data]
         return data
 
-    @staticmethod
-    def mutate_label(label):
+    @classmethod
+    def mutate_label(cls, label):
         """
         BigQuery field_name should start with a letter or underscore, contain only
         alphanumeric characters and be at most 128 characters long. Labels that start
@@ -1594,8 +1594,9 @@ class BQEngineSpec(BaseEngineSpec):
             # add md5 hash to label to avoid possible collisions
             mutated_label += hashed_label
 
-        # return only hash if length of final label exceeds 128 chars
-        return mutated_label if len(mutated_label) <= 128 else hashed_label
+        # return only hash if length of final label exceeds max column name length
+        max_length = cls.max_column_name_length
+        return mutated_label if len(mutated_label) <= max_length else hashed_label
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
@@ -1727,6 +1728,7 @@ class TeradataEngineSpec(BaseEngineSpec):
     """Dialect for Teradata DB."""
     engine = 'teradata'
     limit_method = LimitMethod.WRAP_SQL
+    max_column_name_length = 30  # since 14.10 this is 128
 
     time_grain_functions = {
         None: '{col}',
