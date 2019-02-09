@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-event-flow",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "Superset Legacy Chart - Event Flow",
   "sideEffects": false,
   "main": "lib/index.js",
