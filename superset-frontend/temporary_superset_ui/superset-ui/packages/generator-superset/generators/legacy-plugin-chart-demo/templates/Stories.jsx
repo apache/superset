@@ -1,6 +1,7 @@
 /* eslint-disable no-magic-numbers */
 import React from 'react';
 import { SuperChart } from '@superset-ui/chart';
+import data from './data';
 
 export default [
   {
@@ -10,14 +11,12 @@ export default [
         chartProps={{
           formData: {},
           height: 400,
-          payload: {
-            data: [],
-          },
+          payload: { data },
           width: 400,
         }}
       />
     ),
-    storyName: '<%= packageLabel %>ChartPlugin',
-    storyPath: 'plugin-chart-<%= packageName %>',
+    storyName: 'Basic',
+    storyPath: 'plugin-chart-<%= packageName %>|<%= packageLabel %>ChartPlugin',
   },
 ];
