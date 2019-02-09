@@ -30,6 +30,7 @@ module.exports = class extends Generator {
 
   writing() {
     this.fs.copyTpl(this.templatePath('index.js'), this.destinationPath('index.js'), this.answers);
+    this.fs.copyTpl(this.templatePath('data.js'), this.destinationPath('data.js'), this.answers);
     this.fs.copyTpl(
       this.templatePath('Stories.jsx'),
       this.destinationPath('Stories.jsx'),
