@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.superset-legacy-chart-world-map svg {
-  background-color: #feffff;
-}
 
 .superset-legacy-chart-world-map {
   position: relative;
+}
+
+.superset-legacy-chart-world-map svg {
+  background-color: #feffff;
 }

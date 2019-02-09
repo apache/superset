@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 .superset-legacy-chart-sankey .node rect {
   cursor: move;
   fill-opacity: .9;

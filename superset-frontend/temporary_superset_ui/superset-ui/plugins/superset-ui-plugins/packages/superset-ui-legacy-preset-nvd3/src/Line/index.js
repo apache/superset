@@ -34,6 +34,7 @@ const metadata = new ChartMetadata({
     ANNOTATION_TYPES.FORMULA,
   ],
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class LineChartPlugin extends ChartPlugin {
