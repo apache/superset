@@ -572,20 +572,6 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
-    @staticmethod
-    def mutate_label(label):
-        """
-        Oracle 12.1 and earlier support a maximum of 30 byte length object names, which
-        usually means 30 characters.
-        :param str label: Original label which might include unsupported characters
-        :return: String that is supported by the database
-        """
-        if len(label) > 30:
-            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
-            # truncate the hash to first 30 characters
-            return hashed_label[:30]
-        return label
-
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
