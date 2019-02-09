@@ -26,6 +26,7 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Bullet Chart'),
   thumbnail,
+  useLegacyApi: true,
 });
 
 export default class BulletChartPlugin extends ChartPlugin {

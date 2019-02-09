@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 .superset-legacy-chart-rose path {
   transition: fill-opacity 180ms linear;
   stroke: #fff;
