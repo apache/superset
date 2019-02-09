@@ -1567,7 +1567,6 @@ class BQEngineSpec(BaseEngineSpec):
         with a number are prefixed with an underscore. Any unsupported characters are
         replaced with underscores and an md5 hash is added to the end of the label to
         avoid possible collisions.
-
         :param str label: the original label which might include unsupported characters
         :return: String that is supported by the database
         """
