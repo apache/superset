@@ -29,7 +29,7 @@ text.nv-axislabel {
   font-size: 14px;
 }
 
-.slice_container.dist_bar {
+.dist_bar {
   overflow-x: auto !important;
 }
 
