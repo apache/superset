@@ -1597,12 +1597,11 @@ class BQEngineSpec(BaseEngineSpec):
 
     @classmethod
     def truncate_label(cls, label):
-        """ BigQuery requires that column names start with either a letter or
+        """BigQuery requires column names start with either a letter or
         underscore. To make sure this is always the case, an underscore is prefixed
         to the truncated label.
         """
         return '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
-
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
