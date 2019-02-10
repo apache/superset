@@ -45,6 +45,7 @@ export default class VizTypeControl extends React.PureComponent {
     this.state = {
       showModal: false,
       filter: '',
+      vizTypeStats: '',
     };
     this.toggleModal = this.toggleModal.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
@@ -69,6 +70,12 @@ export default class VizTypeControl extends React.PureComponent {
       this.searchRef.focus();
     }
   }
+  componentDidMount() {
+    $.get("/superset/viz_type_stats", (data) => {
+      this.setState({ vizTypeStats: data.this_user.concat(data.overall) });
+      this.forceUpdate();
+    });
+  }
   renderItem(entry) {
     const { value } = this.props;
     const { key, value: type } = entry;
@@ -89,13 +96,42 @@ export default class VizTypeControl extends React.PureComponent {
         </div>
       </div>);
   }
+  getVizTypeByKey(types, key) {
+    for (var i = 0; i < types.length; i++) {
+      if (types[i].key == key) return types[i];
+    }
+  }
+  sortVizTypes(types) {
+    var sorted = [];
+    var loaded_keys = new Set();
+    // Sort based on existing visualization type usages statistics
+    for (var i = 0; i < this.state.vizTypeStats.length; i++) {
+      var key = this.state.vizTypeStats[i].viz_type;
+      if (loaded_keys.has(key)) continue;
+      var t = this.getVizTypeByKey(types, key);
+      if (typeof t !== 'undefined') {
+        sorted.push(t);
+        loaded_keys.add(key);
+      }
+    }
+    // For visualization types that do not have any statistics, apply the
+    // original order
+    for (var i = 0; i < types.length; i++) {
+      var t = types[i];
+      var key = t['key'];
+      if (! loaded_keys.has(key)) {
+        sorted.push(t);
+        loaded_keys.add(key);
+      }
+    }
+    return sorted;
+  }
   render() {
     const { filter, showModal } = this.state;
     const { value } = this.props;
 
     const registry = getChartMetadataRegistry();
-
-    const types = registry.entries();
+    const types = this.sortVizTypes(registry.entries());
     const filteredTypes = filter.length > 0
       ? types.filter(type => type.value.name.toLowerCase().includes(filter))
       : types;
