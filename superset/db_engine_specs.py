@@ -419,14 +419,14 @@ class BaseEngineSpec(object):
         sqlalchemy.sql.elements.quoted_name object to ensure that the select query
         and query results have same case. Otherwise return the mutated label as a
         regular string. If maxmimum supported column name length is exceeded,
-        return an md5 hash.
+        generate a truncated label by calling truncate_label().
         """
-        label = cls.mutate_label(label)
-        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
-            label = hashlib.md5(label.encode('utf-8')).hexdigest()
-            # make sure hash doesn't exceed max length
-            label = label[:cls.max_column_name_length]
-        return quoted_name(label, True) if cls.force_column_alias_quotes else label
+        mutated_label = cls.mutate_label(label)
+        if cls.max_column_name_length and len(mutated_label) > cls.max_column_name_length:
+            mutated_label = cls.truncate_label(label)
+        if cls.force_column_alias_quotes:
+            mutated_label = quoted_name(mutated_label, True)
+        return mutated_label
 
     @classmethod
     def get_sqla_column_type(cls, type_):
@@ -448,6 +448,19 @@ class BaseEngineSpec(object):
         yields output label X) and unique (input labels A and B don't yield the same
         output label X).
         """
+        return label
+
+    @classmethod
+    def truncate_label(cls, label):
+        """
+        In the case that a label exceeds the max length supported by the engine,
+        this method is used to construct a deterministic and unique label based on
+        an md5 hash.
+        """
+        label = hashlib.md5(label.encode('utf-8')).hexdigest()
+        # truncate hash if it exceeds max length
+        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
+            label = label[:cls.max_column_name_length]
         return label
 
 
@@ -1562,11 +1575,10 @@ class BQEngineSpec(BaseEngineSpec):
     @staticmethod
     def mutate_label(label):
         """
-        BigQuery field_name should start with a letter or underscore, contain only
-        alphanumeric characters and be at most 128 characters long. Labels that start
-        with a number are prefixed with an underscore. Any unsupported characters are
-        replaced with underscores and an md5 hash is added to the end of the label to
-        avoid possible collisions.
+        BigQuery field_name should start with a letter or underscore and contain only
+        alphanumeric characters. Labels that start with a number are prefixed with an
+        underscore. Any unsupported characters are replaced with underscores and an
+        md5 hash is added to the end of the label to avoid possible collisions.
         :param str label: the original label which might include unsupported characters
         :return: String that is supported by the database
         """
@@ -1582,6 +1594,15 @@ class BQEngineSpec(BaseEngineSpec):
             mutated_label += hashed_label
 
         return mutated_label
+
+    @classmethod
+    def truncate_label(cls, label):
+        """ BigQuery requires that column names start with either a letter or
+        underscore. To make sure this is always the case, an underscore is prefixed
+        to the truncated label.
+        """
+        return '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
