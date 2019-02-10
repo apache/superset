@@ -634,10 +634,7 @@ class SqlaTable(Model, BaseDatasource):
 
         select_exprs += metrics_exprs
 
-        labels_expected = None
-        if not db_engine_spec.supports_column_aliases or \
-                any([c._df_label_expected != c.name for c in select_exprs]):
-            labels_expected = [c._df_label_expected for c in select_exprs]
+        labels_expected = [c._df_label_expected for c in select_exprs]
 
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(),
@@ -818,9 +815,7 @@ class SqlaTable(Model, BaseDatasource):
         try:
             df = self.database.get_df(sql, self.schema)
             labels_expected = query_str_ext.labels_expected
-            if df is not None and \
-                    not df.empty and \
-                    labels_expected is not None:
+            if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
                     raise Exception(f'For {sql}, df.columns: {df.columns}'
                                     f' differs from {labels_expected}')
