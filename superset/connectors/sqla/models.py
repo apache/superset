@@ -301,12 +301,12 @@ class SqlaTable(Model, BaseDatasource):
     }
 
     def make_sqla_column_compatible(self, sqla_col, label=None):
-        original_label = label if label else sqla_col.name
+        label_expected = label if label else sqla_col.name
         db_engine_spec = self.database.db_engine_spec
         if db_engine_spec.supports_column_aliases:
-            label = db_engine_spec.make_label_compatible(original_label)
+            label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
-        sqla_col._expected_df_label = original_label
+        sqla_col._df_label_expected = label_expected
         return sqla_col
 
     def __repr__(self):
@@ -590,8 +590,7 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            label = 'ccount'
-            main_metric_expr = literal_column('COUNT(*)')
+            main_metric_expr, label = literal_column('COUNT(*)'), 'ccount'
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
         select_exprs = []
@@ -637,8 +636,8 @@ class SqlaTable(Model, BaseDatasource):
 
         labels_expected = None
         if not db_engine_spec.supports_column_aliases or \
-                any([c._expected_df_label != c.name for c in select_exprs]):
-            labels_expected = [c._expected_df_label for c in select_exprs]
+                any([c._df_label_expected != c.name for c in select_exprs]):
+            labels_expected = [c._df_label_expected for c in select_exprs]
 
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(),
