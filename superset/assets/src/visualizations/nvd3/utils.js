@@ -165,10 +165,12 @@ export function generateBubbleTooltipContent({
   return s;
 }
 
-export function hideTooltips() {
-  const targets = document.querySelectorAll('.nvtooltip');
-  if (targets.length > 0) {
-    targets.forEach(t => t.remove());
+export function hideTooltips(element) {
+  if (element) {
+    const targets = element.querySelectorAll('.nvtooltip');
+    if (targets.length > 0) {
+      targets.forEach(t => t.remove());
+    }
   }
 }
 
