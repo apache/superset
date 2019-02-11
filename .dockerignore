@@ -37,3 +37,9 @@ install/
 superset/assets/node_modules/
 superset/assets/cypress/
 superset/assets/coverage/
+venv/
+contrib/docker/
+docker/
+learnings/
+licenses/
+

@@ -9,4 +9,10 @@ set -ex
   superset init
 
 # To start a development web server, use the -d switch
-  superset runserver
+ 
+  gunicorn --bind  0.0.0.0:8088 \
+      --workers $((2 * $(getconf _NPROCESSORS_ONLN) + 1)) \
+      --timeout 60 \
+      --limit-request-line 0 \
+      --limit-request-field_size 0 \
+      superset:app
