@@ -301,6 +301,11 @@ class SqlaTable(Model, BaseDatasource):
     }
 
     def make_sqla_column_compatible(self, sqla_col, label=None):
+        """Takes a sql alchemy column object and adds label info if supported by engine.
+        :param sqla_col: sql alchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
+        """
         label_expected = label if label else sqla_col.name
         db_engine_spec = self.database.db_engine_spec
         if db_engine_spec.supports_column_aliases:
@@ -727,7 +732,7 @@ class SqlaTable(Model, BaseDatasource):
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
-                    inner = gby_obj.label(gby_name + '__')
+                    inner = self.make_sqla_column_compatible(gby_obj, gby_name + '__')
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
 
@@ -749,6 +754,7 @@ class SqlaTable(Model, BaseDatasource):
                             timeseries_limit_metric,
                         )
                         ob = timeseries_limit_metric.get_sqla_col()
+                        ob = self.make_sqla_column_compatible(ob)
                     else:
                         raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
@@ -760,7 +766,7 @@ class SqlaTable(Model, BaseDatasource):
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = db_engine_spec.mutate_label(gby_name + '__')
+                    col_name = db_engine_spec.make_label_compatible(gby_name + '__')
                     on_clause.append(gby_obj == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))

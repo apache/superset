@@ -421,12 +421,12 @@ class BaseEngineSpec(object):
         regular string. If maxmimum supported column name length is exceeded,
         generate a truncated label by calling truncate_label().
         """
-        mutated_label = cls.mutate_label(label)
-        if cls.max_column_name_length and len(mutated_label) > cls.max_column_name_length:
-            mutated_label = cls.truncate_label(label)
+        label_mutated = cls.mutate_label(label)
+        if cls.max_column_name_length and len(label_mutated) > cls.max_column_name_length:
+            label_mutated = cls.truncate_label(label)
         if cls.force_column_alias_quotes:
-            mutated_label = quoted_name(mutated_label, True)
-        return mutated_label
+            label_mutated = quoted_name(label_mutated, True)
+        return label_mutated
 
     @classmethod
     def get_sqla_column_type(cls, type_):
@@ -1582,18 +1582,18 @@ class BQEngineSpec(BaseEngineSpec):
         :param str label: the original label which might include unsupported characters
         :return: String that is supported by the database
         """
-        hashed_label = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+        label_hashed = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
 
         # if label starts with number, add underscore as first character
-        mutated_label = '_' + label if re.match(r'^\d', label) else label
+        label_mutated = '_' + label if re.match(r'^\d', label) else label
 
         # replace non-alphanumeric characters with underscores
-        mutated_label = re.sub(r'[^\w]+', '_', mutated_label)
-        if mutated_label != label:
+        label_mutated = re.sub(r'[^\w]+', '_', label_mutated)
+        if label_mutated != label:
             # add md5 hash to label to avoid possible collisions
-            mutated_label += hashed_label
+            label_mutated += label_hashed
 
-        return mutated_label
+        return label_mutated
 
     @classmethod
     def truncate_label(cls, label):
