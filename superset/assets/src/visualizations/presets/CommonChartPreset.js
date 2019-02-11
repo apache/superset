@@ -19,17 +19,11 @@
 import { Preset } from '@superset-ui/core';
 import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
+import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 // import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 // import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
-import AreaChartPlugin from '../nvd3/Area/AreaChartPlugin';
-import BarChartPlugin from '../nvd3/Bar/BarChartPlugin';
-import BoxPlotChartPlugin from '../nvd3/BoxPlot/BoxPlotChartPlugin';
-import BubbleChartPlugin from '../nvd3/Bubble/BubbleChartPlugin';
-import DistBarChartPlugin from '../nvd3/DistBar/DistBarChartPlugin';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import LineChartPlugin from '../nvd3/Line/LineChartPlugin';
-import PieChartPlugin from '../nvd3/Pie/PieChartPlugin';
 import PivotTableChartPlugin from '../PivotTable/PivotTableChartPlugin';
 import TableChartPlugin from '../Table/TableChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';

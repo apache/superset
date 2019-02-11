@@ -29,16 +29,12 @@ import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-te
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+import { BulletChartPlugin, CompareChartPlugin, DualLineChartPlugin, LineMultiChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
 import HierarchyChartPreset from './HierarchyChartPreset';
 import MapChartPreset from './MapChartPreset';
-import BulletChartPlugin from '../nvd3/Bullet/BulletChartPlugin';
-import CompareChartPlugin from '../nvd3/Compare/CompareChartPlugin';
-import DualLineChartPlugin from '../nvd3/DualLine/DualLineChartPlugin';
-import LineMultiChartPlugin from '../nvd3/LineMulti/LineMultiChartPlugin';
-import TimePivotChartPlugin from '../nvd3/TimePivot/TimePivotChartPlugin';
 
 export default class LegacyChartPreset extends Preset {
   constructor() {
