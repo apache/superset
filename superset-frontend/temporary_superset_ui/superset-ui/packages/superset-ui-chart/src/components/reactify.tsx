@@ -13,7 +13,7 @@ import React from 'react';
 // new (reactify(myRender))({ id: 5 }); // error: id has to be string & number
 
 export type ReactifyProps = {
-  id: string;
+  id?: string;
   className?: string;
 };
 
