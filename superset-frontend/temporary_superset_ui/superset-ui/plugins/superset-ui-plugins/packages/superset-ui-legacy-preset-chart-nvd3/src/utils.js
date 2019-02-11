@@ -176,10 +176,12 @@ export function generateBubbleTooltipContent({
   return s;
 }
 
-export function hideTooltips() {
-  const targets = document.querySelectorAll('.nvtooltip');
-  if (targets.length > 0) {
-    targets.forEach(t => t.remove());
+export function hideTooltips(element) {
+  if (element) {
+    const targets = element.querySelectorAll('.nvtooltip');
+    if (targets.length > 0) {
+      targets.forEach(t => t.remove());
+    }
   }
 }
 
@@ -213,7 +215,8 @@ export function tipFactory(layer) {
           : layer.name;
       const body = Array.isArray(layer.descriptionColumns)
         ? layer.descriptionColumns.map(c => d[c])
-        : Object.values(d);
+        : /* eslint-disable-next-line compat/compat */
+          Object.values(d);
 
       return `<div><strong>${title}</strong></div><br/><div>${body.join(', ')}</div>`;
     });
