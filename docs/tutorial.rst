@@ -24,7 +24,7 @@ to a new database and configure a table in that database for analysis. You'll
 also explore the data you've exposed and add a visualization to a dashboard
 so that you get a feel for the end-to-end user experience.
 
-Connecting to a new database
+建立新的数据库连接
 ----------------------------
 
 We assume you already have a database configured and can connect to it from the 
@@ -36,6 +36,9 @@ into a fresh DB, or configure the
 we use here.
 
 Under the **Sources** menu, select the *Databases* option:
+
+.. image:: images/test/test.png
+   :scale: 70%
 
 .. image:: images/tutorial/tutorial_01_sources_database.png
    :scale: 70%
