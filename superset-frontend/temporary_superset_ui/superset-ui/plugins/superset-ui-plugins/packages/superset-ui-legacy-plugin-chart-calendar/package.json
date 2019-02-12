@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-calendar",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Superset Legacy Chart - Calendar Heatmap",
   "sideEffects": false,
   "main": "lib/index.js",
