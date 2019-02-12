@@ -204,9 +204,9 @@ DEFAULT_FEATURE_FLAGS = {}
 # role-based features, or a full on A/B testing framework.
 #
 # from flask import g, request
-# def GET_FEATURE_FLAGS_FUNC(ff):
-#     ff['some_feature'] = g.user and g.user.id == 5
-#     return ff
+# def GET_FEATURE_FLAGS_FUNC(feature_flags_dict):
+#     feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC = None
 
 
