@@ -1,4 +1,4 @@
-import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
+import HorizonChartPlugin from '../../../../superset-ui-legacy-plugin-chart-horizon';
 import Stories from './Stories';
 
 new HorizonChartPlugin().configure({ key: 'horizon' }).register();

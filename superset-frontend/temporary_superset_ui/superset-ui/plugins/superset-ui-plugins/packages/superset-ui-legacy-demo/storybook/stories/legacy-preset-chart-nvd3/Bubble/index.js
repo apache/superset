@@ -1,4 +1,4 @@
-import { BubbleChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import { BubbleChartPlugin } from '../../../../../superset-ui-legacy-preset-chart-nvd3';
 import Stories from './Stories';
 
 new BubbleChartPlugin().configure({ key: 'bubble' }).register();
