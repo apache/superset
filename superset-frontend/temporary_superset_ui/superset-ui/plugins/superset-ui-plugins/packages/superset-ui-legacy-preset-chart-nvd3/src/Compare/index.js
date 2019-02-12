@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
 export default class CompareChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('../ReactNVD3.js'),
+      loadChart: () => import('../ReactNVD3'),
       metadata,
       transformProps,
     });
