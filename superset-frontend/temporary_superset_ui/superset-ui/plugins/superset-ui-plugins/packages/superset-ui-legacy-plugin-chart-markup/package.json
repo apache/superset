@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-markup",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Superset Legacy Chart - Markup",
   "sideEffects": false,
   "main": "lib/index.js",
