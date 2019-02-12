@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "SuperChart and related modules",
   "sideEffects": false,
   "main": "lib/index.js",
