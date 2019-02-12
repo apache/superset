@@ -390,8 +390,8 @@ function nvd3Vis(element, props) {
 
       case 'bubble':
         chart = nv.models.scatterChart();
-        chart.showDistX(true);
-        chart.showDistY(true);
+        chart.showDistX(false);
+        chart.showDistY(false);
         chart.tooltip.contentGenerator(d =>
           generateBubbleTooltipContent({
             point: d.point,

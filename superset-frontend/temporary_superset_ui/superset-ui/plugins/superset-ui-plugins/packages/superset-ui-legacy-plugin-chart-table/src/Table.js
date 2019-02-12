@@ -29,7 +29,10 @@ import fixTableHeight from './utils/fixTableHeight';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import './Table.css';
 
-const $ = dt.$ || window.$;
+if (window.$) {
+  dt(window, window.$);
+}
+const $ = window.$ || dt.$;
 
 const propTypes = {
   // Each object is { field1: value1, field2: value2 }
