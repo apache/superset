@@ -1,4 +1,4 @@
-import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
+import ForceDirectedChartPlugin from '../../../../superset-ui-legacy-plugin-chart-force-directed';
 import Stories from './Stories';
 
 new ForceDirectedChartPlugin().configure({ key: 'force-directed' }).register();

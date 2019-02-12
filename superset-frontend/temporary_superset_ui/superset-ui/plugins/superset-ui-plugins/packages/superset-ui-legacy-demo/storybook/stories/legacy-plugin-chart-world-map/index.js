@@ -1,4 +1,4 @@
-import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
+import WorldMapChartPlugin from '../../../../superset-ui-legacy-plugin-chart-world-map';
 import Stories from './Stories';
 
 new WorldMapChartPlugin().configure({ key: 'world-map' }).register();

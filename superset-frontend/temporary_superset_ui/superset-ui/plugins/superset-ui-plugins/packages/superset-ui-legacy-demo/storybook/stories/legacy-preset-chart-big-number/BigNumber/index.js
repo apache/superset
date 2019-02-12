@@ -1,4 +1,4 @@
-import { BigNumberChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberChartPlugin } from '../../../../../superset-ui-legacy-preset-chart-big-number';
 import Stories from './Stories';
 
 new BigNumberChartPlugin().configure({ key: 'big-number' }).register();
