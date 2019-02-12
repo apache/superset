@@ -20,13 +20,11 @@ import { Preset } from '@superset-ui/core';
 import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
-// import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
-// import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
+import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
+import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 // import BubbleChartPlugin from '../nvd3/Bubble/BubbleChartPlugin';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import PivotTableChartPlugin from '../PivotTable/PivotTableChartPlugin';
-import TableChartPlugin from '../Table/TableChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
 export default class CommonChartPreset extends Preset {
