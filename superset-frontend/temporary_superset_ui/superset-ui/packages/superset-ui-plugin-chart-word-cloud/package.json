@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-word-cloud",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Superset UI plugin-chart-word-cloud",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -37,7 +37,7 @@
     "prop-types": "^15.6.2"
   },
   "devDependencies": {
-    "@superset-ui/chart": "^0.9.3",
+    "@superset-ui/chart": "^0.9.4",
     "@superset-ui/color": "^0.9.3",
     "@superset-ui/translation": "^0.9.3"
   },
