@@ -1,5 +1,11 @@
 # @superset-ui : Change Log
 
+## v0.9.4
+
+### 🐞 Bug fixes
+
+* Make `id` an optional prop for `SuperChart`.
+
 ## v0.9.3
 
 ### ✨ Features
