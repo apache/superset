@@ -1,4 +1,4 @@
-import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+import SankeyChartPlugin from '../../../../superset-ui-legacy-plugin-chart-sankey';
 import Stories from './Stories';
 
 new SankeyChartPlugin().configure({ key: 'sankey' }).register();
