@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-word-cloud",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Superset Legacy Chart - Word Cloud",
   "sideEffects": false,
   "main": "lib/index.js",
