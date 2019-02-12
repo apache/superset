@@ -177,6 +177,7 @@ class ChartRenderer extends React.Component {
       chartAlert,
       chartStatus,
       vizType,
+      chartId,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -188,6 +189,7 @@ class ChartRenderer extends React.Component {
       <React.Fragment>
         {this.renderTooltip()}
         <SuperChart
+          id={`chart-id-${chartId}`}
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
           chartProps={skipChartRendering ? null : this.prepareChartProps()}
