@@ -11,6 +11,7 @@ export default [
         chartProps={{
           datasource: { verboseMap: {} },
           formData: {
+            annotationData: {},
             bottomMargin: 'auto',
             colorScheme: 'd3Category10',
             entity: 'country_name',

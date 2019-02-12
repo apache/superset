@@ -23,7 +23,10 @@ import { formatNumber } from '@superset-ui/number-format';
 import fixTableHeight from './utils/fixTableHeight';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 
-const $ = dt.$ || window.$;
+if (window.$) {
+  dt(window, window.$);
+}
+const $ = window.$ || dt.$;
 
 const propTypes = {
   data: PropTypes.shape({

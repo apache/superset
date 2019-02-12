@@ -1,4 +1,4 @@
-import ChordChartPlugin from '../../../../superset-ui-legacy-plugin-chart-chord';
+import ChordChartPlugin from '../../../../superset-ui-legacy-plugin-chart-chord/src';
 import Stories from './Stories';
 
 new ChordChartPlugin().configure({ key: 'chord' }).register();
