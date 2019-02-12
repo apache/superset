@@ -28,6 +28,10 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 from superset.utils import core as utils
 
 
+# If the column_name is one of these, is_dttm is set to True
+TIME_COLUMN_NAMES = ['__time']
+
+
 class BaseDatasource(AuditMixinNullable, ImportMixin):
     """A common interface to objects that are queryable
     (tables and datasources)"""
@@ -379,7 +383,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return (
             self.type and
             any([t in self.type.upper() for t in self.date_types])
-        )
+        ) or self.column_name in TIME_COLUMN_NAMES
 
     @property
     def is_string(self):
