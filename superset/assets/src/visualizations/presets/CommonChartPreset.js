@@ -23,6 +23,7 @@ import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin,
 // import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 // import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
+// import BubbleChartPlugin from '../nvd3/Bubble/BubbleChartPlugin';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import PivotTableChartPlugin from '../PivotTable/PivotTableChartPlugin';
 import TableChartPlugin from '../Table/TableChartPlugin';
