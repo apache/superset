@@ -2415,7 +2415,7 @@ class DeckPathViz(BaseDeckGLViz):
             class_ = extra_polygon_encodings.get(line_type)
             if class_:
                 codes = df[fd['line_column']].unique()
-                self.deser_map[line_type] = class_.get_deser(codes)
+                self.deser_map[line_type] = class_.get_deser(codes, cache)
 
         self.metric_label = utils.get_metric_name(self.metric)
         return super(DeckPathViz, self).get_data(df)
