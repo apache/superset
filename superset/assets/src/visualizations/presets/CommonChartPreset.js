@@ -18,8 +18,13 @@
  */
 import { Preset } from '@superset-ui/core';
 import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
-import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
+// There is a known issue with bubble chart that the bubbles will not show up.
+// (<path d="NaN" />)
+// Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
+// Not '@superset-ui/legacy-preset-chart-nvd3',
+// which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
 import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
+import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
 import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';

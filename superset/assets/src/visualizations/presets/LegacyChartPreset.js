@@ -29,6 +29,11 @@ import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-te
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
+// There is a known issue with bubble chart that the bubbles will not show up.
+// (<path d="NaN" />)
+// Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
+// Not '@superset-ui/legacy-preset-chart-nvd3',
+// which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
 import { BulletChartPlugin, CompareChartPlugin, DualLineChartPlugin, LineMultiChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
 
 import CommonChartPreset from './CommonChartPreset';
