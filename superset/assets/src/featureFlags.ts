@@ -25,20 +25,27 @@ export enum FeatureFlag {
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
   ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
+  EXTRA_POLYGON_ENCODINGS = 'EXTRA_POLYGON_ENCODINGS',
 }
 
 export type FeatureFlagMap = {
   [key in FeatureFlag]?: boolean;
 };
 
+export type ConfKeysMap = {
+  [key in FeatureFlag]?: {};
+};
+
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
+    confKeys: ConfKeysMap;
   }
 }
 
-export function initFeatureFlags(featureFlags: FeatureFlagMap) {
+export function initFeatureFlags(featureFlags: FeatureFlagMap, confKeys: ConfKeysMap) {
   window.featureFlags = featureFlags || {};
+  window.confKeys = confKeys || {};
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {

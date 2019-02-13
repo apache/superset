@@ -204,6 +204,12 @@ event_logger = get_event_logger_from_cfg_value(
     app.config.get("EVENT_LOGGER", DBEventLogger())
 )
 
+# Specific configuration for feature flags
+conf_keys = {
+    k: v for k, v in app.config.get('CONF_KEYS', {}).items()
+    if feature_flags.get(k)
+}
+
 
 def get_feature_flags():
     GET_FEATURE_FLAGS_FUNC = app.config.get("GET_FEATURE_FLAGS_FUNC")
