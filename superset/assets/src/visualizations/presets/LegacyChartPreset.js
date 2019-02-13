@@ -29,7 +29,7 @@ import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-te
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
-import { BulletChartPlugin, CompareChartPlugin, DualLineChartPlugin, LineMultiChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import { BulletChartPlugin, CompareChartPlugin, DualLineChartPlugin, LineMultiChartPlugin, TimePivotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
 
 import CommonChartPreset from './CommonChartPreset';
 import DeckGLChartPreset from './DeckGLChartPreset';
