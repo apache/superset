@@ -141,6 +141,7 @@ class ScatterPlotGlowOverlay extends React.Component {
         clusterLabelMap[i] = computeClusterLabel(location.get('properties'), props.aggregation);
       }
     }, this);
+    /* eslint-disable-next-line compat/compat */
     const maxLabel = Math.max(...Object.values(clusterLabelMap));
 
     ctx.save();
