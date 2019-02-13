@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-sunburst",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Superset Legacy Chart - Sunburst",
   "sideEffects": false,
   "main": "lib/index.js",
