@@ -19,7 +19,7 @@
 import { Preset } from '@superset-ui/core';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import MapBoxChartPlugin from '../MapBox/MapBoxChartPlugin';
+import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 
 export default class MapChartPreset extends Preset {
   constructor() {
