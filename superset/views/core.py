@@ -1365,7 +1365,7 @@ class Superset(BaseSupersetView):
             title = _('Explore - %(table)s', table=table_name)
         return self.render_template(
             'superset/basic.html',
-            bootstrap_data=json.dumps(bootstrap_data),
+            bootstrap_data=json.dumps(bootstrap_data, for_json=True),
             entry='explore',
             title=title,
             standalone_mode=standalone)
@@ -2789,7 +2789,7 @@ class Superset(BaseSupersetView):
             'superset/basic.html',
             entry='welcome',
             title='Superset',
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser, for_json=True),
         )
 
     @has_access

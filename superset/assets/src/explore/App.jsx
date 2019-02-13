@@ -39,7 +39,7 @@ setupPlugins();
 
 const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
-initFeatureFlags(bootstrapData.common.feature_flags);
+initFeatureFlags(bootstrapData.common.feature_flags, bootstrapData.common.conf_keys);
 const initState = getInitialState(bootstrapData);
 
 const store = createStore(

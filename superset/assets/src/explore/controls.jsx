@@ -2186,11 +2186,16 @@ export const controls = {
     clearable: false,
     default: 'json',
     description: t('The encoding format of the lines'),
-    choices: [
-      ['polyline', 'Polyline'],
-      ['json', 'JSON'],
-      ['geohash', 'geohash (square)'],
-    ],
+    mapStateToProps: state => ({
+      choices: [
+        ...[
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+          ['geohash', 'geohash (square)'],
+        ],
+        ...(window.confKeys.EXTRA_POLYGON_ENCODINGS || []),
+      ],
+    }),
   },
 
   line_width: {

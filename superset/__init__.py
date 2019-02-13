@@ -215,6 +215,12 @@ results_backend = app.config.get('RESULTS_BACKEND')
 feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS')
 feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
 
+# Specific configuration for feature flags
+conf_keys = {
+    k: v for k, v in app.config.get('CONF_KEYS', {}).items()
+    if feature_flags.get(k)
+}
+
 
 def is_feature_enabled(feature):
     """

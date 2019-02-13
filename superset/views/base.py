@@ -31,7 +31,7 @@ from flask_babel import lazy_gettext as _
 import simplejson as json
 import yaml
 
-from superset import conf, db, feature_flags, security_manager
+from superset import conf, conf_keys, db, feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
@@ -158,6 +158,7 @@ class BaseSupersetView(BaseView):
             'locale': locale,
             'language_pack': get_language_pack(locale),
             'feature_flags': feature_flags,
+            'conf_keys': conf_keys,
         }
 
 
