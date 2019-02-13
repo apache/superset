@@ -106,6 +106,13 @@ function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
 
+const stats = {
+  colors: true,
+  // Suppress warnings from @superset-ui
+  // 'export 'xxx' was not found in 'xxx'
+  warningsFilter: warning => !/in.+superset[-]ui(.|[\n])+export '.+' was not found in '(.|[\n])+'/.test(warning.message),
+};
+
 const config = {
   node: {
     fs: 'empty',
@@ -227,13 +234,14 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
+  stats,
   devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
   devServer: {
     historyApiFallback: true,
     hot: true,
     index: '', // This line is needed to enable root proxying
     inline: true,
-    stats: { colors: true },
+    stats,
     overlay: true,
     port: devserverPort,
     // Only serves bundled files from webpack-dev-server
