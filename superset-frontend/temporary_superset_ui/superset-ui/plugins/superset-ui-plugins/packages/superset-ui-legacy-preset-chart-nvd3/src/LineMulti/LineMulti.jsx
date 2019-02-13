@@ -95,7 +95,8 @@ class LineMulti extends React.Component {
       const subsliceFormData = subslice.form_data;
       const combinedFormData = {
         ...subslice.form_data,
-        filters: (subsliceFormData.filters || []).concat(filters || []).concat(extraFilters || []),
+        extra_filters: extraFilters || [],
+        filters: (subsliceFormData.filters || []).concat(filters || []),
         time_range: timeRange,
       };
       const addPrefix = prefixMetricWithSliceName;
