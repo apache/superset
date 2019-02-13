@@ -31,7 +31,7 @@ const metadata = new ChartMetadata({
 export default class MapBoxChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./MapBox.jsx'),
+      loadChart: () => import('./MapBox'),
       loadTransformProps: () => import('./transformProps.js'),
       metadata,
     });
