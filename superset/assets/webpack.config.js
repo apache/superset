@@ -27,6 +27,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const IgnoreSupersetExportNotFoundWebpackPlugin = require('@superset-ui/ignore-superset-export-not-found-webpack-plugin');
 
 // Parse command-line arguments
 const parsedArgs = require('minimist')(process.argv.slice(2));
@@ -70,6 +71,7 @@ const plugins = [
   new ForkTsCheckerWebpackPlugin({
     checkSyntacticErrors: true,
   }),
+  new IgnoreSupersetExportNotFoundWebpackPlugin(),
 ];
 
 if (isDevMode) {
@@ -105,13 +107,6 @@ const PREAMBLE = [
 function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
-
-const stats = {
-  colors: true,
-  // Suppress warnings from @superset-ui
-  // 'export 'xxx' was not found in 'xxx'
-  warningsFilter: warning => !/in.+superset[-]ui(.|[\n])+export '.+' was not found in '(.|[\n])+'/.test(warning.message),
-};
 
 const config = {
   node: {
@@ -234,14 +229,13 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  stats,
   devtool: isDevMode ? 'cheap-module-eval-source-map' : false,
   devServer: {
     historyApiFallback: true,
     hot: true,
     index: '', // This line is needed to enable root proxying
     inline: true,
-    stats,
+    stats: { colors: true },
     overlay: true,
     port: devserverPort,
     // Only serves bundled files from webpack-dev-server

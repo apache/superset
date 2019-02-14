@@ -142,6 +142,7 @@
     "@babel/preset-env": "^7.2.3",
     "@babel/preset-react": "^7.0.0",
     "@babel/register": "^7.0.0",
+    "@superset-ui/ignore-superset-export-not-found-webpack-plugin": "^0.1.1",
     "@types/jest": "^23.3.5",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
