@@ -865,10 +865,12 @@ def get_or_create_main_db():
     logging.info('Creating database reference')
     dbobj = get_main_database(db.session)
     if not dbobj:
-        dbobj = models.Database(database_name='main')
+        dbobj = models.Database(
+            database_name='main',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
