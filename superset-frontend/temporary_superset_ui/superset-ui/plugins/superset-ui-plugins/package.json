@@ -37,11 +37,18 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@data-ui/build-config": "^0.0.40",
+    "@superset-ui/chart": "^0.9.x",
+    "@superset-ui/color": "^0.9.x",
+    "@superset-ui/number-format": "^0.9.x",
+    "@superset-ui/time-format": "^0.9.x",
+    "@superset-ui/translation": "^0.9.x",
     "fast-glob": "^2.2.6",
     "fs-extra": "^7.0.1",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
+    "react": "^16.6.0",
+    "react-dom": "^16.6.0",
     "yarn": "^1.9.4"
   },
   "engines": {
