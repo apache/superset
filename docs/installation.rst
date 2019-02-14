@@ -382,6 +382,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Pinot        | ``pip install pinotdb`` | ``pinot+http://controller:5436/query?server=http://controller:5983/``                                 |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
