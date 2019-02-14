@@ -27,6 +27,7 @@ import json
 import os
 import sys
 
+from superset.hive_query import defaultHiveQueryGenerator
 from celery.schedules import crontab
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -580,6 +581,14 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 # localtime (in the tz where the superset webserver is running)
 IS_EPOCH_S_TRULY_UTC = False
 
+
+
+# A function that intercepts the SQL to be executed and can alter it.
+#
+#    def HIVE_QUERY_GENERATOR(sql, query_obj):
+#        dttm = datetime.now().isoformat()
+#        return sql +" WHERE XYZ > 0 "
+HIVE_QUERY_GENERATOR  = defaultHiveQueryGenerator
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

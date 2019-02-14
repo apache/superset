@@ -46,11 +46,13 @@ from superset.utils.core import (
 )
 from superset.models.helpers import QueryResult, has_kerberos_ticket
 
+
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 
 SqlaQuery = namedtuple('SqlaQuery', ['sqla_query', 'labels_expected'])
 QueryStringExtended = namedtuple('QueryStringExtended', ['sql', 'labels_expected'])
+
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -824,6 +826,12 @@ class SqlaTable(Model, BaseDatasource):
         status = utils.QueryStatus.SUCCESS
         error_message = None
         df = None
+        
+        """Apply HIVE_QUERY_GENERATOR """
+        HIVE_QUERY_GENERATOR = config.get('HIVE_QUERY_GENERATOR')
+        if HIVE_QUERY_GENERATOR:
+            sql = HIVE_QUERY_GENERATOR(sql,query_obj,self.database)
+            
         db_engine_spec = self.database.db_engine_spec
         try:
             df = self.database.get_df(sql, self.schema)
