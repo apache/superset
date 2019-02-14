@@ -2069,7 +2069,7 @@ class Superset(BaseSupersetView):
                 datasource_type=table.type).all()
         elif dashboard_id:
             # todo(hugh): Move this into util function
-            # util.get_dashboard_slices()
+            # slices = utils.get_dashboard_charts(id=dashboard_id)
             session = db.session()
             qry = session.query(models.Dashboard)
             if dashboard_id.isdigit():
