@@ -19,13 +19,15 @@
 /* eslint-disable sort-keys, no-magic-numbers, react/forbid-prop-types */
 /* eslint-disable react/require-default-props, complexity, prefer-destructuring */
 /* eslint-disable react/no-unused-prop-types, no-restricted-properties, react/destructuring-assignment */
+/* eslint-disable no-underscore-dangle */
 import Immutable from 'immutable';
-import React from 'react';
 import PropTypes from 'prop-types';
-import ViewportMercator from 'viewport-mercator-project';
+import React from 'react';
+import { CanvasOverlay } from 'react-map-gl';
 import { kmToPixels, MILES_PER_KM } from './utils/geo';
 import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 const propTypes = {
   aggregation: PropTypes.string,
@@ -46,11 +48,6 @@ const defaultProps = {
   globalOpacity: 1,
   // Same as browser default.
   compositeOperation: 'source-over',
-};
-
-const contextTypes = {
-  viewport: PropTypes.object,
-  isDragging: PropTypes.bool,
 };
 
 const computeClusterLabel = (properties, aggregation) => {
@@ -78,22 +75,10 @@ const computeClusterLabel = (properties, aggregation) => {
   return count;
 };
 
-class ScatterPlotGlowOverlay extends React.Component {
+class ScatterPlotGlowOverlay extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.setCanvasRef = this.setCanvasRef.bind(this);
-  }
-
-  componentDidMount() {
-    this.redraw();
-  }
-
-  componentDidUpdate() {
-    this.redraw();
-  }
-
-  setCanvasRef(element) {
-    this.canvas = element;
+    this._redraw = this._redraw.bind(this);
   }
 
   drawText(ctx, pixel, options = {}) {
@@ -127,13 +112,9 @@ class ScatterPlotGlowOverlay extends React.Component {
   }
 
   // Modified: https://github.com/uber/react-map-gl/blob/master/overlays/scatterplot.react.js
-  redraw() {
+  _redraw({ width, height, ctx, isDragging, project, unproject }) {
     const props = this.props;
-    const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this.canvas.getContext('2d');
-    const radius = props.dotRadius;
-    const mercator = new ViewportMercator(props);
-    const { rgb } = props;
+    const { rgb, radius } = props;
     const clusterLabelMap = [];
 
     props.locations.forEach((location, i) => {
@@ -145,21 +126,18 @@ class ScatterPlotGlowOverlay extends React.Component {
     // eslint-disable-next-line compat/compat
     const maxLabel = Math.max(...Object.values(clusterLabelMap));
 
-    ctx.save();
-    ctx.scale(pixelRatio, pixelRatio);
-    ctx.clearRect(0, 0, props.width, props.height);
     ctx.globalCompositeOperation = props.compositeOperation;
 
     if ((props.renderWhileDragging || !props.isDragging) && props.locations) {
       props.locations.forEach(function _forEach(location, i) {
-        const pixel = mercator.project(props.lngLatAccessor(location));
+        const pixel = project(props.lngLatAccessor(location));
         const pixelRounded = [roundDecimal(pixel[0], 1), roundDecimal(pixel[1], 1)];
 
         if (
           pixelRounded[0] + radius >= 0 &&
-          pixelRounded[0] - radius < props.width &&
+          pixelRounded[0] - radius < width &&
           pixelRounded[1] + radius >= 0 &&
-          pixelRounded[1] - radius < props.height
+          pixelRounded[1] - radius < height
         ) {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
@@ -241,40 +219,14 @@ class ScatterPlotGlowOverlay extends React.Component {
         }
       }, this);
     }
-    ctx.restore();
   }
 
   render() {
-    let width = 0;
-    let height = 0;
-    if (this.context.viewport) {
-      width = this.context.viewport.width;
-      height = this.context.viewport.height;
-    }
-    const { globalOpacity } = this.props;
-    const pixelRatio = window.devicePixelRatio || 1;
-
-    return (
-      <canvas
-        ref={this.setCanvasRef}
-        width={width * pixelRatio}
-        height={height * pixelRatio}
-        style={{
-          width: `${width}px`,
-          height: `${height}px`,
-          position: 'absolute',
-          pointerEvents: 'none',
-          opacity: globalOpacity,
-          left: 0,
-          top: 0,
-        }}
-      />
-    );
+    return <CanvasOverlay redraw={this._redraw} />;
   }
 }
 
 ScatterPlotGlowOverlay.propTypes = propTypes;
 ScatterPlotGlowOverlay.defaultProps = defaultProps;
-ScatterPlotGlowOverlay.contextTypes = contextTypes;
 
 export default ScatterPlotGlowOverlay;
