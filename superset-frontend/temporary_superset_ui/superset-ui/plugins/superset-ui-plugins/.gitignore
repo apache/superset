@@ -26,3 +26,4 @@ package-lock.json
 prettier.config.js
 tsconfig.json
 yarn.lock
+_gh-pages

@@ -9,6 +9,7 @@ module.exports = (storybookBaseConfig, configType, defaultConfig) => {
   defaultConfig.module.rules[0].use[0].options.plugins.push('@babel/plugin-syntax-dynamic-import');
 
   defaultConfig.module.rules.push({
+    exclude: /node_modules/,
     include: new RegExp(`${path.resolve(__dirname, '../../superset-ui-legacy-')}.+/src`),
     test: /\.jsx?$/,
     use: defaultConfig.module.rules[0].use,
