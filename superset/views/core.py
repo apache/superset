@@ -2031,7 +2031,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/warm_up_cache/', methods=['GET'])
     def warm_up_cache(self):
-        """Warms up the cache for the slice or table.
+        """Warms up the cache for the slice, table, or dashboards.
 
         Note for slices a force refresh occurs.
         """
@@ -2040,6 +2040,7 @@ class Superset(BaseSupersetView):
         slice_id = request.args.get('slice_id')
         table_name = request.args.get('table_name')
         db_name = request.args.get('db_name')
+        dashboard_id = request.args.get('dashboard_id')
 
         if not slice_id and not (table_name and db_name):
             return json_error_response(__(
@@ -2066,6 +2067,17 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(
                 datasource_id=table.id,
                 datasource_type=table.type).all()
+        elif dashboard_id:
+            # todo(hugh): Move this into util function
+            # util.get_dashboard_slices()
+            session = db.session()
+            qry = session.query(models.Dashboard)
+            if dashboard_id.isdigit():
+                qry = qry.filter_by(id=int(dashboard_id))
+            else:
+                qry = qry.filter_by(slug=dashboard_id)
+            dash = qry.one_or_none()
+            slices = [slc for slc in dash.slices]
 
         for slc in slices:
             try:

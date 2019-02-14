@@ -53,6 +53,8 @@ from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
+from superset import db
+import superset.models.core as models
 from superset.exceptions import SupersetException, SupersetTimeoutException
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
@@ -1076,6 +1078,24 @@ def get_username():
         return g.user.username
     except Exception:
         pass
+
+
+def get_dashboard_charts(id_or_slug=None):
+    """
+    Query all charts associated with a dashboard
+    """
+    if id is None:
+        raise
+
+    session = db.session()
+    qry = session.query(models.Dashboard)
+    if id.isdigit():
+        qry = qry.filter_by(id=int(id))
+    else:
+        qry = qry.filter_by(slug=id)
+        dash = qry.one_or_none()
+
+    return [slc for slc in dash.slices]
 
 
 def MediumText():
