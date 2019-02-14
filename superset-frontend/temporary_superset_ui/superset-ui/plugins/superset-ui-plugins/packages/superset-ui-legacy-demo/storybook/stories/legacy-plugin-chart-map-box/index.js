@@ -1,4 +1,4 @@
-import MapBoxChartPlugin from '../../../../superset-ui-legacy-plugin-chart-map-box';
+import MapBoxChartPlugin from '../../../../superset-ui-legacy-plugin-chart-map-box/src';
 import Stories from './Stories';
 
 new MapBoxChartPlugin().configure({ key: 'map-box' }).register();
