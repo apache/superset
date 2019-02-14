@@ -95,3 +95,4 @@ cache:
     - ~/.npm
     - ~/.cache
     - ~/.travis_cache/
+    - superset/assets/node_modules/.cache/terser-webpack-plugin/
