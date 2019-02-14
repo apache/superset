@@ -111,8 +111,6 @@ class MapBox extends React.Component {
     const bbox = [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]];
     const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
-    console.log('clusters', clusters);
-
     return (
       <MapGL
         {...viewport}
