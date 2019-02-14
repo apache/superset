@@ -31,23 +31,24 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 const propTypes = {
   aggregation: PropTypes.string,
-  locations: PropTypes.instanceOf(Immutable.List).isRequired,
-  lngLatAccessor: PropTypes.func,
-  renderWhileDragging: PropTypes.bool,
-  globalOpacity: PropTypes.number,
-  dotRadius: PropTypes.number,
-  dotFill: PropTypes.string,
   compositeOperation: PropTypes.string,
+  dotRadius: PropTypes.number,
+  globalOpacity: PropTypes.number,
+  lngLatAccessor: PropTypes.func,
+  locations: PropTypes.instanceOf(Immutable.List).isRequired,
+  pointRadiusUnit: PropTypes.string,
+  renderWhileDragging: PropTypes.bool,
+  rgb: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
+  zoom: PropTypes.number,
 };
 
 const defaultProps = {
-  lngLatAccessor: location => [location.get(0), location.get(1)],
-  renderWhileDragging: true,
-  dotRadius: 4,
-  dotFill: '#1FBAD6',
-  globalOpacity: 1,
   // Same as browser default.
   compositeOperation: 'source-over',
+  dotRadius: 4,
+  globalOpacity: 1,
+  lngLatAccessor: location => [location.get(0), location.get(1)],
+  renderWhileDragging: true,
 };
 
 const computeClusterLabel = (properties, aggregation) => {
@@ -78,7 +79,7 @@ const computeClusterLabel = (properties, aggregation) => {
 class ScatterPlotGlowOverlay extends React.PureComponent {
   constructor(props) {
     super(props);
-    this._redraw = this._redraw.bind(this);
+    this.redraw = this.redraw.bind(this);
   }
 
   drawText(ctx, pixel, options = {}) {
@@ -112,25 +113,37 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
   }
 
   // Modified: https://github.com/uber/react-map-gl/blob/master/overlays/scatterplot.react.js
-  _redraw({ width, height, ctx, isDragging, project, unproject }) {
-    const props = this.props;
-    const { rgb, radius } = props;
+  redraw({ width, height, ctx, isDragging, project }) {
+    const {
+      aggregation,
+      compositeOperation,
+      dotRadius,
+      lngLatAccessor,
+      locations,
+      pointRadiusUnit,
+      renderWhileDragging,
+      rgb,
+      zoom,
+    } = this.props;
+
+    const radius = dotRadius;
     const clusterLabelMap = [];
 
-    props.locations.forEach((location, i) => {
+    locations.forEach((location, i) => {
       if (location.get('properties').get('cluster')) {
-        clusterLabelMap[i] = computeClusterLabel(location.get('properties'), props.aggregation);
+        clusterLabelMap[i] = computeClusterLabel(location.get('properties'), aggregation);
       }
     }, this);
 
     // eslint-disable-next-line compat/compat
-    const maxLabel = Math.max(...Object.values(clusterLabelMap));
+    const maxLabel = Math.max(...clusterLabelMap.filter(v => !Number.isNaN(v)));
 
-    ctx.globalCompositeOperation = props.compositeOperation;
+    ctx.clearRect(0, 0, width, height);
+    ctx.globalCompositeOperation = compositeOperation;
 
-    if ((props.renderWhileDragging || !props.isDragging) && props.locations) {
-      props.locations.forEach(function _forEach(location, i) {
-        const pixel = project(props.lngLatAccessor(location));
+    if ((renderWhileDragging || !isDragging) && locations) {
+      locations.forEach(function _forEach(location, i) {
+        const pixel = project(lngLatAccessor(location));
         const pixelRounded = [roundDecimal(pixel[0], 1), roundDecimal(pixel[1], 1)];
 
         if (
@@ -142,16 +155,11 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
+            console.log('clusterLabel, maxLabel, radius', clusterLabel, maxLabel, radius);
             const scaledRadius = roundDecimal(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
-            const gradient = ctx.createRadialGradient(
-              pixelRounded[0],
-              pixelRounded[1],
-              scaledRadius,
-              pixelRounded[0],
-              pixelRounded[1],
-              0,
-            );
+            const [x, y] = pixelRounded;
+            const gradient = ctx.createRadialGradient(x, y, scaledRadius, x, y, 0);
 
             gradient.addColorStop(1, `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0.8)`);
             gradient.addColorStop(0, `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, 0)`);
@@ -181,13 +189,13 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
             let pointLabel;
 
             if (radiusProperty !== null) {
-              const pointLatitude = props.lngLatAccessor(location)[1];
-              if (props.pointRadiusUnit === 'Kilometers') {
+              const pointLatitude = lngLatAccessor(location)[1];
+              if (pointRadiusUnit === 'Kilometers') {
                 pointLabel = `${roundDecimal(pointRadius, 2)}km`;
-                pointRadius = kmToPixels(pointRadius, pointLatitude, props.zoom);
-              } else if (props.pointRadiusUnit === 'Miles') {
+                pointRadius = kmToPixels(pointRadius, pointLatitude, zoom);
+              } else if (pointRadiusUnit === 'Miles') {
                 pointLabel = `${roundDecimal(pointRadius, 2)}mi`;
-                pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, props.zoom);
+                pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, zoom);
               }
             }
 
@@ -222,7 +230,7 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
   }
 
   render() {
-    return <CanvasOverlay redraw={this._redraw} />;
+    return <CanvasOverlay redraw={this.redraw} />;
   }
 }
 
