@@ -19,7 +19,6 @@
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
-import { debounce } from 'lodash';
 import {
   FormGroup,
   InputGroup,
@@ -79,8 +78,8 @@ class SqlEditor extends React.PureComponent {
     };
     this.sqlEditorRef = React.createRef();
 
-    this.onResize = this.onResize.bind(this);
-    this.debouncedResize = debounce(this.onResize, 250);
+    this.onResizeStart = this.onResizeStart.bind(this);
+    this.onResizeEnd = this.onResizeEnd.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
@@ -102,12 +101,18 @@ class SqlEditor extends React.PureComponent {
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({ height: this.getSqlEditorHeight() });
   }
-  onResize([northPercent, southPercent]) {
+  onResizeStart() {
+    // Set the heights on the ace editor and the ace content area after drag starts
+    // to smooth out the visual transition to the new heights when drag ends
+    document.getElementById('brace-editor').style.height = `calc(100% - ${SQL_TOOLBAR_HEIGHT}px)`;
+    document.getElementsByClassName('ace_content')[0].style.height = '100%';
+  }
+  onResizeEnd([northPercent, southPercent]) {
     this.setState(this.getAceEditorAndSouthPaneHeights(
       this.state.height, northPercent, southPercent));
 
-    if (this.refs.ace && this.refs.ace.clientHeight) {
-      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
+    if (this.refs.north && this.refs.north.clientHeight) {
+      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.north.clientHeight);
     }
   }
   onSqlChanged(sql) {
@@ -209,9 +214,10 @@ class SqlEditor extends React.PureComponent {
           minSize={200}
           direction="vertical"
           gutterSize={GUTTER_HEIGHT}
-          onDragEnd={this.debouncedResize}
+          onDragStart={this.onResizeStart}
+          onDragEnd={this.onResizeEnd}
         >
-          <div ref="ace">
+          <div ref="north">
             <AceEditorWrapper
               actions={this.props.actions}
               onBlur={this.setQueryEditorSql}
