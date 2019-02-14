@@ -201,9 +201,20 @@
   border:0;
 }
 
-.label-btn:hover {
-  background-color: #808e95;
+.label-dropdown ul.dropdown-menu {
+  position: fixed;
+  top: auto;
+  left: auto;
+  margin: 20px 0 0;
+}
+
+.label-btn:hover, .label-btn-label:hover {
+  background-color: #667177;
   color: #fff;
+}
+
+.label-btn-label {
+  cursor: pointer;
 }
 
 .adhoc-filter-simple-column-dropdown {

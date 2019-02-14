@@ -44,6 +44,9 @@ const defaultProps = {
   onHide: () => {},
 };
 
+const TABLE_COLUMNS = ['name', 'type', 'schema', 'connection', 'creator'];
+const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
+
 class ChangeDatasourceModal extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -110,8 +113,9 @@ class ChangeDatasourceModal extends React.PureComponent {
         this.props.onChange(datasource.uid);
       })
       .catch((response) => {
-        getClientErrorObject(response).then(({ error }) => {
-          this.props.addDangerToast(error.error || error.statusText || error);
+        getClientErrorObject(response).then(({ error, message }) => {
+          const errorMessage = error ? error.error || error.statusText || error : message;
+          this.props.addDangerToast(errorMessage);
         });
       });
     this.props.onHide();
@@ -135,7 +139,6 @@ class ChangeDatasourceModal extends React.PureComponent {
         <Modal.Body>
           <div>
             <FormControl
-              id="formControlsText"
               inputRef={(ref) => {
                 this.setSearchRef(ref);
               }}
@@ -149,11 +152,11 @@ class ChangeDatasourceModal extends React.PureComponent {
           {loading && <Loading />}
           {datasources && (
             <Table
-              columns={['name', 'type', 'schema', 'connection', 'creator']}
+              columns={TABLE_COLUMNS}
               className="table table-condensed"
               data={datasources}
               itemsPerPage={20}
-              filterable={['rawName', 'type', 'connection', 'schema', 'creator']}
+              filterable={TABLE_FILTERABLE}
               filterBy={filter}
               hideFilterInput
             />

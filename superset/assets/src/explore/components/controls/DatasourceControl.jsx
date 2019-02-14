@@ -124,50 +124,52 @@ class DatasourceControl extends React.PureComponent {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <OverlayTrigger
-          placement="right"
-          overlay={
-            <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
-          }
-        >
-          <div className="btn-group">
-            <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }}>
-              {datasource.name}
-            </Label>
-          </div>
-        </OverlayTrigger>
-        <DropdownButton
-          noCaret
-          title={
-            <span>
-              <i className={`float-right expander fa fa-angle-${menuExpanded ? 'up' : 'down'}`} />
-            </span>}
-          className="label label-btn m-r-5"
-          bsSize="sm"
-          id="datasource_menu"
-        >
-          <MenuItem
-            eventKey="3"
-            onClick={this.toggleEditDatasourceModal}
+        <div className="btn-group label-dropdown">
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
+            }
           >
-            {t('Edit Datasource')}
-          </MenuItem>
-          {datasource.type === 'table' &&
+            <div className="btn-group">
+              <Label onClick={this.toggleEditDatasourceModal} className="label-btn-label">
+                {datasource.name}
+              </Label>
+            </div>
+          </OverlayTrigger>
+          <DropdownButton
+            noCaret
+            title={
+              <span>
+                <i className={`float-right expander fa fa-angle-${menuExpanded ? 'up' : 'down'}`} />
+              </span>}
+            className="label label-btn m-r-5"
+            bsSize="sm"
+            id="datasource_menu"
+          >
             <MenuItem
               eventKey="3"
-              href={`/superset/sqllab?datasourceKey=${value}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={this.toggleEditDatasourceModal}
             >
-              {t('Explore in SQL Lab')}
-            </MenuItem>}
-          <MenuItem
-            eventKey="3"
-            onClick={this.toggleChangeDatasourceModal}
-          >
-            {t('Change Datasource')}
-          </MenuItem>
-        </DropdownButton>
+              {t('Edit Datasource')}
+            </MenuItem>
+            {datasource.type === 'table' &&
+              <MenuItem
+                eventKey="3"
+                href={`/superset/sqllab?datasourceKey=${value}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Explore in SQL Lab')}
+              </MenuItem>}
+            <MenuItem
+              eventKey="3"
+              onClick={this.toggleChangeDatasourceModal}
+            >
+              {t('Change Datasource')}
+            </MenuItem>
+          </DropdownButton>
+        </div>
         <OverlayTrigger
           placement="right"
           overlay={
