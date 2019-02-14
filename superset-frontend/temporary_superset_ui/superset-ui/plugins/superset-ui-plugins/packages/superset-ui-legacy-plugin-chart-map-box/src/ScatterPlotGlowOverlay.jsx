@@ -18,8 +18,7 @@
  */
 /* eslint-disable sort-keys, no-magic-numbers, react/forbid-prop-types */
 /* eslint-disable react/require-default-props, complexity, prefer-destructuring */
-/* eslint-disable react/no-unused-prop-types, no-restricted-properties, react/destructuring-assignment */
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-restricted-properties */
 import Immutable from 'immutable';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -33,7 +32,6 @@ const propTypes = {
   aggregation: PropTypes.string,
   compositeOperation: PropTypes.string,
   dotRadius: PropTypes.number,
-  globalOpacity: PropTypes.number,
   lngLatAccessor: PropTypes.func,
   locations: PropTypes.instanceOf(Immutable.List).isRequired,
   pointRadiusUnit: PropTypes.string,
@@ -46,7 +44,6 @@ const defaultProps = {
   // Same as browser default.
   compositeOperation: 'source-over',
   dotRadius: 4,
-  globalOpacity: 1,
   lngLatAccessor: location => [location.get(0), location.get(1)],
   renderWhileDragging: true,
 };
@@ -135,7 +132,6 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
       }
     }, this);
 
-    // eslint-disable-next-line compat/compat
     const maxLabel = Math.max(...clusterLabelMap.filter(v => !Number.isNaN(v)));
 
     ctx.clearRect(0, 0, width, height);
@@ -155,7 +151,6 @@ class ScatterPlotGlowOverlay extends React.PureComponent {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
-            console.log('clusterLabel, maxLabel, radius', clusterLabel, maxLabel, radius);
             const scaledRadius = roundDecimal(Math.pow(clusterLabel / maxLabel, 0.5) * radius, 1);
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
             const [x, y] = pixelRounded;
