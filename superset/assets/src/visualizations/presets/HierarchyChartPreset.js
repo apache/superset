@@ -17,9 +17,9 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import PartitionChartPlugin from '../Partition/PartitionChartPlugin';
-import SunburstChartPlugin from '../Sunburst/SunburstChartPlugin';
-import TreemapChartPlugin from '../Treemap/TreemapChartPlugin';
+import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
+import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
+import TreemapChartPlugin from '@superset-ui/legacy-plugin-chart-treemap';
 
 export default class HierarchyChartPreset extends Preset {
   constructor() {
