@@ -29,11 +29,6 @@
     "@data-ui/event-flow": "^0.0.54",
     "prop-types": "^15.6.2"
   },
-  "devDependencies": {
-    "@superset-ui/chart": "^0.9.x",
-    "@superset-ui/translation": "^0.9.x",
-    "react": "^15 || ^16"
-  },
   "peerDependencies": {
     "@superset-ui/chart": "^0.9.x",
     "@superset-ui/translation": "^0.9.x",

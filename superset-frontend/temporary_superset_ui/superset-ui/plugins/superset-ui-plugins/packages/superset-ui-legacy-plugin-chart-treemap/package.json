@@ -30,12 +30,6 @@
     "d3-selection": "^1.4.0",
     "prop-types": "^15.6.2"
   },
-  "devDependencies": {
-    "@superset-ui/chart": "^0.9.x",
-    "@superset-ui/color": "^0.9.x",
-    "@superset-ui/number-format": "^0.9.x",
-    "@superset-ui/translation": "^0.9.x"
-  },
   "peerDependencies": {
     "@superset-ui/chart": "^0.9.x",
     "@superset-ui/color": "^0.9.x",
