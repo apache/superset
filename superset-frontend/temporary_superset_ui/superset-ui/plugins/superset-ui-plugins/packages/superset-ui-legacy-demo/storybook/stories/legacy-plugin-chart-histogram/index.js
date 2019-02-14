@@ -1,4 +1,4 @@
-import HistogramChartPlugin from '../../../../superset-ui-legacy-plugin-chart-histogram/src/index';
+import HistogramChartPlugin from '../../../../superset-ui-legacy-plugin-chart-histogram';
 import Stories from './Stories';
 
 new HistogramChartPlugin().configure({ key: 'histogram' }).register();
