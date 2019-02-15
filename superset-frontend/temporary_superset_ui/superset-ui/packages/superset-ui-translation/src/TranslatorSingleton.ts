@@ -1,4 +1,5 @@
 /* eslint no-console: 0 */
+
 import Translator from './Translator';
 import { TranslatorConfig } from './types';
 
