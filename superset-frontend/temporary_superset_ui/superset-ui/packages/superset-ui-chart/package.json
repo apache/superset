@@ -39,7 +39,7 @@
     "node-fetch": "^2.2.0"
   },
   "peerDependencies": {
-    "@superset-ui/connection": "^0.9.3",
+    "@superset-ui/connection": "^0.9.x",
     "react": "^15 || ^16"
   }
 }
