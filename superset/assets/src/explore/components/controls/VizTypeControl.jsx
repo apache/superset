@@ -23,6 +23,7 @@ import {
   Tooltip } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
+import { SupersetClient } from '@superset-ui/connection';
 
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.css';
@@ -71,9 +72,10 @@ export default class VizTypeControl extends React.PureComponent {
     }
   }
   componentDidMount() {
-    $.get("/superset/viz_type_stats", (data) => {
-      this.setState({ vizTypeStats: data.this_user.concat(data.overall) });
-      this.forceUpdate();
+    SupersetClient.get({
+      endpoint: "/superset/viz_type_stats",
+    }).then(({ json }) => {
+      this.setState({ vizTypeStats: json.this_user.concat(json.overall) });
     });
   }
   renderItem(entry) {
@@ -96,32 +98,35 @@ export default class VizTypeControl extends React.PureComponent {
         </div>
       </div>);
   }
-  getVizTypeByKey(types, key) {
+  _buildVizTypeLookup(types) {
+    let lookup = new Map()
     for (var i = 0; i < types.length; i++) {
-      if (types[i].key == key) return types[i];
+      lookup.set(types[i].key, types[i]);
     }
+    return lookup
   }
-  sortVizTypes(types) {
-    var sorted = [];
-    var loaded_keys = new Set();
+  _sortVizTypes(types) {
+    let sorted = [];
+    let loadedKeys = new Set();
+    let vizTypeLookup = this._buildVizTypeLookup(types);
     // Sort based on existing visualization type usages statistics
     for (var i = 0; i < this.state.vizTypeStats.length; i++) {
-      var key = this.state.vizTypeStats[i].viz_type;
-      if (loaded_keys.has(key)) continue;
-      var t = this.getVizTypeByKey(types, key);
+      let key = this.state.vizTypeStats[i].viz_type;
+      if (loadedKeys.has(key)) continue;
+      let t = vizTypeLookup.get(key);
       if (typeof t !== 'undefined') {
         sorted.push(t);
-        loaded_keys.add(key);
+        loadedKeys.add(key);
       }
     }
     // For visualization types that do not have any statistics, apply the
     // original order
     for (var i = 0; i < types.length; i++) {
-      var t = types[i];
-      var key = t['key'];
-      if (! loaded_keys.has(key)) {
+      let t = types[i];
+      let key = t['key'];
+      if (! loadedKeys.has(key)) {
         sorted.push(t);
-        loaded_keys.add(key);
+        loadedKeys.add(key);
       }
     }
     return sorted;
@@ -131,7 +136,7 @@ export default class VizTypeControl extends React.PureComponent {
     const { value } = this.props;
 
     const registry = getChartMetadataRegistry();
-    const types = this.sortVizTypes(registry.entries());
+    const types = this._sortVizTypes(registry.entries());
     const filteredTypes = filter.length > 0
       ? types.filter(type => type.value.name.toLowerCase().includes(filter))
       : types;
