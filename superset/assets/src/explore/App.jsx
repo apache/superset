@@ -24,6 +24,7 @@ import thunk from 'redux-thunk';
 
 import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
+import logger from '../middleware/loggerMiddleware';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import getInitialState from './reducers/getInitialState';
@@ -46,7 +47,7 @@ const store = createStore(
   rootReducer,
   initState,
   compose(
-    applyMiddleware(thunk),
+    applyMiddleware(thunk, logger),
     initEnhancer(false),
   ),
 );
