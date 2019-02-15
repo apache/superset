@@ -15,12 +15,6 @@ export interface LanguagePack {
   };
 }
 
-export interface Jed {
-  translate(input: string): Jed;
-  ifPlural(value: number, plural: string): Jed;
-  fetch(...args: any[]): string;
-}
-
 export interface TranslatorConfig {
   languagePack?: LanguagePack;
 }
