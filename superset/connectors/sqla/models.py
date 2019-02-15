@@ -615,7 +615,8 @@ class SqlaTable(Model, BaseDatasource):
         elif columns:
             for s in columns:
                 select_exprs.append(
-                    cols[s].get_sqla_col() if s in cols else literal_column(s))
+                    cols[s].get_sqla_col() if s in cols else
+                    self.make_sqla_column_compatible(literal_column(s)))
             metrics_exprs = []
 
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
@@ -754,7 +755,6 @@ class SqlaTable(Model, BaseDatasource):
                             timeseries_limit_metric,
                         )
                         ob = timeseries_limit_metric.get_sqla_col()
-                        ob = self.make_sqla_column_compatible(ob)
                     else:
                         raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
