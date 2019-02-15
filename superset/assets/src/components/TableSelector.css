@@ -17,8 +17,22 @@
  * under the License.
  */
 .TableSelector .fa-refresh {
-  padding-top: 7px
+  padding-left: 9px;
 }
 .TableSelector .refresh-col {
-  padding-left: 0px;
+  display: flex;
+  align-items: center;
+  width: 30px;
+}
+.TableSelector .section {
+  padding-bottom: 5px;
+  display: flex;
+  flex-direction: row;
+}
+.TableSelector .select {
+  flex-grow: 1;
+}
+.TableSelector .divider {
+  border-bottom: 1px solid #f2f2f2;
+  margin: 10px 0;
 }
