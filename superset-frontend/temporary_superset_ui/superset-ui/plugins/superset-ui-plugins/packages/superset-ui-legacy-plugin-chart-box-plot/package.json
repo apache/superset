@@ -1,0 +1,49 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-box-plot",
+  "version": "0.0.0",
+  "description": "Superset Legacy Chart - Box Plot",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-legacy.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-legacy/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui-legacy#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "private": true,
+  "dependencies": {
+    "@data-ui/xy-chart": "^0.0.75",
+    "@data-ui/theme": "^0.0.75",
+    "@vx/axis": "^0.0.184",
+    "@vx/group": "^0.0.183",
+    "@vx/legend": "^0.0.183",
+    "@vx/responsive": "^0.0.184",
+    "@vx/shape": "^0.0.184",
+    "@vx/scale": "^0.0.182",
+    "prop-types": "^15.6.2"
+  },
+  "peerDependencies": {
+    "@superset-ui/core": "^0.9.x",
+    "@superset-ui/chart": "^0.9.x",
+    "@superset-ui/color": "^0.9.x",
+    "@superset-ui/dimension": "^0.9.x",
+    "@superset-ui/number-format": "^0.9.x",
+    "@superset-ui/translation": "^0.9.x",
+    "react": "^15 || ^16"
+  }
+}

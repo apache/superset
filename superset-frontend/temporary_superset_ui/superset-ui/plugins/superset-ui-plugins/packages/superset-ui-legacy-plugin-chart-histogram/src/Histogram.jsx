@@ -98,6 +98,7 @@ class CustomHistogram extends React.PureComponent {
             normalized={normalized}
             binCount={binCount}
             binType="numeric"
+            margin={{ top: 20, right: 20 }}
             renderTooltip={({ datum, color }) => (
               <div>
                 <strong style={{ color }}>
