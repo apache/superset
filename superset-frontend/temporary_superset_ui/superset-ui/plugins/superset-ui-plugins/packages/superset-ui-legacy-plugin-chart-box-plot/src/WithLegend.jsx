@@ -25,17 +25,19 @@ const propTypes = {
   className: PropTypes.string,
   width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  legendJustifyContent: PropTypes.oneOf(['center', 'flex-start', 'flex-end']),
+  position: PropTypes.oneOf(['top', 'left', 'bottom', 'right']),
   renderChart: PropTypes.func.isRequired,
   renderLegend: PropTypes.func.isRequired,
-  position: PropTypes.oneOf(['top', 'left', 'bottom', 'right']),
-  legendJustifyContent: PropTypes.oneOf(['center', 'flex-start', 'flex-end']),
+  hideLegend: PropTypes.bool,
 };
 const defaultProps = {
   className: '',
   width: 'auto',
   height: 'auto',
-  position: 'top',
   legendJustifyContent: undefined,
+  position: 'top',
+  hideLegend: false,
 };
 
 const LEGEND_STYLE_BASE = {
@@ -89,7 +91,19 @@ class WithLegend extends React.Component {
   }
 
   render() {
-    const { className, width, height, position, renderChart, renderLegend } = this.props;
+    const {
+      className,
+      width,
+      height,
+      position,
+      renderChart,
+      renderLegend,
+      hideLegend,
+    } = this.props;
+
+    if (hideLegend) {
+      return <div className={className}>{renderChart({ width, height })}</div>;
+    }
 
     const isHorizontal = position === 'left' || position === 'right';
 
