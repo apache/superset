@@ -38,7 +38,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.40",
+    "@superset-ui/build-config": "^0.0.2",
     "fast-glob": "^2.2.6",
     "fs-extra": "^7.0.1",
     "husky": "^1.1.2",
@@ -51,7 +51,7 @@
     "node": ">=8.10.0"
   },
   "beemo": {
-    "module": "@data-ui/build-config",
+    "module": "@superset-ui/build-config",
     "drivers": [
       "babel",
       "eslint",
