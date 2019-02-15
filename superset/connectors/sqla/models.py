@@ -25,6 +25,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import sqlalchemy as sa
 import superset.utils.core as utils
+from superset.utils import core as utils, import_datasource
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Table, Text,

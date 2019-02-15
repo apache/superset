@@ -569,6 +569,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
+        if dashboard_to_import.position_json is not None:
+            alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
+
         alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
         if new_expanded_slices:
