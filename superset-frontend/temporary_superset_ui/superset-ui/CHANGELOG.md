@@ -1,5 +1,17 @@
 # @superset-ui : Change Log
 
+## v0.9.6
+
+### 🛠️ Internal
+
+* Update `@superset-ui/chart` dependency.
+
+## v0.9.5
+
+### 🛠️ Internal
+
+* Remove unnecessary export types and remove warning when using `esm` output in target application.
+
 ## v0.9.4
 
 ### 🐞 Bug fixes
