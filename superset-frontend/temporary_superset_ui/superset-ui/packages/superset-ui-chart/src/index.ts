@@ -1,12 +1,7 @@
-export { ChartClient, ChartClientConfig } from './clients/ChartClient';
-export { default as ChartMetadata, ChartMetadataConfig } from './models/ChartMetadata';
-export {
-  default as ChartPlugin,
-  ChartPluginConfig,
-  BuildQueryFunction,
-  TransformPropsFunction,
-} from './models/ChartPlugin';
-export { default as ChartProps, ChartPropsConfig } from './models/ChartProps';
+export { default as ChartClient } from './clients/ChartClient';
+export { default as ChartMetadata } from './models/ChartMetadata';
+export { default as ChartPlugin } from './models/ChartPlugin';
+export { default as ChartProps } from './models/ChartProps';
 
 export { default as createLoadableRenderer } from './components/createLoadableRenderer';
 export { default as reactify } from './components/reactify';
@@ -21,6 +16,10 @@ export {
   default as getChartTransformPropsRegistry,
 } from './registries/ChartTransformPropsRegistrySingleton';
 
-export { QueryContext, buildQueryContext } from './query/buildQueryContext';
-export { DatasourceType, DatasourceKey } from './query/DatasourceKey';
-export { FormData } from './query/FormData';
+export { default as buildQueryContext } from './query/buildQueryContext';
+export { default as DatasourceKey } from './query/DatasourceKey';
+
+export * from './types/Annotation';
+export * from './types/Datasource';
+export * from './types/FormData';
+export * from './types/Query';

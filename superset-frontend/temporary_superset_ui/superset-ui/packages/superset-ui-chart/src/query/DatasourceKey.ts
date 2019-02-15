@@ -1,9 +1,6 @@
-export enum DatasourceType {
-  Table = 'table',
-  Druid = 'druid',
-}
+import { DatasourceType } from '../types/Datasource';
 
-export class DatasourceKey {
+export default class DatasourceKey {
   readonly id: number;
   readonly type: DatasourceType;
 

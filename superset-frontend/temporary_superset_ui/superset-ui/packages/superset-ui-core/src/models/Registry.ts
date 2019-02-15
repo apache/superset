@@ -1,10 +1,5 @@
 /* eslint no-console: 0 */
-
-export enum OverwritePolicy {
-  ALLOW = 'ALLOW',
-  PROHIBIT = 'PROHIBIT',
-  WARN = 'WARN',
-}
+import { OverwritePolicy } from '../types';
 
 interface ItemWithValue<T> {
   value: T;

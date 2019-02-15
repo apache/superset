@@ -7,7 +7,8 @@ import {
   SupersetClientClass,
 } from '@superset-ui/connection';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
-import { FormData, AnnotationLayerMetadata } from '../query/FormData';
+import { AnnotationLayerMetadata } from '../types/Annotation';
+import { FormData } from '../types/FormData';
 
 export type SliceIdAndOrFormData =
   | {
@@ -29,14 +30,14 @@ interface ChartData {
   queryData: object;
 }
 
-export interface ChartClientConfig {
-  client?: SupersetClientInterface | SupersetClientClass;
-}
-
-export class ChartClient {
+export default class ChartClient {
   readonly client: SupersetClientInterface | SupersetClientClass;
 
-  constructor(config: ChartClientConfig = {}) {
+  constructor(
+    config: {
+      client?: SupersetClientInterface | SupersetClientClass;
+    } = {},
+  ) {
     const { client = SupersetClient } = config;
     this.client = client;
   }
@@ -102,7 +103,7 @@ export class ChartClient {
     return Promise.reject(new Error('This feature is not implemented yet.'));
   }
 
-  loadAnnotations(annotationLayers?: Array<AnnotationLayerMetadata>): Promise<AnnotationData> {
+  loadAnnotations(annotationLayers?: AnnotationLayerMetadata[]): Promise<AnnotationData> {
     if (Array.isArray(annotationLayers) && annotationLayers.length > 0) {
       return Promise.all(annotationLayers.map(layer => this.loadAnnotation(layer))).then(results =>
         annotationLayers.reduce((prev, layer, i) => {

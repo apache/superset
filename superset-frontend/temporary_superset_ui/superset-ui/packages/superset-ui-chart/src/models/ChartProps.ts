@@ -12,11 +12,11 @@ type SnakeCaseDatasource = PlainObject;
 type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
 type QueryData = PlainObject;
-type Filters = Array<any>;
+type Filters = any[];
 type HandlerFunction = (...args: any[]) => void;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
-export interface ChartPropsConfig {
+interface ChartPropsConfig {
   annotationData?: AnnotationData;
   datasource?: SnakeCaseDatasource;
   filters?: Filters;

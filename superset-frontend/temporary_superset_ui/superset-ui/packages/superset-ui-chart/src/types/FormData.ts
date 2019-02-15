@@ -1,6 +1,8 @@
 /* eslint camelcase: 0 */
+/* eslint-disable import/prefer-default-export */
 // FormData uses snake_cased keys.
 import { FormDataMetric, MetricKey } from './Metric';
+import { AnnotationLayerMetadata } from './Annotation';
 
 // Type signature and utility functions for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -11,15 +13,10 @@ import { FormDataMetric, MetricKey } from './Metric';
 // unified into a proper Metric type during buildQuery (see `/query/Metrics.ts`).
 type Metrics = Partial<Record<MetricKey, FormDataMetric | FormDataMetric[]>>;
 
-export type AnnotationLayerMetadata = {
-  name: string;
-  sourceType?: string;
-};
-
 type BaseFormData = {
   datasource: string;
   viz_type: string;
-  annotation_layers?: Array<AnnotationLayerMetadata>;
+  annotation_layers?: AnnotationLayerMetadata[];
 } & Metrics;
 
 // FormData is either sqla-based or druid-based
@@ -32,7 +29,3 @@ type DruidFormData = {
 } & BaseFormData;
 
 export type FormData = SqlaFormData | DruidFormData;
-
-export function getGranularity(formData: FormData): string {
-  return 'granularity_sqla' in formData ? formData.granularity_sqla : formData.granularity;
-}

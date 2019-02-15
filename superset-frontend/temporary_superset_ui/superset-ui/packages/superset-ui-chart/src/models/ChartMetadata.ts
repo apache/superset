@@ -2,28 +2,26 @@ interface LookupTable {
   [key: string]: boolean;
 }
 
-export interface ChartMetadataConfig {
-  name: string;
-  canBeAnnotationTypes?: Array<string>;
-  credits?: Array<string>;
-  description?: string;
-  show?: boolean;
-  supportedAnnotationTypes?: Array<string>;
-  thumbnail: string;
-  useLegacyApi?: boolean;
-}
-
 export default class ChartMetadata {
   name: string;
   canBeAnnotationTypesLookup: LookupTable;
-  credits: Array<string>;
+  credits: string[];
   description: string;
   show: boolean;
-  supportedAnnotationTypes: Array<string>;
+  supportedAnnotationTypes: string[];
   thumbnail: string;
   useLegacyApi: boolean;
 
-  constructor(config: ChartMetadataConfig) {
+  constructor(config: {
+    name: string;
+    canBeAnnotationTypes?: string[];
+    credits?: string[];
+    description?: string;
+    show?: boolean;
+    supportedAnnotationTypes?: string[];
+    thumbnail: string;
+    useLegacyApi?: boolean;
+  }) {
     const {
       name,
       canBeAnnotationTypes = [],

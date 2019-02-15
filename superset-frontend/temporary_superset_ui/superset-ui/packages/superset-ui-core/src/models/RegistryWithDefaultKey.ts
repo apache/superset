@@ -1,6 +1,6 @@
 import Registry, { RegistryConfig } from './Registry';
 
-export interface RegistryWithDefaultKeyConfig extends RegistryConfig {
+interface RegistryWithDefaultKeyConfig extends RegistryConfig {
   initialDefaultKey?: string;
   setFirstItemAsDefault?: boolean;
 }
