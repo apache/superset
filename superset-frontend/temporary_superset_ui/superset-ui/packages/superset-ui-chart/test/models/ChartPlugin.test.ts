@@ -20,7 +20,7 @@ describe('ChartPlugin', () => {
 
   describe('new ChartPlugin()', () => {
     const FakeChart = () => 'test';
-    const buildQuery = (formData: FormData) => ({
+    const buildQuery = (_: FormData) => ({
       datasource: { id: 1, type: DatasourceType.Table },
       queries: [{ granularity: 'day' }],
     });

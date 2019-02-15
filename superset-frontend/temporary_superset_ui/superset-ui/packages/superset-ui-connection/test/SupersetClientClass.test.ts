@@ -1,7 +1,7 @@
 import fetchMock from 'fetch-mock';
 
 import { BigNumber } from 'bignumber.js';
-import { SupersetClientClass, ClientConfig } from '../src/SupersetClientClass';
+import { SupersetClientClass, ClientConfig } from '../src';
 import throwIfCalled from './utils/throwIfCalled';
 import { LOGIN_GLOB } from './fixtures/constants';
 

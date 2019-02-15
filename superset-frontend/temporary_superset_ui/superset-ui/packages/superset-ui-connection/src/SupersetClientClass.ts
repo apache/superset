@@ -1,29 +1,19 @@
 import callApi from './callApi';
 import {
+  ClientConfig,
   ClientTimeout,
   Credentials,
+  CsrfPromise,
+  CsrfToken,
   Headers,
   Host,
   Mode,
-  SupersetClientResponse,
+  Protocol,
   RequestConfig,
+  SupersetClientResponse,
 } from './types';
 
-type CsrfToken = string;
-type CsrfPromise = Promise<string | undefined>;
-type Protocol = 'http:' | 'https:';
-
-export interface ClientConfig {
-  credentials?: Credentials;
-  csrfToken?: CsrfToken;
-  headers?: Headers;
-  host?: Host;
-  protocol?: Protocol;
-  mode?: Mode;
-  timeout?: ClientTimeout;
-}
-
-export class SupersetClientClass {
+export default class SupersetClientClass {
   credentials: Credentials;
   csrfToken?: CsrfToken;
   csrfPromise?: CsrfPromise;
