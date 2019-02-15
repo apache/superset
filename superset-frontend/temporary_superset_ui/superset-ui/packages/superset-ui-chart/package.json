@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "SuperChart and related modules",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.3",
+    "@superset-ui/core": "^0.9.5",
     "@types/react": "^16.7.17",
     "@types/react-loadable": "^5.4.2",
     "prop-types": "^15.6.2",
