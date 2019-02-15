@@ -1,11 +1,6 @@
-import { ColumnType } from '../../src/query/Column';
-import {
-  AdhocMetric,
-  Aggregate,
-  ExpressionType,
-  LABEL_MAX_LENGTH,
-  Metrics,
-} from '../../src/query/Metric';
+import { ColumnType } from '../../src/types/Column';
+import { AdhocMetric, Aggregate, ExpressionType } from '../../src/types/Metric';
+import Metrics, { LABEL_MAX_LENGTH } from '../../src/query/Metrics';
 
 describe('Metrics', () => {
   let metrics: Metrics;

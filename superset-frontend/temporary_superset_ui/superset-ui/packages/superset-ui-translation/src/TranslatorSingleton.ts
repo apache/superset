@@ -1,5 +1,6 @@
 /* eslint no-console: 0 */
-import Translator, { TranslatorConfig } from './Translator';
+import Translator from './Translator';
+import { TranslatorConfig } from './types';
 
 let singleton: Translator;
 let isConfigured = false;

@@ -1,4 +1,4 @@
-import { buildQueryContext } from '../../src/query/buildQueryContext';
+import { buildQueryContext } from '../../src';
 
 describe('queryContextBuilder', () => {
   it('should build datasource for table sources', () => {
