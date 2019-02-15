@@ -51,6 +51,7 @@ describe('Markdown', () => {
     handleComponentDrop() {},
     updateComponents() {},
     deleteComponent() {},
+    logEvent() {},
   };
 
   function setup(overrideProps) {
