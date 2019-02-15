@@ -83,17 +83,15 @@ class AsyncSelect extends React.PureComponent {
 
   render() {
     return (
-      <div>
-        <Select
-          placeholder={this.props.placeholder}
-          options={this.state.options}
-          value={this.props.value}
-          isLoading={this.state.isLoading}
-          onChange={this.onChange}
-          valueRenderer={this.props.valueRenderer}
-          {...this.props}
-        />
-      </div>
+      <Select
+        placeholder={this.props.placeholder}
+        options={this.state.options}
+        value={this.props.value}
+        isLoading={this.state.isLoading}
+        onChange={this.onChange}
+        valueRenderer={this.props.valueRenderer}
+        {...this.props}
+      />
     );
   }
 }
