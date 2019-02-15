@@ -88,8 +88,10 @@ def defaultHiveQueryGenerator(sql, query_obj,database):
                 if timeSeq and len(timeSeq) > 1 :
                    whereClause = " ( " + whereClause + " ) "
             
-                regex_st = "(`)((?:[a-z][a-z]+))(`)(\\s+)(>)(=)(\\s+)([+-]?\\d*\\.\\d+)(?![-+0-9\\.])"
-                regex_et = "(AND)(\\s+)(`)((?:[a-z][a-z]+))(`)(\\s+)(<)(=)(\\s+)([+-]?\\d*\\.\\d+)(?![-+0-9\\.])"
+                # regex for  `columname` >= 1549497600 type of string
+                regex_st = "(`)((?:[a-z][a-z]+))(`)(\\s+)(>)(=)(\\s+)(\\d+)"
+                # regex for `columname` <= 1549497600
+                regex_et = "(AND)(\\s+)(`)((?:[a-z][a-z]+))(`)(\\s+)(<)(=)(\\s+)(\\d+)"
             
                 sql_updated = re.sub(regex_st, whereClause, sql)
                 sql_updated = re.sub(regex_et, '\n', sql_updated)
