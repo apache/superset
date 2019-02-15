@@ -431,6 +431,7 @@ class SqlaTable(Model, BaseDatasource):
             d['time_grain_sqla'] = grains
             d['main_dttm_col'] = self.main_dttm_col
             d['fetch_values_predicate'] = self.fetch_values_predicate
+            d['template_params'] = self.template_params
         return d
 
     def values_for_column(self, column_name, limit=10000):
