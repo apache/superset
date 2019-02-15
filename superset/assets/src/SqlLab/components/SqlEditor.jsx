@@ -77,6 +77,7 @@ class SqlEditor extends React.PureComponent {
       sql: props.queryEditor.sql,
     };
     this.sqlEditorRef = React.createRef();
+    this.northPaneRef = React.createRef();
 
     this.onResizeStart = this.onResizeStart.bind(this);
     this.onResizeEnd = this.onResizeEnd.bind(this);
@@ -111,8 +112,9 @@ class SqlEditor extends React.PureComponent {
     this.setState(this.getAceEditorAndSouthPaneHeights(
       this.state.height, northPercent, southPercent));
 
-    if (this.refs.north && this.refs.north.clientHeight) {
-      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.north.clientHeight);
+    if (this.northPaneRef.current && this.northPaneRef.current.clientHeight) {
+      this.props.actions.persistEditorHeight(this.props.queryEditor,
+        this.northPaneRef.current.clientHeight);
     }
   }
   onSqlChanged(sql) {
@@ -217,7 +219,7 @@ class SqlEditor extends React.PureComponent {
           onDragStart={this.onResizeStart}
           onDragEnd={this.onResizeEnd}
         >
-          <div ref="north">
+          <div ref={this.northPaneRef}>
             <AceEditorWrapper
               actions={this.props.actions}
               onBlur={this.setQueryEditorSql}
@@ -230,14 +232,12 @@ class SqlEditor extends React.PureComponent {
             />
             {this.renderEditorBottomBar(hotkeys)}
           </div>
-          <div ref="south">
-            <SouthPane
-              editorQueries={this.props.editorQueries}
-              dataPreviewQueries={this.props.dataPreviewQueries}
-              actions={this.props.actions}
-              height={this.state.southPaneHeight || southPaneHeight}
-            />
-          </div>
+          <SouthPane
+            editorQueries={this.props.editorQueries}
+            dataPreviewQueries={this.props.dataPreviewQueries}
+            actions={this.props.actions}
+            height={this.state.southPaneHeight || southPaneHeight}
+          />
         </Split>
       </div>
     );
