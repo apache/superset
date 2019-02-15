@@ -1,3 +1,5 @@
+import SupersetClientClass from './SupersetClientClass';
+
 export type Body = RequestInit['body'];
 export type Cache = RequestInit['cache'];
 export type Credentials = RequestInit['credentials'];
@@ -59,6 +61,34 @@ export interface JsonTextResponse {
   json?: Json;
   response: Response;
   text?: string;
+}
+
+export type CsrfToken = string;
+export type CsrfPromise = Promise<string | undefined>;
+export type Protocol = 'http:' | 'https:';
+
+export interface ClientConfig {
+  credentials?: Credentials;
+  csrfToken?: CsrfToken;
+  headers?: Headers;
+  host?: Host;
+  protocol?: Protocol;
+  mode?: Mode;
+  timeout?: ClientTimeout;
+}
+
+export interface SupersetClientInterface {
+  configure: (config?: ClientConfig) => SupersetClientClass;
+  delete: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  get: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  getInstance: (maybeClient?: SupersetClientClass) => SupersetClientClass;
+  init: (force?: boolean) => Promise<string | undefined>;
+  isAuthenticated: () => boolean;
+  post: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  put: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  reAuthenticate: () => Promise<string | undefined>;
+  request: (request: RequestConfig) => Promise<SupersetClientResponse>;
+  reset: () => void;
 }
 
 export type SupersetClientResponse = Response | JsonTextResponse;

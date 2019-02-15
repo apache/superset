@@ -1,5 +1,11 @@
 import UntypedJed from 'jed';
-import { Jed, LanguagePack } from './jed';
+import { TranslatorConfig } from './types';
+
+interface Jed {
+  translate(input: string): Jed;
+  ifPlural(value: number, plural: string): Jed;
+  fetch(...args: any[]): string;
+}
 
 const DEFAULT_LANGUAGE_PACK = {
   domain: 'superset',
@@ -13,12 +19,6 @@ const DEFAULT_LANGUAGE_PACK = {
     },
   },
 };
-
-export { LanguagePack };
-
-export interface TranslatorConfig {
-  languagePack?: LanguagePack;
-}
 
 export default class Translator {
   i18n: Jed;
