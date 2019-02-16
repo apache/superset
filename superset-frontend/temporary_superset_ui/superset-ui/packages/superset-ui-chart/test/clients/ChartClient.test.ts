@@ -1,7 +1,12 @@
 import fetchMock from 'fetch-mock';
 import { SupersetClientClass, SupersetClient } from '@superset-ui/connection';
 
-import { ChartClient, getChartBuildQueryRegistry, buildQueryContext, FormData } from '../../src';
+import {
+  ChartClient,
+  getChartBuildQueryRegistry,
+  buildQueryContext,
+  ChartFormData,
+} from '../../src';
 import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
 import { LOGIN_GLOB } from '../../../superset-ui-connection/test/fixtures/constants';
 
@@ -90,7 +95,7 @@ describe('ChartClient', () => {
 
   describe('.loadQueryData(formData, options)', () => {
     it('returns a promise of query data for known chart type', () => {
-      getChartBuildQueryRegistry().registerValue('word_cloud', (formData: FormData) =>
+      getChartBuildQueryRegistry().registerValue('word_cloud', (formData: ChartFormData) =>
         buildQueryContext(formData),
       );
       fetchMock.post('glob:*/api/v1/query/', {
@@ -196,7 +201,7 @@ describe('ChartClient', () => {
         amet: true,
       });
 
-      getChartBuildQueryRegistry().registerValue('line', (formData: FormData) =>
+      getChartBuildQueryRegistry().registerValue('line', (formData: ChartFormData) =>
         buildQueryContext(formData),
       );
 

@@ -1,6 +1,6 @@
 import ChartProps from '../models/ChartProps';
 import { DatasourceType } from './Datasource';
-import { FormData } from './FormData';
+import { ChartFormData } from './ChartFormData';
 import { Metric } from './Metric';
 
 export interface QueryObject {
@@ -17,7 +17,7 @@ export interface QueryContext {
   queries: QueryObject[];
 }
 
-export type BuildQueryFunction<T extends FormData> = (formData: T) => QueryContext;
+export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
 
 export type TransformPropsFunction = (
   chartProps: ChartProps,

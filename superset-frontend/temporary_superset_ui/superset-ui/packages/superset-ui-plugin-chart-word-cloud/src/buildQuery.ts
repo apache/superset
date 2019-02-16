@@ -1,7 +1,7 @@
 import { buildQueryContext } from '@superset-ui/chart';
-import FormData from './FormData';
+import WordCloudFormData from './WordCloudFormData';
 
-export default function buildQuery(formData: FormData) {
+export default function buildQuery(formData: WordCloudFormData) {
   // Set the single QueryObject's groupby field with series in formData
   return buildQueryContext(formData, baseQueryObject => [
     {
