@@ -156,9 +156,8 @@ class TableColumn(Model, BaseColumn):
             if not grain:
                 raise NotImplementedError(
                     f'No grain spec for {time_grain} for database {db.database_name}')
-        expr = db.db_engine_spec.get_time_expr(
-            self.expression or self.column_name,
-            pdf, time_grain, grain)
+        col = db.db_engine_spec.get_timestamp_column(self.expression, self.column_name)
+        expr = db.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
         sqla_col = literal_column(expr, type_=DateTime)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 

@@ -463,6 +463,13 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
+    @staticmethod
+    def get_timestamp_column(expression, column_name):
+        """Return the expression if defined, otherwise return column_name. Some
+        engines require forcing quotes around column name, in which case this method
+        can be overridden."""
+        return expression if expression else column_name
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -508,6 +515,12 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
+
+    @staticmethod
+    def get_timestamp_column(expression, column_name):
+        """Postgres is unable to identify mixed case column names unless they
+        are quoted."""
+        return expression if expression else f'"{column_name}"'
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
