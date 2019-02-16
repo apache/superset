@@ -468,7 +468,7 @@ class BaseEngineSpec(object):
         """Return the expression if defined, otherwise return column_name. Some
         engines require forcing quotes around column name, in which case this method
         can be overridden."""
-        return expression if expression else column_name
+        return expression or column_name
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -520,7 +520,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     def get_timestamp_column(expression, column_name):
         """Postgres is unable to identify mixed case column names unless they
         are quoted."""
-        return expression if expression else f'"{column_name}"'
+        return expression or f'"{column_name}"'
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
