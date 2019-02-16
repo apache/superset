@@ -27,7 +27,7 @@ import {
   Logger,
   ActionLog,
   LOG_ACTIONS_OMNIBAR_TRIGGERED,
-} from '../logger';
+} from '../logger/LogUtils';
 
 const propTypes = {
   impressionId: PropTypes.string.isRequired,

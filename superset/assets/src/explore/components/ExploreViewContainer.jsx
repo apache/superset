@@ -34,7 +34,11 @@ import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
-import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
+import * as logActions from '../../logger/actions/';
+import {
+  LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
+} from '../../logger/LogUtils';
 import Hotkeys from '../../components/Hotkeys';
 
 // Prolly need to move this to a global context
@@ -72,13 +76,6 @@ const propTypes = {
 class ExploreViewContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.loadingLog = new ActionLog({
-      impressionId: props.impressionId,
-      source: 'slice',
-      sourceId: props.slice ? props.slice.slice_id : 0,
-      eventNames: EXPLORE_EVENT_NAMES,
-    });
-    Logger.start(this.loadingLog);
 
     this.state = {
       height: this.getHeight(),
@@ -102,19 +99,10 @@ class ExploreViewContainer extends React.Component {
     window.addEventListener('popstate', this.handlePopstate);
     document.addEventListener('keydown', this.handleKeydown);
     this.addHistory({ isReplace: true });
-    Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
+    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
   }
 
   componentWillReceiveProps(nextProps) {
-    const wasRendered =
-      ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
-    const isRendered = ['rendered', 'failed', 'stopped'].indexOf(nextProps.chart.chartStatus) > -1;
-    if (nextProps.chart.id !== this.props.chart.id) {
-      this.loadingLog.sourceId = nextProps.chart.id;
-    }
-    if (!wasRendered && isRendered) {
-      Logger.send(this.loadingLog);
-    }
     if (nextProps.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
       this.props.actions.triggerQuery(true, this.props.chart.id);
@@ -136,6 +124,7 @@ class ExploreViewContainer extends React.Component {
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.id);
     }
     if (this.hasQueryControlChanged(changedControlKeys, nextProps.controls)) {
+      this.props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
       this.setState({ chartIsStale: true, refreshOverlayVisible: true });
     }
   }
@@ -399,7 +388,12 @@ function mapStateToProps(state) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign({}, exploreActions, saveModalActions, chartActions);
+  const actions = Object.assign({},
+    exploreActions,
+    saveModalActions,
+    chartActions,
+    logActions,
+  );
   return {
     actions: bindActionCreators(actions, dispatch),
   };
