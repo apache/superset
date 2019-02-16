@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { ChartProps, SuperChart } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -61,6 +61,7 @@ class ChartRenderer extends React.Component {
     this.state = {};
 
     this.createChartProps = ChartProps.createSelector();
+    this.hasQueryResponseChnage = false;
 
     this.setTooltip = this.setTooltip.bind(this);
     this.handleAddFilter = this.handleAddFilter.bind(this);
@@ -69,18 +70,23 @@ class ChartRenderer extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    if (
+    const resultsReady =
       nextProps.queryResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
       !nextProps.queryResponse.error &&
-      !nextProps.refreshOverlayVisible &&
-      (nextProps.annotationData !== this.props.annotationData ||
-        nextProps.queryResponse !== this.props.queryResponse ||
+      !nextProps.refreshOverlayVisible;
+
+    if (resultsReady) {
+      this.hasQueryResponseChnage =
+        nextProps.queryResponse !== this.props.queryResponse;
+
+      if (this.hasQueryResponseChnage ||
+        nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
-        nextProps.triggerRender)
-    ) {
-      return true;
+        nextProps.triggerRender) {
+        return true;
+      }
     }
     return false;
   }
@@ -126,12 +132,17 @@ class ChartRenderer extends React.Component {
       actions.chartRenderingSucceeded(chartId);
     }
 
-    Logger.append(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      viz_type: vizType,
-      start_offset: this.renderStartTime,
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
+    // only log chart render time which is triggered by query results change
+    // currently we don't log chart re-render time, like window resize etc
+    if (this.hasQueryResponseChnage) {
+      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: chartId,
+        viz_type: vizType,
+        start_offset: this.renderStartTime,
+        ts: new Date().getTime(),
+        duration: Logger.getTimestamp() - this.renderStartTime,
+      });
+    }
   }
 
   handleRenderFailure(error, info) {
@@ -139,13 +150,17 @@ class ChartRenderer extends React.Component {
     console.warn(error); // eslint-disable-line
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
-    Logger.append(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      has_err: true,
-      error_details: error.toString(),
-      start_offset: this.renderStartTime,
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
+    // only trigger render log when query is changed
+    if (this.hasQueryResponseChnage) {
+      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: chartId,
+        has_err: true,
+        error_details: error.toString(),
+        start_offset: this.renderStartTime,
+        ts: new Date().getTime(),
+        duration: Logger.getTimestamp() - this.renderStartTime,
+      });
+    }
   }
 
   renderTooltip() {

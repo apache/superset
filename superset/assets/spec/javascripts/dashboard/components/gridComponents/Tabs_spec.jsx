@@ -52,6 +52,7 @@ describe('Tabs', () => {
     onChangeTab() {},
     deleteComponent() {},
     updateComponents() {},
+    logEvent() {},
   };
 
   function setup(overrideProps) {

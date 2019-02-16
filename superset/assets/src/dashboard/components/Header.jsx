@@ -35,6 +35,12 @@ import {
 } from '../util/constants';
 import { safeStringify } from '../../utils/safeStringify';
 
+import {
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
+} from '../../logger/LogUtils';
+
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
@@ -60,6 +66,7 @@ const propTypes = {
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
+  logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
 
@@ -89,6 +96,7 @@ class Header extends React.PureComponent {
     this.handleCtrlY = this.handleCtrlY.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
+    this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
   }
 
@@ -115,9 +123,23 @@ class Header extends React.PureComponent {
 
   forceRefresh() {
     if (!this.props.isLoading) {
-      return this.props.fetchCharts(Object.values(this.props.charts), true);
+      const chartList = Object.values(this.props.charts);
+      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+        force: true,
+        interval: 0,
+        chartCount: chartList.length,
+      });
+      return this.props.fetchCharts(chartList, true);
     }
     return false;
+  }
+
+  startPeriodicRender(interval) {
+    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+      force: true,
+      interval,
+    });
+    return this.props.startPeriodicRender(interval);
   }
 
   handleChangeText(nextText) {
@@ -150,6 +172,9 @@ class Header extends React.PureComponent {
 
   toggleEditMode() {
     this.props.setEditMode(!this.props.editMode);
+    this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
+      editMode: !this.props.editMode,
+    });
   }
 
   overwriteDashboard() {
@@ -320,7 +345,7 @@ class Header extends React.PureComponent {
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
-            startPeriodicRender={this.props.startPeriodicRender}
+            startPeriodicRender={this.startPeriodicRender}
             updateCss={updateCss}
             editMode={editMode}
             hasUnsavedChanges={hasUnsavedChanges}

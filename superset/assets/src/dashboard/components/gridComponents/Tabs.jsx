@@ -29,6 +29,7 @@ import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
+import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from '../../../logger/LogUtils';
 
 const NEW_TAB_INDEX = -1;
 const MAX_TAB_COUNT = 7;
@@ -43,6 +44,7 @@ const propTypes = {
   renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
+  logEvent: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -106,6 +108,11 @@ class Tabs extends React.PureComponent {
         },
       });
     } else if (tabIndex !== this.state.tabIndex) {
+      this.props.logEvent(LOG_ACTIONS_SELECT_DASHBOARD_TAB, {
+        id: component.id,
+        index: tabIndex,
+      });
+
       this.setState(() => ({ tabIndex }));
       this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
     }

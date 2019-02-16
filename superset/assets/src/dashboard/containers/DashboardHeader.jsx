@@ -48,6 +48,8 @@ import {
   addWarningToast,
 } from '../../messageToasts/actions';
 
+import { logEvent } from '../../logger/actions';
+
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 function mapStateToProps({
@@ -98,6 +100,7 @@ function mapDispatchToProps(dispatch) {
       onSave: saveDashboardRequest,
       setMaxUndoHistoryExceeded,
       maxUndoHistoryToast,
+      logEvent,
     },
     dispatch,
   );
