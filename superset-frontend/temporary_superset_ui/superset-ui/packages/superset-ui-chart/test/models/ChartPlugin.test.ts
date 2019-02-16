@@ -1,7 +1,7 @@
 import {
   ChartPlugin,
   ChartMetadata,
-  FormData,
+  ChartFormData,
   DatasourceType,
   ChartProps,
   BuildQueryFunction,
@@ -20,7 +20,7 @@ describe('ChartPlugin', () => {
 
   describe('new ChartPlugin()', () => {
     const FakeChart = () => 'test';
-    const buildQuery = (_: FormData) => ({
+    const buildQuery = (_: ChartFormData) => ({
       datasource: { id: 1, type: DatasourceType.Table },
       queries: [{ granularity: 'day' }],
     });
@@ -53,7 +53,7 @@ describe('ChartPlugin', () => {
           loadBuildQuery: () => buildQuery,
         });
         if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction<FormData>;
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction<ChartFormData>;
           expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         }
       });
@@ -65,7 +65,7 @@ describe('ChartPlugin', () => {
           buildQuery,
         });
         if (typeof plugin.loadBuildQuery === 'function') {
-          const fn = plugin.loadBuildQuery() as BuildQueryFunction<FormData>;
+          const fn = plugin.loadBuildQuery() as BuildQueryFunction<ChartFormData>;
           expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         }
       });

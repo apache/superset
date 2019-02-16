@@ -5,7 +5,7 @@ import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySinglet
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
-import { FormData } from '../types/FormData';
+import { ChartFormData } from '../types/ChartFormData';
 import { QueryContext } from '../types/Query';
 
 const IDENTITY = (x: any) => x;
@@ -13,7 +13,7 @@ const IDENTITY = (x: any) => x;
 type PromiseOrValue<T> = Promise<T> | T;
 type PromiseOrValueLoader<T> = () => PromiseOrValue<T> | PromiseOrValue<{ default: T }>;
 
-export type BuildQueryFunction<T extends FormData> = (formData: T) => QueryContext;
+export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
 
 export type TransformPropsFunction = (
   chartProps: ChartProps,
@@ -21,7 +21,7 @@ export type TransformPropsFunction = (
   [key: string]: any;
 };
 
-interface ChartPluginConfig<T extends FormData> {
+interface ChartPluginConfig<T extends ChartFormData> {
   metadata: ChartMetadata;
   // use buildQuery for immediate value
   buildQuery?: BuildQueryFunction<T>;
@@ -37,7 +37,7 @@ interface ChartPluginConfig<T extends FormData> {
   loadChart?: PromiseOrValueLoader<Function>;
 }
 
-export default class ChartPlugin<T extends FormData = FormData> extends Plugin {
+export default class ChartPlugin<T extends ChartFormData = ChartFormData> extends Plugin {
   metadata: ChartMetadata;
   loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
   loadTransformProps: PromiseOrValueLoader<TransformPropsFunction>;
