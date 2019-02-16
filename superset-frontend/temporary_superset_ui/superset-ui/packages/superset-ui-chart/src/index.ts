@@ -21,5 +21,5 @@ export { default as DatasourceKey } from './query/DatasourceKey';
 
 export * from './types/Annotation';
 export * from './types/Datasource';
-export * from './types/FormData';
+export * from './types/ChartFormData';
 export * from './types/Query';

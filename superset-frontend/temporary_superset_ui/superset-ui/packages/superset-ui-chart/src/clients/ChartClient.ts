@@ -8,15 +8,15 @@ import {
 } from '@superset-ui/connection';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import { AnnotationLayerMetadata } from '../types/Annotation';
-import { FormData } from '../types/FormData';
+import { ChartFormData } from '../types/ChartFormData';
 
 export type SliceIdAndOrFormData =
   | {
       sliceId: number;
-      formData?: Partial<FormData>;
+      formData?: Partial<ChartFormData>;
     }
   | {
-      formData: FormData;
+      formData: ChartFormData;
     };
 
 interface AnnotationData {
@@ -26,7 +26,7 @@ interface AnnotationData {
 interface ChartData {
   annotationData: AnnotationData;
   datasource: object;
-  formData: FormData;
+  formData: ChartFormData;
   queryData: object;
 }
 
@@ -42,7 +42,7 @@ export default class ChartClient {
     this.client = client;
   }
 
-  loadFormData(input: SliceIdAndOrFormData, options?: RequestConfig): Promise<FormData> {
+  loadFormData(input: SliceIdAndOrFormData, options?: RequestConfig): Promise<ChartFormData> {
     /* If sliceId is provided, use it to fetch stored formData from API */
     if ('sliceId' in input) {
       const promise = this.client
@@ -57,7 +57,7 @@ export default class ChartClient {
        * If formData is also specified, override API result
        * with user-specified formData
        */
-      return promise.then((dbFormData: FormData) => ({
+      return promise.then((dbFormData: ChartFormData) => ({
         ...dbFormData,
         ...input.formData,
       }));
@@ -65,11 +65,11 @@ export default class ChartClient {
 
     /* If sliceId is not provided, returned formData wrapped in a Promise */
     return input.formData
-      ? Promise.resolve(input.formData as FormData)
+      ? Promise.resolve(input.formData as ChartFormData)
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 
-  loadQueryData(formData: FormData, options?: RequestConfig): Promise<object> {
+  loadQueryData(formData: ChartFormData, options?: RequestConfig): Promise<object> {
     const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
     if (buildQuery) {
       return this.client
