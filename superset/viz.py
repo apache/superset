@@ -59,6 +59,7 @@ from superset.utils.core import (
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
+relative_end = config.get('DEFAULT_RELATIVE_END_TIME', 'today')
 
 METRIC_KEYS = [
     'metric', 'metrics', 'percent_metrics', 'metric_2', 'secondary_metric',
@@ -95,6 +96,8 @@ class BaseViz(object):
         self.time_shift = timedelta()
 
         self.status = None
+        self.error_msg = ''
+        self.results = None
         self.error_message = None
         self.force = force
 
@@ -225,7 +228,22 @@ class BaseViz(object):
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
                     # Column has already been formatted as a timestamp.
-                    df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(pd.Timestamp)
+                    dttm_col = df[DTTM_ALIAS]
+                    one_ts_val = dttm_col[0]
+
+                    # convert time column to pandas Timestamp, but different
+                    # ways to convert depending on string or int types
+                    try:
+                        int(one_ts_val)
+                        is_integral = True
+                    except ValueError:
+                        is_integral = False
+                    if is_integral:
+                        unit = 's' if timestamp_format == 'epoch_s' else 'ms'
+                        df[DTTM_ALIAS] = pd.to_datetime(dttm_col, utc=False, unit=unit,
+                                                        origin='unix')
+                    else:
+                        df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
@@ -280,9 +298,10 @@ class BaseViz(object):
         # default order direction
         order_desc = form_data.get('order_desc', True)
 
-        since, until = utils.get_since_until(form_data.get('time_range'),
-                                             form_data.get('since'),
-                                             form_data.get('until'))
+        since, until = utils.get_since_until(relative_end=relative_end,
+                                             time_range=form_data.get('time_range'),
+                                             since=form_data.get('since'),
+                                             until=form_data.get('until'))
         time_shift = form_data.get('time_shift', '')
         self.time_shift = utils.parse_human_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
@@ -795,9 +814,10 @@ class CalHeatmapViz(BaseViz):
                 values[str(v / 10**9)] = obj.get(metric)
             data[metric] = values
 
-        start, end = utils.get_since_until(form_data.get('time_range'),
-                                           form_data.get('since'),
-                                           form_data.get('until'))
+        start, end = utils.get_since_until(relative_end=relative_end,
+                                           time_range=form_data.get('time_range'),
+                                           since=form_data.get('since'),
+                                           until=form_data.get('until'))
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')

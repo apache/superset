@@ -27,6 +27,11 @@ assists people when migrating to a new version.
   run `pip install superset[presto]` and/or `pip install superset[hive]` as
   required.
 
+* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change 
+which prevents encoding of empty string from form data in the datanbase. 
+This involves a non-schema changing migration which does potentially impact
+a large number of records. Scheduled downtime may be advised.
+
 ## Superset 0.31.0
 * boto3 / botocore was removed from the dependency list. If you use s3
 as a place to store your SQL Lab result set or Hive uploads, you may

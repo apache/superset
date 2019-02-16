@@ -448,6 +448,14 @@ export class DatasourceEditor extends React.PureComponent {
           label={t('Hours offset')}
           control={<TextControl />}
         />
+        { this.state.isSqla &&
+          <Field
+            fieldKey="template_params"
+            label={t('Template parameters')}
+            descr={t('A set of parameters that become available in the query using Jinja templating syntax')}
+            control={<TextControl />}
+          />
+        }
       </Fieldset>);
   }
 

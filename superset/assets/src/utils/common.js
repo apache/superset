@@ -19,15 +19,6 @@
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
-export const LUMINANCE_RED_WEIGHT = 0.2126;
-export const LUMINANCE_GREEN_WEIGHT = 0.7152;
-export const LUMINANCE_BLUE_WEIGHT = 0.0722;
-
-export function rgbLuminance(r, g, b) {
-  // Formula: https://en.wikipedia.org/wiki/Relative_luminance
-  return LUMINANCE_RED_WEIGHT * r + LUMINANCE_GREEN_WEIGHT * g + LUMINANCE_BLUE_WEIGHT * b;
-}
-
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {
@@ -81,15 +72,6 @@ export function supersetURL(rootUrl, getParams = {}) {
     url.searchParams.set(k, getParams[k]);
   }
   return url.href;
-}
-
-export function isTruthy(obj) {
-  if (typeof obj === 'boolean') {
-    return obj;
-  } else if (typeof obj === 'string') {
-    return ['yes', 'y', 'true', 't', '1'].indexOf(obj.toLowerCase()) >= 0;
-  }
-  return !!obj;
 }
 
 export function optionLabel(opt) {

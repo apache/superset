@@ -28,12 +28,15 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
+import wtforms_json
 
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import (
     get_update_perms_flag, pessimistic_connection_handling, setup_cache)
+
+wtforms_json.init()
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -207,6 +210,18 @@ appbuilder = AppBuilder(
 security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
+
+# Merge user defined feature flags with default feature flags
+feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS')
+feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
+
+
+def is_feature_enabled(feature):
+    """
+    Utility function for checking whether a feature is turned on
+    """
+    return feature_flags.get(feature)
+
 
 # Registering sources
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
