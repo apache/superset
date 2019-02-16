@@ -116,7 +116,7 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        label = label if label else self.column_name
+        label = label or self.column_name
         if not self.expression:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
@@ -220,7 +220,7 @@ class SqlMetric(Model, BaseMetric):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        label = label if label else self.metric_name
+        label = label or self.metric_name
         sqla_col = literal_column(self.expression)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
@@ -306,7 +306,7 @@ class SqlaTable(Model, BaseDatasource):
         :param label: alias/label that column is expected to have
         :return: either a sql alchemy column or label instance if supported by engine
         """
-        label_expected = label if label else sqla_col.name
+        label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
         if db_engine_spec.supports_column_aliases:
             label = db_engine_spec.make_label_compatible(label_expected)
