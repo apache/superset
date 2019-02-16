@@ -16,9 +16,8 @@
 # under the License.
 # pylint: disable=C,R,W
 
-import enum
 from datetime import datetime
-
+import enum
 from croniter import croniter
 from flask import flash, g
 from flask_appbuilder import expose
