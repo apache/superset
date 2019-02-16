@@ -28,4 +28,4 @@ type DruidFormData = {
   granularity: string;
 } & BaseFormData;
 
-export type FormData = SqlaFormData | DruidFormData;
+export type ChartFormData = SqlaFormData | DruidFormData;

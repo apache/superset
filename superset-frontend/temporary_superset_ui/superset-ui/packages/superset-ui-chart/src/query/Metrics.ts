@@ -1,4 +1,4 @@
-import { FormData } from '../types/FormData';
+import { ChartFormData } from '../types/ChartFormData';
 import { MetricKey, Metric, FormDataMetric, AdhocMetric, ExpressionType } from '../types/Metric';
 
 export const LABEL_MAX_LENGTH = 43;
@@ -7,7 +7,7 @@ export default class Metrics {
   // Use Array to maintain insertion order for metrics that are order sensitive
   private metrics: Metric[];
 
-  constructor(formData: FormData) {
+  constructor(formData: ChartFormData) {
     this.metrics = [];
     Object.keys(MetricKey).forEach(key => {
       const metric = formData[MetricKey[key as keyof typeof MetricKey]];
