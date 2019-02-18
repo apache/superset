@@ -520,7 +520,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     def get_timestamp_column(expression, column_name):
         """Postgres is unable to identify mixed case column names unless they
         are quoted."""
-        return expression or f'"{column_name}"'
+        if expression:
+            return expression
+        elif column_name.lower() != column_name:
+            return f'"{column_name}"'
+        return column_name
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
