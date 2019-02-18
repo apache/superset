@@ -36,10 +36,9 @@ export default {
   ],
   controlOverrides: {
     adhoc_filters: {
-      label: t('Global Filters'),
+      label: t('Limit Selector Values'),
       description: t(
-        'These filters, like the time filters, will be applied ' +
-        'to each individual filters as the values are populated.'),
+        'These filters apply to the values available in the dropdowns'),
     },
   },
 };
