@@ -234,6 +234,7 @@ def load_world_bank_health_n_pop():
                 since='1960-01-01',
                 until='now',
                 whisker_options='Min/max (no outliers)',
+                x_ticks_layout='staggered',
                 viz_type='box_plot',
                 groupby=['region'])),
         Slice(
