@@ -1982,6 +1982,8 @@ class MapboxViz(BaseViz):
         label_col = fd.get('mapbox_label')
 
         if not fd.get('groupby'):
+            if fd.get('all_columns_x') is None or fd.get('all_columns_y') is None:
+                raise Exception(_('[Longitude] and [Latitude] must be set'))
             d['columns'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
 
             if label_col and len(label_col) >= 1:
