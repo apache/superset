@@ -30,6 +30,7 @@ import sys
 from superset.hive_query import defaultHiveQueryGenerator
 from celery.schedules import crontab
 from dateutil import tz
+from datetime import datetime
 from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
@@ -107,7 +108,7 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = 'Superset'
+APP_NAME = 'Visualization Framework'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/guavus_logo.svg'
@@ -276,10 +277,12 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict([
     ('superset.connectors.sqla.models', ['SqlaTable']),
-    ('superset.connectors.druid.models', ['DruidDatasource']),
-    ('superset.connectors.elastic.models', ['ElasticDatasource']),
-    ('contrib.connectors.pandas.models', ['PandasDatasource'])
+    ('superset.connectors.druid.models', ['DruidDatasource'])
 ])
+
+# ('superset.connectors.elastic.models', ['ElasticDatasource']),
+# ('contrib.connectors.pandas.models', ['PandasDatasource'])
+
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 
@@ -567,7 +570,7 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
 #add timezone and copyright property for footer display
 TIMEZONE = 'UTC'
-COPYRIGHT = '© 2018 Guavus'
+COPYRIGHT = '© '+ datetime.today().strftime('%Y') +' Guavus'
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
 

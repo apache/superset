@@ -47,7 +47,7 @@ RUN python ./setup.py bdist_wheel \
     && rm -rf /root/.cache/pip
 
 
-RUN cd superset/assets  && npm ci  \
+RUN cd superset/assets && npm install \
     && npm run sync-backend \
     && npm run build  \
     && rm -rf node_modules \

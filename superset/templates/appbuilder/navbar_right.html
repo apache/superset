@@ -23,7 +23,7 @@
     {% set locale = 'en' %}
 {% endif %}
 
-{% if not current_user.is_anonymous %}
+<!-- {% if not current_user.is_anonymous %}
     <li class="dropdown">
         <button type="button" style="margin-top: 12px; margin-right: 30px;" data-toggle="dropdown" class="dropdown-toggle btn btn-sm btn-primary">
           <i class="fa fa-plus"></i> {{ _("New") }}
@@ -34,7 +34,7 @@
             <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>
         </ul>
     </li>
-{% endif %}
+{% endif %} -->
 {% if bug_report_url %}
 <li>
   <a
