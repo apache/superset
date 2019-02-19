@@ -69,7 +69,7 @@ class ChartRenderer extends React.Component {
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps, nextState) {
     if (
       nextProps.queryResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
@@ -79,6 +79,7 @@ class ChartRenderer extends React.Component {
         nextProps.queryResponse !== this.props.queryResponse ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
+        nextState.tooltip !== this.state.tooltip ||
         nextProps.triggerRender)
     ) {
       return true;
