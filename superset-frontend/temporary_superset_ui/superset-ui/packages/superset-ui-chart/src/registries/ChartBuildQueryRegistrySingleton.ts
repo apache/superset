@@ -1,8 +1,8 @@
-import { Registry, makeSingleton } from '@superset-ui/core';
+import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
 
 class ChartBuildQueryRegistry extends Registry {
   constructor() {
-    super({ name: 'ChartBuildQuery' });
+    super({ name: 'ChartBuildQuery', overwritePolicy: OverwritePolicy.WARN });
   }
 }
 

@@ -1,4 +1,4 @@
-import { RegistryWithDefaultKey } from '@superset-ui/core';
+import { RegistryWithDefaultKey, OverwritePolicy } from '@superset-ui/core';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
 import NumberFormats from './NumberFormats';
 import NumberFormatter from './NumberFormatter';
@@ -11,6 +11,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
     super({
       initialDefaultKey: NumberFormats.SI,
       name: 'NumberFormatter',
+      overwritePolicy: OverwritePolicy.WARN,
     });
   }
 
