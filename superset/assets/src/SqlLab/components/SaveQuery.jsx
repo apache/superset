@@ -26,6 +26,8 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   defaultLabel: PropTypes.string,
+  id: PropTypes.number,
+  description: PropTypes.string,
   sql: PropTypes.string,
   schema: PropTypes.string,
   dbId: PropTypes.number,
@@ -42,7 +44,8 @@ class SaveQuery extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      description: '',
+      id: props.id,
+      description: props.description,
       label: props.defaultLabel,
       showSave: false,
     };
@@ -54,6 +57,7 @@ class SaveQuery extends React.PureComponent {
   }
   onSave() {
     const query = {
+      id: this.state.id,
       label: this.state.label,
       description: this.state.description,
       db_id: this.props.dbId,

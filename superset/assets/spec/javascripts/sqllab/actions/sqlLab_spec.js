@@ -21,7 +21,7 @@ import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
 import * as actions from '../../../../src/SqlLab/actions/sqlLab';
-import { query } from '../fixtures';
+import { query, queryforupdate, queryforcreate } from '../fixtures';
 
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
@@ -34,13 +34,13 @@ describe('async actions', () => {
 
   afterEach(fetchMock.resetHistory);
 
-  describe('saveQuery', () => {
+  describe('saveQuery CREATE', () => {
     const saveQueryEndpoint = 'glob:*/savedqueryviewapi/api/create';
     fetchMock.post(saveQueryEndpoint, 'ok');
 
     it('posts to the correct url', () => {
       expect.assertions(1);
-      const thunk = actions.saveQuery(query);
+      const thunk = actions.saveQuery(queryforcreate);
 
       return thunk((/* mockDispatch */) => ({})).then(() => {
         expect(fetchMock.calls(saveQueryEndpoint)).toHaveLength(1);
@@ -48,14 +48,38 @@ describe('async actions', () => {
     });
 
     it('posts the correct query object', () => {
-      const thunk = actions.saveQuery(query);
+      const thunk = actions.saveQuery(queryforcreate);
 
       return thunk((/* mockDispatch */) => ({})).then(() => {
         const call = fetchMock.calls(saveQueryEndpoint)[0];
         const formData = call[1].body;
-        Object.keys(query).forEach((key) => {
+        Object.keys(queryforcreate).forEach((key) => {
           expect(formData.get(key)).toBeDefined();
         });
+      });
+    });
+  });
+
+  describe('saveQuery UPDATE', () => {
+    const saveQueryEndpoint = 'glob:*/savedqueryviewapi/api/update/42';
+    fetchMock.put(saveQueryEndpoint, 'ok');
+
+    it('posts to the correct url', () => {
+      expect.assertions(1);
+      const thunk = actions.saveQuery(queryforupdate);
+
+      return thunk((/* mockDispatch */) => ({})).then(() => {
+        expect(fetchMock.calls(saveQueryEndpoint)).toHaveLength(1);
+      });
+    });
+
+    it('posts the correct query object', () => {
+      const thunk = actions.saveQuery(queryforupdate);
+
+      return thunk((/* mockDispatch */) => ({})).then(() => {
+        const call = fetchMock.calls(saveQueryEndpoint)[0];
+        const formData = call[1].body;
+        expect(formData).toBeUndefined();
       });
     });
   });

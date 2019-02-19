@@ -401,3 +401,27 @@ export const query = {
   ctas: false,
   cached: false,
 };
+
+export const queryforupdate = {
+  id: '42',
+  dbId: 1,
+  sql: 'SELECT * FROM something',
+  sqlEditorId: defaultQueryEditor.id,
+  tab: 'unimportant',
+  tempTableName: null,
+  runAsync: false,
+  ctas: false,
+  cached: false,
+};
+
+export const queryforcreate = {
+  id: 'VVVVVVVV',
+  dbId: 1,
+  sql: 'SELECT * FROM something',
+  sqlEditorId: defaultQueryEditor.id,
+  tab: 'unimportant',
+  tempTableName: null,
+  runAsync: false,
+  ctas: false,
+  cached: false,
+};

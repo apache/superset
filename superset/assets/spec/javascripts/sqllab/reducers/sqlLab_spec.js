@@ -57,6 +57,8 @@ describe('sqlLabReducer', () => {
       newState = { ...initialState };
       defaultQueryEditor = newState.queryEditors[0];
       qe = Object.assign({}, defaultQueryEditor);
+      // add a suffix so the two ids are not the same
+      qe.id += '2';
       newState = sqlLabReducer(newState, actions.addQueryEditor(qe));
       qe = newState.queryEditors[newState.queryEditors.length - 1];
     });

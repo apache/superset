@@ -252,6 +252,8 @@ class SqlEditor extends React.PureComponent {
             </span>
             <span className="m-r-5">
               <SaveQuery
+                id={qe.id}
+                description={qe.description}
                 defaultLabel={qe.title}
                 sql={qe.sql}
                 className="m-r-5"

@@ -77,14 +77,27 @@ export function resetState() {
 }
 
 export function saveQuery(query) {
-  return dispatch =>
-    SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
-      postPayload: query,
-      stringify: false,
-    })
-      .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
-      .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+     let ret;
+     if (isNaN((query.id))) {
+        ret = dispatch =>
+        SupersetClient.post({
+            endpoint: '/savedqueryviewapi/api/create',
+            postPayload: query,
+            stringify: false,
+        })
+            .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
+            .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+     } else {
+        ret = dispatch =>
+        SupersetClient.put({
+            endpoint: '/savedqueryviewapi/api/update/' + query.id,
+            postPayload: query,
+            stringify: false,
+        })
+            .then(() => dispatch(addSuccessToast(t('Your query was saved'))))
+            .catch(() => dispatch(addDangerToast(t('Your query could not be saved'))));
+     }
+    return ret;
 }
 
 export function startQuery(query) {
@@ -202,7 +215,7 @@ export function setDatabases(databases) {
 export function addQueryEditor(queryEditor) {
   const newQueryEditor = {
     ...queryEditor,
-    id: shortid.generate(),
+    id: queryEditor.id ? queryEditor.id : shortid.generate(),
   };
   return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
 }
@@ -400,6 +413,8 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const { result } = json;
         const queryEditorProps = {
+          id: saveQueryId,
+          description: result.description,
           title: result.label,
           dbId: result.db_id ? parseInt(result.db_id, 10) : null,
           schema: result.schema,
