@@ -114,7 +114,7 @@ export default class TableSelector extends React.PureComponent {
     return data.result.map(row => ({
       ...row,
       // label is used for the typeahead
-      label: row.backend + ' ' + row.database_name,
+      label: `${row.backend} ${row.database_name}`,
     }));
   }
   fetchTables(force, substr) {
