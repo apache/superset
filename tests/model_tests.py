@@ -121,7 +121,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
         database = Database(sqlalchemy_uri=uri)
         pdf, time_grain = '', 'P1D'
-        expression, column_name = 'coalesce(col1, col2)', ''
+        expression, column_name = 'COALESCE(lowercase_col, "MixedCaseCol")', ''
         grain = database.grains_dict().get(time_grain)
         col = database.db_engine_spec.get_timestamp_column(expression, column_name)
         grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
