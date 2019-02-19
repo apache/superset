@@ -1527,9 +1527,10 @@ class Superset(BaseSupersetView):
             .first()
         )
         if database:
-            schemas = database.all_schema_names(cache=database.schema_cache_enabled,
-                                            cache_timeout=database.schema_cache_timeout,
-                                            force=force_refresh)
+            schemas = database.all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=force_refresh)
             schemas = security_manager.schemas_accessible_by_user(database, schemas)
         else:
             schemas = []
