@@ -38,7 +38,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@superset-ui/build-config": "^0.0.2",
+    "@superset-ui/build-config": "^0.0.3",
     "fast-glob": "^2.2.6",
     "fs-extra": "^7.0.1",
     "husky": "^1.1.2",
