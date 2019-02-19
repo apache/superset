@@ -36,7 +36,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update, func, desc
+from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -2824,54 +2824,6 @@ class Superset(BaseSupersetView):
             entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser),
         )
-
-    @has_access
-    @expose('/viz_type_stats', methods=['GET'])
-    @expose('/viz_type_stats/<user_id>/', methods=['GET'])
-    def viz_type_stats(self, user_id=None):
-        """
-        This endpoint provides the statistics of the visualization type usage.
-        """
-        if not user_id:
-            user_id = g.user.id
-
-        key = self._get_viz_type_stats_cache_key(user_id)
-        payload = cache.get(key)
-        if payload is not None:
-            payload['served_from'] = 'cache'
-        else:
-            payload = {
-                'served_from': 'live',
-                'this_user': self._get_viz_type_stats(user_id=user_id),
-                'overall': self._get_viz_type_stats(),
-            }
-            cache.set(key, payload, 7 * 24 * 60 * 60)  # cache for 7 days
-        return json_success(
-            json.dumps(payload, default=utils.json_int_dttm_ser)
-        )
-
-    def _get_viz_type_stats_cache_key(self, user_id):
-        """
-        This function returns the key for caching the result of visualization
-        type usage statistics of this user.
-        """
-        return f"viz_type_stats_{user_id}"
-
-    def _get_viz_type_stats(self, user_id=None):
-        """
-        This function returns the statistics of the visualization type usage of
-        the `user_id`.  If `user_id` is not provided, this function returns the
-        same statistics across all users.
-        """
-        query = db.session.query(
-            models.Slice.viz_type,
-            func.count().label("cnt"),
-        )
-        if user_id is not None:
-            query = query.filter(models.Slice.created_by_fk == user_id)
-        query = query.group_by(models.Slice.viz_type)
-        query = query.order_by(desc("cnt"))
-        return query.all()
 
     @api
     @handle_api_exception

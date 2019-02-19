@@ -23,7 +23,6 @@ import {
   Tooltip } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import { getChartMetadataRegistry } from '@superset-ui/chart';
-import { SupersetClient } from '@superset-ui/connection';
 
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.css';
@@ -46,7 +45,6 @@ export default class VizTypeControl extends React.PureComponent {
     this.state = {
       showModal: false,
       filter: '',
-      vizTypeStats: '',
     };
     this.toggleModal = this.toggleModal.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
@@ -70,13 +68,6 @@ export default class VizTypeControl extends React.PureComponent {
     if (this.searchRef) {
       this.searchRef.focus();
     }
-  }
-  componentDidMount() {
-    SupersetClient.get({
-      endpoint: "/superset/viz_type_stats",
-    }).then(({ json }) => {
-      this.setState({ vizTypeStats: json.this_user.concat(json.overall) });
-    });
   }
   renderItem(entry) {
     const { value } = this.props;
@@ -106,21 +97,33 @@ export default class VizTypeControl extends React.PureComponent {
     return lookup
   }
   _sortVizTypes(types) {
+    const defaultOrder = [
+      'line', 'big_number', 'table', 'filter_box', 'dist_bar', 'area', 'bar',
+      'deck_polygon', 'pie', 'time_table', 'pivot_table', 'histogram',
+      'big_number_total', 'deck_scatter', 'deck_hex', 'time_pivot', 'deck_arc',
+      'heatmap', 'deck_grid', 'dual_line', 'deck_screengrid', 'line_multi',
+      'treemap', 'box_plot', 'separator', 'sunburst', 'sankey', 'word_cloud',
+      'mapbox', 'kepler', 'cal_heatmap', 'rose', 'bubble', 'deck_geojson',
+      'horizon', 'markup', 'deck_multi', 'compare', 'partition', 'event_flow',
+      'deck_path', 'directed_force', 'world_map', 'paired_ttest', 'para',
+      'iframe', 'country_map',
+    ]
+
     let sorted = [];
     let loadedKeys = new Set();
     let vizTypeLookup = this._buildVizTypeLookup(types);
-    // Sort based on existing visualization type usages statistics
-    for (var i = 0; i < this.state.vizTypeStats.length; i++) {
-      let key = this.state.vizTypeStats[i].viz_type;
-      if (loadedKeys.has(key)) continue;
+
+    // Sort based on the `defualtOrder`
+    for (var i = 0; i < defaultOrder.length; i++) {
+      let key = defaultOrder[i];
       let t = vizTypeLookup.get(key);
       if (typeof t !== 'undefined') {
         sorted.push(t);
         loadedKeys.add(key);
       }
     }
-    // For visualization types that do not have any statistics, apply the
-    // original order
+
+    // Load the rest of Viz Types not mandated by the `defualtOrder`
     for (var i = 0; i < types.length; i++) {
       let t = types[i];
       let key = t['key'];
@@ -129,6 +132,7 @@ export default class VizTypeControl extends React.PureComponent {
         loadedKeys.add(key);
       }
     }
+
     return sorted;
   }
   render() {
