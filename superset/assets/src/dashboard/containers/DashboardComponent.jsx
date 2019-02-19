@@ -33,6 +33,8 @@ import {
   handleComponentDrop,
 } from '../actions/dashboardLayout';
 
+import { logEvent } from '../../logger/actions';
+
 const propTypes = {
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
@@ -40,6 +42,7 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  logEvent: PropTypes.func.isRequired,
 };
 
 function mapStateToProps(
@@ -80,6 +83,7 @@ function mapDispatchToProps(dispatch) {
       deleteComponent,
       updateComponents,
       handleComponentDrop,
+      logEvent,
     },
     dispatch,
   );

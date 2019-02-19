@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -73,16 +73,17 @@ class Chart extends React.PureComponent {
     }
   }
 
-  handleRenderFailure(error, info) {
+  handleRenderContainerFailure(error, info) {
     const { actions, chartId } = this.props;
     console.warn(error); // eslint-disable-line
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
-    Logger.append(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
+    actions.logEvent(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
       slice_id: chartId,
       has_err: true,
       error_details: error.toString(),
       start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
   }

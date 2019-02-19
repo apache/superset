@@ -96,7 +96,7 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = []
+WTF_CSRF_EXEMPT_LIST = ['superset.views.core.log']
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get('FLASK_ENV') == 'development'
@@ -459,7 +459,7 @@ SMTP_MAIL_FROM = 'superset@superset.com'
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
 
-# Whether to bump the logging level to ERRROR on the flask_appbiulder package
+# Whether to bump the logging level to ERROR on the flask_appbuilder package
 # Set to False if/when debugging FAB related issues like
 # permission management
 SILENCE_FAB = True
