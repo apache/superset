@@ -165,11 +165,18 @@ export function generateBubbleTooltipContent({
   return s;
 }
 
-export function hideTooltips(element) {
-  if (element) {
-    const targets = element.querySelectorAll('.nvtooltip');
-    if (targets.length > 0) {
-      targets.forEach(t => t.remove());
+// shouldRemove indicates whether the nvtooltips should be removed from the DOM
+export function hideTooltips(shouldRemove) {
+  const targets = document.querySelectorAll('.nvtooltip');
+  if (targets.length > 0) {
+    // Only set opacity to 0 when hiding tooltips so they would reappear
+    // on hover, which sets the opacity to 1
+    for (const t of targets) {
+      if (shouldRemove) {
+        t.remove();
+      } else {
+        t.style.opacity = 0;
+      }
     }
   }
 }
