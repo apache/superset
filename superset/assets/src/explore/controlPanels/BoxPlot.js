@@ -35,7 +35,7 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ['whisker_options'],
+        ['whisker_options', 'x_ticks_layout'],
       ],
     },
   ],
