@@ -1,8 +1,8 @@
-import { Registry, makeSingleton } from '@superset-ui/core';
+import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
 
 class ChartTransformPropsRegistry extends Registry {
   constructor() {
-    super({ name: 'ChartTransformProps' });
+    super({ name: 'ChartTransformProps', overwritePolicy: OverwritePolicy.WARN });
   }
 }
 
