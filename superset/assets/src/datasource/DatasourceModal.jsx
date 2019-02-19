@@ -49,7 +49,6 @@ class DatasourceModal extends React.PureComponent {
     super(props);
     this.state = {
       errors: [],
-      showDatasource: false,
       datasource: props.datasource,
     };
     this.setSearchRef = this.setSearchRef.bind(this);

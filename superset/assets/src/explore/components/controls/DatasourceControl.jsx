@@ -19,13 +19,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
+  Col,
+  Collapse,
   Label,
   OverlayTrigger,
+  Row,
   Tooltip,
+  Well,
 } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
+import ColumnOption from '../../../components/ColumnOption';
+import MetricOption from '../../../components/MetricOption';
 import DatasourceModal from '../../../datasource/DatasourceModal';
 
 const propTypes = {
@@ -52,24 +58,50 @@ class DatasourceControl extends React.PureComponent {
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
-  }
-
-  onChange(vizType) {
-    this.props.onChange(vizType);
-    this.setState({ showModal: false });
+    this.renderDatasource = this.renderDatasource.bind(this);
   }
 
   toggleShowDatasource() {
     this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
 
-  toggleModal() {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
-  }
   toggleEditDatasourceModal() {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
+  }
+  renderDatasource() {
+    const datasource = this.props.datasource;
+    return (
+      <div className="m-t-10">
+        <Well className="m-t-0">
+          <div className="m-b-10">
+            <Label>
+              <i className="fa fa-database" /> {datasource.database.backend}
+            </Label>
+            {` ${datasource.database.name} `}
+          </div>
+          <Row className="datasource-container">
+            <Col md={6}>
+              <strong>Columns</strong>
+              {datasource.columns.map(col => (
+                <div key={col.column_name}>
+                  <ColumnOption showType column={col} />
+                </div>
+              ))}
+            </Col>
+            <Col md={6}>
+              <strong>Metrics</strong>
+              {datasource.metrics.map(m => (
+                <div key={m.metric_name}>
+                  <MetricOption metric={m} showType />
+                </div>
+              ))}
+            </Col>
+          </Row>
+        </Well>
+      </div>
+    );
   }
   render() {
     return (
@@ -117,6 +149,7 @@ class DatasourceControl extends React.PureComponent {
               <i className="fa fa-flask m-r-5" />
             </a>
           </OverlayTrigger>}
+        <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
           datasource={this.props.datasource}
           show={this.state.showEditDatasourceModal}
