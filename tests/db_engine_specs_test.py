@@ -17,6 +17,7 @@
 import inspect
 
 import mock
+from sqlalchemy import column
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
@@ -25,9 +26,6 @@ from superset.db_engine_specs import (
 )
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
-
-from sqlalchemy import column
-from sqlalchemy.sql import quoted_name
 
 
 class DbEngineSpecsTestCase(SupersetTestCase):
