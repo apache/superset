@@ -85,6 +85,21 @@ class DatasourceControl extends React.PureComponent {
             {this.props.datasource.name}
           </Label>
         </OverlayTrigger>
+        <OverlayTrigger
+          placement="right"
+          overlay={
+            <Tooltip id={'toggle-datasource-tooltip'}>
+              {t('Expand/collapse datasource configuration')}
+            </Tooltip>
+          }
+        >
+          <a href="#">
+            <i
+              className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5`}
+              onClick={this.toggleShowDatasource}
+            />
+          </a>
+        </OverlayTrigger>
         {this.props.datasource.type === 'table' &&
           <OverlayTrigger
             placement="right"
