@@ -165,6 +165,7 @@ export function generateBubbleTooltipContent({
   return s;
 }
 
+// shouldRemove indicates whether the nvtooltips should be removed from the DOM
 export function hideTooltips(shouldRemove) {
   const targets = document.querySelectorAll('.nvtooltip');
   if (targets.length > 0) {
