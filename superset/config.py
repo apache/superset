@@ -108,7 +108,7 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = 'Visualization Framework'
+APP_NAME = 'Dashboard Builder'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/Logo_guavusThales.svg'
