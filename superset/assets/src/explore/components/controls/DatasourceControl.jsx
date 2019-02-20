@@ -60,16 +60,12 @@ class DatasourceControl extends React.PureComponent {
     };
     this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
+    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.renderDatasource = this.renderDatasource.bind(this);
   }
 
   toggleShowDatasource() {
     this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
-  }
-
-  onChange(vizType) {
-    this.props.onChange(vizType);
-    this.setState({ showChangeDatasourceModal: false });
   }
 
   toggleChangeDatasourceModal() {
@@ -169,22 +165,22 @@ class DatasourceControl extends React.PureComponent {
               {t('Change Datasource')}
             </MenuItem>
           </DropdownButton>
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'toggle-datasource-tooltip'}>
+                {t('Expand/collapse datasource configuration')}
+              </Tooltip>
+            }
+          >
+            <a href="#">
+              <i
+                className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5 m-l-5 m-t-4`}
+                onClick={this.toggleShowDatasource}
+              />
+            </a>
+          </OverlayTrigger>
         </div>
-        <OverlayTrigger
-          placement="right"
-          overlay={
-            <Tooltip id={'toggle-datasource-tooltip'}>
-              {t('Expand/collapse datasource configuration')}
-            </Tooltip>
-          }
-        >
-          <a href="#">
-            <i
-              className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5`}
-              onClick={this.toggleShowDatasource}
-            />
-          </a>
-        </OverlayTrigger>
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
           datasource={datasource}
