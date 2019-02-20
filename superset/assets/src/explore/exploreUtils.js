@@ -19,6 +19,7 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import { availableDomains } from '../utils/hostNamesConfig';
+import { safeStringify } from '../utils/safeStringify';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -46,7 +47,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
   const endpoint = isNative ? 'annotation_json' : 'slice_json';
   return uri.pathname(`/superset/${endpoint}/${slice_id}`)
     .search({
-      form_data: JSON.stringify(form_data,
+      form_data: safeStringify(form_data,
         (key, value) => value === null ? undefined : value),
     }).toString();
 }
@@ -71,7 +72,7 @@ export function getExploreLongUrl(formData, endpointType, allowOverflow = true, 
   Object.keys(extraSearch).forEach((key) => {
     search[key] = extraSearch[key];
   });
-  search.form_data = JSON.stringify(formData);
+  search.form_data = safeStringify(formData);
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
@@ -118,7 +119,7 @@ export function getExploreUrlAndPayload({
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
   if (formData.slice_id) {
-    search.form_data = JSON.stringify({ slice_id: formData.slice_id });
+    search.form_data = safeStringify({ slice_id: formData.slice_id });
   }
   if (force) {
     search.force = 'true';
@@ -174,7 +175,7 @@ export function exportChart(formData, endpointType) {
   const data = document.createElement('input');
   data.type = 'hidden';
   data.name = 'form_data';
-  data.value = JSON.stringify(payload);
+  data.value = safeStringify(payload);
   exploreForm.appendChild(data);
 
   document.body.appendChild(exploreForm);

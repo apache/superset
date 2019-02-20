@@ -168,6 +168,14 @@ export default function chartReducer(charts = {}, action) {
   if (action.type === actions.REMOVE_CHART) {
     delete charts[action.key];
     return charts;
+  } else if (action.type === actions.UPDATE_CHART_ID) {
+    const { newId, key } = action;
+    charts[newId] = {
+      ...charts[key],
+      id: newId,
+    };
+    delete charts[key];
+    return charts;
   }
 
   if (action.type in actionHandlers) {

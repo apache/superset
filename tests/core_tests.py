@@ -462,8 +462,8 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Charts' in self.get_resp('/chart/list/')
-        assert 'List Dashboard' in self.get_resp('/dashboard/list/')
+        assert 'Charts' in self.get_resp('/chart/list/')
+        assert 'Dashboards' in self.get_resp('/dashboard/list/')
 
     def test_csv_endpoint(self):
         self.login('admin')
@@ -549,7 +549,7 @@ class CoreTests(SupersetTestCase):
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
         url = (
-            '/superset/fetch_datasource_metadata?' +
+            '/superset/fetch_datasource_metadata?'
             'datasourceKey=1__table'
         )
         resp = self.get_json_resp(url)
@@ -646,15 +646,14 @@ class CoreTests(SupersetTestCase):
         main_db_uri = (
             db.session.query(models.Database)
             .filter_by(database_name='main')
-            .all()
+            .one()
         )
-
         test_file = open(filename, 'rb')
         form_data = {
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri[0].id,
+            'con': main_db_uri.id,
             'if_exists': 'append',
             'index_label': 'test_label',
             'mangle_dupe_cols': False,
@@ -757,7 +756,6 @@ class CoreTests(SupersetTestCase):
             {'form_data': json.dumps(form_data)},
         )
         self.assertEqual(data['status'], utils.QueryStatus.FAILED)
-        assert 'KeyError' in data['stacktrace']
 
     def test_slice_payload_viz_markdown(self):
         self.login(username='admin')

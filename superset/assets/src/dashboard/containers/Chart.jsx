@@ -24,6 +24,7 @@ import {
   toggleExpandSlice,
 } from '../actions/dashboardState';
 import { refreshChart } from '../../chart/chartAction';
+import { logEvent } from '../../logger/actions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
@@ -73,6 +74,7 @@ function mapDispatchToProps(dispatch) {
       toggleExpandSlice,
       addFilter,
       refreshChart,
+      logEvent,
     },
     dispatch,
   );

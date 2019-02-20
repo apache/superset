@@ -19,6 +19,7 @@ import json
 import unittest
 
 from flask import escape
+from sqlalchemy import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -68,6 +69,15 @@ class DashboardTests(SupersetTestCase):
         for title, url in urls.items():
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
+    def test_new_dashboard(self):
+        self.login(username='admin')
+        dash_count_before = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        url = '/dashboard/new/'
+        resp = self.get_resp(url)
+        self.assertIn('[ untitled dashboard ]', resp)
+        dash_count_after = db.session.query(func.count(models.Dashboard.id)).first()[0]
+        self.assertEquals(dash_count_before + 1, dash_count_after)
+
     def test_dashboard_modes(self):
         self.login(username='admin')
         dash = (
@@ -83,6 +93,7 @@ class DashboardTests(SupersetTestCase):
         resp = self.get_resp(url + 'edit=true&standalone=true')
         self.assertIn('editMode&#34;: true', resp)
         self.assertIn('standalone_mode&#34;: true', resp)
+        self.assertIn('<body class="standalone">', resp)
 
     def test_save_dash(self, username='admin'):
         self.login(username=username)

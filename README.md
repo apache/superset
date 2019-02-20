@@ -1,3 +1,21 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 Superset
 =========
 
@@ -94,6 +112,7 @@ Superset can be used to visualize data out of most databases:
 * Redshift
 * Clickhouse
 * Apache Kylin
+* Google BigQuery
 * **more!** look for the availability of a SQLAlchemy dialect for your database
   to find out whether it will work with Superset
 
@@ -169,6 +188,7 @@ the world know they are using Superset. Join our growing community!
  1. [Fordeal](http://www.fordeal.com)
  1. [GfK Data Lab](http://datalab.gfk.com)
  1. [Grassroot](https://www.grassrootinstitute.org/)
+ 1. [HuiShouBao](http://www.huishoubao.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)
  1. [Kuaishou](https://www.kuaishou.com/)
@@ -176,11 +196,13 @@ the world know they are using Superset. Join our growing community!
  1. [Lyft](https://www.lyft.com/)
  1. [Maieutical Labs](https://maieuticallabs.it)
  1. [Myra Labs](http://www.myralabs.com/)
+ 1. [Now](https://www.now.vn/)
  1. [PeopleDoc](https://www.people-doc.com)
  1. [Ona](https://ona.io)
  1. [Pronto Tools](http://www.prontotools.io)
  1. [QPID Health](http://www.qpidhealth.com/    )
  1. [Qunar](https://www.qunar.com/)
+ 1. [Scoot](https://scoot.co/)
  1. [ScopeAI](https://www.getscopeai.com)
  1. [Shopee](https://shopee.sg)
  1. [Shopkick](https://www.shopkick.com)

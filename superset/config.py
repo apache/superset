@@ -59,7 +59,13 @@ SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
-SUPERSET_WEBSERVER_TIMEOUT = 60  # deprecated
+
+# This is an important setting, and should be lower than your
+# [load balancer / proxy / envoy / kong / ...] timeout settings.
+# You should also make sure to configure your WSGI server
+# (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
+SUPERSET_WEBSERVER_TIMEOUT = 60
+
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
@@ -90,7 +96,7 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = []
+WTF_CSRF_EXEMPT_LIST = ['superset.views.core.log']
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get('FLASK_ENV') == 'development'
@@ -110,6 +116,11 @@ APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
 APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON_WIDTH = 126
+
+# Uncomment to specify where clicking the logo would take the user
+# e.g. setting it to '/welcome' would take the user to '/superset/welcome'
+LOGO_TARGET_PATH = None
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -180,14 +191,18 @@ LANGUAGES = {
     'pt': {'flag': 'pt', 'name': 'Portuguese'},
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
+    'ko': {'flag': 'kr', 'name': 'Korean'},
 }
 
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are on by default go here. Their
-# values can be overridden by those in super_config.py
-FEATURE_FLAGS = {}
+# Feature flags that are set by default go here. Their values can be
+# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
+# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
+# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
+DEFAULT_FEATURE_FLAGS = {}
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -444,7 +459,7 @@ SMTP_MAIL_FROM = 'superset@superset.com'
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
 
-# Whether to bump the logging level to ERRROR on the flask_appbiulder package
+# Whether to bump the logging level to ERROR on the flask_appbuilder package
 # Set to False if/when debugging FAB related issues like
 # permission management
 SILENCE_FAB = True
@@ -488,7 +503,7 @@ DASHBOARD_TEMPLATE_ID = None
 # username. The function receives the connection uri object, connection
 # params, the username, and returns the mutated uri and params objects.
 # Example:
-#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager, source):
 #       user = security_manager.find_user(username=username)
 #       if user and user.email:
 #           uri.username = user.email
@@ -557,6 +572,19 @@ WEBDRIVER_CONFIGURATION = {}
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
+
+# Send user to a link where they can report bugs
+BUG_REPORT_URL = None
+
+# What is the Last N days relative in the time selector to:
+# 'today' means it is midnight (00:00:00) of today in the local timezone
+# 'now' means it is relative to the query issue time
+DEFAULT_RELATIVE_END_TIME = 'today'
+
+# Is epoch_s/epoch_ms datetime format supposed to be considered since UTC ?
+# If not, it is sassumed then the epoch_s/epoch_ms is seconds since 1/1/1970
+# localtime (in the tz where the superset webserver is running)
+IS_EPOCH_S_TRULY_UTC = False
 
 
 try:

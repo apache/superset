@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from builtins import object
 from datetime import date, datetime, time, timedelta
 import decimal
 from email.mime.application import MIMEApplication
@@ -48,7 +47,6 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-from past.builtins import basestring
 from pydruid.utils.having import Having
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
@@ -88,7 +86,7 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
-class _memoized(object):  # noqa
+class _memoized:  # noqa
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -503,7 +501,7 @@ def table_has_constraint(table, name, db):
     return False
 
 
-class timeout(object):
+class timeout:
     """
     To be used in a ``with`` block and timeout its content.
     """
@@ -569,7 +567,7 @@ def pessimistic_connection_handling(some_engine):
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus(object):
+class QueryStatus:
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'
@@ -678,7 +676,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 
 
 def get_email_address_list(address_string):
-    if isinstance(address_string, basestring):
+    if isinstance(address_string, str):
         if ',' in address_string:
             address_string = address_string.split(',')
         elif '\n' in address_string:
@@ -867,10 +865,12 @@ def get_or_create_main_db():
     logging.info('Creating database reference')
     dbobj = get_main_database(db.session)
     if not dbobj:
-        dbobj = models.Database(database_name='main')
+        dbobj = models.Database(
+            database_name='main',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
@@ -922,7 +922,8 @@ def ensure_path_exists(path):
 def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
-                    time_shift: Optional[str] = None) -> (datetime, datetime):
+                    time_shift: Optional[str] = None,
+                    relative_end: Optional[str] = None) -> (datetime, datetime):
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -948,13 +949,13 @@ def get_since_until(time_range: Optional[str] = None,
 
     """
     separator = ' : '
-    today = parse_human_datetime('today')
+    relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (today - relativedelta(days=1), today),
-        'Last week': (today - relativedelta(weeks=1), today),
-        'Last month': (today - relativedelta(months=1), today),
-        'Last quarter': (today - relativedelta(months=3), today),
-        'Last year': (today - relativedelta(years=1), today),
+        'Last day': (relative_end - relativedelta(days=1), relative_end),
+        'Last week': (relative_end - relativedelta(weeks=1), relative_end),
+        'Last month': (relative_end - relativedelta(months=1), relative_end),
+        'Last quarter': (relative_end - relativedelta(months=3), relative_end),
+        'Last year': (relative_end - relativedelta(years=1), relative_end),
     }
 
     if time_range:
@@ -971,17 +972,17 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = today - relativedelta(**{grain: int(num)})
-                until = today
+                since = relative_end - relativedelta(**{grain: int(num)})
+                until = relative_end
             else:  # rel == 'Next'
-                since = today
-                until = today + relativedelta(**{grain: int(num)})
+                since = relative_end
+                until = relative_end + relativedelta(**{grain: int(num)})
     else:
         since = since or ''
         if since:
             since = add_ago_to_since(since)
         since = parse_human_datetime(since)
-        until = parse_human_datetime(until or 'now')
+        until = parse_human_datetime(until) if until else relative_end
 
     if time_shift:
         time_shift = parse_human_timedelta(time_shift)

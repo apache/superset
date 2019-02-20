@@ -40,6 +40,7 @@ describe('Dashboard', () => {
       addSliceToDashboard() {},
       removeSliceFromDashboard() {},
       runQuery() {},
+      logEvent() {},
     },
     initMessages: [],
     dashboardState,

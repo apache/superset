@@ -88,20 +88,7 @@ ERRORS="$(cat rat-results.txt | grep -e "??")"
 if test ! -z "$ERRORS"; then
     echo >&2 "Could not find Apache license headers in the following files:"
     echo >&2 "$ERRORS"
-    COUNT=`echo "${ERRORS}" | wc -l`
-    if [ ! -f ${TRAVIS_CACHE}/rat-error-count-builds ]; then
-        [ "${TRAVIS_PULL_REQUEST}" = "false" ] && echo ${COUNT} > ${TRAVIS_CACHE}/rat-error-count-builds
-        OLD_COUNT=${COUNT}
-    else
-        typeset -i OLD_COUNT=$(cat ${TRAVIS_CACHE}/rat-error-count-builds)
-    fi
-    if [ ${COUNT} -gt ${OLD_COUNT} ]; then
-        echo "New missing licenses (${COUNT} vs ${OLD_COUNT}) detected. Please correct them by adding them to to header of your files"
-        exit 1
-    else
-        [ "${TRAVIS_PULL_REQUEST}" = "false" ] && echo ${COUNT} > ${TRAVIS_CACHE}/rat-error-count-builds
-    fi
-    exit 0
+    exit 1
 else
     echo -e "RAT checks passed."
 fi

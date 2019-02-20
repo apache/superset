@@ -16,11 +16,12 @@
 # under the License.
 import textwrap
 
+import pandas
 from sqlalchemy.engine.url import make_url
 
 from superset import app, db
 from superset.models.core import Database
-from superset.utils.core import get_main_database
+from superset.utils.core import get_main_database, QueryStatus
 from .base_tests import SupersetTestCase
 
 
@@ -150,11 +151,13 @@ class SqlaTableModelTestCase(SupersetTestCase):
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'DATE(ds)')
 
+        prev_ds_expr = ds_col.expression
         ds_col.expression = 'DATE_ADD(ds, 1)'
         sqla_literal = ds_col.get_timestamp_expression('P1D')
         compiled = '{}'.format(sqla_literal.compile())
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'DATE(DATE_ADD(ds, 1))')
+        ds_col.expression = prev_ds_expr
 
     def test_get_timestamp_expression_epoch(self):
         tbl = self.get_table_by_name('birth_names')
@@ -173,11 +176,13 @@ class SqlaTableModelTestCase(SupersetTestCase):
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'DATE(from_unixtime(ds))')
 
+        prev_ds_expr = ds_col.expression
         ds_col.expression = 'DATE_ADD(ds, 1)'
         sqla_literal = ds_col.get_timestamp_expression('P1D')
         compiled = '{}'.format(sqla_literal.compile())
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'DATE(from_unixtime(DATE_ADD(ds, 1)))')
+        ds_col.expression = prev_ds_expr
 
     def test_get_timestamp_expression_backward(self):
         tbl = self.get_table_by_name('birth_names')
@@ -196,6 +201,63 @@ class SqlaTableModelTestCase(SupersetTestCase):
         compiled = '{}'.format(sqla_literal.compile())
         if tbl.database.backend == 'mysql':
             self.assertEquals(compiled, 'ds')
+
+    def query_with_expr_helper(self, is_timeseries, inner_join=True):
+        tbl = self.get_table_by_name('birth_names')
+        ds_col = tbl.get_column('ds')
+        ds_col.expression = None
+        ds_col.python_date_format = None
+        spec = self.get_database_by_id(tbl.database_id).db_engine_spec
+        if not spec.inner_joins and inner_join:
+            # if the db does not support inner joins, we cannot force it so
+            return None
+        old_inner_join = spec.inner_joins
+        spec.inner_joins = inner_join
+        arbitrary_gby = "state || gender || '_test'"
+        arbitrary_metric = (dict(label='arbitrary', expressionType='SQL',
+                                 sqlExpression='COUNT(1)'))
+        query_obj = dict(
+            groupby=[arbitrary_gby, 'name'],
+            metrics=[arbitrary_metric],
+            filter=[],
+            is_timeseries=is_timeseries,
+            prequeries=[],
+            columns=[],
+            granularity='ds',
+            from_dttm=None,
+            to_dttm=None,
+            is_prequery=False,
+            extras=dict(time_grain_sqla='P1Y'),
+        )
+        qr = tbl.query(query_obj)
+        self.assertEqual(qr.status, QueryStatus.SUCCESS)
+        sql = qr.query
+        self.assertIn(arbitrary_gby, sql)
+        self.assertIn('name', sql)
+        if inner_join and is_timeseries:
+            self.assertIn('JOIN', sql.upper())
+        else:
+            self.assertNotIn('JOIN', sql.upper())
+        spec.inner_joins = old_inner_join
+        self.assertIsNotNone(qr.df)
+        return qr.df
+
+    def test_query_with_expr_groupby_timeseries(self):
+        def cannonicalize_df(df):
+            ret = df.sort_values(by=list(df.columns.values), inplace=False)
+            ret.reset_index(inplace=True, drop=True)
+            return ret
+
+        df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
+        df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
+        self.assertIsNotNone(df2)  # df1 can be none if the db does not support join
+        if df1 is not None:
+            pandas.testing.assert_frame_equal(
+                cannonicalize_df(df1),
+                cannonicalize_df(df2))
+
+    def test_query_with_expr_groupby(self):
+        self.query_with_expr_helper(is_timeseries=False)
 
     def test_sql_mutator(self):
         tbl = self.get_table_by_name('birth_names')
