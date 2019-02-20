@@ -111,7 +111,11 @@ export default class TableSelector extends React.PureComponent {
     if (data.result.length === 0) {
       this.props.handleError(t("It seems you don't have access to any database"));
     }
-    return data.result;
+    return data.result.map(row => ({
+      ...row,
+      // label is used for the typeahead
+      label: `${row.backend} ${row.database_name}`,
+    }));
   }
   fetchTables(force, substr) {
     // This can be large so it shouldn't be put in the Redux store
