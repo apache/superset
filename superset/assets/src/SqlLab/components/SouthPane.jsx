@@ -64,7 +64,7 @@ export class SouthPane extends React.PureComponent {
   }
   // One layer of abstraction for easy spying in unit tests
   getSouthPaneHeight() {
-    return this.southPaneRef.current.clientHeight;
+    return this.southPaneRef.current ? this.southPaneRef.current.clientHeight : 0;
   }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
