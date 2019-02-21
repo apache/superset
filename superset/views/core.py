@@ -55,6 +55,7 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
+from superset.superset_decorators import redirect_to_target_url
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
@@ -66,7 +67,6 @@ from .base import (
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
-from superset.superset_decorators import redirect_to_target_url
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
