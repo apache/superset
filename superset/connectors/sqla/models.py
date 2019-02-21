@@ -581,6 +581,16 @@ class SqlaTable(Model, BaseDatasource):
         template_kwargs.update(params)
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
+        # switch database if Snowflake and the deployment parameter is filled in
+        if self.database_name.lower().find('snowflake') > -1 and \
+            'deployment' in params:
+                database = db.session.query(Database).filter(
+                    Database.database_name.ilike(params['deployment'] + '%')
+                ).filter(
+                    Database.database_name.contains('Snowflake')
+                ).first()
+                if database:
+                    self.database = database
 
         orderby = orderby or []
 
