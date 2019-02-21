@@ -516,6 +516,11 @@ export class DatasourceEditor extends React.PureComponent {
           <FormContainer>
             <Fieldset>
               <Field
+                fieldKey="verbose_name"
+                label={t('Label')}
+                control={<TextControl />}
+              />
+              <Field
                 fieldKey="description"
                 label={t('Description')}
                 control={<TextControl />}
