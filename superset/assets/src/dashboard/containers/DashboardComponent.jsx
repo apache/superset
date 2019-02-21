@@ -43,6 +43,11 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
+  deeplinkPath: PropTypes.array,
+};
+
+const defaultProps = {
+  deeplinkPath: [],
 };
 
 function mapStateToProps(
@@ -56,6 +61,7 @@ function mapStateToProps(
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
+    deeplinkPath: dashboardState.deeplinkPath,
   };
 
   // rows and columns need more data about their child dimensions
@@ -98,6 +104,7 @@ class DashboardComponent extends React.PureComponent {
 }
 
 DashboardComponent.propTypes = propTypes;
+DashboardComponent.defaultProps = defaultProps;
 
 export default connect(
   mapStateToProps,

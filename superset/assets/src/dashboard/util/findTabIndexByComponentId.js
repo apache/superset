@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_ROOT_TYPE, DASHBOARD_GRID_TYPE } from './componentTypes';
+export default function({ currentComponent, deeplinkPath = [] }) {
+  if (
+    !currentComponent ||
+    deeplinkPath.length === 0 ||
+    deeplinkPath.indexOf(currentComponent.id) === -1
+  ) {
+    return 0;
+  }
 
-import {
-  DASHBOARD_GRID_ID,
-  DASHBOARD_ROOT_ID,
-  DASHBOARD_VERSION_KEY,
-} from './constants';
-
-export default function() {
-  return {
-    [DASHBOARD_VERSION_KEY]: 'v2',
-    [DASHBOARD_ROOT_ID]: {
-      type: DASHBOARD_ROOT_TYPE,
-      id: DASHBOARD_ROOT_ID,
-      children: [DASHBOARD_GRID_ID],
-    },
-    [DASHBOARD_GRID_ID]: {
-      type: DASHBOARD_GRID_TYPE,
-      id: DASHBOARD_GRID_ID,
-      children: [],
-      parents: [DASHBOARD_ROOT_ID],
-    },
-  };
+  const currentComponentIdx = deeplinkPath.findIndex(
+    id => id === currentComponent.id,
+  );
+  const nextParentId = deeplinkPath[currentComponentIdx + 1];
+  if (currentComponent.children.indexOf(nextParentId) >= 0) {
+    return currentComponent.children.findIndex(
+      childId => childId === nextParentId,
+    );
+  }
+  return 0;
 }

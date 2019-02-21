@@ -155,6 +155,14 @@ export default function(bootstrapData) {
     future: [],
   };
 
+  // find deeplink component and path from root
+  const deeplinkComponentId = 'CHART-6D4YBbw4f9';
+  let deeplinkPath = [];
+  if (layout[deeplinkComponentId]) {
+    deeplinkPath = (layout[deeplinkComponentId].parents || []).slice();
+    deeplinkPath.push(deeplinkComponentId);
+  }
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -184,6 +192,7 @@ export default function(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       refresh: false,
       filters,
+      deeplinkPath,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
