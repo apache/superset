@@ -27,7 +27,7 @@ from urllib import parse
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
-from flask_appbuilder import expose, SimpleFormView
+from flask_appbuilder import expose, Model, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -36,7 +36,8 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import (
+    and_, Column, create_engine, ForeignKey, Integer, MetaData, or_, Table, update)
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
@@ -104,9 +105,26 @@ class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus('datasource_access')
+
         # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        datasource_perms = self.get_view_menus('datasource_access')
+        database_perms = self.get_view_menus('database_access')
+
+        SQLTable = Table(
+            'tables',
+            Model.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('database_id', Integer, ForeignKey('databases.id')),
+            extend_existing=True)
+        query = (
+            query.outerjoin(SQLTable, self.model.datasource_id == SQLTable.c.id)
+            .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
+            .filter(or_(
+                models.Database.perm.in_(database_perms),
+                self.model.perm.in_(datasource_perms),
+            ))
+        )
+        return query
 
 
 class DashboardFilter(SupersetFilter):
