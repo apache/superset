@@ -83,6 +83,11 @@ function ColumnCollectionTable({
               label={t('Label')}
               control={<TextControl />}
             />
+            <Field
+              fieldKey="description"
+              label={t('Description')}
+              control={<TextControl />}
+            />
             {allowEditDataType &&
               <Field
                 fieldKey="type"
