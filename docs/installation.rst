@@ -56,7 +56,12 @@ as needed.
 Start with Docker
 -----------------
 
-If you know docker, then you're lucky, we have shortcut road for you to 
+.. note ::
+    The Docker section documented here has been community-contributed and
+    is not actively maintained / managed by the core committers working on
+    the project. Many issues have been reported as of 2019-01.
+
+If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
