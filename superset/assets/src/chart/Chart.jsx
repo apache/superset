@@ -88,12 +88,21 @@ class Chart extends React.PureComponent {
     });
   }
 
+  renderStackTraceMessage() {
+    const { chartAlert, chartStackTrace } = this.props;
+    return (
+      <StackTraceMessage
+        message={chartAlert}
+        link={queryResponse ? queryResponse.link : null}
+        stackTrace={chartStackTrace}
+      />);
+  }
+
   render() {
     const {
       width,
       height,
       chartAlert,
-      chartStackTrace,
       chartStatus,
       errorMessage,
       onQuery,
@@ -108,12 +117,7 @@ class Chart extends React.PureComponent {
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      return (
-        <StackTraceMessage
-          message={chartAlert}
-          link={queryResponse ? queryResponse.link : null}
-          stackTrace={chartStackTrace}
-        />);
+      return this.renderStackTraceMessage();
     }
 
     return (

@@ -48,6 +48,7 @@ export default function chartReducer(charts = {}, action) {
         chartStatus: 'success',
         queryResponse: action.queryResponse,
         chartUpdateEndTime: now(),
+        chartAlert: null,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
