@@ -99,8 +99,46 @@ class SupersetSecurityManager(SecurityManager):
 
     def __init__(self,appbuilder):
         appbuilder.get_app.config.setdefault('AUTH_LDAP_SEARCH_FILTER', '')
+        appbuilder.get_app.config.setdefault('AUTH_ADMIN_USER_LIST', [])
         super(SupersetSecurityManager, self).__init__(appbuilder)
     
+    @property
+    def auth_admin_user_list(self):
+        return self.appbuilder.get_app.config['AUTH_ADMIN_USER_LIST']
+
+    def is_role_exists(self,roleName,roleList):
+        for role in roleList:
+            if role.name == roleName:
+                return True    
+        return False
+
+    def auth_user_ldap(self, username, password):
+        """
+            Method for authenticating user, auth LDAP style.
+            depends on ldap module that is not mandatory requirement
+            for F.A.B.
+            :param username:
+                The username
+            :param password:
+                The password
+        """
+        user = super(SupersetSecurityManager, self).auth_user_ldap(username, password)
+
+        if user is None and not self.auth_admin_user_list:
+            # check user is available in db or not
+            user = self.auth_user_db(username, password)
+        elif user is not None and self.auth_admin_user_list and username in self.auth_admin_user_list:   
+            # check auth_role_admin role already exists or not
+            if not self.is_role_exists(self.auth_role_admin,user.roles):
+                role = self.find_role(self.auth_role_admin)
+                if role is not None:
+                    user.roles.append(role) 
+                    # new role append
+                    self.update_user(user) 
+                    # update user with newly added role
+            
+        return user
+
     @property
     def auth_ldap_search_filter(self):
         return self.appbuilder.get_app.config['AUTH_LDAP_SEARCH_FILTER']

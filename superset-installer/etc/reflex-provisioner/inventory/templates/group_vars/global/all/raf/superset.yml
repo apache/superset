@@ -84,13 +84,14 @@ superset_kerberos_enabled: false
 
 #LDAP configuration
 superset_certificate_files: []
+SUPERSET_ADMIN_USER_LIST: "" # comma separated userID list 
 
 SUPERSET_AUTH_ROLE_ADMIN: "Admin"
 SUPERSET_AUTH_ROLE_PUBLIC: "Public"
 
 SUPERSET_AUTH_TYPE: "AUTH_DB"
 SUPERSET_AUTH_USER_REGISTRATION: True
-SUPERSET_AUTH_USER_REGISTRATION_ROLE: "Admin"
+SUPERSET_AUTH_USER_REGISTRATION_ROLE: "Dashboard_Viewer"
 SUPERSET_AUTH_LDAP_USE_TLS: False
 SUPERSET_AUTH_LDAP_SERVER: "" # ldap://guavus.com:389 (Define the DN for the user that will be used for the initial LDAP BIND. This is necessary for OpenLDAP and can be used on MSFT AD.)
 SUPERSET_AUTH_LDAP_BIND_USER: "" # cn=Ankur Singhal,ou=gurgaon,ou=India,ou=UserIDs,dc=guavus,dc=com

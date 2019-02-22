@@ -86,6 +86,8 @@ spec:
           value: "{{ SUPERSET_AUTH_LDAP_APPEND_DOMAIN }}"
         - name: AUTH_LDAP_USERNAME_FORMAT
           value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"  
+        - name: AUTH_ADMIN_USER_LIST
+          value: "{{ SUPERSET_ADMIN_USER_LIST }}"  
         - name: APP_NAME
           value: "{{ RVF_APP_NAME }}"
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}

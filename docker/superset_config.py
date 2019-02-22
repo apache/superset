@@ -51,6 +51,11 @@ if AUTH_TYPE == AUTH_LDAP:
     AUTH_LDAP_TLS_CERTFILE = get_env_variable('AUTH_LDAP_TLS_CERTFILE')
     AUTH_LDAP_TLS_KEYFILE = get_env_variable('AUTH_LDAP_TLS_KEYFILE')
     AUTH_LDAP_SEARCH_FILTER = get_env_variable('AUTH_LDAP_SEARCH_FILTER')
+    AUTH_ADMIN_USER_LIST_STR = get_env_variable('AUTH_ADMIN_USER_LIST').strip()
+    if AUTH_ADMIN_USER_LIST_STR:
+        AUTH_ADMIN_USER_LIST = AUTH_ADMIN_USER_LIST_STR.split(",")
+    else:
+        AUTH_ADMIN_USER_LIST = []
 
 
 POSTGRES_USER = get_env_variable('POSTGRES_USER')
