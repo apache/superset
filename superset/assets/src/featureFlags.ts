@@ -21,7 +21,6 @@
 export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
   OMNIBAR = 'OMNIBAR',
-  EXTRA_POLYGON_ENCODINGS = 'EXTRA_POLYGON_ENCODINGS',
 }
 
 export type FeatureFlagMap = {

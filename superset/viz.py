@@ -2401,24 +2401,12 @@ class DeckPathViz(BaseDeckGLViz):
         if fd.get('reverse_long_lat'):
             path = [(o[1], o[0]) for o in path]
         d[self.deck_viz_key] = path
-        if line_type in ('json', 'polyline'):
+        if line_type != 'geohash':
             del d[line_column]
         d['__timestamp'] = d.get(DTTM_ALIAS) or d.get('__time')
         return d
 
     def get_data(self, df):
-        if 'EXTRA_POLYGON_ENCODINGS' in config.get('CONF_KEYS', {}):
-            fd = self.form_data
-            line_type = fd.get('line_type')
-            extra_polygon_encodings = {
-                class_.__name__: class_
-                for class_ in config['CONF_KEYS']['EXTRA_POLYGON_ENCODINGS']
-            }
-            class_ = extra_polygon_encodings.get(line_type)
-            if class_:
-                codes = df[fd['line_column']].unique()
-                self.deser_map[line_type] = class_.get_deser(codes, cache)
-
         self.metric_label = utils.get_metric_name(self.metric)
         return super(DeckPathViz, self).get_data(df)
 

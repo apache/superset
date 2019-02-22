@@ -2188,12 +2188,9 @@ export const controls = {
     description: t('The encoding format of the lines'),
     mapStateToProps: state => ({
       choices: [
-        ...[
-          ['polyline', 'Polyline'],
-          ['json', 'JSON'],
-          ['geohash', 'geohash (square)'],
-        ],
-        ...(window.confKeys.EXTRA_POLYGON_ENCODINGS || []),
+        ['polyline', 'Polyline'],
+        ['json', 'JSON'],
+        ['geohash', 'geohash (square)'],
       ],
     }),
   },
