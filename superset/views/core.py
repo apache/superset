@@ -156,15 +156,12 @@ class DashboardFilter(SupersetFilter):
             .filter(User.id == User.get_user_id())
         )
         query = query.filter(
-            or_(
-                Dash.id.in_(
-                    db.session.query(Dash.id)
-                    .distinct()
-                    .join(Dash.slices)
-                    .filter(Slice.id.in_(slice_ids_qry)),
-                ),
-                Dash.id.in_(owner_ids_qry),
-            ),
+            or_(Dash.id.in_(
+                db.session.query(Dash.id)
+                .distinct()
+                .join(Dash.slices)
+                .filter(Slice.id.in_(slice_ids_qry)),
+            ), Dash.id.in_(owner_ids_qry)),
         )
         return query
 
