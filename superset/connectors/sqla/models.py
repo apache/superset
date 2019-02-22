@@ -885,6 +885,7 @@ class SqlaTable(Model, BaseDatasource):
         M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
+        db_engine_spec = self.database.db_engine_spec
         db_dialect = self.database.get_dialect()
         dbcols = (
             db.session.query(TableColumn)
@@ -914,6 +915,7 @@ class SqlaTable(Model, BaseDatasource):
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
+            db_engine_spec.alter_orm_column(dbcol)
 
         metrics.append(M(
             metric_name='count',

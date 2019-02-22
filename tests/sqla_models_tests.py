@@ -16,6 +16,7 @@
 # under the License.
 from superset.connectors.sqla.models import TableColumn
 from .base_tests import SupersetTestCase
+from superset.db_engine_specs import DruidEngineSpec
 
 
 class DatabaseModelTestCase(SupersetTestCase):
@@ -23,7 +24,9 @@ class DatabaseModelTestCase(SupersetTestCase):
     def test_is_time_druid_time_col(self):
         """Druid has a special __time column"""
         col = TableColumn(column_name='__time', type='INTEGER')
-        self.assertEquals(col.is_time, True)
+        self.assertEquals(col.is_dttm, None)
+        DruidEngineSpec.alter_orm_column(col)
+        self.assertEquals(col.is_dttm, True)
 
         col = TableColumn(column_name='__not_time', type='INTEGER')
         self.assertEquals(col.is_time, False)

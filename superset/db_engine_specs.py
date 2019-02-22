@@ -153,6 +153,11 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
+    def alter_orm_column(cls, orm_col):
+        """As fetch_metadata gets called, """
+        pass
+
+    @classmethod
     def epoch_to_dttm(cls):
         raise NotImplementedError()
 
@@ -1707,6 +1712,11 @@ class DruidEngineSpec(BaseEngineSpec):
         'P0.25Y': 'FLOOR({col} TO QUARTER)',
         'P1Y': 'FLOOR({col} TO YEAR)',
     }
+
+    @classmethod
+    def alter_orm_column(cls, orm_col):
+        if orm_col.column_name == '__time':
+            orm_col.is_dttm = True
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
