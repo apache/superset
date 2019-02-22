@@ -810,7 +810,7 @@ class Superset(BaseSupersetView):
     @expose('/datasources/')
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [o.short_data for o in datasources]
+        datasources = [o.short_data for o in datasources if o.short_data.get('name')]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
 
@@ -1524,12 +1524,17 @@ class Superset(BaseSupersetView):
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
-            .one()
+            .first()
         )
-        schemas = database.all_schema_names(cache=database.schema_cache_enabled,
-                                            cache_timeout=database.schema_cache_timeout,
-                                            force=force_refresh)
-        schemas = security_manager.schemas_accessible_by_user(database, schemas)
+        if database:
+            schemas = database.all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=force_refresh)
+            schemas = security_manager.schemas_accessible_by_user(database, schemas)
+        else:
+            schemas = []
+
         return Response(
             json.dumps({'schemas': schemas}),
             mimetype='application/json')

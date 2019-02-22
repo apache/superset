@@ -77,3 +77,4 @@ celerybeat.pid
 geckodriver.log
 ghostdriver.log
 testCSV.csv
+.terser-plugin-cache/

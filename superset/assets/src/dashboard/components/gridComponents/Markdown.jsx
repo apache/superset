@@ -36,6 +36,7 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from '../../util/constants';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger/LogUtils';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -45,6 +46,9 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+
+  // from redux
+  logEvent: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -78,12 +82,22 @@ class Markdown extends React.PureComponent {
       editor: null,
       editorMode: 'preview',
     };
+    this.renderStartTime = Logger.getTimestamp();
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
     this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.setEditor = this.setEditor.bind(this);
+  }
+
+  componentDidMount() {
+    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
+      viz_type: 'markdown',
+      start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
   }
 
   componentWillReceiveProps(nextProps) {

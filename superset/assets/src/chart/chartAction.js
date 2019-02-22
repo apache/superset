@@ -24,7 +24,8 @@ import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
+import { logEvent } from '../logger/actions';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
 
@@ -194,29 +195,31 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     }
     const queryPromise = SupersetClient.post(querySettings)
       .then(({ json }) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+        dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
           is_cached: json.is_cached,
           force_refresh: force,
           row_count: json.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,
+          ts: new Date().getTime(),
           duration: Logger.getTimestamp() - logStart,
           has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
           viz_type: formData.viz_type,
-        });
+        }));
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {
         const appendErrorLog = (errorDetails) => {
-          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
             has_err: true,
             error_details: errorDetails,
             datasource: formData.datasource,
             start_offset: logStart,
+            ts: new Date().getTime(),
             duration: Logger.getTimestamp() - logStart,
-          });
+          }));
         };
 
         if (response.statusText === 'timeout') {

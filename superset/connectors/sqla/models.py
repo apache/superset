@@ -116,14 +116,14 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        label = label if label else self.column_name
-        label = self.table.get_label(label)
+        label = label or self.column_name
         if not self.expression:
             db_engine_spec = self.table.database.db_engine_spec
             type_ = db_engine_spec.get_sqla_column_type(self.type)
-            col = column(self.column_name, type_=type_).label(label)
+            col = column(self.column_name, type_=type_)
         else:
-            col = literal_column(self.expression).label(label)
+            col = literal_column(self.expression)
+        col = self.table.make_sqla_column_compatible(col, label)
         return col
 
     @property
@@ -142,23 +142,24 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
-        label = self.table.get_label(utils.DTTM_ALIAS)
+        label = utils.DTTM_ALIAS
 
         db = self.table.database
         pdf = self.python_date_format
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not self.expression and not time_grain and not is_epoch:
-            return column(self.column_name, type_=DateTime).label(label)
+            sqla_col = column(self.column_name, type_=DateTime)
+            return self.table.make_sqla_column_compatible(sqla_col, label)
         grain = None
         if time_grain:
             grain = db.grains_dict().get(time_grain)
             if not grain:
                 raise NotImplementedError(
                     f'No grain spec for {time_grain} for database {db.database_name}')
-        expr = db.db_engine_spec.get_time_expr(
-            self.expression or self.column_name,
-            pdf, time_grain, grain)
-        return literal_column(expr, type_=DateTime).label(label)
+        col = db.db_engine_spec.get_timestamp_column(self.expression, self.column_name)
+        expr = db.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
+        sqla_col = literal_column(expr, type_=DateTime)
+        return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -218,9 +219,9 @@ class SqlMetric(Model, BaseMetric):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        label = label if label else self.metric_name
-        label = self.table.get_label(label)
-        return literal_column(self.expression).label(label)
+        label = label or self.metric_name
+        sqla_col = literal_column(self.expression)
+        return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
     def perm(self):
@@ -298,20 +299,19 @@ class SqlaTable(Model, BaseDatasource):
         'MAX': sa.func.MAX,
     }
 
-    def get_label(self, label):
-        """Conditionally mutate a label to conform to db engine requirements
-        and store mapping from mutated label to original label
-
-        :param label: original label
-        :return: Either a string or sqlalchemy.sql.elements.quoted_name if required
-        by db engine
+    def make_sqla_column_compatible(self, sqla_col, label=None):
+        """Takes a sql alchemy column object and adds label info if supported by engine.
+        :param sqla_col: sql alchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
         """
+        label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
-        sqla_label = db_engine_spec.make_label_compatible(label)
-        mutated_label = str(sqla_label)
-        if label != mutated_label:
-            self.mutated_labels[mutated_label] = label
-        return sqla_label
+        if db_engine_spec.supports_column_aliases:
+            label = db_engine_spec.make_label_compatible(label_expected)
+            sqla_col = sqla_col.label(label)
+        sqla_col._df_label_expected = label_expected
+        return sqla_col
 
     def __repr__(self):
         return self.name
@@ -431,6 +431,7 @@ class SqlaTable(Model, BaseDatasource):
             d['time_grain_sqla'] = grains
             d['main_dttm_col'] = self.main_dttm_col
             d['fetch_values_predicate'] = self.fetch_values_predicate
+            d['template_params'] = self.template_params
         return d
 
     def values_for_column(self, column_name, limit=10000):
@@ -516,7 +517,6 @@ class SqlaTable(Model, BaseDatasource):
         """
         expression_type = metric.get('expressionType')
         label = utils.get_metric_name(metric)
-        label = self.get_label(label)
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
@@ -526,14 +526,12 @@ class SqlaTable(Model, BaseDatasource):
             else:
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric.get('aggregate')](sqla_column)
-            sqla_metric = sqla_metric.label(label)
-            return sqla_metric
         elif expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
             sqla_metric = literal_column(metric.get('sqlExpression'))
-            sqla_metric = sqla_metric.label(label)
-            return sqla_metric
         else:
             return None
+
+        return self.make_sqla_column_compatible(sqla_metric, label)
 
     def get_sqla_query(  # sqla
             self,
@@ -568,9 +566,6 @@ class SqlaTable(Model, BaseDatasource):
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
-        # Initialize empty cache to store mutated labels
-        self.mutated_labels = {}
-
         orderby = orderby or []
 
         # For backward compatibility
@@ -600,8 +595,8 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            label = self.get_label('ccount')
-            main_metric_expr = literal_column('COUNT(*)').label(label)
+            main_metric_expr, label = literal_column('COUNT(*)'), 'ccount'
+            main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
         select_exprs = []
         groupby_exprs_sans_timestamp = OrderedDict()
@@ -612,14 +607,16 @@ class SqlaTable(Model, BaseDatasource):
                 if s in cols:
                     outer = cols[s].get_sqla_col()
                 else:
-                    outer = literal_column(f'({s})').label(self.get_label(s))
+                    outer = literal_column(f'({s})')
+                    outer = self.make_sqla_column_compatible(outer, s)
 
                 groupby_exprs_sans_timestamp[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
             for s in columns:
                 select_exprs.append(
-                    cols[s].get_sqla_col() if s in cols else literal_column(s))
+                    cols[s].get_sqla_col() if s in cols else
+                    self.make_sqla_column_compatible(literal_column(s)))
             metrics_exprs = []
 
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
@@ -643,7 +640,7 @@ class SqlaTable(Model, BaseDatasource):
 
         select_exprs += metrics_exprs
 
-        labels_expected = [str(c.name) for c in select_exprs]
+        labels_expected = [c._df_label_expected for c in select_exprs]
 
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(),
@@ -731,12 +728,12 @@ class SqlaTable(Model, BaseDatasource):
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
-                label = self.get_label('mme_inner__')
-                inner_main_metric_expr = main_metric_expr.label(label)
+                inner_main_metric_expr = self.make_sqla_column_compatible(
+                    main_metric_expr, 'mme_inner__')
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_exprs_sans_timestamp.items():
-                    inner = gby_obj.label(gby_name + '__')
+                    inner = self.make_sqla_column_compatible(gby_obj, gby_name + '__')
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
 
@@ -751,15 +748,11 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    if utils.is_adhoc_metric(timeseries_limit_metric):
-                        ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
-                    elif timeseries_limit_metric in metrics_dict:
-                        timeseries_limit_metric = metrics_dict.get(
-                            timeseries_limit_metric,
-                        )
-                        ob = timeseries_limit_metric.get_sqla_col()
-                    else:
-                        raise Exception(_("Metric '{}' is not valid".format(m)))
+                    ob = self._get_timeseries_orderby(
+                        timeseries_limit_metric,
+                        metrics_dict,
+                        cols,
+                    )
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)
@@ -769,11 +762,21 @@ class SqlaTable(Model, BaseDatasource):
                     # in this case the column name, not the alias, needs to be
                     # conditionally mutated, as it refers to the column alias in
                     # the inner query
-                    col_name = self.get_label(gby_name + '__')
+                    col_name = db_engine_spec.make_label_compatible(gby_name + '__')
                     on_clause.append(gby_obj == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
+                if timeseries_limit_metric:
+                    orderby = [(
+                        self._get_timeseries_orderby(
+                            timeseries_limit_metric,
+                            metrics_dict,
+                            cols,
+                        ),
+                        False,
+                    )]
+
                 # run subquery to get top groups
                 subquery_obj = {
                     'prequeries': prequeries,
@@ -804,6 +807,19 @@ class SqlaTable(Model, BaseDatasource):
         return SqlaQuery(sqla_query=qry.select_from(tbl),
                          labels_expected=labels_expected)
 
+    def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
+        if utils.is_adhoc_metric(timeseries_limit_metric):
+            ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
+        elif timeseries_limit_metric in metrics_dict:
+            timeseries_limit_metric = metrics_dict.get(
+                timeseries_limit_metric,
+            )
+            ob = timeseries_limit_metric.get_sqla_col()
+        else:
+            raise Exception(_("Metric '{}' is not valid".format(timeseries_limit_metric)))
+
+        return ob
+
     def _get_top_groups(self, df, dimensions, groupby_exprs):
         groups = []
         for unused, row in df.iterrows():
@@ -821,15 +837,19 @@ class SqlaTable(Model, BaseDatasource):
         status = utils.QueryStatus.SUCCESS
         error_message = None
         df = None
-        db_engine_spec = self.database.db_engine_spec
         try:
             df = self.database.get_df(sql, self.schema)
-            if self.mutated_labels:
-                df = df.rename(index=str, columns=self.mutated_labels)
-            db_engine_spec.mutate_df_columns(df, sql, query_str_ext.labels_expected)
+            labels_expected = query_str_ext.labels_expected
+            if df is not None and not df.empty:
+                if len(df.columns) != len(labels_expected):
+                    raise Exception(f'For {sql}, df.columns: {df.columns}'
+                                    f' differs from {labels_expected}')
+                else:
+                    df.columns = labels_expected
         except Exception as e:
             status = utils.QueryStatus.FAILED
             logging.exception(f'Query {sql} on schema {self.schema} failed')
+            db_engine_spec = self.database.db_engine_spec
             error_message = db_engine_spec.extract_error_message(e)
 
         # if this is a main query with prequeries, combine them together

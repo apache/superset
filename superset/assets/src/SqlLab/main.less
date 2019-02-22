@@ -135,7 +135,8 @@ div.Workspace {
     background-color: #e8e8e8;
     display: flex;
     justify-content: space-between;
-    border-bottom: 2px solid #ccc;
+    border: 1px solid #ccc;
+    border-top: 0;
 
     form {
         margin-block-end: 0;
@@ -193,21 +194,67 @@ div.Workspace {
     background-color: transparent !important;
 }
 
-.SqlEditor {
-    .Resizer {
-        -moz-box-sizing: border-box;
-        -webkit-box-sizing: border-box;
-        box-sizing: border-box;
+.SqlLab {
+    .tab-content {
+        height: 100%;
     }
 
-    .Resizer.horizontal {
-        height: 4px;
+    #brace-editor {
+        height: calc(100% - 51px);
+    }
+
+    .ace_content {
+        height: 100%;
+    }
+
+    .SouthPane {
+        height: 100%;
+    }
+}
+
+.SqlEditor {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+
+    .schemaPane {
+        flex-grow: 1;
+        transition: all .3s ease-in-out;
+    }
+
+    .schemaPane-enter-done, .schemaPane-exit {
+        transform: translateX(0);
+    }
+
+    .schemaPane-enter-active, .schemaPane-exit-active {
+        transform: translateX(-50%);
+    }
+
+    .schemaPane-enter, .schemaPane-exit-done {
+        transform: translateX(-100%);
+        max-width: 0;
+        overflow: hidden;
+    }
+
+    .queryPane {
+        flex-grow: 8;
+        position: relative;
+        margin-left: 15px;
+    }
+
+    .schemaPane-exit-done + .queryPane {
+        margin-left: 0;
+    }
+
+    .gutter {
         border-top: 1px solid #ccc;
         border-bottom: 1px solid #ccc;
+        width: 3%;
+        margin: 3px 47%;
+    }
+
+    .gutter.gutter-vertical {
         cursor: row-resize;
-        width: 4%;
-        margin-top: 4px;
-        margin-left: 47%;
     }
 }
 
@@ -297,9 +344,6 @@ a.Link {
 }
 .tooltip-inner {
     max-width: 500px;
-}
-.SplitPane.horizontal {
-    padding-right: 4px;
 }
 .SouthPane {
     margin-top: 10px;

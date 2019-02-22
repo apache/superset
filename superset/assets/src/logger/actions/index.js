@@ -16,20 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+export const LOG_EVENT = 'LOG_EVENT';
 
-import * as actions from './chartAction';
-import { logEvent } from '../logger/actions';
-import Chart from './Chart';
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators({
-      ...actions,
-      logEvent,
-    }, dispatch),
-  };
+export function logEvent(eventName, eventData) {
+  return dispatch => (
+    dispatch({
+      type: LOG_EVENT,
+      payload: {
+        eventName,
+        eventData,
+      },
+    })
+  );
 }
-
-export default connect(null, mapDispatchToProps)(Chart);
