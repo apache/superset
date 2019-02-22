@@ -101,6 +101,14 @@ def is_owner(obj, user):
     return obj and user in obj.owners
 
 
+SQLTable = Table(
+    'tables',
+    Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('database_id', Integer, ForeignKey('databases.id')),
+    extend_existing=True)
+
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -108,19 +116,11 @@ class SliceFilter(SupersetFilter):
 
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
-        database_perms = self.get_view_menus('database_access')
-
-        SQLTable = Table(
-            'tables',
-            Model.metadata,
-            Column('id', Integer, primary_key=True),
-            Column('database_id', Integer, ForeignKey('databases.id')),
-            extend_existing=True)
         query = (
             query.outerjoin(SQLTable, self.model.datasource_id == SQLTable.c.id)
             .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
             .filter(or_(
-                models.Database.perm.in_(database_perms),
+                models.Database.perm.in_(datasource_perms),
                 self.model.perm.in_(datasource_perms),
             ))
         )
@@ -142,7 +142,12 @@ class DashboardFilter(SupersetFilter):
         slice_ids_qry = (
             db.session
             .query(Slice.id)
-            .filter(Slice.perm.in_(datasource_perms))
+            .outerjoin(SQLTable, Slice.datasource_id == SQLTable.c.id)
+            .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
+            .filter(or_(
+                models.Database.perm.in_(datasource_perms),
+                Slice.perm.in_(datasource_perms),
+            ))
         )
         owner_ids_qry = (
             db.session
@@ -151,12 +156,15 @@ class DashboardFilter(SupersetFilter):
             .filter(User.id == User.get_user_id())
         )
         query = query.filter(
-            or_(Dash.id.in_(
-                db.session.query(Dash.id)
-                .distinct()
-                .join(Dash.slices)
-                .filter(Slice.id.in_(slice_ids_qry)),
-            ), Dash.id.in_(owner_ids_qry)),
+            or_(
+                Dash.id.in_(
+                    db.session.query(Dash.id)
+                    .distinct()
+                    .join(Dash.slices)
+                    .filter(Slice.id.in_(slice_ids_qry)),
+                ),
+                Dash.id.in_(owner_ids_qry),
+            ),
         )
         return query
 
