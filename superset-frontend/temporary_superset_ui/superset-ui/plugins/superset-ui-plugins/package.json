@@ -36,10 +36,12 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@data-ui/build-config": "^0.0.40",
+    "@superset-ui/build-config": "^0.0.3",
     "@superset-ui/chart": "^0.9.6",
     "@superset-ui/color": "^0.9.5",
+    "@superset-ui/core": "^0.9.5",
     "@superset-ui/connection": "^0.9.5",
+    "@superset-ui/dimension": "^0.9.3",
     "@superset-ui/number-format": "^0.9.5",
     "@superset-ui/time-format": "^0.9.5",
     "@superset-ui/translation": "^0.9.5",
@@ -56,7 +58,7 @@
     "node": ">=8.10.0"
   },
   "beemo": {
-    "module": "@data-ui/build-config",
+    "module": "@superset-ui/build-config",
     "drivers": [
       "babel",
       "eslint",
