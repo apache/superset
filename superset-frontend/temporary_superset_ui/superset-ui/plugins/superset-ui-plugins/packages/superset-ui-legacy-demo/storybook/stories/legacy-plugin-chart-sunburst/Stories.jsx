@@ -21,6 +21,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-sunburst|SunburstChartPlugin',
+    storyPath: 'legacy-|plugin-chart-sunburst|SunburstChartPlugin',
   },
 ];

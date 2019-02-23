@@ -21,6 +21,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-country-map|CountryMapChartPlugin',
+    storyPath: 'legacy-|plugin-chart-country-map|CountryMapChartPlugin',
   },
 ];

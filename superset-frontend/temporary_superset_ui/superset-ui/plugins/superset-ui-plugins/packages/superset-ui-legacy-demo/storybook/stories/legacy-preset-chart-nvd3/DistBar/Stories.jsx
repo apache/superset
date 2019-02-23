@@ -33,6 +33,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|DistBarChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|DistBarChartPlugin',
   },
 ];

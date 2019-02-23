@@ -40,6 +40,6 @@ export default [
       />
     ),
     storyName: 'Stacked',
-    storyPath: 'preset-chart-nvd3|AreaChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|AreaChartPlugin',
   },
 ];

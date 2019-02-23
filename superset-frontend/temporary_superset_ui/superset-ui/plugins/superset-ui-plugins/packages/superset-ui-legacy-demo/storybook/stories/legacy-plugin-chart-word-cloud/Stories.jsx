@@ -24,6 +24,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-word-cloud|WordCloudChartPlugin',
+    storyPath: 'legacy-|plugin-chart-word-cloud|WordCloudChartPlugin',
   },
 ];
