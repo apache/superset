@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui-legacy.git"
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins.git"
   },
   "keywords": [
     "superset"
@@ -19,9 +19,9 @@
   "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui-legacy/issues"
+    "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui-legacy#readme",
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
   "publishConfig": {
     "access": "public"
   },

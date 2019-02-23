@@ -8,7 +8,7 @@ addDecorator(
     goFullScreen: false,
     hierarchySeparator: /\|/,
     // hierarchyRootSeparator: null,
-    name: '👻 @superset-ui/legacy-',
+    name: '@superset-ui/plugins 🔌💡',
     selectedAddonPanel: undefined, // The order of addons in the "Addon panel" is the same as you import them in 'addons.js'. The first panel will be opened by default as you run Storybook
     showAddonPanel: true,
     showSearchBox: false,
