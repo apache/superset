@@ -32,6 +32,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-map-box|MapBoxChartPlugin',
+    storyPath: 'legacy-|plugin-chart-map-box|MapBoxChartPlugin',
   },
 ];

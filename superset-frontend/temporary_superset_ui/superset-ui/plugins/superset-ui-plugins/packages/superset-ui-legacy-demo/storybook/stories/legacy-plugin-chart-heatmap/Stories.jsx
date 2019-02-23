@@ -201,6 +201,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-heatmap|HeatmapChartPlugin',
+    storyPath: 'legacy-|plugin-chart-heatmap|HeatmapChartPlugin',
   },
 ];

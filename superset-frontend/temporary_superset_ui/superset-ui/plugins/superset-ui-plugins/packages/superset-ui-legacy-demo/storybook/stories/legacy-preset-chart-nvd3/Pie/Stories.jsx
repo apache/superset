@@ -27,6 +27,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|PieChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|PieChartPlugin',
   },
 ];

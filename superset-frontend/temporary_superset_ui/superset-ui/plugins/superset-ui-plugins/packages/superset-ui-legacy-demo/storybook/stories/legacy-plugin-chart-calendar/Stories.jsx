@@ -29,6 +29,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-calendar|CalendarChartPlugin',
+    storyPath: 'legacy-|plugin-chart-calendar|CalendarChartPlugin',
   },
 ];

@@ -40,6 +40,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|BubbleChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|BubbleChartPlugin',
   },
 ];
