@@ -30,14 +30,14 @@ export default function renderLegend(data, colorEncoding) {
       <LegendOrdinal scale={colorScale} labelFormat={label => label}>
         {labels => (
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-            {labels.map((label, i) => {
+            {labels.map(label => {
               const size = 8;
 
               return (
                 <LegendItem
-                  key={`legend-quantile-${i}`}
+                  key={`legend-quantile-${label.text}`}
                   margin="0 5px"
-                  onClick={event => {
+                  onClick={() => {
                     alert(`clicked: ${JSON.stringify(label)}`);
                   }}
                 >

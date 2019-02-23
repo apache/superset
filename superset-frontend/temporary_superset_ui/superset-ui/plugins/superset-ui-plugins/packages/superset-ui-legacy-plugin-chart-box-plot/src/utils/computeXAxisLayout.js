@@ -17,8 +17,8 @@ export default function computeXAxisLayout({
 }) {
   const labelDimensions = tickLabels.map(text =>
     getTextDimension({
-      text,
       style: tickTextStyle,
+      text,
     }),
   );
 

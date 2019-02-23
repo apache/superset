@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable sort-keys */
+/* eslint-disable sort-keys, no-magic-numbers */
 import { getNumberFormatter } from '@superset-ui/number-format';
 
 export default function transformProps(chartProps) {

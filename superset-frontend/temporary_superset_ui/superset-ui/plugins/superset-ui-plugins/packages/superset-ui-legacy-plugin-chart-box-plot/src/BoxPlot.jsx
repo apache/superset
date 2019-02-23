@@ -20,6 +20,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
+import { themeShape } from '@data-ui/xy-chart/esm/utils/propShapes';
 import { chartTheme } from '@data-ui/theme';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import createTooltip from './utils/createBoxPlotTooltip';
@@ -51,7 +52,7 @@ const propTypes = {
     color: PropTypes.object,
   }).isRequired,
   isHorizontal: PropTypes.bool,
-  theme: PropTypes.object,
+  theme: themeShape,
 };
 
 const defaultProps = {

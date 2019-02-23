@@ -14,18 +14,19 @@ export default function computeYAxisLayout({
 }) {
   const labelDimensions = tickLabels.map(text =>
     getTextDimension({
-      text,
       style: tickTextStyle,
+      text,
     }),
   );
 
   const maxWidth = Math.ceil(Math.max(...labelDimensions.map(d => d.width)));
-  let labelOffset = Math.ceil(maxWidth + gapBetweenTickLabelsAndAxisLabel + axisLabelHeight);
+  const labelOffset = Math.ceil(maxWidth + gapBetweenTickLabelsAndAxisLabel + axisLabelHeight);
 
-  let margin = tickLength + gapBetweenTickAndTickLabel + labelOffset + gapBetweenAxisLabelAndBorder;
+  const margin =
+    tickLength + gapBetweenTickAndTickLabel + labelOffset + gapBetweenAxisLabelAndBorder;
 
   return {
-    labelOffset: labelOffset,
+    labelOffset,
     minMargin: {
       [orientation]: margin,
     },
