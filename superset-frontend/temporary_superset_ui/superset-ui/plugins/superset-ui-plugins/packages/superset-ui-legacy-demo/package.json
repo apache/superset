@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/legacy-demo",
+  "name": "@superset-ui/plugins-demo",
   "version": "0.1.1",
-  "description": "Storybook for Superset UI Legacy 👻",
+  "description": "Storybook for Superset UI Plugins 🔌💡",
   "private": true,
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins.git"
   },
   "keywords": [
     "storybook",
@@ -25,9 +25,9 @@
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache-superset/superset-ui-plugins/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
   "dependencies": {
     "@babel/core": "^7.1.2",
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
