@@ -4,11 +4,12 @@
   "description": "Superset UI Legacy",
   "private": true,
   "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "build": "yarn build:cjs && yarn build:esm && yarn build:assets",
+    "build": "yarn build:cjs && yarn build:esm && yarn run type:dts && yarn build:assets",
     "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(legacy-demo)\"",
     "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(legacy-demo)\"",
     "build:assets": "node ./buildAssets.js",
+    "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(plugin-*)\" --noEmit",
+    "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(plugin-*)\" --emitDeclarationOnly",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage --react",
@@ -18,8 +19,8 @@
     "pretest": "yarn run lint",
     "prettier": "beemo prettier \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx,json,md}\"",
     "release": "yarn run prepare-release && lerna publish && yarn run postrelease",
-    "test": "yarn run jest",
-    "test:watch": "beemo create-config jest --react && jest --watch"
+    "test": "yarn run type && yarn run jest",
+    "test:watch": "yarn run lint:fix && beemo create-config jest --react && jest --watch"
   },
   "repository": "https://github.com/apache-superset/superset-ui-legacy.git",
   "keywords": [
