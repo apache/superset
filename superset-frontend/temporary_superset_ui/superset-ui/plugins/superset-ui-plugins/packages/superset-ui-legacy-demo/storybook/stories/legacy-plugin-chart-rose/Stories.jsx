@@ -23,6 +23,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-rose|RoseChartPlugin',
+    storyPath: 'legacy-|plugin-chart-rose|RoseChartPlugin',
   },
 ];

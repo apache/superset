@@ -31,6 +31,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-big-number|BigNumberChartPlugin',
+    storyPath: 'legacy-|preset-chart-big-number|BigNumberChartPlugin',
   },
 ];

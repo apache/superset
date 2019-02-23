@@ -32,6 +32,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-pivot-table|PivotTableChartPlugin',
+    storyPath: 'legacy-|plugin-chart-pivot-table|PivotTableChartPlugin',
   },
 ];

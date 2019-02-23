@@ -26,6 +26,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|DualLineChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|DualLineChartPlugin',
   },
 ];

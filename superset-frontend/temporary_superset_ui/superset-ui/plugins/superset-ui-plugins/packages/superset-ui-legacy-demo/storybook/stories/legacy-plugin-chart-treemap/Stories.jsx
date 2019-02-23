@@ -21,6 +21,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-treemap|TreemapChartPlugin',
+    storyPath: 'legacy-|plugin-chart-treemap|TreemapChartPlugin',
   },
 ];
