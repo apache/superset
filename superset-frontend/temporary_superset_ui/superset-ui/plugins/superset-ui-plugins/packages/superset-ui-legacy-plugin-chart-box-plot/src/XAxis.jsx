@@ -6,24 +6,23 @@ import { axisStylesShape, tickStylesShape } from '@data-ui/xy-chart/esm/utils/pr
 const propTypes = {
   axisStyles: axisStylesShape,
   hideZero: PropTypes.bool,
+  // probably injected by parent
+  innerHeight: PropTypes.number,
   label: PropTypes.string,
   labelOffset: PropTypes.number,
   labelProps: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
   numTicks: PropTypes.number,
   orientation: PropTypes.oneOf(['bottom', 'top']),
   rangePadding: PropTypes.number,
-  tickStyles: tickStylesShape,
+  scale: PropTypes.func,
   tickComponent: PropTypes.func,
-  tickLabelProps: PropTypes.func,
   tickFormat: PropTypes.func,
+  tickLabelProps: PropTypes.func,
+  tickStyles: tickStylesShape,
   tickValues: PropTypes.arrayOf(
     // number or date/moment object
     PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.string]),
   ),
-
-  // probably injected by parent
-  innerHeight: PropTypes.number,
-  scale: PropTypes.func,
 };
 
 const defaultProps = {
