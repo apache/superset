@@ -24,6 +24,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-histogram|HistogramChartPlugin',
+    storyPath: 'legacy-|plugin-chart-histogram|HistogramChartPlugin',
   },
 ];

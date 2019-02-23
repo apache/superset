@@ -22,6 +22,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-world-map|WorldMapChartPlugin',
+    storyPath: 'legacy-|plugin-chart-world-map|WorldMapChartPlugin',
   },
 ];

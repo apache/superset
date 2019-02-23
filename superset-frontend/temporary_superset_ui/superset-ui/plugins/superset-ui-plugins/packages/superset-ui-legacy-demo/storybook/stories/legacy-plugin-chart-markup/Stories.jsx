@@ -22,6 +22,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-markup|MarkupChartPlugin',
+    storyPath: 'legacy-|plugin-chart-markup|MarkupChartPlugin',
   },
 ];

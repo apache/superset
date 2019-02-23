@@ -25,6 +25,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|BulletChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|BulletChartPlugin',
   },
 ];

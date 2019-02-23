@@ -22,6 +22,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'preset-chart-nvd3|BoxPlotChartPlugin',
+    storyPath: 'legacy-|preset-chart-nvd3|BoxPlotChartPlugin',
   },
 ];

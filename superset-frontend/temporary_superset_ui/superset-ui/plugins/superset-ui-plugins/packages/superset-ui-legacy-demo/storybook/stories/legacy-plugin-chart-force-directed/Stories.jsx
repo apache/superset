@@ -17,6 +17,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-force-directed|ForceDirectedChartPlugin',
+    storyPath: 'legacy-|plugin-chart-force-directed|ForceDirectedChartPlugin',
   },
 ];

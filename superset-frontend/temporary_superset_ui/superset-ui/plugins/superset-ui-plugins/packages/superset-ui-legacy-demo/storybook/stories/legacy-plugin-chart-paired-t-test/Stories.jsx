@@ -23,6 +23,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-paired-t-test|PairedTTestChartPlugin',
+    storyPath: 'legacy-|plugin-chart-paired-t-test|PairedTTestChartPlugin',
   },
 ];

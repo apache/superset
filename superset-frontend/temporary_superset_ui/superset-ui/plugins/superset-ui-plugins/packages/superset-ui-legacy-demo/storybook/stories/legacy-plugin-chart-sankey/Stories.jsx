@@ -19,6 +19,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-sankey|SankeyChartPlugin',
+    storyPath: 'legacy-|plugin-chart-sankey|SankeyChartPlugin',
   },
 ];

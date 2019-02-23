@@ -20,6 +20,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-chord|ChordChartPlugin',
+    storyPath: 'legacy-|plugin-chart-chord|ChordChartPlugin',
   },
 ];

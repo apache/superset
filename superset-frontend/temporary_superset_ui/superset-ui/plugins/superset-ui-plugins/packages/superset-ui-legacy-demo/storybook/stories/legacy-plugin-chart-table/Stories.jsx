@@ -37,6 +37,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-table|TableChartPlugin',
+    storyPath: 'legacy-|plugin-chart-table|TableChartPlugin',
   },
 ];

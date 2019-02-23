@@ -32,6 +32,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-partition|PartitionChartPlugin',
+    storyPath: 'legacy-|plugin-chart-partition|PartitionChartPlugin',
   },
 ];

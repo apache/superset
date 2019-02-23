@@ -24,6 +24,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-parallel-coordinates|ParallelCoordinatesChartPlugin',
+    storyPath: 'legacy-|plugin-chart-parallel-coordinates|ParallelCoordinatesChartPlugin',
   },
 ];

@@ -27,6 +27,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-event-flow|EventFlowChartPlugin',
+    storyPath: 'legacy-|plugin-chart-event-flow|EventFlowChartPlugin',
   },
 ];

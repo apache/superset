@@ -20,6 +20,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-horizon|HorizonChartPlugin',
+    storyPath: 'legacy-|plugin-chart-horizon|HorizonChartPlugin',
   },
 ];
