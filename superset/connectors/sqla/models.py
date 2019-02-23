@@ -836,9 +836,8 @@ class SqlaTable(Model, BaseDatasource):
         sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         error_message = None
-        df = None
-        try:
-            df = self.database.get_df(sql, self.schema)
+
+        def mutator(df):
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
                 if len(df.columns) != len(labels_expected):
@@ -846,7 +845,12 @@ class SqlaTable(Model, BaseDatasource):
                                     f' differs from {labels_expected}')
                 else:
                     df.columns = labels_expected
+            return df
+
+        try:
+            df = self.database.get_df(sql, self.schema, mutator)
         except Exception as e:
+            df = None
             status = utils.QueryStatus.FAILED
             logging.exception(f'Query {sql} on schema {self.schema} failed')
             db_engine_spec = self.database.db_engine_spec
