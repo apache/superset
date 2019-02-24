@@ -546,6 +546,7 @@ export const controls = {
     choices: [
       'Belgium',
       'Brazil',
+      'Bulgaria',
       'China',
       'Egypt',
       'France',
