@@ -30,14 +30,9 @@
     "prop-types": "^15.6.2",
     "reactable-arc": "0.14.42"
   },
-  "devDependencies": {
-    "@superset-ui/chart": "^0.9.x",
-    "@superset-ui/translation": "^0.9.x",
-    "react": "^15 || ^16"
-  },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.9.x",
-    "@superset-ui/translation": "^0.9.x",
+    "@superset-ui/chart": "^0.10.0",
+    "@superset-ui/translation": "^0.10.0",
     "react": "^15 || ^16"
   }
 }
