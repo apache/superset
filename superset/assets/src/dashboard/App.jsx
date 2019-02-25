@@ -36,7 +36,10 @@ setupPlugins();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-initFeatureFlags(bootstrapData.common.feature_flags, bootstrapData.common.conf_keys);
+initFeatureFlags(
+  bootstrapData.common.feature_flags,
+  bootstrapData.common.conf_keys,
+);
 const initState = getInitialState(bootstrapData);
 
 const store = createStore(

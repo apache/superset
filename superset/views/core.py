@@ -2794,7 +2794,8 @@ class Superset(BaseSupersetView):
             'superset/basic.html',
             entry='welcome',
             title='Superset',
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser, for_json=True),
+            bootstrap_data=json.dumps(
+                payload, default=utils.json_iso_dttm_ser, for_json=True),
         )
 
     @has_access
