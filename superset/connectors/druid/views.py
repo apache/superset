@@ -329,20 +329,23 @@ class Druid(BaseSupersetView):
         DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
         for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
+            valid_cluster = True
             try:
                 cluster.refresh_datasources(refreshAll=refreshAll)
             except Exception as e:
+                valid_cluster = False
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
                         cluster_name, utils.error_msg_from_exception(e)),
                     'danger')
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
-            cluster.metadata_last_refreshed = datetime.now()
-            flash(
-                _('Refreshed metadata from cluster [{}]').format(
-                    cluster.cluster_name),
-                'info')
+                pass
+            if valid_cluster:
+                cluster.metadata_last_refreshed = datetime.now()
+                flash(
+                    _('Refreshed metadata from cluster [{}]').format(
+                        cluster.cluster_name),
+                    'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 
