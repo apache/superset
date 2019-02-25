@@ -1,7 +1,7 @@
 ## @superset-ui/legacy-plugin-chart-pivot-table
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-pivot-table.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-pivot-table.svg?style=flat-square)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-pivot-table&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-legacy-plugin-chart-pivot-table)
+[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-pivot-table&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-plugin-chart-pivot-table)
 
 This plugin provides Pivot Table for Superset.
 
