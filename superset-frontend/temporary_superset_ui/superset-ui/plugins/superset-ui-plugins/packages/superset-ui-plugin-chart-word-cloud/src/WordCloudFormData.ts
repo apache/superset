@@ -1,4 +1,4 @@
-import { FormData as ChartFormData } from '@superset-ui/chart';
+import { ChartFormData } from '@superset-ui/chart';
 
 // FormData for wordcloud contains both common properties of all form data
 // and properties specific to wordcloud vizzes
