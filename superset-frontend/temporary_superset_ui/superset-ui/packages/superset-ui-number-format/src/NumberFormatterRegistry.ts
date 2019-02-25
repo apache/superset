@@ -1,5 +1,6 @@
 import { RegistryWithDefaultKey, OverwritePolicy } from '@superset-ui/core';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
+import createSmartNumberFormatter from './factories/createSmartNumberFormatter';
 import NumberFormats from './NumberFormats';
 import NumberFormatter from './NumberFormatter';
 
@@ -9,10 +10,16 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
 > {
   constructor() {
     super({
-      initialDefaultKey: NumberFormats.SI,
       name: 'NumberFormatter',
       overwritePolicy: OverwritePolicy.WARN,
     });
+
+    this.registerValue(NumberFormats.SMART_NUMBER, createSmartNumberFormatter());
+    this.registerValue(
+      NumberFormats.SMART_NUMBER_SIGNED,
+      createSmartNumberFormatter({ signed: true }),
+    );
+    this.setDefaultKey(NumberFormats.SMART_NUMBER);
   }
 
   get(formatterId?: string) {
