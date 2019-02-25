@@ -21,7 +21,6 @@ applications that leverage a Superset backend :chart_with_upwards_trend:
 | [@superset-ui/number-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-number-format) | [![Version](https://img.shields.io/npm/v/@superset-ui/number-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/number-format.svg?style=flat-square) |
 | [@superset-ui/time-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-time-format) | [![Version](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square) |
 | [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation) | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square) |
-| [@superset-ui/plugin-chart-word-cloud](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-plugin-chart-word-cloud) | [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/plugin-chart-word-cloud.svg?style=flat-square) |
 
 #### Coming :soon:
 
