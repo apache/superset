@@ -105,7 +105,7 @@ SQLTable = Table(
     'tables',
     Model.metadata,
     Column('id', Integer, primary_key=True),
-    Column('database_id', Integer, ForeignKey('databases.id')),
+    Column('database_id', Integer, ForeignKey('dbs.id')),
     extend_existing=True)
 
 
