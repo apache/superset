@@ -2437,13 +2437,9 @@ class Superset(BaseSupersetView):
                 '{}'.format(rejected_tables)), status=403)
 
         payload = utils.zlib_decompress_to_string(blob)
-        display_limit = app.config.get('DEFAULT_SQLLAB_LIMIT', None)
-        if display_limit:
-            payload_json = json.loads(payload)
-            payload_json['data'] = payload_json['data'][:display_limit]
         return json_success(
             json.dumps(
-                payload_json,
+                json.loads(payload),
                 default=utils.json_iso_dttm_ser,
                 ignore_nan=True,
             ),
