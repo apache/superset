@@ -1,5 +1,22 @@
 # @superset-ui : Change Log
 
+## v0.10.0
+
+### 💔 BREAKING CHANGES
+
+* Rename `FormData ` to `ChartFormData` to avoid naming collision with native JS (#100)
+* Rename constants in `NumberFormats` changing `_CHANGE` to `_SIGNED`.
+* Default number format is now `SMART_NUMBER` instead of `D3` `.3~s`.
+
+### ✨ Features
+
+* Add SMART_NUMBER formatter and make it default (#109)
+* Enable warnings when values are overwritten in registries (#107)
+
+### 🛠️ Internal
+
+* Migrate `plugin-chart-word-cloud` to `@superset-ui-plugins` repo.
+
 ## v0.9.6
 
 ### 🛠️ Internal
