@@ -103,7 +103,7 @@ def is_owner(obj, user):
 
 SQLTable = Table(
     'tables',
-    Model.metadata,
+    Model.metadata,  # pylint: disable=no-member
     Column('id', Integer, primary_key=True),
     Column('database_id', Integer, ForeignKey('dbs.id')),
     extend_existing=True)
