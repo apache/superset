@@ -8,6 +8,7 @@
     "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(plugins-demo)\"",
     "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(plugins-demo)\"",
     "build:assets": "node ./buildAssets.js",
+    "commit": "git-cz",
     "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(plugin-*)\" --noEmit",
     "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/(plugin-*)\" --emitDeclarationOnly",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
@@ -37,17 +38,23 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
+    "@commitlint/cli": "^7.5.2",
+    "@commitlint/config-conventional": "^7.5.0",
+    "@commitlint/config-lerna-scopes": "^7.5.1",
+    "@commitlint/prompt-cli": "^7.5.0",
     "@superset-ui/build-config": "^0.0.3",
     "@superset-ui/chart": "^0.9.6",
     "@superset-ui/color": "^0.9.5",
-    "@superset-ui/core": "^0.9.5",
     "@superset-ui/connection": "^0.9.5",
+    "@superset-ui/core": "^0.9.5",
     "@superset-ui/dimension": "^0.9.3",
     "@superset-ui/number-format": "^0.9.5",
     "@superset-ui/time-format": "^0.9.5",
     "@superset-ui/translation": "^0.9.5",
+    "commitizen": "^3.0.7",
     "fast-glob": "^2.2.6",
     "fs-extra": "^7.0.1",
+    "git-cz": "^1.8.0",
     "husky": "^1.1.2",
     "lerna": "^3.2.1",
     "lint-staged": "^8.0.4",
@@ -78,7 +85,8 @@
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged"
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
   "lint-staged": {
@@ -86,5 +94,10 @@
       "yarn run prettier --write",
       "git add"
     ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "git-cz"
+    }
   }
 }
