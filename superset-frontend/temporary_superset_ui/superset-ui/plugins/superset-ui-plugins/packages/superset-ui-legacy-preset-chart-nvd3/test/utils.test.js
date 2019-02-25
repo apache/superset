@@ -29,7 +29,7 @@ describe('nvd3/utils', () => {
     });
     it('returns a number formatter otherwise', () => {
       expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
-      expect(getTimeOrNumberFormatter()(3000100)).toBe('3.00M');
+      expect(getTimeOrNumberFormatter()(3000100)).toBe('3M');
     });
   });
 
