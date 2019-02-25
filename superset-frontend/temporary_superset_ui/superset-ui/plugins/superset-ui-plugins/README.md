@@ -16,7 +16,7 @@ Bug fixes are welcome.
 
 In the future, we plan to have a template for new repository or generator for everybody to setup a single plugin repository easily on his/her own.
 This way anybody can create and publish a Superset plugin.
-If some third-party plugins become really good, we can consider merging into this repo later.
+If a third-party plugin becomes really good, we can consider merging into this repo later.
 
 ## Packages
 

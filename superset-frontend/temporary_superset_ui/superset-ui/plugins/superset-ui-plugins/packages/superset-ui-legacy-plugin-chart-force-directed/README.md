@@ -1,7 +1,7 @@
 ## @superset-ui/legacy-plugin-chart-force-directed
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-force-directed.svg?style=flat-square)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-force-directed&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-legacy-plugin-chart-force-directed)
+[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-force-directed&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-plugin-chart-force-directed)
 
 This plugin provides Force-directed Graph for Superset.
 
