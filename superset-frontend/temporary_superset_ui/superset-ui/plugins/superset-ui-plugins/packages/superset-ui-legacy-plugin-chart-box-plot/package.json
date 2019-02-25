@@ -27,7 +27,7 @@
   },
   "private": true,
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.75",
+    "@data-ui/xy-chart": "^0.0.76",
     "@data-ui/theme": "^0.0.75",
     "@vx/axis": "^0.0.184",
     "@vx/group": "^0.0.183",
