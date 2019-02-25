@@ -1,10 +1,14 @@
 import NumberFormatterRegistry from '../src/NumberFormatterRegistry';
 import NumberFormatter from '../src/NumberFormatter';
+import { NumberFormats } from '../src';
 
 describe('NumberFormatterRegistry', () => {
   let registry: NumberFormatterRegistry;
   beforeEach(() => {
     registry = new NumberFormatterRegistry();
+  });
+  it('has SMART_NUMBER as default formatter out of the box', () => {
+    expect(registry.getDefaultKey()).toBe(NumberFormats.SMART_NUMBER);
   });
   describe('.get(format)', () => {
     it('creates and returns a new formatter if does not exist', () => {
