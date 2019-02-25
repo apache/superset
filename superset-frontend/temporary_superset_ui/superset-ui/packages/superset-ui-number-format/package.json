@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/number-format",
-  "version": "0.9.5",
+  "version": "0.10.0",
   "description": "Superset UI number format",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/core": "^0.9.5",
+    "@superset-ui/core": "^0.10.0",
     "@types/d3-format": "^1.3.0",
     "d3-format": "^1.3.2"
   }
