@@ -123,6 +123,7 @@ setup(
         'tableschema',
         'thrift-sasl>=0.2.1',
         'thrift>=0.9.3',
+        'pycrypto==2.6.1',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
