@@ -4,12 +4,12 @@ import { LegendOrdinal, LegendItem, LegendLabel } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
 
 export default function renderLegend(data, colorEncoding) {
-  const { field, scale } = colorEncoding;
+  const { accessor, field, scale } = colorEncoding;
   const { scheme, namespace } = scale;
   const colorFn = CategoricalColorNamespace.getScale(scheme, namespace);
   const keySet = new Set();
   data.forEach(d => {
-    keySet.add(d[field]);
+    keySet.add(accessor ? accessor(d) : d[field]);
   });
   const keys = [...keySet.values()];
   const colorScale = scaleOrdinal({
