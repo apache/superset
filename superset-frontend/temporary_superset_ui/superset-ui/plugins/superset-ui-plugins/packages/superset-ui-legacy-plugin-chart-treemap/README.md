@@ -17,7 +17,7 @@ new TreemapChartPlugin()
   .register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-legacy/?selectedKind=plugin-chart-treemap) for more details.
+Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-treemap) for more details.
 
 ```js
 <SuperChart

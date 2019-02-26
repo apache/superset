@@ -17,7 +17,7 @@ new CountryMapChartPlugin()
   .register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-legacy/?selectedKind=plugin-chart-country-map) for more details.
+Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-country-map) for more details.
 
 ```js
 <SuperChart
