@@ -1,4 +1,4 @@
-import BoxPlotChartPlugin from '../../../../superset-ui-legacy-plugin-chart-box-plot/src';
+import { BoxPlotChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src';
 import Stories from './Stories';
 
 new BoxPlotChartPlugin().configure({ key: 'box-plot2' }).register();

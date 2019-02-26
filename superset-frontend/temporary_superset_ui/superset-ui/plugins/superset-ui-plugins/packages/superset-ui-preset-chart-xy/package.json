@@ -1,7 +1,7 @@
 {
-  "name": "@superset-ui/legacy-plugin-chart-box-plot",
+  "name": "@superset-ui/preset-chart-xy",
   "version": "0.0.0",
-  "description": "Superset Legacy Chart - Box Plot",
+  "description": "Superset Chart - XY",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",

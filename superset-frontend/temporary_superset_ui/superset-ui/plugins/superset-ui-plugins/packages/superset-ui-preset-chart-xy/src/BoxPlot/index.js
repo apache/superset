@@ -28,7 +28,7 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
-export default class HistogramChartPlugin extends ChartPlugin {
+export default class BoxPlotChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./BoxPlot'),

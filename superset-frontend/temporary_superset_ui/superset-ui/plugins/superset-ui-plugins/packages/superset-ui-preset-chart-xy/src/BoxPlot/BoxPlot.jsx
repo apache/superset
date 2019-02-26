@@ -23,10 +23,10 @@ import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
 import { themeShape } from '@data-ui/xy-chart/esm/utils/propShapes';
 import { chartTheme } from '@data-ui/theme';
 import { CategoricalColorNamespace } from '@superset-ui/color';
-import createTooltip from './utils/createBoxPlotTooltip';
-import renderLegend from './utils/renderLegend';
-import XYChartLayout from './utils/XYChartLayout';
-import WithLegend from './WithLegend';
+import createTooltip from './createBoxPlotTooltip';
+import renderLegend from '../utils/renderLegend';
+import XYChartLayout from '../utils/XYChartLayout';
+import WithLegend from '../components/WithLegend';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
 

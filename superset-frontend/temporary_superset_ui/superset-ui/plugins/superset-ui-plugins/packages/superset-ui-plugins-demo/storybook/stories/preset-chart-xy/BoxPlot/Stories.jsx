@@ -24,6 +24,6 @@ export default [
       />
     ),
     storyName: 'Basic',
-    storyPath: 'plugin-chart-box-plot|BoxPlotChartPlugin',
+    storyPath: 'preset-chart-xy|BoxPlotChartPlugin',
   },
 ];
