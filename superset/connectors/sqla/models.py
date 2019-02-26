@@ -795,6 +795,10 @@ class SqlaTable(Model, BaseDatasource):
                     'order_desc': True,
                 }
                 result = self.query(subquery_obj)
+
+                if result.status == utils.QueryStatus.FAILED:
+                    raise Exception(result.error_message)
+
                 dimensions = [
                     c for c in result.df.columns
                     if c not in metrics and c in groupby_exprs_sans_timestamp
