@@ -89,7 +89,7 @@ class Chart extends React.PureComponent {
   }
 
   renderStackTraceMessage() {
-    const { chartAlert, chartStackTrace } = this.props;
+    const { chartAlert, chartStackTrace, queryResponse } = this.props;
     return (
       <StackTraceMessage
         message={chartAlert}
@@ -106,7 +106,6 @@ class Chart extends React.PureComponent {
       chartStatus,
       errorMessage,
       onQuery,
-      queryResponse,
       refreshOverlayVisible,
     } = this.props;
 
