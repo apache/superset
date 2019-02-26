@@ -20,7 +20,7 @@
     "sync-backend": "babel-node --preset=@babel/preset-env src/syncBackend.js",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true",
-    "install-cypress": "npm install cypress@3.0.3"
+    "install-cypress": "npm install cypress@3.1.5"
   },
   "repository": {
     "type": "git",
@@ -199,7 +199,7 @@
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
     "transform-loader": "^0.2.3",
-    "ts-jest": "^23.10.4",
+    "ts-jest": "^24.0.0",
     "ts-loader": "^5.2.0",
     "tslint": "^5.11.0",
     "tslint-react": "^3.6.0",
