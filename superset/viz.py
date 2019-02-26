@@ -2034,6 +2034,9 @@ class MapboxViz(BaseViz):
             if fd.get('point_radius') == 'Auto'
             else df[fd.get('point_radius')])
 
+        # limiting geo precision as long decimal values trigger issues
+        # around json-bignumber in Mapbox
+        GEO_PRECISION = 10
         # using geoJSON formatting
         geo_json = {
             'type': 'FeatureCollection',
@@ -2046,7 +2049,10 @@ class MapboxViz(BaseViz):
                     },
                     'geometry': {
                         'type': 'Point',
-                        'coordinates': [lon, lat],
+                        'coordinates': [
+                            round(lon, GEO_PRECISION),
+                            round(lat, GEO_PRECISION),
+                        ],
                     },
                 }
                 for lon, lat, metric, point_radius

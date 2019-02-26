@@ -62,6 +62,10 @@ const defaultProps = {
 };
 
 class Chart extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
+  }
   componentDidMount() {
     if (this.props.triggerQuery) {
       this.props.actions.runQuery(
