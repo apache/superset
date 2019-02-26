@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import buildQuery from '../src/buildQuery';
 
 describe('WordCloud buildQuery', () => {
