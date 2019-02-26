@@ -27,6 +27,7 @@ from urllib import parse
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
+
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -38,27 +39,29 @@ import simplejson as json
 import sqlalchemy as sqla
 from sqlalchemy import and_, create_engine, MetaData, or_, update
 from sqlalchemy.engine.url import make_url
+
+
 from sqlalchemy.exc import IntegrityError
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
-
 from superset import (
     app, appbuilder, cache, db, results_backend, security_manager, sql_lab,
     viz,
 )
 
-from superset.models.helpers import has_kerberos_ticket
-
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
+from superset.db_engines.hive import get_updated_connect_args, remove_http_params_from
 from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
+from superset.models.helpers import has_kerberos_ticket
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
+from superset.superset_decorators import redirect_to_target_url
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
@@ -70,8 +73,6 @@ from .base import (
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
-from superset.views.superset_decorators import redirect_to_target_url
-from superset.db_engines.hive import get_updated_connect_args, remove_http_params_from
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -1513,7 +1514,6 @@ class Superset(BaseSupersetView):
         if 'pandas' in ConnectorRegistry.sources:
             model = ConnectorRegistry.sources['pandas'].column_class
             modelview_to_model[model_view] = model
-            
         model = modelview_to_model[model_view]
         col = db.session.query(model).filter_by(id=id_).first()
         checked = value == 'true'
@@ -1758,7 +1758,6 @@ class Superset(BaseSupersetView):
                     uri = database.sqlalchemy_uri_decrypted
 
             configuration = {}
-        
             url = make_url(uri)
 
             if database and uri:
@@ -1780,11 +1779,9 @@ class Superset(BaseSupersetView):
                 .get('extras', {})
                 .get('engine_params', {}))
             connect_args = engine_params.get('connect_args')
-            
             if(connect_args):
-                connect_args.update(get_updated_connect_args(url,connect_args))
-                remove_http_params_from(url,connect_args)
-
+                connect_args.update(get_updated_connect_args(url, connect_args))
+                remove_http_params_from(url, connect_args)
             if configuration and connect_args is not None:
                 connect_args['configuration'] = configuration
 
