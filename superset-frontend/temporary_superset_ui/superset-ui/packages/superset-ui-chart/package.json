@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "SuperChart and related modules",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -38,8 +38,8 @@
     "node-fetch": "^2.2.0"
   },
   "peerDependencies": {
-    "@superset-ui/core": "^0.10.0",
     "@superset-ui/connection": "^0.10.0",
+    "@superset-ui/core": "^0.10.0",
     "react": "^15 || ^16"
   }
 }
