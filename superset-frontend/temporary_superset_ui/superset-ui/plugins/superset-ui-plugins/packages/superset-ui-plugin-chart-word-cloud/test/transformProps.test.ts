@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import { ChartProps } from '@superset-ui/chart';
 import transformProps from '../src/transformProps';
 
