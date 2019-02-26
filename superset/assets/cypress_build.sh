@@ -29,7 +29,7 @@ flask run -p 8081 --with-threads --reload --debugger &
 
 #block on the longer running javascript process
 time npm ci
-time npm i cypress@3.0.3
+time npm run install-cypress
 time npm run build
 echo "[completed js build steps]"
 

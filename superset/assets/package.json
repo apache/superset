@@ -19,7 +19,8 @@
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x}",
     "sync-backend": "babel-node --preset=@babel/preset-env src/syncBackend.js",
     "cypress": "cypress",
-    "cypress-debug": "cypress open --config watchForFileChanges=true"
+    "cypress-debug": "cypress open --config watchForFileChanges=true",
+    "install-cypress": "npm install cypress@3.0.3"
   },
   "repository": {
     "type": "git",
