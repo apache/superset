@@ -23,7 +23,8 @@ export default function computeXAxisLayout({
   );
 
   const maxWidth = Math.max(...labelDimensions.map(d => d.width));
-  const widthPerTick = axisWidth / (tickLabels.length + 1);
+  // cheap heuristic, can improve
+  const widthPerTick = axisWidth / tickLabels.length;
 
   let finalStrategy;
   if (labellingStrategy !== 'auto') {

@@ -19,7 +19,7 @@
 /* eslint-disable sort-keys, no-magic-numbers, complexity */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
+import { LineSeries, XYChart } from '@data-ui/xy-chart';
 import { themeShape } from '@data-ui/xy-chart/esm/utils/propShapes';
 import { chartTheme } from '@data-ui/theme';
 import { CategoricalColorNamespace } from '@superset-ui/color';
@@ -51,20 +51,18 @@ const propTypes = {
     y: PropTypes.object,
     color: PropTypes.object,
   }).isRequired,
-  isHorizontal: PropTypes.bool,
   theme: themeShape,
 };
 
 const defaultProps = {
   className: '',
   margin: { top: 10, right: 10, left: 10, bottom: 10 },
-  isHorizontal: false,
   theme: chartTheme,
 };
 
-class BoxPlot extends React.PureComponent {
+class LineChart extends React.PureComponent {
   renderChart({ width, height }) {
-    const { data, encoding, margin, theme, isHorizontal } = this.props;
+    const { data, encoding, margin, theme } = this.props;
 
     const config = {
       width,
@@ -73,13 +71,7 @@ class BoxPlot extends React.PureComponent {
       minContentHeight: 0,
       margin,
       theme,
-      encoding: isHorizontal
-        ? {
-            ...encoding,
-            x: { ...encoding.y, axis: { ...encoding.y.axis, orientation: 'bottom' } },
-            y: { ...encoding.x, axis: { ...encoding.x.axis, orientation: 'left' } },
-          }
-        : encoding,
+      encoding,
     };
 
     const colorFn = CategoricalColorNamespace.getScale(
@@ -87,25 +79,17 @@ class BoxPlot extends React.PureComponent {
       encoding.color.scale.namespace,
     );
 
-    const colorField = encoding.color.field;
+    const colorAccessor = encoding.color.accessor;
 
-    const children = [
-      <BoxPlotSeries
-        key={datum => datum[encoding.x.field]}
+    const children = data.map(series => (
+      <LineSeries
+        key={series.key.join('/')}
         animated
-        data={
-          isHorizontal
-            ? data.map(row => ({ ...row, y: row[encoding.x.field] }))
-            : data.map(row => ({ ...row, x: row[encoding.x.field] }))
-        }
-        fill={datum => colorFn(datum[colorField])}
-        fillOpacity={0.4}
-        stroke={datum => colorFn(datum[colorField])}
-        strokeWidth={1}
-        widthRatio={0.6}
-        horizontal={isHorizontal}
-      />,
-    ];
+        data={series.values}
+        stroke={colorFn(colorAccessor(series))}
+        strokeWidth={1.5}
+      />
+    ));
 
     const layout = new XYChartLayout({ ...config, children });
 
@@ -117,6 +101,7 @@ class BoxPlot extends React.PureComponent {
         margin={layout.margin}
         renderTooltip={createTooltip(encoding.y.axis.tickFormat)}
         showYGrid
+        // snapTooltipToDataX
         theme={config.theme}
         xScale={config.encoding.x.scale}
         yScale={config.encoding.y.scale}
@@ -133,7 +118,7 @@ class BoxPlot extends React.PureComponent {
 
     return (
       <WithLegend
-        className={`superset-chart-box-plot ${className}`}
+        className={`superset-chart-line ${className}`}
         width={width}
         height={height}
         position="top"
@@ -145,7 +130,7 @@ class BoxPlot extends React.PureComponent {
   }
 }
 
-BoxPlot.propTypes = propTypes;
-BoxPlot.defaultProps = defaultProps;
+LineChart.propTypes = propTypes;
+LineChart.defaultProps = defaultProps;
 
-export default BoxPlot;
+export default LineChart;
