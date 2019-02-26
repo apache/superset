@@ -35,6 +35,7 @@
     "@vx/responsive": "^0.0.184",
     "@vx/shape": "^0.0.184",
     "@vx/scale": "^0.0.182",
+    "d3-array": "^2.0.3",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
@@ -43,6 +44,7 @@
     "@superset-ui/color": "^0.10.0",
     "@superset-ui/dimension": "^0.10.0",
     "@superset-ui/number-format": "^0.10.0",
+    "@superset-ui/time-format": "^0.10.0",
     "@superset-ui/translation": "^0.10.0",
     "react": "^15 || ^16"
   }
