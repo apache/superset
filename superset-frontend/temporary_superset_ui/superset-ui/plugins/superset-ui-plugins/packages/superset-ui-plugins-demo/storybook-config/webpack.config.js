@@ -10,7 +10,7 @@ module.exports = (storybookBaseConfig, configType, defaultConfig) => {
 
   defaultConfig.module.rules.push({
     exclude: /node_modules/,
-    include: new RegExp(`${path.resolve(__dirname, '../../superset-ui-legacy-')}.+/src`),
+    include: new RegExp(`${path.resolve(__dirname, '../../superset-ui-(plugin|preset)-')}.+/src`),
     test: /\.jsx?$/,
     use: defaultConfig.module.rules[0].use,
   });

@@ -2,14 +2,13 @@
 
 import React from 'react';
 import collectScalesFromProps from '@data-ui/xy-chart/esm/utils/collectScalesFromProps';
-import { YAxis } from '@data-ui/xy-chart';
+import { XAxis, YAxis } from '@data-ui/xy-chart';
 import adjustMargin from './adjustMargin';
 import computeXAxisLayout from './computeXAxisLayout';
 import computeYAxisLayout from './computeYAxisLayout';
 import createTickComponent from './createTickComponent';
 import getTickLabels from './getTickLabels';
-import XAxis from '../XAxis';
-import ChartFrame from '../ChartFrame';
+import ChartFrame from '../components/ChartFrame';
 
 // Additional margin to avoid content hidden behind scroll bar
 const OVERFLOW_MARGIN = 8;
