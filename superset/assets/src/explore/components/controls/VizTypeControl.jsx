@@ -71,6 +71,10 @@ export default class VizTypeControl extends React.PureComponent {
   }
   buildVizTypeLookup(types) {
     const lookup = new Map();
+    types.forEach((type) => {
+      lookup.set(type.key, type);
+    });
+
     for (let i = 0; i < types.length; i++) {
       lookup.set(types[i].key, types[i]);
     }
@@ -93,25 +97,22 @@ export default class VizTypeControl extends React.PureComponent {
     const loadedKeys = new Set();
     const vizTypeLookup = this.buildVizTypeLookup(types);
 
-    // Sort based on the `defualtOrder`
-    for (let i = 0; i < defaultOrder.length; i++) {
-      const key = defaultOrder[i];
+    // Sort based on the `defaultOrder`
+    defaultOrder.forEach((key) => {
       const vizType = vizTypeLookup.get(key);
       if (typeof vizType !== 'undefined') {
         sorted.push(vizType);
         loadedKeys.add(key);
       }
-    }
+    });
 
     // Load the rest of Viz Types not mandated by the `defualtOrder`
-    for (let i = 0; i < types.length; i++) {
-      const vizType = types[i];
-      const key = vizType.key;
-      if (!loadedKeys.has(key)) {
+    types.forEach((vizType) => {
+      if (!loadedKeys.has(vizType.key)) {
         sorted.push(vizType);
-        loadedKeys.add(key);
+        loadedKeys.add(vizType.key);
       }
-    }
+    });
 
     return sorted;
   }
