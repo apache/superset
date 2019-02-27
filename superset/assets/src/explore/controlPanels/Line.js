@@ -21,7 +21,7 @@ import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 import extraOverrides from './extraOverrides';
 
-export default {
+const controlPanel = {
   requiresTime: true,
   controlPanelSections: [
     NVD3TimeSeries[0],
@@ -64,6 +64,9 @@ export default {
     row_limit: {
       default: 50000,
     },
-    ...extraOverrides,
   },
 };
+
+controlPanel.controlOverrides = extraOverrides(controlPanel.controlOverrides);
+
+export default controlPanel;

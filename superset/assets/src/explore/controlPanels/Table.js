@@ -17,8 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
+import extraOverrides from './extraOverrides';
 
-export default {
+const controlPanel = {
   controlPanelSections: [
     {
       label: t('GROUP BY'),
@@ -66,3 +67,7 @@ export default {
     },
   },
 };
+
+controlPanel.controlOverrides = extraOverrides(controlPanel.controlOverrides);
+
+export default controlPanel;
