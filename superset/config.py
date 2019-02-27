@@ -204,6 +204,22 @@ LANGUAGES = {
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS = {}
 
+# A function that receives a dict of all feature flags
+# (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
+# can alter it, and returns a similar dict. Note the dict of feature
+# flags passed to the function is a deepcopy of the dict in the config,
+# and can therefore be mutated without side-effect
+#
+# GET_FEATURE_FLAGS_FUNC can be used to implement progressive rollouts,
+# role-based features, or a full on A/B testing framework.
+#
+# from flask import g, request
+# def GET_FEATURE_FLAGS_FUNC(feature_flags_dict):
+#     feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#     return feature_flags_dict
+GET_FEATURE_FLAGS_FUNC = None
+
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------
