@@ -69,26 +69,6 @@ export default class VizTypeControl extends React.PureComponent {
       this.searchRef.focus();
     }
   }
-  renderItem(entry) {
-    const { value } = this.props;
-    const { key, value: type } = entry;
-    const isSelected = key === value;
-    return (
-      <div
-        className={`viztype-selector-container ${isSelected ? 'selected' : ''}`}
-        onClick={this.onChange.bind(this, key)}
-      >
-        <img
-          alt={type.name}
-          width="100%"
-          className={`viztype-selector ${isSelected ? 'selected' : ''}`}
-          src={type.thumbnail}
-        />
-        <div className="viztype-label">
-          {type.name}
-        </div>
-      </div>);
-  }
   buildVizTypeLookup(types) {
     const lookup = new Map();
     for (let i = 0; i < types.length; i++) {
@@ -116,24 +96,44 @@ export default class VizTypeControl extends React.PureComponent {
     // Sort based on the `defualtOrder`
     for (let i = 0; i < defaultOrder.length; i++) {
       const key = defaultOrder[i];
-      const t = vizTypeLookup.get(key);
-      if (typeof t !== 'undefined') {
-        sorted.push(t);
+      const vizType = vizTypeLookup.get(key);
+      if (typeof vizType !== 'undefined') {
+        sorted.push(vizType);
         loadedKeys.add(key);
       }
     }
 
     // Load the rest of Viz Types not mandated by the `defualtOrder`
     for (let i = 0; i < types.length; i++) {
-      const t = types[i];
-      const key = t.key;
+      const vizType = types[i];
+      const key = vizType.key;
       if (!loadedKeys.has(key)) {
-        sorted.push(t);
+        sorted.push(vizType);
         loadedKeys.add(key);
       }
     }
 
     return sorted;
+  }
+  renderItem(entry) {
+    const { value } = this.props;
+    const { key, value: type } = entry;
+    const isSelected = key === value;
+    return (
+      <div
+        className={`viztype-selector-container ${isSelected ? 'selected' : ''}`}
+        onClick={this.onChange.bind(this, key)}
+      >
+        <img
+          alt={type.name}
+          width="100%"
+          className={`viztype-selector ${isSelected ? 'selected' : ''}`}
+          src={type.thumbnail}
+        />
+        <div className="viztype-label">
+          {type.name}
+        </div>
+      </div>);
   }
   render() {
     const { filter, showModal } = this.state;
