@@ -56,7 +56,7 @@ class DeckMulti extends React.PureComponent {
       const filters = [
         ...(subslice.form_data.filters || []),
         ...(formData.filters || []),
-        ...(formData.extra_filters || []),
+        ...(formData.extraFilters || []),
       ];
       const subsliceCopy = {
         ...subslice,
@@ -70,7 +70,7 @@ class DeckMulti extends React.PureComponent {
           endpoint: getExploreLongUrl(subsliceCopy.form_data, 'json'),
         })
         .then(({ json }) => {
-          const layer = layerGenerators[subsliceCopy.form_data.viz_type](
+          const layer = layerGenerators[subsliceCopy.form_data.vizType](
             subsliceCopy.form_data,
             json,
           );
@@ -96,7 +96,7 @@ class DeckMulti extends React.PureComponent {
         mapboxApiAccessToken={payload.data.mapboxApiKey}
         viewport={viewport}
         layers={layers}
-        mapStyle={formData.mapbox_style}
+        mapStyle={formData.mapboxStyle}
         setControlValue={setControlValue}
       />
     );

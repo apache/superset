@@ -108,7 +108,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -229,14 +229,14 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
-          mapStyle={this.props.formData.mapbox_style}
+          mapStyle={this.props.formData.mapboxStyle}
           setControlValue={this.props.setControlValue}
         >
           <Legend
             categories={this.state.categories}
             toggleCategory={this.toggleCategory}
             showSingleCategory={this.showSingleCategory}
-            position={this.props.formData.legend_position}
+            position={this.props.formData.legendPosition}
           />
         </AnimatableDeckGLContainer>
       </div>

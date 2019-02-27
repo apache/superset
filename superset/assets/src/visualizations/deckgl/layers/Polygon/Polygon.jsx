@@ -138,7 +138,7 @@ class DeckGLPolygon extends React.Component {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -177,7 +177,7 @@ class DeckGLPolygon extends React.Component {
     const selected = [...this.state.selected];
     if (doubleClick) {
       selected.splice(0, selected.length, polygon);
-    } else if (formData.toggle_polygons) {
+    } else if (formData.togglePolygons) {
       const i = selected.indexOf(polygon);
       if (i === -1) {
         selected.push(polygon);
@@ -189,7 +189,7 @@ class DeckGLPolygon extends React.Component {
     }
 
     this.setState({ selected, lastClick: now });
-    if (formData.table_filter) {
+    if (formData.tableFilter) {
       onAddFilter(formData.lineColumn, selected, false, true);
     }
   }
@@ -249,14 +249,14 @@ class DeckGLPolygon extends React.Component {
           viewport={viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapbox_style}
+          mapStyle={formData.mapboxStyle}
           setControlValue={setControlValue}
           aggregation
         >
           {formData.metric !== null &&
           <Legend
             categories={buckets}
-            position={formData.legend_position}
+            position={formData.legendPosition}
           />}
         </AnimatableDeckGLContainer>
       </div>

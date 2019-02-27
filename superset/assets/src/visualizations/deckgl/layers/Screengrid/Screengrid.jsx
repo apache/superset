@@ -102,7 +102,7 @@ class DeckGLScreenGrid extends React.PureComponent {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -176,7 +176,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapbox_style}
+          mapStyle={formData.mapboxStyle}
           setControlValue={setControlValue}
           aggregation
         />
