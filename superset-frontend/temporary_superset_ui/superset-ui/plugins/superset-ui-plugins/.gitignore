@@ -1,5 +1,6 @@
 .babelrc
 .cache
+.cache-loader
 .DS_Store
 .eslintcache
 .eslintignore
