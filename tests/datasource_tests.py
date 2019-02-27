@@ -64,3 +64,22 @@ class DatasourceTests(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], 'metric_name')
             else:
                 self.assertEquals(resp[k], datasource_post[k])
+
+    def test_get_datasource(self):
+        self.login(username='admin')
+        tbl = self.get_table_by_name('birth_names')
+        url = f'/datasource/get/{tbl.type}/{tbl.id}/'
+        resp = self.get_json_resp(url)
+        self.assertEquals(resp.get('type'), 'table')
+        col_names = {o.get('column_name') for o in resp['columns']}
+        self.assertEquals(
+            col_names,
+            {'sum_boys', 'num', 'gender', 'name', 'ds', 'state',
+             'sum_girls', 'num_california'},
+        )
+
+    def test_get_datasource_failed(self):
+        self.login(username='admin')
+        url = f'/datasource/get/druid/500000/'
+        resp = self.get_json_resp(url)
+        self.assertEquals(resp.get('error'), 'This datasource does not exist')
