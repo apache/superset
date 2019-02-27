@@ -31,9 +31,9 @@ import { fitViewport } from './layers/common';
 const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd, data) {
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme);
+  const colorFn = getScale(fd.colorScheme);
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -154,8 +154,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    if (fd.jsDataMutator) {
+      const jsFnMutator = sandboxedEval(fd.jsDataMutator);
       features = jsFnMutator(features);
     }
 
@@ -180,8 +180,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme);
+    const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
+    const colorFn = getScale(fd.colorScheme);
     return data.map((d) => {
       let color;
       if (fd.dimension) {

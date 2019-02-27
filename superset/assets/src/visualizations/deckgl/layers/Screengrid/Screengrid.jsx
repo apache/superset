@@ -32,15 +32,15 @@ function getPoints(data) {
 
 export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
   const fd = formData;
-  const c = fd.color_picker;
+  const c = fd.colorPicker;
   let data = payload.data.features.map(d => ({
     ...d,
     color: [c.r, c.g, c.b, 255 * c.a],
   }));
 
-  if (fd.js_data_mutator) {
+  if (fd.jsDataMutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    const jsFnMutator = sandboxedEval(fd.jsDataMutator);
     data = jsFnMutator(data);
   }
 
@@ -53,10 +53,10 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
   // Passing a layer creator function instead of a layer since the
   // layer needs to be regenerated at each render
   return new ScreenGridLayer({
-    id: `screengrid-layer-${fd.slice_id}`,
+    id: `screengrid-layer-${fd.sliceId}`,
     data,
     pickable: true,
-    cellSizePixels: fd.grid_size,
+    cellSizePixels: fd.gridSize,
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
