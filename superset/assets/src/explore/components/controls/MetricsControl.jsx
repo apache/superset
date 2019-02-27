@@ -136,11 +136,14 @@ export default class MetricsControl extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (
-      isEqual(this.props.columns) !== isEqual(nextProps.columns) ||
-      isEqual(this.props.savedMetrics) !== isEqual(nextProps.savedMetrics)
+      !isEqual(this.props.columns, nextProps.columns) ||
+      !isEqual(this.props.savedMetrics, nextProps.savedMetrics)
     ) {
       this.setState({ options: this.optionsForSelect(nextProps) });
-      this.props.onChange([]);
+      // Remove metrics if selected value no longer a column
+      if (nextProps.columns.indexOf(this.state.value) >= 0) {
+        this.props.onChange([]);
+      }
     }
     if (this.props.value !== nextProps.value) {
       this.setState({ value: coerceAdhocMetrics(nextProps.value) });

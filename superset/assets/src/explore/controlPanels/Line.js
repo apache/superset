@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
+import extraOverrides from './extraOverrides';
 
 export default {
   requiresTime: true,
@@ -63,5 +64,6 @@ export default {
     row_limit: {
       default: 50000,
     },
+    ...extraOverrides,
   },
 };
