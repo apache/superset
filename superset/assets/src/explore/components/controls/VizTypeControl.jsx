@@ -89,14 +89,14 @@ export default class VizTypeControl extends React.PureComponent {
         </div>
       </div>);
   }
-  _buildVizTypeLookup(types) {
-    let lookup = new Map()
-    for (var i = 0; i < types.length; i++) {
+  buildVizTypeLookup(types) {
+    const lookup = new Map();
+    for (let i = 0; i < types.length; i++) {
       lookup.set(types[i].key, types[i]);
     }
-    return lookup
+    return lookup;
   }
-  _sortVizTypes(types) {
+  sortVizTypes(types) {
     const defaultOrder = [
       'line', 'big_number', 'table', 'filter_box', 'dist_bar', 'area', 'bar',
       'deck_polygon', 'pie', 'time_table', 'pivot_table', 'histogram',
@@ -107,16 +107,16 @@ export default class VizTypeControl extends React.PureComponent {
       'horizon', 'markup', 'deck_multi', 'compare', 'partition', 'event_flow',
       'deck_path', 'directed_force', 'world_map', 'paired_ttest', 'para',
       'iframe', 'country_map',
-    ]
+    ];
 
-    let sorted = [];
-    let loadedKeys = new Set();
-    let vizTypeLookup = this._buildVizTypeLookup(types);
+    const sorted = [];
+    const loadedKeys = new Set();
+    const vizTypeLookup = this.buildVizTypeLookup(types);
 
     // Sort based on the `defualtOrder`
-    for (var i = 0; i < defaultOrder.length; i++) {
-      let key = defaultOrder[i];
-      let t = vizTypeLookup.get(key);
+    for (let i = 0; i < defaultOrder.length; i++) {
+      const key = defaultOrder[i];
+      const t = vizTypeLookup.get(key);
       if (typeof t !== 'undefined') {
         sorted.push(t);
         loadedKeys.add(key);
@@ -124,10 +124,10 @@ export default class VizTypeControl extends React.PureComponent {
     }
 
     // Load the rest of Viz Types not mandated by the `defualtOrder`
-    for (var i = 0; i < types.length; i++) {
-      let t = types[i];
-      let key = t['key'];
-      if (! loadedKeys.has(key)) {
+    for (let i = 0; i < types.length; i++) {
+      const t = types[i];
+      const key = t.key;
+      if (!loadedKeys.has(key)) {
         sorted.push(t);
         loadedKeys.add(key);
       }
@@ -140,7 +140,7 @@ export default class VizTypeControl extends React.PureComponent {
     const { value } = this.props;
 
     const registry = getChartMetadataRegistry();
-    const types = this._sortVizTypes(registry.entries());
+    const types = this.sortVizTypes(registry.entries());
     const filteredTypes = filter.length > 0
       ? types.filter(type => type.value.name.toLowerCase().includes(filter))
       : types;
