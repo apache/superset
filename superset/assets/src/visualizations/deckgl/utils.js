@@ -24,8 +24,8 @@ import { hexToRGB } from '../../modules/colors';
 const DEFAULT_NUM_BUCKETS = 10;
 
 export function getBreakPoints({
-    break_points: formDataBreakPoints,
-    num_buckets: formDataNumBuckets,
+    breakPoints: formDataBreakPoints,
+    numBuckets: formDataNumBuckets,
   }, features, accessor) {
   if (!features) {
     return [];
@@ -46,15 +46,15 @@ export function getBreakPoints({
 }
 
 export function getBreakPointColorScaler({
-    break_points: formDataBreakPoints,
-    num_buckets: formDataNumBuckets,
-    linear_color_scheme: linearColorScheme,
+    breakPoints: formDataBreakPoints,
+    numBuckets: formDataNumBuckets,
+    linearColorScheme,
     opacity,
   }, features, accessor) {
   const breakPoints = formDataBreakPoints || formDataNumBuckets
     ? getBreakPoints({
-      break_points: formDataBreakPoints,
-      num_buckets: formDataNumBuckets,
+      breakPoints: formDataBreakPoints,
+      numBuckets: formDataNumBuckets,
     }, features, accessor)
     : null;
   const colorScheme = Array.isArray(linearColorScheme)
