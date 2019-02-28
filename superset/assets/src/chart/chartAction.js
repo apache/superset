@@ -249,7 +249,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 export function redirectSQLLab(formData) {
   return (dispatch) => {
     const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
-    return SupersetClient.get({ url })
+    return SupersetClient.post({
+      url,
+      postPayload: { form_data: formData },
+    })
       .then(({ json }) => {
         const redirectUrl = new URL(window.location);
         redirectUrl.pathname = '/superset/sqllab';
