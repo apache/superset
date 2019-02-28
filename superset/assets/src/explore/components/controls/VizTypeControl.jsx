@@ -74,10 +74,6 @@ export default class VizTypeControl extends React.PureComponent {
     types.forEach((type) => {
       lookup.set(type.key, type);
     });
-
-    for (let i = 0; i < types.length; i++) {
-      lookup.set(types[i].key, types[i]);
-    }
     return lookup;
   }
   sortVizTypes(types) {
