@@ -17,6 +17,6 @@
  * under the License.
  */
 // For individual deployments to add custom overrides
-export default function extraOverrides(controlOverrides) {
-  return controlOverrides;
+export default function extraOverrides(controlPanelConfigs) {
+  return controlPanelConfigs;
 }

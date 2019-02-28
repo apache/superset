@@ -19,9 +19,8 @@
 import { t } from '@superset-ui/translation';
 import { NVD3TimeSeries, annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
-import extraOverrides from './extraOverrides';
 
-const controlPanel = {
+export default {
   requiresTime: true,
   controlPanelSections: [
     NVD3TimeSeries[0],
@@ -66,7 +65,3 @@ const controlPanel = {
     },
   },
 };
-
-controlPanel.controlOverrides = extraOverrides(controlPanel.controlOverrides);
-
-export default controlPanel;
