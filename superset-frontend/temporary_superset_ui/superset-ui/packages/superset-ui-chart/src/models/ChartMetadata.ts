@@ -4,6 +4,7 @@ interface LookupTable {
 
 export default class ChartMetadata {
   name: string;
+  canBeAnnotationTypes?: string[];
   canBeAnnotationTypesLookup: LookupTable;
   credits: string[];
   description: string;
@@ -37,6 +38,7 @@ export default class ChartMetadata {
     this.credits = credits;
     this.description = description;
     this.show = show;
+    this.canBeAnnotationTypes = canBeAnnotationTypes;
     this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce(
       (prev: LookupTable, type: string) => {
         const lookup = prev;
@@ -53,5 +55,18 @@ export default class ChartMetadata {
 
   canBeAnnotationType(type: string): boolean {
     return this.canBeAnnotationTypesLookup[type] || false;
+  }
+
+  clone() {
+    return new ChartMetadata({
+      canBeAnnotationTypes: this.canBeAnnotationTypes,
+      credits: this.credits,
+      description: this.description,
+      name: this.name,
+      show: this.show,
+      supportedAnnotationTypes: this.supportedAnnotationTypes,
+      thumbnail: this.thumbnail,
+      useLegacyApi: this.useLegacyApi,
+    });
   }
 }
