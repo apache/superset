@@ -141,7 +141,8 @@ class ExploreResultsButton extends React.PureComponent {
         // open new window for data visualization
         exportChart(formData);
       })
-      .catch(() => {
+      .catch(e => {
+        console.error(e);
         this.props.actions.addDangerToast(this.props.errorMessage || t('An error occurred'));
       });
   }
