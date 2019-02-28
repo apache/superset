@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.connectors.sqla.models import TableColumn
-from .base_tests import SupersetTestCase
 from superset.db_engine_specs import DruidEngineSpec
+from .base_tests import SupersetTestCase
 
 
 class DatabaseModelTestCase(SupersetTestCase):
