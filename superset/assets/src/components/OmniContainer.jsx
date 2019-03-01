@@ -24,14 +24,11 @@ import { SupersetClient } from '@superset-ui/connection';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Omnibar from 'omnibar';
 import {
-  Logger,
-  ActionLog,
   LOG_ACTIONS_OMNIBAR_TRIGGERED,
 } from '../logger/LogUtils';
 
 const propTypes = {
-  impressionId: PropTypes.string.isRequired,
-  dashboardId: PropTypes.number.isRequired,
+  logEvent: PropTypes.func.isRequired,
 };
 
 const getDashboards = query =>
@@ -71,20 +68,15 @@ class OmniContainer extends React.Component {
     if (controlOrCommand && isFeatureEnabled(FeatureFlag.OMNIBAR)) {
       const isK = event.key === 'k' || event.keyCode === 83;
       if (isK) {
+        this.props.logEvent(LOG_ACTIONS_OMNIBAR_TRIGGERED, {
+          show_omni: !this.state.showOmni,
+        });
+
         this.setState({ showOmni: !this.state.showOmni });
 
         document
           .getElementsByClassName('Omnibar')[0]
           .focus();
-
-        Logger.send(
-          new ActionLog({
-            impressionId: this.props.impressionId, // impo
-            source: 'dashboard',
-            sourceId: this.props.dashboardId, // sourceId: this.props.dashboardId
-            eventNames: LOG_ACTIONS_OMNIBAR_TRIGGERED,
-          }),
-        );
       }
     }
   }

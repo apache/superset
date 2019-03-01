@@ -54,13 +54,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
-  if (fd.js_tooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0) {
+  if (fd.jsTooltip) {
+    tooltipContentGenerator = sandboxedEval(fd.jsTooltip);
+  } else if (fd.lineColumn && fd.metric && ['geohash', 'zipcode'].indexOf(fd.lineType) >= 0) {
     const metricLabel = fd.metric.label || fd.metric;
     tooltipContentGenerator = o => (
       <div>
-        <div>{fd.line_column}: <strong>{o.object[fd.line_column]}</strong></div>
+        <div>{fd.lineColumn}: <strong>{o.object[fd.lineColumn]}</strong></div>
         {fd.metric &&
           <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
       </div>);
@@ -79,13 +79,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
     };
   }
   let onClick;
-  if (fd.js_onclick_href) {
+  if (fd.jsOnclickHref) {
     onClick = (o) => {
-      const href = sandboxedEval(fd.js_onclick_href)(o);
+      const href = sandboxedEval(fd.jsOnclickHref)(o);
       window.open(href);
     };
-  } else if (fd.table_filter && onSelect !== undefined) {
-    onClick = o => onSelect(o.object[fd.line_column]);
+  } else if (fd.tableFilter && onSelect !== undefined) {
+    onClick = o => onSelect(o.object[fd.lineColumn]);
   }
   return {
     onClick,

@@ -122,7 +122,7 @@ class SqlEditor extends React.PureComponent {
   }
   // One layer of abstraction for easy spying in unit tests
   getSqlEditorHeight() {
-    return this.sqlEditorRef.current.clientHeight;
+    return this.sqlEditorRef.current ? this.sqlEditorRef.current.clientHeight : 0;
   }
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.

@@ -109,7 +109,7 @@ class Tabs extends React.PureComponent {
       });
     } else if (tabIndex !== this.state.tabIndex) {
       this.props.logEvent(LOG_ACTIONS_SELECT_DASHBOARD_TAB, {
-        id: component.id,
+        tab_id: component.id,
         index: tabIndex,
       });
 
