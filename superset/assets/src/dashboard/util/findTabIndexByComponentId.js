@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function({ currentComponent, deeplinkPath = [] }) {
+export default function({ currentComponent, directLinkPath = [] }) {
   if (
     !currentComponent ||
-    deeplinkPath.length === 0 ||
-    deeplinkPath.indexOf(currentComponent.id) === -1
+    directLinkPath.length === 0 ||
+    directLinkPath.indexOf(currentComponent.id) === -1
   ) {
     return 0;
   }
 
-  const currentComponentIdx = deeplinkPath.findIndex(
+  const currentComponentIdx = directLinkPath.findIndex(
     id => id === currentComponent.id,
   );
-  const nextParentId = deeplinkPath[currentComponentIdx + 1];
+  const nextParentId = directLinkPath[currentComponentIdx + 1];
   if (currentComponent.children.indexOf(nextParentId) >= 0) {
     return currentComponent.children.findIndex(
       childId => childId === nextParentId,

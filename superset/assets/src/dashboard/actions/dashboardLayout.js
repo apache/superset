@@ -219,3 +219,6 @@ export function undoLayoutAction() {
 export const redoLayoutAction = setUnsavedChangesAfterAction(
   UndoActionCreators.redo,
 );
+
+// Update component parents list ----------------------------------------------
+export const UPDATE_COMPONENTS_PARENTS_LIST = 'UPDATE_COMPONENTS_PARENTS_LIST';

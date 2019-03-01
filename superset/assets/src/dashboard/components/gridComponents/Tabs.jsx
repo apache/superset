@@ -46,7 +46,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   logEvent: PropTypes.func.isRequired,
-  deeplinkPath: PropTypes.array,
+  directLinkPath: PropTypes.array,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -69,7 +69,7 @@ const defaultProps = {
   renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
-  deeplinkPath: [],
+  directLinkPath: [],
   onChangeTab() {},
   onResizeStart() {},
   onResize() {},
@@ -81,7 +81,7 @@ class Tabs extends React.PureComponent {
     super(props);
     const tabIndex = findTabIndexByComponentId({
       currentComponent: props.component,
-      deeplinkPath: props.deeplinkPath,
+      directLinkPath: props.directLinkPath,
     });
 
     this.state = {

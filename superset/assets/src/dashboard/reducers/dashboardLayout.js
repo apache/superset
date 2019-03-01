@@ -32,6 +32,7 @@ import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
+  UPDATE_COMPONENTS_PARENTS_LIST,
   DELETE_COMPONENT,
   CREATE_COMPONENT,
   MOVE_COMPONENT,
@@ -254,6 +255,29 @@ const actionHandlers = {
     };
 
     return nextEntities;
+  },
+
+  [UPDATE_COMPONENTS_PARENTS_LIST](state) {
+    const nextState = {
+      ...state,
+    };
+
+    const doUpdate = currentComponent => {
+      if (currentComponent && nextState[currentComponent.id]) {
+        const parentsList = (currentComponent.parents || []).slice();
+        parentsList.push(currentComponent.id);
+
+        currentComponent.children.forEach(childId => {
+          nextState[childId].parents = parentsList;
+          doUpdate(nextState[childId]);
+        });
+      }
+    };
+
+    doUpdate(nextState[DASHBOARD_ROOT_ID]);
+    return {
+      ...nextState,
+    };
   },
 };
 

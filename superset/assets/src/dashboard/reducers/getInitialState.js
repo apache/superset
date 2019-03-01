@@ -155,12 +155,12 @@ export default function(bootstrapData) {
     future: [],
   };
 
-  // find deeplink component and path from root
-  const deeplinkComponentId = 'CHART-6D4YBbw4f9';
-  let deeplinkPath = [];
-  if (layout[deeplinkComponentId]) {
-    deeplinkPath = (layout[deeplinkComponentId].parents || []).slice();
-    deeplinkPath.push(deeplinkComponentId);
+  // find direct link component and path from root
+  const directLinkComponentId = (window.location.hash || '#').substring(1);
+  let directLinkPath = [];
+  if (layout[directLinkComponentId]) {
+    directLinkPath = (layout[directLinkComponentId].parents || []).slice();
+    directLinkPath.push(directLinkComponentId);
   }
 
   return {
@@ -192,7 +192,7 @@ export default function(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       refresh: false,
       filters,
-      deeplinkPath,
+      directLinkPath,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
