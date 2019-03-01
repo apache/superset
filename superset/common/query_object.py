@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=R
 import hashlib
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import simplejson as json
 
@@ -36,7 +36,7 @@ class QueryObject:
             self,
             granularity: str,
             groupby: List[str],
-            metrics: List[Dict],
+            metrics: List[Union[Dict, str]],
             filters: List[str] = None,
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
@@ -57,7 +57,8 @@ class QueryObject:
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
         self.groupby = groupby
-        self.metrics = metrics
+        #Temporal solution for backward compatability issue due the new format of non-ad-hoc metric.
+        self.metrics = [metric if 'expressionType' in metric else metric['label'] for metric in metrics]
         self.row_limit = row_limit
         self.filter = filters if filters is not None else []
         self.timeseries_limit = timeseries_limit

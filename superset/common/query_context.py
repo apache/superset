@@ -172,10 +172,10 @@ class QueryContext:
             return self.datasource.database.cache_timeout
         return config.get('CACHE_DEFAULT_TIMEOUT')
 
-    def get_df_payload(self, query_obj):
+    def get_df_payload(self, query_obj, **kwargs):
         """Handles caching around the df paylod retrieval"""
         cache_key = query_obj.cache_key(
-            datasource=self.datasource.uid) if query_obj else None
+            datasource=self.datasource.uid, **kwargs) if query_obj else None
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None

@@ -61,6 +61,7 @@ class Api(BaseSupersetView):
         """
         form_data = {}
         slice_id = request.args.get('slice_id')
+        print(slice_id)
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
             if slc:
