@@ -25,7 +25,7 @@ class DatabaseModelTestCase(SupersetTestCase):
         """Druid has a special __time column"""
         col = TableColumn(column_name='__time', type='INTEGER')
         self.assertEquals(col.is_dttm, None)
-        DruidEngineSpec.alter_orm_column(col)
+        DruidEngineSpec.alter_new_orm_column(col)
         self.assertEquals(col.is_dttm, True)
 
         col = TableColumn(column_name='__not_time', type='INTEGER')

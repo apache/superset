@@ -153,8 +153,12 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
-    def alter_orm_column(cls, orm_col):
-        """As fetch_metadata gets called, """
+    def alter_new_orm_column(cls, orm_col):
+        """Allow altering default column attributes when first detected/added
+
+        For instance special column like `__time` for Druid can be
+        set to is_dttm=True. Note that this only gets called when new
+        columns are detected/created"""
         pass
 
     @classmethod
@@ -1714,7 +1718,7 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def alter_orm_column(cls, orm_col):
+    def alter_new_orm_column(cls, orm_col):
         if orm_col.column_name == '__time':
             orm_col.is_dttm = True
 
