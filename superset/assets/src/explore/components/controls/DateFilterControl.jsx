@@ -446,7 +446,7 @@ export default class DateFilterControl extends React.Component {
   }
   render() {
     let value = this.props.value || defaultProps.value;
-    value = value.split(SEPARATOR).map(v => v.replace('T00:00:00', '') || '∞').join(SEPARATOR);
+    value = value.split(SEPARATOR).map((v, idx) => v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
     return (
       <div>
         <ControlHeader {...this.props} />
