@@ -26,7 +26,10 @@ export default function callApi({
     signal,
   };
 
-  if (method === 'POST' && typeof postPayload === 'object') {
+  if (
+    (method === 'POST' || method === 'PATCH' || method === 'PUT') &&
+    typeof postPayload === 'object'
+  ) {
     // using FormData has the effect that Content-Type header is set to `multipart/form-data`,
     // not e.g., 'application/x-www-form-urlencoded'
     const formData: FormData = new FormData();
