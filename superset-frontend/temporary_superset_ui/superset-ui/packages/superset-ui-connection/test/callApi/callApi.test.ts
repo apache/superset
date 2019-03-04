@@ -15,25 +15,35 @@ describe('callApi()', () => {
 
   const mockGetUrl = '/mock/get/url';
   const mockPostUrl = '/mock/post/url';
+  const mockPutUrl = '/mock/put/url';
+  const mockPatchUrl = '/mock/patch/url';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
+  const mockPutPayload = { post: 'payload' };
+  const mockPatchPayload = { post: 'payload' };
 
   fetchMock.get(mockGetUrl, mockGetPayload);
   fetchMock.post(mockPostUrl, mockPostPayload);
+  fetchMock.put(mockPutUrl, mockPutPayload);
+  fetchMock.patch(mockPatchUrl, mockPatchPayload);
 
   afterEach(fetchMock.reset);
 
   describe('request config', () => {
     it('calls the right url with the specified method', () => {
-      expect.assertions(2);
+      expect.assertions(4);
 
       return Promise.all([
         callApi({ url: mockGetUrl, method: 'GET' }),
         callApi({ url: mockPostUrl, method: 'POST' }),
+        callApi({ url: mockPutUrl, method: 'PUT' }),
+        callApi({ url: mockPatchUrl, method: 'PATCH' }),
       ]).then(() => {
         expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
         expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
+        expect(fetchMock.calls(mockPatchUrl)).toHaveLength(1);
 
         return Promise.resolve();
       });
@@ -93,7 +103,7 @@ describe('callApi()', () => {
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values', () => {
+    it('omits key,value pairs from postPayload that have undefined values (POST)', () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
@@ -127,6 +137,146 @@ describe('callApi()', () => {
         callApi({ url: mockPostUrl, method: 'POST', postPayload, stringify: false }),
       ]).then(() => {
         const calls = fetchMock.calls(mockPostUrl);
+        expect(calls).toHaveLength(2);
+
+        const stringified = calls[0][1].body as FormData;
+        const unstringified = calls[1][1].body as FormData;
+
+        Object.keys(postPayload).forEach(key => {
+          expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));
+          expect(unstringified.get(key)).toBe(String(postPayload[key]));
+        });
+
+        return Promise.resolve();
+      });
+    });
+  });
+
+  describe('PUT requests', () => {
+    it('encodes key,value pairs from postPayload', () => {
+      expect.assertions(3);
+      const postPayload = { key: 'value', anotherKey: 1237 } as any;
+
+      return callApi({ url: mockPutUrl, method: 'PUT', postPayload }).then(() => {
+        const calls = fetchMock.calls(mockPutUrl);
+        expect(calls).toHaveLength(1);
+
+        const fetchParams = calls[0][1];
+        const body = fetchParams.body as FormData;
+
+        Object.keys(postPayload).forEach(key => {
+          expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
+        });
+
+        return Promise.resolve();
+      });
+    });
+
+    // the reason for this is to omit strings like 'undefined' from making their way to the backend
+    it('omits key,value pairs from postPayload that have undefined values (PUT)', () => {
+      expect.assertions(3);
+      const postPayload = { key: 'value', noValue: undefined };
+
+      return callApi({ url: mockPutUrl, method: 'PUT', postPayload }).then(() => {
+        const calls = fetchMock.calls(mockPutUrl);
+        expect(calls).toHaveLength(1);
+
+        const fetchParams = calls[0][1];
+        const body = fetchParams.body as FormData;
+        expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
+        expect(body.get('noValue')).toBeNull();
+
+        return Promise.resolve();
+      });
+    });
+
+    it('respects the stringify flag in PUT requests', () => {
+      const postPayload = {
+        string: 'value',
+        number: 1237,
+        array: [1, 2, 3],
+        object: { a: 'a', 1: 1 },
+        null: null,
+        emptyString: '',
+      } as any;
+
+      expect.assertions(1 + 2 * Object.keys(postPayload).length);
+
+      return Promise.all([
+        callApi({ url: mockPutUrl, method: 'PUT', postPayload }),
+        callApi({ url: mockPutUrl, method: 'PUT', postPayload, stringify: false }),
+      ]).then(() => {
+        const calls = fetchMock.calls(mockPutUrl);
+        expect(calls).toHaveLength(2);
+
+        const stringified = calls[0][1].body as FormData;
+        const unstringified = calls[1][1].body as FormData;
+
+        Object.keys(postPayload).forEach(key => {
+          expect(stringified.get(key)).toBe(JSON.stringify(postPayload[key]));
+          expect(unstringified.get(key)).toBe(String(postPayload[key]));
+        });
+
+        return Promise.resolve();
+      });
+    });
+  });
+
+  describe('PATCH requests', () => {
+    it('encodes key,value pairs from postPayload', () => {
+      expect.assertions(3);
+      const postPayload = { key: 'value', anotherKey: 1237 } as any;
+
+      return callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }).then(() => {
+        const calls = fetchMock.calls(mockPatchUrl);
+        expect(calls).toHaveLength(1);
+
+        const fetchParams = calls[0][1];
+        const body = fetchParams.body as FormData;
+
+        Object.keys(postPayload).forEach(key => {
+          expect(body.get(key)).toBe(JSON.stringify(postPayload[key]));
+        });
+
+        return Promise.resolve();
+      });
+    });
+
+    // the reason for this is to omit strings like 'undefined' from making their way to the backend
+    it('omits key,value pairs from postPayload that have undefined values (PATCH)', () => {
+      expect.assertions(3);
+      const postPayload = { key: 'value', noValue: undefined };
+
+      return callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }).then(() => {
+        const calls = fetchMock.calls(mockPatchUrl);
+        expect(calls).toHaveLength(1);
+
+        const fetchParams = calls[0][1];
+        const body = fetchParams.body as FormData;
+        expect(body.get('key')).toBe(JSON.stringify(postPayload.key));
+        expect(body.get('noValue')).toBeNull();
+
+        return Promise.resolve();
+      });
+    });
+
+    it('respects the stringify flag in PATCH requests', () => {
+      const postPayload = {
+        string: 'value',
+        number: 1237,
+        array: [1, 2, 3],
+        object: { a: 'a', 1: 1 },
+        null: null,
+        emptyString: '',
+      } as any;
+
+      expect.assertions(1 + 2 * Object.keys(postPayload).length);
+
+      return Promise.all([
+        callApi({ url: mockPatchUrl, method: 'PATCH', postPayload }),
+        callApi({ url: mockPatchUrl, method: 'PATCH', postPayload, stringify: false }),
+      ]).then(() => {
+        const calls = fetchMock.calls(mockPatchUrl);
         expect(calls).toHaveLength(2);
 
         const stringified = calls[0][1].body as FormData;
