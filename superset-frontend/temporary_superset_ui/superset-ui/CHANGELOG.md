@@ -1,5 +1,24 @@
 # @superset-ui : Change Log
 
+## v0.10.2
+
+### ✨ Features
+
+* feat(superset-ui-chart): add `.clone()` function to `ChartMetadata` (#112) ([1c1ef3b](https://github.com/apache-superset/superset-ui/commit/1c1ef3b)), closes [#112](https://github.com/apache-superset/superset-ui/issues/112)
+* feat(superset-ui-connection): Allow `PUT` and `PATCH` in call API ([efcfd1a](https://github.com/apache-superset/superset-ui/commit/efcfd1a))
+
+## v0.10.1
+
+### 💔 BREAKING CHANGE
+
+* `@superset-ui/core` becomes peer dependency
+
+### 🛠️ Internal
+
+* refactor: make `@superset-ui/core` peer dependency (#111) ([e9c7b91](https://github.com/apache-superset/superset-ui/commit/e9c7b91)), closes [#111](https://github.com/apache-superset/superset-ui/issues/111)
+* chore: add `commitlint` and `commitizen` config ([cae32ce](https://github.com/apache-superset/superset-ui/commit/cae32ce))
+* docs: update changelog ([4d70053](https://github.com/apache-superset/superset-ui/commit/4d70053))
+
 ## v0.10.0
 
 ### 💔 BREAKING CHANGES
