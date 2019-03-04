@@ -203,7 +203,6 @@ class QueryContext:
 
         if query_obj and not is_loaded:
             try:
-                print(query_obj)
                 query_result = self.get_query_result(query_obj)
                 status = query_result['status']
                 query = query_result['query']

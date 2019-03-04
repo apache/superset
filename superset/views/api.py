@@ -39,6 +39,7 @@ class Api(BaseSupersetView):
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
+        params: query_context: json_blob
         """
         query_context = QueryContext(**json.loads(request.form.get('query_context')))
         security_manager.assert_datasource_permission(query_context.datasource)
@@ -56,12 +57,11 @@ class Api(BaseSupersetView):
     @expose('/v1/form_data/', methods=['GET'])
     def query_form_data(self):
         """
-        Takes a query_obj constructed in the client and returns payload data response
-        for the given query_obj.
+        Get the formdata stored in the database for existing slice.
+        params: slice_id: integer
         """
         form_data = {}
         slice_id = request.args.get('slice_id')
-        print(slice_id)
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
             if slc:
