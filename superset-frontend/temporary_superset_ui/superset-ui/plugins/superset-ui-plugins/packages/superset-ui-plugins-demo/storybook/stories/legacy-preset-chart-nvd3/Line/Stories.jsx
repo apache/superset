@@ -39,4 +39,39 @@ export default [
     storyName: 'Basic',
     storyPath: 'legacy-|preset-chart-nvd3|LineChartPlugin',
   },
+  {
+    renderStory: () => (
+      <SuperChart
+        chartType="line"
+        chartProps={{
+          datasource: { verboseMap: {} },
+          formData: {
+            bottomMargin: 'auto',
+            colorScheme: 'd3Category10',
+            leftMargin: 'auto',
+            lineInterpolation: 'linear',
+            richTooltip: true,
+            showBrush: 'auto',
+            showLegend: true,
+            showMarkers: true,
+            vizType: 'line',
+            xAxisFormat: 'smart_date',
+            xAxisLabel: '',
+            xAxisShowminmax: false,
+            xTicksLayout: 'auto',
+            yAxisBounds: [null, null],
+            yAxisFormat: '.3s',
+            yAxisLabel: '',
+            yAxisShowminmax: false,
+            yLogScale: false,
+          },
+          height: 400,
+          payload: { data },
+          width: 400,
+        }}
+      />
+    ),
+    storyName: 'Markers',
+    storyPath: 'legacy-|preset-chart-nvd3|LineChartPlugin',
+  },
 ];
