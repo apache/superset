@@ -619,6 +619,17 @@ function nvd3Vis(element, props) {
         .selectAll('.nv-point')
         .style('stroke-opacity', 1)
         .style('fill-opacity', 1);
+
+      // redo on legend toggle; nvd3 calls the callback *before* the line is
+      // drawn, so we need to add a small delay here
+      chart.dispatch.on('stateChange', () => {
+        setTimeout(() => {
+          svg
+            .selectAll('.nv-point')
+            .style('stroke-opacity', 1)
+            .style('fill-opacity', 1);
+        }, 10);
+      });
     }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {

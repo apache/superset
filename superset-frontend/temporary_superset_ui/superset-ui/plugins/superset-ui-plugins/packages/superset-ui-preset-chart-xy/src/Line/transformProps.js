@@ -4,17 +4,8 @@ import { getTimeFormatter } from '@superset-ui/time-format';
 /* eslint-disable sort-keys */
 
 export default function transformProps(chartProps) {
-  const { width, height, datasource = {}, formData, payload } = chartProps;
-  const { verboseMap = {} } = datasource;
-  const {
-    colorScheme,
-    groupby,
-    metrics,
-    xAxisLabel,
-    xAxisFormat,
-    yAxisLabel,
-    yAxisFormat,
-  } = formData;
+  const { width, height, formData, payload } = chartProps;
+  const { colorScheme, xAxisLabel, xAxisFormat, yAxisLabel, yAxisFormat } = formData;
 
   return {
     data: payload.data,
