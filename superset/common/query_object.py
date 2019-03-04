@@ -35,8 +35,8 @@ class QueryObject:
     def __init__(
             self,
             granularity: str,
-            groupby: List[str],
             metrics: List[Union[Dict, str]],
+            groupby: List[str] = None,
             filters: List[str] = None,
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
@@ -56,9 +56,12 @@ class QueryObject:
         self.is_timeseries = is_timeseries
         self.time_range = time_range
         self.time_shift = utils.parse_human_timedelta(time_shift)
-        self.groupby = groupby
-        #Temporal solution for backward compatability issue due the new format of non-ad-hoc metric.
-        self.metrics = [metric if 'expressionType' in metric else metric['label'] for metric in metrics]
+        self.groupby = groupby if groupby is not None else []
+
+        # Temporal solution for backward compatability issue
+        # due the new format of non-ad-hoc metric.
+        self.metrics = [metric if 'expressionType' in metric else metric['label']
+                        for metric in metrics]
         self.row_limit = row_limit
         self.filter = filters if filters is not None else []
         self.timeseries_limit = timeseries_limit
@@ -104,8 +107,8 @@ class QueryObject:
 
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
-
-        cache_dict['time_range'] = self.time_range
+        if self.time_range:
+            cache_dict['time_range'] = self.time_range
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
