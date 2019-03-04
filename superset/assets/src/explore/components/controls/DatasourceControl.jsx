@@ -21,7 +21,9 @@ import PropTypes from 'prop-types';
 import {
   Col,
   Collapse,
+  DropdownButton,
   Label,
+  MenuItem,
   OverlayTrigger,
   Row,
   Tooltip,
@@ -33,6 +35,7 @@ import ControlHeader from '../ControlHeader';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
 import DatasourceModal from '../../../datasource/DatasourceModal';
+import ChangeDatasourceModal from '../../../datasource/ChangeDatasourceModal';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -52,12 +55,12 @@ class DatasourceControl extends React.PureComponent {
     super(props);
     this.state = {
       showEditDatasourceModal: false,
-      loading: true,
-      showDatasource: false,
-      datasources: null,
+      showChangeDatasourceModal: false,
+      menuExpanded: false,
     };
-    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
+    this.toggleChangeDatasourceModal = this.toggleChangeDatasourceModal.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
+    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.renderDatasource = this.renderDatasource.bind(this);
   }
 
@@ -65,11 +68,18 @@ class DatasourceControl extends React.PureComponent {
     this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
 
+  toggleChangeDatasourceModal() {
+    this.setState(({ showChangeDatasourceModal }) => ({
+      showChangeDatasourceModal: !showChangeDatasourceModal,
+    }));
+  }
+
   toggleEditDatasourceModal() {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
   }
+
   renderDatasource() {
     const datasource = this.props.datasource;
     return (
@@ -103,58 +113,86 @@ class DatasourceControl extends React.PureComponent {
       </div>
     );
   }
+
   render() {
+    const { menuExpanded, showChangeDatasourceModal, showEditDatasourceModal } = this.state;
+    const { datasource, onChange, onDatasourceSave, value } = this.props;
     return (
       <div>
         <ControlHeader {...this.props} />
-        <OverlayTrigger
-          placement="right"
-          overlay={
-            <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
-          }
-        >
-          <Label onClick={this.toggleEditDatasourceModal} style={{ cursor: 'pointer' }} className="m-r-5">
-            {this.props.datasource.name}
-          </Label>
-        </OverlayTrigger>
-        <OverlayTrigger
-          placement="right"
-          overlay={
-            <Tooltip id={'toggle-datasource-tooltip'}>
-              {t('Expand/collapse datasource configuration')}
-            </Tooltip>
-          }
-        >
-          <a href="#">
-            <i
-              className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5`}
-              onClick={this.toggleShowDatasource}
-            />
-          </a>
-        </OverlayTrigger>
-        {this.props.datasource.type === 'table' &&
+        <div className="btn-group label-dropdown">
           <OverlayTrigger
             placement="right"
             overlay={
-              <Tooltip id={'datasource-sqllab'}>
-                {t('Explore this datasource in SQL Lab')}
+              <Tooltip id={'error-tooltip'}>{t('Click to edit the datasource')}</Tooltip>
+            }
+          >
+            <div className="btn-group">
+              <Label onClick={this.toggleEditDatasourceModal} className="label-btn-label">
+                {datasource.name}
+              </Label>
+            </div>
+          </OverlayTrigger>
+          <DropdownButton
+            noCaret
+            title={
+              <span>
+                <i className={`float-right expander fa fa-angle-${menuExpanded ? 'up' : 'down'}`} />
+              </span>}
+            className="label label-btn m-r-5"
+            bsSize="sm"
+            id="datasource_menu"
+          >
+            <MenuItem
+              eventKey="3"
+              onClick={this.toggleEditDatasourceModal}
+            >
+              {t('Edit Datasource')}
+            </MenuItem>
+            {datasource.type === 'table' &&
+              <MenuItem
+                eventKey="3"
+                href={`/superset/sqllab?datasourceKey=${value}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Explore in SQL Lab')}
+              </MenuItem>}
+            <MenuItem
+              eventKey="3"
+              onClick={this.toggleChangeDatasourceModal}
+            >
+              {t('Change Datasource')}
+            </MenuItem>
+          </DropdownButton>
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'toggle-datasource-tooltip'}>
+                {t('Expand/collapse datasource configuration')}
               </Tooltip>
             }
           >
-            <a
-              href={`/superset/sqllab?datasourceKey=${this.props.value}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i className="fa fa-flask m-r-5" />
+            <a href="#">
+              <i
+                className={`fa fa-${this.state.showDatasource ? 'minus' : 'plus'}-square m-r-5 m-l-5 m-t-4`}
+                onClick={this.toggleShowDatasource}
+              />
             </a>
-          </OverlayTrigger>}
+          </OverlayTrigger>
+        </div>
         <Collapse in={this.state.showDatasource}>{this.renderDatasource()}</Collapse>
         <DatasourceModal
-          datasource={this.props.datasource}
-          show={this.state.showEditDatasourceModal}
-          onDatasourceSave={this.props.onDatasourceSave}
+          datasource={datasource}
+          show={showEditDatasourceModal}
+          onDatasourceSave={onDatasourceSave}
           onHide={this.toggleEditDatasourceModal}
+        />
+        <ChangeDatasourceModal
+          onDatasourceSave={onDatasourceSave}
+          onHide={this.toggleChangeDatasourceModal}
+          show={showChangeDatasourceModal}
+          onChange={onChange}
         />
       </div>
     );

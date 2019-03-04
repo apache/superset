@@ -171,10 +171,10 @@ class Header extends React.PureComponent {
   }
 
   toggleEditMode() {
-    this.props.setEditMode(!this.props.editMode);
     this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
-      editMode: !this.props.editMode,
+      edit_mode: !this.props.editMode,
     });
+    this.props.setEditMode(!this.props.editMode);
   }
 
   overwriteDashboard() {

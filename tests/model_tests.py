@@ -117,6 +117,39 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals(d.get('P1D').function, 'DATE({col})')
         self.assertEquals(d.get('Time Column').function, '{col}')
 
+    def test_postgres_expression_time_grain(self):
+        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
+        database = Database(sqlalchemy_uri=uri)
+        pdf, time_grain = '', 'P1D'
+        expression, column_name = 'COALESCE(lowercase_col, "MixedCaseCol")', ''
+        grain = database.grains_dict().get(time_grain)
+        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
+        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
+        grain_expr_expected = grain.function.replace('{col}', expression)
+        self.assertEqual(grain_expr, grain_expr_expected)
+
+    def test_postgres_lowercase_col_time_grain(self):
+        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
+        database = Database(sqlalchemy_uri=uri)
+        pdf, time_grain = '', 'P1D'
+        expression, column_name = '', 'lowercase_col'
+        grain = database.grains_dict().get(time_grain)
+        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
+        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
+        grain_expr_expected = grain.function.replace('{col}', column_name)
+        self.assertEqual(grain_expr, grain_expr_expected)
+
+    def test_postgres_mixedcase_col_time_grain(self):
+        uri = 'postgresql+psycopg2://uid:pwd@localhost:5432/superset'
+        database = Database(sqlalchemy_uri=uri)
+        pdf, time_grain = '', 'P1D'
+        expression, column_name = '', 'MixedCaseCol'
+        grain = database.grains_dict().get(time_grain)
+        col = database.db_engine_spec.get_timestamp_column(expression, column_name)
+        grain_expr = database.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
+        grain_expr_expected = grain.function.replace('{col}', f'"{column_name}"')
+        self.assertEqual(grain_expr, grain_expr_expected)
+
     def test_single_statement(self):
         main_db = get_main_database(db.session)
 
