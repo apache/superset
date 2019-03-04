@@ -85,7 +85,11 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.TRIGGER_QUERY](state) {
-      return { ...state, triggerQuery: action.value };
+      return {
+        ...state,
+        triggerQuery: action.value,
+        chartStatus: 'loading',
+      };
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
@@ -151,6 +155,14 @@ export default function chartReducer(charts = {}, action) {
   /* eslint-disable no-param-reassign */
   if (action.type === actions.REMOVE_CHART) {
     delete charts[action.key];
+    return charts;
+  } else if (action.type === actions.UPDATE_CHART_ID) {
+    const { newId, key } = action;
+    charts[newId] = {
+      ...charts[key],
+      id: newId,
+    };
+    delete charts[key];
     return charts;
   }
 

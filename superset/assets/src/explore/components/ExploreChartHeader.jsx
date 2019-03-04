@@ -44,8 +44,10 @@ class ExploreChartHeader extends React.PureComponent {
       action: isNewSlice ? 'saveas' : 'overwrite',
     };
     this.props.actions.saveSlice(this.props.form_data, params)
-      .then((data) => {
+      .then((json) => {
+        const { data } = json;
         if (isNewSlice) {
+          this.props.actions.updateChartId(data.slice.slice_id, 0);
           this.props.actions.createNewSlice(
             data.can_add, data.can_download, data.can_overwrite,
             data.slice, data.form_data);

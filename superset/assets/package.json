@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.29.0rc8",
+  "version": "0.30.0rc12",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -15,8 +15,8 @@
     "dev-server": "webpack-dev-server --mode=development --progress",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "NODE_ENV=production webpack --mode=production --colors --progress",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./src/**/*.ts{,x}",
-    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./src/**/*.ts{,x}",
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json ./{src,spec}/**/*.ts{,x}",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx . && tslint -c tslint.json --fix ./{src,spec}/**/*.ts{,x}",
     "sync-backend": "babel-node --presets env src/syncBackend.js",
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
@@ -55,6 +55,11 @@
     "@superset-ui/color": "^0.7.0",
     "@superset-ui/connection": "^0.5.0",
     "@superset-ui/core": "^0.7.0",
+<<<<<<< HEAD
+=======
+    "@superset-ui/number-format": "^0.7.2",
+    "@superset-ui/time-format": "^0.7.2",
+>>>>>>> upstream/0.30
     "@superset-ui/translation": "^0.7.0",
     "@vx/legend": "^0.0.170",
     "@vx/responsive": "0.0.172",

@@ -2959,18 +2959,6 @@ msgstr "Editar Cluster Druid"
 msgid "Cluster"
 msgstr "Cluster"
 
-#: superset/connectors/druid/views.py:144
-msgid "Coordinator Host"
-msgstr "Host Coordinador"
-
-#: superset/connectors/druid/views.py:145
-msgid "Coordinator Port"
-msgstr "Puerto Coordinador"
-
-#: superset/connectors/druid/views.py:146
-msgid "Coordinator Endpoint"
-msgstr "Coordinador Endpoint"
-
 #: superset/connectors/druid/views.py:147
 msgid "Broker Host"
 msgstr "Host Broker"

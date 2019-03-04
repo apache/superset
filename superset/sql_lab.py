@@ -19,6 +19,7 @@ from superset.utils.core import (
     json_iso_dttm_ser,
     now_as_float,
     QueryStatus,
+    sources,
     zlib_compress,
 )
 
@@ -174,6 +175,7 @@ def execute_sql(
             schema=query.schema,
             nullpool=True,
             user_name=user_name,
+            source=sources.get('sql_lab', None),
         )
         conn = engine.raw_connection()
         cursor = conn.cursor()

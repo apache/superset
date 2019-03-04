@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Sparkline, LineSeries, PointSeries, HorizontalReferenceLine, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
-import { d3format } from '../../modules/utils';
+import { formatNumber } from '@superset-ui/number-format';
 import { getTextDimension } from '../../modules/visUtils';
 
 const propTypes = {
@@ -110,8 +110,8 @@ class SparklineCell extends React.Component {
         ? maxBound
         : data.reduce((acc, current) => Math.max(acc, current), data[0]);
 
-      minLabel = d3format(numberFormat, min);
-      maxLabel = d3format(numberFormat, max);
+      minLabel = formatNumber(numberFormat, min);
+      maxLabel = formatNumber(numberFormat, max);
       labelLength = Math.max(
         getSparklineTextWidth(minLabel),
         getSparklineTextWidth(maxLabel),

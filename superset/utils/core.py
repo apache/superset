@@ -54,6 +54,12 @@ ADHOC_METRIC_EXPRESSION_TYPES = {
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
 
+sources = {
+    'chart': 0,
+    'dashboard': 1,
+    'sql_lab': 2,
+}
+
 
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
@@ -358,6 +364,7 @@ def pessimistic_json_iso_dttm_ser(obj):
 
 def datetime_to_epoch(dttm):
     if dttm.tzinfo:
+        dttm = dttm.replace(tzinfo=pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)
         return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
@@ -834,11 +841,12 @@ def get_or_create_main_db():
     logging.info('Creating database reference')
     dbobj = get_main_database(db.session)
     if not dbobj:
-        dbobj = models.Database(database_name='main')
+        dbobj = models.Database(
+            database_name='main',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_run_sync = True
-    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj

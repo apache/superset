@@ -273,7 +273,7 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'explore_json', slc.explore_json_url),
             ]
         for name, method, url in urls:
-            logging.info('[{name}]/[{method}]: {url}'.format(**locals()))
+            logging.info(f'[{name}]/[{method}]: {url}')
             self.client.get(url)
 
     def test_tablemodelview_list(self):
@@ -319,8 +319,8 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
             ]
         for name, method, url in urls:
-            print('[{name}]/[{method}]: {url}'.format(**locals()))
-            response = self.client.get(url)
+            print(f'[{name}]/[{method}]: {url}')
+            self.client.get(url)
 
     def test_doctests(self):
         modules = [utils, models, sql_lab]
@@ -478,8 +478,8 @@ class CoreTests(SupersetTestCase):
         self.login('admin')
         dbid = get_main_database(db.session).id
         self.get_json_resp(
-            '/superset/extra_table_metadata/{dbid}/'
-            'ab_permission_view/panoramix/'.format(**locals()))
+            f'/superset/extra_table_metadata/{dbid}/'
+            'ab_permission_view/panoramix/')
 
     def test_process_template(self):
         maindb = get_main_database(db.session)
@@ -628,15 +628,14 @@ class CoreTests(SupersetTestCase):
         main_db_uri = (
             db.session.query(models.Database)
             .filter_by(database_name='main')
-            .all()
+            .one()
         )
-
         test_file = open(filename, 'rb')
         form_data = {
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri[0].id,
+            'con': main_db_uri.id,
             'if_exists': 'append',
             'index_label': 'test_label',
             'mangle_dupe_cols': False,

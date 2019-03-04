@@ -2,6 +2,7 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
 import { wrapSvgText } from '../../modules/utils';
 import './Sunburst.css';
 
@@ -79,8 +80,8 @@ function Sunburst(element, props) {
     .innerRadius(d => Math.sqrt(d.y))
     .outerRadius(d => Math.sqrt(d.y + d.dy));
 
-  const formatNum = d3.format('.3s');
-  const formatPerc = d3.format('.3p');
+  const formatNum = getNumberFormatter(NumberFormats.SI_3_DIGIT);
+  const formatPerc = getNumberFormatter(NumberFormats.PERCENT_3_POINT);
 
   container.select('svg').remove();
 

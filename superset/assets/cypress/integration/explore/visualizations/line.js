@@ -80,10 +80,40 @@ export default () => describe('Line', () => {
       metrics,
       time_compare: ['1+year'],
       comparison_type: 'values',
+      groupby: ['gender'],
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+
+    // Offset color should match original line color
+    cy.get('.nv-legend-text')
+      .contains('boy')
+      .siblings()
+      .first()
+      .should('have.attr', 'style')
+      .then((style) => {
+        cy.get('.nv-legend-text')
+          .contains('boy, 1 year offset')
+          .siblings()
+          .first()
+          .should('have.attr', 'style')
+          .and('eq', style);
+      });
+
+     cy.get('.nv-legend-text')
+      .contains('girl')
+      .siblings()
+      .first()
+      .should('have.attr', 'style')
+      .then((style) => {
+        cy.get('.nv-legend-text')
+          .contains('girl, 1 year offset')
+          .siblings()
+          .first()
+          .should('have.attr', 'style')
+          .and('eq', style);
+      });
   });
 
   it('Test line chart with time shift yoy', () => {
@@ -112,5 +142,16 @@ export default () => describe('Line', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+  });
+
+  it('Test verbose name shows up in legend', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('text.nv-legend-text').contains('COUNT(*)');
   });
 });

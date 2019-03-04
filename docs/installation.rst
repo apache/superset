@@ -43,22 +43,29 @@ If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset
-    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
-    cp contrib/docker/superset_config.py superset/
-    bash -x docker-build.sh
-    docker-compose up -d
-    docker-compose exec superset bash
-    bash docker-init.sh
+    cd incubator-superset/contrib/docker
+    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
+    docker-compose run --rm superset ./docker-init.sh
+    # you can run this command everytime you need to start superset now:
+    docker-compose up
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
 
+From there, the container server will reload on modification of the superset python
+and javascript source code.
+Don't forget to reload the page to take the new frontend into account though.
+
+See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+for alternative way of serving the frontend.
+
+It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
+the volumes needed for development and change the variable `SUPERSET_ENV` to `production`.
+
 If you are attempting to build on a Mac and it exits with 137 you need to increase your docker resources.
 OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for memory)
 
-Or if you're curious and want to install superset from bottom up, then go 
-ahead.
+Or if you're curious and want to install superset from bottom up, then go ahead.
 
 OS dependencies
 ---------------
@@ -78,9 +85,9 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
-**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also: ::
+**Ubuntu 18.04** If you have python3.6 installed alongside with python2.7, as is default on **Ubuntu 18.04 LTS**, run this command also: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python3.6-dev python-pip libsasl2-dev libldap2-dev
 
 otherwise build for ``cryptography`` fails.
 
@@ -105,17 +112,18 @@ attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and r
 
 Python virtualenv
 -----------------
-It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv, for
-Python 2 you need to install it. If it's packaged for your operating systems install it from there
-otherwise you can install from pip: ::
+It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv.
+But if it's not installed in your environment for some reason, you can install it
+via the package for your operating systems, otherwise you can install from pip: ::
 
     pip install virtualenv
 
 You can create and activate a virtualenv by: ::
 
-    # virtualenv is shipped in Python 3 as pyvenv
-    virtualenv venv
-    . ./venv/bin/activate
+    # virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
+    # See https://docs.python.org/3.6/library/venv.html
+    python3 -m venv venv
+    . venv/bin/activate
 
 On windows the syntax for activating it is a bit different: ::
 
@@ -549,6 +557,18 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
+
+
+DOMAIN SHARDING
+---------------
+
+Chrome allows up to 6 open connections per domain at a time. When there are more
+than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
+next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/pull/5039>`) adds domain sharding to Superset,
+and this feature will be enabled by configuration only (by default Superset
+doesn't allow cross-domain request).
+
+*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
 MIDDLEWARE

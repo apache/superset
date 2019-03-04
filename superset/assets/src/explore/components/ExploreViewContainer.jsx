@@ -15,6 +15,7 @@ import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
+import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 const propTypes = {
@@ -69,6 +70,9 @@ class ExploreViewContainer extends React.Component {
     const wasRendered =
       ['rendered', 'failed', 'stopped'].indexOf(this.props.chart.chartStatus) > -1;
     const isRendered = ['rendered', 'failed', 'stopped'].indexOf(nextProps.chart.chartStatus) > -1;
+    if (nextProps.chart.id !== this.props.chart.id) {
+      this.loadingLog.sourceId = nextProps.chart.id;
+    }
     if (!wasRendered && isRendered) {
       Logger.send(this.loadingLog);
     }
@@ -81,7 +85,7 @@ class ExploreViewContainer extends React.Component {
       (this.props.controls.datasource == null ||
         nextProps.controls.datasource.value !== this.props.controls.datasource.value)
     ) {
-      this.props.actions.fetchDatasourceMetadata(nextProps.form_data.datasource, true);
+      fetchDatasourceMetadata(nextProps.form_data.datasource, true);
     }
 
     const changedControlKeys = this.findChangedControlKeys(this.props.controls, nextProps.controls);
@@ -119,10 +123,6 @@ class ExploreViewContainer extends React.Component {
 
     this.setState({ chartIsStale: false, refreshOverlayVisible: false });
     this.addHistory({});
-  }
-
-  onDismissRefreshOverlay() {
-    this.setState({ refreshOverlayVisible: false });
   }
 
   onStop() {
@@ -174,7 +174,7 @@ class ExploreViewContainer extends React.Component {
 
   addHistory({ isReplace = false, title }) {
     const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
-    const longUrl = getExploreLongUrl(this.props.form_data);
+    const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
         history.replaceState(payload, title, longUrl);
@@ -246,7 +246,6 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />
     );
   }
@@ -318,6 +317,7 @@ function mapStateToProps(state) {
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     isStarred: explore.isStarred,
     slice: explore.slice,
+    triggerRender: explore.triggerRender,
     form_data,
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,

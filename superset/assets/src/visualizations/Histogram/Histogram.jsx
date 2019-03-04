@@ -6,6 +6,7 @@ import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import WithLegend from '../WithLegend';
+import './Histogram.css';
 
 const propTypes = {
   className: PropTypes.string,

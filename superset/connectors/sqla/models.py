@@ -238,6 +238,9 @@ class SqlMetric(Model, BaseMetric):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
@@ -321,8 +324,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
-        return Markup(anchor.format(**locals()))
+        anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor)
 
     @property
     def schema_perm(self):
@@ -417,6 +420,7 @@ class SqlaTable(Model, BaseDatasource):
             d['time_grain_sqla'] = grains
             d['main_dttm_col'] = self.main_dttm_col
             d['fetch_values_predicate'] = self.fetch_values_predicate
+            d['template_params'] = self.template_params
         return d
 
     def values_for_column(self, column_name, limit=10000):
@@ -720,15 +724,11 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    if utils.is_adhoc_metric(timeseries_limit_metric):
-                        ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
-                    elif timeseries_limit_metric in metrics_dict:
-                        timeseries_limit_metric = metrics_dict.get(
-                            timeseries_limit_metric,
-                        )
-                        ob = timeseries_limit_metric.get_sqla_col()
-                    else:
-                        raise Exception(_("Metric '{}' is not valid".format(m)))
+                    ob = self._get_timeseries_orderby(
+                        timeseries_limit_metric,
+                        metrics_dict,
+                        cols,
+                    )
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)
@@ -740,6 +740,16 @@ class SqlaTable(Model, BaseDatasource):
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
+                if timeseries_limit_metric:
+                    orderby = [(
+                        self._get_timeseries_orderby(
+                            timeseries_limit_metric,
+                            metrics_dict,
+                            cols,
+                        ),
+                        False,
+                    )]
+
                 # run subquery to get top groups
                 subquery_obj = {
                     'prequeries': prequeries,
@@ -767,6 +777,19 @@ class SqlaTable(Model, BaseDatasource):
                 qry = qry.where(top_groups)
 
         return qry.select_from(tbl)
+
+    def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
+        if utils.is_adhoc_metric(timeseries_limit_metric):
+            ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
+        elif timeseries_limit_metric in metrics_dict:
+            timeseries_limit_metric = metrics_dict.get(
+                timeseries_limit_metric,
+            )
+            ob = timeseries_limit_metric.get_sqla_col()
+        else:
+            raise Exception(_("Metric '{}' is not valid".format(timeseries_limit_metric)))
+
+        return ob
 
     def _get_top_groups(self, df, dimensions):
         cols = {col.column_name: col for col in self.columns}
