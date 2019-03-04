@@ -24,7 +24,7 @@ import { t } from '@superset-ui/translation';
 import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
-import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import { exportChart, getExploreLongUrl, exportChartPNG} from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -32,15 +32,17 @@ const propTypes = {
   chartStatus: PropTypes.string,
   latestQueryFormData: PropTypes.object,
   queryResponse: PropTypes.object,
+  slice: propTypes.slice
 };
 
 export default function ExploreActionButtons({
-    actions, canDownload, chartStatus, latestQueryFormData, queryResponse }) {
+    actions, canDownload, chartStatus, latestQueryFormData, queryResponse, slice }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
   const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
   const doExportChart = exportChart.bind(this, latestQueryFormData, 'json');
+  const doExportPNG = exportChartPNG.bind(this, slice.slice_name, 0, '.chart-container');
 
   return (
     <div className="btn-group results" role="group">
@@ -54,7 +56,16 @@ export default function ExploreActionButtons({
 
       {latestQueryFormData &&
         <EmbedCodeButton latestQueryFormData={latestQueryFormData} />}
-
+      {slice &&
+        <a
+          onClick={doExportPNG}
+          className="btn btn-default btn-sm"
+          title={t('Export to .png')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i className="fa fa-file-code-o" /> .png
+        </a>}
       {latestQueryFormData &&
         <a
           onClick={doExportChart}

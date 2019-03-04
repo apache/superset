@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import {exportChartPNG} from "../../explore/exploreUtils";
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -61,6 +62,7 @@ class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportPNG = this.exportPNG.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -78,6 +80,12 @@ class SliceHeaderControls extends React.PureComponent {
     this.props.exportCSV(this.props.slice.slice_id);
   }
 
+  exportPNG() {
+    const title = this.props.slice.slice_name;
+    const index = $('input[value="' + title + '"]').parents('.chart-header').next('.dashboard-chart').index('.dashboard-chart');
+    exportChartPNG(title, index, '.dashboard-chart');
+  }
+  
   exploreChart() {
     this.props.exploreChart(this.props.slice.slice_id);
   }
@@ -135,6 +143,7 @@ class SliceHeaderControls extends React.PureComponent {
           )}
 
           <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          <MenuItem onClick={this.exportPNG}>{t('Export PNG')}</MenuItem>
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>

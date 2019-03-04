@@ -20,6 +20,7 @@
 import URI from 'urijs';
 import { availableDomains } from '../utils/hostNamesConfig';
 import { safeStringify } from '../utils/safeStringify';
+import html2canvas from '../utils/html2canvas';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -181,4 +182,25 @@ export function exportChart(formData, endpointType) {
   document.body.appendChild(exploreForm);
   exploreForm.submit();
   document.body.removeChild(exploreForm);
+}
+
+export function exportChartPNG(title, index, divStr) {
+  const _canvas = document.querySelectorAll(divStr)[index];
+  const w = parseInt(window.getComputedStyle(_canvas).width);
+  const h = parseInt(window.getComputedStyle(_canvas).height);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w * 2;
+  canvas.height = h * 2;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+
+  const content = canvas.getContext('2d');
+  content.scale(2, 2);
+  html2canvas(_canvas, {canvas: canvas}).then(function (canvas) {
+    const a = document.createElement('a');
+    a.download = title + '.png';
+    a.href = canvas.toDataURL();
+    a.click();
+  });
 }
