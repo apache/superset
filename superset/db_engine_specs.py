@@ -153,6 +153,15 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        """Allow altering default column attributes when first detected/added
+
+        For instance special column like `__time` for Druid can be
+        set to is_dttm=True. Note that this only gets called when new
+        columns are detected/created"""
+        pass
+
+    @classmethod
     def epoch_to_dttm(cls):
         raise NotImplementedError()
 
@@ -478,14 +487,14 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'",
-        'PT1M': "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'",
-        'PT1H': "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'",
-        'P1D': "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'",
-        'P1W': "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'",
-        'P1M': "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'",
-        'P0.25Y': "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'",
-        'P1Y': "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'",
+        'PT1S': "DATE_TRUNC('second', {col})",
+        'PT1M': "DATE_TRUNC('minute', {col})",
+        'PT1H': "DATE_TRUNC('hour', {col})",
+        'P1D': "DATE_TRUNC('day', {col})",
+        'P1W': "DATE_TRUNC('week', {col})",
+        'P1M': "DATE_TRUNC('month', {col})",
+        'P0.25Y': "DATE_TRUNC('quarter', {col})",
+        'P1Y': "DATE_TRUNC('year', {col})",
     }
 
     @classmethod
@@ -1707,6 +1716,11 @@ class DruidEngineSpec(BaseEngineSpec):
         'P0.25Y': 'FLOOR({col} TO QUARTER)',
         'P1Y': 'FLOOR({col} TO YEAR)',
     }
+
+    @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        if orm_col.column_name == '__time':
+            orm_col.is_dttm = True
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):

@@ -90,7 +90,7 @@ export function createDeckGLComponent(getLayer, getPoints) {
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           viewport={viewport}
           layers={[layer]}
-          mapStyle={formData.mapbox_style}
+          mapStyle={formData.mapboxStyle}
           setControlValue={setControlValue}
           onViewportChange={this.onViewportChange}
         />);
