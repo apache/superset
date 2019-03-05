@@ -72,19 +72,26 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
       .selectAll('rect')
       .each(function each(d, index) {
         const rectObj = d3.select(this);
+        const transformAttr = rectObj.attr('transform');
+        const xPos = parseFloat(rectObj.attr('x'));
+        const yPos = parseFloat(rectObj.attr('y'));
+        const rectWidth = parseFloat(rectObj.attr('width'));
+        const rectHeight = parseFloat(rectObj.attr('height'));
+        const textEls = groupLabels
+          .append('text')
+          .text(format(stacked ? totalStackedValues[index] : d.y))
+          .attr('transform', transformAttr)
+          .attr('class', 'bar-chart-label');
+
+        // fine tune text position
+        const bbox = textEls.node().getBBox();
+        const labelWidth = bbox.width;
+        const labelHeight = bbox.height;
+        textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2);
         if (rectObj.attr('class').includes('positive')) {
-          const transformAttr = rectObj.attr('transform');
-          const yPos = parseFloat(rectObj.attr('y'));
-          const xPos = parseFloat(rectObj.attr('x'));
-          const rectWidth = parseFloat(rectObj.attr('width'));
-          const textEls = groupLabels
-            .append('text')
-            .attr('y', yPos - 5)
-            .text(format(stacked ? totalStackedValues[index] : d.y))
-            .attr('transform', transformAttr)
-            .attr('class', 'bar-chart-label');
-          const labelWidth = textEls.node().getBBox().width;
-          textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+          textEls.attr('y', yPos - 5);
+        } else {
+          textEls.attr('y', yPos + rectHeight + labelHeight);
         }
       });
   }, ANIMATION_TIME);
