@@ -737,8 +737,9 @@ function nvd3Vis(element, props) {
         .attr('height', height)
         .call(chart);
 
-      // on scroll, hide tooltips. throttle to only 4x/second.
-      window.addEventListener('scroll', throttle(() => hideTooltips(element), 250));
+      // On scroll, hide (not remove) tooltips so they can reappear on hover.
+      // Throttle to only 4x/second.
+      window.addEventListener('scroll', throttle(() => hideTooltips(false), 250));
 
       // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && activeAnnotationLayers.length > 0) {
@@ -1001,10 +1002,10 @@ function nvd3Vis(element, props) {
     return chart;
   };
 
-  // hide tooltips before rendering chart, if the chart is being re-rendered sometimes
+  // Remove tooltips before rendering chart, if the chart is being re-rendered sometimes
   // there are left over tooltips in the dom,
   // this will clear them before rendering the chart again.
-  hideTooltips(element);
+  hideTooltips(true);
 
   nv.addGraph(drawGraph);
 }
