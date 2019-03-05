@@ -8,12 +8,16 @@ module.exports = (storybookBaseConfig, configType, defaultConfig) => {
   // You can change the configuration based on that.
   // 'PRODUCTION' is used when building the static version of storybook.
 
+  /* eslint-disable-next-line */
   defaultConfig.resolve = defaultConfig.resolve || {};
+  /* eslint-disable-next-line */
   defaultConfig.resolve.extensions = ['.ts', '.tsx', '.js', '.jsx'];
 
-  defaultConfig.plugins.push(new ForkTsCheckerWebpackPlugin({
-    checkSyntacticErrors: true,
-  }));
+  defaultConfig.plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      checkSyntacticErrors: true,
+    }),
+  );
 
   defaultConfig.module.rules[0].use[0].options.plugins.push('@babel/plugin-syntax-dynamic-import');
 
@@ -31,7 +35,7 @@ module.exports = (storybookBaseConfig, configType, defaultConfig) => {
       {
         loader: 'thread-loader',
         options: {
-            // there should be 1 cpu for the fork-ts-checker-webpack-plugin
+          // there should be 1 cpu for the fork-ts-checker-webpack-plugin
           workers: os.cpus().length - 1,
         },
       },
