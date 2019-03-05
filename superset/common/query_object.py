@@ -15,15 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
-from typing import Dict, List, Optional
+import hashlib
+from typing import Dict, List, Optional, Union
+
+import simplejson as json
 
 from superset import app
 from superset.utils import core as utils
 
+
 # TODO: Type Metrics dictionary with TypedDict when it becomes a vanilla python type
 # https://github.com/python/mypy/issues/5288
-Metric = Dict
-
 
 class QueryObject:
     """
@@ -33,31 +35,87 @@ class QueryObject:
     def __init__(
             self,
             granularity: str,
+            metrics: List[Union[Dict, str]],
             groupby: List[str] = None,
-            metrics: List[Metric] = None,
             filters: List[str] = None,
             time_range: Optional[str] = None,
             time_shift: Optional[str] = None,
             is_timeseries: bool = False,
+            timeseries_limit: int = 0,
             row_limit: int = app.config.get('ROW_LIMIT'),
-            limit: int = 0,
-            timeseries_limit_metric: Optional[Metric] = None,
+            timeseries_limit_metric: Optional[Dict] = None,
             order_desc: bool = True,
             extras: Optional[Dict] = None,
+            prequeries: Optional[Dict] = None,
+            is_prequery: bool = False,
+            columns: List[str] = None,
+            orderby: List[List] = None,
     ):
         self.granularity = granularity
         self.from_dttm, self.to_dttm = utils.get_since_until(time_range, time_shift)
         self.is_timeseries = is_timeseries
-        self.groupby = groupby or []
-        self.metrics = metrics or []
-        self.filter = filters or []
+        self.time_range = time_range
+        self.time_shift = utils.parse_human_timedelta(time_shift)
+        self.groupby = groupby if groupby is not None else []
+
+        # Temporal solution for backward compatability issue
+        # due the new format of non-ad-hoc metric.
+        self.metrics = [metric if 'expressionType' in metric else metric['label']
+                        for metric in metrics]
         self.row_limit = row_limit
-        self.timeseries_limit = int(limit)
+        self.filter = filters if filters is not None else []
+        self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.prequeries = []
-        self.is_prequery = False
-        self.extras = extras
+        self.prequeries = prequeries
+        self.is_prequery = is_prequery
+        self.extras = extras if extras is not None else {}
+        self.columns = columns if columns is not None else []
+        self.orderby = orderby if orderby is not None else []
 
     def to_dict(self):
-        raise NotImplementedError()
+        query_object_dict = {
+            'granularity': self.granularity,
+            'from_dttm': self.from_dttm,
+            'to_dttm': self.to_dttm,
+            'is_timeseries': self.is_timeseries,
+            'groupby': self.groupby,
+            'metrics': self.metrics,
+            'row_limit': self.row_limit,
+            'filter': self.filter,
+            'timeseries_limit': self.timeseries_limit,
+            'timeseries_limit_metric': self.timeseries_limit_metric,
+            'order_desc': self.order_desc,
+            'prequeries': self.prequeries,
+            'is_prequery': self.is_prequery,
+            'extras': self.extras,
+            'columns': self.columns,
+            'orderby': self.orderby,
+        }
+        return query_object_dict
+
+    def cache_key(self, **extra):
+        """
+        The cache key is made out of the key/values in `query_obj`, plus any
+        other key/values in `extra`
+        We remove datetime bounds that are hard values, and replace them with
+        the use-provided inputs to bounds, which may be time-relative (as in
+        "5 days ago" or "now").
+        """
+        cache_dict = self.to_dict()
+        cache_dict.update(extra)
+
+        for k in ['from_dttm', 'to_dttm']:
+            del cache_dict[k]
+        if self.time_range:
+            cache_dict['time_range'] = self.time_range
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        return hashlib.md5(json_data.encode('utf-8')).hexdigest()
+
+    def json_dumps(self, obj, sort_keys=False):
+        return json.dumps(
+            obj,
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
+            sort_keys=sort_keys,
+        )
