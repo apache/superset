@@ -148,7 +148,7 @@ class TimeTable extends React.PureComponent {
           renderTooltip={({ index }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-              <div>{formatTime(column.dateFormat, entries[index].time)}</div>
+              <div>{formatTime(column.dateFormat, new Date(entries[index].time))}</div>
             </div>
           )}
         />
