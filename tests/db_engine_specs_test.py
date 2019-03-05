@@ -142,12 +142,26 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         q2 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20'
         q3 = 'select * from (select * from my_subquery limit 10);'
         q4 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20;'
+        q5 = 'select * from mytable limit 10, 20'
+        q6 = 'select * from mytable limit 10 offset 20'
+        q7 = 'select * from mytable limit'
+        q8 = 'select * from mytable limit 10.0'
+        q9 = 'select * from mytable limit x'
+        q10 = 'select * from mytable limit x, 20'
+        q11 = 'select * from mytable limit x offset 20'
 
         self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q5), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q6), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q7), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q8), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q9), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q10), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q11), None)
 
     def test_wrapped_query(self):
         self.sql_limit_regex(
