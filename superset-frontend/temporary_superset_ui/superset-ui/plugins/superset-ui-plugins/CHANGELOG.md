@@ -14,6 +14,10 @@
 
 ### fix
 
+* fix(legacy-preset-chart-nvd3): show negative values on bars (#8) ([8a2dbdc](https://github.com/apache-superset/superset-ui-plugins/commit/8a2dbdc)), closes [#8](https://github.com/apache-superset/superset-ui-plugins/issues/8)
+* fix(legacy-preset-chart-nvd3): redraw bar values after legend change (#7) ([28b1f75](https://github.com/apache-superset/superset-ui-plugins/commit/28b1f75)), closes [#7](https://github.com/apache-superset/superset-ui-plugins/issues/7)
+* fix(legacy-preset-chart-nvd3): redraw markers after legend interaction (#6) ([b257c32](https://github.com/apache-superset/superset-ui-plugins/commit/b257c32)), closes [#6](https://github.com/apache-superset/superset-ui-plugins/issues/6)
+* fix(legacy-preset-chart-nvd3): tooltip's disappearance and stickiness (#1) ([0cc1ea8](https://github.com/apache-superset/superset-ui-plugins/commit/0cc1ea8)), closes [#1](https://github.com/apache-superset/superset-ui-plugins/issues/1)
 * 🐛 broken unit test due to missing babel-polyfill ([346ca5c07e06a622565dbf90486fef2ab0ea6baf](https://github.com/apache-superset/superset-ui-plugins/commit/346ca5c07e06a622565dbf90486fef2ab0ea6baf))
 * resolve issues post `0.10.0` ([7b0fd6d902dfb186798228e543d95d9fde79c089](https://github.com/apache-superset/superset-ui-plugins/commit/7b0fd6d902dfb186798228e543d95d9fde79c089))
 
