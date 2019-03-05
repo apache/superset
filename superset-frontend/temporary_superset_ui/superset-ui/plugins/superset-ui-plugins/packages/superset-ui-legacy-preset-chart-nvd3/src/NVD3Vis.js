@@ -64,7 +64,6 @@ const { getColor, getScale } = CategoricalColorNamespace;
 
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;
-const ANIMATION_TIME = 1000;
 const MIN_HEIGHT_FOR_BRUSH = 480;
 
 const BREAKPOINTS = {
@@ -433,9 +432,10 @@ function nvd3Vis(element, props) {
     chart.margin({ left: 0, right: 0, bottom: 0 });
 
     if (showBarValue) {
-      setTimeout(() => {
+      drawBarValues(svg, data, isBarStacked, yAxisFormat);
+      chart.dispatch.on('stateChange', () => {
         drawBarValues(svg, data, isBarStacked, yAxisFormat);
-      }, ANIMATION_TIME);
+      });
     }
 
     if (canShowBrush && onBrushEnd !== NOOP) {

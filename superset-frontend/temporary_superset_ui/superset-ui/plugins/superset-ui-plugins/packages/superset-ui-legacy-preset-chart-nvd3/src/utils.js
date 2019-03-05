@@ -27,6 +27,8 @@ import { smartDateFormatter } from '@superset-ui/time-format';
 // (1 hour offset, 2 days offset, etc.)
 const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
 
+const ANIMATION_TIME = 1000;
+
 export function cleanColorInput(value) {
   // for superset series that should have the same color
   return String(value)
@@ -58,29 +60,34 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
         })
       : [];
 
-  const groupLabels = svg.select('g.nv-barsWrap').append('g');
-
-  svg
-    .selectAll('g.nv-group')
-    .filter((d, i) => !stacked || i === countSeriesDisplayed - 1)
-    .selectAll('rect')
-    .each(function each(d, index) {
-      const rectObj = d3.select(this);
-      if (rectObj.attr('class').includes('positive')) {
-        const transformAttr = rectObj.attr('transform');
-        const yPos = parseFloat(rectObj.attr('y'));
-        const xPos = parseFloat(rectObj.attr('x'));
-        const rectWidth = parseFloat(rectObj.attr('width'));
-        const textEls = groupLabels
-          .append('text')
-          .attr('y', yPos - 5)
-          .text(format(stacked ? totalStackedValues[index] : d.y))
-          .attr('transform', transformAttr)
-          .attr('class', 'bar-chart-label');
-        const labelWidth = textEls.node().getBBox().width;
-        textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
-      }
-    });
+  svg.selectAll('.bar-chart-label-group').remove();
+  setTimeout(() => {
+    const groupLabels = svg
+      .select('g.nv-barsWrap')
+      .append('g')
+      .attr('class', 'bar-chart-label-group');
+    svg
+      .selectAll('g.nv-group')
+      .filter((d, i) => !stacked || i === countSeriesDisplayed - 1)
+      .selectAll('rect')
+      .each(function each(d, index) {
+        const rectObj = d3.select(this);
+        if (rectObj.attr('class').includes('positive')) {
+          const transformAttr = rectObj.attr('transform');
+          const yPos = parseFloat(rectObj.attr('y'));
+          const xPos = parseFloat(rectObj.attr('x'));
+          const rectWidth = parseFloat(rectObj.attr('width'));
+          const textEls = groupLabels
+            .append('text')
+            .attr('y', yPos - 5)
+            .text(format(stacked ? totalStackedValues[index] : d.y))
+            .attr('transform', transformAttr)
+            .attr('class', 'bar-chart-label');
+          const labelWidth = textEls.node().getBBox().width;
+          textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+        }
+      });
+  }, ANIMATION_TIME);
 }
 
 // Formats the series key to account for a possible NULL value
