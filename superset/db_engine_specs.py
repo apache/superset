@@ -153,6 +153,15 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        """Allow altering default column attributes when first detected/added
+
+        For instance special column like `__time` for Druid can be
+        set to is_dttm=True. Note that this only gets called when new
+        columns are detected/created"""
+        pass
+
+    @classmethod
     def epoch_to_dttm(cls):
         raise NotImplementedError()
 
@@ -1707,6 +1716,11 @@ class DruidEngineSpec(BaseEngineSpec):
         'P0.25Y': 'FLOOR({col} TO QUARTER)',
         'P1Y': 'FLOOR({col} TO YEAR)',
     }
+
+    @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        if orm_col.column_name == '__time':
+            orm_col.is_dttm = True
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
