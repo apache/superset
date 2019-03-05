@@ -154,18 +154,15 @@ class ParsedQuery(object):
                     if not self.__is_identifier(token):
                         self.__extract_from_token(item, depth=depth + 1)
 
-    def _get_limit_from_token(self, token):
-        if token.ttype == sqlparse.tokens.Literal.Number.Integer:
-            return int(token.value)
-        elif token.is_group:
-            return int(token.get_token_at_offset(1).value)
-
     def _extract_limit_from_query(self, statement):
-        limit_token = None
-        for pos, item in enumerate(statement.tokens):
-            if item.ttype in Keyword and item.value.lower() == 'limit':
-                limit_token = statement.tokens[pos + 2]
-                return self._get_limit_from_token(limit_token)
+        idx, _ = statement.token_next_by(m=(Keyword, 'LIMIT'))
+        if idx is not None:
+            _, token = statement.token_next(idx=idx)
+            if token:
+                if isinstance(token, IdentifierList):
+                    _, token = token.token_next(idx=-1)
+                if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
+                    return int(token.value)
 
     def get_query_with_new_limit(self, new_limit):
         """returns the query with the specified limit"""
