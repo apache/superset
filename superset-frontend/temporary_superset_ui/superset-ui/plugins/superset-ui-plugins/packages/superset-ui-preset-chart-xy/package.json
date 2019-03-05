@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.0.0",
+  "version": "0.10.0",
   "description": "Superset Chart - XY",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -27,21 +27,21 @@
   },
   "private": true,
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.76",
     "@data-ui/theme": "^0.0.75",
+    "@data-ui/xy-chart": "^0.0.76",
     "@vx/axis": "^0.0.184",
     "@vx/group": "^0.0.183",
     "@vx/legend": "^0.0.183",
     "@vx/responsive": "^0.0.184",
-    "@vx/shape": "^0.0.184",
     "@vx/scale": "^0.0.182",
+    "@vx/shape": "^0.0.184",
     "d3-array": "^2.0.3",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "@superset-ui/core": "^0.10.0",
     "@superset-ui/chart": "^0.10.0",
     "@superset-ui/color": "^0.10.0",
+    "@superset-ui/core": "^0.10.0",
     "@superset-ui/dimension": "^0.10.0",
     "@superset-ui/number-format": "^0.10.0",
     "@superset-ui/time-format": "^0.10.0",

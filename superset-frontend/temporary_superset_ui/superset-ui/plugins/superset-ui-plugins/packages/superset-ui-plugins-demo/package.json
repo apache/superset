@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugins-demo",
-  "version": "0.1.1",
+  "version": "0.10.0",
   "description": "Storybook for Superset UI Plugins 🔌💡",
   "private": true,
   "main": "index.js",
@@ -37,18 +37,18 @@
     "@storybook/react": "^4.1.11",
     "@superset-ui/chart": "^0.10.0",
     "@superset-ui/color": "^0.10.0",
-    "@superset-ui/core": "^0.10.0",
     "@superset-ui/connection": "^0.10.0",
+    "@superset-ui/core": "^0.10.0",
     "@superset-ui/translation": "^0.10.0",
     "babel-loader": "^8.0.4",
+    "bootstrap": "^3.3.6",
     "cache-loader": "^1.2.2",
     "fork-ts-checker-webpack-plugin": "^0.4.9",
-    "thread-loader": "^1.2.0",
-    "ts-loader": "^5.2.0",
-    "bootstrap": "^3.3.6",
     "git-directory-deploy": "^1.5.1",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
-    "storybook-addon-jsx": "^5.4.0"
+    "storybook-addon-jsx": "^5.4.0",
+    "thread-loader": "^1.2.0",
+    "ts-loader": "^5.2.0"
   }
 }
