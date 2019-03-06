@@ -49,7 +49,6 @@ def make_shell_context():
 @app.cli.command()
 def init():
     """Inits the Superset application"""
-    utils.get_or_create_main_db()
     security_manager.sync_role_definitions()
 
 
@@ -457,7 +456,6 @@ def load_test_users_run():
         gamma_sqllab_role = security_manager.add_role('gamma_sqllab')
         for perm in security_manager.find_role('Gamma').permissions:
             security_manager.add_permission_role(gamma_sqllab_role, perm)
-        utils.get_or_create_main_db()
         db_perm = utils.get_main_database(security_manager.get_session).perm
         security_manager.merge_perm('database_access', db_perm)
         db_pvm = security_manager.find_permission_view_menu(
