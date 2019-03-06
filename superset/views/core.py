@@ -58,6 +58,7 @@ from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
+from superset.utils.decorators import etag_cache
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -1207,6 +1208,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
+    @etag_cache(60)
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
 

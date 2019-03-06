@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib2 import contextmanager
+from datetime import datetime, timedelta
+from functools import wraps
 
+from flask import request
+
+from superset import cache
 from superset.utils.dates import now_as_float
 
 
@@ -29,3 +34,45 @@ def stats_timing(stats_key, stats_logger):
         raise e
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
+
+
+def etag_cache(max_age):
+    """
+    A decorator for caching views and handling etag conditional requests.
+
+    The decorator caches the response, and returning headers for etag and last
+    modified. If the client makes a request that matches, the server will
+    return a "304 Not Mofified" status.
+
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                # create key from args, kwargs and POST content
+                cache_key = wrapper.make_cache_key(f, request.form, *args, **kwargs)
+                response = cache.get(cache_key)
+            except Exception:
+                logger.exception('Exception possibly due to cache backend.')
+                return f(*args, **kwargs)
+
+            if response is None:
+                response = f(*args, **kwargs)
+                response.cache_control.max_age = max_age
+                response.cache_control.public = True
+                response.last_modified = datetime.utcnow()
+                response.expires = response.last_modified + timedelta(seconds=max_age)
+                response.add_etag()
+                try:
+                    cache.set(cache_key, response, timeout=max_age)
+                except Exception:
+                    logger.exception("Exception possibly due to cache backend.")
+
+            return response.make_conditional(request)
+
+        wrapper.uncached = f
+        wrapper.cache_timeout = max_age
+        wrapper.make_cache_key = cache._memoize_make_cache_key(make_name=None, timeout=max_age)
+        return wrapper
+
+    return decorator
