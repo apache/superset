@@ -146,7 +146,7 @@ const propTypes = {
   // 'bar', 'dist-bar' or 'area'
   showControls: PropTypes.bool,
   // 'line' only
-  showBrush: PropTypes.oneOf([true, false, 'auto']),
+  showBrush: PropTypes.oneOf([true, 'yes', false, 'no', 'auto']),
   onBrushEnd: PropTypes.func,
   // 'line-multi' or 'dual-line'
   yAxis2Format: PropTypes.string,

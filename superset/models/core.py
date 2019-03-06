@@ -43,6 +43,7 @@ from urllib import parse  # noqa
 config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
+log_query = config.get('QUERY_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
@@ -817,12 +818,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
+        def _log_query(sql):
+            if log_query:
+                log_query(engine.url, sql, schema, username, __name__)
+
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 for sql in sqls[:-1]:
+                    _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
                     cursor.fetchall()
 
+                _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
                 if cursor.description is not None:
