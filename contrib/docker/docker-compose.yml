@@ -7,37 +7,34 @@ services:
       - 6379:6379
     volumes:
       - redis:/data
-  postgres:
-    image: postgres:10
-    restart: unless-stopped
+  mysql:
+    image: mariadb:10.3
+    restart: always
     environment:
-      POSTGRES_DB: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_USER: superset
-    ports:
-      - 5432:5432
-    volumes:
-      - postgres:/var/lib/postgresql/data
+      MYSQL_DATABASE: superset
+      MYSQL_ROOT_PASSWORD: superset
+      MYSQL_USER: superset
+      MYSQL_PASSWORD: superset
   superset:
-    build:
-      context: ../../
-      dockerfile: contrib/docker/Dockerfile
-    restart: unless-stopped
+    image: apache/incubator-superset
+    restart: always
     environment:
-      POSTGRES_DB: superset
-      POSTGRES_USER: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
+      MYSQL_DB: superset
+      MYSQL_USER: superset
+      MYSQL_ROOT_PASSWORD: superset
+      MYSQL_PASSWORD: superset
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
       # If using production, comment development volume below
       #SUPERSET_ENV: production
-      SUPERSET_ENV: development
+      SUPERSET_ENV: production
     ports:
       - 8088:8088
+    command: "tail -f /dev/null"
     depends_on:
-      - postgres
+      - mysql
       - redis
     volumes:
       # this is needed to communicate with the postgres and redis services
@@ -45,7 +42,5 @@ services:
       # this is needed for development, remove with SUPERSET_ENV=production
       - ../../superset:/home/superset/superset
 volumes:
-  postgres:
-    external: false
   redis:
     external: false
