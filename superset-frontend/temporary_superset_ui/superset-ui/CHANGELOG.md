@@ -1,5 +1,11 @@
 # @superset-ui : Change Log
 
+## 0.10.3 (2019-03-07)
+
+### ✨ Features
+
+* feat(superset-ui-dimension): add `mergeMargin()` function (#114) ([c5589384c12f5ff2480e3614cf44b33d85b1299e](https://github.com/apache-superset/superset-ui/commit/c5589384c12f5ff2480e3614cf44b33d85b1299e)), closes [#114](https://github.com/apache-superset/superset-ui/issues/114)
+
 ## v0.10.2
 
 ### ✨ Features
