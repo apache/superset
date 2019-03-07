@@ -90,6 +90,8 @@ spec:
           value: "{{ SUPERSET_ADMIN_USER_LIST }}"  
         - name: APP_NAME
           value: "{{ RVF_APP_NAME }}"
+        - name: SESSION_LIFETIME_SECONDS 
+          value: "{{ SUPERSET_SESSION_LIFETIME_SECONDS }}" 
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:

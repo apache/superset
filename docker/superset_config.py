@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import os
 import yaml
+from datetime import timedelta
 
 from flask_appbuilder.security.manager import AUTH_DB,AUTH_LDAP,AUTH_OID,AUTH_OAUTH
 
@@ -24,6 +25,10 @@ def get_env_variable(var_name, default=None):
             error_msg = 'The environment variable {} was missing, abort...'\
                         .format(var_name)
             raise EnvironmentError(error_msg)
+
+#stale session timeout
+SESSION_LIFETIME_SECONDS = eval(get_env_variable('SESSION_LIFETIME_SECONDS'))
+PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_LIFETIME_SECONDS)
 
 # LDAP configuration
 AUTH_TYPE = eval(get_env_variable('AUTH_TYPE'))
