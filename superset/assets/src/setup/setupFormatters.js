@@ -16,15 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getNumberFormatterRegistry, createSiAtMostNDigitFormatter, NumberFormats } from '@superset-ui/number-format';
+import { getNumberFormatter, getNumberFormatterRegistry, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 
 export default function setupFormatters() {
-  const defaultNumberFormatter = createSiAtMostNDigitFormatter({ n: 3 });
-
   getNumberFormatterRegistry()
-    .registerValue(defaultNumberFormatter.id, defaultNumberFormatter)
-    .setDefaultKey(defaultNumberFormatter.id)
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
     .registerValue(',0', getNumberFormatter(',.4~f'))
@@ -51,7 +47,7 @@ export default function setupFormatters() {
     .registerValue(',0f', getNumberFormatter(',d'))
     .registerValue('+,%', getNumberFormatter('+,.0%'))
     .registerValue('$f', getNumberFormatter('$,d'))
-    .registerValue('+,', getNumberFormatter(NumberFormats.INTEGER_CHANGE))
+    .registerValue('+,', getNumberFormatter(NumberFormats.INTEGER_SIGNED))
     .registerValue(',2f', getNumberFormatter(',.4~f'))
     .registerValue(',g', getNumberFormatter(',.4~f'))
     .registerValue('int', getNumberFormatter(NumberFormats.INTEGER))

@@ -32,6 +32,7 @@ const propTypes = {
     PropTypes.number,
     PropTypes.arrayOf(PropTypes.number),
   ]),
+  valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
   autoSelect: PropTypes.bool,
 };
