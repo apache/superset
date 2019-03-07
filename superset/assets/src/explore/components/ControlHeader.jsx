@@ -77,7 +77,7 @@ export default class ControlHeader extends React.Component {
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}
             >
-              {this.props.label}
+              {t(this.props.label)}
             </span>
             {' '}
             {(this.props.warning) &&

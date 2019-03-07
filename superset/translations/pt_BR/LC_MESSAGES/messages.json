@@ -2627,7 +2627,67 @@
          ],
          "Saved Queries": [
             "Perguntas frequentes"
-         ]
+         ],
+		 "Last day": [
+			"Último Dia"
+		 ],
+		 "Last week": [
+			"Semana Passada"
+		 ],
+		 "Last month": [
+			"Mês Passado"
+		 ],
+		 "Last quarter": [
+			"Último Quarto"
+		 ],
+		 "Last year": [
+			"Ano Passado"
+		 ],
+		 "No filter": [
+			"Sem Filtro"
+		 ],
+		 "seconds": [
+			"segundos"
+		 ],
+		 "minutes": [
+			"minutos"
+		 ],
+		 "hours": [
+			"horas"
+		 ],
+		 "days": [
+			"dias"
+		 ],
+		 "weeks": [
+			"semanas"
+		 ],
+		 "months": [
+			"meses"
+		 ],
+		 "years": [
+			"anos"
+		 ],
+		 "Relative to today": [
+			"Em relação ao dia"
+		 ],
+		 "Defaults": [
+			"Defaults"
+		 ],
+		 "Custom": [
+			"Personalizar"
+		 ],
+		 "Start / end": [
+			"Inicio / Fim"
+		 ],
+		 "Next": [
+			"Próximo"
+		 ],
+		 "Last": [
+			"Último"
+		 ],
+		 "Time range": [
+			"Intervalo de tempo"
+		 ]
       }
    }
 }
