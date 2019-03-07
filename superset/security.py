@@ -22,7 +22,7 @@ import logging
 from flask import g, request, session, url_for
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
-from flask_login import current_user
+from flask_login import current_user, logout_user
 from sqlalchemy import or_
 
 from superset import sql_parse
@@ -202,6 +202,11 @@ class SupersetSecurityManager(SecurityManager):
         return super(SupersetSecurityManager, self).auth_user_db(username, self.decryptMessage(password))
 
     def has_access(self, permission_name, view_name):
+       
+        #add check of user inactive  and make logout
+        if not current_user.is_active:
+            logout_user()
+
         if not current_user.is_authenticated:
             login_path = url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + '.login')
