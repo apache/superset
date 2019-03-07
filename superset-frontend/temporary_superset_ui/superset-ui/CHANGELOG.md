@@ -1,6 +1,6 @@
 # @superset-ui : Change Log
 
-## 0.10.3 (2019-03-07)
+## v0.10.3 (2019-03-07)
 
 ### ✨ Features
 
