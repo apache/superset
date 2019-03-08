@@ -18,6 +18,7 @@ chardet==3.0.4            # via requests
 click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
+croniter==0.3.26
 cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
@@ -63,7 +64,7 @@ py==1.7.0                 # via retry
 pycparser==2.19           # via cffi
 pydruid==0.5.0
 pyhive==0.5.1
-python-dateutil==2.6.1
+python-dateutil==2.6.1mas
 python-editor==1.0.3      # via alembic
 python-geohash==0.8.5
 python3-openid==3.1.0     # via flask-openid
