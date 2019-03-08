@@ -2,14 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover, ListGroup, ListGroupItem } from 'react-bootstrap';
 import { connect } from 'react-redux';
+import { t } from '@superset-ui/translation';
 import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 
-
 import AnnotationLayer from './AnnotationLayer';
-import { t } from '../../../locales';
-
 
 const propTypes = {
   colorScheme: PropTypes.string.isRequired,
@@ -160,10 +158,12 @@ AnnotationLayerControl.defaultProps = defaultProps;
 // directly, could not figure out how to get access to the color_scheme
 function mapStateToProps({ charts, explore }) {
   const chartKey = getChartKey(explore);
+  const chart = charts[chartKey] || charts[0] || {};
+
   return {
     colorScheme: (explore.controls || {}).color_scheme.value,
-    annotationError: charts[chartKey].annotationError,
-    annotationQuery: charts[chartKey].annotationQuery,
+    annotationError: chart.annotationError,
+    annotationQuery: chart.annotationQuery,
     vizType: explore.controls.viz_type.value,
   };
 }

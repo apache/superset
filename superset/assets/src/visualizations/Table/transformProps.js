@@ -1,11 +1,12 @@
-export default function transformProps(basicChartInput) {
+export default function transformProps(chartProps) {
   const {
+    height,
     datasource,
     filters,
     formData,
     onAddFilter,
     payload,
-  } = basicChartInput;
+  } = chartProps;
   const {
     alignPn,
     colorPn,
@@ -40,6 +41,7 @@ export default function transformProps(basicChartInput) {
   });
 
   return {
+    height,
     data: records,
     alignPositiveNegative: alignPn,
     colorPositiveNegative: colorPn,

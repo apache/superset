@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
-import { t } from '../locales';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const propTypes = {
@@ -23,14 +23,14 @@ class URLShortLinkButton extends React.Component {
     this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
-  onShortUrlSuccess(data) {
-    this.setState({
-      shortUrl: data,
-    });
+  onShortUrlSuccess(shortUrl) {
+    this.setState(() => ({
+      shortUrl,
+    }));
   }
 
   getCopyUrl() {
-    getShortUrl(this.props.url, this.onShortUrlSuccess, this.props.addDangerToast);
+    getShortUrl(this.props.url).then(this.onShortUrlSuccess).catch(this.props.addDangerToast);
   }
 
   renderPopover() {
@@ -54,6 +54,7 @@ class URLShortLinkButton extends React.Component {
       <OverlayTrigger
         trigger="click"
         rootClose
+        shouldUpdatePosition
         placement="left"
         onEnter={this.getCopyUrl}
         overlay={this.renderPopover()}

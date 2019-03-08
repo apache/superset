@@ -77,15 +77,13 @@ class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
 
-    def __init__(self, *args, **kwargs):
-        super(DruidTests, self).__init__(*args, **kwargs)
+    @classmethod
+    def setUpClass(cls):
+        cls.create_druid_test_objects()
 
     def get_test_cluster_obj(self):
         return DruidCluster(
             cluster_name='test_cluster',
-            coordinator_host='localhost',
-            coordinator_endpoint='druid/coordinator/v1/metadata',
-            coordinator_port=7979,
             broker_host='localhost',
             broker_port=7980,
             broker_endpoint='druid/v2',
@@ -310,8 +308,6 @@ class DruidTests(SupersetTestCase):
 
         cluster = DruidCluster(
             cluster_name='test_cluster',
-            coordinator_host='localhost',
-            coordinator_port=7979,
             broker_host='localhost',
             broker_port=7980,
             metadata_last_refreshed=datetime.now())

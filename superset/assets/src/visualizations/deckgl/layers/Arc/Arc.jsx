@@ -1,6 +1,5 @@
 import { ArcLayer } from 'deck.gl';
 import { commonLayerProps } from '../common';
-import createAdaptor from '../../createAdaptor';
 import { createCategoricalDeckGLComponent } from '../../factory';
 
 function getPoints(data) {
@@ -22,8 +21,8 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
     getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 
-export default createAdaptor(createCategoricalDeckGLComponent(getLayer, getPoints));
+export default createCategoricalDeckGLComponent(getLayer, getPoints);

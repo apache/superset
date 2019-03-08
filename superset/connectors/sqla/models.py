@@ -12,6 +12,7 @@ from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, Enum, desc, ForeignKey, Integer, or_,
     select, String, Text, ARRAY
 )
+from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship, configure_mappers
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
@@ -19,13 +20,14 @@ from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_continuum import make_versioned
 import sqlparse
 
-from superset import app, db, import_util, security_manager, utils
+from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import QueryResult, AuditMixinNullable
 from superset.utils import DTTM_ALIAS, QueryStatus
+from superset.utils import core as utils, import_datasource
 
 config = app.config
 make_versioned(user_cls=None)
@@ -47,11 +49,11 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.start_dttm >= query_obj['from_dttm'])
         if query_obj['to_dttm']:
             qry = qry.filter(Annotation.end_dttm <= query_obj['to_dttm'])
-        status = QueryStatus.SUCCESS
+        status = utils.QueryStatus.SUCCESS
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = utils.QueryStatus.FAILED
             logging.exception(e)
             error_message = (
                 utils.error_msg_from_exception(e))
@@ -97,8 +99,8 @@ class TableColumn(Model, BaseColumn):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        db_engine_spec = self.table.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(label if label else self.column_name)
+        label = label if label else self.column_name
+        label = self.table.get_label(label)
         if not self.expression:
             col = column(self.column_name).label(label)
         else:
@@ -120,10 +122,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        label = self.table.get_label(utils.DTTM_ALIAS)
+
         pdf = self.python_date_format
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not self.expression and not time_grain and not is_epoch:
-            return column(self.column_name, type_=DateTime).label(DTTM_ALIAS)
+            return column(self.column_name, type_=DateTime).label(label)
 
         expr = self.expression or self.column_name
         if is_epoch:
@@ -137,7 +141,7 @@ class TableColumn(Model, BaseColumn):
             grain = self.table.database.grains_dict().get(time_grain)
             if grain:
                 expr = grain.function.format(col=expr)
-        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
+        return literal_column(expr, type_=DateTime).label(label)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -145,7 +149,7 @@ class TableColumn(Model, BaseColumn):
             return db.session.query(TableColumn).filter(
                 TableColumn.table_id == lookup_column.table_id,
                 TableColumn.column_name == lookup_column.column_name).first()
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to a SQL expression string
@@ -229,8 +233,8 @@ class SqlMetric(Model, BaseMetric):
     export_parent = 'table'
 
     def get_sqla_col(self, label=None):
-        db_engine_spec = self.table.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(label if label else self.metric_name)
+        label = label if label else self.metric_name
+        label = self.table.get_label(label)
         return literal_column(self.expression).label(label)
 
     @property
@@ -240,13 +244,16 @@ class SqlMetric(Model, BaseMetric):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
             return db.session.query(SqlMetric).filter(
                 SqlMetric.table_id == lookup_metric.table_id,
                 SqlMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class TimePeriod(enum.Enum):
@@ -316,7 +323,9 @@ class SqlaTable(Model, BaseDatasource):
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params', 'template_params', 'filter_select_enabled')
+        'sql', 'params', 'template_params', 'filter_select_enabled',
+        'fetch_values_predicate',
+    )
     update_from_object_fields = [
         f for f in export_fields if f not in ('table_name', 'database_id')]
     export_parent = 'database'
@@ -330,6 +339,21 @@ class SqlaTable(Model, BaseDatasource):
         'MIN': sa.func.MIN,
         'MAX': sa.func.MAX,
     }
+
+    def get_label(self, label):
+        """Conditionally mutate a label to conform to db engine requirements
+        and store mapping from mutated label to original label
+
+        :param label: original label
+        :return: Either a string or sqlalchemy.sql.elements.quoted_name if required
+        by db engine
+        """
+        db_engine_spec = self.database.db_engine_spec
+        sqla_label = db_engine_spec.make_label_compatible(label)
+        mutated_label = str(sqla_label)
+        if label != mutated_label:
+            self.mutated_labels[mutated_label] = label
+        return sqla_label
 
     def __repr__(self):
         return self.name
@@ -353,8 +377,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
-        return Markup(anchor.format(**locals()))
+        anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor)
 
     @property
     def schema_perm(self):
@@ -412,7 +436,10 @@ class SqlaTable(Model, BaseDatasource):
     def external_metadata(self):
         cols = self.database.get_columns(self.table_name, schema=self.schema)
         for col in cols:
-            col['type'] = '{}'.format(col['type'])
+            try:
+                col['type'] = str(col['type'])
+            except CompileError:
+                col['type'] = 'UNKNOWN'
         return cols
 
     @property
@@ -445,6 +472,8 @@ class SqlaTable(Model, BaseDatasource):
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
             d['main_dttm_col'] = self.main_dttm_col
+            d['fetch_values_predicate'] = self.fetch_values_predicate
+            d['template_params'] = self.template_params
         return d
 
     def values_for_column(self, column_name, limit=10000):
@@ -526,8 +555,8 @@ class SqlaTable(Model, BaseDatasource):
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get('expressionType')
-        db_engine_spec = self.database.db_engine_spec
-        label = db_engine_spec.make_label_compatible(metric.get('label'))
+        label = utils.get_metric_name(metric)
+        label = self.get_label(label)
 
         if expression_type == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
             column_name = metric.get('column').get('column_name')
@@ -592,6 +621,9 @@ class SqlaTable(Model, BaseDatasource):
                 if database:
                     self.database = database
 
+        # Initialize empty cache to store mutated labels
+        self.mutated_labels = {}
+
         orderby = orderby or []
 
         # For backward compatibility
@@ -621,8 +653,8 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr = literal_column('COUNT(*)').label(
-                db_engine_spec.make_label_compatible('count'))
+            label = self.get_label('ccount')
+            main_metric_expr = literal_column('COUNT(*)').label(label)
 
         select_exprs = []
         groupby_exprs = []
@@ -747,7 +779,8 @@ class SqlaTable(Model, BaseDatasource):
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
-                inner_main_metric_expr = main_metric_expr.label('mme_inner__')
+                label = self.get_label('mme_inner__')
+                inner_main_metric_expr = main_metric_expr.label(label)
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs)
                 subq = subq.select_from(tbl)
@@ -760,26 +793,35 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    if utils.is_adhoc_metric(timeseries_limit_metric):
-                        ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
-                    elif timeseries_limit_metric in metrics_dict:
-                        timeseries_limit_metric = metrics_dict.get(
-                            timeseries_limit_metric,
-                        )
-                        ob = timeseries_limit_metric.get_sqla_col()
-                    else:
-                        raise Exception(_("Metric '{}' is not valid".format(m)))
+                    ob = self._get_timeseries_orderby(
+                        timeseries_limit_metric,
+                        metrics_dict,
+                        cols,
+                    )
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)
 
                 on_clause = []
                 for i, gb in enumerate(groupby):
-                    on_clause.append(
-                        groupby_exprs[i] == column(gb + '__'))
+                    # in this case the column name, not the alias, needs to be
+                    # conditionally mutated, as it refers to the column alias in
+                    # the inner query
+                    col_name = self.get_label(gb + '__')
+                    on_clause.append(groupby_exprs[i] == column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
             else:
+                if timeseries_limit_metric:
+                    orderby = [(
+                        self._get_timeseries_orderby(
+                            timeseries_limit_metric,
+                            metrics_dict,
+                            cols,
+                        ),
+                        False,
+                    )]
+
                 # run subquery to get top groups
                 subquery_obj = {
                     'prequeries': prequeries,
@@ -808,6 +850,19 @@ class SqlaTable(Model, BaseDatasource):
 
         return qry.select_from(tbl)
 
+    def _get_timeseries_orderby(self, timeseries_limit_metric, metrics_dict, cols):
+        if utils.is_adhoc_metric(timeseries_limit_metric):
+            ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, cols)
+        elif timeseries_limit_metric in metrics_dict:
+            timeseries_limit_metric = metrics_dict.get(
+                timeseries_limit_metric,
+            )
+            ob = timeseries_limit_metric.get_sqla_col()
+        else:
+            raise Exception(_("Metric '{}' is not valid".format(timeseries_limit_metric)))
+
+        return ob
+
     def _get_top_groups(self, df, dimensions):
         cols = {col.column_name: col for col in self.columns}
         groups = []
@@ -823,13 +878,15 @@ class SqlaTable(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         sql = self.get_query_str(query_obj)
-        status = QueryStatus.SUCCESS
+        status = utils.QueryStatus.SUCCESS
         error_message = None
         df = None
         try:
             df = self.database.get_df(sql, self.schema)
+            if self.mutated_labels:
+                df = df.rename(index=str, columns=self.mutated_labels)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = utils.QueryStatus.FAILED
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
@@ -870,7 +927,6 @@ class SqlaTable(Model, BaseDatasource):
             .filter(or_(TableColumn.column_name == col.name
                         for col in table.columns)))
         dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
-        db_engine_spec = self.database.db_engine_spec
 
         for col in table.columns:
             try:
@@ -903,9 +959,6 @@ class SqlaTable(Model, BaseDatasource):
         ))
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
-        for metric in metrics:
-            metric.metric_name = db_engine_spec.mutate_expression_label(
-                metric.metric_name)
         self.add_missing_metrics(metrics)
         db.session.merge(self)
         db.session.commit()
@@ -928,7 +981,7 @@ class SqlaTable(Model, BaseDatasource):
         def lookup_database(table):
             return db.session.query(Database).filter_by(
                 database_name=table.params_dict['database_name']).one()
-        return import_util.import_datasource(
+        return import_datasource.import_datasource(
             db.session, i_datasource, lookup_database, lookup_sqlatable,
             import_time)
 

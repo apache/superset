@@ -78,10 +78,4 @@ describe('Chart', () => {
     wrapper.instance().addFilter();
     expect(addFilter.callCount).toBe(1);
   });
-
-  it('should return props.filters when its getFilters method is called', () => {
-    const filters = { column: ['value'] };
-    const wrapper = setup({ filters });
-    expect(wrapper.instance().getFilters()).toBe(filters);
-  });
 });

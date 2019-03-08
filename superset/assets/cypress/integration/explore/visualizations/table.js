@@ -66,6 +66,7 @@ export default () => describe('Table chart', () => {
       const responseBody = await readResponseBlob(xhr.response.body);
       expect(responseBody.data.records.length).to.eq(limit);
     });
+    cy.get('span.label-danger').contains('10 rows');
   });
 
   it('Test table with columns and row limit', () => {

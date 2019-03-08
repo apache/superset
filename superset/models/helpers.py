@@ -15,7 +15,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset.utils import QueryStatus
+from superset.utils.core import QueryStatus
 
 
 def json_to_dict(json_str):
@@ -276,17 +276,6 @@ class AuditMixinNullable(AuditMixin):
     @renders('changed_on')
     def modified(self):
         return humanize.naturaltime(datetime.now() - self.changed_on)
-
-    @property
-    def icons(self):
-        return """
-        <a
-                href="{self.datasource_edit_url}"
-                data-toggle="tooltip"
-                title="{self.datasource}">
-            <i class="fa fa-database"></i>
-        </a>
-        """.format(**locals())
 
 
 class QueryResult(object):

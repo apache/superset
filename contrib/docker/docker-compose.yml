@@ -2,7 +2,7 @@ version: '3'
 services:
   redis:
     image: redis:3.2
-    restart: always
+    restart: unless-stopped
     ports:
       - 6379:6379
     volumes:
@@ -27,7 +27,9 @@ services:
       MYSQL_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      SUPERSET_ENV: local
+      # If using production, comment development volume below
+      #SUPERSET_ENV: production
+      SUPERSET_ENV: production
     ports:
       - 8088:8088
     command: "tail -f /dev/null"
@@ -35,10 +37,10 @@ services:
       - mysql
       - redis
     volumes:
-      - .:/home/work/incubator-superset
-      - superset-node-modules:/home/work/incubator-superset/superset/assets/node_modules
+      # this is needed to communicate with the postgres and redis services
+      - ./superset_config.py:/home/superset/superset/superset_config.py
+      # this is needed for development, remove with SUPERSET_ENV=production
+      - ../../superset:/home/superset/superset
 volumes:
   redis:
-    external: false
-  superset-node-modules:
     external: false

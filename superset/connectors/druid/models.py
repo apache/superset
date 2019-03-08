@@ -30,13 +30,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset import conf, db, import_util, security_manager, utils
+from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult,
 )
-from superset.utils import (
+from superset.utils import core as utils, import_datasource
+from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
 
@@ -79,18 +80,13 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
-    coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer, default=8081)
-    coordinator_endpoint = Column(
-        String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
     broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
 
-    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
-                     'coordinator_endpoint', 'broker_host', 'broker_port',
+    export_fields = ('cluster_name', 'broker_host', 'broker_port',
                      'broker_endpoint', 'cache_timeout')
     update_from_object_fields = export_fields
     export_children = ['datasources']
@@ -120,7 +116,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def get_base_broker_url(self):
         base_url = self.get_base_url(
             self.broker_host, self.broker_port)
-        return '{base_url}/{self.broker_endpoint}'.format(**locals())
+        return f'{base_url}/{self.broker_endpoint}'
 
     def get_pydruid_client(self):
         cli = PyDruid(
@@ -134,7 +130,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
-            self.coordinator_host, self.coordinator_port) + '/status'
+            self.broker_host, self.broker_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     @property
@@ -392,7 +388,7 @@ class DruidColumn(Model, BaseColumn):
                 DruidColumn.datasource_id == lookup_column.datasource_id,
                 DruidColumn.column_name == lookup_column.column_name).first()
 
-        return import_util.import_simple_obj(db.session, i_column, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
 
 class DruidMetric(Model, BaseMetric):
@@ -438,13 +434,16 @@ class DruidMetric(Model, BaseMetric):
                  parent_name=self.datasource.full_name,
                  ) if self.datasource else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
             return db.session.query(DruidMetric).filter(
                 DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
-        return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
 class DruidDatasource(Model, BaseDatasource):
@@ -529,7 +528,7 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.datasource_name)
-        return Markup('<a href="{self.url}">{name}</a>').format(**locals())
+        return Markup(f'<a href="{self.url}">{name}</a>')
 
     @property
     def full_name(self):
@@ -540,7 +539,7 @@ class DruidDatasource(Model, BaseDatasource):
     def time_column_grains(self):
         return {
             'time_columns': [
-                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
+                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes',
                 '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month', 'quarter', 'year',
@@ -553,9 +552,9 @@ class DruidDatasource(Model, BaseDatasource):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
+        url = f'/superset/explore/{self.type}/{self.id}/'
         name = escape(self.datasource_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_metric_obj(self, metric_name):
         return [
@@ -580,7 +579,7 @@ class DruidDatasource(Model, BaseDatasource):
         def lookup_cluster(d):
             return db.session.query(DruidCluster).filter_by(
                 cluster_name=d.cluster_name).one()
-        return import_util.import_datasource(
+        return import_datasource.import_datasource(
             db.session, i_datasource, lookup_cluster, lookup_datasource,
             import_time)
 

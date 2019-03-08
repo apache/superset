@@ -4,13 +4,14 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import visTypes, { sectionsToRender } from '../visTypes';
+import { t } from '@superset-ui/translation';
+
+import controlPanelConfigs, { sectionsToRender } from '../controlPanels';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import controls from '../controls';
 import * as actions from '../actions/exploreActions';
-import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -39,7 +40,8 @@ class ControlPanelsContainer extends React.Component {
     let mapF = controls[controlName].mapStateToProps;
 
     // Looking to find mapStateToProps override for this viz type
-    const controlOverrides = visTypes[this.props.controls.viz_type.value].controlOverrides || {};
+    const config = controlPanelConfigs[this.props.controls.viz_type.value].controlOverrides;
+    const controlOverrides = config || {};
     if (controlOverrides[controlName] && controlOverrides[controlName].mapStateToProps) {
       mapF = controlOverrides[controlName].mapStateToProps;
     }

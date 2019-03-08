@@ -1,12 +1,14 @@
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
-import { SupersetClient } from '@superset-ui/core';
+/* eslint no-param-reassign: ["error", { "props": false }] */
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
-import { COMMON_ERR_MESSAGES } from '../utils/common';
-import { t } from '../locales';
+import getClientErrorObject from '../utils/getClientErrorObject';
+import { allowCrossDomain } from '../utils/hostNamesConfig';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -34,8 +36,8 @@ export function chartUpdateFailed(queryResponse, key) {
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
-export function chartRenderingFailed(error, key) {
-  return { type: CHART_RENDERING_FAILED, error, key };
+export function chartRenderingFailed(error, key, stackTrace) {
+  return { type: CHART_RENDERING_FAILED, error, key, stackTrace };
 }
 
 export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
@@ -66,7 +68,8 @@ export function annotationQueryFailed(annotation, queryResponse, key) {
 export function runAnnotationQuery(annotation, timeout = 60, formData = null, key) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
-    const fd = formData || getState().charts[sliceKey].latestQueryFormData;
+    // make a copy of formData, not modifying original formData
+    const fd = { ...(formData || getState().charts[sliceKey].latestQueryFormData) };
 
     if (!requiresQuery(annotation.sourceType)) {
       return Promise.resolve();
@@ -75,7 +78,13 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     const granularity = fd.time_grain_sqla || fd.granularity;
     fd.time_grain_sqla = granularity;
     fd.granularity = granularity;
-
+    const overridesKeys = Object.keys(annotation.overrides);
+    if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
+      annotation.overrides = {
+        ...annotation.overrides,
+        time_range: null,
+      };
+    }
     const sliceFormData = Object.keys(annotation.overrides).reduce(
       (d, k) => ({
         ...d,
@@ -96,15 +105,16 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       timeout: timeout * 1000,
     })
       .then(({ json }) => dispatch(annotationQuerySuccess(annotation, json, sliceKey)))
-      .catch((err) => {
+      .catch(response => getClientErrorObject(response).then((err) => {
         if (err.statusText === 'timeout') {
           dispatch(annotationQueryFailed(annotation, { error: 'Query Timeout' }, sliceKey));
-        } else if ((err.responseJSON.error || '').toLowerCase().includes('no data')) {
+        } else if ((err.error || '').toLowerCase().includes('no data')) {
           dispatch(annotationQuerySuccess(annotation, err, sliceKey));
         } else if (err.statusText !== 'abort') {
-          dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
+          dispatch(annotationQueryFailed(annotation, err, sliceKey));
         }
-      });
+      }),
+    );
   };
 }
 
@@ -124,6 +134,13 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+// in the sql lab -> explore flow, user can inline edit chart title,
+// then the chart will be assigned a new slice_id
+export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
+export function updateChartId(newId, key = 0) {
+  return { type: UPDATE_CHART_ID, newId, key };
+}
+
 export const ADD_CHART = 'ADD_CHART';
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
@@ -136,6 +153,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       formData,
       endpointType: 'json',
       force,
+      allowDomainSharding: true,
     });
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -143,12 +161,20 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 
     dispatch(chartUpdateStarted(controller, payload, key));
 
-    const queryPromise = SupersetClient.post({
+    let querySettings = {
       url,
       postPayload: { form_data: payload },
       signal,
       timeout: timeout * 1000,
-    })
+    };
+    if (allowCrossDomain) {
+      querySettings = {
+        ...querySettings,
+        mode: 'cors',
+        credentials: 'include',
+      };
+    }
+    const queryPromise = SupersetClient.post(querySettings)
       .then(({ json }) => {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
@@ -163,36 +189,29 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         });
         return dispatch(chartUpdateSucceeded(json, key));
       })
-      .catch((err) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
-          slice_id: key,
-          has_err: true,
-          datasource: formData.datasource,
-          start_offset: logStart,
-          duration: Logger.getTimestamp() - logStart,
-        });
-        if (err.statusText === 'timeout') {
-          dispatch(chartUpdateTimeout(err.statusText, timeout, key));
-        } else if (err.statusText === 'AbortError') {
-          dispatch(chartUpdateStopped(key));
-        } else {
-          let errObject = err;
-          if (err.responseJSON) {
-            errObject = err.responseJSON;
-          } else if (err.stack) {
-            errObject = {
-              error:
-                t('Unexpected error: ') +
-                (err.description || t('(no description, click to see stack trace)')),
-              stacktrace: err.stack,
-            };
-          } else if (err.responseText && err.responseText.indexOf('CSRF') >= 0) {
-            errObject = {
-              error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
-            };
-          }
-          dispatch(chartUpdateFailed(errObject, key));
+      .catch((response) => {
+        const appendErrorLog = (errorDetails) => {
+          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+            slice_id: key,
+            has_err: true,
+            error_details: errorDetails,
+            datasource: formData.datasource,
+            start_offset: logStart,
+            duration: Logger.getTimestamp() - logStart,
+          });
+        };
+
+        if (response.statusText === 'timeout') {
+          appendErrorLog('timeout');
+          return dispatch(chartUpdateTimeout(response.statusText, timeout, key));
+        } else if (response.name === 'AbortError') {
+          appendErrorLog('abort');
+          return dispatch(chartUpdateStopped(key));
         }
+        return getClientErrorObject(response).then((parsedResponse) => {
+          appendErrorLog(parsedResponse.error);
+          return dispatch(chartUpdateFailed(parsedResponse, key));
+        });
       });
 
     const annotationLayers = formData.annotation_layers || [];

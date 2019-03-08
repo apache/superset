@@ -1,9 +1,7 @@
-import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
-import { t } from '../../locales';
-
+import { ParentSize } from '@vx/responsive';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
@@ -13,7 +11,6 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   addHistory: PropTypes.func,
   onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
@@ -31,6 +28,7 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
+  triggerRender: PropTypes.bool,
 };
 
 class ExploreChartPanel extends React.PureComponent {
@@ -59,32 +57,33 @@ class ExploreChartPanel extends React.PureComponent {
 
   renderChart() {
     const { chart } = this.props;
+    const headerHeight = this.props.standalone ? 0 : 80;
+
     return (
-      <ChartContainer
-        chartId={chart.id}
-        containerId={this.props.containerId}
-        datasource={this.props.datasource}
-        formData={this.props.form_data}
-        height={this.getHeight()}
-        slice={this.props.slice}
-        setControlValue={this.props.actions.setControlValue}
-        timeout={this.props.timeout}
-        vizType={this.props.vizType}
-        refreshOverlayVisible={this.props.refreshOverlayVisible}
-        errorMessage={this.props.errorMessage}
-        onQuery={this.props.onQuery}
-        onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
-        annotationData={chart.annotationData}
-        chartAlert={chart.chartAlert}
-        chartStatus={chart.chartStatus}
-        chartUpdateEndTime={chart.chartUpdateEndTime}
-        chartUpdateStartTime={chart.chartUpdateStartTime}
-        latestQueryFormData={chart.latestQueryFormData}
-        lastRendered={chart.lastRendered}
-        queryResponse={chart.queryResponse}
-        queryController={chart.queryController}
-        triggerQuery={chart.triggerQuery}
-      />
+      <ParentSize>
+        {({ width, height }) => (width > 0 && height > 0) && (
+          <ChartContainer
+            width={Math.floor(width)}
+            height={parseInt(this.props.height, 10) - headerHeight}
+            annotationData={chart.annotationData}
+            chartAlert={chart.chartAlert}
+            chartStackTrace={chart.chartStackTrace}
+            chartId={chart.id}
+            chartStatus={chart.chartStatus}
+            triggerRender={this.props.triggerRender}
+            datasource={this.props.datasource}
+            errorMessage={this.props.errorMessage}
+            formData={this.props.form_data}
+            onQuery={this.props.onQuery}
+            queryResponse={chart.queryResponse}
+            refreshOverlayVisible={this.props.refreshOverlayVisible}
+            setControlValue={this.props.actions.setControlValue}
+            timeout={this.props.timeout}
+            triggerQuery={chart.triggerQuery}
+            vizType={this.props.vizType}
+          />
+        )}
+      </ParentSize>
     );
   }
 
@@ -104,7 +103,11 @@ class ExploreChartPanel extends React.PureComponent {
     const isDescription = true;
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
-      $('body').addClass('background-transparent');
+      const standaloneClass = 'background-transparent';
+      const bodyClasses = document.body.className.split(' ');
+      if (bodyClasses.indexOf(standaloneClass) === -1) {
+        document.body.className += ` ${standaloneClass}`;
+      }
       return this.renderChart();
     }
 
@@ -120,7 +123,8 @@ class ExploreChartPanel extends React.PureComponent {
         form_data={this.props.form_data}
         timeout={this.props.timeout}
         chart={this.props.chart}
-      />);
+      />
+    );
     return (
       <div className="chart-container">
         <Panel

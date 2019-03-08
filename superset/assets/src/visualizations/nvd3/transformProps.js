@@ -1,15 +1,17 @@
 import { isTruthy } from '../../utils/common';
 import { formatLabel } from './utils';
 
-export default function transformProps(basicChartInput) {
+export default function transformProps(chartProps) {
   const {
+    width,
+    height,
     annotationData,
     datasource,
     formData,
     onError,
     onAddFilter,
     payload,
-  } = basicChartInput;
+  } = chartProps;
 
   const {
     annotationLayers,
@@ -58,11 +60,13 @@ export default function transformProps(basicChartInput) {
   const data = Array.isArray(rawData)
     ? rawData.map(row => ({
       ...row,
-      key: formatLabel(row.key, datasource.verbose_map),
+      key: formatLabel(row.key, datasource.verboseMap),
     }))
     : rawData;
 
   return {
+    width,
+    height,
     data,
     annotationData,
     annotationLayers,

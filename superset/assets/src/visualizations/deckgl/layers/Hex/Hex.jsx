@@ -1,7 +1,7 @@
 import { HexagonLayer } from 'deck.gl';
-import { commonLayerProps } from '../common';
+
+import { commonLayerProps, getAggFunc  } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
-import createAdaptor from '../../createAdaptor';
 import { createDeckGLComponent } from '../../factory';
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
@@ -17,7 +17,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}`,
     data,
@@ -27,9 +27,9 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     extruded: fd.extruded,
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    getElevationValue: points => points.reduce((sum, point) => sum + point.weight, 0),
-    getColorValue: points => points.reduce((sum, point) => sum + point.weight, 0),
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    getElevationValue: aggFunc,
+    getColorValue: aggFunc,
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 
@@ -37,4 +37,4 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-export default createAdaptor(createDeckGLComponent(getLayer, getPoints));
+export default createDeckGLComponent(getLayer, getPoints);

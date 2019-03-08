@@ -2,19 +2,20 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import AnimatableDeckGLContainer from './AnimatableDeckGLContainer';
 import Legend from '../Legend';
-
-import { getScale } from '../../modules/CategoricalColorNamespace';
 import { hexToRGB } from '../../modules/colors';
 import { getPlaySliderParams } from '../../modules/time';
 import sandboxedEval from '../../modules/sandbox';
+import { fitViewport } from './layers/common';
+
+const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd, data) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme).toFunction();
+  const colorFn = getScale(fd.color_scheme);
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -36,6 +37,7 @@ const propTypes = {
   setControlValue: PropTypes.func.isRequired,
   viewport: PropTypes.object.isRequired,
   getLayer: PropTypes.func.isRequired,
+  getPoints: PropTypes.func.isRequired,
   payload: PropTypes.object.isRequired,
   onAddFilter: PropTypes.func,
   setTooltip: PropTypes.func,
@@ -48,28 +50,75 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    * The container will have an interactive legend, populated from the
    * categories present in the data.
    */
-
-  /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps) {
-    const fd = nextProps.formData;
-
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-    const categories = getCategories(fd, nextProps.payload.data.features);
-
-    return { start, end, getStep, values, disabled, categories };
-  }
   constructor(props) {
     super(props);
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props);
+    this.state = this.getStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
   componentWillReceiveProps(nextProps) {
-    this.setState(CategoricalDeckGLContainer.getDerivedStateFromProps(nextProps, this.state));
+    if (nextProps.payload.form_data !== this.state.formData) {
+      this.setState({ ...this.getStateFromProps(nextProps) });
+    }
+  }
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
+  getStateFromProps(props, state) {
+    const features = props.payload.data.features || [];
+    const timestamps = features.map(f => f.__timestamp);
+    const categories = getCategories(props.formData, features);
+
+    // the state is computed only from the payload; if it hasn't changed, do
+    // not recompute state since this would reset selections and/or the play
+    // slider position due to changes in form controls
+    if (state && props.payload.form_data === state.formData) {
+      return { ...state, categories };
+    }
+
+    // the granularity has to be read from the payload form_data, not the
+    // props formData which comes from the instantaneous controls state
+    const granularity = (
+      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.granularity ||
+      'P1D'
+    );
+
+    const {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+    } = getPlaySliderParams(timestamps, granularity);
+
+    const viewport = props.formData.autozoom
+      ? fitViewport(props.viewport, props.getPoints(features))
+      : props.viewport;
+
+    return {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+      viewport,
+      selected: [],
+      lastClick: 0,
+      formData: props.payload.form_data,
+      categories,
+    };
   }
   getLayers(values) {
     const {
@@ -79,35 +128,42 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       onAddFilter,
       setTooltip,
     } = this.props;
-    let data = [...payload.data.features];
+    let features = payload.data.features
+      ? [...payload.data.features]
+      : [];
 
     // Add colors from categories or fixed color
-    data = this.addColor(data, fd);
+    features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {
       const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-      data = jsFnMutator(data);
+      features = jsFnMutator(features);
     }
 
     // Filter by time
     if (values[0] === values[1] || values[1] === this.end) {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
     } else {
-      data = data.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
+      features = features.filter(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
     }
 
     // Show only categories selected in the legend
+    const cats = this.state.categories;
     if (fd.dimension) {
-      data = data.filter(d => this.state.categories[d.cat_color].enabled);
+      features = features.filter(d => cats[d.cat_color] && cats[d.cat_color].enabled);
     }
 
-    payload.data.features = data;
-    return [getLayer(fd, payload, onAddFilter, setTooltip)];
+    const filteredPayload = {
+      ...payload,
+      data: { ...payload.data, features },
+    };
+
+    return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
     const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme).toFunction();
+    const colorFn = getScale(fd.color_scheme);
     return data.map((d) => {
       let color;
       if (fd.dimension) {
@@ -119,15 +175,19 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
-    categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories, [category]: categoryState };
+    const categories = {
+      ...this.state.categories,
+      [category]: {
+        ...categoryState,
+        enabled: !categoryState.enabled,
+      },
+    };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
       Object.values(categories).forEach((v) => { v.enabled = true; });
     }
-
     this.setState({ categories });
   }
   showSingleCategory(category) {
@@ -146,8 +206,10 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
+          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={this.props.viewport}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
           mapStyle={this.props.formData.mapbox_style}
           setControlValue={this.props.setControlValue}

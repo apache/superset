@@ -12,7 +12,8 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from collections import defaultdict, namedtuple
+from collections import namedtuple
+import hashlib
 import inspect
 import logging
 import os
@@ -35,10 +36,11 @@ import sqlparse
 from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, sql_parse, utils
+from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
-from superset.utils import QueryStatus
+from superset.utils import core as utils
 
+QueryStatus = utils.QueryStatus
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
@@ -227,32 +229,31 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = sorted(
-                    db.inspector.get_table_names(schema))
+                all_datasource_names = db.all_table_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = sorted(
-                    db.inspector.get_view_names(schema))
+                all_datasource_names = db.all_view_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             all_result_sets += [
-                '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+                '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -294,26 +295,16 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
-    @cache_util.memoized_func(
-        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
-        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, db_id,
-                         enable_cache, cache_timeout, force=False):
-        """A function to get all schema names in this db.
-
-        :param inspector: URI string
-        :param db_id: database id
-        :param enable_cache: whether to enable cache for the function
-        :param cache_timeout: timeout settings for cache in second.
-        :param force: force to refresh
-        :return: a list of schema names
-        """
-        return inspector.get_schema_names()
+    def get_schema_names(cls, inspector):
+        return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    def get_view_names(cls, inspector, schema):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -387,16 +378,26 @@ class BaseEngineSpec(object):
     @classmethod
     def make_label_compatible(cls, label):
         """
-        Return a sqlalchemy.sql.elements.quoted_name if the engine requires
-        quoting of aliases to ensure that select query and query results
-        have same case.
+        Conditionally mutate and/or quote a sql column/expression label. If
+        force_column_alias_quotes is set to True, return the label as a
+        sqlalchemy.sql.elements.quoted_name object to ensure that the select query
+        and query results have same case. Otherwise return the mutated label as a
+        regular string.
         """
-        if cls.force_column_alias_quotes is True:
-            return quoted_name(label, True)
-        return label
+        label = cls.mutate_label(label)
+        return quoted_name(label, True) if cls.force_column_alias_quotes else label
 
     @staticmethod
-    def mutate_expression_label(label):
+    def mutate_label(label):
+        """
+        Most engines support mixed case aliases that can include numbers
+        and special characters, like commas, parentheses etc. For engines that
+        have restrictions on what types of aliases are supported, this method
+        can be overridden to ensure that labels conform to the engine's
+        limitations. Mutated labels should be deterministic (input label A always
+        yields output label X) and unique (input labels A and B don't yield the same
+        output label X).
+        """
         return label
 
 
@@ -438,7 +439,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
@@ -485,7 +486,15 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    force_column_alias_quotes = True
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Redshift only supports lowercase column names and aliases.
+        :param str label: Original label which might include uppercase letters
+        :return: String that is supported by the database
+        """
+        return label.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
@@ -511,11 +520,26 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
+    @staticmethod
+    def mutate_label(label):
+        """
+        Oracle 12.1 and earlier support a maximum of 30 byte length object names, which
+        usually means 30 characters.
+        :param str label: Original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        if len(label) > 30:
+            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            # truncate the hash to first 30 characters
+            return hashed_label[:30]
+        return label
+
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as TIMESTAMP)'
@@ -549,6 +573,20 @@ class Db2EngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
 
+    @staticmethod
+    def mutate_label(label):
+        """
+        Db2 for z/OS supports a maximum of 30 byte length object names, which usually
+        means 30 characters.
+        :param str label: Original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        if len(label) > 30:
+            hashed_label = hashlib.md5(label.encode('utf-8')).hexdigest()
+            # truncate the hash to first 30 characters
+            return hashed_label[:30]
+        return label
+
 
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
@@ -569,24 +607,25 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+    def fetch_result_sets(cls, db, datasource_type):
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = sorted(db.inspector.get_table_names())
+            all_datasource_names = db.all_table_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = sorted(db.inspector.get_view_names())
+            all_datasource_names = db.all_view_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         all_result_sets += [
-            '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+            '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -596,7 +635,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
@@ -696,6 +735,16 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
+    def get_view_names(cls, inspector, schema):
+        """Returns an empty list
+
+        get_table_names() function returns all table names and view names,
+        and get_view_names() is not implemented in sqlalchemy_presto.py
+        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
+        """
+        return []
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
@@ -720,12 +769,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -737,10 +782,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 datasource_type.upper(),
             ),
             None)
-        result_sets = defaultdict(list)
+        result_sets = []
         for unused, row in result_set_df.iterrows():
-            result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[''].append('{}.{}'.format(
+            result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
@@ -852,15 +896,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append("{field} = '{value}'".format(**locals()))
+                l.append(f"{field} = '{value}'")
             where_clause = 'WHERE ' + ' AND '.join(l)
 
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(f"""\
             SHOW PARTITIONS FROM {table_name}
             {where_clause}
             {order_by_clause}
             {limit_clause}
-        """).format(**locals())
+        """)
         return sql
 
     @classmethod
@@ -1002,13 +1046,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]),
-        use_tables_cache=True)
-    def fetch_result_sets(cls, db, datasource_type, force=False):
+    def fetch_result_sets(cls, db, datasource_type):
         return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type, force=force)
+            db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -1078,10 +1118,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE TABLE {full_table_name} ( {schema_definition} )
+        sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
-            tblproperties ('skip.header.line.count'='1')""".format(**locals())
+            tblproperties ('skip.header.line.count'='1')"""
         logging.info(form.con.data)
         engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
         engine.execute(sql)
@@ -1211,8 +1251,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             # table is not partitioned
             return False
         for c in columns:
-            if str(c.name) == str(col_name):
-                return qry.where(c == str(value))
+            if c.get('name') == col_name:
+                return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
@@ -1228,7 +1268,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(
             cls, table_name, limit=0, order_by=None, filters=None):
-        return 'SHOW PARTITIONS {table_name}'.format(**locals())
+        return f'SHOW PARTITIONS {table_name}'
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user, username):
@@ -1407,16 +1447,52 @@ class BQEngineSpec(BaseEngineSpec):
         return data
 
     @staticmethod
-    def mutate_expression_label(label):
-        mutated_label = re.sub('[^\w]+', '_', label)
-        if not re.match('^[a-zA-Z_]+.*', mutated_label):
-            raise SupersetTemplateException('BigQuery field_name used is invalid {}, '
-                                            'should start with a letter or '
-                                            'underscore'.format(mutated_label))
-        if len(mutated_label) > 128:
-            raise SupersetTemplateException('BigQuery field_name {}, should be atmost '
-                                            '128 characters'.format(mutated_label))
-        return mutated_label
+    def mutate_label(label):
+        """
+        BigQuery field_name should start with a letter or underscore, contain only
+        alphanumeric characters and be at most 128 characters long. Labels that start
+        with a number are prefixed with an underscore. Any unsupported characters are
+        replaced with underscores and an md5 hash is added to the end of the label to
+        avoid possible collisions. If the resulting label exceeds 128 characters, only
+        the md5 sum is returned.
+        :param str label: the original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        hashed_label = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+
+        # if label starts with number, add underscore as first character
+        mutated_label = '_' + label if re.match(r'^\d', label) else label
+
+        # replace non-alphanumeric characters with underscores
+        mutated_label = re.sub(r'[^\w]+', '_', mutated_label)
+        if mutated_label != label:
+            # add md5 hash to label to avoid possible collisions
+            mutated_label += hashed_label
+
+        # return only hash if length of final label exceeds 128 chars
+        return mutated_label if len(mutated_label) <= 128 else hashed_label
+
+    @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
+        return {
+            'partitions': {
+                'cols': partitions_columns,
+            },
+            'clustering': {
+                'cols': cluster_columns,
+            },
+        }
 
     @classmethod
     def _get_fields(cls, cols):
@@ -1460,12 +1536,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        enable_cache=lambda *args, **kwargs: kwargs.get('enable_cache', False),
-        timeout=lambda *args, **kwargs: kwargs.get('cache_timeout'),
-        key=lambda *args, **kwargs: 'db:{}:schema_list'.format(kwargs.get('db_id')))
-    def get_schema_names(cls, inspector, db_id,
-                         enable_cache, cache_timeout, force=False):
+    def get_schema_names(cls, inspector):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas

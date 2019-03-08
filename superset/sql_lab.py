@@ -14,18 +14,19 @@ from sqlalchemy.pool import NullPool
 from superset import app, dataframe, db, results_backend, security_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import (
-    get_celery_app,
+from superset.tasks.celery_app import app as celery_app
+from superset.utils.core import (
     json_iso_dttm_ser,
     now_as_float,
     QueryStatus,
+    sources,
     zlib_compress,
 )
 
 config = app.config
-celery_app = get_celery_app(config)
-stats_logger = app.config.get('STATS_LOGGER')
+stats_logger = config.get('STATS_LOGGER')
 SQLLAB_TIMEOUT = config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC', 600)
+log_query = config.get('QUERY_LOGGER')
 
 
 class SqlLabException(Exception):
@@ -76,7 +77,9 @@ def session_scope(nullpool):
         session.close()
 
 
-@celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
+@celery_app.task(name='sql_lab.get_sql_results',
+                 bind=True,
+                 soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
         user_name=None, start_time=None):
@@ -150,10 +153,11 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    if (superset_query.is_select() and SQL_MAX_ROWS and
-            (not query.limit or query.limit > SQL_MAX_ROWS)):
-        query.limit = SQL_MAX_ROWS
-        executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
+    if superset_query.is_select():
+        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
+            query.limit = SQL_MAX_ROWS
+        if query.limit:
+            executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
@@ -173,12 +177,21 @@ def execute_sql(
             schema=query.schema,
             nullpool=True,
             user_name=user_name,
+            source=sources.get('sql_lab', None),
         )
         conn = engine.raw_connection()
         cursor = conn.cursor()
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
         query_start_time = now_as_float()
+        if log_query:
+            log_query(
+                query.database.sqlalchemy_uri,
+                query.executed_sql,
+                query.schema,
+                user_name,
+                __name__,
+            )
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)

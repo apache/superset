@@ -7,7 +7,6 @@ import DeckGLContainer from '../../DeckGLContainer';
 import { hexToRGB } from '../../../../modules/colors';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps } from '../common';
-import createAdaptor from '../../createAdaptor';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -89,7 +88,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     stroked: fd.stroked,
     extruded: fd.extruded,
     pointRadiusScale: fd.point_radius_scale,
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 
@@ -137,4 +136,4 @@ function deckGeoJson(props) {
 deckGeoJson.propTypes = propTypes;
 deckGeoJson.defaultProps = defaultProps;
 
-export default createAdaptor(deckGeoJson);
+export default deckGeoJson;

@@ -7,7 +7,6 @@ import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps, fitViewport } from '../common';
-import createAdaptor from '../../createAdaptor';
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -44,7 +43,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: d => d.weight || 0,
-    ...commonLayerProps(fd, onAddFilter, setTooltip),
+    ...commonLayerProps(fd, setTooltip),
   });
 }
 
@@ -62,24 +61,67 @@ const defaultProps = {
 };
 
 class DeckGLScreenGrid extends React.PureComponent {
-  /* eslint-disable-next-line react/sort-comp */
-  static getDerivedStateFromProps(nextProps) {
-    const fd = nextProps.formData;
-
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
-    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    const { start, end, getStep, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
-
-    return { start, end, getStep, values, disabled };
-  }
   constructor(props) {
     super(props);
+
     this.state = DeckGLScreenGrid.getDerivedStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
+    this.onValuesChange = this.onValuesChange.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
-    this.setState(DeckGLScreenGrid.getDerivedStateFromProps(nextProps, this.state));
+  static getDerivedStateFromProps(props, state) {
+    // the state is computed only from the payload; if it hasn't changed, do
+    // not recompute state since this would reset selections and/or the play
+    // slider position due to changes in form controls
+    if (state && props.payload.form_data === state.formData) {
+      return null;
+    }
+
+    const features = props.payload.data.features || [];
+    const timestamps = features.map(f => f.__timestamp);
+
+    // the granularity has to be read from the payload form_data, not the
+    // props formData which comes from the instantaneous controls state
+    const granularity = (
+      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.granularity ||
+      'P1D'
+    );
+
+    const {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+    } = getPlaySliderParams(timestamps, granularity);
+
+    const viewport = props.formData.autozoom
+      ? fitViewport(props.viewport, getPoints(features))
+      : props.viewport;
+
+    return {
+      start,
+      end,
+      getStep,
+      values,
+      disabled,
+      viewport,
+      selected: [],
+      lastClick: 0,
+      formData: props.payload.form_data,
+    };
+  }
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
   }
   getLayers(values) {
     const filters = [];
@@ -102,11 +144,7 @@ class DeckGLScreenGrid extends React.PureComponent {
   }
 
   render() {
-    const { formData, payload } = this.props;
-    const viewport = formData.autozoom
-      ? fitViewport(this.props.viewport, getPoints(payload.data.features))
-      : this.props.viewport;
-
+    const { formData, payload, setControlValue } = this.props;
     return (
       <div>
         <AnimatableDeckGLContainer
@@ -115,11 +153,13 @@ class DeckGLScreenGrid extends React.PureComponent {
           end={this.state.end}
           getStep={this.state.getStep}
           values={this.state.values}
+          onValuesChange={this.onValuesChange}
           disabled={this.state.disabled}
-          viewport={viewport}
-          mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
-          mapStyle={this.props.formData.mapbox_style}
-          setControlValue={this.props.setControlValue}
+          viewport={this.state.viewport}
+          onViewportChange={this.onViewportChange}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
           aggregation
         />
       </div>
@@ -130,4 +170,4 @@ class DeckGLScreenGrid extends React.PureComponent {
 DeckGLScreenGrid.propTypes = propTypes;
 DeckGLScreenGrid.defaultProps = defaultProps;
 
-export default createAdaptor(DeckGLScreenGrid);
+export default DeckGLScreenGrid;

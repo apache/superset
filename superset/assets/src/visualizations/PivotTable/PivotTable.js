@@ -2,7 +2,8 @@ import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import { d3format, fixDataTableBodyHeight } from '../../modules/utils';
+import { formatNumber } from '@superset-ui/number-format';
+import { fixDataTableBodyHeight } from '../../modules/utils';
 import './PivotTable.css';
 
 dt(window, $);
@@ -59,7 +60,7 @@ function PivotTable(element, props) {
       const format = columnFormats[metric] || numberFormat || '.3s';
       const tdText = $(this)[0].textContent;
       if (!Number.isNaN(tdText) && tdText !== '') {
-        $(this)[0].textContent = d3format(format, tdText);
+        $(this)[0].textContent = formatNumber(format, tdText);
         $(this).attr('data-sort', tdText);
       }
     });

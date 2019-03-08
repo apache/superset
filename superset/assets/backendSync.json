@@ -1,23 +1,5 @@
 {
   "controls": {
-    "metrics": {
-      "type": "MetricsControl",
-      "multi": true,
-      "label": "Metrics",
-      "validators": [
-        null
-      ],
-      "description": "One or many metrics to display"
-    },
-    "metric": {
-      "type": "MetricsControl",
-      "multi": false,
-      "label": "Metric",
-      "validators": [
-        null
-      ],
-      "description": "One or many metrics to display"
-    },
     "datasource": {
       "type": "DatasourceControl",
       "label": "Datasource",
@@ -30,12 +12,21 @@
       "default": "table",
       "description": "The type of visualization to display"
     },
+    "metrics": {
+      "type": "SelectControl",
+      "multi": true,
+      "label": "Metrics",
+      "validators": [
+        null
+      ],
+      "valueKey": "metric_name",
+      "description": "One or many metrics to display"
+    },
     "percent_metrics": {
-      "type": "MetricsControl",
+      "type": "SelectControl",
       "multi": true,
       "label": "Percentage Metrics",
-      "validators": [],
-      "default": [],
+      "valueKey": "metric_name",
       "description": "Metrics for which percentage of total are to be displayed"
     },
     "y_axis_bounds": {
@@ -46,7 +37,7 @@
         null,
         null
       ],
-      "description": "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent."
+      "description": "Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent."
     },
     "order_by_cols": {
       "type": "SelectControl",
@@ -67,82 +58,30 @@
       },
       "renderTrigger": true
     },
-    "target_color_picker": {
-      "label": "Target Color",
-      "description": "Color of the target location",
-      "type": "ColorPickerControl",
-      "default": {
-        "r": 0,
-        "g": 122,
-        "b": 135,
-        "a": 1
-      },
-      "renderTrigger": true
-    },
-    "legend_position": {
-      "label": "Legend Position",
-      "description": "Choose the position of the legend",
+    "metric": {
       "type": "SelectControl",
+      "label": "Metric",
       "clearable": false,
-      "default": "tr",
-      "choices": [
-        [
-          "tl",
-          "Top left"
-        ],
-        [
-          "tr",
-          "Top right"
-        ],
-        [
-          "bl",
-          "Bottom left"
-        ],
-        [
-          "br",
-          "Bottom right"
-        ]
-      ],
-      "renderTrigger": true
-    },
-    "fill_color_picker": {
-      "label": "Fill Color",
-      "description": " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON",
-      "type": "ColorPickerControl",
-      "default": {
-        "r": 0,
-        "g": 122,
-        "b": 135,
-        "a": 1
-      },
-      "renderTrigger": true
-    },
-    "stroke_color_picker": {
-      "label": "Stroke Color",
-      "description": " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON",
-      "type": "ColorPickerControl",
-      "default": {
-        "r": 0,
-        "g": 122,
-        "b": 135,
-        "a": 1
-      },
-      "renderTrigger": true
-    },
-    "metric_2": {
-      "type": "MetricsControl",
-      "multi": false,
-      "label": "Right Axis Metric",
+      "description": "Choose the metric",
       "validators": [
         null
       ],
+      "valueKey": "metric_name"
+    },
+    "metric_2": {
+      "type": "SelectControl",
+      "label": "Right Axis Metric",
+      "default": null,
+      "validators": [
+        null
+      ],
+      "clearable": true,
       "description": "Choose a metric for right axis",
-      "clearable": true
+      "valueKey": "metric_name"
     },
     "stacked_style": {
       "type": "SelectControl",
       "label": "Stacked Style",
-      "renderTrigger": true,
       "choices": [
         [
           "stack",
@@ -217,6 +156,10 @@
           "fire"
         ],
         [
+          "blue_white_yellow",
+          "blue/white/yellow"
+        ],
+        [
           "white_black",
           "white/black"
         ],
@@ -231,166 +174,6 @@
         [
           "pink_grey",
           "pink/white/grey"
-        ],
-        [
-          "greens",
-          "greens"
-        ],
-        [
-          "purples",
-          "purples"
-        ],
-        [
-          "oranges",
-          "oranges"
-        ],
-        [
-          "blue_white_yellow",
-          "blue/white/yellow"
-        ],
-        [
-          "red_yellow_blue",
-          "red/yellowish/blue"
-        ],
-        [
-          "brown_white_green",
-          "brown/white/green"
-        ],
-        [
-          "purple_white_green",
-          "purple/white/green"
-        ],
-        [
-          "schemeBrBG",
-          "brown/green"
-        ],
-        [
-          "schemePRGn",
-          "purple/green"
-        ],
-        [
-          "schemePiYG",
-          "pink/green"
-        ],
-        [
-          "schemePuOr",
-          "purple/orange"
-        ],
-        [
-          "schemeRdBu",
-          "red/blue"
-        ],
-        [
-          "schemeRdGy",
-          "red/gray/black"
-        ],
-        [
-          "schemeRdYlBu",
-          "red/yellow/blue"
-        ],
-        [
-          "schemeRdYlGn",
-          "red/yellow/green"
-        ],
-        [
-          "schemeSpectral",
-          "rainbow"
-        ],
-        [
-          "schemeBlues",
-          "d3/blues"
-        ],
-        [
-          "schemeGreens",
-          "d3/greens"
-        ],
-        [
-          "schemeGrays",
-          "d3/grays"
-        ],
-        [
-          "schemeOranges",
-          "d3/oranges"
-        ],
-        [
-          "schemePurples",
-          "d3/purples"
-        ],
-        [
-          "schemeReds",
-          "d3/reds"
-        ],
-        [
-          "schemeViridis",
-          "d3/purple/blue/green/yellow"
-        ],
-        [
-          "schemeInferno",
-          "d3/purple/red/orange/yellow"
-        ],
-        [
-          "schemeMagma",
-          "d3/purple/pink/peach"
-        ],
-        [
-          "schemeWarm",
-          "d3/warm/purple/pink/yellow/green"
-        ],
-        [
-          "schemeCool",
-          "d3/cool/blue/green"
-        ],
-        [
-          "schemeCubehelixDefault",
-          "d3/black/green/brown/pink/blue"
-        ],
-        [
-          "schemeBuGn",
-          "d3/blue/green"
-        ],
-        [
-          "schemeBuPu",
-          "d3/blue/purple"
-        ],
-        [
-          "schemeGnBu",
-          "d3/green/blue"
-        ],
-        [
-          "schemeOrRd",
-          "d3/orange/red"
-        ],
-        [
-          "schemePuBuGn",
-          "d3/purple/blue/green"
-        ],
-        [
-          "schemePuBu",
-          "d3/purple/blue"
-        ],
-        [
-          "schemePuRd",
-          "d3/purple/red"
-        ],
-        [
-          "schemeRdPu",
-          "d3/red/purple"
-        ],
-        [
-          "schemeYlGnBu",
-          "d3/yellow/green/blue"
-        ],
-        [
-          "schemeYlGn",
-          "d3/yellow/green"
-        ],
-        [
-          "schemeYlOrBr",
-          "d3/yellow/brown"
-        ],
-        [
-          "schemeYlOrRd",
-          "d3/yellow/orange/red"
         ]
       ],
       "default": "blue_white_yellow",
@@ -428,406 +211,6 @@
           "#E70B81",
           "#FAFAFA",
           "#666666"
-        ],
-        "greens": [
-          "#ffffcc",
-          "#78c679",
-          "#006837"
-        ],
-        "purples": [
-          "#f2f0f7",
-          "#9e9ac8",
-          "#54278f"
-        ],
-        "oranges": [
-          "#fef0d9",
-          "#fc8d59",
-          "#b30000"
-        ],
-        "red_yellow_blue": [
-          "#d7191c",
-          "#fdae61",
-          "#ffffbf",
-          "#abd9e9",
-          "#2c7bb6"
-        ],
-        "brown_white_green": [
-          "#a6611a",
-          "#dfc27d",
-          "#f5f5f5",
-          "#80cdc1",
-          "#018571"
-        ],
-        "purple_white_green": [
-          "#7b3294",
-          "#c2a5cf",
-          "#f7f7f7",
-          "#a6dba0",
-          "#008837"
-        ],
-        "schemeBrBG": [
-          "#543005",
-          "#8c510a",
-          "#bf812d",
-          "#dfc27d",
-          "#f6e8c3",
-          "#c7eae5",
-          "#80cdc1",
-          "#35978f",
-          "#01665e",
-          "#003c30"
-        ],
-        "schemePRGn": [
-          "#40004b",
-          "#762a83",
-          "#9970ab",
-          "#c2a5cf",
-          "#e7d4e8",
-          "#d9f0d3",
-          "#a6dba0",
-          "#5aae61",
-          "#1b7837",
-          "#00441b"
-        ],
-        "schemePiYG": [
-          "#8e0152",
-          "#c51b7d",
-          "#de77ae",
-          "#f1b6da",
-          "#fde0ef",
-          "#e6f5d0",
-          "#b8e186",
-          "#7fbc41",
-          "#4d9221",
-          "#276419"
-        ],
-        "schemePuOr": [
-          "#2d004b",
-          "#542788",
-          "#8073ac",
-          "#b2abd2",
-          "#d8daeb",
-          "#fee0b6",
-          "#fdb863",
-          "#e08214",
-          "#b35806",
-          "#7f3b08"
-        ],
-        "schemeRdBu": [
-          "#67001f",
-          "#b2182b",
-          "#d6604d",
-          "#f4a582",
-          "#fddbc7",
-          "#d1e5f0",
-          "#92c5de",
-          "#4393c3",
-          "#2166ac",
-          "#053061"
-        ],
-        "schemeRdGy": [
-          "#67001f",
-          "#b2182b",
-          "#d6604d",
-          "#f4a582",
-          "#fddbc7",
-          "#e0e0e0",
-          "#bababa",
-          "#878787",
-          "#4d4d4d",
-          "#1a1a1a"
-        ],
-        "schemeRdYlBu": [
-          "#a50026",
-          "#d73027",
-          "#f46d43",
-          "#fdae61",
-          "#fee090",
-          "#e0f3f8",
-          "#abd9e9",
-          "#74add1",
-          "#4575b4",
-          "#313695"
-        ],
-        "schemeRdYlGn": [
-          "#a50026",
-          "#d73027",
-          "#f46d43",
-          "#fdae61",
-          "#fee08b",
-          "#d9ef8b",
-          "#a6d96a",
-          "#66bd63",
-          "#1a9850",
-          "#006837"
-        ],
-        "schemeSpectral": [
-          "#9e0142",
-          "#d53e4f",
-          "#f46d43",
-          "#fdae61",
-          "#fee08b",
-          "#e6f598",
-          "#abdda4",
-          "#66c2a5",
-          "#3288bd",
-          "#5e4fa2"
-        ],
-        "schemeBlues": [
-          "#b5d4e9",
-          "#93c3df",
-          "#6daed5",
-          "#4b97c9",
-          "#2f7ebc",
-          "#1864aa",
-          "#0a4a90",
-          "#08306b"
-        ],
-        "schemeGreens": [
-          "#b7e2b1",
-          "#97d494",
-          "#73c378",
-          "#4daf62",
-          "#2f984f",
-          "#157f3b",
-          "#036429",
-          "#00441b"
-        ],
-        "schemeGrays": [
-          "#cecece",
-          "#b4b4b4",
-          "#979797",
-          "#7a7a7a",
-          "#5f5f5f",
-          "#404040",
-          "#1e1e1e",
-          "#000000"
-        ],
-        "schemeOranges": [
-          "#fdc28c",
-          "#fda762",
-          "#fb8d3d",
-          "#f2701d",
-          "#e25609",
-          "#c44103",
-          "#9f3303",
-          "#7f2704"
-        ],
-        "schemePurples": [
-          "#cecee5",
-          "#b6b5d8",
-          "#9e9bc9",
-          "#8782bc",
-          "#7363ac",
-          "#61409b",
-          "#501f8c",
-          "#3f007d"
-        ],
-        "schemeReds": [
-          "#fcaa8e",
-          "#fc8a6b",
-          "#f9694c",
-          "#ef4533",
-          "#d92723",
-          "#bb151a",
-          "#970b13",
-          "#67000d"
-        ],
-        "schemeViridis": [
-          "#482475",
-          "#414487",
-          "#355f8d",
-          "#2a788e",
-          "#21918c",
-          "#22a884",
-          "#44bf70",
-          "#7ad151",
-          "#bddf26",
-          "#fde725"
-        ],
-        "schemeInferno": [
-          "#160b39",
-          "#420a68",
-          "#6a176e",
-          "#932667",
-          "#bc3754",
-          "#dd513a",
-          "#f37819",
-          "#fca50a",
-          "#f6d746",
-          "#fcffa4"
-        ],
-        "schemeMagma": [
-          "#140e36",
-          "#3b0f70",
-          "#641a80",
-          "#8c2981",
-          "#b73779",
-          "#de4968",
-          "#f7705c",
-          "#fe9f6d",
-          "#fecf92",
-          "#fcfdbf"
-        ],
-        "schemeWarm": [
-          "#963db3",
-          "#bf3caf",
-          "#e4419d",
-          "#fe4b83",
-          "#ff5e63",
-          "#ff7847",
-          "#fb9633",
-          "#e2b72f",
-          "#c6d63c",
-          "#aff05b"
-        ],
-        "schemeCool": [
-          "#6054c8",
-          "#4c6edb",
-          "#368ce1",
-          "#23abd8",
-          "#1ac7c2",
-          "#1ddfa3",
-          "#30ef82",
-          "#52f667",
-          "#7ff658",
-          "#aff05b"
-        ],
-        "schemeCubehelixDefault": [
-          "#1a1530",
-          "#163d4e",
-          "#1f6642",
-          "#54792f",
-          "#a07949",
-          "#d07e93",
-          "#cf9cda",
-          "#c1caf3",
-          "#d2eeef",
-          "#ffffff"
-        ],
-        "schemeBuGn": [
-          "#b7e4da",
-          "#8fd3c1",
-          "#68c2a3",
-          "#49b17f",
-          "#2f9959",
-          "#157f3c",
-          "#036429",
-          "#00441b"
-        ],
-        "schemeBuPu": [
-          "#b2cae1",
-          "#9cb3d5",
-          "#8f95c6",
-          "#8c74b5",
-          "#8952a5",
-          "#852d8f",
-          "#730f71",
-          "#4d004b"
-        ],
-        "schemeGnBu": [
-          "#bde5bf",
-          "#9ed9bb",
-          "#7bcbc4",
-          "#58b7cd",
-          "#399cc6",
-          "#1d7eb7",
-          "#0b60a1",
-          "#084081"
-        ],
-        "schemeOrRd": [
-          "#fdca94",
-          "#fdb07a",
-          "#fa8e5d",
-          "#f16c49",
-          "#e04530",
-          "#c81d13",
-          "#a70403",
-          "#7f0000"
-        ],
-        "schemePuBuGn": [
-          "#bec9e2",
-          "#98b9d9",
-          "#69a8cf",
-          "#4096c0",
-          "#19879f",
-          "#037877",
-          "#016353",
-          "#014636"
-        ],
-        "schemePuBu": [
-          "#bfc9e2",
-          "#9bb9d9",
-          "#72a8cf",
-          "#4394c3",
-          "#1a7db6",
-          "#0667a1",
-          "#045281",
-          "#023858"
-        ],
-        "schemePuRd": [
-          "#d0aad2",
-          "#d08ac2",
-          "#dd63ae",
-          "#e33890",
-          "#d71c6c",
-          "#b70b4f",
-          "#8f023a",
-          "#67001f"
-        ],
-        "schemeRdPu": [
-          "#fbb5bc",
-          "#f993b0",
-          "#f369a3",
-          "#e03e98",
-          "#c01788",
-          "#99037c",
-          "#700174",
-          "#49006a"
-        ],
-        "schemeYlGnBu": [
-          "#d5eeb3",
-          "#a9ddb7",
-          "#73c9bd",
-          "#45b4c2",
-          "#2897bf",
-          "#2073b2",
-          "#234ea0",
-          "#1c3185",
-          "#081d58"
-        ],
-        "schemeYlGn": [
-          "#e4f4ac",
-          "#c7e89b",
-          "#a2d88a",
-          "#78c578",
-          "#4eaf63",
-          "#2f944e",
-          "#15793f",
-          "#036034",
-          "#004529"
-        ],
-        "schemeYlOrBr": [
-          "#feeaa1",
-          "#fed676",
-          "#feba4a",
-          "#fb992c",
-          "#ee7918",
-          "#d85b0a",
-          "#b74304",
-          "#8f3204",
-          "#662506"
-        ],
-        "schemeYlOrRd": [
-          "#fee087",
-          "#fec965",
-          "#feab4b",
-          "#fd893c",
-          "#fa5c2e",
-          "#ec3023",
-          "#d31121",
-          "#af0225",
-          "#800026"
         ]
       },
       "isLinear": true
@@ -854,8 +237,7 @@
     },
     "horizon_color_scale": {
       "type": "SelectControl",
-      "renderTrigger": true,
-      "label": "Value Domain",
+      "label": "Horizon Color Scale",
       "choices": [
         [
           "series",
@@ -871,7 +253,7 @@
         ]
       ],
       "default": "series",
-      "description": "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series"
+      "description": "Defines how the colors are attributed."
     },
     "canvas_image_rendering": {
       "type": "SelectControl",
@@ -893,7 +275,6 @@
     "xscale_interval": {
       "type": "SelectControl",
       "label": "XScale Interval",
-      "renderTrigger": true,
       "choices": [
         [
           1,
@@ -1097,7 +478,6 @@
         ]
       ],
       "default": "1",
-      "clearable": false,
       "description": "Number of steps to take between ticks when displaying the X scale"
     },
     "yscale_interval": {
@@ -1305,9 +685,7 @@
           "50"
         ]
       ],
-      "default": "1",
-      "clearable": false,
-      "renderTrigger": true,
+      "default": null,
       "description": "Number of steps to take between ticks when displaying the Y scale"
     },
     "include_time": {
@@ -1315,13 +693,6 @@
       "label": "Include Time",
       "description": "Whether to include the time granularity as defined in the time section",
       "default": false
-    },
-    "autozoom": {
-      "type": "CheckboxControl",
-      "label": "Auto Zoom",
-      "default": true,
-      "renderTrigger": true,
-      "description": "When checked, the map will zoom to your data after each query"
     },
     "show_perc": {
       "type": "CheckboxControl",
@@ -1362,7 +733,6 @@
       "type": "CheckboxControl",
       "label": "Sort Bars",
       "default": false,
-      "renderTrigger": true,
       "description": "Sort bars by x labels."
     },
     "combine_metric": {
@@ -1383,7 +753,7 @@
       "label": "Reduce X ticks",
       "renderTrigger": true,
       "default": false,
-      "description": "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll."
+      "description": "Reduces the number of X-axis ticks to be rendered. If true, the x-axis won't overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into a horizontal scroll."
     },
     "include_series": {
       "type": "CheckboxControl",
@@ -1393,10 +763,8 @@
       "description": "Include series name as an axis"
     },
     "secondary_metric": {
-      "type": "MetricsControl",
-      "multi": false,
+      "type": "SelectControl",
       "label": "Color Metric",
-      "validators": [],
       "default": null,
       "description": "A metric to use for color"
     },
@@ -1430,24 +798,12 @@
           "Germany"
         ],
         [
-          "India",
-          "India"
-        ],
-        [
           "Italy",
           "Italy"
         ],
         [
-          "Portugal",
-          "Portugal"
-        ],
-        [
           "Morocco",
           "Morocco"
-        ],
-        [
-          "Myanmar",
-          "Myanmar"
         ],
         [
           "Netherlands",
@@ -1466,14 +822,6 @@
           "Spain"
         ],
         [
-          "Thailand",
-          "Thailand"
-        ],
-        [
-          "Timorleste",
-          "Timorleste"
-        ],
-        [
           "Uk",
           "Uk"
         ],
@@ -1484,13 +832,9 @@
         [
           "Usa",
           "Usa"
-        ],
-        [
-          "Zambia",
-          "Zambia"
         ]
       ],
-      "description": "The name of country that Superset should display"
+      "description": "The name of the country that Superset should display"
     },
     "country_fieldtype": {
       "type": "SelectControl",
@@ -1582,32 +926,7 @@
       "multi": true,
       "label": "Columns",
       "default": [],
-      "description": "Columns to display",
-      "valueKey": "column_name"
-    },
-    "spatial": {
-      "type": "SpatialControl",
-      "label": "Longitude & Latitude",
-      "validators": [
-        null
-      ],
-      "description": "Point to your spatial columns"
-    },
-    "start_spatial": {
-      "type": "SpatialControl",
-      "label": "Start Longitude & Latitude",
-      "validators": [
-        null
-      ],
-      "description": "Point to your spatial columns"
-    },
-    "end_spatial": {
-      "type": "SpatialControl",
-      "label": "End Longitude & Latitude",
-      "validators": [
-        null
-      ],
-      "description": "Point to your spatial columns"
+      "description": "Columns to display"
     },
     "longitude": {
       "type": "SelectControl",
@@ -1626,91 +945,6 @@
         null
       ],
       "description": "Select the latitude column"
-    },
-    "filter_nulls": {
-      "type": "CheckboxControl",
-      "label": "Ignore null locations",
-      "default": true,
-      "description": "Whether to ignore locations that are null"
-    },
-    "geojson": {
-      "type": "SelectControl",
-      "label": "GeoJson Column",
-      "validators": [
-        null
-      ],
-      "description": "Select the geojson column"
-    },
-    "polygon": {
-      "type": "SelectControl",
-      "label": "Polygon Column",
-      "validators": [
-        null
-      ],
-      "description": "Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points"
-    },
-    "point_radius_scale": {
-      "type": "SelectControl",
-      "freeForm": true,
-      "label": "Point Radius Scale",
-      "validators": [
-        null
-      ],
-      "default": null,
-      "choices": [
-        [
-          0,
-          "0"
-        ],
-        [
-          100,
-          "100"
-        ],
-        [
-          200,
-          "200"
-        ],
-        [
-          300,
-          "300"
-        ],
-        [
-          500,
-          "500"
-        ]
-      ]
-    },
-    "stroke_width": {
-      "type": "SelectControl",
-      "freeForm": true,
-      "label": "Stroke Width",
-      "validators": [
-        null
-      ],
-      "default": null,
-      "renderTrigger": true,
-      "choices": [
-        [
-          1,
-          "1"
-        ],
-        [
-          2,
-          "2"
-        ],
-        [
-          3,
-          "3"
-        ],
-        [
-          4,
-          "4"
-        ],
-        [
-          5,
-          "5"
-        ]
-      ]
     },
     "all_columns_x": {
       "type": "SelectControl",
@@ -1743,7 +977,6 @@
     },
     "bottom_margin": {
       "type": "SelectControl",
-      "clearable": false,
       "freeForm": true,
       "label": "Bottom Margin",
       "choices": [
@@ -1780,36 +1013,9 @@
       "renderTrigger": true,
       "description": "Bottom margin, in pixels, allowing for more room for axis labels"
     },
-    "x_ticks_layout": {
-      "type": "SelectControl",
-      "label": "X Tick Layout",
-      "choices": [
-        [
-          "auto",
-          "auto"
-        ],
-        [
-          "flat",
-          "flat"
-        ],
-        [
-          "45°",
-          "45°"
-        ],
-        [
-          "staggered",
-          "staggered"
-        ]
-      ],
-      "default": "auto",
-      "clearable": false,
-      "renderTrigger": true,
-      "description": "The way the ticks are laid out on the X axis"
-    },
     "left_margin": {
       "type": "SelectControl",
       "freeForm": true,
-      "clearable": false,
       "label": "Left Margin",
       "choices": [
         [
@@ -1852,68 +1058,56 @@
       "default": "one day",
       "choices": [
         [
-          null,
+          "all",
           "all"
         ],
         [
-          "PT5S",
+          "5 seconds",
           "5 seconds"
         ],
         [
-          "PT30S",
+          "30 seconds",
           "30 seconds"
         ],
         [
-          "PT1M",
+          "1 minute",
           "1 minute"
         ],
         [
-          "PT5M",
+          "5 minutes",
           "5 minutes"
         ],
         [
-          "PT30M",
-          "30 minutes"
-        ],
-        [
-          "PT1H",
+          "1 hour",
           "1 hour"
         ],
         [
-          "PT6H",
+          "6 hour",
           "6 hour"
         ],
         [
-          "P1D",
+          "1 day",
           "1 day"
         ],
         [
-          "P7D",
+          "7 days",
           "7 days"
         ],
         [
-          "P1W",
+          "week",
           "week"
         ],
         [
           "week_starting_sunday",
-          "week starting Sunday"
+          "week_starting_sunday"
         ],
         [
           "week_ending_saturday",
-          "week ending Saturday"
+          "week_ending_saturday"
         ],
         [
-          "P1M",
+          "month",
           "month"
-        ],
-        [
-          "P3M",
-          "quarter"
-        ],
-        [
-          "P1Y",
-          "year"
         ]
       ],
       "description": "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
@@ -1976,7 +1170,6 @@
     },
     "link_length": {
       "type": "SelectControl",
-      "renderTrigger": true,
       "freeForm": true,
       "label": "Link Length",
       "default": "200",
@@ -2018,7 +1211,6 @@
     },
     "charge": {
       "type": "SelectControl",
-      "renderTrigger": true,
       "freeForm": true,
       "label": "Charge",
       "default": "-500",
@@ -2076,13 +1268,12 @@
     "time_grain_sqla": {
       "type": "SelectControl",
       "label": "Time Grain",
-      "default": "P1D",
       "description": "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code."
     },
     "resample_rule": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "Rule",
+      "label": "Resample Rule",
       "default": null,
       "choices": [
         [
@@ -2119,7 +1310,7 @@
     "resample_how": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "How",
+      "label": "Resample How",
       "default": null,
       "choices": [
         [
@@ -2144,7 +1335,7 @@
     "resample_fillmethod": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "Fill Method",
+      "label": "Resample Fill Method",
       "default": null,
       "choices": [
         [
@@ -2162,11 +1353,17 @@
       ],
       "description": "Pandas resample fill method"
     },
-    "time_range": {
+    "since": {
       "type": "DateFilterControl",
       "freeForm": true,
-      "label": "Time range",
-      "default": "Last week"
+      "label": "Since",
+      "default": "7 days ago"
+    },
+    "until": {
+      "type": "DateFilterControl",
+      "freeForm": true,
+      "label": "Until",
+      "default": "now"
     },
     "max_bubble_size": {
       "type": "SelectControl",
@@ -2232,7 +1429,6 @@
     "treemap_ratio": {
       "type": "TextControl",
       "label": "Ratio",
-      "renderTrigger": true,
       "isFloat": true,
       "default": 1.618033988749895,
       "description": "Target aspect ratio for treemap tiles."
@@ -2245,36 +1441,28 @@
       "default": ".3s",
       "choices": [
         [
-          ".1s",
-          ".1s (12345.432 => 10k)"
-        ],
-        [
           ".3s",
-          ".3s (12345.432 => 12.3k)"
-        ],
-        [
-          ",.1%",
-          ",.1% (12345.432 => 1,234,543.2%)"
+          ".3s | 12.3k"
         ],
         [
           ".3%",
-          ".3% (12345.432 => 1234543.200%)"
+          ".3% | 1234543.210%"
         ],
         [
           ".4r",
-          ".4r (12345.432 => 12350)"
+          ".4r | 12350"
         ],
         [
-          ",.3f",
-          ",.3f (12345.432 => 12,345.432)"
+          ".3f",
+          ".3f | 12345.432"
         ],
         [
           "+,",
-          "+, (12345.432 => +12,345.432)"
+          "+, | +12,345.4321"
         ],
         [
           "$,.2f",
-          "$,.2f (12345.432 => $12,345.43)"
+          "$,.2f | $12,345.43"
         ]
       ],
       "description": "D3 format syntax: https://github.com/d3/d3-format"
@@ -2286,7 +1474,7 @@
       "validators": [
         null
       ],
-      "default": 10000,
+      "default": null,
       "choices": [
         [
           10,
@@ -2363,10 +1551,11 @@
           "500"
         ]
       ],
-      "description": "Limits the number of time series that get displayed. A sub query (or an extra phase where sub queries are not supported) is applied to limit the number of time series that get fetched and displayed. This feature is useful when grouping by high cardinality dimension(s)."
+      "default": 50,
+      "description": "Limits the number of time series that get displayed"
     },
     "timeseries_limit_metric": {
-      "type": "MetricsControl",
+      "type": "SelectControl",
       "label": "Sort By",
       "default": null,
       "description": "Metric used to define the top series"
@@ -2409,7 +1598,6 @@
       "type": "TextControl",
       "label": "Multiplier",
       "isFloat": true,
-      "renderTrigger": true,
       "default": 1,
       "description": "Factor to multiply the metric by"
     },
@@ -2418,50 +1606,6 @@
       "label": "Periods",
       "isInt": true,
       "description": "Defines the size of the rolling window function, relative to the time granularity selected"
-    },
-    "cell_size": {
-      "type": "TextControl",
-      "isInt": true,
-      "default": 10,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "label": "Cell Size",
-      "description": "The size of the square cell, in pixels"
-    },
-    "cell_padding": {
-      "type": "TextControl",
-      "isInt": true,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "default": 0,
-      "label": "Cell Padding",
-      "description": "The distance between cells, in pixels"
-    },
-    "cell_radius": {
-      "type": "TextControl",
-      "isInt": true,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "default": 0,
-      "label": "Cell Radius",
-      "description": "The pixel radius"
-    },
-    "steps": {
-      "type": "TextControl",
-      "isInt": true,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "default": 10,
-      "label": "Color Steps",
-      "description": "The number color \"steps\""
     },
     "grid_size": {
       "type": "TextControl",
@@ -2493,34 +1637,33 @@
       "description": "This defines the element to be plotted on the chart"
     },
     "x": {
-      "type": "MetricsControl",
-      "multi": false,
+      "type": "SelectControl",
       "label": "X Axis",
+      "description": "Metric assigned to the [X] axis",
+      "default": null,
       "validators": [
         null
       ],
-      "default": null,
-      "description": "Metric assigned to the [X] axis"
+      "valueKey": "metric_name"
     },
     "y": {
-      "type": "MetricsControl",
-      "multi": false,
+      "type": "SelectControl",
       "label": "Y Axis",
+      "default": null,
       "validators": [
         null
       ],
-      "default": null,
-      "description": "Metric assigned to the [Y] axis"
+      "description": "Metric assigned to the [Y] axis",
+      "valueKey": "metric_name"
     },
     "size": {
-      "type": "MetricsControl",
-      "multi": false,
+      "type": "SelectControl",
       "label": "Bubble Size",
+      "default": null,
       "validators": [
         null
       ],
-      "default": null,
-      "description": "One or many metrics to display"
+      "valueKey": "metric_name"
     },
     "url": {
       "type": "TextControl",
@@ -2556,7 +1699,6 @@
       "freeForm": true,
       "label": "Table Timestamp Format",
       "default": "%Y-%m-%d %H:%M:%S",
-      "renderTrigger": true,
       "validators": [
         null
       ],
@@ -2565,10 +1707,6 @@
         [
           "smart_date",
           "Adaptative formating"
-        ],
-        [
-          "%d/%m/%Y",
-          "%d/%m/%Y | 14/01/2019"
         ],
         [
           "%m/%d/%Y",
@@ -2583,10 +1721,6 @@
           "%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10"
         ],
         [
-          "%d-%m-%Y %H:%M:%S",
-          "%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10"
-        ],
-        [
           "%H:%M:%S",
           "%H:%M:%S | 01:32:10"
         ]
@@ -2595,7 +1729,6 @@
     },
     "series_height": {
       "type": "SelectControl",
-      "renderTrigger": true,
       "freeForm": true,
       "label": "Series Height",
       "default": "25",
@@ -2638,7 +1771,6 @@
     "page_length": {
       "type": "SelectControl",
       "freeForm": true,
-      "renderTrigger": true,
       "label": "Page Length",
       "default": 0,
       "choices": [
@@ -2689,36 +1821,28 @@
       "default": ".3s",
       "choices": [
         [
-          ".1s",
-          ".1s (12345.432 => 10k)"
-        ],
-        [
           ".3s",
-          ".3s (12345.432 => 12.3k)"
-        ],
-        [
-          ",.1%",
-          ",.1% (12345.432 => 1,234,543.2%)"
+          ".3s | 12.3k"
         ],
         [
           ".3%",
-          ".3% (12345.432 => 1234543.200%)"
+          ".3% | 1234543.210%"
         ],
         [
           ".4r",
-          ".4r (12345.432 => 12350)"
+          ".4r | 12350"
         ],
         [
-          ",.3f",
-          ",.3f (12345.432 => 12,345.432)"
+          ".3f",
+          ".3f | 12345.432"
         ],
         [
           "+,",
-          "+, (12345.432 => +12,345.432)"
+          "+, | +12,345.4321"
         ],
         [
           "$,.2f",
-          "$,.2f (12345.432 => $12,345.43)"
+          "$,.2f | $12,345.43"
         ]
       ],
       "description": "D3 format syntax: https://github.com/d3/d3-format"
@@ -2735,10 +1859,6 @@
           "Adaptative formating"
         ],
         [
-          "%d/%m/%Y",
-          "%d/%m/%Y | 14/01/2019"
-        ],
-        [
           "%m/%d/%Y",
           "%m/%d/%Y | 01/14/2019"
         ],
@@ -2749,10 +1869,6 @@
         [
           "%Y-%m-%d %H:%M:%S",
           "%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10"
-        ],
-        [
-          "%d-%m-%Y %H:%M:%S",
-          "%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10"
         ],
         [
           "%H:%M:%S",
@@ -2769,36 +1885,28 @@
       "default": ".3s",
       "choices": [
         [
-          ".1s",
-          ".1s (12345.432 => 10k)"
-        ],
-        [
           ".3s",
-          ".3s (12345.432 => 12.3k)"
-        ],
-        [
-          ",.1%",
-          ",.1% (12345.432 => 1,234,543.2%)"
+          ".3s | 12.3k"
         ],
         [
           ".3%",
-          ".3% (12345.432 => 1234543.200%)"
+          ".3% | 1234543.210%"
         ],
         [
           ".4r",
-          ".4r (12345.432 => 12350)"
+          ".4r | 12350"
         ],
         [
-          ",.3f",
-          ",.3f (12345.432 => 12,345.432)"
+          ".3f",
+          ".3f | 12345.432"
         ],
         [
           "+,",
-          "+, (12345.432 => +12,345.432)"
+          "+, | +12,345.4321"
         ],
         [
           "$,.2f",
-          "$,.2f (12345.432 => $12,345.43)"
+          "$,.2f | $12,345.43"
         ]
       ],
       "description": "D3 format syntax: https://github.com/d3/d3-format"
@@ -2810,36 +1918,28 @@
       "default": ".3s",
       "choices": [
         [
-          ".1s",
-          ".1s (12345.432 => 10k)"
-        ],
-        [
           ".3s",
-          ".3s (12345.432 => 12.3k)"
-        ],
-        [
-          ",.1%",
-          ",.1% (12345.432 => 1,234,543.2%)"
+          ".3s | 12.3k"
         ],
         [
           ".3%",
-          ".3% (12345.432 => 1234543.200%)"
+          ".3% | 1234543.210%"
         ],
         [
           ".4r",
-          ".4r (12345.432 => 12350)"
+          ".4r | 12350"
         ],
         [
-          ",.3f",
-          ",.3f (12345.432 => 12,345.432)"
+          ".3f",
+          ".3f | 12345.432"
         ],
         [
           "+,",
-          "+, (12345.432 => +12,345.432)"
+          "+, | +12,345.4321"
         ],
         [
           "$,.2f",
-          "$,.2f (12345.432 => $12,345.43)"
+          "$,.2f | $12,345.43"
         ]
       ],
       "description": "D3 format syntax: https://github.com/d3/d3-format"
@@ -2856,10 +1956,6 @@
           "Adaptative formating"
         ],
         [
-          "%d/%m/%Y",
-          "%d/%m/%Y | 14/01/2019"
-        ],
-        [
           "%m/%d/%Y",
           "%m/%d/%Y | 01/14/2019"
         ],
@@ -2870,10 +1966,6 @@
         [
           "%Y-%m-%d %H:%M:%S",
           "%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10"
-        ],
-        [
-          "%d-%m-%Y %H:%M:%S",
-          "%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10"
         ],
         [
           "%H:%M:%S",
@@ -2919,8 +2011,7 @@
           "square"
         ]
       ],
-      "renderTrigger": true,
-      "default": "square",
+      "default": "random",
       "description": "Rotation to apply to words in the cloud"
     },
     "line_interpolation": {
@@ -2960,7 +2051,6 @@
       "type": "SelectControl",
       "label": "Label Type",
       "default": "key",
-      "renderTrigger": true,
       "choices": [
         [
           "key",
@@ -3032,7 +2122,6 @@
       "type": "TextControl",
       "isInt": true,
       "label": "Font Size From",
-      "renderTrigger": true,
       "default": "20",
       "description": "Font size for the smallest value in the list"
     },
@@ -3040,7 +2129,6 @@
       "type": "TextControl",
       "isInt": true,
       "label": "Font Size To",
-      "renderTrigger": true,
       "default": "150",
       "description": "Font size for the biggest value in the list"
     },
@@ -3059,31 +2147,16 @@
       "description": "Whether to make the grid 3D"
     },
     "show_brush": {
-      "type": "SelectControl",
-      "label": "Show Range Filter",
+      "type": "CheckboxControl",
+      "label": "Range Filter",
       "renderTrigger": true,
-      "clearable": false,
-      "default": "auto",
-      "choices": [
-        [
-          "yes",
-          "Yes"
-        ],
-        [
-          "no",
-          "No"
-        ],
-        [
-          "auto",
-          "Auto"
-        ]
-      ],
+      "default": false,
       "description": "Whether to display the time range interactive selector"
     },
     "date_filter": {
       "type": "CheckboxControl",
       "label": "Date Filter",
-      "default": true,
+      "default": false,
       "description": "Whether to include a time filter"
     },
     "show_sqla_time_granularity": {
@@ -3114,7 +2187,6 @@
       "type": "CheckboxControl",
       "label": "Data Table",
       "default": false,
-      "renderTrigger": true,
       "description": "Whether to display the interactive data table"
     },
     "include_search": {
@@ -3126,10 +2198,9 @@
     },
     "table_filter": {
       "type": "CheckboxControl",
-      "label": "Emit Filter Events",
-      "renderTrigger": true,
+      "label": "Table Filter",
       "default": false,
-      "description": "Whether to apply filter when items are clicked"
+      "description": "Whether to apply filter when table cell is clicked"
     },
     "align_pn": {
       "type": "CheckboxControl",
@@ -3159,20 +2230,6 @@
       "default": true,
       "description": "Whether to display the legend (toggles)"
     },
-    "send_time_range": {
-      "type": "CheckboxControl",
-      "label": "Propagate",
-      "renderTrigger": true,
-      "default": false,
-      "description": "Send range filter events to other charts"
-    },
-    "show_labels": {
-      "type": "CheckboxControl",
-      "label": "Show Labels",
-      "renderTrigger": true,
-      "default": true,
-      "description": "Whether to display the labels. Note that the label only displays when the the 5% threshold."
-    },
     "show_values": {
       "type": "CheckboxControl",
       "label": "Show Values",
@@ -3180,40 +2237,19 @@
       "default": false,
       "description": "Whether to display the numerical values within the cells"
     },
-    "show_metric_name": {
-      "type": "CheckboxControl",
-      "label": "Show Metric Names",
-      "renderTrigger": true,
-      "default": true,
-      "description": "Whether to display the metric name as a title"
-    },
-    "show_trend_line": {
-      "type": "CheckboxControl",
-      "label": "Show Trend Line",
-      "renderTrigger": true,
-      "default": true,
-      "description": "Whether to display the trend line"
-    },
-    "start_y_axis_at_zero": {
-      "type": "CheckboxControl",
-      "label": "Start y-axis at 0",
-      "renderTrigger": true,
-      "default": true,
-      "description": "Start y-axis at zero. Uncheck to start y-axis at minimum value in the data."
-    },
     "x_axis_showminmax": {
       "type": "CheckboxControl",
       "label": "X bounds",
       "renderTrigger": true,
-      "default": false,
-      "description": "Whether to display the min and max values of the X axis"
+      "default": true,
+      "description": "Whether to display the min and max values of the X-axis"
     },
     "y_axis_showminmax": {
       "type": "CheckboxControl",
       "label": "Y bounds",
       "renderTrigger": true,
-      "default": false,
-      "description": "Whether to display the min and max values of the Y axis"
+      "default": true,
+      "description": "Whether to display the min and max values of the Y-axis"
     },
     "rich_tooltip": {
       "type": "CheckboxControl",
@@ -3227,14 +2263,14 @@
       "label": "Y Log Scale",
       "default": false,
       "renderTrigger": true,
-      "description": "Use a log scale for the Y axis"
+      "description": "Use a log scale for the Y-axis"
     },
     "x_log_scale": {
       "type": "CheckboxControl",
       "label": "X Log Scale",
       "default": false,
       "renderTrigger": true,
-      "description": "Use a log scale for the X axis"
+      "description": "Use a log scale for the X-axis"
     },
     "log_scale": {
       "type": "CheckboxControl",
@@ -3263,68 +2299,38 @@
       "default": false,
       "description": "Compute the contribution to the total"
     },
-    "params": {
+    "num_period_compare": {
       "type": "TextControl",
-      "label": "Params",
-      "default": "{}",
-      "description": "Edit template parameters as JSON"
+      "label": "Period Ratio",
+      "default": "",
+      "isInt": true,
+      "description": "[integer] Number of period to compare against, this is relative to the granularity selected"
+    },
+    "period_ratio_type": {
+      "type": "SelectControl",
+      "label": "Period Ratio Type",
+      "default": "growth",
+      "choices": [
+        [
+          "factor",
+          "factor"
+        ],
+        [
+          "growth",
+          "growth"
+        ],
+        [
+          "value",
+          "value"
+        ]
+      ],
+      "description": "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is (new-previous)"
     },
     "time_compare": {
-      "type": "SelectControl",
-      "multi": true,
-      "freeForm": true,
+      "type": "TextControl",
       "label": "Time Shift",
-      "choices": [
-        [
-          "1 day",
-          "1 day"
-        ],
-        [
-          "1 week",
-          "1 week"
-        ],
-        [
-          "28 days",
-          "28 days"
-        ],
-        [
-          "30 days",
-          "30 days"
-        ],
-        [
-          "52 weeks",
-          "52 weeks"
-        ],
-        [
-          "1 year",
-          "1 year"
-        ]
-      ],
-      "description": "Overlay one or more timeseries from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)"
-    },
-    "comparison_type": {
-      "type": "SelectControl",
-      "label": "Calculation type",
-      "default": "values",
-      "choices": [
-        [
-          "values",
-          "Actual Values"
-        ],
-        [
-          "absolute",
-          "Absolute difference"
-        ],
-        [
-          "percentage",
-          "Percentage change"
-        ],
-        [
-          "ratio",
-          "Ratio"
-        ]
-      ],
-      "description": "How to display time shifts: as individual lines; as the absolute difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts."
+      "default": null,
+      "description": "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)"
     },
     "subheader": {
       "type": "TextControl",
@@ -3341,7 +2347,6 @@
     "mapbox_style": {
       "type": "SelectControl",
       "label": "Map Style",
-      "clearable": false,
       "renderTrigger": true,
       "choices": [
         [
@@ -3369,7 +2374,7 @@
           "Outdoors"
         ]
       ],
-      "default": "mapbox://styles/mapbox/light-v9",
+      "default": "mapbox://styles/mapbox/streets-v9",
       "description": "Base layer map style"
     },
     "clustering_radius": {
@@ -3420,10 +2425,6 @@
     "point_radius_fixed": {
       "type": "FixedOrMetricControl",
       "label": "Point Size",
-      "default": {
-        "type": "fix",
-        "value": 1000
-      },
       "description": "Fixed point radius"
     },
     "point_radius": {
@@ -3492,20 +2493,10 @@
       "isFloat": true,
       "description": "Opacity of all clusters, points, and labels. Between 0 and 1."
     },
-    "opacity": {
-      "type": "SliderControl",
-      "label": "Opacity",
-      "default": 80,
-      "step": 1,
-      "min": 0,
-      "max": 100,
-      "renderTrigger": true,
-      "description": "Opacity, expects values between 0 and 100"
-    },
     "viewport": {
       "type": "ViewportControl",
       "label": "Viewport",
-      "renderTrigger": false,
+      "renderTrigger": true,
       "description": "Parameters related to the view and perspective on the map",
       "default": {
         "longitude": 6.85236157047845,
@@ -3513,8 +2504,7 @@
         "zoom": 1,
         "bearing": 0,
         "pitch": 0
-      },
-      "dontRefreshOnChange": true
+      }
     },
     "viewport_zoom": {
       "type": "TextControl",
@@ -3631,33 +2621,19 @@
       "label": "",
       "default": [],
       "description": "Annotation Layers",
-      "renderTrigger": true,
-      "tabOverride": "data"
-    },
-    "adhoc_filters": {
-      "type": "AdhocFilterControl",
-      "label": "Filters",
-      "default": null,
-      "description": "",
-      "provideFormDataToProps": true
+      "renderTrigger": true
     },
     "slice_id": {
       "type": "HiddenControl",
-      "label": "Chart ID",
+      "label": "Slice ID",
       "hidden": true,
-      "description": "The id of the active chart"
+      "description": "The id of the active slice"
     },
     "cache_timeout": {
       "type": "HiddenControl",
       "label": "Cache Timeout (seconds)",
       "hidden": true,
       "description": "The number of seconds before expiring the cache"
-    },
-    "url_params": {
-      "type": "HiddenControl",
-      "label": "URL Parameters",
-      "hidden": true,
-      "description": "Extra parameters for use in jinja templated queries"
     },
     "order_by_entity": {
       "type": "CheckboxControl",
@@ -3889,18 +2865,6 @@
           "#329262",
           "#5574a6",
           "#3b3eac"
-        ],
-        "lyftColors": [
-          "#EA0B8C",
-          "#6C838E",
-          "#29ABE2",
-          "#33D9C1",
-          "#9DACB9",
-          "#7560AA",
-          "#2D5584",
-          "#831C4A",
-          "#333D47",
-          "#AC2077"
         ]
       }
     },
@@ -3929,13 +2893,6 @@
         null
       ],
       "controlName": "TimeSeriesColumnControl"
-    },
-    "rose_area_proportion": {
-      "type": "CheckboxControl",
-      "label": "Use Area Proportions",
-      "description": "Check if the Rose Chart should use segment area instead of segment radius for proportioning",
-      "default": false,
-      "renderTrigger": true
     },
     "time_series_option": {
       "type": "SelectControl",
@@ -4003,414 +2960,12 @@
       "default": "5",
       "description": "The maximum number of subdivisions of each group; lower values are pruned first"
     },
-    "min_radius": {
-      "type": "TextControl",
-      "label": "Minimum Radius",
-      "isFloat": true,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "default": 2,
-      "description": "Minimum radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this minimum radius."
-    },
-    "max_radius": {
-      "type": "TextControl",
-      "label": "Maximum Radius",
-      "isFloat": true,
-      "validators": [
-        null
-      ],
-      "renderTrigger": true,
-      "default": 250,
-      "description": "Maxium radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this maximum radius."
-    },
     "partition_threshold": {
       "type": "TextControl",
       "label": "Partition Threshold",
       "isFloat": true,
       "default": "0.05",
       "description": "Partitions whose height to parent height proportions are below this value are pruned"
-    },
-    "line_column": {
-      "type": "SelectControl",
-      "label": "Lines column",
-      "default": null,
-      "description": "The database columns that contains lines information",
-      "validators": [
-        null
-      ]
-    },
-    "line_type": {
-      "type": "SelectControl",
-      "label": "Lines encoding",
-      "clearable": false,
-      "default": "json",
-      "description": "The encoding format of the lines",
-      "choices": [
-        [
-          "polyline",
-          "Polyline"
-        ],
-        [
-          "json",
-          "JSON"
-        ],
-        [
-          "geohash",
-          "geohash (square)"
-        ]
-      ]
-    },
-    "line_width": {
-      "type": "TextControl",
-      "label": "Line width",
-      "renderTrigger": true,
-      "isInt": true,
-      "default": 10,
-      "description": "The width of the lines"
-    },
-    "line_charts": {
-      "type": "SelectAsyncControl",
-      "multi": true,
-      "label": "Line charts",
-      "validators": [
-        null
-      ],
-      "default": [],
-      "description": "Pick a set of line charts to layer on top of one another",
-      "dataEndpoint": "/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi",
-      "placeholder": "Select charts",
-      "onAsyncErrorMessage": "Error while fetching charts"
-    },
-    "line_charts_2": {
-      "type": "SelectAsyncControl",
-      "multi": true,
-      "label": "Right Axis chart(s)",
-      "validators": [],
-      "default": [],
-      "description": "Choose one or more charts for right axis",
-      "dataEndpoint": "/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi",
-      "placeholder": "Select charts",
-      "onAsyncErrorMessage": "Error while fetching charts"
-    },
-    "prefix_metric_with_slice_name": {
-      "type": "CheckboxControl",
-      "label": "Prefix metric name with slice name",
-      "default": false,
-      "renderTrigger": true
-    },
-    "reverse_long_lat": {
-      "type": "CheckboxControl",
-      "label": "Reverse Lat & Long",
-      "default": false
-    },
-    "deck_slices": {
-      "type": "SelectAsyncControl",
-      "multi": true,
-      "label": "deck.gl charts",
-      "validators": [
-        null
-      ],
-      "default": [],
-      "description": "Pick a set of deck.gl charts to layer on top of one another",
-      "dataEndpoint": "/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi",
-      "placeholder": "Select charts",
-      "onAsyncErrorMessage": "Error while fetching charts"
-    },
-    "js_data_mutator": {
-      "type": "TextAreaControl",
-      "language": "javascript",
-      "label": "Javascript data interceptor",
-      "description": "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array.",
-      "height": 100,
-      "default": "",
-      "aboveEditorSection": {
-        "type": "div",
-        "key": null,
-        "ref": null,
-        "props": {
-          "children": [
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array."
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": {
-                  "type": "div",
-                  "key": null,
-                  "ref": null,
-                  "props": {
-                    "children": [
-                      "For more information about objects are in context in the scope of this function, refer to the",
-                      {
-                        "type": "a",
-                        "key": null,
-                        "ref": null,
-                        "props": {
-                          "href": "https://github.com/apache/incubator-superset/blob/master/superset/assets/src/modules/sandbox.js",
-                          "children": [
-                            " source code of Superset's sandboxed parser",
-                            "."
-                          ]
-                        },
-                        "_owner": null,
-                        "_store": {}
-                      },
-                      "."
-                    ]
-                  },
-                  "_owner": null,
-                  "_store": {}
-                }
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            null
-          ]
-        },
-        "_owner": null,
-        "_store": {}
-      }
-    },
-    "js_data": {
-      "type": "TextAreaControl",
-      "language": "javascript",
-      "label": "Javascript data mutator",
-      "description": "Define a function that receives intercepts the data objects and can mutate it",
-      "height": 100,
-      "default": "",
-      "aboveEditorSection": {
-        "type": "div",
-        "key": null,
-        "ref": null,
-        "props": {
-          "children": [
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": "Define a function that receives intercepts the data objects and can mutate it"
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": {
-                  "type": "div",
-                  "key": null,
-                  "ref": null,
-                  "props": {
-                    "children": [
-                      "For more information about objects are in context in the scope of this function, refer to the",
-                      {
-                        "type": "a",
-                        "key": null,
-                        "ref": null,
-                        "props": {
-                          "href": "https://github.com/apache/incubator-superset/blob/master/superset/assets/src/modules/sandbox.js",
-                          "children": [
-                            " source code of Superset's sandboxed parser",
-                            "."
-                          ]
-                        },
-                        "_owner": null,
-                        "_store": {}
-                      },
-                      "."
-                    ]
-                  },
-                  "_owner": null,
-                  "_store": {}
-                }
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            null
-          ]
-        },
-        "_owner": null,
-        "_store": {}
-      }
-    },
-    "js_tooltip": {
-      "type": "TextAreaControl",
-      "language": "javascript",
-      "label": "Javascript tooltip generator",
-      "description": "Define a function that receives the input and outputs the content for a tooltip",
-      "height": 100,
-      "default": "",
-      "aboveEditorSection": {
-        "type": "div",
-        "key": null,
-        "ref": null,
-        "props": {
-          "children": [
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": "Define a function that receives the input and outputs the content for a tooltip"
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": {
-                  "type": "div",
-                  "key": null,
-                  "ref": null,
-                  "props": {
-                    "children": [
-                      "For more information about objects are in context in the scope of this function, refer to the",
-                      {
-                        "type": "a",
-                        "key": null,
-                        "ref": null,
-                        "props": {
-                          "href": "https://github.com/apache/incubator-superset/blob/master/superset/assets/src/modules/sandbox.js",
-                          "children": [
-                            " source code of Superset's sandboxed parser",
-                            "."
-                          ]
-                        },
-                        "_owner": null,
-                        "_store": {}
-                      },
-                      "."
-                    ]
-                  },
-                  "_owner": null,
-                  "_store": {}
-                }
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            null
-          ]
-        },
-        "_owner": null,
-        "_store": {}
-      }
-    },
-    "js_onclick_href": {
-      "type": "TextAreaControl",
-      "language": "javascript",
-      "label": "Javascript onClick href",
-      "description": "Define a function that returns a URL to navigate to when user clicks",
-      "height": 100,
-      "default": "",
-      "aboveEditorSection": {
-        "type": "div",
-        "key": null,
-        "ref": null,
-        "props": {
-          "children": [
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": "Define a function that returns a URL to navigate to when user clicks"
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            {
-              "type": "p",
-              "key": null,
-              "ref": null,
-              "props": {
-                "children": {
-                  "type": "div",
-                  "key": null,
-                  "ref": null,
-                  "props": {
-                    "children": [
-                      "For more information about objects are in context in the scope of this function, refer to the",
-                      {
-                        "type": "a",
-                        "key": null,
-                        "ref": null,
-                        "props": {
-                          "href": "https://github.com/apache/incubator-superset/blob/master/superset/assets/src/modules/sandbox.js",
-                          "children": [
-                            " source code of Superset's sandboxed parser",
-                            "."
-                          ]
-                        },
-                        "_owner": null,
-                        "_store": {}
-                      },
-                      "."
-                    ]
-                  },
-                  "_owner": null,
-                  "_store": {}
-                }
-              },
-              "_owner": null,
-              "_store": {}
-            },
-            null
-          ]
-        },
-        "_owner": null,
-        "_store": {}
-      }
-    },
-    "js_columns": {
-      "type": "SelectControl",
-      "multi": true,
-      "label": "Extra data for JS",
-      "default": [],
-      "includeTime": false,
-      "description": "List of extra columns made available in Javascript functions",
-      "valueKey": "column_name"
-    },
-    "stroked": {
-      "type": "CheckboxControl",
-      "label": "Stroked",
-      "renderTrigger": true,
-      "description": "Whether to display the stroke",
-      "default": false
-    },
-    "filled": {
-      "type": "CheckboxControl",
-      "label": "Filled",
-      "renderTrigger": true,
-      "description": "Whether to fill the objects",
-      "default": true
-    },
-    "normalized": {
-      "type": "CheckboxControl",
-      "label": "Normalized",
-      "renderTrigger": true,
-      "description": "Whether to normalize the histogram",
-      "default": false
     }
   }
 }
