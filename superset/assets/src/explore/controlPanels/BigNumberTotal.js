@@ -29,11 +29,19 @@ export default {
       ],
     },
     {
-      label: t('Chart Options'),
+      label: t('Options'),
       expanded: true,
       controlSetRows: [
         ['subheader'],
         ['y_axis_format'],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        ['big_num_font_size'],
+        ['subheader_font_size'],
       ],
     },
   ],

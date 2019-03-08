@@ -1399,6 +1399,66 @@ export const controls = {
     description: t('Font size for the biggest value in the list'),
   },
 
+  big_num_font_size: {
+    type: 'SelectControl',
+    label: t('Big Number Font Size'),
+    renderTrigger: true,
+    clearable: false,
+    default: 0.3,
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.2,
+      },
+      {
+        label: t('Normal'),
+        value: 0.3,
+      },
+      {
+        label: t('Large'),
+        value: 0.4,
+      },
+      {
+        label: t('Huge'),
+        value: 0.5,
+      },
+    ],
+  },
+
+  subheader_font_size: {
+    type: 'SelectControl',
+    label: t('Subheader Font Size'),
+    renderTrigger: true,
+    clearable: false,
+    default: 0.125,
+    options: [
+      {
+        label: t('Tiny'),
+        value: 0.125,
+      },
+      {
+        label: t('Small'),
+        value: 0.2,
+      },
+      {
+        label: t('Normal'),
+        value: 0.3,
+      },
+      {
+        label: t('Large'),
+        value: 0.4,
+      },
+      {
+        label: t('Huge'),
+        value: 0.5,
+      },
+    ],
+  },
+
   instant_filtering: {
     type: 'CheckboxControl',
     label: t('Instant Filtering'),

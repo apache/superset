@@ -29,13 +29,21 @@ export default {
       ],
     },
     {
-      label: t('Chart Options'),
+      label: t('Options'),
       expanded: true,
       controlSetRows: [
         ['compare_lag', 'compare_suffix'],
         ['y_axis_format', null],
         ['show_trend_line', 'start_y_axis_at_zero'],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
         ['color_picker', null],
+        ['big_num_font_size'],
+        ['subheader_font_size'],
       ],
     },
   ],
