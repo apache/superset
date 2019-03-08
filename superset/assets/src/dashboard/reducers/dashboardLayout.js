@@ -24,6 +24,7 @@ import {
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
 import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -262,19 +263,11 @@ const actionHandlers = {
       ...state,
     };
 
-    const doUpdate = currentComponent => {
-      if (currentComponent && nextState[currentComponent.id]) {
-        const parentsList = (currentComponent.parents || []).slice();
-        parentsList.push(currentComponent.id);
+    updateComponentParentsList({
+      currentComponent: nextState[DASHBOARD_ROOT_ID],
+      layout: nextState,
+    });
 
-        currentComponent.children.forEach(childId => {
-          nextState[childId].parents = parentsList;
-          doUpdate(nextState[childId]);
-        });
-      }
-    };
-
-    doUpdate(nextState[DASHBOARD_ROOT_ID]);
     return {
       ...nextState,
     };

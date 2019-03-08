@@ -16,19 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function({ currentComponent, directLinkPath = [] }) {
+export default function findTabIndexByComponentId({
+  currentComponent,
+  directPathToChild = [],
+}) {
   if (
     !currentComponent ||
-    directLinkPath.length === 0 ||
-    directLinkPath.indexOf(currentComponent.id) === -1
+    directPathToChild.length === 0 ||
+    directPathToChild.indexOf(currentComponent.id) === -1
   ) {
     return 0;
   }
 
-  const currentComponentIdx = directLinkPath.findIndex(
+  const currentComponentIdx = directPathToChild.findIndex(
     id => id === currentComponent.id,
   );
-  const nextParentId = directLinkPath[currentComponentIdx + 1];
+  const nextParentId = directPathToChild[currentComponentIdx + 1];
   if (currentComponent.children.indexOf(nextParentId) >= 0) {
     return currentComponent.children.findIndex(
       childId => childId === nextParentId,

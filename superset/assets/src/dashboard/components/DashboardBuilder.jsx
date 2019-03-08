@@ -55,12 +55,12 @@ const propTypes = {
   showBuilderPane: PropTypes.bool,
   handleComponentDrop: PropTypes.func.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
-  directLinkPath: PropTypes.array,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
   showBuilderPane: false,
-  directLinkPath: [],
+  directPathToChild: [],
 };
 
 class DashboardBuilder extends React.Component {
@@ -76,14 +76,14 @@ class DashboardBuilder extends React.Component {
   constructor(props) {
     super(props);
 
-    const { dashboardLayout, directLinkPath } = props;
+    const { dashboardLayout, directPathToChild } = props;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
     const topLevelTabs =
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
     const tabIndex = findTabIndexByComponentId({
       currentComponent: topLevelTabs || dashboardLayout[DASHBOARD_ROOT_ID],
-      directLinkPath,
+      directPathToChild,
     });
 
     this.state = {

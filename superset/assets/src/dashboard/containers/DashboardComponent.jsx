@@ -43,11 +43,11 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
-  directLinkPath: PropTypes.array,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
-  directLinkPath: [],
+  directPathToChild: [],
 };
 
 function mapStateToProps(
@@ -61,7 +61,8 @@ function mapStateToProps(
     component,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
-    directLinkPath: dashboardState.directLinkPath,
+    filters: dashboardState.filters,
+    directPathToChild: dashboardState.directPathToChild,
   };
 
   // rows and columns need more data about their child dimensions

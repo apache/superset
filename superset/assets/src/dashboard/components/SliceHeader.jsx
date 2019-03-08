@@ -42,6 +42,9 @@ const propTypes = {
   sliceName: PropTypes.string,
   supersetCanExplore: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
+  componentId: PropTypes.string.isRequired,
+  filters: PropTypes.object.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -87,6 +90,9 @@ class SliceHeader extends React.PureComponent {
       updateSliceName,
       annotationQuery,
       annotationError,
+      componentId,
+      filters,
+      addDangerToast,
     } = this.props;
 
     return (
@@ -134,6 +140,9 @@ class SliceHeader extends React.PureComponent {
               exportCSV={exportCSV}
               supersetCanExplore={supersetCanExplore}
               sliceCanEdit={sliceCanEdit}
+              componentId={componentId}
+              filters={filters}
+              addDangerToast={addDangerToast}
             />
           )}
         </div>

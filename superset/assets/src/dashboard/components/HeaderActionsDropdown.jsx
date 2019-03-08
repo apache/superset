@@ -172,7 +172,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
 
         <URLShortLinkModal
-          url={getDashboardUrl(window.location.pathname, this.props.filters)}
+          url={getDashboardUrl(
+            window.location.pathname,
+            this.props.filters,
+            window.location.hash,
+          )}
           emailSubject={emailSubject}
           emailContent={emailBody}
           addDangerToast={this.props.addDangerToast}

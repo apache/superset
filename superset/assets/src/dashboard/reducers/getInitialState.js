@@ -63,7 +63,11 @@ export default function(bootstrapData) {
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
-  const layout = positionJson || getEmptyLayout();
+  // new dash: positionJson could be {} or null
+  const layout =
+    positionJson && Object.keys(positionJson).length > 0
+      ? positionJson
+      : getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
@@ -157,10 +161,10 @@ export default function(bootstrapData) {
 
   // find direct link component and path from root
   const directLinkComponentId = (window.location.hash || '#').substring(1);
-  let directLinkPath = [];
+  let directPathToChild = [];
   if (layout[directLinkComponentId]) {
-    directLinkPath = (layout[directLinkComponentId].parents || []).slice();
-    directLinkPath.push(directLinkComponentId);
+    directPathToChild = (layout[directLinkComponentId].parents || []).slice();
+    directPathToChild.push(directLinkComponentId);
   }
 
   return {
@@ -192,7 +196,7 @@ export default function(bootstrapData) {
       sliceIds: Array.from(sliceIds),
       refresh: false,
       filters,
-      directLinkPath,
+      directPathToChild,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,

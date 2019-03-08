@@ -33,6 +33,7 @@ import {
 
 const propTypes = {
   id: PropTypes.number.isRequired,
+  componentId: PropTypes.string.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
@@ -54,6 +55,7 @@ const propTypes = {
   isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -183,6 +185,7 @@ class Chart extends React.Component {
   render() {
     const {
       id,
+      componentId,
       chart,
       slice,
       datasource,
@@ -196,6 +199,7 @@ class Chart extends React.Component {
       timeout,
       supersetCanExplore,
       sliceCanEdit,
+      addDangerToast,
     } = this.props;
 
     const { width } = this.state;
@@ -230,6 +234,9 @@ class Chart extends React.Component {
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
           sliceCanEdit={sliceCanEdit}
+          componentId={componentId}
+          filters={filters}
+          addDangerToast={addDangerToast}
         />
 
         {/*
