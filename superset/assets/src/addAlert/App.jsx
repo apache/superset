@@ -1,7 +1,12 @@
 import React from 'react';
 import { hot } from 'react-hot-loader';
-import { appSetup } from '../common';
+import setupApp from '../setup/setupApp';
+import setupPlugins from '../setup/setupPlugins';
 import AddAlertContainer from './AddAlertContainer';
+
+setupApp();
+setupPlugins();
+
 
 appSetup();
 

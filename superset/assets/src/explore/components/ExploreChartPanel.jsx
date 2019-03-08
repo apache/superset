@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
 import { ParentSize } from '@vx/responsive';
+
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
@@ -92,9 +93,9 @@ class ExploreChartPanel extends React.PureComponent {
     if (this.props.slice && this.props.slice.description) {
       description = this.props.slice.description;
     } else if (this.props.table_name) {
-      description = t('%s - chart description', this.props.table_name);
+      description = `${this.props.table_name} - chart description`;
     } else {
-      description = t('Click to add a chart description');
+      description = 'Click to add a chart description';
     }
     return description;
   }

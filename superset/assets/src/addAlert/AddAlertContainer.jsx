@@ -6,7 +6,6 @@ import Select from 'react-virtualized-select';
 import MultiSelect from "@kenshooui/react-multi-select";
 import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
 import $ from 'jquery';
-import { t } from '../locales';
 import 'brace/mode/sql';
 import 'brace/mode/json';
 import 'brace/mode/html';
@@ -321,7 +320,7 @@ export default class AddAlertContainer extends React.Component {
             </div>
             <hr />
             <div>
-              <p>{t('Select deployment')}</p>
+              <p>Select deployment</p>
               <div style={styleSelectWidth}>
                 <Select
                   clearable={false}
@@ -337,7 +336,7 @@ export default class AddAlertContainer extends React.Component {
             </div>
             <hr />
             <div>
-              <p>{t('Choose an analytic query')}</p>
+              <p>Choose an analytic query</p>
               <div style={styleSelectWidth}>
                 <Select
                   clearable={false}
@@ -351,11 +350,10 @@ export default class AddAlertContainer extends React.Component {
                 />
               </div>
               <p className="text-muted">
-                {t(
-                  'If the query your are looking for is not ' +
+                { 'If the query your are looking for is not ' +
                   'available in the list, ' +
-                  'follow the instructions on the how to add it on the ')}
-                <a href="http://superset.apache.org/tutorial.html">{t('Superset tutorial.')}</a>
+                  'follow the instructions on the how to add it on the '}
+                <a href="http://superset.apache.org/tutorial.html">Superset tutorial</a>
               </p>
             </div>
             <hr />
@@ -459,7 +457,7 @@ export default class AddAlertContainer extends React.Component {
                 <InfoTooltipWithTrigger
                   icon="exclamation-triangle"
                   bsStyle="danger"
-                  tooltip={t('Invalid JSON')}
+                  tooltip="Invalid JSON"
                   label="invalid-json"
                 />
               }
