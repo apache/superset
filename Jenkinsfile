@@ -2,10 +2,10 @@
 @Library('jenkins_lib')_
 
 pipeline {
-  agent any
+  agent { node { label 'jenkins-slave-nebula-02' } }
 
     environment {
-    // Define global environment variables in this 
+    // Define global environment variables in this
     WORKSPACE = pwd()
     supersetInventoryFilePath = 'superset-installer/etc/reflex-provisioner/inventory/templates/group_vars/global/all/raf/superset.yml'
     jenkinsInventoryFilePath = '${WORKSPACE}/${supersetInventoryFilePath}'
@@ -54,9 +54,13 @@ pipeline {
       }
     }
     stage('Code Quality with SonarQube') {
-      steps {
+       steps {
         script {
-            echo "Code Quality with SonarQube"
+          def scannerHome = tool 'sonar';
+          withSonarQubeEnv('sonar') {
+            echo "sonar"
+            sh 'sonar-scanner -Dsonar.projectKey=incubator-superset -Dsonar.sources=.'
+          }
         }
       }
     }
