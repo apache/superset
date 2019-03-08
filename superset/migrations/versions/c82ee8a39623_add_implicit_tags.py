@@ -27,16 +27,11 @@ revision = 'c82ee8a39623'
 down_revision = 'c617da68de7d'
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy import Column, Enum, Integer, ForeignKey, String, Table
+from sqlalchemy import Column, Enum, Integer, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
-from superset import db
 from superset.models.helpers import AuditMixinNullable
 from superset.models.tags import (
-    get_object_type,
-    get_tag,
     ObjectTypes,
     TagTypes,
 )
@@ -69,133 +64,10 @@ class User(Base):
     id = Column(Integer, primary_key=True)
 
 
-slice_user = Table(
-    'slice_user',
-    Base.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('slice_id', Integer, ForeignKey('slices.id'))
-)
-
-
-dashboard_user = Table(
-    'dashboard_user',
-    Base.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
-)
-
-
-class Slice(Base, AuditMixinNullable):
-    """Declarative class to do query in upgrade"""
-    __tablename__ = 'slices'
-
-    id = Column(Integer, primary_key=True)
-    owners = relationship("User", secondary=slice_user)
-
-
-class Dashboard(Base, AuditMixinNullable):
-    """Declarative class to do query in upgrade"""
-    __tablename__ = 'dashboards'
-    id = Column(Integer, primary_key=True)
-    owners = relationship("User", secondary=dashboard_user)
-
-
-class SavedQuery(Base):
-    __tablename__ = 'saved_query'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('ab_user.id'))
-
-
-class Favstar(Base):
-    __tablename__ = 'favstar'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('ab_user.id'))
-    class_name = Column(String(50))
-    obj_id = Column(Integer)
-
-
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     Tag.__table__.create(bind)
     TaggedObject.__table__.create(bind)
-
-    # add type tags (eg, `type:dashboard` for dashboards)
-    for type in ObjectTypes.__members__:
-        session.add(Tag(name='type:{0}'.format(type), type=TagTypes.type))
-
-    # add owner tags (eg, `owner:1` for things owned by the admin)
-    for chart in session.query(Slice):
-        for owner in chart.owners:
-            name = 'owner:{0}'.format(owner.id)
-            tag = get_tag(name, session, TagTypes.owner)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=chart.id,
-                object_type=ObjectTypes.chart,
-            )
-            session.add(tagged_object)
-
-        tag = get_tag('type:chart', session, TagTypes.type)
-        tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=chart.id,
-            object_type=ObjectTypes.chart,
-        )
-        session.add(tagged_object)
-
-    for dashboard in session.query(Dashboard):
-        for owner in dashboard.owners:
-            name = 'owner:{0}'.format(owner.id)
-            tag = get_tag(name, session, TagTypes.owner)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=dashboard.id,
-                object_type=ObjectTypes.dashboard,
-            )
-            session.add(tagged_object)
-
-        tag = get_tag('type:dashboard', session, TagTypes.type)
-        tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=dashboard.id,
-            object_type=ObjectTypes.dashboard,
-        )
-        session.add(tagged_object)
-
-    for query in session.query(SavedQuery):
-        name = 'owner:{0}'.format(query.user_id)
-        tag = get_tag(name, session, TagTypes.owner)
-        tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=query.id,
-            object_type=ObjectTypes.query,
-        )
-        session.add(tagged_object)
-
-        tag = get_tag('type:query', session, TagTypes.type)
-        tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=query.id,
-            object_type=ObjectTypes.query,
-        )
-        session.add(tagged_object)
-
-    # add favorited_by tags
-    for star in session.query(Favstar):
-        name = 'favorited_by:{0}'.format(star.user_id)
-        tag = get_tag(name, session, TagTypes.favorited_by)
-        tagged_object = TaggedObject(
-            tag_id=tag.id,
-            object_id=star.obj_id,
-            object_type=get_object_type(star.class_name),
-        )
-        session.add(tagged_object)
-
-    session.commit()
 
 
 def downgrade():
