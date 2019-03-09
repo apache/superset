@@ -1142,7 +1142,7 @@ class Superset(BaseSupersetView):
 
     def get_raw_results(self, viz_obj):
         return self.json_response({
-            'data': viz_obj.get_df().to_dict('records'),
+            'data': viz_obj.get_df_payload()['df'].to_dict('records'),
         })
 
     def get_samples(self, viz_obj):
