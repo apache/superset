@@ -38,7 +38,6 @@ COPY requirements-dev.txt .
 
 RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt -r requirements-dev.txt \
-    && pip install awscli==1.11.180 --user \
     && rm -rf /root/.cache/pip
 
 USER superset

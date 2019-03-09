@@ -43,11 +43,13 @@ If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
-    cd incubator-superset/contrib/docker
-    # prefix with SUPERSET_LOAD_EXAMPLES=yes to load examples:
-    docker-compose run --rm superset ./docker-init.sh
-    # you can run this command everytime you need to start superset now:
-    docker-compose up
+    cd incubator-superset
+    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
+    cp contrib/docker/superset_config.py superset/
+    bash -x docker-build.sh
+    docker-compose up -d
+    docker-compose exec superset bash
+    bash docker-init.sh
 
 After several minutes for superset initialization to finish, you can open
 a browser and view `http://localhost:8088` to start your journey.
