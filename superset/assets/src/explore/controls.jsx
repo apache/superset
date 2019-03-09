@@ -1405,6 +1405,7 @@ export const controls = {
     renderTrigger: true,
     clearable: false,
     default: 0.3,
+    // Values represent the percentage of space a header should take
     options: [
       {
         label: t('Tiny'),
@@ -1435,6 +1436,7 @@ export const controls = {
     renderTrigger: true,
     clearable: false,
     default: 0.125,
+    // Values represent the percentage of space a subheader should take
     options: [
       {
         label: t('Tiny'),
