@@ -78,7 +78,7 @@ export function resetState() {
 
 export function saveQuery(query) {
      let ret;
-     if (isNaN((query.id))) {
+     if (Number.isNaN(query.id)) {
         ret = dispatch =>
         SupersetClient.post({
             endpoint: '/savedqueryviewapi/api/create',
