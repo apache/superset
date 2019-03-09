@@ -45,7 +45,7 @@ USER superset
 
 COPY --chown=superset:superset superset superset
 
-ENV PATH=/home/superset/superset/bin:/home/work/.local/bin:$PATH \
+ENV PATH=/home/superset/superset/bin:/home/superset/.local/bin:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH
 
 RUN cd superset/assets \
