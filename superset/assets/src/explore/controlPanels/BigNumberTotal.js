@@ -40,7 +40,7 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['big_num_font_size'],
+        ['header_font_size'],
         ['subheader_font_size'],
       ],
     },
@@ -48,6 +48,9 @@ export default {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    header_font_size: {
+      label: t('Big Number Font Size'),
     },
   },
 };

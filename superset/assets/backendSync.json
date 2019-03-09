@@ -2493,9 +2493,9 @@
       "default": "150",
       "description": "Font size for the biggest value in the list"
     },
-    "big_num_font_size": {
+    "header_font_size": {
       "type": "SelectControl",
-      "label": "Big Number Font Size",
+      "label": "Header Font Size",
       "renderTrigger": true,
       "clearable": false,
       "default": 0.3,

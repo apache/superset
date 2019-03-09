@@ -1399,9 +1399,9 @@ export const controls = {
     description: t('Font size for the biggest value in the list'),
   },
 
-  big_num_font_size: {
+  header_font_size: {
     type: 'SelectControl',
-    label: t('Big Number Font Size'),
+    label: t('Header Font Size'),
     renderTrigger: true,
     clearable: false,
     default: 0.3,
