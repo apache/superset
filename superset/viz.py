@@ -2757,6 +2757,80 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+class LineBarViz(NVD3Viz):
+
+    """A simple line bar chart with dual axis"""
+
+    viz_type = 'line_bar'
+    verbose_name = _('Time Series - Line Bar Chart')
+    sort_series = False
+    is_timeseries = True
+
+    def query_obj(self):
+        d = super(LineBarViz, self).query_obj()
+        m1 = self.form_data.get('metric')
+        m2 = self.form_data.get('metric_2')
+        d['metrics'] = [m1, m2]
+        if not m1:
+            raise Exception(_('Pick a metric for left(bar) axis!'))
+        if not m2:
+            raise Exception(_('Pick a metric for right(line) axis!'))
+        if m1 == m2:
+            raise Exception(_('Please choose different metrics'
+                            ' on left and right axis'))
+        return d
+
+    def to_series(self, df, classed=''):
+        cols = []
+        for col in df.columns:
+            if col == '':
+                cols.append('N/A')
+            elif col is None:
+                cols.append('NULL')
+            else:
+                cols.append(col)
+        df.columns = cols
+        series = df.to_dict('series')
+        chart_data = []
+        metrics = [
+            self.form_data.get('metric'),
+            self.form_data.get('metric_2'),
+        ]
+        for i, m in enumerate(metrics):
+            ys = series[m]
+            if df[m].dtype.kind not in 'biufc':
+                continue
+            series_title = m
+            d = {
+                'key': series_title,
+                'classed': classed,
+                'values': [
+                    {'x': ds, 'y': ys[ds] if ds in ys else None}
+                    for ds in df.index
+                ],
+                'yAxis': i + 1,
+                'type': 'bar' if i == 0 else 'line',
+            }
+            chart_data.append(d)
+        return chart_data
+
+    def get_data(self, df):
+        fd = self.form_data
+        df = df.fillna(0)
+
+        if self.form_data.get('granularity') == 'all':
+            raise Exception(_('Pick a time granularity for your time series'))
+
+        metric = self.get_metric_label(fd.get('metric'))
+        metric_2 = self.get_metric_label(fd.get('metric_2'))
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            values=[metric, metric_2])
+
+        chart_data = self.to_series(df)
+        return chart_data
+
+
 viz_types = {
     o.viz_type: o for o in globals().values()
     if (
