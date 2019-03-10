@@ -23,7 +23,7 @@ import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/le
 // Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
 // Not '@superset-ui/legacy-preset-chart-nvd3',
 // which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
-import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
+import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, LineBarChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
@@ -46,6 +46,7 @@ export default class CommonChartPreset extends Preset {
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new LineChartPlugin().configure({ key: 'line' }),
+        new LineBarChartPlugin().configure({ key: 'line_bar' }),
         new PieChartPlugin().configure({ key: 'pie' }),
         new PivotTableChartPlugin().configure({ key: 'pivot_table' }),
         new TableChartPlugin().configure({ key: 'table' }),

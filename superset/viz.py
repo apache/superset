@@ -2797,10 +2797,11 @@ class LineBarViz(NVD3Viz):
             self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
-            ys = series[m]
-            if df[m].dtype.kind not in 'biufc':
+
+            ys = series[m['label']]
+            if df[m['label']].dtype.kind not in 'biufc':
                 continue
-            series_title = m
+            series_title = m['label']
             d = {
                 'key': series_title,
                 'classed': classed,
@@ -2821,8 +2822,8 @@ class LineBarViz(NVD3Viz):
         if self.form_data.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
 
-        metric = self.get_metric_label(fd.get('metric'))
-        metric_2 = self.get_metric_label(fd.get('metric_2'))
+        metric = utils.get_metric_name(fd.get('metric'))
+        metric_2 = utils.get_metric_name(fd.get('metric_2'))
         df = df.pivot_table(
             index=DTTM_ALIAS,
             values=[metric, metric_2])

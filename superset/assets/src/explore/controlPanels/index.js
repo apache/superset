@@ -45,6 +45,7 @@ import Histogram from './Histogram';
 import Horizon from './Horizon';
 import Iframe from './Iframe';
 import Line from './Line';
+import LineBar from './LineBar';
 import LineMulti from './LineMulti';
 import Mapbox from './Mapbox';
 import Markup from './Markup';
@@ -95,6 +96,7 @@ export const controlPanelConfigs = extraOverrides({
   horizon: Horizon,
   iframe: Iframe,
   line: Line,
+  line_bar: LineBar,
   line_multi: LineMulti,
   mapbox: Mapbox,
   markup: Markup,
