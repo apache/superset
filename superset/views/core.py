@@ -1111,7 +1111,7 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
-            parse.quote(json.dumps(form_data)),
+            parse.quote(json.dumps({'slice_id': slice_id})),
         )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
