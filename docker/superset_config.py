@@ -26,6 +26,9 @@ def get_env_variable(var_name, default=None):
                         .format(var_name)
             raise EnvironmentError(error_msg)
 
+# Help configuration
+HELP_ENABLED = boolify(get_env_variable('HELP_ENABLED'))           
+
 #stale session timeout
 SESSION_LIFETIME_SECONDS = eval(get_env_variable('SESSION_LIFETIME_SECONDS'))
 PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_LIFETIME_SECONDS)

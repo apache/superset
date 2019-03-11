@@ -172,6 +172,7 @@ BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = 'superset/translations'
 # The allowed translation for you app
+HELP_ENABLED = False
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
     'it': {'flag': 'it', 'name': 'Italian'},
