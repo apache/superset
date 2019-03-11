@@ -94,8 +94,6 @@ SUPERSET_AUTH_USER_REGISTRATION: True
 SUPERSET_AUTH_USER_REGISTRATION_ROLE: "Dashboard_Viewer"
 SUPERSET_AUTH_LDAP_USE_TLS: False
 SUPERSET_AUTH_LDAP_SERVER: "" # ldap://guavus.com:389 (Define the DN for the user that will be used for the initial LDAP BIND. This is necessary for OpenLDAP and can be used on MSFT AD.)
-SUPERSET_AUTH_LDAP_BIND_USER: "" # cn=Ankur Singhal,ou=gurgaon,ou=India,ou=UserIDs,dc=guavus,dc=com
-SUPERSET_AUTH_LDAP_BIND_PASSWORD: "" # Define password for the bind user.
 
 SUPERSET_AUTH_LDAP_TLS_DEMAND: False
 SUPERSET_AUTH_LDAP_TLS_CACERTDIR: "/etc/cert/"

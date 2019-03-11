@@ -27,11 +27,17 @@ spec:
         - name: POSTGRES_HOST
           value: "{{ superset_postgres_access_ip }}"
         - name: POSTGRES_PASSWORD
-          value: {{ superset_postgres_db_password }}
+          valueFrom:
+            secretKeyRef:
+              name: psql-secret
+              key: POSTGRES_PASSWORD
         - name: POSTGRES_PORT
           value: "{{ superset_postgres_access_port }}"
         - name: POSTGRES_USER
-          value: {{ superset_postgres_db_user }}
+          valueFrom:
+            secretKeyRef:
+              name: psql-secret
+              key: POSTGRES_USER
         - name: REDIS_HOST
           value: redis
         - name: REDIS_PORT
@@ -55,9 +61,15 @@ spec:
         - name: AUTH_LDAP_SERVER
           value: "{{ SUPERSET_AUTH_LDAP_SERVER }}"
         - name: AUTH_LDAP_BIND_USER
-          value: "{{ SUPERSET_AUTH_LDAP_BIND_USER }}"
+          valueFrom:
+            secretKeyRef:
+              name: ldap-secret
+              key: username
         - name: AUTH_LDAP_BIND_PASSWORD
-          value: "{{ SUPERSET_AUTH_LDAP_BIND_PASSWORD }}"
+          valueFrom:
+            secretKeyRef:
+              name: ldap-secret
+              key: password
         - name: AUTH_LDAP_TLS_DEMAND
           value: "{{ SUPERSET_AUTH_LDAP_TLS_DEMAND }}"
         - name: AUTH_LDAP_TLS_CACERTDIR
