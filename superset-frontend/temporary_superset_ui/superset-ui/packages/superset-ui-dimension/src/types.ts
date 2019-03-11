@@ -15,3 +15,8 @@ export interface Margin {
   bottom: number;
   right: number;
 }
+
+export interface Dimension {
+  width: number;
+  height: number;
+}

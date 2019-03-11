@@ -1,9 +1,10 @@
 import getTextDimension, { GetTextDimensionInput } from './getTextDimension';
+import { Dimension } from './types';
 
 function decreaseSizeUntil(
   startSize: number,
-  computeDimension: (size: number) => { height: number; width: number },
-  condition: (dimension: { height: number; width: number }) => boolean,
+  computeDimension: (size: number) => Dimension,
+  condition: (dimension: Dimension) => boolean,
 ): number {
   let size = startSize;
   let dimension = computeDimension(size);
