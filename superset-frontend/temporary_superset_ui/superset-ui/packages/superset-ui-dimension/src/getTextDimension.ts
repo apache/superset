@@ -1,4 +1,4 @@
-import { TextStyle } from './types';
+import { TextStyle, Dimension } from './types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const STYLE_FIELDS: (keyof TextStyle)[] = [
@@ -21,8 +21,8 @@ const DEFAULT_DIMENSION = { height: 20, width: 100 };
 
 export default function getTextDimension(
   input: GetTextDimensionInput,
-  defaultDimension = DEFAULT_DIMENSION,
-) {
+  defaultDimension: Dimension = DEFAULT_DIMENSION,
+): Dimension {
   const { text, className, style = {}, container = document.body } = input;
 
   const textNode = document.createElementNS(SVG_NS, 'text');
