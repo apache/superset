@@ -54,7 +54,7 @@ spec:
           value: "{{ SUPERSET_AUTH_TYPE }}"
         - name: AUTH_USER_REGISTRATION
           value: "{{ SUPERSET_AUTH_USER_REGISTRATION }}"
-        - name: AUTH_USER_REGISTRATION_ROLE 
+        - name: AUTH_USER_REGISTRATION_ROLE
           value: "{{ SUPERSET_AUTH_USER_REGISTRATION_ROLE }}"
         - name: AUTH_LDAP_USE_TLS
           value: "{{ SUPERSET_AUTH_LDAP_USE_TLS }}"
@@ -84,7 +84,7 @@ spec:
           value: "{{ SUPERSET_AUTH_LDAP_SEARCH }}"
         - name: AUTH_LDAP_SEARCH_FILTER
           value: "{{ SUPERSET_AUTH_LDAP_SEARCH_FILTER }}"
-        - name: AUTH_LDAP_UID_FIELD 
+        - name: AUTH_LDAP_UID_FIELD
           value: "{{ SUPERSET_AUTH_LDAP_UID_FIELD }}"
         - name: AUTH_LDAP_FIRSTNAME_FIELD
           value: "{{ SUPERSET_AUTH_LDAP_FIRSTNAME_FIELD }}"
@@ -97,15 +97,17 @@ spec:
         - name: AUTH_LDAP_APPEND_DOMAIN
           value: "{{ SUPERSET_AUTH_LDAP_APPEND_DOMAIN }}"
         - name: AUTH_LDAP_USERNAME_FORMAT
-          value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"  
+          value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"
         - name: AUTH_ADMIN_USER_LIST
-          value: "{{ SUPERSET_ADMIN_USER_LIST }}"  
+          value: "{{ SUPERSET_ADMIN_USER_LIST }}"
         - name: APP_NAME
           value: "{{ RVF_APP_NAME }}"
         - name: HELP_ENABLED
-          value: "{{ RVF_HELP_ENABLED }}"  
-        - name: SESSION_LIFETIME_SECONDS 
-          value: "{{ SUPERSET_SESSION_LIFETIME_SECONDS }}" 
+          value: "{{ RVF_HELP_ENABLED }}"
+        - name: SESSION_LIFETIME_SECONDS
+          value: "{{ SUPERSET_SESSION_LIFETIME_SECONDS }}"
+        - name: LOG_LEVEL
+          value: "{{ RVF_LOG_LEVEL }}"
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
@@ -141,20 +143,20 @@ spec:
         - name: superset-cert-configmap-volume
           configMap:
             name: superset-cert-configmap
-            defaultMode: 0755    
+            defaultMode: 0755
         - name: superset-nginx-configmap-volume
           configMap:
             name: superset-nginx-configmap
-            defaultMode: 0755    
+            defaultMode: 0755
         - name: krb5-keytab-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
         - name: krb5-config-path
           hostPath:
-            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }} 
+            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }}
         - name: secret-tls-volume
           secret:
-            secretName: superset-tls    
+            secretName: superset-tls
       nodeSelector:
         master-nodes: "true"
 status: {}

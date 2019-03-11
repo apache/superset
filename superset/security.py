@@ -109,7 +109,7 @@ class SupersetSecurityManager(SecurityManager):
         appbuilder.get_app.config.setdefault('AUTH_LDAP_SEARCH_FILTER', '')
         appbuilder.get_app.config.setdefault('AUTH_ADMIN_USER_LIST', [])
         super(SupersetSecurityManager, self).__init__(appbuilder)
-    
+
     @property
     def auth_admin_user_list(self):
         return self.appbuilder.get_app.config['AUTH_ADMIN_USER_LIST']
@@ -117,7 +117,7 @@ class SupersetSecurityManager(SecurityManager):
     def is_role_exists(self,roleName,roleList):
         for role in roleList:
             if role.name == roleName:
-                return True    
+                return True
         return False
 
     def auth_user_ldap(self, username, password):
@@ -135,16 +135,20 @@ class SupersetSecurityManager(SecurityManager):
         if user is None and not self.auth_admin_user_list:
             # check user is available in db or not
             user = self.auth_user_db(username, password)
-        elif user is not None and self.auth_admin_user_list and username in self.auth_admin_user_list:   
+        elif user is not None and self.auth_admin_user_list and username in self.auth_admin_user_list:
             # check auth_role_admin role already exists or not
             if not self.is_role_exists(self.auth_role_admin,user.roles):
                 role = self.find_role(self.auth_role_admin)
                 if role is not None:
-                    user.roles.append(role) 
+                    user.roles.append(role)
                     # new role append
-                    self.update_user(user) 
+                    self.update_user(user)
                     # update user with newly added role
-            
+        if not user:
+          logging.info('{0}:{1} [AUTHENTICATION] Login attempt failed for user: {2}'.format(request.remote_addr, request.user_agent, username))
+        else:
+          logging.info('{0}:{1} [AUTHENTICATION] Login Succeeded for user: {2}'.format(request.remote_addr, request.user_agent, username))
+
         return user
 
     @property
@@ -167,7 +171,7 @@ class SupersetSecurityManager(SecurityManager):
             filter_str = "(&%s(%s=%s))" % (self.auth_ldap_search_filter, self.auth_ldap_uid_field, username)
         else:
             filter_str = "(%s=%s)" % (self.auth_ldap_uid_field, username)
-      
+
         user = con.search_s(self.auth_ldap_search,
                             ldap.SCOPE_SUBTREE,
                             filter_str,
@@ -179,7 +183,7 @@ class SupersetSecurityManager(SecurityManager):
             if not user[0][0]:
                 return None
         return user
-    
+
     def decryptMessage(self, message):
         if message :
             _e = base64.b64decode(message)
@@ -199,10 +203,16 @@ class SupersetSecurityManager(SecurityManager):
             :param password:
                 The password, will be tested against hashed password on db
         """
-        return super(SupersetSecurityManager, self).auth_user_db(username, self.decryptMessage(password))
+        user = super(SupersetSecurityManager, self).auth_user_db(username, self.decryptMessage(password))
+        if not user:
+          logging.info('{0}:{1} [AUTHENTICATION] Login attempt failed for user: {2}'.format(request.remote_addr, request.user_agent, username))
+        else:
+          logging.info('{0}:{1} [AUTHENTICATION] Login Succeeded for user: {2}'.format(request.remote_addr, request.user_agent, username))
+
+        return user
+
 
     def has_access(self, permission_name, view_name):
-       
         #add check of user inactive  and make logout
         if not current_user.is_active:
             logout_user()
@@ -210,10 +220,12 @@ class SupersetSecurityManager(SecurityManager):
         if not current_user.is_authenticated:
             login_path = url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + '.login')
+            if not ('_id' in session) and ('csrf_token' in session) and request.path != login_path:
+                logging.info('{0}:{1} Session expired. {2} can not be accessed'.format(request.remote_addr, request.user_agent, request.url))
             if not ('target_url' in session) and request.path != login_path:
                 session['target_url'] = request.url
         return super(SupersetSecurityManager, self).has_access(permission_name, view_name)
-        
+
     def get_schema_perm(self, database, schema):
         if schema:
             return '[{}].[{}]'.format(database, schema)
@@ -387,6 +399,13 @@ class SupersetSecurityManager(SecurityManager):
         self.merge_perm('all_datasource_access', 'all_datasource_access')
         self.merge_perm('all_database_access', 'all_database_access')
 
+    def update_user_auth_stat(self, user, success=True):
+        super(SupersetSecurityManager, self).update_user_auth_stat(user, success)
+        if user.fail_login_count > 0 and success != True:
+           logging.info('{0} [AUTHENTICATION] Unsuccessful login attempt count: {1} for user: {2}'.format(request.remote_addr, user.fail_login_count, user.username))
+
+
+
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
         from superset import db
@@ -546,8 +565,8 @@ class SupersetSecurityManager(SecurityManager):
         return (
             pvm.permission.name in {
                 'can_userinfo' , 'resetmypassword' , 'can_this_form_get' , 'can_this_form_post'
-            } and pvm.view_menu.name in { 'UserDBModelView', 'ResetMyPasswordView' } 
-            # above code will allow some options which are not in PVM 
+            } and pvm.view_menu.name in { 'UserDBModelView', 'ResetMyPasswordView' }
+            # above code will allow some options which are not in PVM
             # but i am shortcircuiting thsi for now as those permission will be not added to role
             )
 

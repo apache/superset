@@ -89,7 +89,7 @@ superset_kerberos_enabled: false
 
 #LDAP configuration
 superset_certificate_files: []
-SUPERSET_ADMIN_USER_LIST: "" # comma separated userID list 
+SUPERSET_ADMIN_USER_LIST: "" # comma separated userID list
 
 SUPERSET_AUTH_ROLE_ADMIN: "Admin"
 SUPERSET_AUTH_ROLE_PUBLIC: "Public"
@@ -118,3 +118,4 @@ SUPERSET_AUTH_LDAP_SEARCH_FILTER: ""
 RVF_APP_NAME: "Dashboard Builder"
 RVF_HELP_ENABLED: False
 SUPERSET_SESSION_LIFETIME_SECONDS: "3600" # stale session timeout
+RVF_LOG_LEVEL: "INFO"
