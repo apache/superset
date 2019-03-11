@@ -110,7 +110,6 @@ spec:
         name: superset
         ports:
         - containerPort: 8088
-          hostPort: {{ superset_host_port }}
         resources: {}
         volumeMounts:
          - name: superset-configmap-volume
@@ -122,6 +121,17 @@ spec:
            mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
          - name: krb5-config-path
            mountPath: /etc/{{ superset_krb5_conf_name }}
+      - name: nginx
+        image: {{ nginx_docker_image_name }}:{{ nginx_image_tag }}
+        volumeMounts:
+          - name: secret-tls-volume
+            readOnly: true
+            mountPath: "/etc/nginx/ssl"
+          - name: superset-nginx-configmap-volume
+            mountPath: /etc/nginx/conf.d/default.conf
+            subPath: default.conf
+        ports:
+        - containerPort: {{ superset_nginx_port }}
       restartPolicy: {{ superset_docker_restart_policy }}
       volumes:
         - name: superset-configmap-volume
@@ -132,12 +142,19 @@ spec:
           configMap:
             name: superset-cert-configmap
             defaultMode: 0755    
+        - name: superset-nginx-configmap-volume
+          configMap:
+            name: superset-nginx-configmap
+            defaultMode: 0755    
         - name: krb5-keytab-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
         - name: krb5-config-path
           hostPath:
-            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }}  
+            path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }} 
+        - name: secret-tls-volume
+          secret:
+            secretName: superset-tls    
       nodeSelector:
         master-nodes: "true"
 status: {}

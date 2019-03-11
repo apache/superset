@@ -3,7 +3,6 @@
 
 pipeline {
   agent {label 'slave'}
-
     environment {
     // Define global environment variables in this
     WORKSPACE = pwd()

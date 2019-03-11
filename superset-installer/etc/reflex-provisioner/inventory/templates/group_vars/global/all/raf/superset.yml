@@ -15,6 +15,7 @@ superset_docker_registry: "{{ docker_default_registry }}"
 #                       Components Version                         #
 #------------------------------------------------------------------#
 superset_image_tag: "test_12"
+nginx_image_tag: "v1.14.2-guavus_4"
 
 #------------------------------------------------------------------#
 #                      Docker Path                                 #
@@ -27,6 +28,8 @@ security_docker_images_root_path: "/opt/repos/security/docker"
 #------------------------------------------------------------------#
 
 superset_docker_image_name: "{{ superset_docker_registry }}/guavus-superset"
+
+nginx_docker_image_name: "{{ superset_docker_registry }}/nginx-gvs"
 
 superset_docker_images:
   - name: guavus-superset
@@ -63,6 +66,8 @@ superset_postgres_db_password: "{{ superset_sql_conn_creds['admin']['postgres'][
 
 superset_host_port: "8888"
 superset_docker_restart_policy: "Always"
+superset_service_port: "32443"
+superset_nginx_port: "32443"
 
 #Path on hosts
 superset_host_base_dir: "/opt/guavus/superset"

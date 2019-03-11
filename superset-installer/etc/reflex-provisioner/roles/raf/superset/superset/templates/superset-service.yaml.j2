@@ -8,11 +8,13 @@ metadata:
   namespace: {{ superset_kube_namespace }}
 spec:
   ports:
-  - name: "8088"
+  - name: "Superset service"
     protocol: TCP
-    port: 8088
-    targetPort: 8088
+    port: {{ superset_service_port }}
+    targetPort: {{ superset_nginx_port }}
+    nodePort: {{ superset_service_port }}
   selector:
     service: superset
+  type: NodePort  
 status:
   loadBalancer: {}
