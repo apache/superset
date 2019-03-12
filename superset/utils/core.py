@@ -808,7 +808,7 @@ def merge_extra_filters(form_data):
             if date_options.get(filtr['col']):
                 if filtr.get('val'):
                     form_data[date_options[filtr['col']]] = filtr['val']
-            elif filtr['val'] and len(filtr['val']):
+            elif filtr['val']:
                 # Merge column filters
                 filter_key = get_filter_key(filtr)
                 if filter_key in existing_filters:
