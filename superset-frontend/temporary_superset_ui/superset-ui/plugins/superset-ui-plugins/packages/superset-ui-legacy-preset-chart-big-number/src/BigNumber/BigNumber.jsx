@@ -35,10 +35,8 @@ const CHART_MARGIN = {
 };
 
 const PROPORTION = {
-  HEADER: 0.4,
-  SUBHEADER: 0.14,
-  HEADER_WITH_TRENDLINE: 0.3,
-  SUBHEADER_WITH_TRENDLINE: 0.125,
+  HEADER: 0.3,
+  SUBHEADER: 0.125,
   TRENDLINE: 0.3,
 };
 
@@ -78,7 +76,9 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   bigNumber: PropTypes.number.isRequired,
   formatBigNumber: PropTypes.func,
+  headerFontSize: PropTypes.number,
   subheader: PropTypes.string,
+  subheaderFontSize: PropTypes.number,
   showTrendLine: PropTypes.bool,
   startYAxisAtZero: PropTypes.bool,
   trendLineData: PropTypes.array,
@@ -88,7 +88,9 @@ const propTypes = {
 const defaultProps = {
   className: '',
   formatBigNumber: identity,
+  headerFontSize: PROPORTION.HEADER,
   subheader: '',
+  subheaderFontSize: PROPORTION.SUBHEADER,
   showTrendLine: false,
   startYAxisAtZero: true,
   trendLineData: null,
@@ -217,7 +219,7 @@ class BigNumberVis extends React.PureComponent {
   }
 
   render() {
-    const { showTrendLine, height } = this.props;
+    const { showTrendLine, height, headerFontSize, subheaderFontSize } = this.props;
     const className = this.getClassName();
 
     if (showTrendLine) {
@@ -227,8 +229,8 @@ class BigNumberVis extends React.PureComponent {
       return (
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
-            {this.renderHeader(Math.ceil(PROPORTION.HEADER_WITH_TRENDLINE * height))}
-            {this.renderSubheader(Math.ceil(PROPORTION.SUBHEADER_WITH_TRENDLINE * height))}
+            {this.renderHeader(Math.ceil(headerFontSize * height))}
+            {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
@@ -237,8 +239,8 @@ class BigNumberVis extends React.PureComponent {
 
     return (
       <div className={className} style={{ height }}>
-        {this.renderHeader(Math.ceil(PROPORTION.HEADER * height))}
-        {this.renderSubheader(Math.ceil(PROPORTION.SUBHEADER * height))}
+        {this.renderHeader(Math.ceil(headerFontSize * height))}
+        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
       </div>
     );
   }
