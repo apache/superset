@@ -8,7 +8,7 @@ metadata:
   namespace: {{ superset_kube_namespace }}
 spec:
   ports:
-  - name: "Superset service"
+  - name: "superset-service"
     protocol: TCP
     port: {{ superset_service_port }}
     targetPort: {{ superset_nginx_port }}
