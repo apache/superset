@@ -320,7 +320,8 @@ class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """
-    charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
+    _charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
+    charset = 'utf-8' if _charset.lower() == 'utf-8-sig' else _charset
 
 
 def check_ownership(obj, raise_if_false=True):
