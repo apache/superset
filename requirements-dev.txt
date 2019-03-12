@@ -29,6 +29,8 @@ pyhive==0.6.1
 pylint==1.9.2
 python-dotenv==0.10.1
 redis==2.10.6
+sasl==0.2.1
 statsd==3.3.0
 thrift==0.11.0
+thrift_sasl==0.3.0
 tox==3.5.3

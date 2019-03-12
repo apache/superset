@@ -30,7 +30,7 @@ RUN apt-get install -y apt-transport-https apt-utils
 # Install superset dependencies
 # https://superset.incubator.apache.org/installation.html#os-dependencies
 RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+    libffi-dev python3-dev libsasl2-dev libldap2-dev libsasl2-2 libsasl2-modules-gssapi-mit libxi-dev
 
 # Install extra useful tool for development
 RUN apt-get install -y vim less postgresql-client redis-tools
