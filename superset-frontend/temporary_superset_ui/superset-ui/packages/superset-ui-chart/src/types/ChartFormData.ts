@@ -17,15 +17,30 @@ type BaseFormData = {
   datasource: string;
   viz_type: string;
   annotation_layers?: AnnotationLayerMetadata[];
+  where?: string;
+  groupby?: string[];
+  columns?: string[];
+  all_columns?: string[];
+  limit?: number;
+  row_limit?: number;
+  order_desc?: boolean;
+  timeseries_limit_metric?: FormDataMetric;
+  time_range?: string;
+  since?: string;
+  until?: string;
 } & Metrics;
 
 // FormData is either sqla-based or druid-based
-type SqlaFormData = {
+export type SqlaFormData = {
   granularity_sqla: string;
+  time_grain_sqla?: string;
+  having?: string;
 } & BaseFormData;
 
-type DruidFormData = {
+export type DruidFormData = {
   granularity: string;
+  having_druid?: string;
+  druid_time_origin?: string;
 } & BaseFormData;
 
 export type ChartFormData = SqlaFormData | DruidFormData;

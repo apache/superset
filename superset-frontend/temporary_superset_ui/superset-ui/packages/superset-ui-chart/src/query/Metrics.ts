@@ -29,24 +29,31 @@ export default class Metrics {
     return this.metrics.map(m => m.label);
   }
 
-  private addMetric(metric: FormDataMetric) {
+  static formatMetric(metric: FormDataMetric): Metric {
+    let formattedMetric;
     if (typeof metric === 'string') {
-      this.metrics.push({
+      formattedMetric = {
         label: metric,
-      });
+      };
     } else {
       // Note we further sanitize the metric label for BigQuery datasources
       // TODO: move this logic to the client once client has more info on the
       // the datasource
       const label = metric.label || this.getDefaultLabel(metric);
-      this.metrics.push({
+      formattedMetric = {
         ...metric,
         label,
-      });
+      };
     }
+
+    return formattedMetric;
   }
 
-  private getDefaultLabel(metric: AdhocMetric) {
+  private addMetric(metric: FormDataMetric) {
+    this.metrics.push(Metrics.formatMetric(metric));
+  }
+
+  static getDefaultLabel(metric: AdhocMetric) {
     let label: string;
     if (metric.expressionType === ExpressionType.SIMPLE) {
       label = `${metric.aggregate}(${metric.column.columnName})`;
