@@ -65,28 +65,28 @@ class DatabaseModelTestCase(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema='core_db').url).database
         self.assertEquals('core_db', db)
 
-    def test_database_schema_mysql(self):
-        sqlalchemy_uri = 'mysql://root@localhost/superset'
-        model = Database(sqlalchemy_uri=sqlalchemy_uri)
+    # def test_database_schema_mysql(self):
+    #     sqlalchemy_uri = 'mysql://root@localhost/superset'
+    #     model = Database(sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals('superset', db)
+    #     db = make_url(model.get_sqla_engine().url).database
+    #     self.assertEquals('superset', db)
 
-        db = make_url(model.get_sqla_engine(schema='staging').url).database
-        self.assertEquals('staging', db)
+    #     db = make_url(model.get_sqla_engine(schema='staging').url).database
+    #     self.assertEquals('staging', db)
 
-    def test_database_impersonate_user(self):
-        uri = 'mysql://root@localhost'
-        example_user = 'giuseppe'
-        model = Database(sqlalchemy_uri=uri)
+    # def test_database_impersonate_user(self):
+    #     uri = 'mysql://root@localhost'
+    #     example_user = 'giuseppe'
+    #     model = Database(sqlalchemy_uri=uri)
 
-        model.impersonate_user = True
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertEquals(example_user, user_name)
+    #     model.impersonate_user = True
+    #     user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
+    #     self.assertEquals(example_user, user_name)
 
-        model.impersonate_user = False
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertNotEquals(example_user, user_name)
+    #     model.impersonate_user = False
+    #     user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
+    #     self.assertNotEquals(example_user, user_name)
 
     def test_select_star(self):
         main_db = get_main_database(db.session)
