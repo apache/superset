@@ -165,13 +165,12 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
-export const RUN_QUERY = 'RUN_QUERY';
-export function runQuery(formData, force = false, timeout = 60, key) {
+export function exploreJSON(formData, force = false, timeout = 60, key, method) {
   return (dispatch) => {
     const { url, payload } = getExploreUrlAndPayload({
       formData,
       endpointType: 'json',
-      force,
+      force: false,
       allowDomainSharding: true,
     });
     const logStart = Logger.getTimestamp();
@@ -193,7 +192,9 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         credentials: 'include',
       };
     }
-    const queryPromise = SupersetClient.post(querySettings)
+
+    const clientMethod = method === 'GET' ? SupersetClient.get : SupersetClient.post;
+    const queryPromise = clientMethod(querySettings)
       .then(({ json }) => {
         dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
@@ -244,6 +245,16 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
   };
+}
+
+export const FETCH_CHART = 'FETCH_CHART';
+export function fetchChart(formData, force = false, timeout = 60, key) {
+  return exploreJSON(formData, force, timeout, key, 'GET');
+}
+
+export const RUN_QUERY = 'RUN_QUERY';
+export function runQuery(formData, force = false, timeout = 60, key) {
+  return exploreJSON(formData, force, timeout, key, 'POST');
 }
 
 export function redirectSQLLab(formData) {
