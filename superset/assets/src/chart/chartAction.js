@@ -170,7 +170,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
     const { url, payload } = getExploreUrlAndPayload({
       formData,
       endpointType: 'json',
-      force: false,
+      force,
       allowDomainSharding: true,
     });
     const logStart = Logger.getTimestamp();
