@@ -12,7 +12,7 @@ export default [
           formData: {
             colorScheme: 'd3Category10',
             globalOpacity: 1,
-            linkLength: 25,
+            linkLength: 15, // binCount
             normalized: false,
             xAxisLabel: 'Score',
             yAxisLabel: 'Count',
