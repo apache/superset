@@ -49,14 +49,13 @@ def etag_cache(max_age):
         @wraps(f)
         def wrapper(*args, **kwargs):
             try:
-                # create key from args, kwargs and POST content
-                cache_key = wrapper.make_cache_key(f, request.form, *args, **kwargs)
+                cache_key = wrapper.make_cache_key(f, *args, **kwargs)
                 response = cache.get(cache_key)
             except Exception:
                 logger.exception('Exception possibly due to cache backend.')
                 return f(*args, **kwargs)
 
-            if response is None:
+            if response is None or request.method == 'POST':
                 response = f(*args, **kwargs)
                 response.cache_control.max_age = max_age
                 response.cache_control.public = True

@@ -67,14 +67,12 @@ class Chart extends React.PureComponent {
     this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
   }
   componentDidMount() {
-    if (this.props.triggerQuery) {
-      this.props.actions.runQuery(
-        this.props.formData,
-        false,
-        this.props.timeout,
-        this.props.chartId,
-      );
-    }
+    this.props.actions.fetchChart(
+      this.props.formData,
+      false,
+      this.props.timeout,
+      this.props.chartId,
+    );
   }
 
   handleRenderContainerFailure(error, info) {
