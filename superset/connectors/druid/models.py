@@ -1413,7 +1413,9 @@ class DruidDatasource(Model, BaseDatasource):
                 raise Exception(_('Unsupported extraction function: ' + ext_type))
         elif dim_spec and dim_spec['type'] == 'lookup':
             col = dim_spec['dimension']
-            extraction_fn = RegisteredLookupExtraction(dim_spec['name'])
+            extraction_fn = RegisteredLookupExtraction(dim_spec['name'],
+                replace_missing_values=dim_spec['replaceMissingValueWith'],
+                retain_missing_values=dim_spec['retainMissingValue'])
         return (col, extraction_fn)
 
     @classmethod
