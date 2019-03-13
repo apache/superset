@@ -911,6 +911,11 @@ class DruidDatasource(Model, BaseDatasource):
             'Getting values for columns [{}] limited to [{}]'
             .format(column_name, limit))
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
+        dim_qry = column_name
+        if self.get_column(column_name).dimension_spec and\
+            self.get_column(column_name).dimension_spec['type'] == 'lookup':
+            dim_qry = self.get_column(column_name).dimension_spec
+
         if self.fetch_values_from:
             from_dttm = utils.parse_human_datetime(self.fetch_values_from)
         else:
@@ -921,7 +926,7 @@ class DruidDatasource(Model, BaseDatasource):
             granularity='all',
             intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
             aggregations=dict(count=count('count')),
-            dimension=column_name,
+            dimension=dim_qry,
             metric='count',
             threshold=limit,
         )
@@ -929,7 +934,7 @@ class DruidDatasource(Model, BaseDatasource):
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
         df = client.export_pandas()
-        return [row[column_name] for row in df.to_records(index=False)]
+        return df[column_name].tolist()
 
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
