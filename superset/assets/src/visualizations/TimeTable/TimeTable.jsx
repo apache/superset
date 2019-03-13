@@ -149,11 +149,7 @@ class TimeTable extends React.PureComponent {
           renderTooltip={({ index }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-<<<<<<< HEAD
               <div>{formatTime(column.dateFormat, moment.utc(entries[index].time).toDate())}</div>
-=======
-              <div>{formatTime(column.dateFormat, new Date(entries[index].time))}</div>
->>>>>>> Sparkline dates aren't formatting in Time Series Table (#6976)
             </div>
           )}
         />
