@@ -37,7 +37,7 @@ def stats_timing(stats_key, stats_logger):
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age, *additional_args):
+def etag_cache(max_age, *additional_args, check_perms=bool):
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -49,10 +49,11 @@ def etag_cache(max_age, *additional_args):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            check_perms(request)
             try:
                 # build the cache key from the function arguments and any other
                 # additional GET arguments (like `form_data`, eg).
-                key_args = list(args[1:])
+                key_args = list(args)
                 key_args.extend(request.args.get(arg) for arg in additional_args)
                 cache_key = wrapper.make_cache_key(f, key_args, **kwargs)
                 response = cache.get(cache_key)
@@ -62,7 +63,6 @@ def etag_cache(max_age, *additional_args):
 
             if response is None or request.method == 'POST':
                 response = f(*args, **kwargs)
-                response.cache_control.max_age = max_age
                 response.cache_control.public = True
                 response.last_modified = datetime.utcnow()
                 response.expires = response.last_modified + timedelta(seconds=max_age)

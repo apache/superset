@@ -102,6 +102,13 @@ def is_owner(obj, user):
     return obj and user in obj.owners
 
 
+def check_perms(request):
+    """Check if user can access a cached response from explore_json"""
+    slice_id = json.loads(request.args.get('form_data'))['slice_id']
+    slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+    security_manager.assert_datasource_permission(slc.get_viz().datasource)
+
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -1200,7 +1207,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, 'form_data')
+    @etag_cache(CACHE_DEFAULT_TIMEOUT, 'form_data', check_perms=check_perms)
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
 
