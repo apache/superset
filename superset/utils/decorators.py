@@ -17,6 +17,7 @@
 from contextlib2 import contextmanager
 from datetime import datetime, timedelta
 from functools import wraps
+import logging
 
 from flask import request
 
@@ -36,7 +37,7 @@ def stats_timing(stats_key, stats_logger):
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age):
+def etag_cache(max_age, *additional_args):
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -49,10 +50,14 @@ def etag_cache(max_age):
         @wraps(f)
         def wrapper(*args, **kwargs):
             try:
-                cache_key = wrapper.make_cache_key(f, *args, **kwargs)
+                # build the cache key from the function arguments and any other
+                # additional GET arguments (like `form_data`, eg).
+                key_args = list(args[1:])
+                key_args.extend(request.args.get(arg) for arg in additional_args)
+                cache_key = wrapper.make_cache_key(f, key_args, **kwargs)
                 response = cache.get(cache_key)
             except Exception:
-                logger.exception('Exception possibly due to cache backend.')
+                logging.exception('Exception possibly due to cache backend.')
                 return f(*args, **kwargs)
 
             if response is None or request.method == 'POST':
@@ -65,7 +70,7 @@ def etag_cache(max_age):
                 try:
                     cache.set(cache_key, response, timeout=max_age)
                 except Exception:
-                    logger.exception("Exception possibly due to cache backend.")
+                    logging.exception("Exception possibly due to cache backend.")
 
             return response.make_conditional(request)
 
