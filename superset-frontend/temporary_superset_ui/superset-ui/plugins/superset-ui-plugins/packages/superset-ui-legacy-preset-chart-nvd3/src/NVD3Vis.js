@@ -24,6 +24,7 @@ import nv from 'nvd3';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import { isDefined } from '@superset-ui/core';
 import { t } from '@superset-ui/translation';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { getNumberFormatter, NumberFormats } from '@superset-ui/number-format';
@@ -470,9 +471,6 @@ function nvd3Vis(element, props) {
       }
     }
 
-    if (chart.forceY && yAxisBounds && (yAxisBounds[0] !== null || yAxisBounds[1] !== null)) {
-      chart.forceY(yAxisBounds);
-    }
     if (yIsLogScale) {
       chart.yScale(d3.scale.log());
     }
@@ -579,6 +577,17 @@ function nvd3Vis(element, props) {
       // shift labels to the left so they look better
       const xTicks = svg.select('.nv-x.nv-axis > g').selectAll('g');
       xTicks.selectAll('text').attr('dx', -6.5);
+    }
+
+    if (chart.yDomain && Array.isArray(yAxisBounds) && yAxisBounds.length === 2) {
+      const [min, max] = yAxisBounds;
+      const [trueMin, trueMax] = chart.yAxis.scale().domain();
+      const yMin = isDefined(min) ? min : trueMin;
+      const yMax = isDefined(max) ? max : trueMax;
+      if (yMin !== trueMin || yMax !== trueMax) {
+        chart.yDomain([yMin, yMax]);
+        chart.clipEdge(true);
+      }
     }
 
     // align yAxis1 and yAxis2 ticks
