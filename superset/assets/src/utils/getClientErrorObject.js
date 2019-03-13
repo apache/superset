@@ -50,8 +50,9 @@ export default function getClientErrorObject(response) {
           resolve({ ...response, error: errorText });
         });
       });
-    } else if (typeof(response) === 'object' && Object.keys(response).length === 0) {
+    } else if (typeof (response) === 'object' && Object.keys(response).length === 0) {
       // Weird empty object that can get converted to string
+      /* eslint no-console: 0 */
       console.error(response);
       resolve({ ...response, error: String(response) });
     } else {

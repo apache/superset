@@ -194,7 +194,7 @@ export default class TimeSeriesColumnControl extends React.Component {
           {this.state.colType === 'spark' && this.formRow(
             t('Show Y-axis'),
             t(
-              'Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.'
+              'Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.',
             ),
             'show-y-axis-bounds',
             <CheckboxControl
@@ -205,7 +205,7 @@ export default class TimeSeriesColumnControl extends React.Component {
           {this.state.colType === 'spark' && this.formRow(
             t('Y-axis bounds'),
             t(
-              'Manually set min/max values for the y-axis.'
+              'Manually set min/max values for the y-axis.',
             ),
             'y-axis-bounds',
             <BoundsControl
@@ -218,7 +218,7 @@ export default class TimeSeriesColumnControl extends React.Component {
             t(
               `Number bounds used for color encoding from red to blue.
               Reverse the numbers for blue to red. To get pure red or blue,
-              you can enter either only min or max.`
+              you can enter either only min or max.`,
             ),
             'bounds',
             <BoundsControl
