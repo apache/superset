@@ -17,7 +17,9 @@ from flask_babel import lazy_gettext as _
 import pandas
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
-from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+from pydruid.utils.dimensions import (
+    MapLookupExtraction, RegexExtraction, RegisteredLookupExtraction
+    )
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.having import Aggregation
 from pydruid.utils.postaggregator import (
@@ -949,7 +951,8 @@ class DruidDatasource(Model, BaseDatasource):
                     f = None
                     # Check if this dimension uses an extraction function
                     # If so, create the appropriate pydruid extraction object
-                    if isinstance(dim, dict) and 'extractionFn' in dim:
+                    if isinstance(dim, dict) and ('extractionFn' in dim
+                        or dim['type'] == 'lookup'):
                         (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim)
                         dim_val = dim['outputName']
                         f = Filter(
@@ -1389,6 +1392,7 @@ class DruidDatasource(Model, BaseDatasource):
     @staticmethod
     def _create_extraction_fn(dim_spec):
         extraction_fn = None
+        col = None
         if dim_spec and 'extractionFn' in dim_spec:
             col = dim_spec['dimension']
             fn = dim_spec['extractionFn']
@@ -1407,6 +1411,9 @@ class DruidDatasource(Model, BaseDatasource):
                 extraction_fn = RegexExtraction(fn['expr'])
             else:
                 raise Exception(_('Unsupported extraction function: ' + ext_type))
+        elif dim_spec and dim_spec['type'] == 'lookup':
+            col = dim_spec['dimension']
+            extraction_fn = RegisteredLookupExtraction(dim_spec['name'])
         return (col, extraction_fn)
 
     @classmethod
@@ -1428,7 +1435,8 @@ class DruidDatasource(Model, BaseDatasource):
             column_def = columns_dict.get(col)
             dim_spec = column_def.dimension_spec if column_def else None
             extraction_fn = None
-            if dim_spec and 'extractionFn' in dim_spec:
+            if dim_spec and ('extractionFn' in dim_spec
+                or dim_spec['type'] == 'lookup'):
                 (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim_spec)
 
             cond = None
