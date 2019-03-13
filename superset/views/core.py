@@ -69,6 +69,7 @@ from .base import (
 from .utils import bootstrap_user_data
 
 config = app.config
+CACHE_DEFAULT_TIMEOUT = config.get('CACHE_DEFAULT_TIMEOUT', 0)
 stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
@@ -1199,7 +1200,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
-    #@etag_cache(60)
+    @etag_cache(CACHE_DEFAULT_TIMEOUT)
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
 
