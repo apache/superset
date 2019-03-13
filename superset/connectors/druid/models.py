@@ -1217,7 +1217,7 @@ class DruidDatasource(Model, BaseDatasource):
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
             query_str += '\n'
-            if phase == 1:
+            if phase == 1 and isinstance(dim, str):
                 return query_str
             query_str += (
                 "// Phase 2 (built based on phase one's results)\n")
