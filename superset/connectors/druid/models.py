@@ -18,7 +18,8 @@ import pandas
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
 from pydruid.utils.dimensions import (
-    MapLookupExtraction, RegexExtraction, RegisteredLookupExtraction
+    MapLookupExtraction, RegexExtraction, RegisteredLookupExtraction,
+    TimeFormatExtraction
     )
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.having import Aggregation
@@ -915,7 +916,8 @@ class DruidDatasource(Model, BaseDatasource):
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         dim_qry = column_name
         if self.get_column(column_name).dimension_spec and\
-            self.get_column(column_name).dimension_spec['type'] == 'lookup':
+            (self.get_column(column_name).dimension_spec['type'] == 'lookup'\
+            or 'extractionFn' in self.get_column(column_name).dimension_spec):
             dim_qry = self.get_column(column_name).dimension_spec
 
         if self.fetch_values_from:
@@ -1409,6 +1411,12 @@ class DruidDatasource(Model, BaseDatasource):
                 )
             elif ext_type == 'regex':
                 extraction_fn = RegexExtraction(fn['expr'])
+            elif ext_type == 'timeFormat':
+                extraction_fn = TimeFormatExtraction(
+                    format=fn.get('format', None),
+                    locale=fn.get('locale', None),
+                    time_zone=fn.get('timeZone', None)
+                    )
             else:
                 raise Exception(_('Unsupported extraction function: ' + ext_type))
         elif dim_spec and dim_spec['type'] == 'lookup':
