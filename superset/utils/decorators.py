@@ -40,7 +40,7 @@ def etag_cache(max_age):
     """
     A decorator for caching views and handling etag conditional requests.
 
-    The decorator caches the response, and returning headers for etag and last
+    The decorator caches the response, returning headers for etag and last
     modified. If the client makes a request that matches, the server will
     return a "304 Not Mofified" status.
 
