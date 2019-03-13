@@ -986,16 +986,16 @@ class PrestoEngineSpec(BaseEngineSpec):
         except Exception:
             # table is not partitioned
             return False
-        for c in columns:
-            if c.get('name') == col_name:
-                return qry.where(Column(col_name) == value)
+        if value is not None:
+            for c in columns:
+                if c.get('name') == col_name:
+                    return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
     def _latest_partition_from_df(cls, df):
-        recs = df.to_records(index=False)
-        if recs:
-            return recs[0][0]
+        if not df.empty:
+            return df.to_records(index=False)[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
@@ -1012,7 +1012,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type show_first: bool
 
         >>> latest_partition('foo_table')
-        '2018-01-01'
+        ('ds', '2018-01-01')
         """
         indexes = database.get_indexes(table_name, schema)
         if len(indexes[0]['column_names']) < 1:
@@ -1330,9 +1330,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         except Exception:
             # table is not partitioned
             return False
-        for c in columns:
-            if c.get('name') == col_name:
-                return qry.where(Column(col_name) == value)
+        if value is not None:
+            for c in columns:
+                if c.get('name') == col_name:
+                    return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
@@ -1343,7 +1344,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _latest_partition_from_df(cls, df):
         """Hive partitions look like ds={partition name}"""
-        return df.ix[:, 0].max().split('=')[1]
+        if not df.empty:
+            return df.ix[:, 0].max().split('=')[1]
 
     @classmethod
     def _partition_query(
