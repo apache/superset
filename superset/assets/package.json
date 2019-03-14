@@ -136,7 +136,9 @@
     "supercluster": "^4.1.1",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^5.0.0"
+    "viewport-mercator-project": "^5.0.0",
+    "acorn-dynamic-import": "^4.0.0",
+    "core-js": "^2.5.7"
   },
   "devDependencies": {
     "@types/jest": "^23.3.5",
