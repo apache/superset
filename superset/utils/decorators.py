@@ -49,8 +49,8 @@ def etag_cache(max_age, *additional_args, check_perms=bool):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            check_perms(request)
             try:
+                check_perms(request)
                 # build the cache key from the function arguments and any other
                 # additional GET arguments (like `form_data`, eg).
                 key_args = list(args)
