@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.29.0rc8",
+  "version": "0.29.0rc7",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -125,7 +125,7 @@
     "react-syntax-highlighter": "^7.0.4",
     "react-virtualized": "9.19.1",
     "react-virtualized-select": "^3.1.3",
-    "reactable": "1.0.2",
+    "reactable-arc": "0.14.42",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
