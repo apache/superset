@@ -520,6 +520,7 @@ export const controls = {
       'France',
       'Germany',
       'Italy',
+      'India',
       'Portugal',
       'Morocco',
       'Myanmar',
