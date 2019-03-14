@@ -573,6 +573,11 @@ function nvd3Vis(element, props) {
       .attr('width', width)
       .call(chart);
 
+    // For log scale, only show 1, 10, 100, 1000, ...
+    if (yIsLogScale) {
+      chart.yAxis.tickFormat(d => (Math.log10(d) % 1 === 0 ? yAxisFormatter(d) : ''));
+    }
+
     if (xLabelRotation > 0) {
       // shift labels to the left so they look better
       const xTicks = svg.select('.nv-x.nv-axis > g').selectAll('g');
