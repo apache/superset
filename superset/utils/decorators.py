@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from contextlib2 import contextmanager
 from datetime import datetime, timedelta
 from functools import wraps
 import logging
 
+from contextlib2 import contextmanager
 from flask import request
 
 from superset import cache
@@ -70,13 +70,14 @@ def etag_cache(max_age, *additional_args, check_perms=bool):
                 try:
                     cache.set(cache_key, response, timeout=max_age)
                 except Exception:
-                    logging.exception("Exception possibly due to cache backend.")
+                    logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
 
         wrapper.uncached = f
         wrapper.cache_timeout = max_age
-        wrapper.make_cache_key = cache._memoize_make_cache_key(make_name=None, timeout=max_age)
+        wrapper.make_cache_key = cache._memoize_make_cache_key(
+            make_name=None, timeout=max_age)
         return wrapper
 
     return decorator
