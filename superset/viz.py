@@ -1164,10 +1164,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
-        if fd.get('contribution'):
-            dft = df.T
-            df = (dft / dft.sum()).T
-
         rolling_type = fd.get('rolling_type')
         rolling_periods = int(fd.get('rolling_periods') or 0)
         min_periods = int(fd.get('min_periods') or 0)
@@ -1186,6 +1182,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df.cumsum()
         if min_periods:
             df = df[min_periods:]
+
+        if fd.get('contribution'):
+            dft = df.T
+            df = (dft / dft.sum()).T
 
         return df
 
