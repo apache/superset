@@ -1,6 +1,6 @@
 {
   "presets" : ["airbnb", "react", "env"],
-  "plugins": ["lodash", "syntax-dynamic-import", "react-hot-loader/babel"],
+  "plugins": ["lodash", "syntax-dynamic-import", "react-hot-loader/babel", "babel-plugin-dynamic-import-node"],
   "env": {
     "test": {
       "plugins": [
