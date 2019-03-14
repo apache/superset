@@ -33,7 +33,10 @@ from flask_babel import lazy_gettext as _
 import pandas
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
-from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+from pydruid.utils.dimensions import (
+    MapLookupExtraction, RegexExtraction,
+    TimeFormatExtraction, RegisteredLookupExtraction
+)
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.having import Aggregation
 from pydruid.utils.postaggregator import (
@@ -859,6 +862,12 @@ class DruidDatasource(Model, BaseDatasource):
             'Getting values for columns [{}] limited to [{}]'
             .format(column_name, limit))
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
+        dim_qry = column_name
+        if self.get_column(column_name).dimension_spec and\
+            (self.get_column(column_name).dimension_spec['type'] == 'lookup'\
+            or 'extractionFn' in self.get_column(column_name).dimension_spec):
+            dim_qry = self.get_column(column_name).dimension_spec
+        
         if self.fetch_values_from:
             from_dttm = utils.parse_human_datetime(self.fetch_values_from)
         else:
@@ -869,7 +878,7 @@ class DruidDatasource(Model, BaseDatasource):
             granularity='all',
             intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
             aggregations=dict(count=count('count')),
-            dimension=column_name,
+            dimension=dim_qry,
             metric='count',
             threshold=limit,
         )
@@ -877,7 +886,7 @@ class DruidDatasource(Model, BaseDatasource):
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
         df = client.export_pandas()
-        return [row[column_name] for row in df.to_records(index=False)]
+        return df[column_name].tolist()
 
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
@@ -892,7 +901,8 @@ class DruidDatasource(Model, BaseDatasource):
                     f = None
                     # Check if this dimension uses an extraction function
                     # If so, create the appropriate pydruid extraction object
-                    if isinstance(dim, dict) and 'extractionFn' in dim:
+                    if isinstance(dim, dict) and ('extractionFn' in dim\
+                        or dim['type'] == 'lookup'):
                         (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim)
                         dim_val = dim['outputName']
                         f = Filter(
@@ -1160,7 +1170,7 @@ class DruidDatasource(Model, BaseDatasource):
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
             query_str += '\n'
-            if phase == 1:
+            if phase == 1 and isinstance(dim, str):
                 return query_str
             query_str += (
                 "// Phase 2 (built based on phase one's results)\n")
@@ -1332,6 +1342,7 @@ class DruidDatasource(Model, BaseDatasource):
     @staticmethod
     def _create_extraction_fn(dim_spec):
         extraction_fn = None
+        col = None
         if dim_spec and 'extractionFn' in dim_spec:
             col = dim_spec['dimension']
             fn = dim_spec['extractionFn']
@@ -1348,8 +1359,21 @@ class DruidDatasource(Model, BaseDatasource):
                 )
             elif ext_type == 'regex':
                 extraction_fn = RegexExtraction(fn['expr'])
+            elif ext_type == 'timeFormat':
+                    extraction_fn = TimeFormatExtraction(
+                        format=fn.get('format', None),
+                        locale=fn.get('locale', None),
+                        time_zone=fn.get('timeZone', None)
+                        )
             else:
                 raise Exception(_('Unsupported extraction function: ' + ext_type))
+        elif dim_spec and dim_spec['type'] == 'lookup':
+                col = dim_spec['dimension']
+                extraction_fn = RegisteredLookupExtraction(
+                    dim_spec['name'],
+                    replace_missing_values=dim_spec['replaceMissingValueWith'],
+                    retain_missing_values=dim_spec['retainMissingValue']
+                    )
         return (col, extraction_fn)
 
     @classmethod
@@ -1371,7 +1395,8 @@ class DruidDatasource(Model, BaseDatasource):
             column_def = columns_dict.get(col)
             dim_spec = column_def.dimension_spec if column_def else None
             extraction_fn = None
-            if dim_spec and 'extractionFn' in dim_spec:
+            if dim_spec and ('extractionFn' in dim_spec\
+                or dim_spec['type'] == 'lookup'):
                 (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim_spec)
 
             cond = None
