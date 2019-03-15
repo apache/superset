@@ -32,6 +32,7 @@ class QueryObject:
     The query object's schema matches the interfaces of DB connectors like sqla
     and druid. The query objects are constructed on the client.
     """
+
     def __init__(
             self,
             granularity: str,
@@ -46,7 +47,7 @@ class QueryObject:
             timeseries_limit_metric: Optional[Dict] = None,
             order_desc: bool = True,
             extras: Optional[Dict] = None,
-            prequeries: Optional[Dict] = None,
+            prequeries: Optional[List[Dict]] = None,
             is_prequery: bool = False,
             columns: List[str] = None,
             orderby: List[List] = None,
@@ -67,7 +68,7 @@ class QueryObject:
         self.timeseries_limit = timeseries_limit
         self.timeseries_limit_metric = timeseries_limit_metric
         self.order_desc = order_desc
-        self.prequeries = prequeries
+        self.prequeries = prequeries if prequeries is not None else []
         self.is_prequery = is_prequery
         self.extras = extras if extras is not None else {}
         self.columns = columns if columns is not None else []
