@@ -29,6 +29,8 @@ import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import { STATUS_OPTIONS, STATE_BSSTYLE_MAP } from '../constants';
 
+const TAB_HEIGHT = 44;
+
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
@@ -76,7 +78,7 @@ export class SouthPane extends React.PureComponent {
           { STATUS_OPTIONS.offline }
         </Label>);
     }
-    const innerTabHeight = this.state.height - 55;
+    const innerTabContentHeight = this.state.height - TAB_HEIGHT;
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
@@ -90,7 +92,7 @@ export class SouthPane extends React.PureComponent {
           search
           query={latestQuery}
           actions={props.actions}
-          height={innerTabHeight}
+          height={innerTabContentHeight}
           database={this.props.databases[latestQuery.dbId]}
         />
       );
@@ -109,7 +111,7 @@ export class SouthPane extends React.PureComponent {
           csv={false}
           actions={props.actions}
           cache
-          height={innerTabHeight}
+          height={innerTabContentHeight}
         />
       </Tab>
     ));
@@ -119,6 +121,7 @@ export class SouthPane extends React.PureComponent {
         <Tabs
           bsStyle="tabs"
           animation={false}
+          className="SouthPaneTabs"
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
           onSelect={this.switchTab}
@@ -133,9 +136,7 @@ export class SouthPane extends React.PureComponent {
             title={t('Query History')}
             eventKey="History"
           >
-            <div style={{ height: `${innerTabHeight}px`, overflow: 'auto' }}>
-              <QueryHistory queries={props.editorQueries} actions={props.actions} />
-            </div>
+            <QueryHistory queries={props.editorQueries} actions={props.actions} />
           </Tab>
           {dataPreviewTabs}
         </Tabs>
