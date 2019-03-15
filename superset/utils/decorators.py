@@ -58,7 +58,7 @@ def etag_cache(max_age, check_perms=bool):
                 key_kwargs.update(request.args)
                 cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
                 response = cache.get(cache_key)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 logging.exception('Exception possibly due to cache backend.')
                 return f(*args, **kwargs)
 
@@ -70,14 +70,14 @@ def etag_cache(max_age, check_perms=bool):
                 response.add_etag()
                 try:
                     cache.set(cache_key, response, timeout=max_age)
-                except Exception:
+                except Exception:  # pylint: disable=broad-except
                     logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
 
         wrapper.uncached = f
         wrapper.cache_timeout = max_age
-        wrapper.make_cache_key = cache._memoize_make_cache_key(
+        wrapper.make_cache_key = cache._memoize_make_cache_key(  # pylint: disable=protected-access
             make_name=None, timeout=max_age)
         return wrapper
 
