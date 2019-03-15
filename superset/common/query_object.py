@@ -47,7 +47,7 @@ class QueryObject:
             timeseries_limit_metric: Optional[Dict] = None,
             order_desc: bool = True,
             extras: Optional[Dict] = None,
-            prequeries: List[List] = None,
+            prequeries: Optional[List[Dict]] = None,
             is_prequery: bool = False,
             columns: List[str] = None,
             orderby: List[List] = None,
