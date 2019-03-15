@@ -1049,12 +1049,12 @@ class Superset(BaseSupersetView):
         slice_id = form_data.get('slice_id') or slice_id
         slc = None
 
-        # Check if form data only contains slice_id
-        contains_only_slc_id = not any(key != 'slice_id' for key in form_data)
+        # Check if form data only contains slice_id and extra_fiters
+        valid_slice_id = all(key in ['slice_id', 'extra_filters'] for key in form_data)
 
         # Include the slice_form_data if request from explore or slice calls
-        # or if form_data only contains slice_id
-        if slice_id and (use_slice_data or contains_only_slc_id):
+        # or if form_data only contains slice_id and extra_filters
+        if slice_id and (use_slice_data or valid_slice_id):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 slice_form_data = slc.form_data.copy()
