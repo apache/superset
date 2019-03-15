@@ -1,3 +1,4 @@
+import '@babel/polyfill';
 import { setAddon, storiesOf } from '@storybook/react';
 import { withKnobs } from '@storybook/addon-knobs';
 import JSXAddon from 'storybook-addon-jsx';
@@ -36,7 +37,7 @@ requireContext.keys().forEach(packageName => {
 
       storiesOf(storyPath, module)
         .addParameters({ options })
-        .addDecorator(withKnobs)
+        .addDecorator(withKnobs({ escapeHTML: false }))
         .addWithJSX(storyName, renderStory);
     });
   }
