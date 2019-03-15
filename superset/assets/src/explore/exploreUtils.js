@@ -119,7 +119,10 @@ export function getExploreUrlAndPayload({
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
   if (formData.slice_id) {
-    search.form_data = safeStringify({ slice_id: formData.slice_id });
+    search.form_data = safeStringify({
+      slice_id: formData.slice_id,
+      extra_filters: formData.extra_filters,
+    });
   }
   if (force) {
     search.force = 'true';
