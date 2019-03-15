@@ -272,7 +272,7 @@ Superset in the :ref:`ref_database_deps` section of the docs. Database
 engines not listed in this page may work too. We rely on the
 community to contribute to this knowledge base.
 
-.. _SQLAlchemy dialect: http://docs.sqlalchemy.org/en/latest/dialects/
+.. _SQLAlchemy dialect: https://docs.sqlalchemy.org/en/latest/dialects/
 .. _DBAPI driver: https://www.python.org/dev/peps/pep-0249/
 
 For a database engine to be supported in Superset through the

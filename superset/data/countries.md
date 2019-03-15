@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 This data was downloaded from the
-[World's Health Organization's website](http://data.worldbank.org/data-catalog/health-nutrition-and-population-statistics)
+[World's Health Organization's website](https://datacatalog.worldbank.org/dataset/health-nutrition-and-population-statistics)
 
 Here's the script that was used to massage the data:
 

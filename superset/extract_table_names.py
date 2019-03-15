@@ -26,7 +26,7 @@
 # SELECT statements.
 #
 # See:
-# http://groups.google.com/group/sqlparse/browse_thread/thread/b0bd9a022e9d4895
+# https://groups.google.com/forum/#!topic/sqlparse/sL2aAi6dSJU
 import sqlparse
 from sqlparse.sql import Identifier, IdentifierList
 from sqlparse.tokens import DML, Keyword
