@@ -340,6 +340,8 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, memoryview):
+        return str(obj.tobytes(), 'utf8')
     elif isinstance(obj, bytes):
         try:
             return '{}'.format(obj)
