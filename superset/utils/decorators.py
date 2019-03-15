@@ -77,8 +77,9 @@ def etag_cache(max_age, check_perms=bool):
 
         wrapper.uncached = f
         wrapper.cache_timeout = max_age
-        wrapper.make_cache_key = cache._memoize_make_cache_key(  # pylint: disable=protected-access
-            make_name=None, timeout=max_age)
+        wrapper.make_cache_key = \
+            cache._memoize_make_cache_key(  # pylint: disable=protected-access
+                make_name=None, timeout=max_age)
         return wrapper
 
     return decorator
