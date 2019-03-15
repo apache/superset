@@ -20,7 +20,6 @@ import json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-from flask_babel import gettext as __
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
