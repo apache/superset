@@ -76,7 +76,7 @@ class ParsedQuery(object):
 
     @staticmethod
     def __get_full_name(identifier):
-        if len(identifier.tokens) > 1 and identifier.tokens[1].value == '.':
+        if len(identifier.tokens) > 2 and identifier.tokens[1].value == '.':
             return '{}.{}'.format(identifier.tokens[0].value,
                                   identifier.tokens[2].value)
         return identifier.get_real_name()
@@ -89,8 +89,8 @@ class ParsedQuery(object):
         # exclude subselects
         if '(' not in str(identifier):
             table_name = self.__get_full_name(identifier)
-            if not table_name.startswith(CTE_PREFIX):
-                self._table_names.add(self.__get_full_name(identifier))
+            if table_name and not table_name.startswith(CTE_PREFIX):
+                self._table_names.add(table_name)
             return
 
         # store aliases

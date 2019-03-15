@@ -47,6 +47,11 @@ class SupersetTestCase(unittest.TestCase):
             {'schemaname.tbname'},
             self.extract_tables('SELECT * FROM schemaname.tbname'))
 
+        # Ill-defined schema/table.
+        self.assertEquals(
+            set(),
+            self.extract_tables('SELECT * FROM schemaname.'))
+
         # quotes
         query = 'SELECT field1, field2 FROM tb_name'
         self.assertEquals({'tb_name'}, self.extract_tables(query))
