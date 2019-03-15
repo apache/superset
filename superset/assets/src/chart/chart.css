@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+.chart-container {
+  overflow-x: auto;
+}
+
 .chart-tooltip {
   opacity: 0.75;
   font-size: 12px;
