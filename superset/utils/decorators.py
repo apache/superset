@@ -37,7 +37,7 @@ def stats_timing(stats_key, stats_logger):
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age, *additional_args, check_perms=bool):
+def etag_cache(max_age, check_perms=bool):
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -54,8 +54,9 @@ def etag_cache(max_age, *additional_args, check_perms=bool):
                 # build the cache key from the function arguments and any other
                 # additional GET arguments (like `form_data`, eg).
                 key_args = list(args)
-                key_args.extend(request.args.get(arg) for arg in additional_args)
-                cache_key = wrapper.make_cache_key(f, key_args, **kwargs)
+                key_kwargs = kwargs.copy()
+                key_kwargs.update(request.args)
+                cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
                 response = cache.get(cache_key)
             except Exception:
                 logging.exception('Exception possibly due to cache backend.')
