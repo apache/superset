@@ -55,7 +55,6 @@ export default class EditableTitle extends React.PureComponent {
     this.handleClick = this.handleClick.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleChange = this.handleChange.bind(this);
-    this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
 
     // Used so we can access the DOM element if a user clicks on this component.
@@ -112,21 +111,16 @@ export default class EditableTitle extends React.PureComponent {
     }
   }
 
-  handleKeyUp(ev) {
-    // this entire method exists to support using EditableTitle as the title of a
-    // react-bootstrap Tab, as a workaround for this line in react-bootstrap https://goo.gl/ZVLmv4
-    //
-    // tl;dr when a Tab EditableTitle is being edited, typically the Tab it's within has been
-    // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
-    // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
-    // keydown is still called so we can detect this and manually add a ' ' to the current title
-    if (ev.key === ' ') {
-      let title = ev.target.value;
-      const titleLength = (title || '').length;
-      if (title && title[titleLength - 1] !== ' ') {
-        title = `${title} `;
-        this.setState(() => ({ title }));
-      }
+  // this entire method exists to support using EditableTitle as the title of a
+  // react-bootstrap Tab, as a workaround for this line in react-bootstrap https://goo.gl/ZVLmv4
+  //
+  // tl;dr when a Tab EditableTitle is being edited, typically the Tab it's within has been
+  // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
+  // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
+  // keydown is still called so we can detect this and manually add a ' ' to the current title
+  handleKeyDown(event) {
+    if (event.key === ' ') {
+      event.stopPropagation();
     }
   }
 
@@ -170,7 +164,7 @@ export default class EditableTitle extends React.PureComponent {
         required
         value={value}
         className={!title ? 'text-muted' : null}
-        onKeyUp={this.handleKeyUp}
+        onKeyDown={this.handleKeyDown}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
         onClick={this.handleClick}
@@ -184,7 +178,7 @@ export default class EditableTitle extends React.PureComponent {
         type={isEditing ? 'text' : 'button'}
         value={value}
         className={!title ? 'text-muted' : null}
-        onKeyUp={this.handleKeyUp}
+        onKeyDown={this.handleKeyDown}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
         onClick={this.handleClick}
