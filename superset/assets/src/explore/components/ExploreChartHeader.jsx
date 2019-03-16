@@ -104,6 +104,11 @@ class ExploreChartHeader extends React.PureComponent {
           title={this.renderChartTitle()}
           canEdit={!this.props.slice || this.props.can_overwrite}
           onSaveTitle={this.updateChartTitleOrSaveSlice.bind(this)}
+          warningOnSave={
+            this.props.slice ?
+            'Editing the title will save over this chart. Are you sure you want to save?' :
+            null
+          }
         />
 
         {this.props.slice &&

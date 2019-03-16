@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Dialog from 'react-bootstrap-dialog';
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
@@ -32,6 +33,7 @@ const propTypes = {
   emptyText: PropTypes.node,
   style: PropTypes.object,
   extraClasses: PropTypes.oneOfType([PropTypes.arrayOf(PropTypes.string), PropTypes.string]),
+  warningOnSave: PropTypes.string,
 };
 const defaultProps = {
   title: t('Title'),
@@ -42,6 +44,7 @@ const defaultProps = {
   emptyText: '<empty>',
   style: null,
   extraClasses: null,
+  warningOnSave: null,
 };
 
 export default class EditableTitle extends React.PureComponent {
@@ -51,12 +54,17 @@ export default class EditableTitle extends React.PureComponent {
       isEditing: false,
       title: this.props.title,
       lastTitle: this.props.title,
+      lastSavedTitle: this.props.title,
     };
     this.handleClick = this.handleClick.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.onConfirmSave = this.onConfirmSave.bind(this);
+    this.onCancel = this.onCancel.bind(this);
+    this.setDialogRef = this.setDialogRef.bind(this);
+    this.renderOnSaveAlert = this.renderOnSaveAlert.bind(this);
 
     // Used so we can access the DOM element if a user clicks on this component.
     this.contentRef = React.createRef();
@@ -69,6 +77,23 @@ export default class EditableTitle extends React.PureComponent {
         title: nextProps.title,
       });
     }
+  }
+
+  onConfirmSave() {
+    this.setState({
+      lastSavedTitle: this.state.title,
+    });
+    this.props.onSaveTitle(this.state.title);
+  }
+
+  onCancel() {
+    this.setState({
+      title: this.state.lastSavedTitle,
+    });
+  }
+
+  setDialogRef(ref) {
+    this.dialog = ref;
   }
 
   handleClick() {
@@ -108,7 +133,11 @@ export default class EditableTitle extends React.PureComponent {
     }
 
     if (this.props.title !== this.state.title) {
-      this.props.onSaveTitle(this.state.title);
+      if (this.props.warningOnSave) {
+        this.renderOnSaveAlert();
+      } else {
+        this.props.onSaveTitle(this.state.title);
+      }
     }
   }
 
@@ -144,6 +173,24 @@ export default class EditableTitle extends React.PureComponent {
       ev.preventDefault();
       this.handleBlur();
     }
+  }
+
+  renderOnSaveAlert() {
+    const alertBody = (
+      <div>
+        {t(this.props.warningOnSave)}
+      </div>
+    );
+
+    this.dialog.show({
+      title: t('Confirm save'),
+      bsSize: 'medium',
+      actions: [
+        Dialog.CancelAction(this.onCancel),
+        Dialog.OKAction(this.onConfirmSave),
+      ],
+      body: alertBody,
+    });
   }
 
   render() {
@@ -213,6 +260,7 @@ export default class EditableTitle extends React.PureComponent {
         style={style}
       >
         {input}
+        <Dialog ref={this.setDialogRef} />
       </span>
     );
   }
