@@ -53,6 +53,7 @@ const propTypes = {
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
+  supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
 };
 
@@ -195,6 +196,7 @@ class Chart extends React.Component {
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
+      supersetCanCSV,
       sliceCanEdit,
     } = this.props;
 
@@ -229,6 +231,7 @@ class Chart extends React.Component {
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
+          supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
         />
 
