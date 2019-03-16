@@ -40,7 +40,7 @@ RUN git clone https://github.com/wschroederga/sqlalchemy_dremio.git && \
     ls -l dist  && \
 # Install Package
     apt install unixodbc-dev -y  && \
-    python3 setup.py install && \
+    python3 setup.py install
 # Run tests
     # python3 tests/conftest.py
 
