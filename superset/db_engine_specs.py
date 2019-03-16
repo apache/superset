@@ -713,13 +713,13 @@ class DremioEngineSpec(BaseEngineSpec):
     engine = 'dremio'
     import sqlalchemy_dremio
 
-     @classmethod
+    @classmethod
     def get_schema_names(cls, inspector):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas
 
-     @classmethod
+    @classmethod
     def get_table_names(cls, schema, inspector):
         b = 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA."TABLES" '
         b = b + "WHERE TABLE_SCHEMA =  '" + schema + "'"
@@ -727,15 +727,16 @@ class DremioEngineSpec(BaseEngineSpec):
                    if not row[0].startswith('_')]
         return sorted(schemas)
 
-     @classmethod
+    @classmethod
     def get_normalized_column_names(cls, cursor_description):
         columns = cursor_description if cursor_description else []
         return [cls.normalize_column_name(col[0]) for col in columns]
-        @staticmethod
+    
+    @staticmethod
     def normalize_column_name(column_name):
         return column_name
 
-     @classmethod
+    @classmethod
     def fetch_data(cls, cursor, limit):
         lista = []
         if not cursor.description:
