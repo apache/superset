@@ -22,6 +22,27 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
+# Install Dremio ODBC
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+RUN apt-get update -y
+RUN apt-get install -y unixodbc-dev unixodbc-bin unixodbc
+RUN apt-get install -y alien
+RUN wget -P /home/superset/ http://download.dremio.com/odbc-driver/1.3.22.1055/dremio-odbc-1.3.22.1055-1.x86_64.rpm && \
+    alien -k /home/superset/dremio-odbc-1.3.22.1055-1.x86_64.rpm --scripts && \
+    dpkg -i /home/superset/dremio-odbc_1.3.22.1055-1_amd64.deb    
+
+# Build sqlalchemy_dremio
+RUN git clone https://github.com/wschroederga/sqlalchemy_dremio.git && \
+    cd sqlalchemy  && \
+    make clean  && \
+    pip setup.py sdist  && \
+    pip setup.py bdist_wheel  && \
+    ls -l dist  && \
+# Run tests
+    pip sqlalchemy_dremio/tests/conftest.py  && \
+# Install Package
+    pip setup.py install
+
 RUN apt-get update -y
 
 # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
