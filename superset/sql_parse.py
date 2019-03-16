@@ -35,7 +35,10 @@ class ParsedQuery(object):
         self._table_names = set()
         self._alias_names = set()
         self._limit = None
-
+        # Start Dremio Support
+        self.sql = self.sql.replace('[','"')
+        self.sql = self.sql.replace(']','"')
+        # End Dremio Support
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:

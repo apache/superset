@@ -707,8 +707,50 @@ class SqliteEngineSpec(BaseEngineSpec):
     def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
+        
+# Start Dremio Support
+class DremioEngineSpec(BaseEngineSpec):
+    engine = 'dremio'
+    import sqlalchemy_dremio
 
+     @classmethod
+    def get_schema_names(cls, inspector):
+        schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
+                   if not row[0].startswith('_')]
+        return schemas
 
+     @classmethod
+    def get_table_names(cls, schema, inspector):
+        b = 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA."TABLES" '
+        b = b + "WHERE TABLE_SCHEMA =  '" + schema + "'"
+        schemas = [row[0] for row in inspector.engine.execute(b)
+                   if not row[0].startswith('_')]
+        return sorted(schemas)
+
+     @classmethod
+    def get_normalized_column_names(cls, cursor_description):
+        columns = cursor_description if cursor_description else []
+        return [cls.normalize_column_name(col[0]) for col in columns]
+        @staticmethod
+    def normalize_column_name(column_name):
+        return column_name
+
+     @classmethod
+    def fetch_data(cls, cursor, limit):
+        lista = []
+        if not cursor.description:
+            return []
+        if cls.limit_method == LimitMethod.FETCH_MANY:
+            for element in cursor.fetchmany(limit):
+                text = list(element)
+                lista.append(text)
+            return lista
+        else:
+            for element in cursor.fetchall():
+                text = list(element)
+                lista.append(text)
+            return lista
+# End Dremio support
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
     max_column_name_length = 64
