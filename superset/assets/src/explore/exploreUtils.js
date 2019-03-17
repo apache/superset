@@ -122,6 +122,7 @@ export function getExploreUrlAndPayload({
     search.form_data = safeStringify({
       slice_id: formData.slice_id,
       extra_filters: formData.extra_filters,
+      adhoc_filters: formData.adhoc_filters,
     });
   }
   if (force) {
