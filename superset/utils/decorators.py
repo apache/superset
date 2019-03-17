@@ -45,6 +45,9 @@ def etag_cache(max_age, check_perms=bool):
     modified. If the client makes a request that matches, the server will
     return a "304 Not Mofified" status.
 
+    If no cache is set, the decorator will still set the ETag header, and
+    handle conditional requests.
+
     """
     def decorator(f):
         @wraps(f)
@@ -60,7 +63,7 @@ def etag_cache(max_age, check_perms=bool):
                 response = cache.get(cache_key)
             except Exception:  # pylint: disable=broad-except
                 logging.exception('Exception possibly due to cache backend.')
-                return f(*args, **kwargs)
+                response = None
 
             if response is None or request.method == 'POST':
                 response = f(*args, **kwargs)
@@ -75,11 +78,13 @@ def etag_cache(max_age, check_perms=bool):
 
             return response.make_conditional(request)
 
-        wrapper.uncached = f
-        wrapper.cache_timeout = max_age
-        wrapper.make_cache_key = \
-            cache._memoize_make_cache_key(  # pylint: disable=protected-access
-                make_name=None, timeout=max_age)
+        if cache:
+            wrapper.uncached = f
+            wrapper.cache_timeout = max_age
+            wrapper.make_cache_key = \
+                cache._memoize_make_cache_key(  # pylint: disable=protected-access
+                    make_name=None, timeout=max_age)
+
         return wrapper
 
     return decorator
