@@ -160,10 +160,8 @@ AUTH_TYPE = AUTH_DB
 
 # Uncomment to setup OpenID providers example for OpenID authentication
 # OPENID_PROVIDERS = [
-#    { 'name': 'Yahoo', 'url': 'https://me.yahoo.com' },
-#    { 'name': 'AOL', 'url': 'http://openid.aol.com/<username>' },
-#    { 'name': 'Flickr', 'url': 'http://www.flickr.com/<username>' },
-#    { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
+#    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
+#    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
 # ---------------------------------------------------
 # Roles config
@@ -308,7 +306,7 @@ ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 
 """
-1) http://docs.python-guide.org/en/latest/writing/logging/
+1) https://docs.python-guide.org/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
 """
 

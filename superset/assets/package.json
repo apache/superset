@@ -45,7 +45,7 @@
   "engines": {
     "node": ">= 6.11.5 <7.0.0 || >= 8.9.0"
   },
-  "homepage": "http://superset.apache.org/",
+  "homepage": "https://superset.apache.org/",
   "dependencies": {
     "@data-ui/sparkline": "^0.0.54",
     "@superset-ui/chart": "^0.10.2",

@@ -20,7 +20,7 @@
 
 acquire_rat_jar () {
 
-  URL="http://repo1.maven.org/maven2/org/apache/rat/apache-rat/${RAT_VERSION}/apache-rat-${RAT_VERSION}.jar"
+  URL="https://repo1.maven.org/maven2/org/apache/rat/apache-rat/${RAT_VERSION}/apache-rat-${RAT_VERSION}.jar"
 
   JAR="$rat_jar"
 

@@ -83,7 +83,7 @@ git push apache 0.25 --tags
 # superset package. Committers that want to ship releases
 # should have this access.
 # You'll also need a `.pypirc` as specified here:
-# http://peterdowns.com/posts/first-time-with-pypi.html
+# https://gist.github.com/davydany/b08acef08f75fe297e13ae4d24ce9f4d
 ./pypi_push.sh
 
 # publish an update to the CHANGELOG.md for the right version range
