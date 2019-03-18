@@ -60,12 +60,14 @@ const propTypes = {
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  saveQueryWarning: PropTypes.string,
 };
 
 const defaultProps = {
   database: null,
   latestQuery: null,
   hideLeftBar: false,
+  saveQueryWarning: null,
 };
 
 class SqlEditor extends React.PureComponent {
@@ -309,6 +311,7 @@ class SqlEditor extends React.PureComponent {
                 onSave={this.props.actions.saveQuery}
                 schema={qe.schema}
                 dbId={qe.dbId}
+                saveQueryWarning={this.props.saveQueryWarning}
               />
             </span>
             <span className="m-r-5">
