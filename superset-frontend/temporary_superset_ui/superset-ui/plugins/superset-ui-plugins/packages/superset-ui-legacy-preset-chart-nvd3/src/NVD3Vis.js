@@ -48,6 +48,7 @@ import {
   setAxisShowMaxMin,
   stringifyTimeRange,
   wrapTooltip,
+  computeYDomain,
 } from './utils';
 import {
   annotationLayerType,
@@ -584,7 +585,7 @@ function nvd3Vis(element, props) {
 
     // For log scale, only show 1, 10, 100, 1000, ...
     if (yIsLogScale) {
-      chart.yAxis.tickFormat(d => (Math.log10(d) % 1 === 0 ? yAxisFormatter(d) : ''));
+      chart.yAxis.tickFormat(d => (d !== 0 && Math.log10(d) % 1 === 0 ? yAxisFormatter(d) : ''));
     }
 
     if (xLabelRotation > 0) {
@@ -593,15 +594,23 @@ function nvd3Vis(element, props) {
       xTicks.selectAll('text').attr('dx', -6.5);
     }
 
+    // Apply y-axis bounds
     if (chart.yDomain && Array.isArray(yAxisBounds) && yAxisBounds.length === 2) {
       const [min, max] = yAxisBounds;
-      const [trueMin, trueMax] = chart.yAxis.scale().domain();
-      const yMin = isDefined(min) ? min : trueMin;
-      const yMax = isDefined(max) ? max : trueMax;
-      if (yMin !== trueMin || yMax !== trueMax) {
-        chart.yDomain([yMin, yMax]);
-        chart.clipEdge(true);
+      const hasCustomMin = isDefined(min) && !Number.isNaN(min);
+      const hasCustomMax = isDefined(max) && !Number.isNaN(max);
+      let yMin;
+      let yMax;
+      if (hasCustomMin && hasCustomMax) {
+        yMin = min;
+        yMax = max;
+      } else {
+        const [trueMin, trueMax] = computeYDomain(data);
+        yMin = hasCustomMin ? min : trueMin;
+        yMax = hasCustomMax ? max : trueMax;
       }
+      chart.yDomain([yMin, yMax]);
+      chart.clipEdge(true);
     }
 
     // align yAxis1 and yAxis2 ticks
