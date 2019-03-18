@@ -721,9 +721,8 @@ class DremioEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_table_names(cls, schema, inspector):
-        b = 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA."TABLES" '
-        b = b + "WHERE TABLE_SCHEMA =  '" + schema + "'"
-        schemas = [row[0] for row in inspector.engine.execute(b)
+        sql = f'SELECT TABLE_NAME FROM INFORMATION_SCHEMA."TABLES" WHERE TABLE_SCHEMA = \'{schema}\''
+        schemas = [row[0] for row in inspector.engine.execute(sql)
                    if not row[0].startswith('_')]
         return sorted(schemas)
 
