@@ -1,5 +1,26 @@
 # @superset-ui-plugins
 
+## 0.10.1 (2019-03-18)
+
+### chore
+
+* bump version (#14) ([781492d7a32810bf8472d9d48eb26884f9657888](https://github.com/apache-superset/superset-ui-plugins/commit/781492d7a32810bf8472d9d48eb26884f9657888)), closes [#14](https://github.com/apache-superset/superset-ui-plugins/issues/14)
+
+### docs
+
+* update CHANGELOG ([fc14948627d48a4da195bc3abf830e0220ad12a0](https://github.com/apache-superset/superset-ui-plugins/commit/fc14948627d48a4da195bc3abf830e0220ad12a0))
+
+### feat
+
+* add properties for font sizing (#10) ([d07f60c0d0d894f0dfd069aa8c732a6be8e898d8](https://github.com/apache-superset/superset-ui-plugins/commit/d07f60c0d0d894f0dfd069aa8c732a6be8e898d8)), closes [#10](https://github.com/apache-superset/superset-ui-plugins/issues/10)
+
+### fix
+
+* bar label for many bars and long labels (#21) ([8b9c10a58649714fddf83202423dea1bcb38f43d](https://github.com/apache-superset/superset-ui-plugins/commit/8b9c10a58649714fddf83202423dea1bcb38f43d)), closes [#21](https://github.com/apache-superset/superset-ui-plugins/issues/21)
+* dual line chart color consistency for secondary y axis (#18) ([1ef0d68dfdcfe4eff4498cec9d8454b821cc49bc](https://github.com/apache-superset/superset-ui-plugins/commit/1ef0d68dfdcfe4eff4498cec9d8454b821cc49bc)), closes [#18](https://github.com/apache-superset/superset-ui-plugins/issues/18)
+* nvd3 line chart y axis bounds (#17) ([1c0e682af1e442cfb827a6acc8a7892e895758a6](https://github.com/apache-superset/superset-ui-plugins/commit/1c0e682af1e442cfb827a6acc8a7892e895758a6)), closes [#17](https://github.com/apache-superset/superset-ui-plugins/issues/17)
+* show only necessary tick labels on log scale (#19) ([2f35d0ca9b1614b4131878379e34337add724023](https://github.com/apache-superset/superset-ui-plugins/commit/2f35d0ca9b1614b4131878379e34337add724023)), closes [#19](https://github.com/apache-superset/superset-ui-plugins/issues/19)
+
 # 0.10.0 (2019-03-05)
 
 ### docs
@@ -23,34 +44,20 @@
 
 # 0.1.1 (2019-02-14)
 
-### ✨ Features
+### feat
 
 - Add `MapBox`
 
 # 0.1.0 (2019-02-13)
 
-### ✨ Features
+### feat
 
 - Add `nvd3`
 
-### 🐞 Bug fixes
+### fix
 
 - Fix issues with `Table` and `PivotTable`
 
 # 0.0.1 (2019-02-09)
 
 First release
-
------
-
-## Template
-
-## v0.0.x
-
-### ✨ Features
-
-### 🐞 Bug fixes
-
-### 🛠️ Internal
-
-### 💔 BREAKING CHANGES
