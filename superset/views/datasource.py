@@ -20,12 +20,11 @@ import json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
-from flask_babel import gettext as __
 
 from superset import appbuilder, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.core import Database
-from .base import BaseSupersetView, check_ownership, json_error_response
+from .base import BaseSupersetView, json_error_response
 
 
 class Datasource(BaseSupersetView):
@@ -38,14 +37,6 @@ class Datasource(BaseSupersetView):
         datasource_type = datasource.get('type')
         orm_datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session)
-
-        if not check_ownership(orm_datasource, raise_if_false=False):
-            return json_error_response(
-                __(
-                    'You are not authorized to modify '
-                    'this data source configuration'),
-                status='401',
-            )
 
         if 'owners' in datasource:
             datasource['owners'] = db.session.query(orm_datasource.owner_class).filter(
