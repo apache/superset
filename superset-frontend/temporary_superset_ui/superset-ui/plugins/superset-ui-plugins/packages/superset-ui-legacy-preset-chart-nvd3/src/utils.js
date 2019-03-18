@@ -300,3 +300,15 @@ export function setAxisShowMaxMin(axis, showminmax) {
     axis.showMaxMin(showminmax);
   }
 }
+
+export function computeYDomain(data) {
+  if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
+    const extents = data.map(row => d3.extent(row.values, v => v.y));
+    const minOfMin = d3.min(extents, ([min]) => min);
+    const maxOfMax = d3.max(extents, ([, max]) => max);
+
+    return [minOfMin, maxOfMax];
+  }
+
+  return [0, 1];
+}

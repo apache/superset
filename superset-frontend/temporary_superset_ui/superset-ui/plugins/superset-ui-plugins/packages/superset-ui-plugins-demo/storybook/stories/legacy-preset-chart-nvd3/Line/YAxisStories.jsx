@@ -8,6 +8,21 @@ export default [
     renderStory: () => (
       <div className="container">
         <h2>yAxisBounds</h2>
+        <pre>yAxisBounds=undefined</pre>
+        <SuperChart
+          chartType="line"
+          chartProps={{
+            datasource: { verboseMap: {} },
+            formData: {
+              richTooltip: true,
+              showLegend: false,
+              vizType: 'line',
+            },
+            height: 200,
+            payload: { data },
+            width: 400,
+          }}
+        />
         <pre>yAxisBounds=[0, 60000]</pre>
         <SuperChart
           chartType="line"
