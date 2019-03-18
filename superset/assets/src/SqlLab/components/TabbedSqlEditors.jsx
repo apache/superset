@@ -40,10 +40,12 @@ const propTypes = {
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
   offline: PropTypes.bool,
+  saveQueryWarning: PropTypes.string,
 };
 const defaultProps = {
   queryEditors: [],
   offline: false,
+  saveQueryWarning: null,
 };
 
 let queryCount = 1;
@@ -247,6 +249,7 @@ class TabbedSqlEditors extends React.PureComponent {
                   hideLeftBar={this.state.hideLeftBar}
                   defaultQueryLimit={this.props.defaultQueryLimit}
                   maxRow={this.props.maxRow}
+                  saveQueryWarning={this.props.saveQueryWarning}
                 />
               )}
             </div>
@@ -289,6 +292,7 @@ function mapStateToProps({ sqlLab, common }) {
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,
+    saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
   };
 }
 function mapDispatchToProps(dispatch) {
