@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Superset Chart - XY",
   "sideEffects": false,
   "main": "lib/index.js",
