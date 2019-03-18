@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 
 import { fitBounds } from 'viewport-mercator-project';
@@ -36,13 +54,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator;
-  if (fd.js_tooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
-  } else if (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0) {
+  if (fd.jsTooltip) {
+    tooltipContentGenerator = sandboxedEval(fd.jsTooltip);
+  } else if (fd.lineColumn && fd.metric && ['geohash', 'zipcode'].indexOf(fd.lineType) >= 0) {
     const metricLabel = fd.metric.label || fd.metric;
     tooltipContentGenerator = o => (
       <div>
-        <div>{fd.line_column}: <strong>{o.object[fd.line_column]}</strong></div>
+        <div>{fd.lineColumn}: <strong>{o.object[fd.lineColumn]}</strong></div>
         {fd.metric &&
           <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
       </div>);
@@ -53,7 +71,7 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
         setTooltip({
           content: tooltipContentGenerator(o),
           x: o.x,
-          y: o.y,
+          y: o.y + 30,
         });
       } else {
         setTooltip(null);
@@ -61,13 +79,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
     };
   }
   let onClick;
-  if (fd.js_onclick_href) {
+  if (fd.jsOnclickHref) {
     onClick = (o) => {
-      const href = sandboxedEval(fd.js_onclick_href)(o);
+      const href = sandboxedEval(fd.jsOnclickHref)(o);
       window.open(href);
     };
-  } else if (fd.table_filter && onSelect !== undefined) {
-    onClick = o => onSelect(o.object[fd.line_column]);
+  } else if (fd.tableFilter && onSelect !== undefined) {
+    onClick = o => onSelect(o.object[fd.lineColumn]);
   }
   return {
     onClick,

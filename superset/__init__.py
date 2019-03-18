@@ -1,5 +1,22 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Package's main module!"""
+from copy import deepcopy
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -12,12 +29,15 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
+import wtforms_json
 
 from superset import config
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 from superset.utils.core import (
     get_update_perms_flag, pessimistic_connection_handling, setup_cache)
+
+wtforms_json.init()
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -191,6 +211,23 @@ appbuilder = AppBuilder(
 security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
+
+# Merge user defined feature flags with default feature flags
+_feature_flags = app.config.get('DEFAULT_FEATURE_FLAGS') or {}
+_feature_flags.update(app.config.get('FEATURE_FLAGS') or {})
+
+
+def get_feature_flags():
+    GET_FEATURE_FLAGS_FUNC = app.config.get('GET_FEATURE_FLAGS_FUNC')
+    if GET_FEATURE_FLAGS_FUNC:
+        return GET_FEATURE_FLAGS_FUNC(deepcopy(_feature_flags))
+    return _feature_flags
+
+
+def is_feature_enabled(feature):
+    """Utility function for checking whether a feature is turned on"""
+    return get_feature_flags().get(feature)
+
 
 # Registering sources
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')

@@ -1,14 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
-
-export const LUMINANCE_RED_WEIGHT = 0.2126;
-export const LUMINANCE_GREEN_WEIGHT = 0.7152;
-export const LUMINANCE_BLUE_WEIGHT = 0.0722;
-
-export function rgbLuminance(r, g, b) {
-  // Formula: https://en.wikipedia.org/wiki/Relative_luminance
-  return LUMINANCE_RED_WEIGHT * r + LUMINANCE_GREEN_WEIGHT * g + LUMINANCE_BLUE_WEIGHT * b;
-}
 
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
@@ -65,15 +74,6 @@ export function supersetURL(rootUrl, getParams = {}) {
   return url.href;
 }
 
-export function isTruthy(obj) {
-  if (typeof obj === 'boolean') {
-    return obj;
-  } else if (typeof obj === 'string') {
-    return ['yes', 'y', 'true', 't', '1'].indexOf(obj.toLowerCase()) >= 0;
-  }
-  return !!obj;
-}
-
 export function optionLabel(opt) {
   if (opt === null) {
     return '<NULL>';
@@ -99,4 +99,12 @@ export function optionValue(opt) {
 export function optionFromValue(opt) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
+}
+
+export function prepareCopyToClipboardTabularData(data) {
+  let result = '';
+  for (let i = 0; i < data.length; ++i) {
+    result += Object.values(data[i]).join('\t') + '\n';
+  }
+  return result;
 }

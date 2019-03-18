@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   getBreakPoints,
   getBreakPointColorScaler,
@@ -12,7 +30,7 @@ describe('getBreakPoints', () => {
   });
 
   it('returns sorted break points', () => {
-    const fd = { break_points: ['0', '10', '100', '50', '1000'] };
+    const fd = { breakPoints: ['0', '10', '100', '50', '1000'] };
     const result = getBreakPoints(fd, [], metricAccessor);
     const expected = ['0', '10', '50', '100', '1000'];
     expect(result).toEqual(expected);
@@ -27,7 +45,7 @@ describe('getBreakPoints', () => {
   });
 
   it('formats number with proper precision', () => {
-    const fd = { metric: 'count', num_buckets: 2 };
+    const fd = { metric: 'count', numBuckets: 2 };
     const features = [0, 1 / 3, 2 / 3, 1].map(count => ({ count }));
     const result = getBreakPoints(fd, features, metricAccessor);
     const expected = ['0.0', '0.5', '1.0'];
@@ -35,7 +53,7 @@ describe('getBreakPoints', () => {
   });
 
   it('works with a zero range', () => {
-    const fd = { metric: 'count', num_buckets: 1 };
+    const fd = { metric: 'count', numBuckets: 1 };
     const features = [1, 1, 1].map(count => ({ count }));
     const result = getBreakPoints(fd, features, metricAccessor);
     const expected = ['1', '1'];
@@ -51,7 +69,7 @@ describe('getBreakPointColorScaler', () => {
   it('returns linear color scaler if there are no break points', () => {
     const fd = {
       metric: 'count',
-      linear_color_scheme: ['#000000', '#ffffff'],
+      linearColorScheme: ['#000000', '#ffffff'],
       opacity: 100,
     };
     const features = [10, 20, 30].map(count => ({ count }));
@@ -64,8 +82,8 @@ describe('getBreakPointColorScaler', () => {
   it('returns bucketing scaler if there are break points', () => {
     const fd = {
       metric: 'count',
-      linear_color_scheme: ['#000000', '#ffffff'],
-      break_points: ['0', '1', '10'],
+      linearColorScheme: ['#000000', '#ffffff'],
+      breakPoints: ['0', '1', '10'],
       opacity: 100,
     };
     const features = [];
@@ -79,8 +97,8 @@ describe('getBreakPointColorScaler', () => {
   it('mask values outside the break points', () => {
     const fd = {
       metric: 'count',
-      linear_color_scheme: ['#000000', '#ffffff'],
-      break_points: ['0', '1', '10'],
+      linearColorScheme: ['#000000', '#ffffff'],
+      breakPoints: ['0', '1', '10'],
       opacity: 100,
     };
     const features = [];
@@ -98,8 +116,8 @@ describe('getBuckets', () => {
   it('computes buckets for break points', () => {
     const fd = {
       metric: 'count',
-      linear_color_scheme: ['#000000', '#ffffff'],
-      break_points: ['0', '1', '10'],
+      linearColorScheme: ['#000000', '#ffffff'],
+      breakPoints: ['0', '1', '10'],
       opacity: 100,
     };
     const features = [];

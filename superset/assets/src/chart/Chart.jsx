@@ -1,15 +1,29 @@
-import dompurify from 'dompurify';
-import { snakeCase } from 'lodash';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Tooltip } from 'react-bootstrap';
-import { ChartProps } from '@superset-ui/chart';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
-import SuperChart from '../visualizations/core/components/SuperChart';
 import ErrorBoundary from '../components/ErrorBoundary';
+import ChartRenderer from './ChartRenderer';
 import './chart.css';
 
 const propTypes = {
@@ -24,6 +38,7 @@ const propTypes = {
   setControlValue: PropTypes.func,
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
+  triggerRender: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -35,7 +50,6 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   onQuery: PropTypes.func,
-  onDismissRefreshOverlay: PropTypes.func,
 };
 
 const BLANK = {};
@@ -44,20 +58,14 @@ const defaultProps = {
   addFilter: () => BLANK,
   filters: BLANK,
   setControlValue() {},
+  triggerRender: false,
 };
 
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {};
-
-    this.createChartProps = ChartProps.createSelector();
-    this.handleAddFilter = this.handleAddFilter.bind(this);
-    this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
-    this.handleRenderFailure = this.handleRenderFailure.bind(this);
-    this.setTooltip = this.setTooltip.bind(this);
+    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
   }
-
   componentDidMount() {
     if (this.props.triggerQuery) {
       this.props.actions.runQuery(
@@ -69,83 +77,29 @@ class Chart extends React.PureComponent {
     }
   }
 
-  setTooltip(tooltip) {
-    this.setState({ tooltip });
-  }
+  handleRenderContainerFailure(error, info) {
+    const { actions, chartId } = this.props;
+    console.warn(error); // eslint-disable-line
+    actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
-  handleAddFilter(col, vals, merge = true, refresh = true) {
-    this.props.addFilter(col, vals, merge, refresh);
-  }
-
-  handleRenderSuccess() {
-    const { actions, chartStatus, chartId, vizType } = this.props;
-    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
-      actions.chartRenderingSucceeded(chartId);
-    }
-
-    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+    actions.logEvent(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
       slice_id: chartId,
-      viz_type: vizType,
+      has_err: true,
+      error_details: error.toString(),
       start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
   }
 
-  handleRenderFailure(error, info) {
-    const { actions, chartId } = this.props;
-    console.warn(error); // eslint-disable-line
-    actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
-  }
-
-  prepareChartProps() {
-    const {
-      width,
-      height,
-      annotationData,
-      datasource,
-      filters,
-      formData,
-      queryResponse,
-      setControlValue,
-    } = this.props;
-
-    return this.createChartProps({
-      width,
-      height,
-      annotationData,
-      datasource,
-      filters,
-      formData,
-      onAddFilter: this.handleAddFilter,
-      onError: this.handleRenderFailure,
-      payload: queryResponse,
-      setControlValue,
-      setTooltip: this.setTooltip,
-    });
-  }
-
-  renderTooltip() {
-    const { tooltip } = this.state;
-    if (tooltip && tooltip.content) {
-      return (
-        <Tooltip
-          className="chart-tooltip"
-          id="chart-tooltip"
-          placement="right"
-          positionTop={tooltip.y + 30}
-          positionLeft={tooltip.x + 30}
-          arrowOffsetTop={10}
-        >
-          {typeof (tooltip.content) === 'string' ?
-            <div // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: dompurify.sanitize(tooltip.content) }}
-            />
-            : tooltip.content
-          }
-        </Tooltip>
-      );
-    }
-    return null;
+  renderStackTraceMessage() {
+    const { chartAlert, chartStackTrace, queryResponse } = this.props;
+    return (
+      <StackTraceMessage
+        message={chartAlert}
+        link={queryResponse ? queryResponse.link : null}
+        stackTrace={chartStackTrace}
+      />);
   }
 
   render() {
@@ -153,14 +107,10 @@ class Chart extends React.PureComponent {
       width,
       height,
       chartAlert,
-      chartStackTrace,
       chartStatus,
       errorMessage,
-      onDismissRefreshOverlay,
       onQuery,
-      queryResponse,
       refreshOverlayVisible,
-      vizType,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -168,43 +118,32 @@ class Chart extends React.PureComponent {
     // this allows <Loading /> to be positioned in the middle of the chart
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
-    const skipChartRendering = isLoading || !!chartAlert;
-    this.renderStartTime = Logger.getTimestamp();
+    this.renderContainerStartTime = Logger.getTimestamp();
+    if (chartStatus === 'failed') {
+      return this.renderStackTraceMessage();
+    }
 
     return (
-      <ErrorBoundary onError={this.handleRenderFailure} showMessage={false}>
+      <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
         <div
           className={`chart-container ${isLoading ? 'is-loading' : ''}`}
           style={containerStyles}
         >
-          {this.renderTooltip()}
 
-          {['loading', 'success'].indexOf(chartStatus) >= 0 && <Loading size={50} />}
-
-          {chartAlert && (
-            <StackTraceMessage
-              message={chartAlert}
-              link={queryResponse ? queryResponse.link : null}
-              stackTrace={chartStackTrace}
-            />
-          )}
+          {isLoading && <Loading size={50} />}
 
           {!isLoading && !chartAlert && isFaded && (
             <RefreshChartOverlay
               width={width}
               height={height}
               onQuery={onQuery}
-              onDismiss={onDismissRefreshOverlay}
             />
           )}
-          <SuperChart
-            className={`slice_container ${snakeCase(vizType)} ${isFaded ? ' faded' : ''}`}
-            chartType={vizType}
-            chartProps={skipChartRendering ? null : this.prepareChartProps()}
-            onRenderSuccess={this.handleRenderSuccess}
-            onRenderFailure={this.handleRenderFailure}
-            skipRendering={skipChartRendering}
-          />
+          <div className={`slice_container ${isFaded ? ' faded' : ''}`}>
+            <ChartRenderer
+              {...this.props}
+            />
+          </div>
         </div>
       </ErrorBoundary>
     );

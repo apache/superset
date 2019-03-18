@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
@@ -13,9 +31,9 @@ import { fitViewport } from './layers/common';
 const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd, data) {
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme).toFunction();
+  const colorFn = getScale(fd.colorScheme);
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -52,8 +70,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    */
   constructor(props) {
     super(props);
-
-    this.state = CategoricalDeckGLContainer.getDerivedStateFromProps(props);
+    this.state = this.getStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
@@ -61,7 +78,22 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
   }
-  static getDerivedStateFromProps(props, state) {
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.payload.form_data !== this.state.formData) {
+      this.setState({ ...this.getStateFromProps(nextProps) });
+    }
+  }
+  onValuesChange(values) {
+    this.setState({
+      values: Array.isArray(values)
+        ? values
+        : [values, values + this.state.getStep(values)],
+    });
+  }
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
+  getStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
     const categories = getCategories(props.formData, features);
@@ -76,7 +108,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -106,16 +138,6 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
       categories,
     };
   }
-  onValuesChange(values) {
-    this.setState({
-      values: Array.isArray(values)
-        ? values
-        : [values, values + this.state.getStep(values)],
-    });
-  }
-  onViewportChange(viewport) {
-    this.setState({ viewport });
-  }
   getLayers(values) {
     const {
       getLayer,
@@ -132,8 +154,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    if (fd.jsDataMutator) {
+      const jsFnMutator = sandboxedEval(fd.jsDataMutator);
       features = jsFnMutator(features);
     }
 
@@ -158,8 +180,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme).toFunction();
+    const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
+    const colorFn = getScale(fd.colorScheme);
     return data.map((d) => {
       let color;
       if (fd.dimension) {
@@ -171,15 +193,19 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   }
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
-    categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories, [category]: categoryState };
+    const categories = {
+      ...this.state.categories,
+      [category]: {
+        ...categoryState,
+        enabled: !categoryState.enabled,
+      },
+    };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
       Object.values(categories).forEach((v) => { v.enabled = true; });
     }
-
     this.setState({ categories });
   }
   showSingleCategory(category) {
@@ -203,14 +229,14 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
-          mapStyle={this.props.formData.mapbox_style}
+          mapStyle={this.props.formData.mapboxStyle}
           setControlValue={this.props.setControlValue}
         >
           <Legend
             categories={this.state.categories}
             toggleCategory={this.toggleCategory}
             showSingleCategory={this.showSingleCategory}
-            position={this.props.formData.legend_position}
+            position={this.props.formData.legendPosition}
           />
         </AnimatableDeckGLContainer>
       </div>

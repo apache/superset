@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/translation';
@@ -8,11 +26,6 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
-import {
-  Logger,
-  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
-  LOG_ACTIONS_REFRESH_DASHBOARD,
-} from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import {
   addSuccessToast,
@@ -27,13 +40,6 @@ export function setUnsavedChanges(hasUnsavedChanges) {
 
 export const CHANGE_FILTER = 'CHANGE_FILTER';
 export function changeFilter(chart, col, vals, merge = true, refresh = true) {
-  Logger.append(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
-    id: chart.id,
-    column: col,
-    value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
-    merge,
-    refresh,
-  });
   return { type: CHANGE_FILTER, chart, col, vals, merge, refresh };
 }
 
@@ -156,11 +162,6 @@ export function saveDashboardRequest(data, id, saveType) {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
-    Logger.append(LOG_ACTIONS_REFRESH_DASHBOARD, {
-      force,
-      interval,
-      chartCount: chartList.length,
-    });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {
@@ -235,7 +236,10 @@ export function addSliceToDashboard(id) {
         ),
       );
     }
-    const form_data = selectedSlice.form_data;
+    const form_data = {
+      ...selectedSlice.form_data,
+      slice_id: selectedSlice.slice_id,
+    };
     const newChart = {
       ...initChart,
       id,

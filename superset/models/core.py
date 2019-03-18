@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from contextlib import closing
@@ -32,6 +48,7 @@ from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
@@ -43,6 +60,7 @@ from urllib import parse  # noqa
 config = app.config
 custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
+log_query = config.get('QUERY_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
@@ -257,8 +275,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data = {'slice_id': self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return (
-            '{base_url}/?form_data={params}'.format(**locals()))
+        return f'{base_url}/?form_data={params}'
 
     @property
     def slice_url(self):
@@ -278,7 +295,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     def slice_link(self):
         url = self.slice_url
         name = escape(self.slice_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_viz(self, force=False):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -298,6 +315,17 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             form_data=slice_params,
             force=force,
         )
+
+    @property
+    def icons(self):
+        return f"""
+        <a
+                href="{self.datasource_edit_url}"
+                data-toggle="tooltip"
+                title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """
 
     @classmethod
     def import_obj(cls, slc_to_import, slc_to_override, import_time=None):
@@ -331,6 +359,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         logging.info('Final slice: {}'.format(slc_to_import.to_json()))
         session.flush()
         return slc_to_import.id
+
+    @property
+    def url(self):
+        return (
+            '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'
+            .format(self.id)
+        )
 
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
@@ -409,8 +444,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     def dashboard_link(self):
         title = escape(self.dashboard_title)
-        return Markup(
-            '<a href="{self.url}">{title}</a>'.format(**locals()))
+        return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
     def data(self):
@@ -629,8 +663,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
-    expose_in_sqllab = Column(Boolean, default=False)
-    allow_run_sync = Column(Boolean, default=True)
+    expose_in_sqllab = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
@@ -648,7 +681,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     perm = Column(String(1000))
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
-                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'expose_in_sqllab', 'allow_run_async',
                      'allow_ctas', 'allow_csv_upload', 'extra')
     export_children = ['tables']
 
@@ -748,7 +781,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None, source=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -776,12 +809,14 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params['connect_args'] = {'configuration': configuration}
+            d = params.get('connect_args', {})
+            d['configuration'] = configuration
+            params['connect_args'] = d
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, security_manager)
+                url, params, effective_username, security_manager, source)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -790,9 +825,17 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_quoter(self):
         return self.get_dialect().identifier_preparer.quote
 
-    def get_df(self, sql, schema):
+    def get_df(self, sql, schema, mutator=None):
         sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
-        engine = self.get_sqla_engine(schema=schema)
+        source_key = None
+        if request and request.referrer:
+            if '/superset/dashboard/' in request.referrer:
+                source_key = 'dashboard'
+            elif '/superset/explore/' in request.referrer:
+                source_key = 'chart'
+        engine = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get(source_key, None))
+        username = utils.get_username()
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -801,12 +844,18 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
+        def _log_query(sql):
+            if log_query:
+                log_query(engine.url, sql, schema, username, __name__, security_manager)
+
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 for sql in sqls[:-1]:
+                    _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
                     cursor.fetchall()
 
+                _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
 
                 if cursor.description is not None:
@@ -819,6 +868,9 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                     columns=columns,
                     coerce_float=True,
                 )
+
+                if mutator:
+                    df = mutator(df)
 
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
@@ -844,7 +896,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True, latest_partition=False, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
-        eng = self.get_sqla_engine(schema=schema)
+        eng = self.get_sqla_engine(
+            schema=schema, source=utils.sources.get('sql_lab', None))
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, engine=eng,
             limit=limit, show_cols=show_cols,
@@ -912,7 +965,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return tables
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:table_list'.format(
+        key=lambda *args, **kwargs: 'db:{{}}:schema:{}:view_list'.format(
             kwargs.get('schema')),
         attribute_in_key='id')
     def all_view_names_in_schema(self, schema, cache=False,
@@ -1186,11 +1239,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_grant={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_grant={r.name}'
             )
             href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
             action_list = action_list + '<li>' + href + '</li>'
@@ -1200,14 +1253,25 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def user_roles(self):
         action_list = ''
         for r in self.created_by.roles:  # pylint: disable=no-member
+            # pylint: disable=no-member
             url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
-                'datasource_id={self.datasource_id}&'
-                'created_by={self.created_by.username}&role_to_extend={r.name}'
-                .format(**locals())
+                f'/superset/approve?datasource_type={self.datasource_type}&'
+                f'datasource_id={self.datasource_id}&'
+                f'created_by={self.created_by.username}&role_to_extend={r.name}'
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
             if r.name in self.ROLES_BLACKLIST:
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+# events for updating tags
+sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)

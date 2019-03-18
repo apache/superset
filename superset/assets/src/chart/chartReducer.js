@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/translation';
 import { now } from '../modules/dates';
@@ -30,6 +48,7 @@ export default function chartReducer(charts = {}, action) {
         chartStatus: 'success',
         queryResponse: action.queryResponse,
         chartUpdateEndTime: now(),
+        chartAlert: null,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
@@ -85,7 +104,11 @@ export default function chartReducer(charts = {}, action) {
       };
     },
     [actions.TRIGGER_QUERY](state) {
-      return { ...state, triggerQuery: action.value };
+      return {
+        ...state,
+        triggerQuery: action.value,
+        chartStatus: 'loading',
+      };
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
@@ -140,17 +163,19 @@ export default function chartReducer(charts = {}, action) {
         annotationQuery,
       };
     },
-    [actions.SQLLAB_REDIRECT_FAILED](state) {
-      return { ...state,
-        chartStatus: 'failed',
-        chartAlert: t('An error occurred while redirecting to SQL Lab: %s', action.error),
-      };
-    },
   };
 
   /* eslint-disable no-param-reassign */
   if (action.type === actions.REMOVE_CHART) {
     delete charts[action.key];
+    return charts;
+  } else if (action.type === actions.UPDATE_CHART_ID) {
+    const { newId, key } = action;
+    charts[newId] = {
+      ...charts[key],
+      id: newId,
+    };
+    delete charts[key];
     return charts;
   }
 

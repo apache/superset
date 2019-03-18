@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
 import json
@@ -25,7 +41,7 @@ from . import models
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
 
-    list_title = _('List Druid Column')
+    list_title = _('Columns')
     show_title = _('Show Druid Column')
     add_title = _('Add Druid Column')
     edit_title = _('Edit Druid Column')
@@ -34,11 +50,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable']
     add_columns = edit_columns
-    list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+    list_columns = ['column_name', 'verbose_name', 'type', 'groupby', 'filterable']
     can_delete = False
     page_size = 500
     label_columns = {
@@ -47,12 +61,6 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'datasource': _('Datasource'),
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
-        'verbose_name': _('Verbose Name'),
-        'description': _('Description'),
     }
     description_columns = {
         'filterable': _(
@@ -101,7 +109,7 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
 
-    list_title = _('List Druid Metric')
+    list_title = _('Metrics')
     show_title = _('Show Druid Metric')
     add_title = _('Add Druid Metric')
     edit_title = _('Edit Druid Metric')
@@ -152,14 +160,13 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
 
-    list_title = _('List Druid Cluster')
+    list_title = _('Druid Clusters')
     show_title = _('Show Druid Cluster')
     add_title = _('Add Druid Cluster')
     edit_title = _('Edit Druid Cluster')
 
     add_columns = [
-        'verbose_name', 'coordinator_host', 'coordinator_port',
-        'coordinator_endpoint', 'broker_host', 'broker_port',
+        'verbose_name', 'broker_host', 'broker_port',
         'broker_endpoint', 'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
@@ -167,9 +174,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
     search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _('Cluster'),
-        'coordinator_host': _('Coordinator Host'),
-        'coordinator_port': _('Coordinator Port'),
-        'coordinator_endpoint': _('Coordinator Endpoint'),
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
         'broker_endpoint': _('Broker Endpoint'),
@@ -208,7 +212,7 @@ appbuilder.add_view(
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
 
-    list_title = _('List Druid Datasource')
+    list_title = _('Druid Datasources')
     show_title = _('Show Druid Datasource')
     add_title = _('Add Druid Datasource')
     edit_title = _('Edit Druid Datasource')
@@ -218,12 +222,12 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owners',
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm', 'slices']
@@ -267,7 +271,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         'datasource_link': _('Data Source'),
         'cluster': _('Cluster'),
         'description': _('Description'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'is_hidden': _('Is Hidden'),
         'filter_select_enabled': _('Enable Filter Select'),
         'default_endpoint': _('Default Endpoint'),
@@ -325,20 +329,23 @@ class Druid(BaseSupersetView):
         DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
         for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
+            valid_cluster = True
             try:
                 cluster.refresh_datasources(refreshAll=refreshAll)
             except Exception as e:
+                valid_cluster = False
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
                         cluster_name, utils.error_msg_from_exception(e)),
                     'danger')
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
-            cluster.metadata_last_refreshed = datetime.now()
-            flash(
-                _('Refreshed metadata from cluster [{}]').format(
-                    cluster.cluster_name),
-                'info')
+                pass
+            if valid_cluster:
+                cluster.metadata_last_refreshed = datetime.now()
+                flash(
+                    _('Refreshed metadata from cluster [{}]').format(
+                        cluster.cluster_name),
+                    'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 

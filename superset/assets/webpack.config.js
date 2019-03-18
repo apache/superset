@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
@@ -122,6 +140,7 @@ const config = {
       src: path.resolve(APP_DIR, './src'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    symlinks: false,
   },
   context: APP_DIR, // to automatically find tsconfig.json
   module: {
@@ -157,11 +176,30 @@ const config = {
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
+        include: APP_DIR,
         loader: 'babel-loader',
       },
       {
+        // handle symlinked modules
+        // for debugging @superset-ui packages via npm link
+        test: /\.jsx?$/,
+        include: /node_modules\/[@]superset[-]ui.+\/src/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: ['airbnb', '@babel/preset-react', '@babel/preset-env'],
+              plugins: ['lodash', '@babel/plugin-syntax-dynamic-import', 'react-hot-loader/babel'],
+            },
+          },
+        ],
+      },
+      {
         test: /\.css$/,
-        include: APP_DIR,
+        include: [
+          APP_DIR,
+          /superset[-]ui.+\/src/,
+        ],
         use: [
           isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
           'css-loader',
@@ -232,7 +270,7 @@ const config = {
 if (!isDevMode) {
   config.optimization.minimizer = [
     new TerserPlugin({
-      cache: true,
+      cache: '.terser-plugin-cache/',
       parallel: true,
       extractComments: true,
     }),

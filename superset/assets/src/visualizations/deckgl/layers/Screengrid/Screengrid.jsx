@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
@@ -14,15 +32,15 @@ function getPoints(data) {
 
 export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
   const fd = formData;
-  const c = fd.color_picker;
+  const c = fd.colorPicker;
   let data = payload.data.features.map(d => ({
     ...d,
     color: [c.r, c.g, c.b, 255 * c.a],
   }));
 
-  if (fd.js_data_mutator) {
+  if (fd.jsDataMutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    const jsFnMutator = sandboxedEval(fd.jsDataMutator);
     data = jsFnMutator(data);
   }
 
@@ -35,10 +53,10 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
   // Passing a layer creator function instead of a layer since the
   // layer needs to be regenerated at each render
   return new ScreenGridLayer({
-    id: `screengrid-layer-${fd.slice_id}`,
+    id: `screengrid-layer-${fd.sliceId}`,
     data,
     pickable: true,
-    cellSizePixels: fd.grid_size,
+    cellSizePixels: fd.gridSize,
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
@@ -84,7 +102,7 @@ class DeckGLScreenGrid extends React.PureComponent {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -158,7 +176,7 @@ class DeckGLScreenGrid extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapbox_style}
+          mapStyle={formData.mapboxStyle}
           setControlValue={setControlValue}
           aggregation
         />

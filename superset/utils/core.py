@@ -1,9 +1,25 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Utility functions used across Superset"""
-from builtins import object
 from datetime import date, datetime, time, timedelta
 import decimal
 from email.mime.application import MIMEApplication
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
@@ -31,21 +47,19 @@ import markdown as md
 import numpy
 import pandas as pd
 import parsedatetime
-from past.builtins import basestring
 from pydruid.utils.having import Having
-import pytz
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
+from superset.utils.dates import datetime_to_epoch, EPOCH
 
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 PY3K = sys.version_info >= (3, 0)
-EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 ADHOC_METRIC_EXPRESSION_TYPES = {
     'SIMPLE': 'SIMPLE',
@@ -53,6 +67,12 @@ ADHOC_METRIC_EXPRESSION_TYPES = {
 }
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
+
+sources = {
+    'chart': 0,
+    'dashboard': 1,
+    'sql_lab': 2,
+}
 
 
 def flasher(msg, severity=None):
@@ -66,7 +86,7 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
-class _memoized(object):  # noqa
+class _memoized:  # noqa
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -320,6 +340,8 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, memoryview):
+        return str(obj.tobytes(), 'utf8')
     elif isinstance(obj, bytes):
         try:
             return '{}'.format(obj)
@@ -354,17 +376,6 @@ def pessimistic_json_iso_dttm_ser(obj):
 
     If one of object is not serializable to json, it will still succeed"""
     return json_iso_dttm_ser(obj, pessimistic=True)
-
-
-def datetime_to_epoch(dttm):
-    if dttm.tzinfo:
-        epoch_with_tz = pytz.utc.localize(EPOCH)
-        return (dttm - epoch_with_tz).total_seconds() * 1000
-    return (dttm - EPOCH).total_seconds() * 1000
-
-
-def now_as_float():
-    return datetime_to_epoch(datetime.utcnow())
 
 
 def json_int_dttm_ser(obj):
@@ -492,7 +503,7 @@ def table_has_constraint(table, name, db):
     return False
 
 
-class timeout(object):
+class timeout:
     """
     To be used in a ``with`` block and timeout its content.
     """
@@ -558,7 +569,7 @@ def pessimistic_connection_handling(some_engine):
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus(object):
+class QueryStatus:
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'
@@ -581,21 +592,23 @@ def notify_user_about_perm_udate(
                     dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
 
-def send_email_smtp(to, subject, html_content, config, files=None,
-                    dryrun=False, cc=None, bcc=None, mime_subtype='mixed'):
+def send_email_smtp(to, subject, html_content, config,
+                    files=None, data=None, images=None, dryrun=False,
+                    cc=None, bcc=None, mime_subtype='mixed'):
     """
     Send an email with html content, eg:
     send_email_smtp(
         'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
     """
     smtp_mail_from = config.get('SMTP_MAIL_FROM')
-
     to = get_email_address_list(to)
 
     msg = MIMEMultipart(mime_subtype)
     msg['Subject'] = subject
     msg['From'] = smtp_mail_from
     msg['To'] = ', '.join(to)
+    msg.preamble = 'This is a multi-part message in MIME format.'
+
     recipients = to
     if cc:
         cc = get_email_address_list(cc)
@@ -611,6 +624,7 @@ def send_email_smtp(to, subject, html_content, config, files=None,
     mime_text = MIMEText(html_content, 'html')
     msg.attach(mime_text)
 
+    # Attach files by reading them from disk
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, 'rb') as f:
@@ -619,6 +633,23 @@ def send_email_smtp(to, subject, html_content, config, files=None,
                     f.read(),
                     Content_Disposition="attachment; filename='%s'" % basename,
                     Name=basename))
+
+    # Attach any files passed directly
+    for name, body in (data or {}).items():
+        msg.attach(
+            MIMEApplication(
+                body,
+                Content_Disposition="attachment; filename='%s'" % name,
+                Name=name,
+            ))
+
+    # Attach any inline images, which may be required for display in
+    # HTML content (inline)
+    for msgid, body in (images or {}).items():
+        image = MIMEImage(body)
+        image.add_header('Content-ID', '<%s>' % msgid)
+        image.add_header('Content-Disposition', 'inline')
+        msg.attach(image)
 
     send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
 
@@ -638,7 +669,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
             s.starttls()
         if SMTP_USER and SMTP_PASSWORD:
             s.login(SMTP_USER, SMTP_PASSWORD)
-        logging.info('Sent an alert email to ' + str(e_to))
+        logging.info('Sent an email to ' + str(e_to))
         s.sendmail(e_from, e_to, mime_msg.as_string())
         s.quit()
     else:
@@ -647,14 +678,16 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
 
 
 def get_email_address_list(address_string):
-    if isinstance(address_string, basestring):
+    if isinstance(address_string, str):
         if ',' in address_string:
             address_string = address_string.split(',')
+        elif '\n' in address_string:
+            address_string = address_string.split('\n')
         elif ';' in address_string:
             address_string = address_string.split(';')
         else:
             address_string = [address_string]
-    return address_string
+    return [x.strip() for x in address_string if x.strip()]
 
 
 def choicify(values):
@@ -834,11 +867,12 @@ def get_or_create_main_db():
     logging.info('Creating database reference')
     dbobj = get_main_database(db.session)
     if not dbobj:
-        dbobj = models.Database(database_name='main')
+        dbobj = models.Database(
+            database_name='main',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_run_sync = True
-    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
@@ -890,7 +924,8 @@ def ensure_path_exists(path):
 def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
-                    time_shift: Optional[str] = None) -> (datetime, datetime):
+                    time_shift: Optional[str] = None,
+                    relative_end: Optional[str] = None) -> (datetime, datetime):
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -916,13 +951,13 @@ def get_since_until(time_range: Optional[str] = None,
 
     """
     separator = ' : '
-    today = parse_human_datetime('today')
+    relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (today - relativedelta(days=1), today),
-        'Last week': (today - relativedelta(weeks=1), today),
-        'Last month': (today - relativedelta(months=1), today),
-        'Last quarter': (today - relativedelta(months=3), today),
-        'Last year': (today - relativedelta(years=1), today),
+        'Last day': (relative_end - relativedelta(days=1), relative_end),
+        'Last week': (relative_end - relativedelta(weeks=1), relative_end),
+        'Last month': (relative_end - relativedelta(months=1), relative_end),
+        'Last quarter': (relative_end - relativedelta(months=3), relative_end),
+        'Last year': (relative_end - relativedelta(years=1), relative_end),
     }
 
     if time_range:
@@ -939,17 +974,17 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = today - relativedelta(**{grain: int(num)})
-                until = today
+                since = relative_end - relativedelta(**{grain: int(num)})
+                until = relative_end
             else:  # rel == 'Next'
-                since = today
-                until = today + relativedelta(**{grain: int(num)})
+                since = relative_end
+                until = relative_end + relativedelta(**{grain: int(num)})
     else:
         since = since or ''
         if since:
             since = add_ago_to_since(since)
         since = parse_human_datetime(since)
-        until = parse_human_datetime(until or 'now')
+        until = parse_human_datetime(until) if until else relative_end
 
     if time_shift:
         time_shift = parse_human_timedelta(time_shift)

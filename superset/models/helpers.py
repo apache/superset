@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
 from datetime import datetime
@@ -270,23 +286,12 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('changed_on')
     def changed_on_(self):
-        return Markup(
-            '<span class="no-wrap">{}</span>'.format(self.changed_on))
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
 
     @renders('changed_on')
     def modified(self):
-        return humanize.naturaltime(datetime.now() - self.changed_on)
-
-    @property
-    def icons(self):
-        return """
-        <a
-                href="{self.datasource_edit_url}"
-                data-toggle="tooltip"
-                title="{self.datasource}">
-            <i class="fa fa-database"></i>
-        </a>
-        """.format(**locals())
+        time_str = humanize.naturaltime(datetime.now() - self.changed_on)
+        return Markup(f'<span class="no-wrap">{time_str}</span>')
 
 
 class QueryResult(object):
@@ -305,3 +310,23 @@ class QueryResult(object):
         self.duration = duration
         self.status = status
         self.error_message = error_message
+
+
+class ExtraJSONMixin:
+    """Mixin to add an `extra` column (JSON) and utility methods"""
+    extra_json = sa.Column(sa.Text, default='{}')
+
+    @property
+    def extra(self):
+        try:
+            return json.loads(self.extra_json)
+        except Exception:
+            return {}
+
+    def set_extra_json(self, d):
+        self.extra_json = json.dumps(d)
+
+    def set_extra_json_key(self, key, value):
+        extra = self.extra
+        extra[key] = value
+        self.extra_json = json.dumps(extra)

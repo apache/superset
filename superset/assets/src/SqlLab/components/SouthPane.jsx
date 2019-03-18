@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
@@ -30,7 +48,24 @@ const defaultProps = {
   offline: false,
 };
 
-class SouthPane extends React.PureComponent {
+export class SouthPane extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      height: props.height,
+    };
+    this.southPaneRef = React.createRef();
+    this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
+    this.switchTab = this.switchTab.bind(this);
+  }
+  componentWillReceiveProps() {
+    // south pane expands the entire height of the tab content on mount
+    this.setState({ height: this.getSouthPaneHeight() });
+  }
+  // One layer of abstraction for easy spying in unit tests
+  getSouthPaneHeight() {
+    return this.southPaneRef.current ? this.southPaneRef.current.clientHeight : 0;
+  }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
@@ -41,7 +76,7 @@ class SouthPane extends React.PureComponent {
           { STATUS_OPTIONS.offline }
         </Label>);
     }
-    const innerTabHeight = this.props.height - 55;
+    const innerTabHeight = this.state.height - 55;
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
@@ -64,7 +99,7 @@ class SouthPane extends React.PureComponent {
     }
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (
       <Tab
-        title={t('Preview: `%s`', query.tableName)}
+        title={t('Preview: `%s`', decodeURIComponent(query.tableName))}
         eventKey={query.id}
         key={query.id}
       >
@@ -80,12 +115,12 @@ class SouthPane extends React.PureComponent {
     ));
 
     return (
-      <div className="SouthPane">
+      <div className="SouthPane" ref={this.southPaneRef}>
         <Tabs
           bsStyle="tabs"
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
-          onSelect={this.switchTab.bind(this)}
+          onSelect={this.switchTab}
         >
           <Tab
             title={t('Results')}

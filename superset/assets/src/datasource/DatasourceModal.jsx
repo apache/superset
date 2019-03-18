@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, Modal } from 'react-bootstrap';
@@ -31,10 +49,8 @@ class DatasourceModal extends React.PureComponent {
     super(props);
     this.state = {
       errors: [],
-      showDatasource: false,
       datasource: props.datasource,
     };
-    this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.setSearchRef = this.setSearchRef.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
     this.onClickSave = this.onClickSave.bind(this);
@@ -93,10 +109,6 @@ class DatasourceModal extends React.PureComponent {
     this.dialog = ref;
   }
 
-  toggleShowDatasource() {
-    this.setState({ showDatasource: !this.state.showDatasource });
-  }
-
   renderSaveDialog() {
     return (
       <div>
@@ -140,6 +152,17 @@ class DatasourceModal extends React.PureComponent {
             />}
         </Modal.Body>
         <Modal.Footer>
+          <span className="float-left">
+            <Button
+              bsSize="sm"
+              bsStyle="default"
+              target="_blank"
+              href={this.props.datasource.edit_url}
+            >
+              {t('Use Legacy Datasource Editor')}
+            </Button>
+          </span>
+
           <span className="float-right">
             <Button
               bsSize="sm"

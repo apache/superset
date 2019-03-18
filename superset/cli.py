@@ -1,4 +1,20 @@
 #!/usr/bin/env python
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime
 import logging
@@ -112,15 +128,16 @@ def runserver(debug, console_log, use_reloader, address, port, timeout, workers,
         logging.info(
             "The Gunicorn 'superset runserver' command is deprecated. Please "
             "use the 'gunicorn' command instead.")
-        addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
+        addr_str = f' unix:{socket} ' if socket else f' {address}:{port} '
         cmd = (
             'gunicorn '
-            '-w {workers} '
-            '--timeout {timeout} '
-            '-b ' + addr_str +
+            f'-w {workers} '
+            f'--timeout {timeout} '
+            f'-b {addr_str} '
             '--limit-request-line 0 '
             '--limit-request-field_size 0 '
-            'superset:app').format(**locals())
+            'superset:app'
+        )
         print(Fore.GREEN + 'Starting server with command: ')
         print(Fore.YELLOW + cmd)
         print(Style.RESET_ALL)
@@ -154,42 +171,42 @@ def load_examples_run(load_test_data):
     print('Loading [Birth names]')
     data.load_birth_names()
 
-    print('Loading [Random time series data]')
-    data.load_random_time_series_data()
+    print('Loading [Unicode test data]')
+    data.load_unicode_test_data()
 
-    print('Loading [Random long/lat data]')
-    data.load_long_lat_data()
+    if not load_test_data:
+        print('Loading [Random time series data]')
+        data.load_random_time_series_data()
 
-    print('Loading [Country Map data]')
-    data.load_country_map_data()
+        print('Loading [Random long/lat data]')
+        data.load_long_lat_data()
 
-    print('Loading [Multiformat time series]')
-    data.load_multiformat_time_series()
+        print('Loading [Country Map data]')
+        data.load_country_map_data()
 
-    print('Loading [Paris GeoJson]')
-    data.load_paris_iris_geojson()
+        print('Loading [Multiformat time series]')
+        data.load_multiformat_time_series()
 
-    print('Loading [San Francisco population polygons]')
-    data.load_sf_population_polygons()
+        print('Loading [Paris GeoJson]')
+        data.load_paris_iris_geojson()
 
-    print('Loading [Flights data]')
-    data.load_flights()
+        print('Loading [San Francisco population polygons]')
+        data.load_sf_population_polygons()
 
-    print('Loading [BART lines]')
-    data.load_bart_lines()
+        print('Loading [Flights data]')
+        data.load_flights()
 
-    print('Loading [Multi Line]')
-    data.load_multi_line()
+        print('Loading [BART lines]')
+        data.load_bart_lines()
 
-    print('Loading [Misc Charts] dashboard')
-    data.load_misc_dashboard()
+        print('Loading [Multi Line]')
+        data.load_multi_line()
 
-    if load_test_data:
-        print('Loading [Unicode test data]')
-        data.load_unicode_test_data()
+        print('Loading [Misc Charts] dashboard')
+        data.load_misc_dashboard()
 
-    print('Loading DECK.gl demo')
-    data.load_deck_dash()
+        print('Loading DECK.gl demo')
+        data.load_deck_dash()
 
 
 @app.cli.command()
@@ -231,9 +248,9 @@ def refresh_druid(datasource, merge):
     help='Path to a single JSON file or path containing multiple JSON files'
          'files to import (*.json)')
 @click.option(
-    '--recursive', '-r',
+    '--recursive', '-r', is_flag=True, default=False,
     help='recursively search the path for json files')
-def import_dashboards(path, recursive=False):
+def import_dashboards(path, recursive):
     """Import dashboards from JSON"""
     p = Path(path)
     files = []
@@ -259,7 +276,7 @@ def import_dashboards(path, recursive=False):
     '--dashboard-file', '-f', default=None,
     help='Specify the the file to export to')
 @click.option(
-    '--print_stdout', '-p',
+    '--print_stdout', '-p', is_flag=True, default=False,
     help='Print JSON to stdout')
 def export_dashboards(print_stdout, dashboard_file):
     """Export dashboards to JSON"""
@@ -283,9 +300,9 @@ def export_dashboards(print_stdout, dashboard_file):
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
 @click.option(
-    '--recursive', '-r',
+    '--recursive', '-r', is_flag=True, default=False,
     help='recursively search the path for yaml files')
-def import_datasources(path, sync, recursive=False):
+def import_datasources(path, sync, recursive):
     """Import datasources from YAML"""
     sync_array = sync.split(',')
     p = Path(path)
@@ -316,13 +333,13 @@ def import_datasources(path, sync, recursive=False):
     '--datasource-file', '-f', default=None,
     help='Specify the the file to export to')
 @click.option(
-    '--print_stdout', '-p',
+    '--print_stdout', '-p', is_flag=True, default=False,
     help='Print YAML to stdout')
 @click.option(
-    '--back-references', '-b',
+    '--back-references', '-b', is_flag=True, default=False,
     help='Include parent back references')
 @click.option(
-    '--include-defaults', '-d',
+    '--include-defaults', '-d', is_flag=True, default=False,
     help='Include fields containing defaults')
 def export_datasources(print_stdout, datasource_file,
                        back_references, include_defaults):
@@ -342,7 +359,7 @@ def export_datasources(print_stdout, datasource_file,
 
 @app.cli.command()
 @click.option(
-    '--back-references', '-b',
+    '--back-references', '-b', is_flag=True, default=False,
     help='Include parent back references')
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
@@ -404,10 +421,10 @@ def flower(port, address):
     BROKER_URL = celery_app.conf.BROKER_URL
     cmd = (
         'celery flower '
-        '--broker={BROKER_URL} '
-        '--port={port} '
-        '--address={address} '
-    ).format(**locals())
+        f'--broker={BROKER_URL} '
+        f'--port={port} '
+        f'--address={address} '
+    )
     logging.info(
         "The 'superset flower' command is deprecated. Please use the 'celery "
         "flower' command instead.")

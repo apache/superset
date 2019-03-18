@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* global window, AbortController */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
@@ -6,8 +24,10 @@ import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
+import { logEvent } from '../logger/actions';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
+import { allowCrossDomain } from '../utils/hostNamesConfig';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -133,6 +153,13 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+// in the sql lab -> explore flow, user can inline edit chart title,
+// then the chart will be assigned a new slice_id
+export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
+export function updateChartId(newId, key = 0) {
+  return { type: UPDATE_CHART_ID, newId, key };
+}
+
 export const ADD_CHART = 'ADD_CHART';
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
@@ -145,6 +172,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       formData,
       endpointType: 'json',
       force,
+      allowDomainSharding: true,
     });
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -152,36 +180,46 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 
     dispatch(chartUpdateStarted(controller, payload, key));
 
-    const queryPromise = SupersetClient.post({
+    let querySettings = {
       url,
       postPayload: { form_data: payload },
       signal,
       timeout: timeout * 1000,
-    })
+    };
+    if (allowCrossDomain) {
+      querySettings = {
+        ...querySettings,
+        mode: 'cors',
+        credentials: 'include',
+      };
+    }
+    const queryPromise = SupersetClient.post(querySettings)
       .then(({ json }) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+        dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
           is_cached: json.is_cached,
           force_refresh: force,
           row_count: json.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,
+          ts: new Date().getTime(),
           duration: Logger.getTimestamp() - logStart,
           has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
           viz_type: formData.viz_type,
-        });
+        }));
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {
         const appendErrorLog = (errorDetails) => {
-          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
             has_err: true,
             error_details: errorDetails,
             datasource: formData.datasource,
             start_offset: logStart,
+            ts: new Date().getTime(),
             duration: Logger.getTimestamp() - logStart,
-          });
+          }));
         };
 
         if (response.statusText === 'timeout') {
@@ -211,7 +249,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 export function redirectSQLLab(formData) {
   return (dispatch) => {
     const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
-    return SupersetClient.get({ url })
+    return SupersetClient.post({
+      url,
+      postPayload: { form_data: formData },
+    })
       .then(({ json }) => {
         const redirectUrl = new URL(window.location);
         redirectUrl.pathname = '/superset/sqllab';

@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 from datetime import datetime, timedelta
 import inspect
@@ -11,7 +27,7 @@ from urllib import parse
 from flask import (
     abort, flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
-from flask_appbuilder import expose, SimpleFormView
+from flask_appbuilder import expose, Model, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -20,10 +36,10 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, or_, update
+from sqlalchemy import (
+    and_, Column, create_engine, ForeignKey, Integer, MetaData, or_, Table, update)
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
-from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
@@ -39,9 +55,10 @@ from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
-from superset.sql_parse import SupersetQuery
+from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
+from superset.utils.dates import now_as_float
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -60,7 +77,7 @@ QueryStatus = utils.QueryStatus
 
 ALL_DATASOURCE_ACCESS_ERR = __(
     'This endpoint requires the `all_datasource_access` permission')
-DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
+DATASOURCE_MISSING_ERR = __('The data source seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
@@ -84,13 +101,30 @@ def is_owner(obj, user):
     return obj and user in obj.owners
 
 
+SQLTable = Table(
+    'tables',
+    Model.metadata,  # pylint: disable=no-member
+    Column('id', Integer, primary_key=True),
+    Column('database_id', Integer, ForeignKey('dbs.id')),
+    extend_existing=True)
+
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
             return query
-        perms = self.get_view_menus('datasource_access')
+
         # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        datasource_perms = self.get_view_menus('datasource_access')
+        query = (
+            query.outerjoin(SQLTable, self.model.datasource_id == SQLTable.c.id)
+            .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
+            .filter(or_(
+                models.Database.perm.in_(datasource_perms),
+                self.model.perm.in_(datasource_perms),
+            ))
+        )
+        return query
 
 
 class DashboardFilter(SupersetFilter):
@@ -108,7 +142,12 @@ class DashboardFilter(SupersetFilter):
         slice_ids_qry = (
             db.session
             .query(Slice.id)
-            .filter(Slice.perm.in_(datasource_perms))
+            .outerjoin(SQLTable, Slice.datasource_id == SQLTable.c.id)
+            .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
+            .filter(or_(
+                models.Database.perm.in_(datasource_perms),
+                Slice.perm.in_(datasource_perms),
+            ))
         )
         owner_ids_qry = (
             db.session
@@ -130,21 +169,21 @@ class DashboardFilter(SupersetFilter):
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
-    list_title = _('List Databases')
+    list_title = _('Databases')
     show_title = _('Show Database')
     add_title = _('Add Database')
     edit_title = _('Edit Database')
 
     list_columns = [
-        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
+        'database_name', 'backend', 'allow_run_async',
         'allow_dml', 'allow_csv_upload', 'expose_in_sqllab', 'creator', 'modified']
     order_columns = [
-        'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
+        'database_name', 'allow_run_async', 'allow_dml',
         'modified', 'allow_csv_upload', 'expose_in_sqllab',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'expose_in_sqllab',
-        'allow_run_sync', 'allow_run_async', 'allow_csv_upload',
+        'allow_run_async', 'allow_csv_upload',
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
         'allow_multi_schema_metadata_fetch', 'extra',
     ]
@@ -171,18 +210,17 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': utils.markdown(
             'Refer to the '
             '[SqlAlchemy docs]'
-            '(http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#'
+            '(http://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#'
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
-        'allow_run_sync': _(
-            'Allow users to run synchronous queries, this is the default '
-            'and should work well for queries that can be executed '
-            'within a web request scope (<~1 minute)'),
         'allow_run_async': _(
-            'Allow users to run queries, against an async backend. '
+            'Operate the database in asynchronous mode, meaning  '
+            'that the queries are executed on remote workers as opposed '
+            'to on the web server itself. '
             'This assumes that you have a Celery worker setup as well '
-            'as a results backend.'),
+            'as a results backend. Refer to the installation docs '
+            'for more information.'),
         'allow_ctas': _('Allow CREATE TABLE AS option in SQL Lab'),
         'allow_dml': _(
             'Allow users to run non-SELECT statements '
@@ -240,8 +278,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': _('SQLAlchemy URI'),
         'cache_timeout': _('Chart Cache Timeout'),
         'extra': _('Extra'),
-        'allow_run_sync': _('Allow Run Sync'),
-        'allow_run_async': _('Allow Run Async'),
+        'allow_run_async': _('Asynchronous Query Execution'),
         'impersonate_user': _('Impersonate the logged on user'),
         'allow_csv_upload': _('Allow Csv Upload'),
         'modified': _('Modified'),
@@ -311,9 +348,9 @@ class DatabaseAsync(DatabaseView):
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
-        'allow_run_async', 'allow_run_sync', 'allow_dml',
+        'allow_run_async', 'allow_dml',
         'allow_multi_schema_metadata_fetch', 'allow_csv_upload',
-        'allows_subquery',
+        'allows_subquery', 'backend',
     ]
 
 
@@ -364,7 +401,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else e
+                form.name.data) if isinstance(e, IntegrityError) else str(e)
             flash(
                 message,
                 'danger')
@@ -432,7 +469,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/chart'
     datamodel = SQLAInterface(models.Slice)
 
-    list_title = _('List Charts')
+    list_title = _('Charts')
     show_title = _('Show Chart')
     add_title = _('Add Chart')
     edit_title = _('Edit Chart')
@@ -548,7 +585,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     route_base = '/dashboard'
     datamodel = SQLAInterface(models.Dashboard)
 
-    list_title = _('List Dashboards')
+    list_title = _('Dashboards')
     show_title = _('Show Dashboard')
     add_title = _('Add Dashboard')
     edit_title = _('Edit Dashboard')
@@ -569,7 +606,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             'the widgets size and positions by using drag & drop in '
             'the dashboard view'),
         'css': _(
-            'The css for individual dashboards can be altered here, or '
+            'The CSS for individual dashboards can be altered here, or '
             'in the dashboard view where changes are immediately '
             'visible'),
         'slug': _('To get a readable URL for your dashboard'),
@@ -596,8 +633,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, obj):
-        obj.slug = obj.slug.strip() or None
+        obj.slug = obj.slug or None
         if obj.slug:
+            obj.slug = obj.slug.strip()
             obj.slug = obj.slug.replace(' ', '-')
             obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
         if g.user not in obj.owners:
@@ -623,6 +661,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         return redirect(
             '/dashboard/export_dashboards_form?{}'.format(ids[1:]))
 
+    @log_this
+    @has_access
     @expose('/export_dashboards_form')
     def download_dashboards(self):
         if request.args.get('action') == 'go':
@@ -678,7 +718,7 @@ appbuilder.add_view_no_menu(DashboardAddView)
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
 
-    list_title = _('List Log')
+    list_title = _('Logs')
     show_title = _('Show Log')
     add_title = _('Add Log')
     edit_title = _('Edit Log')
@@ -723,6 +763,7 @@ class KV(BaseSupersetView):
     """Used for storing and retrieving key value pairs"""
 
     @log_this
+    @has_access_api
     @expose('/store/', methods=['POST'])
     def store(self):
         try:
@@ -737,6 +778,7 @@ class KV(BaseSupersetView):
             status=200)
 
     @log_this
+    @has_access_api
     @expose('/<key_id>/', methods=['GET'])
     def get_value(self, key_id):
         kv = None
@@ -758,14 +800,20 @@ class R(BaseSupersetView):
     @expose('/<url_id>')
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if url:
-            return redirect('/' + url.url)
+        if url and url.url:
+            explore_url = '//superset/explore/?'
+            if url.url.startswith(explore_url):
+                explore_url += f'r={url_id}'
+                return redirect(explore_url[1:])
+            else:
+                return redirect(url.url[1:])
         else:
             flash('URL to nowhere...', 'danger')
             return redirect('/')
 
     @log_this
-    @expose('/shortner/', methods=['POST', 'GET'])
+    @has_access_api
+    @expose('/shortner/', methods=['POST'])
     def shortner(self):
         url = request.form.get('data')
         obj = models.Url(url=url)
@@ -775,12 +823,6 @@ class R(BaseSupersetView):
             '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
                 scheme=request.scheme, request=request, obj=obj),
             mimetype='text/plain')
-
-    @expose('/msg/')
-    def msg(self):
-        """Redirects to specified url while flash a message"""
-        flash(Markup(request.args.get('msg')), 'info')
-        return redirect(request.args.get('url'))
 
 
 appbuilder.add_view_no_menu(R)
@@ -792,7 +834,7 @@ class Superset(BaseSupersetView):
     @expose('/datasources/')
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [o.short_data for o in datasources]
+        datasources = [o.short_data for o in datasources if o.short_data.get('name')]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
 
@@ -1070,7 +1112,7 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
-            parse.quote(json.dumps(form_data)),
+            parse.quote(json.dumps({'slice_id': slice_id})),
         )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
@@ -1101,7 +1143,7 @@ class Superset(BaseSupersetView):
 
     def get_raw_results(self, viz_obj):
         return self.json_response({
-            'data': viz_obj.get_df().to_dict('records'),
+            'data': viz_obj.get_df_payload()['df'].to_dict('records'),
         })
 
     def get_samples(self, viz_obj):
@@ -1277,9 +1319,8 @@ class Superset(BaseSupersetView):
                 'danger')
             return redirect(
                 'superset/request_access/?'
-                'datasource_type={datasource_type}&'
-                'datasource_id={datasource_id}&'
-                ''.format(**locals()))
+                f'datasource_type={datasource_type}&'
+                f'datasource_id={datasource_id}&')
 
         viz_type = form_data.get('viz_type')
         if not viz_type and datasource.default_endpoint:
@@ -1393,7 +1434,7 @@ class Superset(BaseSupersetView):
                 form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
-        slc.params = json.dumps(form_data)
+        slc.params = json.dumps(form_data, indent=2, sort_keys=True)
         slc.datasource_name = datasource_name
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
@@ -1507,12 +1548,17 @@ class Superset(BaseSupersetView):
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
-            .one()
+            .first()
         )
-        schemas = database.all_schema_names(cache=database.schema_cache_enabled,
-                                            cache_timeout=database.schema_cache_timeout,
-                                            force=force_refresh)
-        schemas = security_manager.schemas_accessible_by_user(database, schemas)
+        if database:
+            schemas = database.all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=force_refresh)
+            schemas = security_manager.schemas_accessible_by_user(database, schemas)
+        else:
+            schemas = []
+
         return Response(
             json.dumps({'schemas': schemas}),
             mimetype='application/json')
@@ -1638,7 +1684,6 @@ class Superset(BaseSupersetView):
     @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-
         # find slices in the position data
         slice_ids = []
         slice_id_to_name = {}
@@ -1752,7 +1797,7 @@ class Superset(BaseSupersetView):
                 .get('engine_params', {}))
             connect_args = engine_params.get('connect_args')
 
-            if configuration:
+            if configuration and connect_args is not None:
                 connect_args['configuration'] = configuration
 
             engine = create_engine(uri, **engine_params)
@@ -2053,7 +2098,13 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                obj = slc.get_viz(force=True)
+                form_data = self.get_form_data(slc.id, use_slice_data=True)[0]
+                obj = self.get_viz(
+                    datasource_type=slc.datasource.type,
+                    datasource_id=slc.datasource.id,
+                    form_data=form_data,
+                    force=True,
+                )
                 obj.get_json()
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
@@ -2061,6 +2112,7 @@ class Superset(BaseSupersetView):
             [{'slice_id': slc.id, 'slice_name': slc.slice_name}
              for slc in slices]))
 
+    @has_access_api
     @expose('/favstar/<class_name>/<obj_id>/<action>/')
     def favstar(self, class_name, obj_id, action):
         """Toggle favorite stars on Slices and Dashboard"""
@@ -2117,12 +2169,13 @@ class Superset(BaseSupersetView):
                         'danger')
                     return redirect(
                         'superset/request_access/?'
-                        'dashboard_id={dash.id}&'.format(**locals()))
+                        f'dashboard_id={dash.id}&')
 
         dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
             security_manager.can_access('can_save_dash', 'Superset')
         dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
         superset_can_explore = security_manager.can_access('can_explore', 'Superset')
+        superset_can_csv = security_manager.can_access('can_csv', 'Superset')
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
         standalone_mode = request.args.get('standalone') == 'true'
@@ -2144,6 +2197,7 @@ class Superset(BaseSupersetView):
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
             'superset_can_explore': superset_can_explore,
+            'superset_can_csv': superset_can_csv,
             'slice_can_edit': slice_can_edit,
         })
 
@@ -2242,7 +2296,7 @@ class Superset(BaseSupersetView):
         table.schema = data.get('schema')
         table.template_params = data.get('templateParams')
         table.is_sqllab_view = True
-        q = SupersetQuery(data.get('sql'))
+        q = ParsedQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
         cols = []
@@ -2270,10 +2324,11 @@ class Superset(BaseSupersetView):
         }))
 
     @has_access
-    @expose('/table/<database_id>/<table_name>/<schema>/')
+    @expose('/table/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload_columns = []
         indexes = []
@@ -2329,10 +2384,11 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(tbl))
 
     @has_access
-    @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
+    @expose('/extra_table_metadata/<database_id>/<path:table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
+        table_name = parse.unquote_plus(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
@@ -2386,11 +2442,11 @@ class Superset(BaseSupersetView):
         if not results_backend:
             return json_error_response("Results backend isn't configured")
 
-        read_from_results_backend_start = utils.now_as_float()
+        read_from_results_backend_start = now_as_float()
         blob = results_backend.get(key)
         stats_logger.timing(
             'sqllab.query.results_backend_read',
-            utils.now_as_float() - read_from_results_backend_start,
+            now_as_float() - read_from_results_backend_start,
         )
         if not blob:
             return json_error_response(
@@ -2484,7 +2540,7 @@ class Superset(BaseSupersetView):
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
-            start_time=utils.now_as_float(),
+            start_time=now_as_float(),
             tab_name=request.form.get('tab'),
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
@@ -2521,14 +2577,13 @@ class Superset(BaseSupersetView):
                     return_results=False,
                     store_results=not query.select_as_cta,
                     user_name=g.user.username if g.user else None,
-                    start_time=utils.now_as_float())
+                    start_time=now_as_float())
             except Exception as e:
                 logging.exception(e)
-                msg = (
+                msg = _(
                     'Failed to start remote query on a worker. '
                     'Tell your administrator to verify the availability of '
-                    'the message queue.'
-                )
+                    'the message queue.')
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
@@ -2544,8 +2599,7 @@ class Superset(BaseSupersetView):
         try:
             timeout = config.get('SQLLAB_TIMEOUT')
             timeout_msg = (
-                'The query exceeded the {timeout} seconds '
-                'timeout.').format(**locals())
+                f'The query exceeded the {timeout} seconds timeout.')
             with utils.timeout(seconds=timeout,
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
@@ -2606,8 +2660,7 @@ class Superset(BaseSupersetView):
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
-        response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(unidecode(query.name)))
+        response.headers['Content-Disposition'] = f'attachment; filename={query.name}.csv'
         logging.info('Ready to return response')
         return response
 
@@ -2629,6 +2682,7 @@ class Superset(BaseSupersetView):
         security_manager.assert_datasource_permission(datasource)
         return json_success(json.dumps(datasource.data))
 
+    @has_access_api
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
         """Get the updated queries."""
@@ -2860,10 +2914,10 @@ appbuilder.add_view_no_menu(Superset)
 class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
 
-    list_title = _('List Css Template')
-    show_title = _('Show Css Template')
-    add_title = _('Add Css Template')
-    edit_title = _('Edit Css Template')
+    list_title = _('CSS Templates')
+    show_title = _('Show CSS Template')
+    add_title = _('Add CSS Template')
+    edit_title = _('Edit CSS Template')
 
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']

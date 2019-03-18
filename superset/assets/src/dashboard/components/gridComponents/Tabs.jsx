@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
@@ -11,6 +29,7 @@ import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
+import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from '../../../logger/LogUtils';
 
 const NEW_TAB_INDEX = -1;
 const MAX_TAB_COUNT = 7;
@@ -25,6 +44,7 @@ const propTypes = {
   renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
+  logEvent: PropTypes.func.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -88,6 +108,11 @@ class Tabs extends React.PureComponent {
         },
       });
     } else if (tabIndex !== this.state.tabIndex) {
+      this.props.logEvent(LOG_ACTIONS_SELECT_DASHBOARD_TAB, {
+        tab_id: component.id,
+        index: tabIndex,
+      });
+
       this.setState(() => ({ tabIndex }));
       this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
     }
@@ -156,15 +181,12 @@ class Tabs extends React.PureComponent {
           dragSourceRef: tabsDragSourceRef,
         }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            {editMode &&
-              renderHoverMenu && (
-                <HoverMenu innerRef={tabsDragSourceRef} position="left">
-                  <DragHandle position="left" />
-                  <DeleteComponentButton
-                    onDelete={this.handleDeleteComponent}
-                  />
-                </HoverMenu>
-              )}
+            {editMode && renderHoverMenu && (
+              <HoverMenu innerRef={tabsDragSourceRef} position="left">
+                <DragHandle position="left" />
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+              </HoverMenu>
+            )}
 
             <BootstrapTabs
               id={tabsComponent.id}
@@ -213,13 +235,12 @@ class Tabs extends React.PureComponent {
                 </BootstrapTab>
               ))}
 
-              {editMode &&
-                tabIds.length < MAX_TAB_COUNT && (
-                  <BootstrapTab
-                    eventKey={NEW_TAB_INDEX}
-                    title={<div className="fa fa-plus" />}
-                  />
-                )}
+              {editMode && tabIds.length < MAX_TAB_COUNT && (
+                <BootstrapTab
+                  eventKey={NEW_TAB_INDEX}
+                  title={<div className="fa fa-plus" />}
+                />
+              )}
             </BootstrapTabs>
 
             {/* don't indicate that a drop on root is allowed when tabs already exist */}

@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 from superset import data
 from superset.cli import load_test_users_run
 from .base_tests import SupersetTestCase
@@ -16,36 +32,6 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
     def test_load_birth_names(self):
         data.load_birth_names()
-
-    def test_load_random_time_series_data(self):
-        data.load_random_time_series_data()
-
-    def test_load_country_map_data(self):
-        data.load_country_map_data()
-
-    def test_load_multiformat_time_series_data(self):
-        data.load_multiformat_time_series()
-
-    def test_load_paris_iris_geojson(self):
-        data.load_paris_iris_geojson()
-
-    def test_load_bart_lines(self):
-        data.load_bart_lines()
-
-    def test_load_multi_line(self):
-        data.load_multi_line()
-
-    def test_load_misc_dashboard(self):
-        data.load_misc_dashboard()
-
-    def test_load_unicode_test_data(self):
-        data.load_unicode_test_data()
-
-    def test_load_deck_dash(self):
-        data.load_long_lat_data()
-        data.load_flights()
-        data.load_sf_population_polygons()
-        data.load_deck_dash()
 
     def test_load_test_users_run(self):
         load_test_users_run()
