@@ -85,7 +85,7 @@ export default class TemplateParamsEditor extends React.Component {
         in your SQL (example: <code>SELECT * FROM {'{{ my_table }}'} </code>)
         by using&nbsp;
         <a
-          href="http://superset.apache.org/sqllab.html#templating-with-jinja"
+          href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
           rel="noopener noreferrer"
         >

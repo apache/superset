@@ -1659,7 +1659,7 @@ class BQEngineSpec(BaseEngineSpec):
         BigQuery dialect requires us to not use backtick in the fieldname which are
         nested.
         Using literal_column handles that issue.
-        http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
+        https://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
         Also explicility specifying column names so we don't encounter duplicate
         column names in the result.
         """

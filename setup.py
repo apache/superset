@@ -120,7 +120,7 @@ setup(
     },
     author='Apache Software Foundation',
     author_email='dev@superset.incubator.apache.org',
-    url='http://superset.apache.org/',
+    url='https://superset.apache.org/',
     download_url=(
         'https://dist.apache.org/repos/dist/release/superset/' + version_string
     ),

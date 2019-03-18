@@ -215,7 +215,7 @@ setup known to work well in production: ::
         superset:app
 
 Refer to the
-`Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
+`Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
 Note that *gunicorn* does not
@@ -319,7 +319,7 @@ as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
-<http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
+<https://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure it.
 
 Make sure to change:
@@ -497,9 +497,9 @@ find an ``extra`` field as a ``JSON`` blob.
 
 This JSON string contains extra configuration elements. The ``engine_params``
 object gets unpacked into the
-`sqlalchemy.create_engine <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
+`sqlalchemy.create_engine <https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
 while the ``metadata_params`` get unpacked into the
-`sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+`sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
 
 Schemas (Postgres & Redshift)
@@ -583,7 +583,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 
 
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
-* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
+* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
 DOMAIN SHARDING

@@ -92,7 +92,7 @@ Database Support
 
 Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
+[most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
 Superset can be used to visualize data out of most databases:
 * MySQL

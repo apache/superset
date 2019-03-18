@@ -432,9 +432,9 @@ npm run lint
 
 ### Python Testing
 
-All python tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
+All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
 a standardized testing framework.
-All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
 ```bash
 tox -e <environment>
@@ -464,7 +464,7 @@ commands are invoked.
 
 ### JavaScript Testing
 
-We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
 cd superset/assets
