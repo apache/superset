@@ -268,7 +268,7 @@ export function formatLabel(input, verboseMap = {}) {
     : verboseLookup(input);
 }
 
-const MIN_BAR_WIDTH = 15;
+const MIN_BAR_WIDTH = 18;
 
 export function computeBarChartWidth(data, stacked, maxWidth) {
   const barCount = stacked

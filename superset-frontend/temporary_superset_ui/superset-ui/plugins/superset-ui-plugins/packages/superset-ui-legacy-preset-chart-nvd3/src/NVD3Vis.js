@@ -66,6 +66,7 @@ const { getColor, getScale } = CategoricalColorNamespace;
 // Limit on how large axes margins can grow as the chart window is resized
 const MAX_MARGIN_PAD = 30;
 const MIN_HEIGHT_FOR_BRUSH = 480;
+const MAX_NO_CHARACTERS_IN_LABEL = 40;
 
 const BREAKPOINTS = {
   small: 340,
@@ -253,6 +254,9 @@ function nvd3Vis(element, props) {
   let chart;
   let width = maxWidth;
   let colorKey = 'key';
+
+  container.style.width = `${maxWidth}px`;
+  container.style.height = `${maxHeight}px`;
 
   function isVizTypes(types) {
     return types.indexOf(vizType) >= 0;
@@ -492,6 +496,12 @@ function nvd3Vis(element, props) {
     const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
     if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
+    } else {
+      chart.xAxis.tickFormat(d =>
+        d.length > MAX_NO_CHARACTERS_IN_LABEL
+          ? `${d.substring(0, MAX_NO_CHARACTERS_IN_LABEL)}…`
+          : d,
+      );
     }
 
     let yAxisFormatter = getTimeOrNumberFormatter(yAxisFormat);
@@ -563,7 +573,6 @@ function nvd3Vis(element, props) {
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
     chart.width(width);
     chart.height(height);
-    container.style.height = `${height}px`;
 
     svg
       .datum(data)
@@ -675,7 +684,7 @@ function nvd3Vis(element, props) {
       }
       if (xLabelRotation === 45) {
         margins.bottom =
-          maxXAxisLabelHeight * Math.sin((Math.PI * xLabelRotation) / 180) + marginPad;
+          maxXAxisLabelHeight * Math.sin((Math.PI * xLabelRotation) / 180) + marginPad + 30;
         margins.right =
           maxXAxisLabelHeight * Math.cos((Math.PI * xLabelRotation) / 180) + marginPad;
       } else if (staggerLabels) {
