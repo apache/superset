@@ -80,7 +80,7 @@ From there, the container server will reload on modification of the superset pyt
 and javascript source code.
 Don't forget to reload the page to take the new frontend into account though.
 
-See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
 It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
@@ -389,7 +389,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
-|  Pinot        | ``pip install pinotdb`` | ``pinot+http://controller:5436/query?server=http://controller:5983/``                                 |
+|  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
+|               |                                     | ``query?server=http://controller:5983/``        |
 +---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
@@ -595,7 +596,7 @@ next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
-*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
+* ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
 MIDDLEWARE
@@ -817,7 +818,7 @@ Building from source
 
 More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment. See `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#local-development>`_.
+your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
 
 Blueprints
 ----------
