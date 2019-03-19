@@ -535,6 +535,10 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             return f'"{column_name}"'
         return column_name
 
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%dT%H:%M:%S'))
+
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
