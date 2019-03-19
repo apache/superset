@@ -71,6 +71,14 @@ describe('SuperChart', () => {
         done();
       }, 0);
     });
+    it('does not render if chartType is not set', done => {
+      // @ts-ignore chartType is required
+      const wrapper = shallow(<SuperChart />);
+      setTimeout(() => {
+        expect(wrapper.render().children()).toHaveLength(0);
+        done();
+      }, 5);
+    });
     it('adds id to container if specified', done => {
       const wrapper = shallow(<SuperChart chartType="my-chart" id="the-chart" />);
       setTimeout(() => {

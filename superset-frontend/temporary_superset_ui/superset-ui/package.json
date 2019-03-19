@@ -10,7 +10,7 @@
     "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:assets": "node ./scripts/buildAssets.js",
     "commit": "git-cz",
-    "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(demo|generator-superset)\" --noEmit",
+    "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(generator-superset)\" --noEmit",
     "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(demo|generator-superset)\" --emitDeclarationOnly",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",

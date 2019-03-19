@@ -6,7 +6,9 @@ import {
   getChartBuildQueryRegistry,
   buildQueryContext,
   ChartFormData,
+  getChartMetadataRegistry,
 } from '../../src';
+
 import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
 import { LOGIN_GLOB } from '../../../superset-ui-connection/test/fixtures/constants';
 
@@ -95,6 +97,8 @@ describe('ChartClient', () => {
 
   describe('.loadQueryData(formData, options)', () => {
     it('returns a promise of query data for known chart type', () => {
+      getChartMetadataRegistry().registerValue('word_cloud', { name: 'Word Cloud' });
+
       getChartBuildQueryRegistry().registerValue('word_cloud', (formData: ChartFormData) =>
         buildQueryContext(formData),
       );
@@ -122,6 +126,34 @@ describe('ChartClient', () => {
           datasource: '1__table',
         }),
       ).rejects.toEqual(new Error('Unknown chart type: rainbow_3d_pie')));
+
+    it('fetches data from the legacy API if ChartMetadata has useLegacyApi=true,', () => {
+      // note legacy charts do not register a buildQuery function in the registry
+      getChartMetadataRegistry().registerValue('word_cloud_legacy', {
+        name: 'Legacy Word Cloud',
+        useLegacyApi: true,
+      });
+
+      fetchMock.post('glob:*/api/v1/query/', () =>
+        Promise.reject(Error('Unexpected all to v1 API')),
+      );
+
+      fetchMock.post('glob:*/superset/explore_json/', {
+        field1: 'abc',
+        field2: 'def',
+      });
+
+      return expect(
+        chartClient.loadQueryData({
+          granularity: 'minute',
+          viz_type: 'word_cloud_legacy',
+          datasource: '1__table',
+        }),
+      ).resolves.toEqual({
+        field1: 'abc',
+        field2: 'def',
+      });
+    });
   });
 
   describe('.loadDatasource(datasourceKey, options)', () => {
@@ -200,6 +232,8 @@ describe('ChartClient', () => {
         dolor: 'sit',
         amet: true,
       });
+
+      getChartMetadataRegistry().registerValue('line', { name: 'Line' });
 
       getChartBuildQueryRegistry().registerValue('line', (formData: ChartFormData) =>
         buildQueryContext(formData),
