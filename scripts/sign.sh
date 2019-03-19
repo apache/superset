@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,66 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-*.bak
-*.db
-*.pyc
-*.sqllite
-*.swp
-.cache-loader
-.coverage
-.DS_Store
-.eggs
-.idea
-.python-version
-.tox
-.vscode
-_build
-_images
-_modules
-_static
-build
-app.db
-changelog.sh
-dist
-dump.rdb
-env
-env_py3
-envpy3
-local_config.py
-superset_config.py
-superset.egg-info/
-superset/bin/supersetc
-tmp
 
-# Node.js, webpack artifacts
-*.entry.js
-*.js.map
-node_modules
-npm-debug.log*
-superset/assets/coverage/*
-superset/assets/cypress/screenshots
-superset/assets/cypress/videos
-superset/assets/version_info.json
-yarn-error.log
+# Use this to sign the tar balls generated from
+# python setup.py sdist --formats=gztar
+# ie. sign.sh <my_tar_ball>
+# you will still be required to type in your signing key password
+# or it needs to be available in your keychain
 
-# IntelliJ
-*.iml
-venv
-@eaDir/
+NAME=${1}
 
-# Docker
-./Dockerfile
-./docker-build.sh
-./docker-compose.yml
-./docker-entrypoint.sh
-./docker-init.sh
-
-# Test data
-celery_results.sqlite
-celerybeat-schedule
-celerydb.sqlite
-celerybeat.pid
-geckodriver.log
-ghostdriver.log
-testCSV.csv
-apache-superset-*.tar.gz*
+gpg --armor --output ${NAME}.asc --detach-sig ${NAME}
+gpg --print-md SHA512 ${NAME} > ${NAME}.sha512

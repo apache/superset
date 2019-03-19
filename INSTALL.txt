@@ -1,0 +1,31 @@
+# INSTALL / BUILD instructions for Apache Superset (incubating)
+
+# [required] fetch the tarball and untar the source
+# change into the directory that was untarred.
+
+# Superset runs best on python3.6
+# Also recommended is the latest long term supported node / npm
+
+# Fetch npm dependencies
+cd superset/assets/
+npm ci
+
+# Build the Javascript bundles
+npm run prod
+
+# Back to the root of the repo
+cd ../..
+
+# [optional] Superset pulls in quite a lot of dependencies in order
+# to connect to other services. You might want to test or run Superset 
+# from a virtual env to make sure those dependencies are separated
+# from your system wide versions
+python3 -m env36
+source env36/bin/activate
+
+# [required] building and installing by pip (preferred)
+pip install .
+
+# superset --help
+
+# For complementary information read our CONTRIBUTING.md
