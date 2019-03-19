@@ -139,7 +139,7 @@ export default class VizTypeControl extends React.PureComponent {
     const registry = getChartMetadataRegistry();
     const types = this.sortVizTypes(registry.entries());
     const filteredTypes = filter.length > 0
-      ? types.filter(type => type.value.name.toLowerCase().includes(filter))
+      ? types.filter(type => type.value.name.toLowerCase().includes(filter.toLowerCase()))
       : types;
 
     const selectedType = registry.get(value);
