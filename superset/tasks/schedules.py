@@ -155,6 +155,7 @@ def create_webdriver():
     elif config.get('EMAIL_REPORTS_WEBDRIVER') == 'chrome':
         driver_class = chrome.webdriver.WebDriver
         options = chrome.options.Options()
+        options.add_argument('--no-sandbox')
 
     options.add_argument('--headless')
 
