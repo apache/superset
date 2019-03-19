@@ -1,5 +1,16 @@
 # @superset-ui-plugins
 
+## 0.10.2 (2019-03-18)
+
+### docs
+
+* add nvd3 version badge to readme ([22a13d389fafed4131b879c5505594fcc606d9d3](https://github.com/apache-superset/superset-ui-plugins/commit/22a13d389fafed4131b879c5505594fcc606d9d3))
+* update changelog ([1fbc31c45f6d5518d3913408d3931890838f60fb](https://github.com/apache-superset/superset-ui-plugins/commit/1fbc31c45f6d5518d3913408d3931890838f60fb))
+
+### fix
+
+* y axis bounds when input are nan (#22) ([a43d21d](https://github.com/apache-superset/superset-ui-plugins/commit/a43d21d)), closes [#22](https://github.com/apache-superset/superset-ui-plugins/issues/22)
+
 ## 0.10.1 (2019-03-18)
 
 ### chore
@@ -25,8 +36,8 @@
 
 ### docs
 
-* ✏️ update dependency badges ([069bfe214696e54e5c1cbd9b9ab14f3cddaf810b](https://github.com/apache-superset/superset-ui-plugins/commit/069bfe214696e54e5c1cbd9b9ab14f3cddaf810b))
-* ✏️ update link from superset-ui-legacy to superset-ui-plugins ([99acadda94b433e2e6c5926c071cb1a031a24bef](https://github.com/apache-superset/superset-ui-plugins/commit/99acadda94b433e2e6c5926c071cb1a031a24bef))
+* update dependency badges ([069bfe214696e54e5c1cbd9b9ab14f3cddaf810b](https://github.com/apache-superset/superset-ui-plugins/commit/069bfe214696e54e5c1cbd9b9ab14f3cddaf810b))
+* update link from superset-ui-legacy to superset-ui-plugins ([99acadda94b433e2e6c5926c071cb1a031a24bef](https://github.com/apache-superset/superset-ui-plugins/commit/99acadda94b433e2e6c5926c071cb1a031a24bef))
 
 ### feat
 
@@ -39,7 +50,7 @@
 * fix(legacy-preset-chart-nvd3): redraw bar values after legend change (#7) ([28b1f75](https://github.com/apache-superset/superset-ui-plugins/commit/28b1f75)), closes [#7](https://github.com/apache-superset/superset-ui-plugins/issues/7)
 * fix(legacy-preset-chart-nvd3): redraw markers after legend interaction (#6) ([b257c32](https://github.com/apache-superset/superset-ui-plugins/commit/b257c32)), closes [#6](https://github.com/apache-superset/superset-ui-plugins/issues/6)
 * fix(legacy-preset-chart-nvd3): tooltip's disappearance and stickiness (#1) ([0cc1ea8](https://github.com/apache-superset/superset-ui-plugins/commit/0cc1ea8)), closes [#1](https://github.com/apache-superset/superset-ui-plugins/issues/1)
-* 🐛 broken unit test due to missing babel-polyfill ([346ca5c07e06a622565dbf90486fef2ab0ea6baf](https://github.com/apache-superset/superset-ui-plugins/commit/346ca5c07e06a622565dbf90486fef2ab0ea6baf))
+* broken unit test due to missing babel-polyfill ([346ca5c07e06a622565dbf90486fef2ab0ea6baf](https://github.com/apache-superset/superset-ui-plugins/commit/346ca5c07e06a622565dbf90486fef2ab0ea6baf))
 * resolve issues post `0.10.0` ([7b0fd6d902dfb186798228e543d95d9fde79c089](https://github.com/apache-superset/superset-ui-plugins/commit/7b0fd6d902dfb186798228e543d95d9fde79c089))
 
 # 0.1.1 (2019-02-14)
