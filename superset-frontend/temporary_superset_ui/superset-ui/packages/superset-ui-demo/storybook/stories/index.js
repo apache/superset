@@ -20,7 +20,7 @@ const EMPTY_EXAMPLES = [
  *    { storyPath: string, storyName: string, renderStory: fn() => node }
  *
  */
-const requireContext = require.context('./', /* subdirs= */ true, /index\.jsx?$/);
+const requireContext = require.context('./', /* subdirs= */ true, /index\.(j|t)sx?$/);
 
 requireContext.keys().forEach(packageName => {
   const packageExport = requireContext(packageName);

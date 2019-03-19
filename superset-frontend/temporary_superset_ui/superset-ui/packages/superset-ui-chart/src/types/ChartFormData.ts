@@ -11,9 +11,9 @@ import { AnnotationLayerMetadata } from './Annotation';
 // https://github.com/Microsoft/TypeScript/issues/13573
 // The Metrics in formData is either a string or a proper metric. It will be
 // unified into a proper Metric type during buildQuery (see `/query/Metrics.ts`).
-type Metrics = Partial<Record<MetricKey, FormDataMetric | FormDataMetric[]>>;
+export type Metrics = Partial<Record<MetricKey, FormDataMetric | FormDataMetric[]>>;
 
-type BaseFormData = {
+export type BaseFormData = {
   datasource: string;
   viz_type: string;
   annotation_layers?: AnnotationLayerMetadata[];
