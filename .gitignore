@@ -78,3 +78,4 @@ geckodriver.log
 ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
+apache-superset-*.tar.gz*
