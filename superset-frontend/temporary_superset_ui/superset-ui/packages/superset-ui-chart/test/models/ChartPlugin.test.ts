@@ -38,7 +38,7 @@ describe('ChartPlugin', () => {
       expect(plugin).toBeInstanceOf(ChartPlugin);
     });
     describe('buildQuery', () => {
-      it('defaults to identity function', () => {
+      it('defaults to undefined', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,

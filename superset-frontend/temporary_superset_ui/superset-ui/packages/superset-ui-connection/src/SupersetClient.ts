@@ -25,7 +25,7 @@ const SupersetClient: SupersetClientInterface = {
   post: (request: RequestConfig) => getInstance(singletonClient).post(request),
   put: (request: RequestConfig) => getInstance(singletonClient).put(request),
   reAuthenticate: () => getInstance(singletonClient).init(/* force = */ true),
-  request: (request: RequestConfig) => getInstance(singletonClient).get(request),
+  request: (request: RequestConfig) => getInstance(singletonClient).request(request),
   reset: () => {
     singletonClient = undefined;
   },

@@ -7,27 +7,29 @@ import {
   SupersetClientClass,
 } from '@superset-ui/connection';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
+import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import { AnnotationLayerMetadata } from '../types/Annotation';
 import { ChartFormData } from '../types/ChartFormData';
+import { QueryData } from '../models/ChartProps';
+import { Datasource } from '../types/Datasource';
 
-export type SliceIdAndOrFormData =
-  | {
-      sliceId: number;
-      formData?: Partial<ChartFormData>;
-    }
-  | {
-      formData: ChartFormData;
-    };
+// This expands to Partial<All> & (union of all possible single-property types)
+type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> & Each[keyof Each];
+
+export type SliceIdAndOrFormData = AtLeastOne<{
+  sliceId: number;
+  formData: Partial<ChartFormData>;
+}>;
 
 interface AnnotationData {
   [key: string]: object;
 }
 
-interface ChartData {
+export interface ChartData {
   annotationData: AnnotationData;
   datasource: object;
   formData: ChartFormData;
-  queryData: object;
+  queryData: QueryData;
 }
 
 export default class ChartClient {
@@ -42,7 +44,10 @@ export default class ChartClient {
     this.client = client;
   }
 
-  loadFormData(input: SliceIdAndOrFormData, options?: RequestConfig): Promise<ChartFormData> {
+  loadFormData(
+    input: SliceIdAndOrFormData,
+    options?: Partial<RequestConfig>,
+  ): Promise<ChartFormData> {
     /* If sliceId is provided, use it to fetch stored formData from API */
     if ('sliceId' in input) {
       const promise = this.client
@@ -69,28 +74,34 @@ export default class ChartClient {
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 
-  loadQueryData(formData: ChartFormData, options?: RequestConfig): Promise<object> {
-    const buildQuery = getChartBuildQueryRegistry().get(formData.viz_type);
-    if (buildQuery) {
+  loadQueryData(formData: ChartFormData, options?: Partial<RequestConfig>): Promise<object> {
+    const { viz_type: visType } = formData;
+
+    if (getChartMetadataRegistry().has(visType)) {
+      const { useLegacyApi } = getChartMetadataRegistry().get(visType);
+      const buildQuery = useLegacyApi ? () => formData : getChartBuildQueryRegistry().get(visType);
+
       return this.client
         .post({
-          endpoint: '/api/v1/query/',
-          postPayload: { query_context: buildQuery(formData) },
+          endpoint: useLegacyApi ? '/superset/explore_json/' : '/api/v1/query/',
+          postPayload: {
+            [useLegacyApi ? 'form_data' : 'query_context']: buildQuery(formData),
+          },
           ...options,
         } as RequestConfig)
         .then(response => response.json as Json);
     }
 
-    return Promise.reject(new Error(`Unknown chart type: ${formData.viz_type}`));
+    return Promise.reject(new Error(`Unknown chart type: ${visType}`));
   }
 
-  loadDatasource(datasourceKey: string, options?: RequestConfig): Promise<object> {
+  loadDatasource(datasourceKey: string, options?: Partial<RequestConfig>): Promise<Datasource> {
     return this.client
       .get({
         endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
         ...options,
       } as RequestConfig)
-      .then(response => response.json as Json);
+      .then(response => response.json as Datasource);
   }
 
   loadAnnotation(annotationLayer: AnnotationLayerMetadata): Promise<object> {

@@ -11,7 +11,7 @@ type CamelCaseDatasource = PlainObject;
 type SnakeCaseDatasource = PlainObject;
 type CamelCaseFormData = PlainObject;
 type SnakeCaseFormData = PlainObject;
-type QueryData = PlainObject;
+export type QueryData = PlainObject;
 type Filters = any[];
 type HandlerFunction = (...args: any[]) => void;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
