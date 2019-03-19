@@ -73,7 +73,7 @@ describe('SupersetClient', () => {
     expect(initSpy).toHaveBeenCalledTimes(2);
     expect(deleteSpy).toHaveBeenCalledTimes(1);
     expect(putSpy).toHaveBeenCalledTimes(1);
-    expect(getSpy).toHaveBeenCalledTimes(2);
+    expect(getSpy).toHaveBeenCalledTimes(1);
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(requestSpy).toHaveBeenCalledTimes(5); // request rewires to get
     expect(csrfSpy).toHaveBeenCalledTimes(2); // from init() + reAuthenticate()

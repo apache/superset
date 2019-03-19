@@ -33,3 +33,32 @@ export const wordCloudFormData = {
   size_to: 70,
   rotation: 'square',
 };
+
+export const sunburstFormData = {
+  datasource: '2__table',
+  viz_type: 'sunburst',
+  slice_id: 47,
+  url_params: {},
+  granularity_sqla: 'year',
+  time_grain_sqla: 'P1D',
+  time_range: '2011-01-01 : 2011-01-01',
+  groupby: ['region', 'country_name'],
+  metric: 'sum__SP_POP_TOTL',
+  secondary_metric: 'sum__SP_RUR_TOTL',
+  adhoc_filters: [],
+  row_limit: 10000,
+};
+
+export const sankeyFormData = {
+  datasource: '1__table',
+  viz_type: 'sankey',
+  slice_id: 1,
+  url_params: {},
+  granularity_sqla: null,
+  time_grain_sqla: 'P1D',
+  time_range: 'Last week',
+  groupby: ['source', 'target'],
+  metric: 'sum__value',
+  adhoc_filters: [],
+  row_limit: 1000,
+};

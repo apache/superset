@@ -3,7 +3,7 @@ import { select, text } from '@storybook/addon-knobs';
 
 import VerifyCORS from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
-import { bigNumberFormData } from '../mocks/formData';
+import { bigNumberFormData } from '../../../../superset-ui-chart/test/fixtures/formData';
 
 const REQUEST_METHODS = ['GET', 'POST'];
 
