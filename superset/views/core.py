@@ -2558,10 +2558,8 @@ class Superset(BaseSupersetView):
             )
 
         client_id = request.form.get('client_id') or utils.shortid()[:10]
-        limits = [mydb.db_engine_spec.get_limit_from_sql(sql), limit]
         query = Query(
             database_id=int(database_id),
-            limit=min(lim for lim in limits if lim is not None),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
@@ -2590,6 +2588,10 @@ class Superset(BaseSupersetView):
         except Exception as e:
             return json_error_response(
                 'Template rendering failed: {}'.format(utils.error_msg_from_exception(e)))
+
+        # set LIMIT after template processing
+        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+        query.limit = min(lim for lim in limits if lim is not None)
 
         # Async request.
         if async_:
