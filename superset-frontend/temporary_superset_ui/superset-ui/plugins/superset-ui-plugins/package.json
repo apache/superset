@@ -73,7 +73,14 @@
       },
       "prettier",
       "typescript"
-    ]
+    ],
+    "typescript": {
+      "compilerOptions": {
+        "typeRoots": [
+          "../../node_modules/vega-lite/typings"
+        ]
+      }
+    }
   },
   "workspaces": [
     "./packages/*"
