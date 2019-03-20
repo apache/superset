@@ -71,7 +71,7 @@ function PivotTable(element, props) {
         const metric = cols[i];
         const format = columnFormats[metric] || numberFormat || '.3s';
         const tdText = $(this)[0].textContent;
-        if (!Number.isNaN(tdText) && tdText !== '') {
+        if (!Number.isNaN(tdText) && tdText !== '' && tdText.trim().toLowerCase() !== 'null') {
           $(this)[0].textContent = formatNumber(format, tdText);
           $(this).attr('data-sort', tdText);
         }
