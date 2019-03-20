@@ -179,7 +179,7 @@ def upgrade():
         for record in session.query(table).all():
             for col in record.__table__.columns.values():
                 if not col.primary_key:
-                    if getattr(record, col.name) == '':
+                    if getattr(record, col.name).strip() == '':
                         setattr(record, col.name, None)
 
         session.commit()
