@@ -28,6 +28,7 @@ export default {
         ['line_column', 'line_type'],
         ['row_limit', 'filter_nulls'],
         ['adhoc_filters'],
+        ['params'],
       ],
     },
     {

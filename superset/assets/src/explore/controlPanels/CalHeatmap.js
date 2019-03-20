@@ -28,6 +28,7 @@ export default {
         ['domain_granularity', 'subdomain_granularity'],
         ['metrics'],
         ['adhoc_filters'],
+        ['params'],
       ],
     },
     {

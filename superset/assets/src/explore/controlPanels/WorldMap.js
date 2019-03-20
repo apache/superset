@@ -27,6 +27,7 @@ export default {
         ['entity'],
         ['country_fieldtype'],
         ['metric'],
+        ['params'],
         ['adhoc_filters'],
         ['row_limit'],
       ],

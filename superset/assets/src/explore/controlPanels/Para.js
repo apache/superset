@@ -27,6 +27,7 @@ export default {
         ['series'],
         ['metrics'],
         ['secondary_metric'],
+        ['params'],
         ['adhoc_filters'],
         ['limit', 'row_limit'],
       ],

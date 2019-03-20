@@ -28,6 +28,7 @@ export default {
         ['all_columns_x', 'all_columns_y'],
         ['metric'],
         ['adhoc_filters'],
+        ['params'],
         ['row_limit'],
       ],
     },

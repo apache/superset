@@ -28,6 +28,7 @@ export default {
         ['all_columns_x'],
         ['adhoc_filters'],
         ['row_limit'],
+        ['params'],
         ['groupby'],
       ],
     },

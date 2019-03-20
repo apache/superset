@@ -27,6 +27,7 @@ export default {
         ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
+        ['params'],
         ['limit'],
         ['column_collection'],
         ['url'],

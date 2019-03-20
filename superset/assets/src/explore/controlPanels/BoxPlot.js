@@ -28,6 +28,7 @@ export default {
         ['adhoc_filters'],
         ['groupby'],
         ['limit'],
+        ['params'],
       ],
     },
     {

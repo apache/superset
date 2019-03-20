@@ -29,6 +29,7 @@ export default {
         ['metric'],
         ['adhoc_filters'],
         ['freq'],
+        ['params'],
       ],
     },
     {

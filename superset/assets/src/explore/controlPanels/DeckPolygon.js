@@ -31,6 +31,7 @@ export default {
         ['row_limit', null],
         ['line_column', 'line_type'],
         ['reverse_long_lat', 'filter_nulls'],
+        ['params'],
       ],
     },
     {

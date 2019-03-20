@@ -27,6 +27,7 @@ export default {
         ['all_columns_x', 'all_columns_y'],
         ['clustering_radius'],
         ['row_limit'],
+        ['params'],
         ['adhoc_filters'],
         ['groupby'],
       ],
