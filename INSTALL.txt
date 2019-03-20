@@ -20,7 +20,7 @@ cd superset/assets/
 npm ci
 
 # Build the Javascript bundles
-npm run prod
+npm run build
 
 # Back to the root of the repo
 cd ../..
