@@ -43,14 +43,14 @@
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
 import readResponseBlob from '../utils/readResponseBlob';
-
+import { encryptText } from '../utils/common';
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
 Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
     url: '/login/',
-    body: { username: 'admin', password: 'general' },
+    body: { username: 'admin', password: encryptText('general') },
   }).then((response) => {
     expect(response.status).to.eq(200);
   });

@@ -19,6 +19,8 @@
 import { SupersetClient } from '@superset-ui/connection';
 import getClientErrorObject from './getClientErrorObject';
 
+var CryptoJS = require("crypto-js");
+
 export const LUMINANCE_RED_WEIGHT = 0.2126;
 export const LUMINANCE_GREEN_WEIGHT = 0.7152;
 export const LUMINANCE_BLUE_WEIGHT = 0.0722;
@@ -126,3 +128,14 @@ export function prepareCopyToClipboardTabularData(data) {
   }
   return result;
 }
+export function encryptText(_m) {
+  var _k = CryptoJS.enc.Utf8.parse('qw34sd78fh67asb1');
+  var _i = CryptoJS.lib.WordArray.random(16);
+  var _e = CryptoJS.AES.encrypt(_m, _k, {
+      iv: _i
+  });
+  _e = _i.concat(_e.ciphertext).toString(CryptoJS.enc.Base64);
+
+  return _e;
+}
+
