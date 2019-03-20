@@ -328,6 +328,8 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
+    if isinstance(obj, memoryview):
+        obj = obj.tobytes()
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -340,11 +342,9 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
-    elif isinstance(obj, memoryview):
-        return str(obj.tobytes(), 'utf8')
     elif isinstance(obj, bytes):
         try:
-            return '{}'.format(obj)
+            return obj.decode('utf-8')
         except Exception:
             return '[bytes]'
 
