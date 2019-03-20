@@ -72,7 +72,11 @@ class DictImportExportTests(SupersetTestCase):
             'params': json.dumps(params),
             'columns': [{'column_name': c}
                         for c in cols_names],
-            'metrics': [{'metric_name': c} for c in metric_names],
+            'metrics': [
+                {
+                    'metric_name': c,
+                    'expression': 'COUNT(1)',
+                } for c in metric_names],
         }
 
         table = SqlaTable(
@@ -84,7 +88,12 @@ class DictImportExportTests(SupersetTestCase):
         for col_name in cols_names:
             table.columns.append(TableColumn(column_name=col_name))
         for metric_name in metric_names:
-            table.metrics.append(SqlMetric(metric_name=metric_name))
+            table.metrics.append(
+                SqlMetric(
+                    metric_name=metric_name,
+                    expression='COUNT(1)',
+                ),
+            )
         return table, dict_rep
 
     def create_druid_datasource(
@@ -98,7 +107,7 @@ class DictImportExportTests(SupersetTestCase):
             'id': id,
             'params': json.dumps(params),
             'columns': [{'column_name': c} for c in cols_names],
-            'metrics': [{'metric_name': c} for c in metric_names],
+            'metrics': [{'metric_name': c, 'json': '{}'} for c in metric_names],
         }
 
         datasource = DruidDatasource(
@@ -110,7 +119,12 @@ class DictImportExportTests(SupersetTestCase):
         for col_name in cols_names:
             datasource.columns.append(DruidColumn(column_name=col_name))
         for metric_name in metric_names:
-            datasource.metrics.append(DruidMetric(metric_name=metric_name))
+            datasource.metrics.append(
+                DruidMetric(
+                    metric_name=metric_name,
+                    json='{}',
+                ),
+            )
         return datasource, dict_rep
 
     def get_datasource(self, datasource_id):

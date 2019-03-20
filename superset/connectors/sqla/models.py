@@ -209,7 +209,7 @@ class SqlMetric(Model, BaseMetric):
         'SqlaTable',
         backref=backref('metrics', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
-    expression = Column(Text)
+    expression = Column(Text, nullable=False)
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',
@@ -263,7 +263,7 @@ class SqlaTable(Model, BaseDatasource):
     __tablename__ = 'tables'
     __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
 
-    table_name = Column(String(250))
+    table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     fetch_values_predicate = Column(String(1000))

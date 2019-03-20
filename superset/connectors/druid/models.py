@@ -344,7 +344,7 @@ class DruidMetric(Model, BaseMetric):
         'DruidDatasource',
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
-    json = Column(Text)
+    json = Column(Text, nullable=False)
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
@@ -410,7 +410,7 @@ class DruidDatasource(Model, BaseDatasource):
     baselink = 'druiddatasourcemodelview'
 
     # Columns
-    datasource_name = Column(String(255))
+    datasource_name = Column(String(255), nullable=False)
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))

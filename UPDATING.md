@@ -27,11 +27,6 @@ assists people when migrating to a new version.
   run `pip install superset[presto]` and/or `pip install superset[hive]` as
   required.
 
-* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change 
-which prevents encoding of empty string from form data in the datanbase. 
-This involves a non-schema changing migration which does potentially impact
-a large number of records. Scheduled downtime may be advised.
-
 ## Superset 0.31.0
 * boto3 / botocore was removed from the dependency list. If you use s3
 as a place to store your SQL Lab result set or Hive uploads, you may
@@ -41,6 +36,19 @@ dependencies.
 favor of good old `npm install`. While yarn should still work just fine,
 you should probably align to guarantee builds similar to the ones we
 use in testing and across the community in general.
+
+* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change
+which prevents encoding of empty string from form data in the database.
+This involves a non-schema changing migration which does potentially impact
+a large number of records. Scheduled downtime may be advised.
+
+* [7067](https://github.com/apache/incubator-superset/pull/7067) : related to
+5445 this change makes certain columns non-nullable and either deletes
+erroneous or mutates ill-defined records to ensure that the data conforms to
+the schema. All mutated records are identifiable via the migration specific
+(`migration_40f150716b13_`) prefix. It is recommended that a manual cleanup
+pass is performed to either remove or update violating records.
+
 
 ## Superset 0.30.0
 * 0.30.0 includes a db_migration that removes allow_run_sync. This may
