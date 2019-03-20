@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 export default () => describe('Line', () => {
@@ -153,5 +171,70 @@ export default () => describe('Line', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.get('text.nv-legend-text').contains('COUNT(*)');
+  });
+
+  it('Test hidden annotation', () => {
+    const formData = {
+      ...LINE_CHART_DEFAULTS,
+      metrics: ['count'],
+      annotation_layers: [{
+        name: 'Goal+line',
+        annotationType: 'FORMULA',
+        sourceType: '',
+        value: 'y=140000',
+        overrides: { time_range: null },
+        show: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+        color: null,
+        opacity: '',
+        style: 'solid',
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+      }],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      // Goal line annotation doesn't show up in legend
+      cy.get('.nv-legend-text').should('have.length', 1);
+    });
+  });
+
+  it('Test event annotation time override', () => {
+    cy.request('/chart/api/read?_flt_3_slice_name=Daily+Totals').then((response) => {
+      const value = response.body.pks[0];
+      const formData = {
+        ...LINE_CHART_DEFAULTS,
+        metrics: ['count'],
+        annotation_layers: [{
+          name: 'Yearly date',
+          annotationType: 'EVENT',
+          sourceType: 'table',
+          value,
+          overrides: { time_range: null },
+          show: true,
+          titleColumn: 'ds',
+          descriptionColumns: ['ds'],
+          timeColumn: 'ds',
+          color: null,
+          opacity: '',
+          style: 'solid',
+          width: 1,
+          showMarkers: false,
+          hideLine: false,
+        }],
+      };
+      cy.visitChartByParams(JSON.stringify(formData));
+    });
+
+    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('.slice_container').within(() => {
+      cy.get('.nv-event-annotation-layer-0').children().should('have.length', 44);
+    });
   });
 });

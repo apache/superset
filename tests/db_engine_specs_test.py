@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import inspect
 
 import mock
@@ -194,8 +210,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             FROM
             table
             LIMIT 99990""",
-            """
-            SELECT
+            """SELECT
                 'LIMIT 777' AS a
                 , b
             FROM
@@ -212,13 +227,12 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT         99990            ;""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
                 table
-                LIMIT         1000            ;""",
+                LIMIT         1000""",
         )
 
     def test_get_datatype(self):
@@ -236,8 +250,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 FROM
                 table
                 LIMIT 99990, 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
@@ -255,8 +268,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
                 table
                 LIMIT 99990
                 OFFSET 999999""",
-            """
-                SELECT
+            """SELECT
                     'LIMIT 777' AS a
                     , b
                 FROM
@@ -295,7 +307,10 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         time_grains = set(db_engine_specs.builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
         for cls_name, cls in inspect.getmembers(db_engine_specs):
-            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec):
+            if inspect.isclass(cls) and issubclass(cls, BaseEngineSpec) \
+                    and cls is not BaseEngineSpec:
+                # make sure time grain functions have been defined
+                self.assertGreater(len(cls.time_grain_functions), 0)
                 # make sure that all defined time grains are supported
                 defined_time_grains = {grain.duration for grain in cls.get_time_grains()}
                 intersection = time_grains.intersection(defined_time_grains)

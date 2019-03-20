@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """This module contains the 'Viz' objects
 
@@ -28,7 +44,6 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
-from past.builtins import basestring
 import polyline
 import simplejson as json
 
@@ -584,14 +599,11 @@ class TableViz(BaseViz):
         return data
 
     def json_dumps(self, obj, sort_keys=False):
-        if self.form_data.get('all_columns'):
-            return json.dumps(
-                obj,
-                default=utils.json_iso_dttm_ser,
-                sort_keys=sort_keys,
-                ignore_nan=True)
-        else:
-            return super(TableViz, self).json_dumps(obj)
+        return json.dumps(
+            obj,
+            default=utils.json_iso_dttm_ser,
+            sort_keys=sort_keys,
+            ignore_nan=True)
 
 
 class TimeTableViz(BaseViz):
@@ -1155,10 +1167,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
-        if fd.get('contribution'):
-            dft = df.T
-            df = (dft / dft.sum()).T
-
         rolling_type = fd.get('rolling_type')
         rolling_periods = int(fd.get('rolling_periods') or 0)
         min_periods = int(fd.get('min_periods') or 0)
@@ -1177,6 +1185,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df.cumsum()
         if min_periods:
             df = df[min_periods:]
+
+        if fd.get('contribution'):
+            dft = df.T
+            df = (dft / dft.sum()).T
 
         return df
 
@@ -1604,8 +1616,8 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
-        df['source'] = df['source'].astype(basestring)
-        df['target'] = df['target'].astype(basestring)
+        df['source'] = df['source'].astype(str)
+        df['target'] = df['target'].astype(str)
         recs = df.to_dict(orient='records')
 
         hierarchy = defaultdict(set)
@@ -1780,40 +1792,49 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     cache_type = 'get_data'
+    filter_row_limit = 1000
 
     def query_obj(self):
         return None
 
     def run_extra_queries(self):
-        qry = self.filter_query_obj()
-        filters = [g for g in self.form_data['groupby']]
+        qry = super(FilterBoxViz, self).query_obj()
+        filters = self.form_data.get('filter_configs') or []
+        qry['row_limit'] = self.filter_row_limit
         self.dataframes = {}
         for flt in filters:
-            qry['groupby'] = [flt]
+            col = flt.get('column')
+            if not col:
+                raise Exception(_(
+                    'Invalid filter configuration, please select a column'))
+            qry['groupby'] = [col]
+            metric = flt.get('metric')
+            qry['metrics'] = [metric] if metric else []
             df = self.get_df_payload(query_obj=qry).get('df')
-            self.dataframes[flt] = df
-
-    def filter_query_obj(self):
-        qry = super(FilterBoxViz, self).query_obj()
-        groupby = self.form_data.get('groupby')
-        if len(groupby) < 1 and not self.form_data.get('date_filter'):
-            raise Exception(_('Pick at least one filter field'))
-        qry['metrics'] = [
-            self.form_data['metric']]
-        return qry
+            self.dataframes[col] = df
 
     def get_data(self, df):
+        filters = self.form_data.get('filter_configs') or []
         d = {}
-        filters = [g for g in self.form_data['groupby']]
         for flt in filters:
-            df = self.dataframes[flt]
-            d[flt] = [{
-                'id': row[0],
-                'text': row[0],
-                'filter': flt,
-                'metric': row[1]}
-                for row in df.itertuples(index=False)
-            ]
+            col = flt.get('column')
+            metric = flt.get('metric')
+            df = self.dataframes.get(col)
+            if metric:
+                df = df.sort_values(metric, ascending=flt.get('asc'))
+                d[col] = [{
+                    'id': row[0],
+                    'text': row[0],
+                    'metric': row[1]}
+                    for row in df.itertuples(index=False)
+                ]
+            else:
+                df = df.sort_values(col, ascending=flt.get('asc'))
+                d[col] = [{
+                    'id': row[0],
+                    'text': row[0]}
+                    for row in df.itertuples(index=False)
+                ]
         return d
 
 
@@ -2099,10 +2120,10 @@ class BaseDeckGLViz(BaseViz):
             return None
         try:
             p = Point(s)
+            return (p.latitude, p.longitude)  # pylint: disable=no-member
         except Exception:
             raise SpatialException(
                 _('Invalid spatial point encountered: %s' % s))
-        return (p.latitude, p.longitude)
 
     @staticmethod
     def reverse_geohash_decode(geohash_code):

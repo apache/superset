@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import gzip
 import os
 
@@ -73,8 +89,8 @@ def load_multiformat_time_series():
             'metrics': ['count'],
             'granularity_sqla': col.column_name,
             'row_limit': config.get('ROW_LIMIT'),
-            'since': '1 year ago',
-            'until': 'now',
+            'since': '2015',
+            'until': '2016',
             'where': '',
             'viz_type': 'cal_heatmap',
             'domain_granularity': 'month',
@@ -82,11 +98,11 @@ def load_multiformat_time_series():
         }
 
         slc = Slice(
-            slice_name='Calendar Heatmap multiformat ' + str(i),
+            slice_name=f'Calendar Heatmap multiformat {i}',
             viz_type='cal_heatmap',
             datasource_type='table',
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)
-    misc_dash_slices.add(slc.slice_name)
+    misc_dash_slices.add('Calendar Heatmap multiformat 0')

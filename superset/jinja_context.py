@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Defines the templating context for SQL Lab"""
 from datetime import datetime, timedelta
@@ -26,7 +42,18 @@ BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
 
 
 def url_param(param, default=None):
-    """Get a url or post data parameter
+    """Read a url or post parameter and use it in your SQL Lab query
+
+    When in SQL Lab, it's possible to add arbitrary URL "query string"
+    parameters, and use those in your SQL code. For instance you can
+    alter your url and add `?foo=bar`, as in
+    `{domain}/superset/sqllab?foo=bar`. Then if your query is something like
+    SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed at
+    runtime and replaced by the value in the URL.
+
+    As you create a visualization form this SQL Lab query, you can pass
+    parameters in the explore view as well as from the dashboard, and
+    it should carry through to your queries.
 
     :param param: the parameter to lookup
     :type param: str
@@ -38,7 +65,7 @@ def url_param(param, default=None):
     # Supporting POST as well as get
     if request.form.get('form_data'):
         form_data = json.loads(request.form.get('form_data'))
-        url_params = form_data['url_params'] or {}
+        url_params = form_data.get('url_params') or {}
         return url_params.get(param, default)
     return default
 
@@ -68,7 +95,7 @@ def filter_values(column, default=None):
     Usage example:
         SELECT action, count(*) as times
         FROM logs
-        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" )
+        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
         GROUP BY 1
 
     :param column: column/filter name to lookup

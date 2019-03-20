@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { GeoJsonLayer } from 'deck.gl';
@@ -59,8 +77,8 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const fc = fd.fill_color_picker;
-  const sc = fd.stroke_color_picker;
+  const fc = fd.fillColorPicker;
+  const sc = fd.strokeColorPicker;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
   const strokeColor = [sc.r, sc.g, sc.b, 255 * sc.a];
   const propOverrides = {};
@@ -75,19 +93,19 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   recurseGeoJson(payload.data, propOverrides);
 
   let jsFnMutator;
-  if (fd.js_data_mutator) {
+  if (fd.jsDataMutator) {
     // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    jsFnMutator = sandboxedEval(fd.jsDataMutator);
     features = jsFnMutator(features);
   }
 
   return new GeoJsonLayer({
-    id: `geojson-layer-${fd.slice_id}`,
+    id: `geojson-layer-${fd.sliceId}`,
     filled: fd.filled,
     data: features,
     stroked: fd.stroked,
     extruded: fd.extruded,
-    pointRadiusScale: fd.point_radius_scale,
+    pointRadiusScale: fd.pointRadiusScale,
     ...commonLayerProps(fd, setTooltip),
   });
 }
@@ -127,7 +145,7 @@ function deckGeoJson(props) {
       mapboxApiAccessToken={payload.data.mapboxApiKey}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.mapbox_style}
+      mapStyle={formData.mapboxStyle}
       setControlValue={setControlValue}
     />
   );

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -5,8 +23,7 @@ import { exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import MissingChart from '../MissingChart';
-import { chartPropType } from '../../../chart/chartReducer';
-import { slicePropShape } from '../../util/propShapes';
+import { slicePropShape, chartPropShape } from '../../util/propShapes';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -15,7 +32,7 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
 
   // from redux
-  chart: PropTypes.shape(chartPropType).isRequired,
+  chart: PropTypes.shape(chartPropShape).isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
@@ -191,15 +208,14 @@ class Chart extends React.Component {
           and
              https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
-        {isExpanded &&
-          slice.description_markeddown && (
-            <div
-              className="slice_description bs-callout bs-callout-default"
-              ref={this.setDescriptionRef}
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-            />
-          )}
+        {isExpanded && slice.description_markeddown && (
+          <div
+            className="slice_description bs-callout bs-callout-default"
+            ref={this.setDescriptionRef}
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+          />
+        )}
 
         <div
           className={cx(

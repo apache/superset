@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
 from flask import flash, Markup, redirect, request, jsonify
@@ -7,6 +23,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+
+from superset import appbuilder, db, security_manager
 from past.builtins import basestring
 from sqlalchemy import create_engine
 import simplejson as json
@@ -164,7 +182,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
-        'description', 'owner',
+        'description', 'owners',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
     ]
@@ -173,7 +191,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
-        'database', 'schema', 'table_name', 'owner', 'is_sqllab_view',
+        'database', 'schema', 'table_name', 'owners', 'is_sqllab_view',
     )
     description_columns = {
         'slices': _(
@@ -235,7 +253,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'cache_timeout': _('Cache Timeout'),
         'table_name': _('Table Name'),
         'fetch_values_predicate': _('Fetch Values Predicate'),
-        'owner': _('Owner'),
+        'owners': _('Owners'),
         'main_dttm_col': _('Main Datetime Column'),
         'description': _('Description'),
         'is_sqllab_view': _('SQL Lab View'),
@@ -272,7 +290,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         if flash_message:
             flash(_(
                 'The table was created. '
-                'As part of this two phase configuration '
+                'As part of this two-phase configuration '
                 'process, you should now click the edit button by '
                 'the new table to configure it.'), 'info')
 
@@ -287,7 +305,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def edit(self, pk):
         """Simple hack to redirect to explore view after saving"""
         resp = super(TableModelView, self).edit(pk)
-        if isinstance(resp, basestring):
+        if isinstance(resp, str):
             return resp
         return redirect('/superset/explore/table/{}/'.format(pk))
 

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -12,13 +30,13 @@ import {
 import { t } from '@superset-ui/translation';
 
 import ControlHeader from '../ControlHeader';
-import DatasourceModal from '../../../datasource/DatasourceModal';
 import ColumnOption from '../../../components/ColumnOption';
 import MetricOption from '../../../components/MetricOption';
+import DatasourceModal from '../../../datasource/DatasourceModal';
 
 const propTypes = {
   onChange: PropTypes.func,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
   onDatasourceSave: PropTypes.func,
 };
@@ -26,6 +44,7 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   onDatasourceSave: () => {},
+  value: null,
 };
 
 class DatasourceControl extends React.PureComponent {
@@ -39,26 +58,18 @@ class DatasourceControl extends React.PureComponent {
     };
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
-  }
-
-  onChange(vizType) {
-    this.props.onChange(vizType);
-    this.setState({ showModal: false });
+    this.renderDatasource = this.renderDatasource.bind(this);
   }
 
   toggleShowDatasource() {
     this.setState(({ showDatasource }) => ({ showDatasource: !showDatasource }));
   }
 
-  toggleModal() {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
-  }
   toggleEditDatasourceModal() {
     this.setState(({ showEditDatasourceModal }) => ({
       showEditDatasourceModal: !showEditDatasourceModal,
     }));
   }
-
   renderDatasource() {
     const datasource = this.props.datasource;
     return (
@@ -92,7 +103,6 @@ class DatasourceControl extends React.PureComponent {
       </div>
     );
   }
-
   render() {
     return (
       <div>

@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import d3 from 'd3';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
@@ -60,6 +78,14 @@ export function drawBarValues(svg, data, stacked, axisFormat) {
     });
 }
 
+// Formats the series key to account for a possible NULL value
+function getFormattedKey(seriesKey, shouldDompurify) {
+    if (seriesKey === '<NULL>') {
+        return '&lt;' + seriesKey.slice(1, -1) + '&gt;';
+    }
+    return shouldDompurify ? dompurify.sanitize(seriesKey) : seriesKey;
+}
+
 // Custom sorted tooltip
 // use a verbose formatter for times
 export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter) {
@@ -69,6 +95,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
     + '</td></tr></thead><tbody>';
   d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
   d.series.forEach((series) => {
+    const key = getFormattedKey(series.key, true);
     tooltip += (
       `<tr class="${series.highlight ? 'emph' : ''}">` +
         `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
@@ -76,7 +103,7 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
             `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
           '></div>' +
         '</td>' +
-        `<td>${dompurify.sanitize(series.key)}</td>` +
+        `<td>${key}</td>` +
         `<td>${valueFormatter(series.value)}</td>` +
       '</tr>'
     );
@@ -95,9 +122,10 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   d.series.forEach((series, i) => {
     const yFormatter = yFormatters[i];
+    const key = getFormattedKey(series.key, false);
     tooltip += "<tr><td class='legend-color-guide'>"
       + `<div style="background-color: ${series.color};"></div></td>`
-      + `<td class='key'>${series.key}</td>`
+      + `<td class='key'>${key}</td>`
       + `<td class='value'>${yFormatter(series.value)}</td></tr>`;
   });
 
@@ -137,11 +165,18 @@ export function generateBubbleTooltipContent({
   return s;
 }
 
-export function hideTooltips(element) {
-  if (element) {
-    const targets = element.querySelectorAll('.nvtooltip');
-    if (targets.length > 0) {
-      targets.forEach(t => t.remove());
+// shouldRemove indicates whether the nvtooltips should be removed from the DOM
+export function hideTooltips(shouldRemove) {
+  const targets = document.querySelectorAll('.nvtooltip');
+  if (targets.length > 0) {
+    // Only set opacity to 0 when hiding tooltips so they would reappear
+    // on hover, which sets the opacity to 1
+    for (const t of targets) {
+      if (shouldRemove) {
+        t.remove();
+      } else {
+        t.style.opacity = 0;
+      }
     }
   }
 }
@@ -183,7 +218,7 @@ export function getMaxLabelSize(svg, axisClass) {
   const tickTexts = svg.selectAll(`.${axisClass} g.tick text`);
   if (tickTexts.length > 0) {
     const lengths = tickTexts[0].map(text => text.getComputedTextLength());
-    return Math.ceil(Math.max(...lengths));
+    return Math.ceil(Math.max(0, ...lengths));
   }
   return 0;
 }

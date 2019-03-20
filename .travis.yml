@@ -1,3 +1,19 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 cache:
   pip: true
 jobs:
@@ -5,42 +21,24 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=cypress-dashboard
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=cypress-explore
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=cypress-sqllab
-      cache:
-        pip: true
-        yarn: true
-        directories:
-          - ~/.npm
-          - ~/.cache
       services:
         - redis-server
       before_install:
-        - nvm install 8.9
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=py36-mysql
@@ -51,17 +49,10 @@ jobs:
         - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
         - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
         - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-    - language: node_js
-      node_js: 8.9
-      cache:
-        yarn: true
+    - language: python
+      env: TOXENV=javascript
       before_install:
-        - cd superset/assets
-      install:
-        - yarn install --frozen-lockfile
-      script:
-        - npm run lint
-        - npm run cover
+        - nvm install 10.14.2
     - language: python
       python: 3.6
       env: TOXENV=flake8
@@ -82,6 +73,15 @@ jobs:
     - language: python
       python: 3.6
       env: TOXENV=pylint
+    - language: python
+      env:
+        - TOXENV=license-check
+        - TRAVIS_CACHE=$HOME/.travis_cache/
+      jdk:
+        - oraclejdk8
+      before_install:
+        - jdk_switcher use oraclejdk8
+
 install:
   - pip install --upgrade pip
   - pip install codecov tox
@@ -89,3 +89,9 @@ script:
   - tox
 after_success:
   - codecov
+cache:
+  pip: true
+  directories:
+    - ~/.npm
+    - ~/.cache
+    - ~/.travis_cache/

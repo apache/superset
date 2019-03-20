@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from contextlib import closing
@@ -33,6 +49,7 @@ from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
@@ -345,6 +362,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         logging.info('Final slice: {}'.format(slc_to_import.to_json()))
         session.flush()
         return slc_to_import.id
+
+    @property
+    def url(self):
+        return (
+            '/superset/explore/?form_data=%7B%22slice_id%22%3A%20{0}%7D'
+            .format(self.id)
+        )
 
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
@@ -823,7 +847,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         def _log_query(sql):
             if log_query:
-                log_query(engine.url, sql, schema, username, __name__)
+                log_query(engine.url, sql, schema, username, __name__, security_manager)
 
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
@@ -1238,5 +1262,16 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+# events for updating tags
+sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)
 
 configure_mappers()

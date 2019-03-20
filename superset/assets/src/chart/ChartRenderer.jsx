@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import dompurify from 'dompurify';
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
@@ -6,6 +24,7 @@ import { ChartProps } from '@superset-ui/chart';
 import { Tooltip } from 'react-bootstrap';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
 import SuperChart from '../visualizations/core/components/SuperChart';
+import transformBigNumber from './transformBigNumber';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -38,7 +57,7 @@ const defaultProps = {
   triggerRender: false,
 };
 
-class ChartRenderer extends React.PureComponent {
+class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
@@ -49,9 +68,10 @@ class ChartRenderer extends React.PureComponent {
     this.handleAddFilter = this.handleAddFilter.bind(this);
     this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
     this.handleRenderFailure = this.handleRenderFailure.bind(this);
+    this.preTransformProps = this.preTransformProps.bind(this);
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps, nextState) {
     if (
       nextProps.queryResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
@@ -61,6 +81,7 @@ class ChartRenderer extends React.PureComponent {
         nextProps.queryResponse !== this.props.queryResponse ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
+        nextState.tooltip !== this.state.tooltip ||
         nextProps.triggerRender)
     ) {
       return true;
@@ -131,6 +152,18 @@ class ChartRenderer extends React.PureComponent {
     });
   }
 
+  preTransformProps(chartProps) {
+    const payload = chartProps.payload;
+    const data = transformBigNumber(payload.data);
+    return new ChartProps({
+      ...chartProps,
+      payload: {
+        ...payload,
+        data,
+      },
+    });
+  }
+
   renderTooltip() {
     const { tooltip } = this.state;
     if (tooltip && tooltip.content) {
@@ -174,6 +207,7 @@ class ChartRenderer extends React.PureComponent {
           className={`${snakeCase(vizType)}`}
           chartType={vizType}
           chartProps={skipChartRendering ? null : this.prepareChartProps()}
+          preTransformProps={this.preTransformProps}
           onRenderSuccess={this.handleRenderSuccess}
           onRenderFailure={this.handleRenderFailure}
         />

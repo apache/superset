@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
@@ -170,9 +188,8 @@ class FilterBox extends React.Component {
     }
     return datasourceFilters;
   }
-
-  renderFilters() {
-    const { filtersFields, filtersChoices } = this.props;
+  renderSelect(filterConfig) {
+    const { filtersChoices } = this.props;
     const { selectedValues } = this.state;
 
     // Add created options to filtersChoices, even though it doesn't exist,
@@ -196,35 +213,55 @@ class FilterBox extends React.Component {
             });
           });
       });
+    const { key, label } = filterConfig;
+    const data = this.props.filtersChoices[key];
+    const max = Math.max(...data.map(d => d.metric));
+    let value = selectedValues[key] || null;
 
-    return filtersFields.map(({ key, label }) => {
-      const data = filtersChoices[key];
-      const max = Math.max(...data.map(d => d.metric));
+    // Assign default value if required
+    if (!value && filterConfig.defaultValue) {
+      if (filterConfig.multiple) {
+        // Support for semicolon-delimited multiple values
+        value = filterConfig.defaultValue.split(';');
+      } else {
+        value = filterConfig.defaultValue;
+      }
+    }
+    return (
+      <OnPasteSelect
+        placeholder={t('Select [%s]', label)}
+        key={key}
+        multi={filterConfig.multiple}
+        clearable={filterConfig.clearable}
+        value={value}
+        options={data.map((opt) => {
+          const perc = Math.round((opt.metric / max) * 100);
+          const backgroundImage = (
+            'linear-gradient(to right, lightgrey, ' +
+            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+          );
+          const style = {
+            backgroundImage,
+            padding: '2px 5px',
+          };
+          return { value: opt.id, label: opt.id, style };
+        })}
+        onChange={(...args) => { this.changeFilter(key, ...args); }}
+        selectComponent={Creatable}
+        selectWrap={VirtualizedSelect}
+        optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
+      />);
+  }
+
+  renderFilters() {
+
+    const { filtersFields } = this.props;
+    return filtersFields.map((filterConfig) => {
+      const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5">
           {label}
-          <OnPasteSelect
-            placeholder={t('Select [%s]', label)}
-            key={key}
-            multi
-            value={selectedValues[key]}
-            options={data.map((opt) => {
-              const perc = Math.round((opt.metric / max) * 100);
-              const backgroundImage = (
-                'linear-gradient(to right, lightgrey, ' +
-                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-              );
-              const style = {
-                backgroundImage,
-                padding: '2px 5px',
-              };
-              return { value: opt.id, label: opt.id, style };
-            })}
-            onChange={(...args) => { this.changeFilter(key, ...args); }}
-            selectComponent={Creatable}
-            selectWrap={VirtualizedSelect}
-            optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
-          />
+          {this.renderSelect(filterConfig)}
         </div>
       );
     });
