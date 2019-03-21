@@ -19,6 +19,7 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
@@ -29,6 +30,7 @@ import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
 import { chartPropShape } from '../util/propShapes';
 import {
+  BUILDER_PANE_TYPE,
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
@@ -52,6 +54,8 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
+  colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
@@ -63,8 +67,8 @@ const propTypes = {
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
-  showBuilderPane: PropTypes.bool.isRequired,
-  toggleBuilderPane: PropTypes.func.isRequired,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
   updateCss: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
@@ -77,6 +81,11 @@ const propTypes = {
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  colorNamespace: undefined,
+  colorScheme: undefined,
 };
 
 class Header extends React.PureComponent {
@@ -94,6 +103,10 @@ class Header extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleCtrlZ = this.handleCtrlZ.bind(this);
     this.handleCtrlY = this.handleCtrlY.bind(this);
+    this.onInsertComponentsButtonClick = this.onInsertComponentsButtonClick.bind(
+      this,
+    );
+    this.onColorsButtonClick = this.onColorsButtonClick.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
@@ -121,25 +134,12 @@ class Header extends React.PureComponent {
     clearTimeout(this.ctrlZTimeout);
   }
 
-  forceRefresh() {
-    if (!this.props.isLoading) {
-      const chartList = Object.values(this.props.charts);
-      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
-        force: true,
-        interval: 0,
-        chartCount: chartList.length,
-      });
-      return this.props.fetchCharts(chartList, true);
-    }
-    return false;
+  onInsertComponentsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.ADD_COMPONENTS);
   }
 
-  startPeriodicRender(interval) {
-    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
-      force: true,
-      interval,
-    });
-    return this.props.startPeriodicRender(interval);
+  onColorsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.COLORS);
   }
 
   handleChangeText(nextText) {
@@ -170,6 +170,27 @@ class Header extends React.PureComponent {
     });
   }
 
+  forceRefresh() {
+    if (!this.props.isLoading) {
+      const chartList = Object.values(this.props.charts);
+      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+        force: true,
+        interval: 0,
+        chartCount: chartList.length,
+      });
+      return this.props.fetchCharts(chartList, true);
+    }
+    return false;
+  }
+
+  startPeriodicRender(interval) {
+    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+      force: true,
+      interval,
+    });
+    return this.props.startPeriodicRender(interval);
+  }
+
   toggleEditMode() {
     this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
       edit_mode: !this.props.editMode,
@@ -183,6 +204,8 @@ class Header extends React.PureComponent {
       layout: positions,
       expandedSlices,
       css,
+      colorNamespace,
+      colorScheme,
       filters,
       dashboardInfo,
     } = this.props;
@@ -191,9 +214,23 @@ class Header extends React.PureComponent {
       positions,
       expanded_slices: expandedSlices,
       css,
+      color_namespace: colorNamespace,
+      color_scheme: colorScheme,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
     };
+
+    try {
+      const scale = CategoricalColorNamespace.getScale(
+        colorScheme,
+        colorNamespace,
+      );
+      const labelColors = scale.getColorMap();
+      data.label_colors = labelColors;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('@superset-ui/color needs to be updated');
+    }
 
     // make sure positions data less than DB storage limitation:
     const positionJSONLength = safeStringify(positions).length;
@@ -222,6 +259,8 @@ class Header extends React.PureComponent {
       filters,
       expandedSlices,
       css,
+      colorNamespace,
+      colorScheme,
       onUndo,
       onRedo,
       undoLength,
@@ -230,7 +269,7 @@ class Header extends React.PureComponent {
       onSave,
       updateCss,
       editMode,
-      showBuilderPane,
+      builderPaneType,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -285,10 +324,22 @@ class Header extends React.PureComponent {
               )}
 
               {editMode && (
-                <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
-                  {showBuilderPane
-                    ? t('Hide components')
-                    : t('Insert components')}
+                <Button
+                  active={builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS}
+                  bsSize="small"
+                  onClick={this.onInsertComponentsButtonClick}
+                >
+                  {t('Insert components')}
+                </Button>
+              )}
+
+              {editMode && (
+                <Button
+                  active={builderPaneType === BUILDER_PANE_TYPE.COLORS}
+                  bsSize="small"
+                  onClick={this.onColorsButtonClick}
+                >
+                  {t('Colors')}
                 </Button>
               )}
 
@@ -342,6 +393,8 @@ class Header extends React.PureComponent {
             filters={filters}
             expandedSlices={expandedSlices}
             css={css}
+            colorNamespace={colorNamespace}
+            colorScheme={colorScheme}
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
@@ -360,5 +413,6 @@ class Header extends React.PureComponent {
 }
 
 Header.propTypes = propTypes;
+Header.defaultProps = defaultProps;
 
 export default Header;

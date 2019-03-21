@@ -87,7 +87,8 @@ class ChartRenderer extends React.Component {
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextState.tooltip !== this.state.tooltip ||
-        nextProps.triggerRender) {
+        nextProps.triggerRender ||
+        nextProps.formData.color_scheme !== this.props.formData.color_scheme) {
         return true;
       }
     }

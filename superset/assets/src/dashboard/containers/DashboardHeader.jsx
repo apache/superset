@@ -24,7 +24,7 @@ import isDashboardLoading from '../util/isDashboardLoading';
 
 import {
   setEditMode,
-  toggleBuilderPane,
+  showBuilderPane,
   fetchFaveStar,
   saveFaveStar,
   fetchCharts,
@@ -69,6 +69,8 @@ function mapStateToProps({
     ).text,
     expandedSlices: dashboardState.expandedSlices,
     css: dashboardState.css,
+    colorNamespace: dashboardState.colorNamespace,
+    colorScheme: dashboardState.colorScheme,
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboardState.isStarred,
@@ -76,7 +78,7 @@ function mapStateToProps({
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     editMode: !!dashboardState.editMode,
-    showBuilderPane: !!dashboardState.showBuilderPane,
+    builderPaneType: dashboardState.builderPaneType,
   };
 }
 
@@ -89,7 +91,7 @@ function mapDispatchToProps(dispatch) {
       onUndo: undoLayoutAction,
       onRedo: redoLayoutAction,
       setEditMode,
-      toggleBuilderPane,
+      showBuilderPane,
       fetchFaveStar,
       saveFaveStar,
       fetchCharts,

@@ -20,6 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import ModalTrigger from '../../components/ModalTrigger';
@@ -38,6 +39,8 @@ const propTypes = {
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
+  colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
@@ -46,6 +49,8 @@ const propTypes = {
 const defaultProps = {
   isMenuItem: false,
   saveType: SAVE_TYPE_OVERWRITE,
+  colorNamespace: undefined,
+  colorScheme: undefined,
 };
 
 class SaveModal extends React.PureComponent {
@@ -92,6 +97,8 @@ class SaveModal extends React.PureComponent {
       dashboardTitle,
       layout: positions,
       css,
+      colorNamespace,
+      colorScheme,
       expandedSlices,
       filters,
       dashboardId,
@@ -100,12 +107,26 @@ class SaveModal extends React.PureComponent {
     const data = {
       positions,
       css,
+      color_namespace: colorNamespace,
+      color_scheme: colorScheme,
       expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       default_filters: safeStringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
+
+    try {
+      const scale = CategoricalColorNamespace.getScale(
+        colorScheme,
+        colorNamespace,
+      );
+      const labelColors = scale.getColorMap();
+      data.label_colors = labelColors;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('@superset-ui/color needs to be updated');
+    }
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
       this.props.addDangerToast(
