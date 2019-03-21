@@ -1144,7 +1144,9 @@ class DruidDatasource(Model, BaseDatasource):
                     pre_qry['aggregations'] = aggs_dict
                     pre_qry['post_aggregations'] = post_aggs_dict
             else:
-                order_by = list(qry['aggregations'].keys())[0]
+                agg_keys = qry['aggregations'].keys()
+                order_by = list(agg_keys)[0] if agg_keys else None
+
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry['granularity'] = 'all'
             pre_qry['threshold'] = min(row_limit,
