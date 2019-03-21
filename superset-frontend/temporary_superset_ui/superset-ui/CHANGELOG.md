@@ -3,7 +3,7 @@
 ## 0.10.5 (2019-03-21)
 
 
-### feat
+### ✨ Features
 
 * chart: Add `<ChartDataProvider />` (#120) ([ade9dbe32d2e76a095ca864ce9fdc277688035df](https://github.com/apache-superset/superset-ui/pull/120)), closes [#120](https://github.com/apache-superset/superset-ui/pull/120)
 * 🎸 Improved QueryObject to handle more fields (#116) ([57a64b13ea5c93e57fcf356e627b2b668ade8b1f](https://github.com/apache-superset/superset-ui/commit/57a64b13ea5c93e57fcf356e627b2b668ade8b1f)), closes [#116](https://github.com/apache-superset/superset-ui/issues/116)
@@ -13,7 +13,7 @@
 ## 0.10.4 (2019-03-11)
 
 
-### feat
+### ✨ Features
 
 * add dimension type (#117) ([e4a22ade305fd6ea962648b86ff88431d77ea41e](https://github.com/apache-superset/superset-ui/commit/e4a22ade305fd6ea962648b86ff88431d77ea41e)), closes [#117](https://github.com/apache-superset/superset-ui/issues/117)
 * re-export types from @superset-ui/dimension (#115) ([8c3f8b0f5f2edb558cb8e9f708a17d3d3b4b92aa](https://github.com/apache-superset/superset-ui/commit/8c3f8b0f5f2edb558cb8e9f708a17d3d3b4b92aa)), closes [#115](https://github.com/apache-superset/superset-ui/issues/115)
