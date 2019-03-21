@@ -107,8 +107,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     broker_pass = Column(EncryptedType(String(255), conf.get('SECRET_KEY')))
 
     export_fields = ('cluster_name', 'broker_host', 'broker_port',
-                     'broker_endpoint', 'cache_timeout', 'broker_user',
-                     'broker_pass')
+                     'broker_endpoint', 'cache_timeout', 'broker_user')
     update_from_object_fields = export_fields
     export_children = ['datasources']
 
