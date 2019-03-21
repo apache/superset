@@ -46,6 +46,27 @@ class Slice(Base):
     slice_name = Column(String(250))
 
 
+def upgrade_slice(slc):
+    params = json.loads(slc.params)
+    logging.info(f'Upgrading {slc.slice_name}')
+    cols = params.get('groupby')
+    metric = params.get('metric')
+    if cols:
+        flts = [{
+            'column': col,
+            'metric': metric,
+            'asc': False,
+            'clearable': True,
+            'multiple': True,
+        } for col in cols]
+        params['filter_configs'] = flts
+        if 'groupby' in params:
+            del params['groupby']
+        if 'metric' in params:
+            del params['metric']
+        slc.params = json.dumps(params, sort_keys=True)
+
+
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -53,24 +74,7 @@ def upgrade():
     filter_box_slices = session.query(Slice).filter_by(viz_type='filter_box')
     for slc in filter_box_slices.all():
         try:
-            params = json.loads(slc.params)
-            logging.info(f'Upgrading {slc.slice_name}')
-            cols = params.get('groupby')
-            metrics = params.get('metrics')
-            if cols:
-                flts = [{
-                    'column': col,
-                    'metric': metrics[0] if metrics else None,
-                    'asc': False,
-                    'clearable': True,
-                    'multiple': True,
-                } for col in cols]
-                params['filter_configs'] = flts
-                if 'groupby' in params:
-                    del params['groupby']
-                if 'metrics' in params:
-                    del params['metrics']
-                slc.params = json.dumps(params, sort_keys=True)
+            upgrade_slice(slc)
         except Exception as e:
             logging.exception(e)
 

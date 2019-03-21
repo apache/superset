@@ -29,7 +29,7 @@ pyhive==0.6.1
 pylint==1.9.2
 python-dotenv==0.10.1
 redis==2.10.6
-statsd==3.2.2
-tox==3.1.2
-SQLAlchemy-Continuum==1.3.6
+statsd==3.3.0
 thrift==0.11.0
+tox==3.5.3
+SQLAlchemy-Continuum==1.3.6
