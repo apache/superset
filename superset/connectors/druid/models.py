@@ -867,7 +867,7 @@ class DruidDatasource(Model, BaseDatasource):
         if (
                 col.dimension_spec and
                 (
-                    col.dimension_spec['type'] == 'lookup'or
+                    col.dimension_spec['type'] == 'lookup' or
                     'extractionFn' in col.dimension_spec
                 )
         ):
