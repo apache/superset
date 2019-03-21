@@ -87,7 +87,7 @@ class SupersetSecurityManager(SecurityManager):
         'all_datasource_access',
     ])
 
-    self.OBJECT_SPEC_PERMISSIONS = set([
+    OBJECT_SPEC_PERMISSIONS = set([
         'database_access',
         'schema_access',
         'datasource_access',
