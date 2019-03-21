@@ -1,13 +1,15 @@
 # @superset-ui : Change Log
 
-## 0.10.5 (2019-03-21)
+## 0.10.5 (2019-03-21) ([98308f1](https://github.com/apache-superset/superset-ui/commit/98308f1))
 
 
 ### ✨ Features
 
-* chart: Add `<ChartDataProvider />` (#120) ([ade9dbe32d2e76a095ca864ce9fdc277688035df](https://github.com/apache-superset/superset-ui/pull/120)), closes [#120](https://github.com/apache-superset/superset-ui/pull/120)
-* 🎸 Improved QueryObject to handle more fields (#116) ([57a64b13ea5c93e57fcf356e627b2b668ade8b1f](https://github.com/apache-superset/superset-ui/commit/57a64b13ea5c93e57fcf356e627b2b668ade8b1f)), closes [#116](https://github.com/apache-superset/superset-ui/issues/116)
+* 🎸 Improved QueryObject to handle more fields (#116) ([57a64b1](https://github.com/apache-superset/superset-ui/commit/57a64b1)), closes [#116](https://github.com/apache-superset/superset-ui/issues/116)
+* Add `<ChartDataProvider />` (#120) ([ade9dbe](https://github.com/apache-superset/superset-ui/commit/ade9dbe)), closes [#120](https://github.com/apache-superset/superset-ui/issues/120)
 
+### 📜Documentation 
+* Add TS support + CORS demo (#118) ([34581f3](https://github.com/apache-superset/superset-ui/commit/34581f3)), closes [#118](https://github.com/apache-superset/superset-ui/issues/118)
 
 
 ## 0.10.4 (2019-03-11)
