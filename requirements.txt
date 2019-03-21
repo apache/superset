@@ -74,5 +74,4 @@ werkzeug==0.14.1          # via flask
 wtforms-json==0.3.3
 wtforms==2.2.1            # via flask-wtf, wtforms-json
 snowflake-sqlalchemy
-boto3==1.9.40
 awscli
