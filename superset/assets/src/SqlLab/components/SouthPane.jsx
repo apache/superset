@@ -118,6 +118,7 @@ export class SouthPane extends React.PureComponent {
       <div className="SouthPane" ref={this.southPaneRef}>
         <Tabs
           bsStyle="tabs"
+          animation={false}
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
           onSelect={this.switchTab}

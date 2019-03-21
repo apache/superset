@@ -260,6 +260,7 @@ class TabbedSqlEditors extends React.PureComponent {
     return (
       <Tabs
         bsStyle="tabs"
+        animation={false}
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         onSelect={this.handleSelect.bind(this)}
         id="a11y-query-editor-tabs"
