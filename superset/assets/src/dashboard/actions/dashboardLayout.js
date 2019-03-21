@@ -22,6 +22,7 @@ import { addInfoToast } from '../../messageToasts/actions';
 import { setUnsavedChanges } from './dashboardState';
 import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 import {
+  COLOR_SCHEME_ID,
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   DASHBOARD_HEADER_ID,
@@ -197,6 +198,24 @@ export function handleComponentDrop(dropResult) {
     }
 
     return null;
+  };
+}
+
+export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
+export function setColorScheme(colorScheme) {
+  return (dispatch, getState) => {
+    const { dashboardLayout } = getState();
+    dispatch(
+      updateComponents({
+        [COLOR_SCHEME_ID]: {
+          ...dashboardLayout.present[COLOR_SCHEME_ID],
+          meta: {
+            ...dashboardLayout.present[COLOR_SCHEME_ID].meta,
+            colorScheme,
+          },
+        },
+      }),
+    );
   };
 }
 

@@ -28,12 +28,14 @@ import { logEvent } from '../../logger/actions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
+import { COLOR_SCHEME_ID } from '../util/constants';
 
 const EMPTY_FILTERS = {};
 
 function mapStateToProps(
   {
     charts: chartQueries,
+    dashboardLayout: undoableLayout,
     dashboardInfo,
     dashboardState,
     datasources,
@@ -44,6 +46,7 @@ function mapStateToProps(
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
   const { filters } = dashboardState;
+  const colorScheme = undoableLayout.present[COLOR_SCHEME_ID].meta.colorScheme;
 
   return {
     chart,
@@ -58,6 +61,7 @@ function mapStateToProps(
       chart,
       dashboardMetadata: dashboardInfo.metadata,
       filters,
+      colorScheme,
       sliceId: id,
     }),
     editMode: dashboardState.editMode,

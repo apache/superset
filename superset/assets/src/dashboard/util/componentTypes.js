@@ -17,6 +17,7 @@
  * under the License.
  */
 export const CHART_TYPE = 'CHART';
+export const COLOR_SCHEME_TYPE = 'COLOR_SCHEME_TYPE';
 export const COLUMN_TYPE = 'COLUMN';
 export const DASHBOARD_HEADER_TYPE = 'HEADER';
 export const DASHBOARD_GRID_TYPE = 'GRID';

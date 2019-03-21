@@ -24,7 +24,7 @@ import isDashboardLoading from '../util/isDashboardLoading';
 
 import {
   setEditMode,
-  toggleBuilderPane,
+  showBuilderPane,
   fetchFaveStar,
   saveFaveStar,
   fetchCharts,
@@ -51,7 +51,7 @@ import {
 
 import { logEvent } from '../../logger/actions';
 
-import { DASHBOARD_HEADER_ID } from '../util/constants';
+import { COLOR_SCHEME_ID, DASHBOARD_HEADER_ID } from '../util/constants';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -71,6 +71,8 @@ function mapStateToProps({
     expandedSlices: dashboardState.expandedSlices,
     refreshFrequency: dashboardState.refreshFrequency,
     css: dashboardState.css,
+    colorNamespace: undoableLayout.present[COLOR_SCHEME_ID].meta.colorNamespace,
+    colorScheme: undoableLayout.present[COLOR_SCHEME_ID].meta.colorScheme,
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboardState.isStarred,
@@ -78,7 +80,7 @@ function mapStateToProps({
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     editMode: !!dashboardState.editMode,
-    showBuilderPane: !!dashboardState.showBuilderPane,
+    builderPaneType: dashboardState.builderPaneType,
   };
 }
 
@@ -91,7 +93,7 @@ function mapDispatchToProps(dispatch) {
       onUndo: undoLayoutAction,
       onRedo: redoLayoutAction,
       setEditMode,
-      toggleBuilderPane,
+      showBuilderPane,
       fetchFaveStar,
       saveFaveStar,
       fetchCharts,

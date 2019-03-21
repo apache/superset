@@ -225,9 +225,9 @@ export function startPeriodicRender(interval) {
   };
 }
 
-export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
-export function toggleBuilderPane() {
-  return { type: TOGGLE_BUILDER_PANE };
+export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
+export function showBuilderPane(builderPaneType) {
+  return { type: SHOW_BUILDER_PANE, builderPaneType };
 }
 
 export function addSliceToDashboard(id) {
@@ -241,10 +241,7 @@ export function addSliceToDashboard(id) {
         ),
       );
     }
-    const form_data = {
-      ...selectedSlice.form_data,
-      slice_id: selectedSlice.slice_id,
-    };
+    const form_data = selectedSlice.form_data;
     const newChart = {
       ...initChart,
       id,

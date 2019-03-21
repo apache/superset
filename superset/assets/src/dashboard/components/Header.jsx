@@ -19,6 +19,7 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
@@ -27,6 +28,7 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
+import { BUILDER_PANE_TYPE } from '../util/constants'
 import { chartPropShape } from '../util/propShapes';
 import {
   UNDO_LIMIT,
@@ -52,6 +54,8 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   css: PropTypes.string.isRequired,
+  colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
@@ -63,8 +67,8 @@ const propTypes = {
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
-  showBuilderPane: PropTypes.bool.isRequired,
-  toggleBuilderPane: PropTypes.func.isRequired,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
   updateCss: PropTypes.func.isRequired,
   logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
@@ -96,6 +100,8 @@ class Header extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleCtrlZ = this.handleCtrlZ.bind(this);
     this.handleCtrlY = this.handleCtrlY.bind(this);
+    this.onInsertComponentsButtonClick = this.onInsertComponentsButtonClick.bind(this);
+    this.onColorsButtonClick = this.onColorsButtonClick.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
@@ -177,6 +183,14 @@ class Header extends React.PureComponent {
     });
   }
 
+  onInsertComponentsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.ADD_COMPONENTS);
+  }
+
+  onColorsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.COLORS);
+  }
+
   toggleEditMode() {
     this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
       edit_mode: !this.props.editMode,
@@ -190,14 +204,21 @@ class Header extends React.PureComponent {
       layout: positions,
       expandedSlices,
       css,
+      colorNamespace,
+      colorScheme,
       filters,
       dashboardInfo,
     } = this.props;
 
+    const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+    const labelColors = scale.getColorMap();
     const data = {
       positions,
       expanded_slices: expandedSlices,
       css,
+      color_namespace: colorNamespace,
+      color_scheme: colorScheme,
+      label_colors: labelColors,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
     };
@@ -237,7 +258,7 @@ class Header extends React.PureComponent {
       onSave,
       updateCss,
       editMode,
-      showBuilderPane,
+      builderPaneType,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -294,10 +315,26 @@ class Header extends React.PureComponent {
               )}
 
               {editMode && (
-                <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
-                  {showBuilderPane
-                    ? t('Hide components')
-                    : t('Insert components')}
+                <Button
+                  active={builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS}
+                  bsSize="small"
+                  onClick={this.onInsertComponentsButtonClick}
+                >
+                  {
+                    t('Insert components')
+                  }
+                </Button>
+              )}
+
+              {editMode && (
+                <Button
+                  active={builderPaneType === BUILDER_PANE_TYPE.COLORS}
+                  bsSize="small"
+                  onClick={this.onColorsButtonClick}
+                >
+                  {
+                    t('Colors')
+                  }
                 </Button>
               )}
 

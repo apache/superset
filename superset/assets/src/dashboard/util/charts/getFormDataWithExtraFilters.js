@@ -28,12 +28,14 @@ export default function getFormDataWithExtraFilters({
   chart = {},
   dashboardMetadata,
   filters,
+  colorScheme,
   sliceId,
 }) {
   // if dashboard metadata + filters have not changed, use cache if possible
   if (
     (cachedDashboardMetadataByChart[sliceId] || {}) === dashboardMetadata &&
     (cachedFiltersByChart[sliceId] || {}) === filters &&
+    cachedFormdataByChart[sliceId].color_scheme === colorScheme &&
     !!cachedFormdataByChart[sliceId]
   ) {
     return cachedFormdataByChart[sliceId];
@@ -41,6 +43,7 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.formData,
+    color_scheme: colorScheme,
     extra_filters: getEffectiveExtraFilters({
       dashboardMetadata,
       filters,

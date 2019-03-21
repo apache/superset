@@ -27,6 +27,7 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
 import BuilderComponentPane from './BuilderComponentPane';
+import ColorComponentPane from './ColorComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
 import DashboardGrid from '../containers/DashboardGrid';
 import IconButton from './IconButton';
@@ -35,9 +36,11 @@ import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
+import { BUILDER_PANE_TYPE } from '../util/constants'
 import getDragDropManager from '../util/getDragDropManager';
 
 import {
+  COLOR_SCHEME_ID,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -51,13 +54,10 @@ const propTypes = {
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
-  showBuilderPane: PropTypes.bool,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
+  setColorScheme: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  toggleBuilderPane: PropTypes.func.isRequired,
-};
-
-const defaultProps = {
-  showBuilderPane: false,
 };
 
 class DashboardBuilder extends React.Component {
@@ -110,6 +110,8 @@ class DashboardBuilder extends React.Component {
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
+
+    const colorScheme = dashboardLayout[COLOR_SCHEME_ID].meta.colorScheme;
 
     return (
       <StickyContainer
@@ -202,10 +204,13 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-          {this.props.editMode && this.props.showBuilderPane && (
+          {this.props.editMode && this.props.builderPaneType !== BUILDER_PANE_TYPE.NONE && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
-              toggleBuilderPane={this.props.toggleBuilderPane}
+              showBuilderPane={this.props.showBuilderPane}
+              builderPaneType={this.props.builderPaneType}
+              setColorScheme={this.props.setColorScheme}
+              colorScheme={colorScheme}
             />
           )}
         </div>
@@ -216,7 +221,6 @@ class DashboardBuilder extends React.Component {
 }
 
 DashboardBuilder.propTypes = propTypes;
-DashboardBuilder.defaultProps = defaultProps;
 DashboardBuilder.childContextTypes = {
   dragDropManager: PropTypes.object.isRequired,
 };
