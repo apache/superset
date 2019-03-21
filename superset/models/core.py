@@ -163,7 +163,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
                      'viz_type', 'params', 'cache_timeout')
 
     def __repr__(self):
-        return self.slice_name
+        return self.slice_name or str(self.id)
 
     @property
     def cls_model(self):
@@ -292,9 +292,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return '/chart/edit/{}'.format(self.id)
 
     @property
+    def chart(self):
+        return self.slice_name or '<empty>'
+
+    @property
     def slice_link(self):
         url = self.slice_url
-        name = escape(self.slice_name)
+        name = escape(self.chart)
         return Markup(f'<a href="{url}">{name}</a>')
 
     def get_viz(self, force=False):
@@ -407,7 +411,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                      'description', 'css', 'slug')
 
     def __repr__(self):
-        return self.dashboard_title
+        return self.dashboard_title or str(self.id)
 
     @property
     def table_names(self):
@@ -437,13 +441,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return {slc.datasource for slc in self.slices}
 
     @property
+    def charts(self):
+        return [slc.chart for slc in self.slices]
+
+    @property
     def sqla_metadata(self):
         # pylint: disable=no-member
         metadata = MetaData(bind=self.get_sqla_engine())
         return metadata.reflect()
 
     def dashboard_link(self):
-        title = escape(self.dashboard_title)
+        title = escape(self.dashboard_title or '<empty>')
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
