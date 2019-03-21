@@ -189,7 +189,7 @@ export default class FilterableTable extends PureComponent {
           <Table
             ref="Table"
             headerHeight={headerHeight}
-            height={height - 2}
+            height={height - 20}
             overscanRowCount={overscanRowCount}
             rowClassName={this.rowClassName}
             rowHeight={rowHeight}

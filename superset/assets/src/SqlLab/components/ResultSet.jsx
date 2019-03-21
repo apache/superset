@@ -51,7 +51,7 @@ const defaultProps = {
   database: {},
 };
 
-const SEARCH_HEIGHT = 46;
+const SEARCH_HEIGHT = 186;
 
 const LOADING_STYLES = { position: 'relative', minHeight: 100 };
 
