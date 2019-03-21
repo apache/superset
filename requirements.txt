@@ -73,6 +73,6 @@ webencodings==0.5.1       # via bleach
 werkzeug==0.14.1          # via flask
 wtforms-json==0.3.3
 wtforms==2.2.1            # via flask-wtf, wtforms-json
-xlrd==1.1.0               # via tabulator
 snowflake-sqlalchemy
-awscli==1.11.180
+boto3==1.9.40
+awscli
