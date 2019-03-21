@@ -1351,7 +1351,7 @@ export const controls = {
       'mean',
       'min',
       'max',
-      'stdev',
+      'std',
       'var',
     ]),
     default: 'sum',
