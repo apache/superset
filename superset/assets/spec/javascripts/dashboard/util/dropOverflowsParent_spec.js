@@ -1,6 +1,21 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
-
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import dropOverflowsParent from '../../../../src/dashboard/util/dropOverflowsParent';
 import { NEW_COMPONENTS_SOURCE_ID } from '../../../../src/dashboard/util/constants';
 import {
@@ -41,7 +56,7 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
   });
 
   it('returns false if a parent DOES have adequate width for child', () => {
@@ -73,7 +88,7 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
   it('returns false if a child CAN shrink to available parent space', () => {
@@ -105,7 +120,7 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
   it('returns true if a child CANNOT shrink to available parent space', () => {
@@ -138,7 +153,7 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
   });
 
   it('returns true if a column has children that CANNOT shrink to available parent space', () => {
@@ -176,14 +191,14 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(true);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(true);
     // remove children
     expect(
       dropOverflowsParent(dropResult, {
         ...layout,
         dragging: { ...layout.dragging, children: [] },
       }),
-    ).to.equal(false);
+    ).toBe(false);
   });
 
   it('should work with new components that are not in the layout', () => {
@@ -201,7 +216,7 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 
   it('source/destination without widths should not overflow parent', () => {
@@ -222,6 +237,6 @@ describe('dropOverflowsParent', () => {
       },
     };
 
-    expect(dropOverflowsParent(dropResult, layout)).to.equal(false);
+    expect(dropOverflowsParent(dropResult, layout)).toBe(false);
   });
 });

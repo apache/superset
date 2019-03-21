@@ -1,114 +1,80 @@
-import { it, describe } from 'mocha';
-import { expect } from 'chai';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
-  tickMultiFormat,
-  formatDate,
-  formatDateVerbose,
   fDuration,
   now,
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
- } from '../../../src/modules/dates';
-
-describe('tickMultiFormat', () => {
-  it('is a function', () => {
-    assert.isFunction(tickMultiFormat);
-  });
-});
-
-describe('formatDate', () => {
-  it('is a function', () => {
-    assert.isFunction(formatDate);
-  });
-
-  it('shows only year when 1st day of the year', () => {
-    expect(formatDate(new Date('2020-01-01'))).to.equal('2020');
-  });
-
-  it('shows only month when 1st of month', () => {
-    expect(formatDate(new Date('2020-03-01'))).to.equal('March');
-  });
-
-  it('does not show day of week when it is Sunday', () => {
-    expect(formatDate(new Date('2020-03-15'))).to.equal('Mar 15');
-  });
-
-  it('shows weekday when it is not Sunday (and no ms/sec/min/hr)', () => {
-    expect(formatDate(new Date('2020-03-03'))).to.equal('Tue 03');
-  });
-});
-
-describe('formatDateVerbose', () => {
-  it('is a function', () => {
-    assert.isFunction(formatDateVerbose);
-  });
-
-  it('shows only year when 1st day of the year', () => {
-    expect(formatDateVerbose(new Date('2020-01-01'))).to.equal('2020');
-  });
-
-  it('shows month and year when 1st of month', () => {
-    expect(formatDateVerbose(new Date('2020-03-01'))).to.equal('Mar 2020');
-  });
-
-  it('shows weekday when any day of the month', () => {
-    expect(formatDateVerbose(new Date('2020-03-03'))).to.equal('Tue Mar 3');
-    expect(formatDateVerbose(new Date('2020-03-15'))).to.equal('Sun Mar 15');
-  });
-});
+} from '../../../src/modules/dates';
 
 describe('fDuration', () => {
   it('is a function', () => {
-    assert.isFunction(fDuration);
+    expect(typeof fDuration).toBe('function');
   });
 
   it('returns a string', () => {
-    expect(fDuration(new Date(), new Date())).to.be.a('string');
+    expect(typeof fDuration(new Date(), new Date())).toBe('string');
   });
 
   it('returns the expected output', () => {
     const output = fDuration('1496293608897', '1496293623406');
-    expect(output).to.equal('00:00:14.50');
+    expect(output).toBe('00:00:14.50');
   });
 });
 
 describe('now', () => {
   it('is a function', () => {
-    assert.isFunction(now);
+    expect(typeof now).toBe('function');
   });
 
   it('returns a number', () => {
-    expect(now()).to.be.a('number');
+    expect(typeof now()).toBe('number');
   });
 });
 
 describe('epochTimeXHoursAgo', () => {
   it('is a function', () => {
-    assert.isFunction(epochTimeXHoursAgo);
+    expect(typeof epochTimeXHoursAgo).toBe('function');
   });
 
   it('returns a number', () => {
-    expect(epochTimeXHoursAgo(1)).to.be.a('number');
+    expect(typeof epochTimeXHoursAgo(1)).toBe('number');
   });
 });
 
 describe('epochTimeXDaysAgo', () => {
   it('is a function', () => {
-    assert.isFunction(epochTimeXDaysAgo);
+    expect(typeof epochTimeXDaysAgo).toBe('function');
   });
 
   it('returns a number', () => {
-    expect(epochTimeXDaysAgo(1)).to.be.a('number');
+    expect(typeof epochTimeXDaysAgo(1)).toBe('number');
   });
 });
 
 describe('epochTimeXYearsAgo', () => {
   it('is a function', () => {
-    assert.isFunction(epochTimeXYearsAgo);
+    expect(typeof epochTimeXYearsAgo).toBe('function');
   });
 
   it('returns a number', () => {
-    expect(epochTimeXYearsAgo(1)).to.be.a('number');
+    expect(typeof epochTimeXYearsAgo(1)).toBe('number');
   });
 });

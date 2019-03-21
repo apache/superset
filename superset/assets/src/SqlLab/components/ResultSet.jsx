@@ -1,14 +1,34 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
+import { t } from '@superset-ui/translation';
 
 import Loading from '../../components/Loading';
 import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
-import { t } from '../../locales';
+import CopyToClipboard from '../../components/CopyToClipboard';
+import { prepareCopyToClipboardTabularData } from '../../utils/common';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -28,11 +48,12 @@ const defaultProps = {
   csv: true,
   actions: {},
   cache: false,
+  database: {},
 };
 
 const SEARCH_HEIGHT = 46;
 
-const LOADING_STYLES = { position: 'relative', height: 50 };
+const LOADING_STYLES = { position: 'relative', minHeight: 100 };
 
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
@@ -96,6 +117,10 @@ export default class ResultSet extends React.PureComponent {
   }
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
+      let data = this.props.query.results.data;
+      if (this.props.cache && this.props.query.cached) {
+        data = this.state.data;
+      }
       return (
         <div className="ResultSetControls">
           <div className="clearfix">
@@ -111,6 +136,16 @@ export default class ResultSet extends React.PureComponent {
                   <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
                     <i className="fa fa-file-text-o" /> {t('.CSV')}
                   </Button>}
+
+                <CopyToClipboard
+                  text={prepareCopyToClipboardTabularData(data)}
+                  wrapped={false}
+                  copyNode={
+                    <Button bsSize="small">
+                      <i className="fa fa-clipboard" /> {t('Clipboard')}
+                    </Button>
+                  }
+                />
               </ButtonGroup>
             </div>
             <div className="pull-right">
@@ -200,7 +235,7 @@ export default class ResultSet extends React.PureComponent {
     }
     let progressBar;
     let trackingUrl;
-    if (query.progress > 0 && query.state === 'running') {
+    if (query.progress > 0) {
       progressBar = (
         <ProgressBar
           striped
@@ -218,11 +253,19 @@ export default class ResultSet extends React.PureComponent {
         </Button>
       );
     }
+    const progressMsg = query && query.extra && query.extra.progress ? query.extra.progress : null;
     return (
       <div style={LOADING_STYLES}>
+        <div>
+          {!progressBar && <Loading position="normal" />}
+        </div>
         <QueryStateLabel query={query} />
-        {!progressBar && <Loading />}
-        {progressBar}
+        <div>
+          {progressMsg && <Alert bsStyle="success">{progressMsg}</Alert>}
+        </div>
+        <div>
+          {progressBar}
+        </div>
         <div>
           {trackingUrl}
         </div>

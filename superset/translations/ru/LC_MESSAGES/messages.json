@@ -2572,15 +2572,6 @@
          "Cluster": [
             "Кластер"
          ],
-         "Coordinator Host": [
-            "Координатор Хост"
-         ],
-         "Coordinator Port": [
-            "Координатор Порт"
-         ],
-         "Coordinator Endpoint": [
-            "Координатор Конечная Точка"
-         ],
          "Broker Host": [
             "Брокер-Хост"
          ],

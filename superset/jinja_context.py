@@ -1,11 +1,21 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Defines the templating context for SQL Lab"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import datetime, timedelta
 import inspect
 import json
@@ -32,7 +42,18 @@ BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
 
 
 def url_param(param, default=None):
-    """Get a url or post data parameter
+    """Read a url or post parameter and use it in your SQL Lab query
+
+    When in SQL Lab, it's possible to add arbitrary URL "query string"
+    parameters, and use those in your SQL code. For instance you can
+    alter your url and add `?foo=bar`, as in
+    `{domain}/superset/sqllab?foo=bar`. Then if your query is something like
+    SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed at
+    runtime and replaced by the value in the URL.
+
+    As you create a visualization form this SQL Lab query, you can pass
+    parameters in the explore view as well as from the dashboard, and
+    it should carry through to your queries.
 
     :param param: the parameter to lookup
     :type param: str
@@ -44,7 +65,7 @@ def url_param(param, default=None):
     # Supporting POST as well as get
     if request.form.get('form_data'):
         form_data = json.loads(request.form.get('form_data'))
-        url_params = form_data['url_params'] or {}
+        url_params = form_data.get('url_params') or {}
         return url_params.get(param, default)
     return default
 
@@ -61,8 +82,50 @@ def current_username():
         return g.user.username
 
 
-class BaseTemplateProcessor(object):
+def filter_values(column, default=None):
+    """ Gets a values for a particular filter as a list
 
+    This is useful if:
+        - you want to use a filter box to filter a query where the name of filter box
+          column doesn't match the one in the select statement
+        - you want to have the ability for filter inside the main query for speed purposes
+
+    This searches for "filters" and "extra_filters" in form_data for a match
+
+    Usage example:
+        SELECT action, count(*) as times
+        FROM logs
+        WHERE action in ( {{ "'" + "','".join(filter_values('action_type')) + "'" }} )
+        GROUP BY 1
+
+    :param column: column/filter name to lookup
+    :type column: str
+    :param default: default value to return if there's no matching columns
+    :type default: str
+    :return: returns a list of filter values
+    :type: list
+    """
+    form_data = json.loads(request.form.get('form_data', '{}'))
+    return_val = []
+    for filter_type in ['filters', 'extra_filters']:
+        if filter_type not in form_data:
+            continue
+
+        for f in form_data[filter_type]:
+            if f['col'] == column:
+                for v in f['val']:
+                    return_val.append(v)
+
+    if return_val:
+        return return_val
+
+    if default:
+        return [default]
+    else:
+        return []
+
+
+class BaseTemplateProcessor(object):
     """Base class for database-specific jinja context
 
     There's this bit of magic in ``process_template`` that instantiates only
@@ -90,6 +153,7 @@ class BaseTemplateProcessor(object):
             'url_param': url_param,
             'current_user_id': current_user_id,
             'current_username': current_username,
+            'filter_values': filter_values,
             'form_data': {},
         }
         self.context.update(kwargs)

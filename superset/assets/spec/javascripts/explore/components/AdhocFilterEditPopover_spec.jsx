@@ -1,8 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button, Popover, Tab, Tabs } from 'react-bootstrap';
 
@@ -61,42 +77,42 @@ function setup(overrides) {
 describe('AdhocFilterEditPopover', () => {
   it('renders simple tab content by default', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).to.have.lengthOf(1);
-    expect(wrapper.find(Tabs)).to.have.lengthOf(1);
-    expect(wrapper.find(Tab)).to.have.lengthOf(2);
-    expect(wrapper.find(Button)).to.have.lengthOf(2);
-    expect(wrapper.find(AdhocFilterEditPopoverSimpleTabContent)).to.have.lengthOf(1);
+    expect(wrapper.find(Popover)).toHaveLength(1);
+    expect(wrapper.find(Tabs)).toHaveLength(1);
+    expect(wrapper.find(Tab)).toHaveLength(2);
+    expect(wrapper.find(Button)).toHaveLength(2);
+    expect(wrapper.find(AdhocFilterEditPopoverSimpleTabContent)).toHaveLength(1);
   });
 
   it('renders sql tab content when the adhoc filter expressionType is sql', () => {
     const { wrapper } = setup({ adhocFilter: sqlAdhocFilter });
-    expect(wrapper.find(Popover)).to.have.lengthOf(1);
-    expect(wrapper.find(Tabs)).to.have.lengthOf(1);
-    expect(wrapper.find(Tab)).to.have.lengthOf(2);
-    expect(wrapper.find(Button)).to.have.lengthOf(2);
-    expect(wrapper.find(AdhocFilterEditPopoverSqlTabContent)).to.have.lengthOf(1);
+    expect(wrapper.find(Popover)).toHaveLength(1);
+    expect(wrapper.find(Tabs)).toHaveLength(1);
+    expect(wrapper.find(Tab)).toHaveLength(2);
+    expect(wrapper.find(Button)).toHaveLength(2);
+    expect(wrapper.find(AdhocFilterEditPopoverSqlTabContent)).toHaveLength(1);
   });
 
   it('overwrites the adhocFilter in state with onAdhocFilterChange', () => {
     const { wrapper } = setup();
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
-    expect(wrapper.state('adhocFilter')).to.deep.equal(sqlAdhocFilter);
+    expect(wrapper.state('adhocFilter')).toEqual(sqlAdhocFilter);
   });
 
   it('prevents saving if the filter is invalid', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
+    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);
     wrapper.instance().onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
-    expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(1);
+    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(1);
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
-    expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
+    expect(wrapper.find(Button).find({ disabled: true })).toHaveLength(0);
   });
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(0);
+    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toHaveLength(0);
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
-    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(1);
+    expect(wrapper.find(Button).find({ bsStyle: 'primary' })).toHaveLength(1);
   });
 
   it('will initiate a drag when clicked', () => {
@@ -104,9 +120,9 @@ describe('AdhocFilterEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.glyphicon-resize-full')).to.have.lengthOf(1);
-    expect(wrapper.instance().onDragDown.calledOnce).to.be.false;
-    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
-    expect(wrapper.instance().onDragDown.calledOnce).to.be.true;
+    expect(wrapper.find('i.glyphicon-resize-full')).toHaveLength(1);
+    expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
+    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown', {});
+    expect(wrapper.instance().onDragDown.calledOnce).toBe(true);
   });
 });

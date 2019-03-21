@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """Reduce position_json size by remove extra space and component id prefix
 
 Revision ID: 7fcdcde0761c
@@ -12,12 +28,7 @@ import re
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import (
-    Table, Column,
-    Integer, String, Text, ForeignKey,
-)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
 from superset import db
 
@@ -31,7 +42,7 @@ class Dashboard(Base):
     """Declarative class to do query in upgrade"""
     __tablename__ = 'dashboards'
     id = sa.Column(sa.Integer, primary_key=True)
-    dashboard_title = sa.Column(String(500))
+    dashboard_title = sa.Column(sa.String(500))
     position_json = sa.Column(sa.Text)
 
 
@@ -59,8 +70,8 @@ def upgrade():
             text = text.replace('_TYPE', '')
 
             dashboard.position_json = text
-            print('dash id:{} position_json size from {} to {}'
-                .format(dashboard.id, len(original_text), len(text)))
+            print('dash id:{} position_json size from {} to {}'.format(
+                dashboard.id, len(original_text), len(text)))
             session.merge(dashboard)
             session.commit()
 

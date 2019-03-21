@@ -1,4 +1,19 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
@@ -13,12 +28,8 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from collections import defaultdict, namedtuple
+from collections import namedtuple
+import hashlib
 import inspect
 import logging
 import os
@@ -26,25 +37,24 @@ import re
 import textwrap
 import time
 
-import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
-from past.builtins import basestring
 import sqlalchemy as sqla
-from sqlalchemy import select
+from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.types import UnicodeText
 import sqlparse
-from tableschema import Table
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, sql_parse, utils
+from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
-from superset.utils import QueryStatus
+from superset.utils import core as utils
 
+QueryStatus = utils.QueryStatus
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
@@ -101,8 +111,22 @@ class BaseEngineSpec(object):
     time_secondary_columns = False
     inner_joins = True
     allows_subquery = True
+    supports_column_aliases = True
     force_column_alias_quotes = False
     arraysize = None
+    max_column_name_length = None
+
+    @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        # if epoch, translate to DATE using db specific conf
+        if pdf == 'epoch_s':
+            expr = cls.epoch_to_dttm().format(col=expr)
+        elif pdf == 'epoch_ms':
+            expr = cls.epoch_ms_to_dttm().format(col=expr)
+
+        if grain:
+            expr = grain.function.format(col=expr)
+        return expr
 
     @classmethod
     def get_time_grains(cls):
@@ -115,6 +139,12 @@ class BaseEngineSpec(object):
         return _create_time_grains_tuple(grains, grain_functions, blacklist)
 
     @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Some databases will just return the group-by field into the select, but don't
+        # allow the group-by field to be put into the select list.
+        return select_exprs
+
+    @classmethod
     def fetch_data(cls, cursor, limit):
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
@@ -123,16 +153,25 @@ class BaseEngineSpec(object):
         return cursor.fetchall()
 
     @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        """Allow altering default column attributes when first detected/added
+
+        For instance special column like `__time` for Druid can be
+        set to is_dttm=True. Note that this only gets called when new
+        columns are detected/created"""
+        pass
+
+    @classmethod
     def epoch_to_dttm(cls):
         raise NotImplementedError()
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000)')
 
     @classmethod
     def get_datatype(cls, type_code):
-        if isinstance(type_code, basestring) and len(type_code):
+        if isinstance(type_code, str) and len(type_code):
             return type_code.upper()
 
     @classmethod
@@ -154,18 +193,18 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.SupersetQuery(sql)
+            parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.get_query_with_new_limit(limit)
         return sql
 
     @classmethod
     def get_limit_from_sql(cls, sql):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.limit
 
     @classmethod
     def get_query_with_new_limit(cls, sql, limit):
-        parsed_query = sql_parse.SupersetQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
@@ -233,31 +272,33 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
         tables or views: <schema>.<result_set_name>.
         """
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         for schema in schemas:
             if datasource_type == 'table':
-                result_sets[schema] = sorted(
-                    db.inspector.get_table_names(schema))
+                all_datasource_names = db.all_table_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
             elif datasource_type == 'view':
-                result_sets[schema] = sorted(
-                    db.inspector.get_view_names(schema))
+                all_datasource_names = db.all_view_names_in_schema(
+                    schema=schema, force=True,
+                    cache=db.table_cache_enabled,
+                    cache_timeout=db.table_cache_timeout)
+            else:
+                raise Exception(f'Unsupported datasource_type: {datasource_type}')
             all_result_sets += [
-                '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+                '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -300,11 +341,15 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_schema_names(cls, inspector):
-        return inspector.get_schema_names()
+        return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         return sorted(inspector.get_table_names(schema))
+
+    @classmethod
+    def get_view_names(cls, inspector, schema):
+        return sorted(inspector.get_view_names(schema))
 
     @classmethod
     def where_latest_partition(
@@ -378,17 +423,61 @@ class BaseEngineSpec(object):
     @classmethod
     def make_label_compatible(cls, label):
         """
-        Return a sqlalchemy.sql.elements.quoted_name if the engine requires
-        quoting of aliases to ensure that select query and query results
-        have same case.
+        Conditionally mutate and/or quote a sql column/expression label. If
+        force_column_alias_quotes is set to True, return the label as a
+        sqlalchemy.sql.elements.quoted_name object to ensure that the select query
+        and query results have same case. Otherwise return the mutated label as a
+        regular string. If maxmimum supported column name length is exceeded,
+        generate a truncated label by calling truncate_label().
         """
-        if cls.force_column_alias_quotes is True:
-            return quoted_name(label, True)
+        label_mutated = cls.mutate_label(label)
+        if cls.max_column_name_length and len(label_mutated) > cls.max_column_name_length:
+            label_mutated = cls.truncate_label(label)
+        if cls.force_column_alias_quotes:
+            label_mutated = quoted_name(label_mutated, True)
+        return label_mutated
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        """
+        Return a sqlalchemy native column type that corresponds to the column type
+        defined in the data source (optional). Needs to be overridden if column requires
+        special handling (see MSSQL for example of NCHAR/NVARCHAR handling).
+        """
+        return None
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Most engines support mixed case aliases that can include numbers
+        and special characters, like commas, parentheses etc. For engines that
+        have restrictions on what types of aliases are supported, this method
+        can be overridden to ensure that labels conform to the engine's
+        limitations. Mutated labels should be deterministic (input label A always
+        yields output label X) and unique (input labels A and B don't yield the same
+        output label X).
+        """
+        return label
+
+    @classmethod
+    def truncate_label(cls, label):
+        """
+        In the case that a label exceeds the max length supported by the engine,
+        this method is used to construct a deterministic and unique label based on
+        an md5 hash.
+        """
+        label = hashlib.md5(label.encode('utf-8')).hexdigest()
+        # truncate hash if it exceeds max length
+        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
+            label = label[:cls.max_column_name_length]
         return label
 
     @staticmethod
-    def mutate_expression_label(label):
-        return label
+    def get_timestamp_column(expression, column_name):
+        """Return the expression if defined, otherwise return column_name. Some
+        engines require forcing quotes around column name, in which case this method
+        can be overridden."""
+        return expression or column_name
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -398,14 +487,14 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     time_grain_functions = {
         None: '{col}',
-        'PT1S': "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'",
-        'PT1M': "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'",
-        'PT1H': "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'",
-        'P1D': "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'",
-        'P1W': "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'",
-        'P1M': "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'",
-        'P0.25Y': "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'",
-        'P1Y': "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'",
+        'PT1S': "DATE_TRUNC('second', {col})",
+        'PT1M': "DATE_TRUNC('minute', {col})",
+        'PT1H': "DATE_TRUNC('hour', {col})",
+        'P1D': "DATE_TRUNC('day', {col})",
+        'P1W': "DATE_TRUNC('week', {col})",
+        'P1M': "DATE_TRUNC('month', {col})",
+        'P0.25Y': "DATE_TRUNC('quarter', {col})",
+        'P1Y': "DATE_TRUNC('year', {col})",
     }
 
     @classmethod
@@ -427,18 +516,30 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
 class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine = 'postgresql'
+    max_column_name_length = 63
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
 
+    @staticmethod
+    def get_timestamp_column(expression, column_name):
+        """Postgres is unable to identify mixed case column names unless they
+        are quoted."""
+        if expression:
+            return expression
+        elif column_name.lower() != column_name:
+            return f'"{column_name}"'
+        return column_name
+
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
     force_column_alias_quotes = True
+    max_column_name_length = 256
 
     time_grain_functions = {
         None: '{col}',
@@ -476,24 +577,34 @@ class VerticaEngineSpec(PostgresBaseEngineSpec):
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine = 'redshift'
-    force_column_alias_quotes = True
+    max_column_name_length = 127
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Redshift only supports lowercase column names and aliases.
+        :param str label: Original label which might include uppercase letters
+        :return: String that is supported by the database
+        """
+        return label.lower()
 
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+    max_column_name_length = 30
 
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as DATE)',
-        'PT1M': "TRUNC(TO_DATE({col}), 'MI')",
-        'PT1H': "TRUNC(TO_DATE({col}), 'HH')",
-        'P1D': "TRUNC(TO_DATE({col}), 'DDD')",
-        'P1W': "TRUNC(TO_DATE({col}), 'WW')",
-        'P1M': "TRUNC(TO_DATE({col}), 'MONTH')",
-        'P0.25Y': "TRUNC(TO_DATE({col}), 'Q')",
-        'P1Y': "TRUNC(TO_DATE({col}), 'YEAR')",
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
     @classmethod
@@ -507,6 +618,8 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
+    max_column_name_length = 30
+
     time_grain_functions = {
         None: '{col}',
         'PT1S': 'CAST({col} as TIMESTAMP)'
@@ -560,23 +673,28 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        schemas = db.inspector.get_schema_names()
-        result_sets = {}
+    def fetch_result_sets(cls, db, datasource_type):
+        schemas = db.all_schema_names(cache=db.schema_cache_enabled,
+                                      cache_timeout=db.schema_cache_timeout,
+                                      force=True)
         all_result_sets = []
         schema = schemas[0]
         if datasource_type == 'table':
-            result_sets[schema] = sorted(db.inspector.get_table_names())
+            all_datasource_names = db.all_table_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
         elif datasource_type == 'view':
-            result_sets[schema] = sorted(db.inspector.get_view_names())
+            all_datasource_names = db.all_view_names_in_schema(
+                schema=schema, force=True,
+                cache=db.table_cache_enabled,
+                cache_timeout=db.table_cache_timeout)
+        else:
+            raise Exception(f'Unsupported datasource_type: {datasource_type}')
+
         all_result_sets += [
-            '{}.{}'.format(schema, t) for t in result_sets[schema]]
-        if all_result_sets:
-            result_sets[''] = all_result_sets
-        return result_sets
+            '{}.{}'.format(schema, t) for t in all_datasource_names]
+        return all_result_sets
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -586,13 +704,14 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, schema, inspector):
+    def get_table_names(cls, inspector, schema):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    max_column_name_length = 64
 
     time_grain_functions = {
         None: '{col}',
@@ -645,7 +764,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
-        if datatype and isinstance(datatype, basestring) and len(datatype):
+        if datatype and isinstance(datatype, str) and len(datatype):
             return datatype
 
     @classmethod
@@ -686,6 +805,16 @@ class PrestoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
+    def get_view_names(cls, inspector, schema):
+        """Returns an empty list
+
+        get_table_names() function returns all table names and view names,
+        and get_view_names() is not implemented in sqlalchemy_presto.py
+        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
+        """
+        return []
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
@@ -710,11 +839,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return 'from_unixtime({col})'
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
-        """Returns the dictionary {schema : [result_set_name]}.
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns a list of tables [schema1.table1, schema2.table2, ...]
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -726,10 +852,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 datasource_type.upper(),
             ),
             None)
-        result_sets = defaultdict(list)
+        result_sets = []
         for unused, row in result_set_df.iterrows():
-            result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[''].append('{}.{}'.format(
+            result_sets.append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
@@ -841,22 +966,36 @@ class PrestoEngineSpec(BaseEngineSpec):
         if filters:
             l = []  # noqa: E741
             for field, value in filters.items():
-                l.append("{field} = '{value}'".format(**locals()))
+                l.append(f"{field} = '{value}'")
             where_clause = 'WHERE ' + ' AND '.join(l)
 
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(f"""\
             SHOW PARTITIONS FROM {table_name}
             {where_clause}
             {order_by_clause}
             {limit_clause}
-        """).format(**locals())
+        """)
         return sql
 
     @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        try:
+            col_name, value = cls.latest_partition(
+                table_name, schema, database, show_first=True)
+        except Exception:
+            # table is not partitioned
+            return False
+        if value is not None:
+            for c in columns:
+                if c.get('name') == col_name:
+                    return qry.where(Column(col_name) == value)
+        return False
+
+    @classmethod
     def _latest_partition_from_df(cls, df):
-        recs = df.to_records(index=False)
-        if recs:
-            return recs[0][0]
+        if not df.empty:
+            return df.to_records(index=False)[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
@@ -873,7 +1012,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type show_first: bool
 
         >>> latest_partition('foo_table')
-        '2018-01-01'
+        ('ds', '2018-01-01')
         """
         indexes = database.get_indexes(table_name, schema)
         if len(indexes[0]['column_names']) < 1:
@@ -946,6 +1085,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     """Reuses PrestoEngineSpec functionality."""
 
     engine = 'hive'
+    max_column_name_length = 767
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -964,7 +1104,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls):
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         from superset.db_engines import hive as patched_hive
         from TCLIService import (
             constants as patched_constants,
@@ -977,20 +1117,21 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type, force=False):
+    def fetch_result_sets(cls, db, datasource_type):
         return BaseEngineSpec.fetch_result_sets(
-            db, datasource_type, force=force)
+            db, datasource_type)
 
     @classmethod
     def fetch_data(cls, cursor, limit):
+        import pyhive
         from TCLIService import ttypes
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception('Query error', state.errorMessage)
-        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        try:
+            return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+        except pyhive.exc.ProgrammingError:
+            return []
 
     @staticmethod
     def create_table_from_csv(form, table):
@@ -1005,6 +1146,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             }
             return tableschema_to_hive_types.get(col_type, 'STRING')
 
+        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
+
+        if not bucket_path:
+            logging.info('No upload bucket specified')
+            raise Exception(
+                'No upload bucket specified. You can specify one in the config file.')
+
         table_name = form.name.data
         schema_name = form.schema.data
 
@@ -1014,49 +1162,46 @@ class HiveEngineSpec(PrestoEngineSpec):
                     "You can't specify a namespace. "
                     'All tables will be uploaded to the `{}` namespace'.format(
                         config.get('HIVE_NAMESPACE')))
-            table_name = '{}.{}'.format(
+            full_table_name = '{}.{}'.format(
                 config.get('UPLOADED_CSV_HIVE_NAMESPACE'), table_name)
         else:
             if '.' in table_name and schema_name:
                 raise Exception(
                     "You can't specify a namespace both in the name of the table "
                     'and in the schema field. Please remove one')
-            if schema_name:
-                table_name = '{}.{}'.format(schema_name, table_name)
+
+            full_table_name = '{}.{}'.format(
+                schema_name, table_name) if schema_name else table_name
 
         filename = form.csv_file.data.filename
-        bucket_path = config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
-        if not bucket_path:
-            logging.info('No upload bucket specified')
-            raise Exception(
-                'No upload bucket specified. You can specify one in the config file.')
-
-        table_name = form.name.data
-        filename = form.csv_file.data.filename
         upload_prefix = config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
-
         upload_path = config['UPLOAD_FOLDER'] + \
-            secure_filename(form.csv_file.data.filename)
+            secure_filename(filename)
 
+        # Optional dependency
+        from tableschema import Table  # pylint: disable=import-error
         hive_table_schema = Table(upload_path).infer()
         column_name_and_type = []
         for column_info in hive_table_schema['fields']:
             column_name_and_type.append(
-                '{} {}'.format(
-                    "'" + column_info['name'] + "'",
+                '`{}` {}'.format(
+                    column_info['name'],
                     convert_to_hive_type(column_info['type'])))
         schema_definition = ', '.join(column_name_and_type)
+
+        # Optional dependency
+        import boto3  # pylint: disable=import-error
 
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
             upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
-        sql = """CREATE TABLE {table_name} ( {schema_definition} )
+        sql = f"""CREATE TABLE {full_table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'
-            tblproperties ('skip.header.line.count'='1')""".format(**locals())
+            tblproperties ('skip.header.line.count'='1')"""
         logging.info(form.con.data)
         engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
         engine.execute(sql)
@@ -1128,7 +1273,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
-        from pyhive import hive
+        from pyhive import hive  # pylint: disable=no-name-in-module
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
@@ -1181,13 +1326,14 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, schema, database, qry, columns=None):
         try:
             col_name, value = cls.latest_partition(
-                table_name, schema, database)
+                table_name, schema, database, show_first=True)
         except Exception:
             # table is not partitioned
             return False
-        for c in columns:
-            if str(c.name) == str(col_name):
-                return qry.where(c == str(value))
+        if value is not None:
+            for c in columns:
+                if c.get('name') == col_name:
+                    return qry.where(Column(col_name) == value)
         return False
 
     @classmethod
@@ -1198,12 +1344,13 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _latest_partition_from_df(cls, df):
         """Hive partitions look like ds={partition name}"""
-        return df.ix[:, 0].max().split('=')[1]
+        if not df.empty:
+            return df.ix[:, 0].max().split('=')[1]
 
     @classmethod
     def _partition_query(
             cls, table_name, limit=0, order_by=None, filters=None):
-        return 'SHOW PARTITIONS {table_name}'.format(**locals())
+        return f'SHOW PARTITIONS {table_name}'
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user, username):
@@ -1247,6 +1394,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
     limit_method = LimitMethod.WRAP_SQL
+    max_column_name_length = 128
 
     time_grain_functions = {
         None: '{col}',
@@ -1267,6 +1415,19 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
+
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(MssqlEngineSpec, cls).fetch_data(cursor, limit)
+        if len(data) != 0 and type(data[0]).__name__ == 'Row':
+            data = [[elem for elem in r] for r in data]
+        return data
+
+    @classmethod
+    def get_sqla_column_type(cls, type_):
+        if isinstance(type_, str) and re.match(r'^N(VAR){0-1}CHAR', type_):
+            return UnicodeText()
+        return None
 
 
 class AthenaEngineSpec(BaseEngineSpec):
@@ -1301,6 +1462,63 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls):
         return 'from_unixtime({col})'
+
+    @staticmethod
+    def mutate_label(label):
+        """
+        Athena only supports lowercase column names and aliases.
+        :param str label: Original label which might include uppercase letters
+        :return: String that is supported by the database
+        """
+        return label.lower()
+
+
+class PinotEngineSpec(BaseEngineSpec):
+    engine = 'pinot'
+    allows_subquery = False
+    inner_joins = False
+    supports_column_aliases = False
+
+    _time_grain_to_datetimeconvert = {
+        'PT1S': '1:SECONDS',
+        'PT1M': '1:MINUTES',
+        'PT1H': '1:HOURS',
+        'P1D': '1:DAYS',
+        'P1Y': '1:YEARS',
+        'P1M': '1:MONTHS',
+    }
+
+    # Pinot does its own conversion below
+    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
+
+    @classmethod
+    def get_time_expr(cls, expr, pdf, time_grain, grain):
+        is_epoch = pdf in ('epoch_s', 'epoch_ms')
+        if not is_epoch:
+            raise NotImplementedError('Pinot currently only supports epochs')
+        # The DATETIMECONVERT pinot udf is documented at
+        # Per https://github.com/apache/incubator-pinot/wiki/dateTimeConvert-UDF
+        # We are not really converting any time units, just bucketing them.
+        seconds_or_ms = 'MILLISECONDS' if pdf == 'epoch_ms' else 'SECONDS'
+        tf = f'1:{seconds_or_ms}:EPOCH'
+        granularity = cls._time_grain_to_datetimeconvert.get(time_grain)
+        if not granularity:
+            raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
+        # In pinot the output is a string since there is no timestamp column like pg
+        return f'DATETIMECONVERT({expr}, "{tf}", "{tf}", "{granularity}")'
+
+    @classmethod
+    def make_select_compatible(cls, groupby_exprs, select_exprs):
+        # Pinot does not want the group by expr's to appear in the select clause
+        select_sans_groupby = []
+        # We want identity and not equality, so doing the filtering manually
+        for s in select_exprs:
+            for gr in groupby_exprs:
+                if s is gr:
+                    break
+            else:
+                select_sans_groupby.append(s)
+        return select_sans_groupby
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):
@@ -1342,6 +1560,7 @@ class BQEngineSpec(BaseEngineSpec):
 
     As contributed by @mxmzdlv on issue #945"""
     engine = 'bigquery'
+    max_column_name_length = 128
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -1382,16 +1601,57 @@ class BQEngineSpec(BaseEngineSpec):
         return data
 
     @staticmethod
-    def mutate_expression_label(label):
-        mutated_label = re.sub('[^\w]+', '_', label)
-        if not re.match('^[a-zA-Z_]+.*', mutated_label):
-            raise SupersetTemplateException('BigQuery field_name used is invalid {}, '
-                                            'should start with a letter or '
-                                            'underscore'.format(mutated_label))
-        if len(mutated_label) > 128:
-            raise SupersetTemplateException('BigQuery field_name {}, should be atmost '
-                                            '128 characters'.format(mutated_label))
-        return mutated_label
+    def mutate_label(label):
+        """
+        BigQuery field_name should start with a letter or underscore and contain only
+        alphanumeric characters. Labels that start with a number are prefixed with an
+        underscore. Any unsupported characters are replaced with underscores and an
+        md5 hash is added to the end of the label to avoid possible collisions.
+        :param str label: the original label which might include unsupported characters
+        :return: String that is supported by the database
+        """
+        label_hashed = '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+
+        # if label starts with number, add underscore as first character
+        label_mutated = '_' + label if re.match(r'^\d', label) else label
+
+        # replace non-alphanumeric characters with underscores
+        label_mutated = re.sub(r'[^\w]+', '_', label_mutated)
+        if label_mutated != label:
+            # add md5 hash to label to avoid possible collisions
+            label_mutated += label_hashed
+
+        return label_mutated
+
+    @classmethod
+    def truncate_label(cls, label):
+        """BigQuery requires column names start with either a letter or
+        underscore. To make sure this is always the case, an underscore is prefixed
+        to the truncated label.
+        """
+        return '_' + hashlib.md5(label.encode('utf-8')).hexdigest()
+
+    @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        partitions_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'partition'
+        ]
+        cluster_columns = [
+            index.get('column_names', []) for index in indexes
+            if index.get('name') == 'clustering'
+        ]
+        return {
+            'partitions': {
+                'cols': partitions_columns,
+            },
+            'clustering': {
+                'cols': cluster_columns,
+            },
+        }
 
     @classmethod
     def _get_fields(cls, cols):
@@ -1399,7 +1659,7 @@ class BQEngineSpec(BaseEngineSpec):
         BigQuery dialect requires us to not use backtick in the fieldname which are
         nested.
         Using literal_column handles that issue.
-        http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
+        https://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-more-specific-text-with-table-literal-column-and-column
         Also explicility specifying column names so we don't encounter duplicate
         column names in the result.
         """
@@ -1459,6 +1719,18 @@ class DruidEngineSpec(BaseEngineSpec):
         'P1Y': 'FLOOR({col} TO YEAR)',
     }
 
+    @classmethod
+    def alter_new_orm_column(cls, orm_col):
+        if orm_col.column_name == '__time':
+            orm_col.is_dttm = True
+
+
+class GSheetsEngineSpec(SqliteEngineSpec):
+    """Engine for Google spreadsheets"""
+    engine = 'gsheets'
+    inner_joins = False
+    allows_subquery = False
+
 
 class KylinEngineSpec(BaseEngineSpec):
     """Dialect for Apache Kylin"""
@@ -1488,6 +1760,24 @@ class KylinEngineSpec(BaseEngineSpec):
             return "CAST('{}' AS TIMESTAMP)".format(
                 dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class TeradataEngineSpec(BaseEngineSpec):
+    """Dialect for Teradata DB."""
+    engine = 'teradata'
+    limit_method = LimitMethod.WRAP_SQL
+    max_column_name_length = 30  # since 14.10 this is 128
+
+    time_grain_functions = {
+        None: '{col}',
+        'PT1M': "TRUNC(CAST({col} as DATE), 'MI')",
+        'PT1H': "TRUNC(CAST({col} as DATE), 'HH')",
+        'P1D': "TRUNC(CAST({col} as DATE), 'DDD')",
+        'P1W': "TRUNC(CAST({col} as DATE), 'WW')",
+        'P1M': "TRUNC(CAST({col} as DATE), 'MONTH')",
+        'P0.25Y': "TRUNC(CAST({col} as DATE), 'Q')",
+        'P1Y': "TRUNC(CAST({col} as DATE), 'YEAR')",
+    }
 
 
 engines = {

@@ -1,7 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import { mount } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import DeleteComponentButton from '../../../../../src/dashboard/components/DeleteComponentButton';
@@ -45,29 +61,27 @@ describe('Header', () => {
 
   it('should render a DragDroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).to.have.length(1);
+    expect(wrapper.find(DragDroppable)).toHaveLength(1);
   });
 
   it('should render a WithPopoverMenu', () => {
     const wrapper = setup();
-    expect(wrapper.find(WithPopoverMenu)).to.have.length(1);
+    expect(wrapper.find(WithPopoverMenu)).toHaveLength(1);
   });
 
   it('should render a HoverMenu in editMode', () => {
     let wrapper = setup();
-    expect(wrapper.find(HoverMenu)).to.have.length(0);
+    expect(wrapper.find(HoverMenu)).toHaveLength(0);
 
     // we cannot set props on the Header because of the WithDragDropContext wrapper
     wrapper = setup({ editMode: true });
-    expect(wrapper.find(HoverMenu)).to.have.length(1);
+    expect(wrapper.find(HoverMenu)).toHaveLength(1);
   });
 
   it('should render an EditableTitle with meta.text', () => {
     const wrapper = setup();
-    expect(wrapper.find(EditableTitle)).to.have.length(1);
-    expect(wrapper.find('input').prop('value')).to.equal(
-      props.component.meta.text,
-    );
+    expect(wrapper.find(EditableTitle)).toHaveLength(1);
+    expect(wrapper.find('input').prop('value')).toBe(props.component.meta.text);
   });
 
   it('should call updateComponents when EditableTitle changes', () => {
@@ -76,8 +90,8 @@ describe('Header', () => {
     wrapper.find(EditableTitle).prop('onSaveTitle')('New title');
 
     const headerId = props.component.id;
-    expect(updateComponents.callCount).to.equal(1);
-    expect(updateComponents.getCall(0).args[0][headerId].meta.text).to.equal(
+    expect(updateComponents.callCount).toBe(1);
+    expect(updateComponents.getCall(0).args[0][headerId].meta.text).toBe(
       'New title',
     );
   });
@@ -86,7 +100,7 @@ describe('Header', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
 
-    expect(wrapper.find(DeleteComponentButton)).to.have.length(1);
+    expect(wrapper.find(DeleteComponentButton)).toHaveLength(1);
   });
 
   it('should call deleteComponent when deleted', () => {
@@ -95,6 +109,6 @@ describe('Header', () => {
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
     wrapper.find(DeleteComponentButton).simulate('click');
 
-    expect(deleteComponent.callCount).to.equal(1);
+    expect(deleteComponent.callCount).toBe(1);
   });
 });

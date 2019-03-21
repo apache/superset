@@ -1,6 +1,21 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
-
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import getDropPosition, {
   DROP_TOP,
   DROP_RIGHT,
@@ -74,7 +89,7 @@ describe('getDropPosition', () => {
           draggingType: TAB_TYPE,
         }),
       );
-      expect(result).to.equal(null);
+      expect(result).toBeNull();
     });
   });
 
@@ -88,7 +103,7 @@ describe('getDropPosition', () => {
           draggingType: HEADER_TYPE,
         }),
       );
-      expect(result).to.equal(DROP_LEFT);
+      expect(result).toBe(DROP_LEFT);
     });
 
     it('should return DROP_RIGHT if component HAS children, and orientation is "row"', () => {
@@ -100,7 +115,7 @@ describe('getDropPosition', () => {
           hasChildren: true,
         }),
       );
-      expect(result).to.equal(DROP_RIGHT);
+      expect(result).toBe(DROP_RIGHT);
     });
 
     it('should return DROP_TOP if component has NO children, and orientation is "column"', () => {
@@ -112,7 +127,7 @@ describe('getDropPosition', () => {
           orientation: 'column',
         }),
       );
-      expect(result).to.equal(DROP_TOP);
+      expect(result).toBe(DROP_TOP);
     });
 
     it('should return DROP_BOTTOM if component HAS children, and orientation is "column"', () => {
@@ -125,7 +140,7 @@ describe('getDropPosition', () => {
           hasChildren: true,
         }),
       );
-      expect(result).to.equal(DROP_BOTTOM);
+      expect(result).toBe(DROP_BOTTOM);
     });
   });
 
@@ -144,7 +159,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_TOP);
+      expect(result).toBe(DROP_TOP);
     });
 
     it('should return DROP_BOTTOM if orientation="row" and clientOffset is closer to component bottom than top', () => {
@@ -160,7 +175,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_BOTTOM);
+      expect(result).toBe(DROP_BOTTOM);
     });
 
     it('should return DROP_LEFT if orientation="column" and clientOffset is closer to component left than right', () => {
@@ -177,7 +192,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_LEFT);
+      expect(result).toBe(DROP_LEFT);
     });
 
     it('should return DROP_RIGHT if orientation="column" and clientOffset is closer to component right than left', () => {
@@ -194,7 +209,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_RIGHT);
+      expect(result).toBe(DROP_RIGHT);
     });
   });
 
@@ -215,7 +230,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_LEFT);
+      expect(result).toBe(DROP_LEFT);
     });
 
     it('should return DROP_RIGHT if component HAS children, and clientOffset is NOT near top/bottom sibling boundary', () => {
@@ -234,7 +249,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_RIGHT);
+      expect(result).toBe(DROP_RIGHT);
     });
 
     it('should return DROP_TOP regardless of component children if clientOffset IS near top sibling boundary', () => {
@@ -267,8 +282,8 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(noChildren).to.equal(DROP_TOP);
-      expect(withChildren).to.equal(DROP_TOP);
+      expect(noChildren).toBe(DROP_TOP);
+      expect(withChildren).toBe(DROP_TOP);
     });
 
     it('should return DROP_BOTTOM regardless of component children if clientOffset IS near bottom sibling boundary', () => {
@@ -301,8 +316,8 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(noChildren).to.equal(DROP_BOTTOM);
-      expect(withChildren).to.equal(DROP_BOTTOM);
+      expect(noChildren).toBe(DROP_BOTTOM);
+      expect(withChildren).toBe(DROP_BOTTOM);
     });
   });
 
@@ -324,7 +339,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_TOP);
+      expect(result).toBe(DROP_TOP);
     });
 
     it('should return DROP_BOTTOM if component HAS children, and clientOffset is NOT near left/right sibling boundary', () => {
@@ -344,7 +359,7 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(result).to.equal(DROP_BOTTOM);
+      expect(result).toBe(DROP_BOTTOM);
     });
 
     it('should return DROP_LEFT regardless of component children if clientOffset IS near left sibling boundary', () => {
@@ -379,8 +394,8 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(noChildren).to.equal(DROP_LEFT);
-      expect(withChildren).to.equal(DROP_LEFT);
+      expect(noChildren).toBe(DROP_LEFT);
+      expect(withChildren).toBe(DROP_LEFT);
     });
 
     it('should return DROP_RIGHT regardless of component children if clientOffset IS near right sibling boundary', () => {
@@ -415,8 +430,8 @@ describe('getDropPosition', () => {
           },
         }),
       );
-      expect(noChildren).to.equal(DROP_RIGHT);
-      expect(withChildren).to.equal(DROP_RIGHT);
+      expect(noChildren).toBe(DROP_RIGHT);
+      expect(withChildren).toBe(DROP_RIGHT);
     });
   });
 });

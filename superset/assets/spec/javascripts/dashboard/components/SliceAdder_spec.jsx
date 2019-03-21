@@ -1,8 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { describe, it, beforeEach, afterEach } from 'mocha';
 import sinon from 'sinon';
-import { expect } from 'chai';
 
 import { List } from 'react-virtualized';
 
@@ -41,7 +57,7 @@ describe('SliceAdder', () => {
           }
           return currentTimestamp < sortedTimestamps[index - 1];
         }),
-      ).to.equal(true);
+      ).toBe(true);
     });
 
     it('should sort by slice_name', () => {
@@ -51,20 +67,20 @@ describe('SliceAdder', () => {
       const expectedNames = Object.values(props.slices)
         .map(slice => slice.slice_name)
         .sort();
-      expect(sortedNames).to.deep.equal(expectedNames);
+      expect(sortedNames).toEqual(expectedNames);
     });
   });
 
   it('render List', () => {
     const wrapper = shallow(<SliceAdder {...props} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
-    expect(wrapper.find(List)).to.have.length(1);
+    expect(wrapper.find(List)).toHaveLength(1);
   });
 
   it('render error', () => {
     const wrapper = shallow(<SliceAdder {...errorProps} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
-    expect(wrapper.text()).to.have.string(errorProps.errorMessage);
+    expect(wrapper.text()).toContain(errorProps.errorMessage);
   });
 
   it('componentDidMount', () => {
@@ -74,8 +90,8 @@ describe('SliceAdder', () => {
     shallow(<SliceAdder {...props} />, {
       lifecycleExperimental: true,
     });
-    expect(SliceAdder.prototype.componentDidMount.calledOnce).to.equal(true);
-    expect(props.fetchAllSlices.calledOnce).to.equal(true);
+    expect(SliceAdder.prototype.componentDidMount.calledOnce).toBe(true);
+    expect(props.fetchAllSlices.calledOnce).toBe(true);
 
     SliceAdder.prototype.componentDidMount.restore();
     props.fetchAllSlices.restore();
@@ -97,12 +113,12 @@ describe('SliceAdder', () => {
         ...props,
         lastUpdated: new Date().getTime(),
       });
-      expect(wrapper.instance().setState.calledOnce).to.equal(true);
+      expect(wrapper.instance().setState.calledOnce).toBe(true);
 
       const stateKeys = Object.keys(
         wrapper.instance().setState.lastCall.args[0],
       );
-      expect(stateKeys).to.include('filteredSlices');
+      expect(stateKeys).toContain('filteredSlices');
     });
 
     it('select slices should update state', () => {
@@ -110,12 +126,12 @@ describe('SliceAdder', () => {
         ...props,
         selectedSliceIds: [127],
       });
-      expect(wrapper.instance().setState.calledOnce).to.equal(true);
+      expect(wrapper.instance().setState.calledOnce).toBe(true);
 
       const stateKeys = Object.keys(
         wrapper.instance().setState.lastCall.args[0],
       );
-      expect(stateKeys).to.include('selectedSliceIdsSet');
+      expect(stateKeys).toContain('selectedSliceIdsSet');
     });
   });
 
@@ -134,21 +150,21 @@ describe('SliceAdder', () => {
     it('searchUpdated', () => {
       const newSearchTerm = 'new search term';
       wrapper.instance().searchUpdated(newSearchTerm);
-      expect(spy.calledOnce).to.equal(true);
-      expect(spy.lastCall.args[0]).to.equal(newSearchTerm);
+      expect(spy.calledOnce).toBe(true);
+      expect(spy.lastCall.args[0]).toBe(newSearchTerm);
     });
 
     it('handleSelect', () => {
       const newSortBy = 1;
       wrapper.instance().handleSelect(newSortBy);
-      expect(spy.calledOnce).to.equal(true);
-      expect(spy.lastCall.args[1]).to.equal(newSortBy);
+      expect(spy.calledOnce).toBe(true);
+      expect(spy.lastCall.args[1]).toBe(newSortBy);
     });
 
     it('handleKeyPress', () => {
       wrapper.instance().handleKeyPress(mockEvent);
-      expect(spy.calledOnce).to.equal(true);
-      expect(spy.lastCall.args[0]).to.equal(mockEvent.target.value);
+      expect(spy.calledOnce).toBe(true);
+      expect(spy.lastCall.args[0]).toBe(mockEvent.target.value);
     });
   });
 });

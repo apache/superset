@@ -1,7 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import sinon from 'sinon';
 
 import newComponentFactory from '../../../../../src/dashboard/util/newComponentFactory';
@@ -34,18 +50,18 @@ describe('DragDroppable', () => {
 
   it('should render a div with class dragdroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find('.dragdroppable')).to.have.length(1);
+    expect(wrapper.find('.dragdroppable')).toHaveLength(1);
   });
 
   it('should add class dragdroppable--dragging when dragging', () => {
     const wrapper = setup({ isDragging: true });
-    expect(wrapper.find('.dragdroppable')).to.have.length(1);
+    expect(wrapper.find('.dragdroppable')).toHaveLength(1);
   });
 
   it('should call its child function', () => {
     const childrenSpy = sinon.spy();
     setup({ children: childrenSpy });
-    expect(childrenSpy.callCount).to.equal(1);
+    expect(childrenSpy.callCount).toBe(1);
   });
 
   it('should call its child function with "dragSourceRef" if editMode=true', () => {
@@ -54,8 +70,8 @@ describe('DragDroppable', () => {
     setup({ children, editMode: false, dragSourceRef });
     setup({ children, editMode: true, dragSourceRef });
 
-    expect(children.getCall(0).args[0].dragSourceRef).to.equal(undefined);
-    expect(children.getCall(1).args[0].dragSourceRef).to.equal(dragSourceRef);
+    expect(children.getCall(0).args[0].dragSourceRef).toBeUndefined();
+    expect(children.getCall(1).args[0].dragSourceRef).toBe(dragSourceRef);
   });
 
   it('should call its child function with "dropIndicatorProps" dependent on editMode, isDraggingOver, state.dropIndicator is set', () => {
@@ -64,9 +80,9 @@ describe('DragDroppable', () => {
     wrapper.setState({ dropIndicator: 'nonsense' });
     wrapper.setProps({ ...props, editMode: true, isDraggingOver: true });
 
-    expect(children.callCount).to.equal(3); // initial + setState + setProps
-    expect(children.getCall(0).args[0].dropIndicatorProps).to.equal(undefined);
-    expect(children.getCall(2).args[0].dropIndicatorProps).to.deep.equal({
+    expect(children.callCount).toBe(3); // initial + setState + setProps
+    expect(children.getCall(0).args[0].dropIndicatorProps).toBeUndefined();
+    expect(children.getCall(2).args[0].dropIndicatorProps).toEqual({
       className: 'drop-indicator',
     });
   });
@@ -76,15 +92,15 @@ describe('DragDroppable', () => {
     const droppableRef = sinon.spy();
 
     setup({ dragPreviewRef, droppableRef }, true);
-    expect(dragPreviewRef.callCount).to.equal(1);
-    expect(droppableRef.callCount).to.equal(1);
+    expect(dragPreviewRef.callCount).toBe(1);
+    expect(droppableRef.callCount).toBe(1);
   });
 
   it('should set this.mounted dependent on life cycle', () => {
     const wrapper = setup({}, true);
     const instance = wrapper.instance();
-    expect(instance.mounted).to.equal(true);
+    expect(instance.mounted).toBe(true);
     wrapper.unmount();
-    expect(instance.mounted).to.equal(false);
+    expect(instance.mounted).toBe(false);
   });
 });

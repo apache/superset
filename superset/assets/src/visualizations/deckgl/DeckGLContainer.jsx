@@ -1,8 +1,29 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { isEqual } from 'lodash';
+
+const TICK = 2000;  // milliseconds
 
 const propTypes = {
   viewport: PropTypes.object.isRequired,
@@ -21,43 +42,46 @@ const defaultProps = {
 export default class DeckGLContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      viewport: props.viewport,
-    };
     this.tick = this.tick.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
+    // This has to be placed after this.tick is bound to this
+    this.state = {
+      previousViewport: props.viewport,
+      timer: setInterval(this.tick, TICK),
+    };
   }
-  componentWillMount() {
-    const timer = setInterval(this.tick, 1000);
-    this.setState(() => ({ timer }));
-  }
-  componentWillReceiveProps(nextProps) {
-    this.setState(() => ({
-      viewport: { ...nextProps.viewport },
-      previousViewport: this.state.viewport,
-    }));
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (nextProps.viewport !== prevState.viewport) {
+      return {
+        viewport: { ...nextProps.viewport },
+        previousViewport: prevState.viewport,
+      };
+    }
+    return null;
   }
   componentWillUnmount() {
-    this.clearInterval(this.state.timer);
+    clearInterval(this.state.timer);
   }
   onViewportChange(viewport) {
     const vp = Object.assign({}, viewport);
-    delete vp.width;
-    delete vp.height;
-    const newVp = { ...this.state.viewport, ...vp };
+    // delete vp.width;
+    // delete vp.height;
+    const newVp = { ...this.state.previousViewport, ...vp };
 
-    this.setState(() => ({ viewport: newVp }));
+    // this.setState(() => ({ viewport: newVp }));
     this.props.onViewportChange(newVp);
   }
   tick() {
     // Limiting updating viewport controls through Redux at most 1*sec
-    if (this.state.previousViewport !== this.state.viewport) {
+    // Deep compare is needed as shallow equality doesn't work here, viewport object
+    // changes id at every change
+    if (this.state && !isEqual(this.state.previousViewport, this.props.viewport)) {
       const setCV = this.props.setControlValue;
-      const vp = this.state.viewport;
+      const vp = this.props.viewport;
       if (setCV) {
         setCV('viewport', vp);
       }
-      this.setState(() => ({ previousViewport: this.state.viewport }));
+      this.setState(() => ({ previousViewport: this.props.viewport }));
     }
   }
   layers() {
@@ -68,7 +92,7 @@ export default class DeckGLContainer extends React.Component {
     return this.props.layers;
   }
   render() {
-    const { viewport } = this.state;
+    const { viewport } = this.props;
     return (
       <MapGL
         {...viewport}

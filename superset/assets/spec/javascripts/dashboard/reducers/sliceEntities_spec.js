@@ -1,6 +1,21 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
-
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
@@ -11,7 +26,7 @@ import sliceEntitiesReducer from '../../../../src/dashboard/reducers/sliceEntiti
 
 describe('sliceEntities reducer', () => {
   it('should return initial state', () => {
-    expect(sliceEntitiesReducer({}, {})).to.deep.equal({});
+    expect(sliceEntitiesReducer({}, {})).toEqual({});
   });
 
   it('should set loading when fetching slices', () => {
@@ -20,21 +35,21 @@ describe('sliceEntities reducer', () => {
         { isLoading: false },
         { type: FETCH_ALL_SLICES_STARTED },
       ).isLoading,
-    ).to.equal(true);
+    ).toBe(true);
   });
 
   it('should set slices', () => {
     const result = sliceEntitiesReducer(
       { slices: { a: {} } },
-      { type: SET_ALL_SLICES, slices: { 1: {}, 2: {} } },
+      { type: SET_ALL_SLICES, payload: { slices: { 1: {}, 2: {} } } },
     );
 
-    expect(result.slices).to.deep.equal({
+    expect(result.slices).toEqual({
       1: {},
       2: {},
       a: {},
     });
-    expect(result.isLoading).to.equal(false);
+    expect(result.isLoading).toBe(false);
   });
 
   it('should set an error on error', () => {
@@ -42,10 +57,10 @@ describe('sliceEntities reducer', () => {
       {},
       {
         type: FETCH_ALL_SLICES_FAILED,
-        error: { responseJSON: { message: 'errorrr' } },
+        payload: { error: 'failed' },
       },
     );
-    expect(result.isLoading).to.equal(false);
-    expect(result.errorMessage.indexOf('errorrr')).to.be.above(-1);
+    expect(result.isLoading).toBe(false);
+    expect(result.errorMessage.indexOf('failed')).toBeGreaterThan(-1);
   });
 });

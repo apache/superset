@@ -1,4 +1,19 @@
-# -*- coding: utf-8 -*-
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 """empty message
 
 Revision ID: 4736ec66ce19
@@ -12,7 +27,7 @@ import logging
 from alembic import op
 import sqlalchemy as sa
 
-from superset.utils import (
+from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_fk_constraint_names,
     generic_find_uq_constraint_name,
@@ -204,8 +219,8 @@ def downgrade():
 
         # Re-create the foreign key associated with the cluster_name column.
         batch_op.create_foreign_key(
-                'fk_{}_datasource_id_datasources'.format(foreign),
-                'clusters',
-                ['cluster_name'],
-                ['cluster_name'],
-            )
+            'fk_{}_datasource_id_datasources'.format(foreign),
+            'clusters',
+            ['cluster_name'],
+            ['cluster_name'],
+        )

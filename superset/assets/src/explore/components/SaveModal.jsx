@@ -1,11 +1,29 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint camelcase: 0 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
-import { t } from '../../locales';
+import { t } from '@superset-ui/translation';
+
 import { supersetURL } from '../../utils/common';
 import { EXPLORE_ONLY_VIZ_TYPE } from '../constants';
 
@@ -85,7 +103,7 @@ class SaveModal extends React.Component {
     sliceParams.add_to_dash = addToDash;
     let dashboard = null;
     switch (addToDash) {
-      case ('existing'):
+      case 'existing':
         dashboard = this.state.saveToDashboardId;
         if (!dashboard) {
           this.setState({ alert: t('Please select a dashboard') });
@@ -93,7 +111,7 @@ class SaveModal extends React.Component {
         }
         sliceParams.save_to_dashboard_id = dashboard;
         break;
-      case ('new'):
+      case 'new':
         dashboard = this.state.newDashboardName;
         if (dashboard === '') {
           this.setState({ alert: t('Please enter a dashboard name') });
@@ -106,15 +124,14 @@ class SaveModal extends React.Component {
     }
     sliceParams.goto_dash = gotodash;
 
-    this.props.actions.saveSlice(this.props.form_data, sliceParams)
-      .then((data) => {
-        // Go to new slice url or dashboard url
-        if (gotodash) {
-          window.location = supersetURL(data.dashboard);
-        } else {
-          window.location = data.slice.slice_url;
-        }
-      });
+    this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
+      // Go to new slice url or dashboard url
+      if (gotodash) {
+        window.location = supersetURL(data.dashboard);
+      } else {
+        window.location = data.slice.slice_url;
+      }
+    });
     this.props.onHide();
   }
   removeAlert() {
@@ -126,18 +143,12 @@ class SaveModal extends React.Component {
   render() {
     const canNotSaveToDash = EXPLORE_ONLY_VIZ_TYPE.indexOf(this.state.vizType) > -1;
     return (
-      <Modal
-        show
-        onHide={this.props.onHide}
-        bsStyle="large"
-      >
+      <Modal show onHide={this.props.onHide} bsStyle="large">
         <Modal.Header closeButton>
-          <Modal.Title>
-            {t('Save A Chart')}
-          </Modal.Title>
+          <Modal.Title>{t('Save A Chart')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {(this.state.alert || this.props.alert) &&
+          {(this.state.alert || this.props.alert) && (
             <Alert>
               {this.state.alert ? this.state.alert : this.props.alert}
               <i
@@ -146,8 +157,8 @@ class SaveModal extends React.Component {
                 style={{ cursor: 'pointer' }}
               />
             </Alert>
-          }
-          {this.props.slice &&
+          )}
+          {this.props.slice && (
             <Radio
               id="overwrite-radio"
               disabled={!this.props.can_overwrite}
@@ -156,14 +167,16 @@ class SaveModal extends React.Component {
             >
               {t('Overwrite chart %s', this.props.slice.slice_name)}
             </Radio>
-          }
+          )}
 
           <Radio
             id="saveas-radio"
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
-          > {t('Save as')} &nbsp;
+          >
+            {' '}
+            {t('Save as')} &nbsp;
           </Radio>
           <input
             name="new_slice_name"
@@ -171,7 +184,6 @@ class SaveModal extends React.Component {
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
-
 
           <br />
           <hr />
@@ -188,6 +200,7 @@ class SaveModal extends React.Component {
             disabled={canNotSaveToDash}
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
+            data-test="add-to-existing-dashboard"
           >
             {t('Add chart to existing dashboard')}
           </Radio>
@@ -198,7 +211,7 @@ class SaveModal extends React.Component {
             onChange={this.onChange.bind(this, 'saveToDashboardId')}
             autoSize={false}
             value={this.state.saveToDashboardId}
-            placeholder={t('Select Dashboard')}
+            placeholder="Select Dashboard"
           />
 
           <Radio
@@ -206,6 +219,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
             disabled={canNotSaveToDash}
+            data-test="add-to-new-dashboard"
           >
             {t('Add to new dashboard')} &nbsp;
           </Radio>
@@ -215,7 +229,6 @@ class SaveModal extends React.Component {
             onFocus={this.changeDash.bind(this, 'new')}
             placeholder={t('[dashboard name]')}
           />
-
         </Modal.Body>
 
         <Modal.Footer>
@@ -256,4 +269,7 @@ function mapStateToProps({ explore, saveModal }) {
 }
 
 export { SaveModal };
-export default connect(mapStateToProps, () => ({}))(SaveModal);
+export default connect(
+  mapStateToProps,
+  () => ({}),
+)(SaveModal);
