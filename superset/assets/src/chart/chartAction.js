@@ -247,13 +247,29 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
   };
 }
 
-export const FETCH_CHART = 'FETCH_CHART';
-export function fetchChart(formData, force = false, timeout = 60, key) {
+export const GET_SAVED_CHART = 'GET_SAVED_CHART';
+export function getSavedChart(formData, force = false, timeout = 60, key) {
+  /*
+   * Perform a GET request to `/explore_json`.
+   *
+   * This will return the payload of a saved chart, optionally filtered by
+   * ad-hoc or extra filters from dashboards. Eg:
+   *
+   *  GET  /explore_json?{"chart_id":1}
+   *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
+   *
+   */
   return exploreJSON(formData, force, timeout, key, 'GET');
 }
 
-export const RUN_QUERY = 'RUN_QUERY';
-export function runQuery(formData, force = false, timeout = 60, key) {
+export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
+export function postChartFormData(formData, force = false, timeout = 60, key) {
+  /*
+   * Perform a POST request to `/explore_json`.
+   *
+   * This will post the form data to the endpoint, returning a new chart.
+   *
+   */
   return exploreJSON(formData, force, timeout, key, 'POST');
 }
 
@@ -283,6 +299,6 @@ export function refreshChart(chart, force, timeout) {
     if (!chart.latestQueryFormData || Object.keys(chart.latestQueryFormData).length === 0) {
       return;
     }
-    dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id));
+    dispatch(postChartFormData(chart.latestQueryFormData, force, timeout, chart.id));
   };
 }
