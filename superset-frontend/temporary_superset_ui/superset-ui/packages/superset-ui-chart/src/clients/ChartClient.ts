@@ -74,12 +74,14 @@ export default class ChartClient {
       : Promise.reject(new Error('At least one of sliceId or formData must be specified'));
   }
 
-  loadQueryData(formData: ChartFormData, options?: Partial<RequestConfig>): Promise<object> {
+  async loadQueryData(formData: ChartFormData, options?: Partial<RequestConfig>): Promise<object> {
     const { viz_type: visType } = formData;
+    const metaDataRegistry = getChartMetadataRegistry();
+    const buildQueryRegistry = getChartBuildQueryRegistry();
 
-    if (getChartMetadataRegistry().has(visType)) {
-      const { useLegacyApi } = getChartMetadataRegistry().get(visType);
-      const buildQuery = useLegacyApi ? () => formData : getChartBuildQueryRegistry().get(visType);
+    if (metaDataRegistry.has(visType)) {
+      const { useLegacyApi } = metaDataRegistry.get(visType)!;
+      const buildQuery = (await buildQueryRegistry.get(visType)) || (() => formData);
 
       return this.client
         .post({

@@ -1,8 +1,8 @@
 /* eslint camelcase: 0 */
-import ChartProps from '../models/ChartProps';
 import { DatasourceType } from './Datasource';
 import { ChartFormData } from './ChartFormData';
 import { Metric } from './Metric';
+import ChartProps from '../models/ChartProps';
 
 export interface QueryObject {
   granularity: string;
@@ -32,10 +32,14 @@ export interface QueryContext {
   queries: QueryObject[];
 }
 
-export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
-
-export type TransformPropsFunction = (
-  chartProps: ChartProps,
-) => {
+export interface PlainProps {
   [key: string]: any;
-};
+}
+
+type TransformFunction<Input = PlainProps, Output = PlainProps> = (x: Input) => Output;
+
+export type PreTransformProps = TransformFunction<ChartProps>;
+export type TransformProps = TransformFunction;
+export type PostTransformProps = TransformFunction;
+
+export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
