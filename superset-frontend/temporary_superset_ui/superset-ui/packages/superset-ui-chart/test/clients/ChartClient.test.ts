@@ -7,6 +7,7 @@ import {
   buildQueryContext,
   ChartFormData,
   getChartMetadataRegistry,
+  ChartMetadata,
 } from '../../src';
 
 import { SliceIdAndOrFormData } from '../../src/clients/ChartClient';
@@ -97,7 +98,10 @@ describe('ChartClient', () => {
 
   describe('.loadQueryData(formData, options)', () => {
     it('returns a promise of query data for known chart type', () => {
-      getChartMetadataRegistry().registerValue('word_cloud', { name: 'Word Cloud' });
+      getChartMetadataRegistry().registerValue(
+        'word_cloud',
+        new ChartMetadata({ name: 'Word Cloud', thumbnail: '' }),
+      );
 
       getChartBuildQueryRegistry().registerValue('word_cloud', (formData: ChartFormData) =>
         buildQueryContext(formData),
@@ -129,10 +133,14 @@ describe('ChartClient', () => {
 
     it('fetches data from the legacy API if ChartMetadata has useLegacyApi=true,', () => {
       // note legacy charts do not register a buildQuery function in the registry
-      getChartMetadataRegistry().registerValue('word_cloud_legacy', {
-        name: 'Legacy Word Cloud',
-        useLegacyApi: true,
-      });
+      getChartMetadataRegistry().registerValue(
+        'word_cloud_legacy',
+        new ChartMetadata({
+          name: 'Legacy Word Cloud',
+          thumbnail: '.png',
+          useLegacyApi: true,
+        }),
+      );
 
       fetchMock.post('glob:*/api/v1/query/', () =>
         Promise.reject(Error('Unexpected all to v1 API')),
@@ -233,7 +241,10 @@ describe('ChartClient', () => {
         amet: true,
       });
 
-      getChartMetadataRegistry().registerValue('line', { name: 'Line' });
+      getChartMetadataRegistry().registerValue(
+        'line',
+        new ChartMetadata({ name: 'Line', thumbnail: '.gif' }),
+      );
 
       getChartBuildQueryRegistry().registerValue('line', (formData: ChartFormData) =>
         buildQueryContext(formData),
