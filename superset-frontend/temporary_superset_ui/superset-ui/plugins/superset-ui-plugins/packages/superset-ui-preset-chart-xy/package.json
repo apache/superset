@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.10.1",
+  "version": "0.10.3",
   "description": "Superset Chart - XY",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -41,7 +41,7 @@
     "d3-scale": "^2.2.2",
     "lodash": "^4.17.11",
     "prop-types": "^15.6.2",
-    "reselect" : "^4.0.0",
+    "reselect": "^4.0.0",
     "vega": "^5.2.0",
     "vega-lite": "^3.0.0-rc15"
   },
