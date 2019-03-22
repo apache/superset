@@ -608,12 +608,6 @@ class SqlaTable(Model, BaseDatasource):
         # Initialize empty cache to store mutated labels
         self.mutated_labels = {}
 
-        # Initialize empty cache to store mutated labels
-        self.mutated_labels = {}
-
-        # Initialize empty cache to store mutated labels
-        self.mutated_labels = {}
-
         orderby = orderby or []
 
         # For backward compatibility
