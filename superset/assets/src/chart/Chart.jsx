@@ -68,7 +68,7 @@ class Chart extends React.PureComponent {
   }
   componentDidMount() {
     if (this.props.triggerQuery) {
-      this.props.actions.fetchChart(
+      this.props.actions.getSavedChart(
         this.props.formData,
         false,
         this.props.timeout,
