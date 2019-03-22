@@ -105,7 +105,7 @@ setup(
         'sqlparse',
         'unicodecsv',
         'wtforms-json',
-        'urllib_kerberos',
+        'urllib-kerberos',
         'requests-kerberos',
     ],
     extras_require={
