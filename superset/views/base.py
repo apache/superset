@@ -312,3 +312,44 @@ def check_ownership(obj, raise_if_false=True):
         raise security_exception
     else:
         return False
+
+def check_creator(obj, raise_if_false=True):
+    """Meant to be used in `pre_update` hooks on models to enforce ownership
+
+    Admin have all access, and other users need to be referenced on either
+    the created_by field that comes with the ``AuditMixin``, or in a field
+    named ``owners`` which is expected to be a one-to-many with the User
+    model. It is meant to be used in the ModelView's pre_update hook in
+    which raising will abort the update.
+    """
+    if not obj:
+        return False
+
+    security_exception = SupersetSecurityException(
+        "You don't have the rights to alter [{}]".format(obj))
+
+    if g.user.is_anonymous:
+        if raise_if_false:
+            raise security_exception
+        return False
+    roles = [r.name for r in get_user_roles()]
+    if 'Admin' in roles:
+        return True
+    session = db.create_scoped_session()
+    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+
+    # Making a list of owners that works across ORM models
+    owners = []
+    if hasattr(orig_obj, 'created_by'):
+        owners += [orig_obj.created_by]
+
+    owner_names = [o.username for o in owners if o]
+
+    if (
+            g.user and hasattr(g.user, 'username') and
+            g.user.username in owner_names):
+        return True
+    if raise_if_false:
+        raise security_exception
+    else:
+        return False

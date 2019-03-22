@@ -46,6 +46,7 @@ from superset.utils import (
 from .base import (
     api, BaseSupersetView,
     check_ownership,
+    check_creator,
     CsvResponse, DeleteMixin,
     generate_download_headers, get_error_msg,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
@@ -90,7 +91,20 @@ def is_owner(obj, user):
 
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
+        Slice = models.Slice  # noqa
+        Dash = models.Dashboard  # noqa
+        User = security_manager.user_model
+        roles = [r.name for r in security_manager.get_user_by_id(User.get_user_id()).roles]
+        if 'Admin' in roles:
+            return query
         if security_manager.all_datasource_access():
+            creator_id_qry = (
+                db.session
+                .query(Slice.id)
+                .join(Slice.created_by) #instead of owners
+                .filter(User.id == User.get_user_id())
+            )
+            query = query.filter(Slice.id.in_(creator_id_qry))
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
@@ -102,9 +116,13 @@ class DashboardFilter(SupersetFilter):
     """List dashboards for which users have access to at least one slice or are owners"""
 
     def apply(self, query, func):  # noqa
+        Slice = models.Slice  # noqa
+        Dash = models.Dashboard  # noqa
+        User = security_manager.user_model
+        roles = [r.name for r in security_manager.get_user_by_id(User.get_user_id()).roles]
+        if 'Admin' in roles:
+            return query
         if security_manager.all_datasource_access():
-            Dash = models.Dashboard  # noqa
-            User = security_manager.user_model
             owner_ids_qry = (
                 db.session
                 .query(Dash.id)
@@ -113,9 +131,6 @@ class DashboardFilter(SupersetFilter):
             )
             query = query.filter(Dash.id.in_(owner_ids_qry))
             return query
-        Slice = models.Slice  # noqa
-        Dash = models.Dashboard  # noqa
-        User = security_manager.user_model
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
@@ -618,11 +633,11 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             slc.owners = list(set(owners) | set(slc.owners))
 
     def pre_update(self, obj):
-        check_ownership(obj)
+        check_creator(obj)
         self.pre_add(obj)
 
     def pre_delete(self, obj):
-        check_ownership(obj)
+        check_creator(obj)
 
     @action('mulexport', __('Export'), __('Export dashboards?'), 'fa-database')
     def mulexport(self, items):
@@ -1462,7 +1477,7 @@ class Superset(BaseSupersetView):
             )
 
             # check edit dashboard permissions
-            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+            dash_overwrite_perm = check_creator(dash, raise_if_false=False)
             if not dash_overwrite_perm:
                 return json_error_response(
                     _('You don\'t have the rights to ') + _('alter this ') +
@@ -1657,7 +1672,7 @@ class Superset(BaseSupersetView):
         dash = (session
                 .query(models.Dashboard)
                 .filter_by(id=dashboard_id).first())
-        check_ownership(dash, raise_if_false=True)
+        check_creator(dash, raise_if_false=True)
         data = json.loads(request.form.get('data'))
         self._set_dash_metadata(dash, data)
         session.merge(dash)
@@ -1727,7 +1742,7 @@ class Superset(BaseSupersetView):
         Slice = models.Slice  # noqa
         dash = (
             session.query(models.Dashboard).filter_by(id=dashboard_id).first())
-        check_ownership(dash, raise_if_false=True)
+        check_creator(dash, raise_if_false=True)
         new_slices = session.query(Slice).filter(
             Slice.id.in_(data['slice_ids']))
         dash.slices += new_slices
@@ -2147,9 +2162,10 @@ class Superset(BaseSupersetView):
                         'superset/request_access/?'
                         'dashboard_id={dash.id}&'.format(**locals()))
 
-        dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
+        dash_edit_perm = check_creator(dash, raise_if_false=False) and \
             security_manager.can_access('can_save_dash', 'Superset')
-        dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
+        dash_save_perm = check_creator(dash, raise_if_false=False) and \
+            security_manager.can_access('can_save_dash', 'Superset')
         superset_can_explore = security_manager.can_access('can_explore', 'Superset')
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
