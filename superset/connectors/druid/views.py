@@ -189,6 +189,16 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
             'Duration (in seconds) of the caching timeout for this cluster. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
+        'broker_user': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
+        'broker_pass': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
     }
 
     def pre_add(self, cluster):
