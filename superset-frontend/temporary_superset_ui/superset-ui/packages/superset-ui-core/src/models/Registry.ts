@@ -99,7 +99,7 @@ export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
     const item = this.items[key];
     if (item !== undefined) {
       if ('loader' in item) {
-        return item.loader();
+        return item.loader && item.loader();
       }
 
       return item.value;

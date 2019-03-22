@@ -4,6 +4,8 @@ import getChartComponentRegistry from '../registries/ChartComponentRegistrySingl
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import ChartProps from '../models/ChartProps';
 import createLoadableRenderer, { LoadableRenderer } from './createLoadableRenderer';
+import { ChartType } from '../models/ChartPlugin';
+import { PreTransformProps, TransformProps, PostTransformProps } from '../types/Query';
 
 const IDENTITY = (x: any) => x;
 
@@ -21,26 +23,21 @@ const defaultProps = {
 };
 /* eslint-enable sort-keys */
 
-type TransformFunction<Input = PlainProps, Output = PlainProps> = (x: Input) => Output;
 type HandlerFunction = (...args: any[]) => void;
 
 interface LoadingProps {
   error: any;
 }
 
-interface PlainProps {
-  [key: string]: any;
-}
-
 interface LoadedModules {
-  Chart: React.Component | { default: React.Component };
-  transformProps: TransformFunction | { default: TransformFunction };
+  Chart: ChartType;
+  transformProps: TransformProps;
 }
 
 interface RenderProps {
   chartProps: ChartProps;
-  preTransformProps?: TransformFunction<ChartProps>;
-  postTransformProps?: TransformFunction;
+  preTransformProps?: PreTransformProps;
+  postTransformProps?: PostTransformProps;
 }
 
 const BLANK_CHART_PROPS = new ChartProps();
@@ -50,15 +47,11 @@ export interface SuperChartProps {
   className?: string;
   chartProps?: ChartProps | null;
   chartType: string;
-  preTransformProps?: TransformFunction<ChartProps>;
-  overrideTransformProps?: TransformFunction;
-  postTransformProps?: TransformFunction;
+  preTransformProps?: PreTransformProps;
+  overrideTransformProps?: TransformProps;
+  postTransformProps?: PostTransformProps;
   onRenderSuccess?: HandlerFunction;
   onRenderFailure?: HandlerFunction;
-}
-
-function getModule<T>(value: any): T {
-  return (value.default ? value.default : value) as T;
 }
 
 export default class SuperChart extends React.PureComponent<SuperChartProps, {}> {
@@ -125,19 +118,18 @@ export default class SuperChart extends React.PureComponent<SuperChartProps, {}>
 
   processChartProps: (input: {
     chartProps: ChartProps;
-    preTransformProps?: TransformFunction<ChartProps>;
-    transformProps?: TransformFunction;
-    postTransformProps?: TransformFunction;
+    preTransformProps?: PreTransformProps;
+    transformProps?: TransformProps;
+    postTransformProps?: PostTransformProps;
   }) => any;
 
   createLoadableRenderer: (input: {
     chartType: string;
-    overrideTransformProps?: TransformFunction;
+    overrideTransformProps?: TransformProps;
   }) => LoadableRenderer<RenderProps, LoadedModules> | (() => null);
 
   renderChart(loaded: LoadedModules, props: RenderProps) {
-    const Chart = getModule<typeof React.Component>(loaded.Chart);
-    const transformProps = getModule<TransformFunction>(loaded.transformProps);
+    const { Chart, transformProps } = loaded;
     const { chartProps, preTransformProps, postTransformProps } = props;
 
     return (
