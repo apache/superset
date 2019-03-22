@@ -50,7 +50,6 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
-from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
@@ -105,10 +104,10 @@ def is_owner(obj, user):
 def check_datasource_perms(self, datasource_type=None, datasource_id=None):
     """
     Check if user can access a cached response from explore_json.
-    
+
     This function takes `self` since it must have the same signature as the
     the decorated method.
-    
+
     """
     form_data = get_form_data()[0]
     datasource_id, datasource_type = get_datasource_info(
@@ -125,10 +124,10 @@ def check_datasource_perms(self, datasource_type=None, datasource_id=None):
 def check_slice_perms(self, slice_id):
     """
     Check if user can access a cached response from slice_json.
-    
+
     This function takes `self` since it must have the same signature as the
     the decorated method.
-    
+
     """
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
     datasource_type = slc.datasource.type
@@ -1101,7 +1100,7 @@ class Superset(BaseSupersetView):
         })
 
     def generate_json(
-        self, viz_obj, csv=False, query=False, results=False, samples=False):
+            self, viz_obj, csv=False, query=False, results=False, samples=False):
         if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
