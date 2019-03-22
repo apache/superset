@@ -40,7 +40,7 @@ const defaultProps = {
   saveQueryWarning: null,
 };
 
-class SaveQuery extends React.PureComponent {
+class SaveQuery extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

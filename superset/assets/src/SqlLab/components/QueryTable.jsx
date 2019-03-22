@@ -45,7 +45,7 @@ const defaultProps = {
   onDbClicked: () => {},
 };
 
-class QueryTable extends React.PureComponent {
+class QueryTable extends React.Component {
   constructor(props) {
     super(props);
     const uri = window.location.toString();

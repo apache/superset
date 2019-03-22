@@ -48,7 +48,7 @@ const defaultProps = {
   offline: false,
 };
 
-export class SouthPane extends React.PureComponent {
+export class SouthPane extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

@@ -29,7 +29,7 @@ const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 7000;
 
-class QueryAutoRefresh extends React.PureComponent {
+class QueryAutoRefresh extends React.Component {
   componentWillMount() {
     this.startTimer();
   }

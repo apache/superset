@@ -38,7 +38,7 @@ const defaultProps = {
   offline: false,
 };
 
-export default class SqlEditorLeftBar extends React.PureComponent {
+export default class SqlEditorLeftBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

@@ -65,7 +65,7 @@ const defaultProps = {
   tables: [],
 };
 
-class AceEditorWrapper extends React.PureComponent {
+class AceEditorWrapper extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

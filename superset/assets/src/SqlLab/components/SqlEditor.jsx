@@ -70,7 +70,7 @@ const defaultProps = {
   saveQueryWarning: null,
 };
 
-class SqlEditor extends React.PureComponent {
+class SqlEditor extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

@@ -55,7 +55,7 @@ const SEARCH_HEIGHT = 46;
 
 const LOADING_STYLES = { position: 'relative', minHeight: 100 };
 
-export default class ResultSet extends React.PureComponent {
+export default class ResultSet extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

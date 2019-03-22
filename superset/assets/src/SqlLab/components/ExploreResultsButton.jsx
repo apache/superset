@@ -42,7 +42,7 @@ const defaultProps = {
   query: {},
 };
 
-class ExploreResultsButton extends React.PureComponent {
+class ExploreResultsButton extends React.Component {
   constructor(props) {
     super(props);
     this.visualize = this.visualize.bind(this);

@@ -50,7 +50,7 @@ const defaultProps = {
 
 let queryCount = 1;
 
-class TabbedSqlEditors extends React.PureComponent {
+class TabbedSqlEditors extends React.Component {
   constructor(props) {
     super(props);
     const sqlLabUrl = '/superset/sqllab';

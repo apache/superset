@@ -29,7 +29,7 @@ const propTypes = {
 export default function QueryStateLabel({ query }) {
   const bsStyle = STATE_BSSTYLE_MAP[query.state];
   return (
-    <Label className="m-r-3" bsStyle={bsStyle}>
+    <Label className="m-r-3 m-b-5 inlineBlock" bsStyle={bsStyle}>
       {query.state}
     </Label>
   );

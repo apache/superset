@@ -40,7 +40,7 @@ const defaultProps = {
   timeout: 500,
 };
 
-class TableElement extends React.PureComponent {
+class TableElement extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

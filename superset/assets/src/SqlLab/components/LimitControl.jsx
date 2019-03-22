@@ -37,7 +37,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-export default class LimitControl extends React.PureComponent {
+export default class LimitControl extends React.Component {
   constructor(props) {
     super(props);
     const { value, defaultQueryLimit } = props;

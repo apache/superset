@@ -39,7 +39,7 @@ const propTypes = {
   height: PropTypes.string.isRequired,
 };
 
-class QuerySearch extends React.PureComponent {
+class QuerySearch extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

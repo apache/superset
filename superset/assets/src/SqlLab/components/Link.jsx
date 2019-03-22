@@ -39,7 +39,7 @@ const defaultProps = {
 };
 
 
-class Link extends React.PureComponent {
+class Link extends React.Component {
   render() {
     const tooltip = (
       <Tooltip id="tooltip">

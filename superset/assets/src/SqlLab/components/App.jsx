@@ -28,7 +28,7 @@ import QuerySearch from './QuerySearch';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import * as Actions from '../actions/sqlLab';
 
-class App extends React.PureComponent {
+class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
