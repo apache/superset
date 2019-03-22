@@ -56,6 +56,9 @@ from superset.utils import core as utils, import_datasource
 from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
+from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+import subprocess as spb
+
 
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
