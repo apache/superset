@@ -21,7 +21,7 @@ import logging
 from contextlib2 import contextmanager
 from flask import request
 
-from superset import cache
+from superset import app, cache
 from superset.utils.dates import now_as_float
 
 
@@ -62,6 +62,8 @@ def etag_cache(max_age, check_perms=bool):
                 cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
                 response = cache.get(cache_key)
             except Exception:  # pylint: disable=broad-except
+                if app.debug:
+                    raise
                 logging.exception('Exception possibly due to cache backend.')
                 response = None
 
