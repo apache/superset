@@ -9,7 +9,6 @@ import LegacySunburstPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import LegacyWordCloudPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 import WordCloudPlugin from '@superset-ui/plugin-chart-word-cloud';
 
-import { DataProviderProvidedProps } from '@superset-ui/chart/src';
 import {
   bigNumberFormData,
   sankeyFormData,
@@ -59,7 +58,7 @@ export default [
           <VerifyCORS host={host}>
             {() => (
               <ChartDataProvider client={SupersetClient} formData={JSON.parse(formData)}>
-                {({ loading, payload, error }: DataProviderProvidedProps) => {
+                {({ loading, payload, error }) => {
                   if (loading) return <div>Loading!</div>;
 
                   if (error) return renderError(error);

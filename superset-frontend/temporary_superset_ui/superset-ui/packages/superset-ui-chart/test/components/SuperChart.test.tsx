@@ -28,8 +28,10 @@ describe('SuperChart', () => {
           name: 'second-chart',
           thumbnail: '',
         }),
+        // this mirrors `() => import(module)` syntax
         loadChart: () => Promise.resolve({ default: TestComponent }),
-        transformProps: x => x,
+        // promise without .default
+        loadTransformProps: () => Promise.resolve((x: any) => x),
       });
     }
   }
@@ -42,7 +44,7 @@ describe('SuperChart', () => {
           thumbnail: '',
         }),
         loadChart: () =>
-          new Promise<Function>(resolve => {
+          new Promise(resolve => {
             setTimeout(() => {
               resolve(TestComponent);
             }, 1000);

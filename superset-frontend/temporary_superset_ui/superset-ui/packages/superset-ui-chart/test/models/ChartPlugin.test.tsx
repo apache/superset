@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {
   ChartPlugin,
   ChartMetadata,
@@ -5,13 +7,20 @@ import {
   DatasourceType,
   ChartProps,
   BuildQueryFunction,
-  TransformPropsFunction,
+  TransformProps,
 } from '../../src';
 
 describe('ChartPlugin', () => {
+  const FakeChart = () => <span>test</span>;
+
   const metadata = new ChartMetadata({
     name: 'test-chart',
     thumbnail: '',
+  });
+
+  const buildQuery = (_: ChartFormData) => ({
+    datasource: { id: 1, type: DatasourceType.Table },
+    queries: [{ granularity: 'day' }],
   });
 
   it('exists', () => {
@@ -19,11 +28,6 @@ describe('ChartPlugin', () => {
   });
 
   describe('new ChartPlugin()', () => {
-    const FakeChart = () => 'test';
-    const buildQuery = (_: ChartFormData) => ({
-      datasource: { id: 1, type: DatasourceType.Table },
-      queries: [{ granularity: 'day' }],
-    });
     const FORM_DATA = {
       datasource: '1__table',
       granularity: 'day',
@@ -33,7 +37,7 @@ describe('ChartPlugin', () => {
     it('creates a new plugin', () => {
       const plugin = new ChartPlugin({
         metadata,
-        Chart() {},
+        Chart: FakeChart,
       });
       expect(plugin).toBeInstanceOf(ChartPlugin);
     });
@@ -77,7 +81,8 @@ describe('ChartPlugin', () => {
           metadata,
           loadChart,
         });
-        expect(plugin.loadChart).toBe(loadChart);
+        // the loader is sanitized, so assert on the value
+        expect(plugin.loadChart()).toBe(loadChart());
       });
       it('uses Chart field if specified', () => {
         const plugin = new ChartPlugin({
@@ -102,7 +107,7 @@ describe('ChartPlugin', () => {
           metadata,
           Chart: FakeChart,
         });
-        const fn = plugin.loadTransformProps() as TransformPropsFunction;
+        const fn = plugin.loadTransformProps() as TransformProps;
         expect(fn(PROPS)).toBe(PROPS);
       });
       it('uses loadTransformProps field if specified', () => {
@@ -111,7 +116,7 @@ describe('ChartPlugin', () => {
           Chart: FakeChart,
           loadTransformProps: () => () => ({ field2: 2 }),
         });
-        const fn = plugin.loadTransformProps() as TransformPropsFunction;
+        const fn = plugin.loadTransformProps() as TransformProps;
         expect(fn(PROPS)).toEqual({ field2: 2 });
       });
       it('uses transformProps field if specified', () => {
@@ -120,7 +125,7 @@ describe('ChartPlugin', () => {
           Chart: FakeChart,
           transformProps: () => ({ field2: 2 }),
         });
-        const fn = plugin.loadTransformProps() as TransformPropsFunction;
+        const fn = plugin.loadTransformProps() as TransformProps;
         expect(fn(PROPS)).toEqual({ field2: 2 });
       });
     });
@@ -129,7 +134,8 @@ describe('ChartPlugin', () => {
   describe('.register()', () => {
     const plugin = new ChartPlugin({
       metadata,
-      Chart() {},
+      Chart: FakeChart,
+      buildQuery,
     });
     it('throws an error if key is not provided', () => {
       expect(() => plugin.register()).toThrowError(Error);

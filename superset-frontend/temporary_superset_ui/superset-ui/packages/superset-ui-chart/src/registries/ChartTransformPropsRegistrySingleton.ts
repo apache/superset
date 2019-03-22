@@ -1,6 +1,7 @@
 import { Registry, makeSingleton, OverwritePolicy } from '@superset-ui/core';
+import { TransformProps } from '../types/Query';
 
-class ChartTransformPropsRegistry extends Registry {
+class ChartTransformPropsRegistry extends Registry<TransformProps> {
   constructor() {
     super({ name: 'ChartTransformProps', overwritePolicy: OverwritePolicy.WARN });
   }
