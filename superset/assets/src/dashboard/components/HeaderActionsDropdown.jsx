@@ -37,6 +37,8 @@ const propTypes = {
   dashboardTitle: PropTypes.string.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   css: PropTypes.string.isRequired,
+  colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
@@ -111,6 +113,8 @@ class HeaderActionsDropdown extends React.PureComponent {
       refreshFrequency,
       editMode,
       css,
+      colorNamespace,
+      colorScheme,
       hasUnsavedChanges,
       layout,
       filters,
@@ -145,6 +149,8 @@ class HeaderActionsDropdown extends React.PureComponent {
             expandedSlices={expandedSlices}
             refreshFrequency={refreshFrequency}
             css={css}
+            colorNamespace={colorNamespace}
+            colorScheme={colorScheme}
             onSave={onSave}
             isMenuItem
             triggerNode={<span>{t('Save as')}</span>}

@@ -29,7 +29,7 @@ const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
 const propTypes = {
   showBuilderPane: PropTypes.func.isRequired,
-  setColorScheme: PropTypes.func,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
 };
 
@@ -59,7 +59,14 @@ class ColorComponentPane extends React.PureComponent {
   }
 
   render() {
-    const { topOffset } = this.props;
+    const {
+      topOffset,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme,
+      getChoices,
+      getSchemes
+    } = this.props;
+
     return (
       <div className="slider-container">
         <div className="component-layer slide-content">
@@ -76,8 +83,8 @@ class ColorComponentPane extends React.PureComponent {
                 description={t('Any color palette selected here will override the colors applied to this dashboard\'s individual charts')}
                 label={t('Color Scheme')}
                 name="color_scheme"
-                onChange={this.props.setColorScheme}
-                value={this.props.colorScheme}
+                onChange={setColorSchemeAndUnsavedChanges}
+                value={colorScheme}
                 choices={this.getChoices}
                 schemes={this.getSchemes}
                 hovered={this.state.hovered}

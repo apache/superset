@@ -40,7 +40,6 @@ import { BUILDER_PANE_TYPE } from '../util/constants'
 import getDragDropManager from '../util/getDragDropManager';
 
 import {
-  COLOR_SCHEME_ID,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -56,7 +55,8 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   showBuilderPane: PropTypes.func.isRequired,
   builderPaneType: PropTypes.string.isRequired,
-  setColorScheme: PropTypes.func.isRequired,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
@@ -102,7 +102,15 @@ class DashboardBuilder extends React.Component {
   }
 
   render() {
-    const { handleComponentDrop, dashboardLayout, editMode } = this.props;
+    const {
+      handleComponentDrop,
+      dashboardLayout,
+      editMode,
+      showBuilderPane,
+      builderPaneType,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme
+    } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
@@ -110,8 +118,6 @@ class DashboardBuilder extends React.Component {
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
-
-    const colorScheme = dashboardLayout[COLOR_SCHEME_ID].meta.colorScheme;
 
     return (
       <StickyContainer
@@ -204,12 +210,12 @@ class DashboardBuilder extends React.Component {
               )}
             </ParentSize>
           </div>
-          {this.props.editMode && this.props.builderPaneType !== BUILDER_PANE_TYPE.NONE && (
+          {editMode && builderPaneType !== BUILDER_PANE_TYPE.NONE && (
             <BuilderComponentPane
               topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
-              showBuilderPane={this.props.showBuilderPane}
-              builderPaneType={this.props.builderPaneType}
-              setColorScheme={this.props.setColorScheme}
+              showBuilderPane={showBuilderPane}
+              builderPaneType={builderPaneType}
+              setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
               colorScheme={colorScheme}
             />
           )}

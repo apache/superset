@@ -30,13 +30,11 @@ import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
 import {
-  COLOR_SCHEME_ID,
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
 } from '../util/constants';
 import {
-  COLOR_SCHEME_TYPE,
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
   ROW_TYPE,
@@ -157,17 +155,6 @@ export default function(bootstrapData) {
     },
   };
 
-  // store the color scheme as a layout component so we can undo/redo changes
-  layout[COLOR_SCHEME_ID] = {
-    id: COLOR_SCHEME_ID,
-    type: COLOR_SCHEME_TYPE,
-    meta: {
-      colorNamespace: dashboard.metadata.color_namespace,
-      colorScheme: dashboard.metadata.color_scheme,
-      labelColors: dashboard.metadata.label_colors,
-    },
-  };
-
   const dashboardLayout = {
     past: [],
     present: layout,
@@ -207,6 +194,8 @@ export default function(bootstrapData) {
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',
+      colorNamespace: dashboard.metadata.color_namespace,
+      colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
       builderPaneType: dashboard.dash_edit_perm && editMode
         ? BUILDER_PANE_TYPE.ADD_COMPONENTS

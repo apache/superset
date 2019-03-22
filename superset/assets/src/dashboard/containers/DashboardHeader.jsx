@@ -51,7 +51,7 @@ import {
 
 import { logEvent } from '../../logger/actions';
 
-import { COLOR_SCHEME_ID, DASHBOARD_HEADER_ID } from '../util/constants';
+import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -71,8 +71,8 @@ function mapStateToProps({
     expandedSlices: dashboardState.expandedSlices,
     refreshFrequency: dashboardState.refreshFrequency,
     css: dashboardState.css,
-    colorNamespace: undoableLayout.present[COLOR_SCHEME_ID].meta.colorNamespace,
-    colorScheme: undoableLayout.present[COLOR_SCHEME_ID].meta.colorScheme,
+    colorNamespace: dashboardState.colorNamespace,
+    colorScheme: dashboardState.colorScheme,
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboardState.isStarred,

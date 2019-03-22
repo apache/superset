@@ -263,6 +263,18 @@ export function removeSliceFromDashboard(id) {
   };
 }
 
+export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
+export function setColorScheme(colorScheme) {
+  return { type: SET_COLOR_SCHEME, colorScheme };
+}
+
+export function setColorSchemeAndUnsavedChanges(colorScheme) {
+  return dispatch => {
+    dispatch(setColorScheme(colorScheme));
+    dispatch(setUnsavedChanges(true));
+  };
+}
+
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {

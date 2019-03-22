@@ -39,8 +39,8 @@ const propTypes = {
   topOffset: PropTypes.number,
   showBuilderPane: PropTypes.func.isRequired,
   builderPaneType: PropTypes.string.isRequired,
-  setColorScheme: PropTypes.func.isRequired,
-  colorScheme: PropTypes.string.isRequired,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
@@ -53,7 +53,13 @@ class BuilderComponentPane extends React.PureComponent {
   }
 
   render() {
-    const { topOffset } = this.props;
+    const {
+      topOffset,
+      builderPaneType,
+      showBuilderPane,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme
+    } = this.props;
     return (
       <div
         className="dashboard-builder-sidepane"
@@ -70,18 +76,18 @@ class BuilderComponentPane extends React.PureComponent {
                     className="viewport"
                     style={isSticky ? { ...style, top: topOffset } : null}
                   >
-                  {this.props.builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS && (
+                  {builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS && (
                     <InsertComponentPane
                       height={height}
                       isSticky={isSticky}
-                      showBuilderPane={this.props.showBuilderPane}
+                      showBuilderPane={showBuilderPane}
                     />
                   )}
-                  {this.props.builderPaneType === BUILDER_PANE_TYPE.COLORS && (
+                  {builderPaneType === BUILDER_PANE_TYPE.COLORS && (
                     <ColorComponentPane
-                      showBuilderPane={this.props.showBuilderPane}
-                      setColorScheme={this.props.setColorScheme}
-                      colorScheme={this.props.colorScheme}
+                      showBuilderPane={showBuilderPane}
+                      setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
+                      colorScheme={colorScheme}
                     />
                   )}
                   </div>

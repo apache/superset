@@ -23,6 +23,7 @@ import {
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
+  SET_COLOR_SCHEME,
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
@@ -85,6 +86,9 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [SHOW_BUILDER_PANE]() {
       return { ...state, builderPaneType: action.builderPaneType };
+    },
+    [SET_COLOR_SCHEME]() {
+      return { ...state, colorScheme: action.colorScheme };
     },
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };

@@ -250,6 +250,8 @@ class Header extends React.PureComponent {
       filters,
       expandedSlices,
       css,
+      colorNamespace,
+      colorScheme,
       onUndo,
       onRedo,
       undoLength,
@@ -388,6 +390,8 @@ class Header extends React.PureComponent {
             filters={filters}
             expandedSlices={expandedSlices}
             css={css}
+            colorNamespace={colorNamespace}
+            colorScheme={colorScheme}
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
