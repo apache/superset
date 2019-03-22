@@ -57,6 +57,10 @@ from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
 
+
+from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+import subprocess as spb
+
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
 metadata = Model.metadata  # pylint: disable=no-member
@@ -149,6 +153,21 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         endpoint = self.get_base_url(
             self.broker_host, self.broker_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
+
+    def get_kerberos_auth(self):
+        enable_kerberos_authentication = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        kerberos_keytab = conf.get('KERBEROS_KEYTAB', [])
+        kerberos_principal = conf.get('KERBEROS_PRINCIPAL', [])
+        if not enable_kerberos_authentication:
+            return False
+        logging.info('kerberos_keytab = '+ kerberos_keytab)
+        logging.info('kerberos_principal = '+ kerberos_principal)
+        kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
+        logging.info('JesseTong log: kerberos_commands = '+kerberos_commands)
+        spb.call(kerberos_commands, shell=True)
+        return True
+
+
 
     @property
     @utils.memoized
