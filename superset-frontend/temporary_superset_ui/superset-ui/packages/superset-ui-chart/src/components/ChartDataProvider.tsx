@@ -1,6 +1,6 @@
 /* eslint react/sort-comp: 'off' */
 import React, { ReactNode } from 'react';
-import { SupersetClientInterface, RequestConfig } from '../../../superset-ui-connection/src/types';
+import { SupersetClientInterface, RequestConfig } from '@superset-ui/connection';
 
 import ChartClient, { SliceIdAndOrFormData } from '../clients/ChartClient';
 import { ChartFormData } from '../types/ChartFormData';
