@@ -172,6 +172,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
       endpointType: 'json',
       force,
       allowDomainSharding: true,
+      method,
     });
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
