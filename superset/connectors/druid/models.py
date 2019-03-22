@@ -255,6 +255,18 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def unique_name(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
 
+    def get_kerberos_auth(self):
+        enable_kerberos_authentication = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        kerberos_keytab = conf.get('KERBEROS_KEYTAB', [])
+        kerberos_principal = conf.get('KERBEROS_PRINCIPAL', [])
+        if not enable_kerberos_authentication:
+            return False
+        logging.info('kerberos_keytab = '+ kerberos_keytab)
+        logging.info('kerberos_principal = '+ kerberos_principal)
+        kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
+        logging.info('JesseTong log: kerberos_commands = '+kerberos_commands)
+        spb.call(kerberos_commands, shell=True)
+        return True
 
 class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""

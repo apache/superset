@@ -105,6 +105,8 @@ setup(
         'sqlparse',
         'unicodecsv',
         'wtforms-json',
+        'urllib_kerberos',
+        'requests_kerberos',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

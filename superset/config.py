@@ -603,6 +603,13 @@ DEFAULT_RELATIVE_END_TIME = 'today'
 # localtime (in the tz where the superset webserver is running)
 IS_EPOCH_S_TRULY_UTC = False
 
+# Add the kerbero for Druid
+ENABLE_KERBEROS_AUTHENTICATION = False
+
+# ENABLE_KERBEROS_AUTHENTICATION = True
+# KERBEROS_KEYTAB = "/etc/security/keytabs/superset.headless.keytab"
+# KERBEROS_PRINCIPAL = "superset-hadoop@WESURE.CN"
+# KERBEROS_REINIT_TIME_SEC = 3600
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
