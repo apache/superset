@@ -77,6 +77,8 @@ const propTypes = {
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
+  setRefreshFrequency: PropTypes.func.isRequired,
 };
 
 class Header extends React.PureComponent {
@@ -98,6 +100,11 @@ class Header extends React.PureComponent {
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
+  }
+
+  componentDidMount() {
+    const refreshFrequency = this.props.refreshFrequency;
+    this.props.startPeriodicRender(refreshFrequency * 1000);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -234,6 +241,8 @@ class Header extends React.PureComponent {
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
+      refreshFrequency,
+      setRefreshFrequency,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -346,6 +355,8 @@ class Header extends React.PureComponent {
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.startPeriodicRender}
+            refreshFrequency={refreshFrequency}
+            setRefreshFrequency={setRefreshFrequency}
             updateCss={updateCss}
             editMode={editMode}
             hasUnsavedChanges={hasUnsavedChanges}
