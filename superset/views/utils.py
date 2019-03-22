@@ -24,10 +24,8 @@ from superset import db
 
 
 def bootstrap_user_data(username=None, include_perms=False):
-    if username:
-        username = username
-    else:
-        username = g.user.username
+    if not username:
+      username = g.user.username
 
     user = (
         db.session.query(ab_models.User)
