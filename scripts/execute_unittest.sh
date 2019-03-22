@@ -1,3 +1,4 @@
+set -e
 EXECUTE_TEST=$1
 echo -e "# # # # # # # STARTING : Unit Test Exceution # # # # # # #"
 pip install tox

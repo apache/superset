@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 # first bump up package.json manually, commit and tag
+set -e
 rm superset/assets/dist/*
 cd superset/assets/
 npm run build

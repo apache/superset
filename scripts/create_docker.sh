@@ -1,3 +1,4 @@
+set -e
 # moving docker files to root
 cp ./docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
 cp ./docker/superset_config.py superset/

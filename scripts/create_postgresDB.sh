@@ -1,3 +1,4 @@
+set -e
 echo -e "# # # # # # # START : Dropping Postgres Database - Superset If Exists # # # # # ## #"
 psql postgres -c "DROP DATABASE IF EXISTS superset"
 echo -e "# # # # # # # START : Creating Postgres Database # # # # # ## #"

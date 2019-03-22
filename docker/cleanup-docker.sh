@@ -1,3 +1,4 @@
+set -e
 # remove all exited containers
 docker rm -v $(docker ps -a -q -f status=exited)
 # remove unused images

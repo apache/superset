@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -e
 rm -rf _build
 make html
 #cp -r ../superset/assets/images/ _build/html/_static/img/
