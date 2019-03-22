@@ -1437,7 +1437,7 @@ class Superset(BaseSupersetView):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-        form_data, _ = self.get_form_data()
+        form_data, unused_slc = self.get_form_data()
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
@@ -1474,7 +1474,7 @@ class Superset(BaseSupersetView):
                     status=400)
 
             flash(
-                'Slice [{}] was added to dashboard [{}]'.format(
+                _('Chart [{}] was added to dashboard [{}]').format(
                     slc.slice_name,
                     dash.dashboard_title),
                 'info')
@@ -1490,8 +1490,8 @@ class Superset(BaseSupersetView):
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
             flash(
-                'Dashboard [{}] just got created and slice [{}] was added '
-                'to it'.format(
+                _('Dashboard [{}] just got created and chart [{}] was added '
+                  'to it').format(
                     dash.dashboard_title,
                     slc.slice_name),
                 'info')
