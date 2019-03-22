@@ -6,8 +6,8 @@
   "scripts": {
     "bootstrap": "lerna bootstrap",
     "build": "yarn run build:cjs && yarn run build:esm && yarn run type:dts && yarn run build:assets",
-    "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
-    "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "build:cjs": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir lib/ --delete-dir-on-start --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
+    "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --delete-dir-on-start --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:assets": "node ./scripts/buildAssets.js",
     "commit": "git-cz",
     "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(generator-superset)\" --noEmit",
