@@ -1735,6 +1735,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['refresh_frequency'] = data.get('refresh_frequency', 0)
         default_filters_data = json.loads(data.get('default_filters', '{}'))
         applicable_filters = \
             {key: v for key, v in default_filters_data.items()
