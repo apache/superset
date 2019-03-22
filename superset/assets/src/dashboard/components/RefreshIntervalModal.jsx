@@ -25,13 +25,8 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
-  initialRefreshFrequency: PropTypes.number,
-  onChange: PropTypes.func,
-};
-
-const defaultProps = {
-  initialRefreshFrequency: 0,
-  onChange: () => {},
+  refreshFrequency: PropTypes.number.isRequired,
+  onChange: PropTypes.func.isRequired,
 };
 
 const options = [
@@ -51,7 +46,7 @@ class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      refreshFrequency: props.initialRefreshFrequency,
+      refreshFrequency: props.refreshFrequency,
     };
   }
   render() {
@@ -81,6 +76,5 @@ class RefreshIntervalModal extends React.PureComponent {
   }
 }
 RefreshIntervalModal.propTypes = propTypes;
-RefreshIntervalModal.defaultProps = defaultProps;
 
 export default RefreshIntervalModal;

@@ -123,6 +123,11 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
+export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
+export function setRefreshFrequency(refreshFrequency) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+}
+
 export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
