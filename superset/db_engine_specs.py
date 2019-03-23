@@ -1423,10 +1423,10 @@ class MssqlEngineSpec(BaseEngineSpec):
             data = [[elem for elem in r] for r in data]
         return data
 
-    column_types = {
+    column_types = [
         (String(), re.compile(r'^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)', re.IGNORECASE)),
         (UnicodeText(), re.compile(r'^N((VAR){0,1}CHAR|TEXT)', re.IGNORECASE)),
-    }
+    ]
 
     @classmethod
     def get_sqla_column_type(cls, type_):
