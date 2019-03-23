@@ -44,7 +44,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend,
+    app, appbuilder, cache, conf, db, results_backend,
     security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
@@ -1877,6 +1877,20 @@ class Superset(BaseSupersetView):
     def csrf_token(self):
         return Response(
             self.render_template('superset/csrf_token.json'),
+            mimetype='text/json',
+        )
+
+    @api
+    @has_access_api
+    @expose('/available_domains/', methods=['GET'])
+    def available_domains(self):
+        """
+        Returns the list of available Superset Webserver domains (if any)
+        defined in config. This enables charts embedded in other apps to
+        leverage domain sharding if appropriately configured.
+        """
+        return Response(
+            json.dumps(conf.get('SUPERSET_WEBSERVER_DOMAINS')),
             mimetype='text/json',
         )
 
