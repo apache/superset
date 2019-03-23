@@ -1875,7 +1875,7 @@ class Superset(BaseSupersetView):
     def available_domains(self):
         """
         Returns the list of available Superset Webserver domains (if any)
-        defined in config. This enables charts embedded in other apps to 
+        defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         """
         return Response(
