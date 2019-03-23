@@ -18,6 +18,7 @@ import inspect
 
 import mock
 from sqlalchemy import column
+from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
@@ -346,3 +347,20 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(label.quote, True)
         label_expected = '3b26974078683be078219674eeb8f5'
         self.assertEqual(label, label_expected)
+
+    def test_mssql_column_types(self):
+        def assert_type(type_string, type_expected):
+            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+            if type_expected is None:
+                self.assertIsNone(type_assigned)
+            else:
+                self.assertIsInstance(type_assigned, type_expected)
+
+        assert_type('INT', None)
+        assert_type('STRING', String)
+        assert_type('CHAR', String)
+        assert_type('VARCHAR', String)
+        assert_type('TEXT', String)
+        assert_type('NCHAR', UnicodeText)
+        assert_type('NVARCHAR', UnicodeText)
+        assert_type('NTEXT', UnicodeText)
