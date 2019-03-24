@@ -17,7 +17,6 @@
 import inspect
 
 import mock
-import sqlalchemy as sa
 from sqlalchemy import column, select, table
 from sqlalchemy.dialects.mssql import pymssql
 from sqlalchemy.types import String, UnicodeText
