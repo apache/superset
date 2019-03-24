@@ -19,6 +19,7 @@ import inspect
 import mock
 import sqlalchemy as sa
 from sqlalchemy import column, select, table
+from sqlalchemy.dialects.mssql import pymssql
 from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
@@ -367,7 +368,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         assert_type('NTEXT', UnicodeText)
 
     def test_mssql_where_clause_n_prefix(self):
-        mssql_engine = sa.create_engine('mssql://uid:pwd@localhost')
+        dialect = pymssql.dialect()
         spec = MssqlEngineSpec
         str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
         unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
@@ -377,6 +378,6 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             where(str_col == 'abc').\
             where(unicode_col == 'abc')
 
-        query = str(sel.compile(mssql_engine, compile_kwargs={"literal_binds": True}))
+        query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
         query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
         self.assertEqual(query, query_expected)
