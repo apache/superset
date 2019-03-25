@@ -28,6 +28,8 @@ import {
 } from 'react-virtualized';
 import { getTextWidth } from '../../modules/visUtils';
 
+const SCROLL_BAR_HEIGHT = 15;
+
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
@@ -59,6 +61,7 @@ export default class FilterableTable extends PureComponent {
     this.totalTableWidth = props.orderedColumnKeys
       .map(key => this.widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next);
+    this.totalTableHeight = props.height;
 
     this.state = {
       sortBy: null,
@@ -89,9 +92,10 @@ export default class FilterableTable extends PureComponent {
   }
 
   fitTableToWidthIfNeeded() {
-    const containerWidth = this.container.getBoundingClientRect().width;
-    if (containerWidth > this.totalTableWidth) {
-      this.totalTableWidth = containerWidth - 2; // accommodates 1px border on container
+    const containerWidth = this.container.clientWidth;
+    if (this.totalTableWidth < containerWidth) {
+      // fit table width if content doesn't fill the width of the container
+      this.totalTableWidth = containerWidth;
     }
     this.setState({ fitted: true });
   }
@@ -174,6 +178,13 @@ export default class FilterableTable extends PureComponent {
       .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
     }
 
+    let totalTableHeight = height;
+    if (this.container && this.totalTableWidth > this.container.clientWidth) {
+      // exclude the height of the horizontal scroll bar from the height of the table
+      // if the content overflows
+      totalTableHeight -= SCROLL_BAR_HEIGHT;
+    }
+
     const rowGetter = ({ index }) => this.getDatum(sortedAndFilteredList, index);
     return (
       <div
@@ -185,7 +196,7 @@ export default class FilterableTable extends PureComponent {
           <Table
             ref="Table"
             headerHeight={headerHeight}
-            height={height - 2}
+            height={totalTableHeight}
             overscanRowCount={overscanRowCount}
             rowClassName={this.rowClassName}
             rowHeight={rowHeight}

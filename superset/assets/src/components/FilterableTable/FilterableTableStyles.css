@@ -72,6 +72,3 @@
 }
 .even-row { background: #f2f2f2; }
 .odd-row { background: #ffffff; }
-.filterable-table-container {
-  overflow: auto;
-}
