@@ -56,3 +56,4 @@ class CeleryConfig(object):
 
 
 CELERY_CONFIG = CeleryConfig
+PUBLIC_ROLE_LIKE_GAMMA = True
