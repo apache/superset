@@ -581,7 +581,7 @@ export default class AnnotationLayer extends React.PureComponent {
           value={width}
           onChange={v => this.setState({ width: v })}
         />
-        {annotationType === AnnotationTypes.TIME_SERIES &&
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES &&
         <CheckboxControl
           hovered
           name="annotation-layer-show-markers"
@@ -591,7 +591,7 @@ export default class AnnotationLayer extends React.PureComponent {
           onChange={v => this.setState({ showMarkers: v })}
         />
         }
-        {annotationType === AnnotationTypes.TIME_SERIES && showMarkers &&
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES && showMarkers &&
         <TextControl
           hovered
           name="annotation-layer-marker-width"
@@ -602,7 +602,7 @@ export default class AnnotationLayer extends React.PureComponent {
           onChange={v => this.setState({ markerWidth: v })}
         />
         }
-        {annotationType === AnnotationTypes.TIME_SERIES &&
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES &&
         <CheckboxControl
           hovered
           name="annotation-layer-hide-line"
