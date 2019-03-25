@@ -31,7 +31,7 @@ import os
 import signal
 import smtplib
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 import uuid
 import zlib
 
@@ -925,7 +925,7 @@ def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
                     time_shift: Optional[str] = None,
-                    relative_end: Optional[str] = None) -> (datetime, datetime):
+                    relative_end: Optional[str] = None) -> Tuple[datetime, datetime]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -953,11 +953,11 @@ def get_since_until(time_range: Optional[str] = None,
     separator = ' : '
     relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (relative_end - relativedelta(days=1), relative_end),
-        'Last week': (relative_end - relativedelta(weeks=1), relative_end),
-        'Last month': (relative_end - relativedelta(months=1), relative_end),
-        'Last quarter': (relative_end - relativedelta(months=3), relative_end),
-        'Last year': (relative_end - relativedelta(years=1), relative_end),
+        'Last day': (relative_end - relativedelta(days=1), relative_end),  # noqa: T400
+        'Last week': (relative_end - relativedelta(weeks=1), relative_end),  # noqa: T400
+        'Last month': (relative_end - relativedelta(months=1), relative_end),  # noqa: E501, T400
+        'Last quarter': (relative_end - relativedelta(months=3), relative_end),  # noqa: E501, T400
+        'Last year': (relative_end - relativedelta(years=1), relative_end),  # noqa: T400
     }
 
     if time_range:
@@ -974,11 +974,11 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = relative_end - relativedelta(**{grain: int(num)})
+                since = relative_end - relativedelta(**{grain: int(num)})  # noqa: T400
                 until = relative_end
             else:  # rel == 'Next'
                 since = relative_end
-                until = relative_end + relativedelta(**{grain: int(num)})
+                until = relative_end + relativedelta(**{grain: int(num)})  # noqa: T400
     else:
         since = since or ''
         if since:
@@ -988,13 +988,13 @@ def get_since_until(time_range: Optional[str] = None,
 
     if time_shift:
         time_shift = parse_human_timedelta(time_shift)
-        since = since if since is None else (since - time_shift)
-        until = until if until is None else (until - time_shift)
+        since = since if since is None else (since - time_shift)  # noqa: T400
+        until = until if until is None else (until - time_shift)  # noqa: T400
 
     if since and until and since > until:
         raise ValueError(_('From date cannot be larger than to date'))
 
-    return since, until
+    return since, until  # noqa: T400
 
 
 def add_ago_to_since(since):

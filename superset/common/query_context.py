@@ -54,7 +54,7 @@ class QueryContext:
             custom_cache_timeout: int = None,
     ):
         self.datasource = ConnectorRegistry.get_datasource(datasource.get('type'),
-                                                           int(datasource.get('id')),
+                                                           int(datasource.get('id')),  # noqa: E501, T400
                                                            db.session)
         self.queries = list(map(lambda query_obj: QueryObject(**query_obj), queries))
 
