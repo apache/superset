@@ -370,7 +370,8 @@ WARNING_MSG = None
 
 
 class CeleryConfig(object):
-    BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+    #BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+    BROKER_URL = 'redis://localhost:6379/0'
     CELERY_IMPORTS = (
         'superset.sql_lab',
         'superset.tasks',
@@ -394,6 +395,12 @@ class CeleryConfig(object):
         'email_reports.schedule_hourly': {
             'task': 'email_reports.schedule_hourly',
             'schedule': crontab(minute=1, hour='*'),
+        },
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            #'schedule': crontab(minute=1, hour='*'),
+            'schedule': 300.0,
+            'args': ('dummy',),
         },
     }
 
