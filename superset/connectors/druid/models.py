@@ -56,7 +56,6 @@ from superset.utils import core as utils, import_datasource
 from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
-from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 import subprocess as spb
 
 
@@ -264,13 +263,14 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         kerberos_keytab = conf.get('KERBEROS_KEYTAB', [])
         kerberos_principal = conf.get('KERBEROS_PRINCIPAL', [])
         if not enable_kerberos_authentication:
-            return False
-        logging.info('kerberos_keytab = '+ kerberos_keytab)
-        logging.info('kerberos_principal = '+ kerberos_principal)
+            return False  
+        logging.info('kerberos_keytab [{}]'.format(kerberos_keytab))
+        logging.info('kerberos_principal [{}]'.format(kerberos_principal))
         kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
-        logging.info('JesseTong log: kerberos_commands = '+kerberos_commands)
+        logging.info('kerberos_commands [{}]'.format(kerberos_commands))
         spb.call(kerberos_commands, shell=True)
         return True
+
 
 class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
