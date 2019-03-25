@@ -207,7 +207,7 @@ export default class ResultSet extends React.PureComponent {
       }
       if (data && data.length > 0) {
         return (
-          <div>
+          <React.Fragment>
             {this.renderControls.bind(this)()}
             {sql}
             <FilterableTable
@@ -216,7 +216,7 @@ export default class ResultSet extends React.PureComponent {
               height={height}
               filterText={this.state.searchText}
             />
-          </div>
+          </React.Fragment>
         );
       } else if (data && data.length === 0) {
         return <Alert bsStyle="warning">The query returned no data</Alert>;

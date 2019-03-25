@@ -44,8 +44,10 @@ import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 
+const SQL_EDITOR_PADDING = 10;
 const SQL_TOOLBAR_HEIGHT = 51;
 const GUTTER_HEIGHT = 5;
+const GUTTER_MARGIN = 3;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
 
@@ -81,6 +83,7 @@ class SqlEditor extends React.PureComponent {
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
 
+    this.elementStyle = this.elementStyle.bind(this);
     this.onResizeStart = this.onResizeStart.bind(this);
     this.onResizeEnd = this.onResizeEnd.bind(this);
     this.runQuery = this.runQuery.bind(this);
@@ -124,14 +127,16 @@ class SqlEditor extends React.PureComponent {
   }
   // One layer of abstraction for easy spying in unit tests
   getSqlEditorHeight() {
-    return this.sqlEditorRef.current ? this.sqlEditorRef.current.clientHeight : 0;
+    return this.sqlEditorRef.current ?
+      (this.sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2) : 0;
   }
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.
   getAceEditorAndSouthPaneHeights(height, northPercent, southPercent) {
     return {
-      aceEditorHeight: height * northPercent / 100 - SQL_TOOLBAR_HEIGHT - GUTTER_HEIGHT / 2,
-      southPaneHeight: height * southPercent / 100,
+      aceEditorHeight: height * northPercent / 100 - (GUTTER_HEIGHT / 2 + GUTTER_MARGIN)
+        - SQL_TOOLBAR_HEIGHT,
+      southPaneHeight: height * southPercent / 100 - (GUTTER_HEIGHT / 2 + GUTTER_MARGIN),
     };
   }
   getHotkeyConfig() {
@@ -174,6 +179,11 @@ class SqlEditor extends React.PureComponent {
   setQueryLimit(queryLimit) {
     this.props.actions.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
+  elementStyle(dimension, elementSize, gutterSize) {
+    return {
+      [dimension]: `calc(${elementSize}% - ${gutterSize + GUTTER_MARGIN}px)`,
+    };
+  }
   runQuery() {
     if (this.props.database) {
       this.startQuery(this.props.database.allow_run_async);
@@ -212,36 +222,36 @@ class SqlEditor extends React.PureComponent {
     const { aceEditorHeight, southPaneHeight } = this.getAceEditorAndSouthPaneHeights(
       this.state.height, INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT);
     return (
-      <div className="queryPane">
-        <Split
-          sizes={[INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT]}
-          minSize={200}
-          direction="vertical"
-          gutterSize={GUTTER_HEIGHT}
-          onDragStart={this.onResizeStart}
-          onDragEnd={this.onResizeEnd}
-        >
-          <div ref={this.northPaneRef}>
-            <AceEditorWrapper
-              actions={this.props.actions}
-              onBlur={this.setQueryEditorSql}
-              onChange={this.onSqlChanged}
-              queryEditor={this.props.queryEditor}
-              sql={this.props.queryEditor.sql}
-              tables={this.props.tables}
-              height={`${this.state.aceEditorHeight || aceEditorHeight}px`}
-              hotkeys={hotkeys}
-            />
-            {this.renderEditorBottomBar(hotkeys)}
-          </div>
-          <SouthPane
-            editorQueries={this.props.editorQueries}
-            dataPreviewQueries={this.props.dataPreviewQueries}
+      <Split
+        className="queryPane"
+        sizes={[INITIAL_NORTH_PERCENT, INITIAL_SOUTH_PERCENT]}
+        elementStyle={this.elementStyle}
+        minSize={200}
+        direction="vertical"
+        gutterSize={GUTTER_HEIGHT}
+        onDragStart={this.onResizeStart}
+        onDragEnd={this.onResizeEnd}
+      >
+        <div ref={this.northPaneRef}>
+          <AceEditorWrapper
             actions={this.props.actions}
-            height={this.state.southPaneHeight || southPaneHeight}
+            onBlur={this.setQueryEditorSql}
+            onChange={this.onSqlChanged}
+            queryEditor={this.props.queryEditor}
+            sql={this.props.queryEditor.sql}
+            tables={this.props.tables}
+            height={`${this.state.aceEditorHeight || aceEditorHeight}px`}
+            hotkeys={hotkeys}
           />
-        </Split>
-      </div>
+          {this.renderEditorBottomBar(hotkeys)}
+        </div>
+        <SouthPane
+          editorQueries={this.props.editorQueries}
+          dataPreviewQueries={this.props.dataPreviewQueries}
+          actions={this.props.actions}
+          height={this.state.southPaneHeight || southPaneHeight}
+        />
+      </Split>
     );
   }
   renderEditorBottomBar(hotkeys) {

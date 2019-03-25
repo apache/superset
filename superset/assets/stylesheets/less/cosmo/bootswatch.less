@@ -24,12 +24,22 @@
 
 .navbar {
   border: none;
+
+  li > a:focus {
+    outline: 0;
+  }
+
   &-inverse {
 
     .badge {
       background-color: #fff;
       color: @brand-primary;
     }
+  }
+
+  b.caret {
+    display: inline-block;
+    padding: 0 5px 18px 5px;
   }
 }
 
@@ -91,28 +101,6 @@
 .caret:hover {
   color: @gray-darker;
 }
-
-.dropdown-toggle.btn .caret {
-  margin-left: 6px;
-  margin-top: -21px;
-  margin-right: 6px;
-}
-
-.nav-tabs .dropdown-toggle.btn .caret  {
-  margin-left: -12px;
-  margin-top: -10px;
-}
-
-.navbar-nav .caret,
-.panel-title .caret {
-  margin-left: 6px;
-  margin-top: -24px;
-  margin-right: 6px;
-}
-
-
-
-
 
 // Typography =================================================================
 
@@ -407,6 +395,10 @@ a.list-group-item {
 }
 
 // Tabs ==============================================================
+
+.nav-tabs > li > a {
+  border-top: 3px solid transparent;
+}
 
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
   background-color: #fff;
