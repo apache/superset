@@ -485,9 +485,6 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     edit_title = _('Edit Chart')
 
     can_add = False
-    label_columns = {
-        'datasource_link': _('Datasource'),
-    }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
