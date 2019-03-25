@@ -50,6 +50,8 @@ const propTypes = {
 const defaultProps = {
   isMenuItem: false,
   saveType: SAVE_TYPE_OVERWRITE,
+  colorNamespace: undefined,
+  colorScheme: undefined,
 };
 
 class SaveModal extends React.PureComponent {
@@ -104,7 +106,10 @@ class SaveModal extends React.PureComponent {
       refreshFrequency,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+    const scale = CategoricalColorNamespace.getScale(
+      colorScheme,
+      colorNamespace,
+    );
     const labelColors = scale.getColorMap();
 
     const data = {

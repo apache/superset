@@ -33,7 +33,7 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
 } from '../actions/dashboardState';
-import { BUILDER_PANE_TYPE } from '../util/constants'
+import { BUILDER_PANE_TYPE } from '../util/constants';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
@@ -77,7 +77,7 @@ export default function dashboardStateReducer(state = {}, action) {
         editMode: action.editMode,
         builderPaneType: action.editMode
           ? BUILDER_PANE_TYPE.ADD_COMPONENTS
-          : BUILDER_PANE_TYPE.NONE
+          : BUILDER_PANE_TYPE.NONE,
       };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED]() {

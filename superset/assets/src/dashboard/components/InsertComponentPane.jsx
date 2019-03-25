@@ -29,7 +29,7 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
-import { BUILDER_PANE_TYPE } from '../util/constants'
+import { BUILDER_PANE_TYPE } from '../util/constants';
 
 export const SUPERSET_HEADER_HEIGHT = 59;
 
@@ -52,7 +52,7 @@ class InsertComponentPane extends React.PureComponent {
   }
 
   onCloseButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.NONE)
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.NONE);
   }
 
   slide(direction) {
@@ -63,32 +63,27 @@ class InsertComponentPane extends React.PureComponent {
 
   render() {
     return (
-      <div
-          className={cx(
-          'slider-container',
-          this.state.slideDirection,
-          )}
-      >
-          <div className="component-layer slide-content">
+      <div className={cx('slider-container', this.state.slideDirection)}>
+        <div className="component-layer slide-content">
           <div className="dashboard-builder-sidepane-header">
-              <span>{t('Insert components')}</span>
-              <i
+            <span>{t('Insert components')}</span>
+            <i
               className="fa fa-times trigger"
               onClick={this.onCloseButtonClick}
               role="none"
-              />
+            />
           </div>
           <div
-              className="new-component static"
-              role="none"
-              onClick={this.openSlicesPane}
+            className="new-component static"
+            role="none"
+            onClick={this.openSlicesPane}
           >
-              <div className="new-component-placeholder fa fa-area-chart" />
-              <div className="new-component-label">
+            <div className="new-component-placeholder fa fa-area-chart" />
+            <div className="new-component-label">
               {t('Your charts & filters')}
-              </div>
+            </div>
 
-              <i className="fa fa-arrow-right trigger" />
+            <i className="fa fa-arrow-right trigger" />
           </div>
           <NewTabs />
           <NewRow />
@@ -96,22 +91,23 @@ class InsertComponentPane extends React.PureComponent {
           <NewHeader />
           <NewMarkdown />
           <NewDivider />
-          </div>
-          <div className="slices-layer slide-content">
+        </div>
+        <div className="slices-layer slide-content">
           <div
-              className="dashboard-builder-sidepane-header"
-              onClick={this.closeSlicesPane}
-              role="none"
+            className="dashboard-builder-sidepane-header"
+            onClick={this.closeSlicesPane}
+            role="none"
           >
-              <i className="fa fa-arrow-left trigger" />
-              <span>{t('Your charts and filters')}</span>
+            <i className="fa fa-arrow-left trigger" />
+            <span>{t('Your charts and filters')}</span>
           </div>
           <SliceAdder
-              height={
-                this.props.height + (this.props.isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-              }
+            height={
+              this.props.height +
+              (this.props.isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+            }
           />
-          </div>
+        </div>
       </div>
     );
   }

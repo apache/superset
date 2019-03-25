@@ -28,9 +28,9 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 
-import { BUILDER_PANE_TYPE } from '../util/constants'
 import { chartPropShape } from '../util/propShapes';
 import {
+  BUILDER_PANE_TYPE,
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
@@ -85,6 +85,11 @@ const propTypes = {
   setRefreshFrequency: PropTypes.func.isRequired,
 };
 
+const defaultProps = {
+  colorNamespace: undefined,
+  colorScheme: undefined,
+};
+
 class Header extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
@@ -100,7 +105,9 @@ class Header extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleCtrlZ = this.handleCtrlZ.bind(this);
     this.handleCtrlY = this.handleCtrlY.bind(this);
-    this.onInsertComponentsButtonClick = this.onInsertComponentsButtonClick.bind(this);
+    this.onInsertComponentsButtonClick = this.onInsertComponentsButtonClick.bind(
+      this,
+    );
     this.onColorsButtonClick = this.onColorsButtonClick.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
@@ -134,25 +141,12 @@ class Header extends React.PureComponent {
     clearTimeout(this.ctrlZTimeout);
   }
 
-  forceRefresh() {
-    if (!this.props.isLoading) {
-      const chartList = Object.values(this.props.charts);
-      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
-        force: true,
-        interval: 0,
-        chartCount: chartList.length,
-      });
-      return this.props.fetchCharts(chartList, true);
-    }
-    return false;
+  onInsertComponentsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.ADD_COMPONENTS);
   }
 
-  startPeriodicRender(interval) {
-    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
-      force: true,
-      interval,
-    });
-    return this.props.startPeriodicRender(interval);
+  onColorsButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.COLORS);
   }
 
   handleChangeText(nextText) {
@@ -183,12 +177,25 @@ class Header extends React.PureComponent {
     });
   }
 
-  onInsertComponentsButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.ADD_COMPONENTS);
+  forceRefresh() {
+    if (!this.props.isLoading) {
+      const chartList = Object.values(this.props.charts);
+      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+        force: true,
+        interval: 0,
+        chartCount: chartList.length,
+      });
+      return this.props.fetchCharts(chartList, true);
+    }
+    return false;
   }
 
-  onColorsButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.COLORS);
+  startPeriodicRender(interval) {
+    this.props.logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+      force: true,
+      interval,
+    });
+    return this.props.startPeriodicRender(interval);
   }
 
   toggleEditMode() {
@@ -210,7 +217,10 @@ class Header extends React.PureComponent {
       dashboardInfo,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+    const scale = CategoricalColorNamespace.getScale(
+      colorScheme,
+      colorNamespace,
+    );
     const labelColors = scale.getColorMap();
     const data = {
       positions,
@@ -322,9 +332,7 @@ class Header extends React.PureComponent {
                   bsSize="small"
                   onClick={this.onInsertComponentsButtonClick}
                 >
-                  {
-                    t('Insert components')
-                  }
+                  {t('Insert components')}
                 </Button>
               )}
 
@@ -334,9 +342,7 @@ class Header extends React.PureComponent {
                   bsSize="small"
                   onClick={this.onColorsButtonClick}
                 >
-                  {
-                    t('Colors')
-                  }
+                  {t('Colors')}
                 </Button>
               )}
 
@@ -412,5 +418,6 @@ class Header extends React.PureComponent {
 }
 
 Header.propTypes = propTypes;
+Header.defaultProps = defaultProps;
 
 export default Header;

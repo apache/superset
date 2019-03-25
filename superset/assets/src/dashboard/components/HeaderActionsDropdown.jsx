@@ -55,7 +55,10 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
 };
 
-const defaultProps = {};
+const defaultProps = {
+  colorNamespace: undefined,
+  colorScheme: undefined,
+};
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {

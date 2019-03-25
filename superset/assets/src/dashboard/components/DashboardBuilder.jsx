@@ -27,7 +27,6 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
 import BuilderComponentPane from './BuilderComponentPane';
-import ColorComponentPane from './ColorComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
 import DashboardGrid from '../containers/DashboardGrid';
 import IconButton from './IconButton';
@@ -36,10 +35,10 @@ import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
-import { BUILDER_PANE_TYPE } from '../util/constants'
 import getDragDropManager from '../util/getDragDropManager';
 
 import {
+  BUILDER_PANE_TYPE,
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -58,6 +57,10 @@ const propTypes = {
   setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
   colorScheme: PropTypes.string,
   handleComponentDrop: PropTypes.func.isRequired,
+};
+
+const defaultProps = {
+  colorScheme: undefined,
 };
 
 class DashboardBuilder extends React.Component {
@@ -109,7 +112,7 @@ class DashboardBuilder extends React.Component {
       showBuilderPane,
       builderPaneType,
       setColorSchemeAndUnsavedChanges,
-      colorScheme
+      colorScheme,
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -227,6 +230,7 @@ class DashboardBuilder extends React.Component {
 }
 
 DashboardBuilder.propTypes = propTypes;
+DashboardBuilder.defaultProps = defaultProps;
 DashboardBuilder.childContextTypes = {
   dragDropManager: PropTypes.object.isRequired,
 };

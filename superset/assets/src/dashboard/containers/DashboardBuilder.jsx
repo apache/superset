@@ -20,7 +20,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import DashboardBuilder from '../components/DashboardBuilder';
 
-import { setColorSchemeAndUnsavedChanges, showBuilderPane } from '../actions/dashboardState';
+import {
+  setColorSchemeAndUnsavedChanges,
+  showBuilderPane,
+} from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,

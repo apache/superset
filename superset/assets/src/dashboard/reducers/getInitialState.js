@@ -25,11 +25,11 @@ import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
-import { BUILDER_PANE_TYPE } from '../util/constants'
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import newComponentFactory from '../util/newComponentFactory';
 import {
+  BUILDER_PANE_TYPE,
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
@@ -63,7 +63,10 @@ export default function(bootstrapData) {
       ? JSON.parse(dashboard.metadata.label_colors)
       : dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale(scheme, namespace).setColor(label, colorMap[label]);
+      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
+        label,
+        colorMap[label],
+      );
     });
   }
 
@@ -197,9 +200,10 @@ export default function(bootstrapData) {
       colorNamespace: dashboard.metadata.color_namespace,
       colorScheme: dashboard.metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
-      builderPaneType: dashboard.dash_edit_perm && editMode
-        ? BUILDER_PANE_TYPE.ADD_COMPONENTS
-        : BUILDER_PANE_TYPE.NONE,
+      builderPaneType:
+        dashboard.dash_edit_perm && editMode
+          ? BUILDER_PANE_TYPE.ADD_COMPONENTS
+          : BUILDER_PANE_TYPE.NONE,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
     },

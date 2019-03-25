@@ -35,7 +35,8 @@ export default function getFormDataWithExtraFilters({
   if (
     (cachedDashboardMetadataByChart[sliceId] || {}) === dashboardMetadata &&
     (cachedFiltersByChart[sliceId] || {}) === filters &&
-    (colorScheme == null || cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
+    (colorScheme == null ||
+      cachedFormdataByChart[sliceId].color_scheme === colorScheme) &&
     !!cachedFormdataByChart[sliceId]
   ) {
     return cachedFormdataByChart[sliceId];
@@ -43,7 +44,7 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.formData,
-    ...colorScheme && {color_scheme: colorScheme},
+    ...(colorScheme && { color_scheme: colorScheme }),
     extra_filters: getEffectiveExtraFilters({
       dashboardMetadata,
       filters,

@@ -23,9 +23,7 @@ import { getCategoricalSchemeRegistry } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
 import ColorSchemeControl from '../../explore/components/controls/ColorSchemeControl';
-import { BUILDER_PANE_TYPE } from '../util/constants'
-
-const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+import { BUILDER_PANE_TYPE } from '../util/constants';
 
 const propTypes = {
   showBuilderPane: PropTypes.func.isRequired,
@@ -33,25 +31,32 @@ const propTypes = {
   colorScheme: PropTypes.string,
 };
 
+const defaultProps = {
+  colorScheme: undefined,
+};
+
 class ColorComponentPane extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = { hovered: false };
+    this.categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+    this.getChoices = this.getChoices.bind(this);
+    this.getSchemes = this.getSchemes.bind(this);
     this.onCloseButtonClick = this.onCloseButtonClick.bind(this);
     this.onMouseEnter = this.setHover.bind(this, true);
     this.onMouseLeave = this.setHover.bind(this, false);
   }
 
+  onCloseButtonClick() {
+    this.props.showBuilderPane(BUILDER_PANE_TYPE.NONE);
+  }
+
   getChoices() {
-    return categoricalSchemeRegistry.keys().map(s => ([s, s]));
+    return this.categoricalSchemeRegistry.keys().map(s => [s, s]);
   }
 
   getSchemes() {
-    return categoricalSchemeRegistry.getMap();
-  }
-
-  onCloseButtonClick() {
-    this.props.showBuilderPane(BUILDER_PANE_TYPE.NONE)
+    return this.categoricalSchemeRegistry.getMap();
   }
 
   setHover(hovered) {
@@ -59,13 +64,7 @@ class ColorComponentPane extends React.PureComponent {
   }
 
   render() {
-    const {
-      topOffset,
-      setColorSchemeAndUnsavedChanges,
-      colorScheme,
-      getChoices,
-      getSchemes
-    } = this.props;
+    const { setColorSchemeAndUnsavedChanges, colorScheme } = this.props;
 
     return (
       <div className="slider-container">
@@ -78,19 +77,24 @@ class ColorComponentPane extends React.PureComponent {
               role="none"
             />
           </div>
-          <div className="panel-body" onMouseEnter={this.onMouseEnter} onMouseLeave={this.onMouseLeave}>
+          <div
+            className="panel-body"
+            onMouseEnter={this.onMouseEnter}
+            onMouseLeave={this.onMouseLeave}
+          >
             <ColorSchemeControl
-                description={t('Any color palette selected here will override the colors applied to this dashboard\'s individual charts')}
-                label={t('Color Scheme')}
-                name="color_scheme"
-                onChange={setColorSchemeAndUnsavedChanges}
-                value={colorScheme}
-                choices={this.getChoices}
-                schemes={this.getSchemes}
-                hovered={this.state.hovered}
-              >
-            </ColorSchemeControl>
-            </div>
+              description={t(
+                "Any color palette selected here will override the colors applied to this dashboard's individual charts",
+              )}
+              label={t('Color Scheme')}
+              name="color_scheme"
+              onChange={setColorSchemeAndUnsavedChanges}
+              value={colorScheme}
+              choices={this.getChoices}
+              schemes={this.getSchemes}
+              hovered={this.state.hovered}
+            />
+          </div>
         </div>
       </div>
     );
@@ -98,5 +102,6 @@ class ColorComponentPane extends React.PureComponent {
 }
 
 ColorComponentPane.propTypes = propTypes;
+ColorComponentPane.defaultProps = defaultProps;
 
 export default ColorComponentPane;
