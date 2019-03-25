@@ -415,11 +415,6 @@ You can also use `PyAthena` library(no java required) like this ::
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
 
-MSSQL
------
-
-Full Unicode support requires SQLAlchemy 1.3 or later.
-
 Snowflake
 ---------
 

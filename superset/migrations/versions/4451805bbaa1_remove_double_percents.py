@@ -66,8 +66,8 @@ def replace(source, target):
 
     query = (
         session.query(Slice, Database)
-        .join(Table)
-        .join(Database)
+        .join(Table, Slice.datasource_id == Table.id)
+        .join(Database, Table.database_id == Database.id)
         .filter(Slice.datasource_type == 'table')
         .all()
     )
