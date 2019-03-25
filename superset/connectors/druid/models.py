@@ -41,6 +41,7 @@ from pydruid.utils.postaggregator import (
     Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
 )
 import requests
+from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 import sqlalchemy as sa
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint,
@@ -144,8 +145,15 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return cli
 
     def get_datasources(self):
+        self.get_kerberos_auth()
         endpoint = self.get_base_broker_url() + '/datasources'
-        return json.loads(requests.get(endpoint).text)
+        enable_kerberos_falg = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        if enable_kerberos_falg:
+            kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
+            response = requests.get(endpoint, auth=kerberos_auth)
+        else :
+            response = requests.get(endpoint)
+        return json.loads(response.text)
 
     def get_druid_version(self):
 
