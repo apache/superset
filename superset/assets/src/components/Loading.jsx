@@ -22,10 +22,12 @@ import PropTypes from 'prop-types';
 const propTypes = {
   size: PropTypes.number,
   position: PropTypes.oneOf(['floating', 'normal']),
+  styleOverrides: PropTypes.object,
 };
 const defaultProps = {
   size: 50,
   position: 'floating',
+  styleOverrides: {},
 };
 
 const FLOATING_STYLE = {
@@ -37,12 +39,14 @@ const FLOATING_STYLE = {
   transform: 'translate(-50%, -50%)',
 };
 
-export default function Loading({ size, position }) {
+export default function Loading({ size, position, styleOverrides }) {
   const style = position === 'floating' ? FLOATING_STYLE : {};
   const styleWithWidth = {
     ...style,
+    ...styleOverrides,
     size,
   };
+
   return (
     <img
       className="loading"

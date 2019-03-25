@@ -40,6 +40,8 @@ const defaultProps = {
   timeout: 500,
 };
 
+const STYLE_ZERO_MARGIN = { margin: 0 };
+
 class TableElement extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -190,7 +192,11 @@ class TableElement extends React.PureComponent {
         </div>
         <div className="pull-right">
           {table.isMetadataLoading || table.isExtraMetadataLoading ?
-            <Loading size={50} />
+            <Loading
+              size={50}
+              position="normal"
+              styleOverrides={STYLE_ZERO_MARGIN}
+            />
             :
             this.renderControls()
           }
@@ -239,7 +245,6 @@ class TableElement extends React.PureComponent {
       <Collapse
         in={this.state.expanded}
         timeout={this.props.timeout}
-        transitionAppear
         onExited={this.removeFromStore.bind(this)}
       >
         <div className="TableElement table-schema m-b-10">
