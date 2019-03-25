@@ -1825,7 +1825,10 @@ class FilterBoxViz(BaseViz):
             metric = flt.get('metric')
             df = self.dataframes.get(col)
             if metric:
-                df = df.sort_values(metric, ascending=flt.get('asc'))
+                df = df.sort_values(
+                    utils.get_metric_name(metric),
+                    ascending=flt.get('asc'),
+                )
                 d[col] = [{
                     'id': row[0],
                     'text': row[0],
