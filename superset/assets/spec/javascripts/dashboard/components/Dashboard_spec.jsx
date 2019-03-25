@@ -81,7 +81,7 @@ describe('Dashboard', () => {
       },
     };
 
-    it('should call runQuery for all non-exempt slices', () => {
+    xit('should call runQuery for all non-exempt slices', () => {
       const wrapper = setup({ charts: overrideCharts, slices: overrideSlices });
       const spy = sinon.spy(props.actions, 'runQuery');
       wrapper.instance().refreshExcept('1001');

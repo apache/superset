@@ -8,8 +8,8 @@
     "test": "spec"
   },
   "scripts": {
+    "test": "jest --coverage --coverageDirectory=output/coverage/jest",
     "tdd": "jest --watch",
-    "test": "jest",
     "cover": "jest --maxWorkers=8 --coverage",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
     "dev-server": "webpack-dev-server --mode=development --progress",
@@ -21,6 +21,7 @@
     "cypress": "cypress",
     "cypress-debug": "cypress open --config watchForFileChanges=true"
   },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache/incubator-superset.git"

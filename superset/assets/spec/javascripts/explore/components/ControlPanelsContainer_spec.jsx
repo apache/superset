@@ -32,7 +32,7 @@ const defaultProps = {
   exploreState: {},
 };
 
-describe('ControlPanelsContainer', () => {
+xdescribe('ControlPanelsContainer', () => {
   let wrapper;
   let scopedFilterOn = false;
   const isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled')

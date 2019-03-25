@@ -17,7 +17,7 @@ pipeline {
     UNIT_RESULT = 'target/surefire-reports/*.xml'
     COBERTURA_REPORT = 'coverage.xml'
     ALLURE_REPORT = 'allure-report/'
-    HTML_REPORT = 'index.html'
+    HTML_REPORT = 'superset/assets/output/coverage/jest/lcov-report/'
   }
   stages {
 
@@ -61,6 +61,12 @@ pipeline {
     stage("Build or Compile") {
       steps {
         echo "Run Commmands to trigger build"
+      }
+    }
+    stage("Code Coverage of JavaScript files") {
+      steps {
+        echo "Running Commmands to get code coverage of JavaScript Files"
+             sh "tox -e javascript"
       }
     }
     stage('Code Quality with SonarQube') {
