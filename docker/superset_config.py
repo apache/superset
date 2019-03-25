@@ -35,6 +35,9 @@ LOG_LEVEL = boolify(get_env_variable('LOG_LEVEL'))
 SESSION_LIFETIME_SECONDS = eval(get_env_variable('SESSION_LIFETIME_SECONDS'))
 PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_LIFETIME_SECONDS)
 
+# Change application name
+APP_NAME = get_env_variable('APP_NAME')
+
 # LDAP configuration
 AUTH_TYPE = eval(get_env_variable('AUTH_TYPE'))
 
