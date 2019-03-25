@@ -17,9 +17,11 @@
  * under the License.
  */
 @import "../../stylesheets/less/cosmo/variables.less";
+
 body {
     overflow: hidden;
 }
+
 .inlineBlock {
     display: inline-block;
 }
@@ -32,10 +34,6 @@ body {
 .nopadding {
     padding: 0px;
 }
-.panel.nopadding .panel-body {
-    padding: 0px;
-}
-
 .loading {
     width: 50px;
     margin-top: 15px;
@@ -46,27 +44,19 @@ body {
     width: 100%;
     height: 100%;
 }
-.SqlEditor .header {
-    padding-top: 5px;
-    padding-bottom: 5px;
-}
 
-.scrollbar-container {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
+.tab-content {
+    height: 100%;
+    position: relative;
+    background-color: #fff;
 
-.scrollbar-content {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
-  overflow: auto;
-  margin-right: 0px;
-  margin-bottom: 0px;
+    > .tab-pane {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
 }
 
 .Workspace .btn-sm {
@@ -82,11 +72,6 @@ div.Workspace {
     height: 100%;
     margin: 0px;
 }
-.SqlEditor .clock {
-    background-color: orange;
-    padding: 5px;
-}
-
 .padded {
     padding: 10px;
 }
@@ -194,10 +179,19 @@ div.Workspace {
     background-color: transparent !important;
 }
 
+#a11y-query-editor-tabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 .SqlLab {
-    .tab-content {
-        height: 100%;
-    }
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    padding: 0 10px;
 
     #brace-editor {
         height: calc(100% - 51px);
@@ -212,14 +206,44 @@ div.Workspace {
     }
 }
 
+.SqlEditorTabs li {
+    a:focus {
+        outline: 0;
+    }
+
+    .ddbtn-tab {
+        font-size: inherit;
+        font-weight: bold;
+
+        &:active {
+            background: none;
+        }
+    }
+
+    .dropdown-toggle {
+        padding-top: 2px;
+    }
+}
+
 .SqlEditor {
     display: flex;
     flex-direction: row;
     height: 100%;
+    padding: 10px;
+
+    .clock {
+        background-color: orange;
+        padding: 5px;
+    }
 
     .schemaPane {
-        flex-grow: 1;
+        flex: 0 0 300px;
         transition: all .3s ease-in-out;
+    }
+
+    .queryPane {
+        flex: 1 1 auto;
+        padding-left: 10px;
     }
 
     .schemaPane-enter-done, .schemaPane-exit {
@@ -236,12 +260,6 @@ div.Workspace {
         overflow: hidden;
     }
 
-    .queryPane {
-        flex-grow: 8;
-        position: relative;
-        margin-left: 15px;
-    }
-
     .schemaPane-exit-done + .queryPane {
         margin-left: 0;
     }
@@ -255,6 +273,22 @@ div.Workspace {
 
     .gutter.gutter-vertical {
         cursor: row-resize;
+    }
+}
+
+.SqlEditorLeftBar {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .divider {
+        border-bottom: 1px solid #f2f2f2;
+        margin: 15px 0;
+    }
+
+    .scrollbar-container {
+        flex: 1 1 auto;
+        overflow: auto;
     }
 }
 
@@ -276,8 +310,7 @@ div.tablePopover:hover {
     opacity: 1 !important;
 }
 .ResultSetControls {
-    padding-bottom: 3px;
-    padding-top: 3px;
+    padding: 8px 0;
 }
 .ace_editor {
   border: 1px solid #ccc;
@@ -294,12 +327,8 @@ div.tablePopover:hover {
     margin-top: 5px;
 }
 
-.ace_content {
+.ace_scroller {
     background-color: #f4f4f4;
-}
-
-.SouthPane .tab-content {
-    padding-top: 10px;
 }
 
 .TableElement {
@@ -346,22 +375,29 @@ a.Link {
     max-width: 500px;
 }
 .SouthPane {
-    margin-top: 10px;
-    position: absolute;
     width: 100%;
-    overflow: auto;
+
+    .SouthPaneTabs {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .tab-pane {
+        overflow-y: auto;   // scroll the query history pane
+    }
 }
-.nav-tabs > li.active > a,
-.nav-tabs > li.active > a:hover,
-.nav-tabs > li.active > a:focus {
-    padding-bottom: 8px;
-}
-.nav-tabs .dropdown-toggle.btn .caret {
-    margin-top: -12px;
-}
+
 .nav-tabs .ddbtn-tab {
-    margin-left: 5px;
-    padding-right: 0;
+    padding: 0;
+    border: none;
+    background: none;
+
+    &:focus {
+        outline: 0;
+    }
+    &:active {
+        box-shadow: none;
+    }
 }
 .icon-container {
     display: inline-block;

@@ -21,14 +21,6 @@
 
 @datasource-sql-expression-width: 450px;
 
-body {
-    margin: 0 !important;
-}
-
-.caret {
-    border-top: 4px solid;
-}
-
 .emph {
   font-weight: bold !important;
 }
@@ -411,6 +403,13 @@ table.table-no-hover tr:hover {
 .list-container .form-actions-container {
     padding: 0  0 20px 10px;
     display: inline;
+}
+
+.form-actions-container button {
+  display: flex;
+  .caret {
+    margin: 0 8px;
+  }
 }
 
 .list-container .filter-action {
