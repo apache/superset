@@ -83,6 +83,22 @@ describe('CategoricalColorScale', () => {
       expect(scale).toBe(output);
     });
   });
+  describe('.getColorMap()', () => {
+    it('returns correct mapping and parentForcedColors and forcedColors are specified', () => {
+      const scale1 = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale1.setColor('cow', 'black');
+      const scale2 = new CategoricalColorScale(['blue', 'red', 'green'], scale1.forcedColors);
+      scale2.setColor('pig', 'pink');
+      scale2.getColor('cow');
+      scale2.getColor('pig');
+      scale2.getColor('horse');
+      expect(scale2.getColorMap()).toEqual({
+        cow: 'black',
+        pig: 'pink',
+        horse: 'blue',
+      });
+    });
+  });
   describe('a CategoricalColorScale instance is also a color function itself', () => {
     it('scale(value) returns color similar to calling scale.getColor(value)', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
