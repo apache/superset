@@ -56,7 +56,7 @@ from superset.utils import core as utils, import_datasource
 from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
-import subprocess as spb
+import subprocess
 
 
 DRUID_TZ = conf.get('DRUID_TZ')
@@ -264,11 +264,9 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         kerberos_principal = conf.get('KERBEROS_PRINCIPAL', [])
         if not enable_kerberos_authentication:
             return False  
-        logging.info('kerberos_keytab [{}]'.format(kerberos_keytab))
-        logging.info('kerberos_principal [{}]'.format(kerberos_principal))
+
         kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
-        #logging.info('kerberos_commands [{}]'.format(kerberos_commands))
-        spb.call(kerberos_commands, shell=True)
+        subprocess.call(kerberos_commands, shell=True)
         return True
 
 
