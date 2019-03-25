@@ -1100,7 +1100,7 @@ export const visTypes = {
     ],
     controlOverrides: {
       metrics: {
-        validators: [],
+        // validators: [],
       },
       time_grain_sqla: {
         default: null,

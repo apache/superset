@@ -153,8 +153,7 @@ const metrics = {
   label: t('Metrics'),
   validators: [v.nonEmpty],
   default: (c) => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
+    return  null;
   },
   mapStateToProps: (state) => {
     const datasource = state.datasource;
@@ -170,7 +169,9 @@ const metric = {
   ...metrics,
   multi: false,
   label: t('Metric'),
-  default: props => mainMetric(props.savedMetrics),
+  default: props => {
+    return null;
+  },
 };
 
 const sandboxUrl = (
