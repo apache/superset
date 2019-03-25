@@ -217,21 +217,27 @@ class Header extends React.PureComponent {
       dashboardInfo,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-    const labelColors = scale.getColorMap();
     const data = {
       positions,
       expanded_slices: expandedSlices,
       css,
       color_namespace: colorNamespace,
       color_scheme: colorScheme,
-      label_colors: labelColors,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
     };
+
+    try {
+      const scale = CategoricalColorNamespace.getScale(
+        colorScheme,
+        colorNamespace,
+      );
+      const labelColors = scale.getColorMap();
+      data.label_colors = labelColors;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('@superset-ui/color needs to be updated');
+    }
 
     // make sure positions data less than DB storage limitation:
     const positionJSONLength = safeStringify(positions).length;

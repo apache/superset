@@ -1745,7 +1745,8 @@ class Superset(BaseSupersetView):
             md['color_namespace'] = data.get('color_namespace')
         if data.get('color_scheme'):
             md['color_scheme'] = data.get('color_scheme')
-        md['label_colors'] = data.get('label_colors', {})
+        if data.get('label_colors'):
+            md['label_colors'] = data.get('label_colors')
         dashboard.json_metadata = json.dumps(md)
 
     @api
