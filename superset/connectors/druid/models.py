@@ -267,7 +267,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         logging.info('kerberos_keytab [{}]'.format(kerberos_keytab))
         logging.info('kerberos_principal [{}]'.format(kerberos_principal))
         kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
-        logging.info('kerberos_commands [{}]'.format(kerberos_commands))
+        #logging.info('kerberos_commands [{}]'.format(kerberos_commands))
         spb.call(kerberos_commands, shell=True)
         return True
 
