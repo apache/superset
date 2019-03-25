@@ -57,4 +57,22 @@ export default class CategoricalColorScale extends ExtensibleFunction {
 
     return this;
   }
+
+  /**
+   * Get a mapping of data values to colors
+   * @returns an object where the key is the data value and the value is the hex color code
+   */
+  getColorMap() {
+    const colorMap: { [key: string]: string } = {};
+    const { length } = this.colors;
+    Object.keys(this.seen).forEach(value => {
+      colorMap[value] = this.colors[this.seen[value] % length];
+    });
+
+    return {
+      ...colorMap,
+      ...this.forcedColors,
+      ...this.parentForcedColors,
+    };
+  }
 }
