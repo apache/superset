@@ -149,9 +149,9 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
-    datasource_id = Column(Integer)
-    datasource_type = Column(String(200))
-    datasource_name = Column(String(2000))
+    datasource_id = Column(Integer, nullable=False)
+    datasource_type = Column(String(200), nullable=False)
+    datasource_name = Column(String(2000), nullable=False)
     viz_type = Column(String(250))
     params = Column(Text)
     description = Column(Text)

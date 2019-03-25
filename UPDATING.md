@@ -27,10 +27,14 @@ assists people when migrating to a new version.
   run `pip install superset[presto]` and/or `pip install superset[hive]` as
   required.
 
-* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change 
-which prevents encoding of empty string from form data in the datanbase. 
+* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change
+which prevents encoding of empty string from form data in the database.
 This involves a non-schema changing migration which does potentially impact
 a large number of records. Scheduled downtime may be advised.
+
+* [7114](https://github.com/apache/incubator-superset/pull/7114): a change
+which adds missing non-nullable fields to the slices table. Depending on the
+integrity of the data, manual intervention may be required.
 
 ## Superset 0.31.0
 * boto3 / botocore was removed from the dependency list. If you use s3
