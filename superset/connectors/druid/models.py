@@ -24,6 +24,7 @@ import json
 import logging
 from multiprocessing.pool import ThreadPool
 import re
+import subprocess
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -56,7 +57,6 @@ from superset.utils import core as utils, import_datasource
 from superset.utils.core import (
     DimSelector, DTTM_ALIAS, flasher,
 )
-import subprocess
 
 
 DRUID_TZ = conf.get('DRUID_TZ')
