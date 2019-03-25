@@ -17,11 +17,14 @@
 import inspect
 
 import mock
+from sqlalchemy import column, select, table
+from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
-    BaseEngineSpec, HiveEngineSpec, MssqlEngineSpec,
-    MySQLEngineSpec, PrestoEngineSpec,
+    BaseEngineSpec, BQEngineSpec, HiveEngineSpec, MssqlEngineSpec,
+    MySQLEngineSpec, OracleEngineSpec, PrestoEngineSpec,
 )
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
@@ -321,3 +324,59 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))
+
+    def test_bigquery_sqla_column_label(self):
+        label = BQEngineSpec.make_label_compatible(column('Col').name)
+        label_expected = 'Col'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('SUM(x)').name)
+        label_expected = 'SUM_x__5f110b965a993675bc4953bb3e03c4a5'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('SUM[x]').name)
+        label_expected = 'SUM_x__7ebe14a3f9534aeee125449b0bc083a8'
+        self.assertEqual(label, label_expected)
+
+        label = BQEngineSpec.make_label_compatible(column('12345_col').name)
+        label_expected = '_12345_col_8d3906e2ea99332eb185f7f8ecb2ffd6'
+        self.assertEqual(label, label_expected)
+
+    def test_oracle_sqla_column_name_length_exceeded(self):
+        col = column('This_Is_32_Character_Column_Name')
+        label = OracleEngineSpec.make_label_compatible(col.name)
+        self.assertEqual(label.quote, True)
+        label_expected = '3b26974078683be078219674eeb8f5'
+        self.assertEqual(label, label_expected)
+
+    def test_mssql_column_types(self):
+        def assert_type(type_string, type_expected):
+            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+            if type_expected is None:
+                self.assertIsNone(type_assigned)
+            else:
+                self.assertIsInstance(type_assigned, type_expected)
+
+        assert_type('INT', None)
+        assert_type('STRING', String)
+        assert_type('CHAR(10)', String)
+        assert_type('VARCHAR(10)', String)
+        assert_type('TEXT', String)
+        assert_type('NCHAR(10)', UnicodeText)
+        assert_type('NVARCHAR(10)', UnicodeText)
+        assert_type('NTEXT', UnicodeText)
+
+    def test_mssql_where_clause_n_prefix(self):
+        dialect = pymssql.dialect()
+        spec = MssqlEngineSpec
+        str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
+        unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
+        tbl = table('tbl')
+        sel = select([str_col, unicode_col]).\
+            select_from(tbl).\
+            where(str_col == 'abc').\
+            where(unicode_col == 'abc')
+
+        query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
+        query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
+        self.assertEqual(query, query_expected)

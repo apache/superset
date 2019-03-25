@@ -100,7 +100,7 @@ setup(
         'retry>=0.9.2',
         'selenium>=3.141.0',
         'simplejson>=3.15.0',
-        'sqlalchemy',
+        'sqlalchemy>=1.3.1,<2.0',
         'sqlalchemy-utils',
         'sqlparse',
         'unicodecsv',
