@@ -265,7 +265,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         if not enable_kerberos_authentication:
             return False  
 
-        kerberos_commands="kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
+        kerberos_commands = "kinit -k -t "+kerberos_keytab+" "+ kerberos_principal
         subprocess.call(kerberos_commands, shell=True)
         return True
 
