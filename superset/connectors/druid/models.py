@@ -199,7 +199,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
             datasource = ds_map.get(ds_name, None)
-            if not datasource:
+            if not datasource :
                 datasource = DruidDatasource(datasource_name=ds_name)
                 with session.no_autoflush:
                     session.add(datasource)
