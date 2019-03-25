@@ -61,8 +61,10 @@ class QueryObject:
 
         # Temporal solution for backward compatability issue
         # due the new format of non-ad-hoc metric.
-        self.metrics = [metric if 'expressionType' in metric else metric['label']
-                        for metric in metrics]
+        self.metrics = [
+            metric if 'expressionType' in metric else metric['label']   # noqa: T484
+            for metric in metrics
+        ]
         self.row_limit = row_limit
         self.filter = filters if filters is not None else []
         self.timeseries_limit = timeseries_limit
