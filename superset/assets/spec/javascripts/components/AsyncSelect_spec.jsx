@@ -76,7 +76,7 @@ describe('AsyncSelect', () => {
       );
 
       setTimeout(() => {
-        expect(fetchMock.calls(dataGlob)).toHaveLength(1);
+        expect(fetchMock.calls(dataGlob)).toHaveLength(3);
         expect(onChangeSpy.mock.calls).toHaveLength(0);
         done();
       });
