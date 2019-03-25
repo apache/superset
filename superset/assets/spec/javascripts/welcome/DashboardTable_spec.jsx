@@ -54,7 +54,7 @@ describe('DashboardTable', () => {
     const wrapper = setup();
 
     setTimeout(() => {
-      expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+      expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(1);
       // there's a delay between response and updating state, so manually set it
       // rather than adding a timeout which could introduce flakiness
       wrapper.setState({ dashaboards: mockDashboards });
