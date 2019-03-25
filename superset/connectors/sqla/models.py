@@ -18,6 +18,7 @@
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 import logging
+from typing import Optional
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -140,7 +141,7 @@ class TableColumn(Model, BaseColumn):
             l.append(col <= text(self.dttm_sql_literal(end_dttm, is_epoch_in_utc)))
         return and_(*l)
 
-    def get_timestamp_expression(self, time_grain):
+    def get_timestamp_expression(self, time_grain: Optional[str]):
         """Getting the time component of the query"""
         label = utils.DTTM_ALIAS
 
@@ -150,15 +151,11 @@ class TableColumn(Model, BaseColumn):
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=DateTime)
             return self.table.make_sqla_column_compatible(sqla_col, label)
-        grain = None
-        if time_grain:
-            grain = db.grains_dict().get(time_grain)
-            if not grain:
-                raise NotImplementedError(
-                    f'No grain spec for {time_grain} for database {db.database_name}')
-        col = db.db_engine_spec.get_timestamp_column(self.expression, self.column_name)
-        expr = db.db_engine_spec.get_time_expr(col, pdf, time_grain, grain)
-        sqla_col = literal_column(expr, type_=DateTime)
+        if self.expression:
+            col = literal_column(self.expression)
+        else:
+            col = column(self.column_name)
+        sqla_col = db.db_engine_spec.get_time_expr(col, pdf, time_grain)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @classmethod

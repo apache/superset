@@ -39,16 +39,19 @@ import time
 from typing import List, Tuple
 from urllib import parse
 
+from typing import Optional
+
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
 import sqlalchemy as sqla
-from sqlalchemy import Column, select, types
+from sqlalchemy import Column, DateTime, select, types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.sql.expression import TextAsFrom
@@ -90,6 +93,24 @@ builtin_time_grains = {
 }
 
 
+class TimeExpression(ColumnClause):
+    def __init__(self, expr: str, col: ColumnClause, **kwargs):
+        """Sqlalchemy class that can be can be used to render native column elements
+        respeting engine-specific quoting rules as part of a string-based expression.
+
+        :param expr: Sql expression with '{col}' denoting the locations where the col
+        object will be rendered.
+        :param col: A ColumnClause instance
+        """
+        super().__init__(expr, **kwargs)
+        self.col = col
+
+
+@compiles(TimeExpression)
+def compile_timegrain_expression(element, compiler, **kw):
+    return element.name.replace('{col}', compiler.process(element.col, **kw))
+
+
 def _create_time_grains_tuple(time_grains, time_grain_functions, blacklist):
     ret_list = []
     blacklist = blacklist if blacklist else []
@@ -125,16 +146,38 @@ class BaseEngineSpec(object):
     try_remove_schema_from_table_name = True
 
     @classmethod
-    def get_time_expr(cls, expr, pdf, time_grain, grain):
+    def _grains_dict(cls):
+        """Allowing to lookup grain by either label or duration
+
+        For backward compatibility"""
+        d = {grain.duration: grain for grain in cls.get_time_grains()}
+        d.update({grain.label: grain for grain in cls.get_time_grains()})
+        return d
+
+    @classmethod
+    def get_time_expr(cls, col: ColumnClause, pdf: Optional[str],
+                      time_grain: Optional[str]) -> TimeExpression:
+        """
+        Construct a TimeExpression to be used in a SQLAlchemy query.
+
+        :param col: Target column for the TimeExpression
+        :param pdf: Optional date format (seconds or milliseconds)
+        :param time_grain: Optional time grain, e.g. P1Y for 1 year
+        :return: TimeExpression object
+        """
+        grain = cls._grains_dict().get(time_grain) or None
+        if time_grain and not grain:
+            raise NotImplementedError(
+                f'No grain spec for {time_grain} for database {db.database_name}')
+
+        time_expr = grain.function if grain else '{col}'
         # if epoch, translate to DATE using db specific conf
         if pdf == 'epoch_s':
-            expr = cls.epoch_to_dttm().format(col=expr)
+            time_expr = time_expr.replace('{col}', cls.epoch_to_dttm())
         elif pdf == 'epoch_ms':
-            expr = cls.epoch_ms_to_dttm().format(col=expr)
+            time_expr = time_expr.replace('{col}', cls.epoch_ms_to_dttm())
 
-        if grain:
-            expr = grain.function.format(col=expr)
-        return expr
+        return TimeExpression(time_expr, col, type_=DateTime)
 
     @classmethod
     def get_time_grains(cls):
@@ -489,13 +532,6 @@ class BaseEngineSpec(object):
             label = label[:cls.max_column_name_length]
         return label
 
-    @staticmethod
-    def get_timestamp_column(expression, column_name):
-        """Return the expression if defined, otherwise return column_name. Some
-        engines require forcing quotes around column name, in which case this method
-        can be overridden."""
-        return expression or column_name
-
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -542,16 +578,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
-
-    @staticmethod
-    def get_timestamp_column(expression, column_name):
-        """Postgres is unable to identify mixed case column names unless they
-        are quoted."""
-        if expression:
-            return expression
-        elif column_name.lower() != column_name:
-            return f'"{column_name}"'
-        return column_name
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -1812,20 +1838,21 @@ class PinotEngineSpec(BaseEngineSpec):
     inner_joins = False
     supports_column_aliases = False
 
-    _time_grain_to_datetimeconvert = {
+    # Pinot does its own conversion below
+    time_grain_functions = {
         'PT1S': '1:SECONDS',
         'PT1M': '1:MINUTES',
         'PT1H': '1:HOURS',
         'P1D': '1:DAYS',
-        'P1Y': '1:YEARS',
+        'P1W': '1:WEEKS',
         'P1M': '1:MONTHS',
+        'P0.25Y': '3:MONTHS',
+        'P1Y': '1:YEARS',
     }
 
-    # Pinot does its own conversion below
-    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
-
     @classmethod
-    def get_time_expr(cls, expr, pdf, time_grain, grain):
+    def get_time_expr(cls, col: ColumnClause, pdf: Optional[str],
+                      time_grain: Optional[str]) -> TimeExpression:
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not is_epoch:
             raise NotImplementedError('Pinot currently only supports epochs')
@@ -1834,11 +1861,12 @@ class PinotEngineSpec(BaseEngineSpec):
         # We are not really converting any time units, just bucketing them.
         seconds_or_ms = 'MILLISECONDS' if pdf == 'epoch_ms' else 'SECONDS'
         tf = f'1:{seconds_or_ms}:EPOCH'
-        granularity = cls._time_grain_to_datetimeconvert.get(time_grain)
+        granularity = cls.time_grain_functions.get(time_grain)
         if not granularity:
             raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
         # In pinot the output is a string since there is no timestamp column like pg
-        return f'DATETIMECONVERT({expr}, "{tf}", "{tf}", "{granularity}")'
+        time_expr = f'DATETIMECONVERT({{col}}, "{tf}", "{tf}", "{granularity}")'
+        return TimeExpression(time_expr, col)
 
     @classmethod
     def make_select_compatible(cls, groupby_exprs, select_exprs):
