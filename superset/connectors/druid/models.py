@@ -145,8 +145,21 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return cli
 
     def get_datasources(self):
+        self.get_kerberos_auth()
         endpoint = self.get_base_broker_url() + '/datasources'
-        return json.loads(requests.get(endpoint).text)
+
+        enable_kerberos_falg = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
+        if enable_kerberos_falg:
+            kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
+            response = requests.get(endpoint, auth=kerberos_auth)
+        else :
+            response = requests.get(endpoint)
+
+        return json.loads(response.text)
+        #return json.loads(requests.get(endpoint).text)
+
+        #endpoint = self.get_base_broker_url() + '/datasources'
+        #return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
