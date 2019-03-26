@@ -146,15 +146,6 @@ class BaseEngineSpec(object):
     try_remove_schema_from_table_name = True
 
     @classmethod
-    def _grains_dict(cls):
-        """Allowing to lookup grain by either label or duration
-
-        For backward compatibility"""
-        d = {grain.duration: grain for grain in cls.get_time_grains()}
-        d.update({grain.label: grain for grain in cls.get_time_grains()})
-        return d
-
-    @classmethod
     def get_time_expr(cls, col: ColumnClause, pdf: Optional[str],
                       time_grain: Optional[str]) -> TimeExpression:
         """
@@ -165,7 +156,7 @@ class BaseEngineSpec(object):
         :param time_grain: Optional time grain, e.g. P1Y for 1 year
         :return: TimeExpression object
         """
-        grain = cls._grains_dict().get(time_grain) or None
+        grain = cls.time_grain_functions.get(time_grain) if time_grain else None
         if time_grain and not grain:
             raise NotImplementedError(
                 f'No grain spec for {time_grain} for database {db.database_name}')
