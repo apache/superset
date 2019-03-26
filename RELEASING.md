@@ -46,66 +46,64 @@ git commit -a -m "New doc version"
 git push origin master
 ```
 
-## Publishing a PyPI release
+# Apache Releases
 
-We create a branch that goes along each minor release `0.24`
-and micro releases get corresponding tags as in `0.24.0`. Git history should
-never be altered in release branches.
-Bug fixes and security-related patches get cherry-picked
-(usually from master) as in `git cherry-pick -x {SHA}`.
+You'll probably want to run these commands manually and understand what
+they do prior to doing so.
 
-Following a set of cherries being picked, a release can be pushed to
-PyPI as follows:
+First you need to setup a few things. This is a one-off and doesn't
+need to be done at every release.
 
 ```bash
-# branching off of master
-git checkout -b 0.25
-
-# cherry-picking a SHA
-git cherry-pick -x f9d85bd2e1fd9bc233d19c76bed09467522b968a
-# repeat with other SHAs, don't forget the -x
-
-# source of thruth for release numbers live in package.json
-vi superset/assets/package.json
-# hard code release in file, commit to the release branch
-git commit -a -m "0.25.0"
-
-# create the release tag in the release branch
-git tag 0.25.0
-git push apache 0.25 --tags
-
-# check travis to confirm the build succeeded as
-# you shouldn't assume that a clean cherry will be clean
-# when landing on a new sundae
-
-# compile the JS, and push to pypi
-# to run this part you'll need a pypi account and rights on the
-# superset package. Committers that want to ship releases
-# should have this access.
-# You'll also need a `.pypirc` as specified here:
-# https://gist.github.com/davydany/b08acef08f75fe297e13ae4d24ce9f4d
-./pypi_push.sh
-
-# publish an update to the CHANGELOG.md for the right version range
-# looking the latest CHANGELOG entry for the second argument
-./gen_changelog.sh 0.22.1 0.25.0
-# this will overwrite the CHANGELOG.md with only the version range
-# so you'll want to copy paste that on top of the previous CHANGELOG.md
-# open a PR against `master`
+    # Create PGP Key
+    gpg --gen-key
+     
+    # Checkout ASF dist repo
+    svn checkout https://dist.apache.org/repos/dist/dev/incubator/superset/ ~/svn/superset
+    cd ~/svn/superset
+ 
+  
+    # Add your GPG pub key to KEYS file. Replace "Maxime Beauchemin" with your name
+    export FULLNAME="Maxime Beauchemin"
+    (gpg --list-sigs $FULLNAME && gpg --armor --export $FULLNAME ) >> KEYS
+   
+    
+    # Commit the changes
+    svn commit -m "Add PGP keys of new Superset committer"
 ```
 
-In the future we'll start publishing release candidates for minor releases
-only, but typically not for micro release.
-The process will be similar to the process described above, expect the
-tags will be formatted `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
-is reached.
+Now let's craft a source release
+```bash
+    # Assuming these commands are executed from the root of the repo
+    # Setting a VERSION var will be useful
+    export VERSION=0.31.0rc18
 
-We should also have a Github PR label process to target the proper
-release, and tooling helping keeping track of all the cherries and
-target versions.
+    # Let's create a git tag
+    git tag -f ${VERSION}
 
-For Apache releases, the process will be a bit heavier and should get
-documented here. There will be extra steps for signing the binaries,
-with a PGP key and providing MD5, Apache voting, as well as
-publishing to Apache's SVN repository. View the ASF docs for more
-information.
+    # [WARNING!] This command wipes everything in your repo that is
+    # gitignored in preparation for the source release.
+    # You may want to check that there's nothing your care about here first.
+    # Alternatively you could clone the repo into another location as in
+    # git clone git@github.com:apache/incubator-superset.git superset-releases
+    git clean -fxd
+    git archive \
+        --format=tar.gz ${VERSION} \
+        --prefix=apache-superset-${VERSION}/ \
+        -o apache-superset-${VERSION}-source.tar.gz
+
+    scripts/sign.sh apache-superset-${VERSION}-source.tar.gz
+```
+
+Now let's ship this into svn
+
+```bash
+    # cp or mv the files over to the svn repo
+    mkdir ~/svn/superset/${VERSION}/
+    cp apache-superset-${VERSION}* ~/svn/superset/${VERSION}/
+    cd ~/svn/superset/
+    svn add ${VERSION}
+    svn commit
+```
+
+Now you're ready to announce the release on the mailing list

@@ -167,7 +167,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
 
     add_columns = [
         'verbose_name', 'broker_host', 'broker_port',
-        'broker_endpoint', 'cache_timeout', 'cluster_name',
+        'broker_user', 'broker_pass', 'broker_endpoint',
+        'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
@@ -176,6 +177,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
         'cluster_name': _('Cluster'),
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
+        'broker_user': _('Broker Username'),
+        'broker_pass': _('Broker Password'),
         'broker_endpoint': _('Broker Endpoint'),
         'verbose_name': _('Verbose Name'),
         'cache_timeout': _('Cache Timeout'),
@@ -186,6 +189,16 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
             'Duration (in seconds) of the caching timeout for this cluster. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
+        'broker_user': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
+        'broker_pass': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
     }
 
     def pre_add(self, cluster):

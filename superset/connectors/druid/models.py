@@ -47,6 +47,7 @@ from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -105,9 +106,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
+    broker_user = Column(String(255))
+    broker_pass = Column(EncryptedType(String(255), conf.get('SECRET_KEY')))
 
     export_fields = ('cluster_name', 'broker_host', 'broker_port',
-                     'broker_endpoint', 'cache_timeout')
+                     'broker_endpoint', 'cache_timeout', 'broker_user')
     update_from_object_fields = export_fields
     export_children = ['datasources']
 
@@ -142,11 +145,14 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         cli = PyDruid(
             self.get_base_url(self.broker_host, self.broker_port),
             self.broker_endpoint)
+        if self.broker_user and self.broker_pass:
+            cli.set_basic_auth_credentials(self.broker_user, self.broker_pass)
         return cli
 
     def get_datasources(self):
         self.get_kerberos_auth()
         endpoint = self.get_base_broker_url() + '/datasources'
+<<<<<<< HEAD
         enable_kerberos_falg = conf.get('ENABLE_KERBEROS_AUTHENTICATION', False)
         if enable_kerberos_falg:
             kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
@@ -154,12 +160,17 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         else:
             response = requests.get(endpoint)
         return json.loads(response.text)
+=======
+        auth = requests.auth.HTTPBasicAuth(self.broker_user, self.broker_pass)
+        return json.loads(requests.get(endpoint, auth=auth).text)
+>>>>>>> upstream/master
 
     def get_druid_version(self):
 
         endpoint = self.get_base_url(
             self.broker_host, self.broker_port) + '/status'
-        return json.loads(requests.get(endpoint).text)['version']
+        auth = requests.auth.HTTPBasicAuth(self.broker_user, self.broker_pass)
+        return json.loads(requests.get(endpoint, auth=auth).text)['version']
 
     @property
     @utils.memoized
@@ -302,7 +313,7 @@ class DruidColumn(Model, BaseColumn):
     export_parent = 'datasource'
 
     def __repr__(self):
-        return self.column_name
+        return self.column_name or str(self.id)
 
     @property
     def expression(self):

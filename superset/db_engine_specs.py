@@ -46,7 +46,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
-from sqlalchemy.types import UnicodeText
+from sqlalchemy.types import String, UnicodeText
 import sqlparse
 from werkzeug.utils import secure_filename
 
@@ -1423,10 +1423,16 @@ class MssqlEngineSpec(BaseEngineSpec):
             data = [[elem for elem in r] for r in data]
         return data
 
+    column_types = [
+        (String(), re.compile(r'^(?<!N)((VAR){0,1}CHAR|TEXT|STRING)', re.IGNORECASE)),
+        (UnicodeText(), re.compile(r'^N((VAR){0,1}CHAR|TEXT)', re.IGNORECASE)),
+    ]
+
     @classmethod
     def get_sqla_column_type(cls, type_):
-        if isinstance(type_, str) and re.match(r'^N(VAR){0-1}CHAR', type_):
-            return UnicodeText()
+        for sqla_type, regex in cls.column_types:
+            if regex.match(type_):
+                return sqla_type
         return None
 
 

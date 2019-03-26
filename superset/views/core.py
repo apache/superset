@@ -44,7 +44,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend,
+    app, appbuilder, cache, conf, db, results_backend,
     security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
@@ -605,7 +605,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     edit_columns = [
         'dashboard_title', 'slug', 'owners', 'position_json', 'css',
         'json_metadata']
-    show_columns = edit_columns + ['table_names', 'slices']
+    show_columns = edit_columns + ['table_names', 'charts']
     search_columns = ('dashboard_title', 'slug', 'owners')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
@@ -632,7 +632,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
         'slug': _('Slug'),
-        'slices': _('Charts'),
+        'charts': _('Charts'),
         'owners': _('Owners'),
         'creator': _('Creator'),
         'modified': _('Modified'),
@@ -1735,6 +1735,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['refresh_frequency'] = data.get('refresh_frequency', 0)
         default_filters_data = json.loads(data.get('default_filters', '{}'))
         applicable_filters = \
             {key: v for key, v in default_filters_data.items()
@@ -1876,6 +1877,20 @@ class Superset(BaseSupersetView):
     def csrf_token(self):
         return Response(
             self.render_template('superset/csrf_token.json'),
+            mimetype='text/json',
+        )
+
+    @api
+    @has_access_api
+    @expose('/available_domains/', methods=['GET'])
+    def available_domains(self):
+        """
+        Returns the list of available Superset Webserver domains (if any)
+        defined in config. This enables charts embedded in other apps to
+        leverage domain sharding if appropriately configured.
+        """
+        return Response(
+            json.dumps(conf.get('SUPERSET_WEBSERVER_DOMAINS')),
             mimetype='text/json',
         )
 

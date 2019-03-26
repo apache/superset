@@ -17,7 +17,9 @@
 import inspect
 
 import mock
-from sqlalchemy import column
+from sqlalchemy import column, select, table
+from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
@@ -346,3 +348,35 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(label.quote, True)
         label_expected = '3b26974078683be078219674eeb8f5'
         self.assertEqual(label, label_expected)
+
+    def test_mssql_column_types(self):
+        def assert_type(type_string, type_expected):
+            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+            if type_expected is None:
+                self.assertIsNone(type_assigned)
+            else:
+                self.assertIsInstance(type_assigned, type_expected)
+
+        assert_type('INT', None)
+        assert_type('STRING', String)
+        assert_type('CHAR(10)', String)
+        assert_type('VARCHAR(10)', String)
+        assert_type('TEXT', String)
+        assert_type('NCHAR(10)', UnicodeText)
+        assert_type('NVARCHAR(10)', UnicodeText)
+        assert_type('NTEXT', UnicodeText)
+
+    def test_mssql_where_clause_n_prefix(self):
+        dialect = pymssql.dialect()
+        spec = MssqlEngineSpec
+        str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
+        unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
+        tbl = table('tbl')
+        sel = select([str_col, unicode_col]).\
+            select_from(tbl).\
+            where(str_col == 'abc').\
+            where(unicode_col == 'abc')
+
+        query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
+        query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
+        self.assertEqual(query, query_expected)
