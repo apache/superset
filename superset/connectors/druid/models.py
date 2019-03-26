@@ -160,7 +160,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             response = requests.get(endpoint)
         return json.loads(response.text)
 
-
     def get_druid_version(self):
 
         endpoint = self.get_base_url(
