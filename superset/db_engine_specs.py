@@ -156,7 +156,6 @@ class BaseEngineSpec(object):
         :param time_grain: Optional time grain, e.g. P1Y for 1 year
         :return: TimeExpression object
         """
-
         if time_grain:
             time_expr = cls.time_grain_functions.get(time_grain)
             if not time_expr:

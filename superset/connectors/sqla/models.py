@@ -18,7 +18,7 @@
 from collections import namedtuple, OrderedDict
 from datetime import datetime
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -33,11 +33,12 @@ from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.sql.expression import Label, TextAsFrom
 import sqlparse
 
 from superset import app, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.db_engine_specs import TimeExpression
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
 from superset.models.core import Database
@@ -141,8 +142,14 @@ class TableColumn(Model, BaseColumn):
             l.append(col <= text(self.dttm_sql_literal(end_dttm, is_epoch_in_utc)))
         return and_(*l)
 
-    def get_timestamp_expression(self, time_grain: Optional[str]):
-        """Getting the time component of the query"""
+    def get_timestamp_expression(self, time_grain: Optional[str]) \
+            -> Union[TimeExpression, Label]:
+        """
+        Return a SQLAlchemy Core element representation of self to be used in a query.
+
+        :param time_grain: Optional time grain, e.g. P1Y
+        :return: A TimeExpression object wrapped in a Label if supported by db
+        """
         label = utils.DTTM_ALIAS
 
         db = self.table.database
@@ -155,8 +162,8 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             col = column(self.column_name)
-        sqla_col = db.db_engine_spec.get_time_expr(col, pdf, time_grain)
-        return self.table.make_sqla_column_compatible(sqla_col, label)
+        time_expr = db.db_engine_spec.get_time_expr(col, pdf, time_grain)
+        return self.table.make_sqla_column_compatible(time_expr, label)
 
     @classmethod
     def import_obj(cls, i_column):
