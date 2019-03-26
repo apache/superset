@@ -16,9 +16,9 @@
 # under the License.
 from datetime import datetime, timedelta
 import unittest
+from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
-from mock import Mock, patch, PropertyMock
 from selenium.common.exceptions import WebDriverException
 
 from superset import app, db

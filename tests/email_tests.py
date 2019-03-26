@@ -22,8 +22,7 @@ from email.mime.multipart import MIMEMultipart
 import logging
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from superset import app
 from superset.utils import core as utils
