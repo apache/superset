@@ -25,3 +25,4 @@ export * from './types/Annotation';
 export * from './types/Datasource';
 export * from './types/ChartFormData';
 export * from './types/Query';
+export * from './types/Metric';
