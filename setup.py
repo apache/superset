@@ -74,7 +74,7 @@ setup(
         'click>=6.0, <7.0.0',  # `click`>=7 forces "-" instead of "_"
         'colorama',
         'contextlib2',
-        'croniter>=0.3.26',
+        'croniter>=0.3.28',
         'cryptography>=2.4.2',
         'flask>=1.0.0, <2.0.0',
         'flask-appbuilder>=1.12.5, <2.0.0',
