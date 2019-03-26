@@ -40,8 +40,6 @@ const defaultProps = {
   timeout: 500,
 };
 
-const STYLE_ZERO_MARGIN = { margin: 0 };
-
 class TableElement extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -195,7 +193,7 @@ class TableElement extends React.PureComponent {
             <Loading
               size={50}
               position="normal"
-              styleOverrides={STYLE_ZERO_MARGIN}
+              className="margin-zero"
             />
             :
             this.renderControls()
