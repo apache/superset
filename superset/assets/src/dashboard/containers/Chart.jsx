@@ -24,6 +24,7 @@ import {
   toggleExpandSlice,
 } from '../actions/dashboardState';
 import { refreshChart } from '../../chart/chartAction';
+import { logEvent } from '../../logger/actions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
@@ -62,6 +63,7 @@ function mapStateToProps(
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
   };
 }
@@ -73,6 +75,7 @@ function mapDispatchToProps(dispatch) {
       toggleExpandSlice,
       addFilter,
       refreshChart,
+      logEvent,
     },
     dispatch,
   );

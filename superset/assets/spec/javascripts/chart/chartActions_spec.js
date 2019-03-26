@@ -19,7 +19,7 @@
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
-import { Logger } from '../../../src/logger';
+import { LOG_EVENT } from '../../../src/logger/actions';
 import * as exploreUtils from '../../../src/explore/exploreUtils';
 import * as actions from '../../../src/chart/chartAction';
 
@@ -27,7 +27,6 @@ describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
   let dispatch;
   let urlStub;
-  let loggerStub;
 
   const setupDefaultFetchMock = () => {
     fetchMock.post(MOCK_URL, { json: {} }, { overwriteRoutes: true });
@@ -44,12 +43,10 @@ describe('chart actions', () => {
     urlStub = sinon
       .stub(exploreUtils, 'getExploreUrlAndPayload')
       .callsFake(() => ({ url: MOCK_URL, payload: {} }));
-    loggerStub = sinon.stub(Logger, 'append');
   });
 
   afterEach(() => {
     urlStub.restore();
-    loggerStub.restore();
     fetchMock.resetHistory();
   });
 
@@ -58,7 +55,7 @@ describe('chart actions', () => {
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(4);
+      expect(dispatch.callCount).toBe(5);
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
 
@@ -70,7 +67,7 @@ describe('chart actions', () => {
     const actionThunk = actions.runQuery({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(4);
+      expect(dispatch.callCount).toBe(5);
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
       expect(dispatch.args[1][0].type).toBe(actions.TRIGGER_QUERY);
 
@@ -82,9 +79,25 @@ describe('chart actions', () => {
     const actionThunk = actions.runQuery({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(4);
+      expect(dispatch.callCount).toBe(5);
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
       expect(dispatch.args[2][0].type).toBe(actions.UPDATE_QUERY_FORM_DATA);
+
+      return Promise.resolve();
+    });
+  });
+
+  it('should dispatch logEvent async action', () => {
+    const actionThunk = actions.runQuery({});
+    return actionThunk(dispatch).then(() => {
+      // chart update, trigger query, update form data, success
+      expect(dispatch.callCount).toBe(5);
+      expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
+      expect(typeof dispatch.args[3][0]).toBe('function');
+
+      dispatch.args[3][0](dispatch);
+      expect(dispatch.callCount).toBe(6);
+      expect(dispatch.args[5][0].type).toBe(LOG_EVENT);
 
       return Promise.resolve();
     });
@@ -94,10 +107,9 @@ describe('chart actions', () => {
     const actionThunk = actions.runQuery({});
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, success
-      expect(dispatch.callCount).toBe(4);
+      expect(dispatch.callCount).toBe(5);
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
-      expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
-      expect(loggerStub.callCount).toBe(1);
+      expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_SUCCEEDED);
 
       return Promise.resolve();
     });
@@ -112,10 +124,8 @@ describe('chart actions', () => {
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, fail
-      expect(dispatch.callCount).toBe(4);
-      expect(dispatch.args[3][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
-      expect(loggerStub.callCount).toBe(1);
-      expect(loggerStub.args[0][1].error_details).toBe('timeout');
+      expect(dispatch.callCount).toBe(5);
+      expect(dispatch.args[4][0].type).toBe(actions.CHART_UPDATE_TIMEOUT);
       setupDefaultFetchMock();
 
       return Promise.resolve();
@@ -130,13 +140,11 @@ describe('chart actions', () => {
 
     return actionThunk(dispatch).then(() => {
       // chart update, trigger query, update form data, fail
-      expect(dispatch.callCount).toBe(4);
-      const updateFailedAction = dispatch.args[3][0];
+      expect(dispatch.callCount).toBe(5);
+      const updateFailedAction = dispatch.args[4][0];
       expect(updateFailedAction.type).toBe(actions.CHART_UPDATE_FAILED);
       expect(updateFailedAction.queryResponse.error).toBe('misc error');
 
-      expect(loggerStub.callCount).toBe(1);
-      expect(loggerStub.args[0][1].error_details).toBe('misc error');
       setupDefaultFetchMock();
 
       return Promise.resolve();

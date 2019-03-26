@@ -19,13 +19,14 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from mock import Mock
+from mock import Mock, patch
 import pandas as pd
 
-from superset import app, db, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
+from superset.models.core import Database
 from superset.utils.core import get_main_database
 
 BASE_DIR = app.config.get('BASE_DIR')
@@ -98,6 +99,9 @@ class SupersetTestCase(unittest.TestCase):
 
     def get_table_by_name(self, name):
         return db.session.query(SqlaTable).filter_by(table_name=name).one()
+
+    def get_database_by_id(self, db_id):
+        return db.session.query(Database).filter_by(id=db_id).one()
 
     def get_druid_ds_by_name(self, name):
         return db.session.query(DruidDatasource).filter_by(
@@ -185,3 +189,15 @@ class SupersetTestCase(unittest.TestCase):
         if raise_on_error and 'error' in resp:
             raise Exception('run_sql failed')
         return resp
+
+    @patch.dict('superset._feature_flags', {'FOO': True}, clear=True)
+    def test_existing_feature_flags(self):
+        self.assertTrue(is_feature_enabled('FOO'))
+
+    @patch.dict('superset._feature_flags', {}, clear=True)
+    def test_nonexistent_feature_flags(self):
+        self.assertFalse(is_feature_enabled('FOO'))
+
+    def test_feature_flags(self):
+        self.assertEquals(is_feature_enabled('foo'), 'bar')
+        self.assertEquals(is_feature_enabled('super'), 'set')

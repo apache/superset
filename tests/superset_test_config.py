@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # flake8: noqa
+from copy import copy
 from superset.config import *
 
 AUTH_USER_REGISTRATION_ROLE = 'alpha'
@@ -29,6 +30,14 @@ if 'SUPERSET__SQLALCHEMY_DATABASE_URI' in os.environ:
 
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
+FEATURE_FLAGS = {
+    'foo': 'bar',
+}
+def GET_FEATURE_FLAGS_FUNC(ff):
+    ff_copy = copy(ff)
+    ff_copy['super'] = 'set'
+    return ff_copy
+
 
 TESTING = True
 SECRET_KEY = 'thisismyscretkey'

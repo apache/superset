@@ -17,21 +17,19 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import AreaChartPlugin from '../nvd3/Area/AreaChartPlugin';
-import BarChartPlugin from '../nvd3/Bar/BarChartPlugin';
-import BigNumberChartPlugin from '../BigNumber/BigNumberChartPlugin';
-import BigNumberTotalChartPlugin from '../BigNumberTotal/BigNumberTotalChartPlugin';
-import BoxPlotChartPlugin from '../nvd3/BoxPlot/BoxPlotChartPlugin';
-import BubbleChartPlugin from '../nvd3/Bubble/BubbleChartPlugin';
-import DistBarChartPlugin from '../nvd3/DistBar/DistBarChartPlugin';
+import { BigNumberChartPlugin, BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+// There is a known issue with bubble chart that the bubbles will not show up.
+// (<path d="NaN" />)
+// Make sure to import '@superset-ui/legacy-preset-chart-nvd3/lib'
+// Not '@superset-ui/legacy-preset-chart-nvd3',
+// which will point to '@superset-ui/legacy-preset-chart-nvd3/esm' by default
+import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin, DistBarChartPlugin, LineChartPlugin, PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3/lib';
+import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
+import PivotTableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
+import TableChartPlugin from '@superset-ui/legacy-plugin-chart-table';
+import WordCloudChartPlugin from '@superset-ui/legacy-plugin-chart-word-cloud';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import HistogramChartPlugin from '../Histogram/HistogramChartPlugin';
-import LineChartPlugin from '../nvd3/Line/LineChartPlugin';
-import PieChartPlugin from '../nvd3/Pie/PieChartPlugin';
-import PivotTableChartPlugin from '../PivotTable/PivotTableChartPlugin';
-import TableChartPlugin from '../Table/TableChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
-import WordCloudChartPlugin from '../wordcloud/WordCloudChartPlugin';
 
 export default class CommonChartPreset extends Preset {
   constructor() {

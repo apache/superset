@@ -26,11 +26,6 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
 import getClientErrorObject from '../../utils/getClientErrorObject';
-import {
-  Logger,
-  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
-  LOG_ACTIONS_REFRESH_DASHBOARD,
-} from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import {
   addSuccessToast,
@@ -45,13 +40,6 @@ export function setUnsavedChanges(hasUnsavedChanges) {
 
 export const CHANGE_FILTER = 'CHANGE_FILTER';
 export function changeFilter(chart, col, vals, merge = true, refresh = true) {
-  Logger.append(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
-    id: chart.id,
-    column: col,
-    value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
-    merge,
-    refresh,
-  });
   return { type: CHANGE_FILTER, chart, col, vals, merge, refresh };
 }
 
@@ -161,6 +149,11 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
+export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
+export function setRefreshFrequency(refreshFrequency) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+}
+
 export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
@@ -200,11 +193,6 @@ export function saveDashboardRequest(data, id, saveType) {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
-    Logger.append(LOG_ACTIONS_REFRESH_DASHBOARD, {
-      force,
-      interval,
-      chartCount: chartList.length,
-    });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {
@@ -279,7 +267,10 @@ export function addSliceToDashboard(id) {
         ),
       );
     }
-    const form_data = selectedSlice.form_data;
+    const form_data = {
+      ...selectedSlice.form_data,
+      slice_id: selectedSlice.slice_id,
+    };
     const newChart = {
       ...initChart,
       id,

@@ -22,13 +22,6 @@ import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 
-import {
-  Logger,
-  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
-  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
-  LOG_ACTIONS_REFRESH_CHART,
-} from '../../logger';
-
 const propTypes = {
   slice: PropTypes.object.isRequired,
   isCached: PropTypes.bool,
@@ -36,6 +29,7 @@ const propTypes = {
   cachedDttm: PropTypes.string,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
+  supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
@@ -53,6 +47,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   supersetCanExplore: false,
+  supersetCanCSV: false,
   sliceCanEdit: false,
 };
 
@@ -83,35 +78,15 @@ class SliceHeaderControls extends React.PureComponent {
 
   exportCSV() {
     this.props.exportCSV(this.props.slice.slice_id);
-    Logger.append(
-      LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
-      {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      },
-      true,
-    );
   }
 
   exploreChart() {
     this.props.exploreChart(this.props.slice.slice_id);
-    Logger.append(
-      LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
-      {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      },
-      true,
-    );
   }
 
   refreshChart() {
     if (this.props.updatedDttm) {
       this.props.forceRefresh(this.props.slice.slice_id);
-      Logger.append(LOG_ACTIONS_REFRESH_CHART, {
-        slice_id: this.props.slice.slice_id,
-        is_cached: this.props.isCached,
-      });
     }
   }
 
@@ -161,7 +136,9 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          {this.props.supersetCanCSV && (
+            <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          )}
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>

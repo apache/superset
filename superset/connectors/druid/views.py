@@ -41,7 +41,7 @@ from . import models
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
 
-    list_title = _('List Druid Column')
+    list_title = _('Columns')
     show_title = _('Show Druid Column')
     add_title = _('Add Druid Column')
     edit_title = _('Edit Druid Column')
@@ -109,7 +109,7 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
 
-    list_title = _('List Druid Metric')
+    list_title = _('Metrics')
     show_title = _('Show Druid Metric')
     add_title = _('Add Druid Metric')
     edit_title = _('Edit Druid Metric')
@@ -160,14 +160,15 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
 
-    list_title = _('List Druid Cluster')
+    list_title = _('Druid Clusters')
     show_title = _('Show Druid Cluster')
     add_title = _('Add Druid Cluster')
     edit_title = _('Edit Druid Cluster')
 
     add_columns = [
         'verbose_name', 'broker_host', 'broker_port',
-        'broker_endpoint', 'cache_timeout', 'cluster_name',
+        'broker_user', 'broker_pass', 'broker_endpoint',
+        'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
@@ -176,6 +177,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
         'cluster_name': _('Cluster'),
         'broker_host': _('Broker Host'),
         'broker_port': _('Broker Port'),
+        'broker_user': _('Broker Username'),
+        'broker_pass': _('Broker Password'),
         'broker_endpoint': _('Broker Endpoint'),
         'verbose_name': _('Verbose Name'),
         'cache_timeout': _('Cache Timeout'),
@@ -186,6 +189,16 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  #
             'Duration (in seconds) of the caching timeout for this cluster. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the global timeout if undefined.'),
+        'broker_user': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
+        'broker_pass': _(
+            'Druid supports basic authentication. See '
+            '[auth](http://druid.io/docs/latest/design/auth.html) and '
+            'druid-basic-security extension',
+        ),
     }
 
     def pre_add(self, cluster):
@@ -212,7 +225,7 @@ appbuilder.add_view(
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
 
-    list_title = _('List Druid Datasource')
+    list_title = _('Druid Datasources')
     show_title = _('Show Druid Datasource')
     add_title = _('Add Druid Datasource')
     edit_title = _('Edit Druid Datasource')
@@ -329,20 +342,23 @@ class Druid(BaseSupersetView):
         DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
         for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
+            valid_cluster = True
             try:
                 cluster.refresh_datasources(refreshAll=refreshAll)
             except Exception as e:
+                valid_cluster = False
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
                         cluster_name, utils.error_msg_from_exception(e)),
                     'danger')
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
-            cluster.metadata_last_refreshed = datetime.now()
-            flash(
-                _('Refreshed metadata from cluster [{}]').format(
-                    cluster.cluster_name),
-                'info')
+                pass
+            if valid_cluster:
+                cluster.metadata_last_refreshed = datetime.now()
+                flash(
+                    _('Refreshed metadata from cluster [{}]').format(
+                        cluster.cluster_name),
+                    'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 

@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import StackTraceMessage from '../components/StackTraceMessage';
@@ -62,6 +62,10 @@ const defaultProps = {
 };
 
 class Chart extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(this);
+  }
   componentDidMount() {
     if (this.props.triggerQuery) {
       this.props.actions.runQuery(
@@ -73,18 +77,29 @@ class Chart extends React.PureComponent {
     }
   }
 
-  handleRenderFailure(error, info) {
+  handleRenderContainerFailure(error, info) {
     const { actions, chartId } = this.props;
     console.warn(error); // eslint-disable-line
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
-    Logger.append(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
+    actions.logEvent(LOG_ACTIONS_RENDER_CHART_CONTAINER, {
       slice_id: chartId,
       has_err: true,
       error_details: error.toString(),
       start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
       duration: Logger.getTimestamp() - this.renderStartTime,
     });
+  }
+
+  renderStackTraceMessage() {
+    const { chartAlert, chartStackTrace, queryResponse } = this.props;
+    return (
+      <StackTraceMessage
+        message={chartAlert}
+        link={queryResponse ? queryResponse.link : null}
+        stackTrace={chartStackTrace}
+      />);
   }
 
   render() {
@@ -92,11 +107,9 @@ class Chart extends React.PureComponent {
       width,
       height,
       chartAlert,
-      chartStackTrace,
       chartStatus,
       errorMessage,
       onQuery,
-      queryResponse,
       refreshOverlayVisible,
     } = this.props;
 
@@ -106,6 +119,9 @@ class Chart extends React.PureComponent {
     const containerStyles = isLoading ? { height, width } : null;
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
+    if (chartStatus === 'failed') {
+      return this.renderStackTraceMessage();
+    }
 
     return (
       <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
@@ -115,14 +131,6 @@ class Chart extends React.PureComponent {
         >
 
           {isLoading && <Loading size={50} />}
-
-          {chartAlert && (
-            <StackTraceMessage
-              message={chartAlert}
-              link={queryResponse ? queryResponse.link : null}
-              stackTrace={chartStackTrace}
-            />
-          )}
 
           {!isLoading && !chartAlert && isFaded && (
             <RefreshChartOverlay

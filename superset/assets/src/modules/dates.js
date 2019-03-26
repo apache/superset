@@ -18,17 +18,6 @@
  */
 import moment from 'moment';
 
-export function UTC(dttm) {
-  return new Date(
-    dttm.getUTCFullYear(),
-    dttm.getUTCMonth(),
-    dttm.getUTCDate(),
-    dttm.getUTCHours(),
-    dttm.getUTCMinutes(),
-    dttm.getUTCSeconds(),
-  );
-}
-
 export const fDuration = function (t1, t2, format = 'HH:mm:ss.SS') {
   const diffSec = t2 - t1;
   const duration = moment(new Date(diffSec));

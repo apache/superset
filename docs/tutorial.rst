@@ -61,7 +61,7 @@ this walkthrough, you’ll only need to do **two things**:
 This example shows the connection string for our test weather database. 
 As noted in the text below the URI, you should refer to the SQLAlchemy 
 documentation on 
-`creating new connection URIs <http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#database-urls>`_
+`creating new connection URIs <https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#database-urls>`_
 for your target database.
 
 Click the **Test Connection** button to confirm things work end to end. 

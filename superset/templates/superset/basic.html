@@ -59,7 +59,7 @@
     >
   </head>
 
-  <body>
+  <body {% if standalone_mode %}class="standalone"{% endif %}>
     {% block navbar %}
       {% if not standalone_mode %}
         <header class="top" role="header">
@@ -69,8 +69,8 @@
     {% endblock %}
 
     {% block body %}
-      <div id="app" data-bootstrap="{{ bootstrap_data }}" >
-        <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
+      <div id="app" data-bootstrap="{{ bootstrap_data }}">
+        <img src="/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
       </div>
     {% endblock %}
 

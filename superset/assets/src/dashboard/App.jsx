@@ -24,6 +24,7 @@ import { hot } from 'react-hot-loader';
 
 import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
+import logger from '../middleware/loggerMiddleware';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardContainer from './containers/Dashboard';
@@ -42,7 +43,7 @@ const store = createStore(
   rootReducer,
   initState,
   compose(
-    applyMiddleware(thunk),
+    applyMiddleware(thunk, logger),
     initEnhancer(false),
   ),
 );

@@ -35,6 +35,7 @@ import {
   saveDashboardRequest,
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
+  setRefreshFrequency,
 } from '../actions/dashboardState';
 
 import {
@@ -48,6 +49,8 @@ import {
   addDangerToast,
   addWarningToast,
 } from '../../messageToasts/actions';
+
+import { logEvent } from '../../logger/actions';
 
 import { DASHBOARD_HEADER_ID } from '../util/constants';
 
@@ -67,6 +70,7 @@ function mapStateToProps({
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,
     expandedSlices: dashboardState.expandedSlices,
+    refreshFrequency: dashboardState.refreshFrequency,
     css: dashboardState.css,
     charts,
     userId: dashboardInfo.userId,
@@ -101,6 +105,8 @@ function mapDispatchToProps(dispatch) {
       onSave: saveDashboardRequest,
       setMaxUndoHistoryExceeded,
       maxUndoHistoryToast,
+      logEvent,
+      setRefreshFrequency,
     },
     dispatch,
   );

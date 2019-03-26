@@ -31,11 +31,13 @@ const propTypes = {
   dbId: PropTypes.number,
   animation: PropTypes.bool,
   onSave: PropTypes.func,
+  saveQueryWarning: PropTypes.string,
 };
 const defaultProps = {
   defaultLabel: t('Undefined'),
   animation: true,
   onSave: () => {},
+  saveQueryWarning: null,
 };
 
 class SaveQuery extends React.PureComponent {
@@ -108,6 +110,18 @@ class SaveQuery extends React.PureComponent {
           </Col>
         </Row>
         <br />
+        {this.props.saveQueryWarning && (
+          <div>
+            <Row>
+              <Col md={12}>
+                <small>
+                  {this.props.saveQueryWarning}
+                </small>
+              </Col>
+            </Row>
+            <br />
+          </div>
+        )}
         <Row>
           <Col md={12}>
             <Button

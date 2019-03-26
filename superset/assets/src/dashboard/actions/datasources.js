@@ -46,7 +46,7 @@ export function fetchDatasourceMetadata(key) {
     return SupersetClient.get({
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
     })
-      .then(data => dispatch(setDatasource(data, key)))
+      .then(({ json }) => dispatch(setDatasource(json, key)))
       .catch(response =>
         getClientErrorObject(response).then(({ error }) =>
           dispatch(fetchDatasourceFailed(error, key)),

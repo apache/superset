@@ -24,7 +24,8 @@ import { SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger';
+import { logEvent } from '../logger/actions';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
 
@@ -152,6 +153,13 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+// in the sql lab -> explore flow, user can inline edit chart title,
+// then the chart will be assigned a new slice_id
+export const UPDATE_CHART_ID = 'UPDATE_CHART_ID';
+export function updateChartId(newId, key = 0) {
+  return { type: UPDATE_CHART_ID, newId, key };
+}
+
 export const ADD_CHART = 'ADD_CHART';
 export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
@@ -187,29 +195,31 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     }
     const queryPromise = SupersetClient.post(querySettings)
       .then(({ json }) => {
-        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+        dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
           slice_id: key,
           is_cached: json.is_cached,
           force_refresh: force,
           row_count: json.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,
+          ts: new Date().getTime(),
           duration: Logger.getTimestamp() - logStart,
           has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
           viz_type: formData.viz_type,
-        });
+        }));
         return dispatch(chartUpdateSucceeded(json, key));
       })
       .catch((response) => {
         const appendErrorLog = (errorDetails) => {
-          Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          dispatch(logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
             has_err: true,
             error_details: errorDetails,
             datasource: formData.datasource,
             start_offset: logStart,
+            ts: new Date().getTime(),
             duration: Logger.getTimestamp() - logStart,
-          });
+          }));
         };
 
         if (response.statusText === 'timeout') {
@@ -239,7 +249,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
 export function redirectSQLLab(formData) {
   return (dispatch) => {
     const { url } = getExploreUrlAndPayload({ formData, endpointType: 'query' });
-    return SupersetClient.get({ url })
+    return SupersetClient.post({
+      url,
+      postPayload: { form_data: formData },
+    })
       .then(({ json }) => {
         const redirectUrl = new URL(window.location);
         redirectUrl.pathname = '/superset/sqllab';

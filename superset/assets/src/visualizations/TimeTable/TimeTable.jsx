@@ -23,6 +23,7 @@ import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber } from '@superset-ui/number-format';
 import { formatTime } from '@superset-ui/time-format';
+import moment from 'moment';
 
 import MetricOption from '../../components/MetricOption';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
@@ -148,7 +149,7 @@ class TimeTable extends React.PureComponent {
           renderTooltip={({ index }) => (
             <div>
               <strong>{formatNumber(column.d3format, sparkData[index])}</strong>
-              <div>{formatTime(column.dateFormat, entries[index].time)}</div>
+              <div>{formatTime(column.dateFormat, moment.utc(entries[index].time).toDate())}</div>
             </div>
           )}
         />

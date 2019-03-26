@@ -31,9 +31,9 @@ import { fitViewport } from './layers/common';
 const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd, data) {
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme);
+  const colorFn = getScale(fd.colorScheme);
   const categories = {};
   data.forEach((d) => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -70,13 +70,18 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
    */
   constructor(props) {
     super(props);
-    this.state = this.getInitialStateFromProps(props);
+    this.state = this.getStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
     this.onValuesChange = this.onValuesChange.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
     this.showSingleCategory = this.showSingleCategory.bind(this);
+  }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.payload.form_data !== this.state.formData) {
+      this.setState({ ...this.getStateFromProps(nextProps) });
+    }
   }
   onValuesChange(values) {
     this.setState({
@@ -88,7 +93,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
   onViewportChange(viewport) {
     this.setState({ viewport });
   }
-  getInitialStateFromProps(props, state) {
+  getStateFromProps(props, state) {
     const features = props.payload.data.features || [];
     const timestamps = features.map(f => f.__timestamp);
     const categories = getCategories(props.formData, features);
@@ -103,7 +108,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.time_grain_sqla ||
+      props.payload.form_data.timeGrainSqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -149,8 +154,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     features = this.addColor(features, fd);
 
     // Apply user defined data mutator if defined
-    if (fd.js_data_mutator) {
-      const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    if (fd.jsDataMutator) {
+      const jsFnMutator = sandboxedEval(fd.jsDataMutator);
       features = jsFnMutator(features);
     }
 
@@ -175,8 +180,8 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     return [getLayer(fd, filteredPayload, onAddFilter, setTooltip)];
   }
   addColor(data, fd) {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme);
+    const c = fd.colorPicker || { r: 0, g: 0, b: 0, a: 1 };
+    const colorFn = getScale(fd.colorScheme);
     return data.map((d) => {
       let color;
       if (fd.dimension) {
@@ -224,14 +229,14 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
           viewport={this.state.viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={this.props.mapboxApiKey}
-          mapStyle={this.props.formData.mapbox_style}
+          mapStyle={this.props.formData.mapboxStyle}
           setControlValue={this.props.setControlValue}
         >
           <Legend
             categories={this.state.categories}
             toggleCategory={this.toggleCategory}
             showSingleCategory={this.showSingleCategory}
-            position={this.props.formData.legend_position}
+            position={this.props.formData.legendPosition}
           />
         </AnimatableDeckGLContainer>
       </div>

@@ -31,7 +31,7 @@ import os
 import signal
 import smtplib
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 import uuid
 import zlib
 
@@ -328,6 +328,8 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
+    if isinstance(obj, memoryview):
+        obj = obj.tobytes()
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -342,7 +344,7 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, bytes):
         try:
-            return '{}'.format(obj)
+            return obj.decode('utf-8')
         except Exception:
             return '[bytes]'
 
@@ -865,10 +867,12 @@ def get_or_create_main_db():
     logging.info('Creating database reference')
     dbobj = get_main_database(db.session)
     if not dbobj:
-        dbobj = models.Database(database_name='main')
+        dbobj = models.Database(
+            database_name='main',
+            allow_csv_upload=True,
+            expose_in_sqllab=True,
+        )
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_csv_upload = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
@@ -920,7 +924,8 @@ def ensure_path_exists(path):
 def get_since_until(time_range: Optional[str] = None,
                     since: Optional[str] = None,
                     until: Optional[str] = None,
-                    time_shift: Optional[str] = None) -> (datetime, datetime):
+                    time_shift: Optional[str] = None,
+                    relative_end: Optional[str] = None) -> Tuple[datetime, datetime]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -946,13 +951,13 @@ def get_since_until(time_range: Optional[str] = None,
 
     """
     separator = ' : '
-    today = parse_human_datetime('today')
+    relative_end = parse_human_datetime(relative_end if relative_end else 'today')
     common_time_frames = {
-        'Last day': (today - relativedelta(days=1), today),
-        'Last week': (today - relativedelta(weeks=1), today),
-        'Last month': (today - relativedelta(months=1), today),
-        'Last quarter': (today - relativedelta(months=3), today),
-        'Last year': (today - relativedelta(years=1), today),
+        'Last day': (relative_end - relativedelta(days=1), relative_end),  # noqa: T400
+        'Last week': (relative_end - relativedelta(weeks=1), relative_end),  # noqa: T400
+        'Last month': (relative_end - relativedelta(months=1), relative_end),  # noqa: E501, T400
+        'Last quarter': (relative_end - relativedelta(months=3), relative_end),  # noqa: E501, T400
+        'Last year': (relative_end - relativedelta(years=1), relative_end),  # noqa: T400
     }
 
     if time_range:
@@ -969,27 +974,27 @@ def get_since_until(time_range: Optional[str] = None,
         else:
             rel, num, grain = time_range.split()
             if rel == 'Last':
-                since = today - relativedelta(**{grain: int(num)})
-                until = today
+                since = relative_end - relativedelta(**{grain: int(num)})  # noqa: T400
+                until = relative_end
             else:  # rel == 'Next'
-                since = today
-                until = today + relativedelta(**{grain: int(num)})
+                since = relative_end
+                until = relative_end + relativedelta(**{grain: int(num)})  # noqa: T400
     else:
         since = since or ''
         if since:
             since = add_ago_to_since(since)
         since = parse_human_datetime(since)
-        until = parse_human_datetime(until or 'now')
+        until = parse_human_datetime(until) if until else relative_end
 
     if time_shift:
         time_shift = parse_human_timedelta(time_shift)
-        since = since if since is None else (since - time_shift)
-        until = until if until is None else (until - time_shift)
+        since = since if since is None else (since - time_shift)  # noqa: T400
+        until = until if until is None else (until - time_shift)  # noqa: T400
 
     if since and until and since > until:
         raise ValueError(_('From date cannot be larger than to date'))
 
-    return since, until
+    return since, until  # noqa: T400
 
 
 def add_ago_to_since(since):

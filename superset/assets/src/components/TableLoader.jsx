@@ -31,6 +31,9 @@ const propTypes = {
   mutator: PropTypes.func,
   columns: PropTypes.arrayOf(PropTypes.string),
   addDangerToast: PropTypes.func.isRequired,
+  addInfoToast: PropTypes.func.isRequired,
+  addSuccessToast: PropTypes.func.isRequired,
+  addWarningToast: PropTypes.func.isRequired,
 };
 
 class TableLoader extends React.PureComponent {

@@ -31,6 +31,7 @@ import {
   TOGGLE_FAVE_STAR,
   TOGGLE_PUBLISHED,
   UPDATE_CSS,
+  SET_REFRESH_FREQUENCY,
 } from '../actions/dashboardState';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -150,6 +151,9 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_UNSAVED_CHANGES]() {
       const { hasUnsavedChanges } = action.payload;
       return { ...state, hasUnsavedChanges };
+    },
+    [SET_REFRESH_FREQUENCY]() {
+      return { ...state, refreshFrequency: action.refreshFrequency };
     },
   };
 

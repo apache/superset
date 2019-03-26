@@ -74,6 +74,7 @@ jobs:
       python: 3.6
       env: TOXENV=pylint
     - language: python
+      python: 3.6
       env:
         - TOXENV=license-check
         - TRAVIS_CACHE=$HOME/.travis_cache/
@@ -95,3 +96,4 @@ cache:
     - ~/.npm
     - ~/.cache
     - ~/.travis_cache/
+    - superset/assets/.terser-plugin-cache/

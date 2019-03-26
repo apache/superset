@@ -54,9 +54,11 @@ describe('Chart', () => {
     refreshChart() {},
     toggleExpandSlice() {},
     addFilter() {},
+    logEvent() {},
     editMode: false,
     isExpanded: false,
     supersetCanExplore: false,
+    supersetCanCSV: false,
     sliceCanEdit: false,
   };
 
