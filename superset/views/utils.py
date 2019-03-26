@@ -24,9 +24,7 @@ from superset import db
 
 
 def bootstrap_user_data(username=None, include_perms=False):
-    if username:
-        username = username
-    else:
+    if not username:
         username = g.user.username
 
     user = (
