@@ -38,8 +38,8 @@ export interface PlainProps {
 
 type TransformFunction<Input = PlainProps, Output = PlainProps> = (x: Input) => Output;
 
-export type PreTransformProps = TransformFunction<ChartProps>;
-export type TransformProps = TransformFunction;
+export type PreTransformProps = TransformFunction<ChartProps, ChartProps>;
+export type TransformProps = TransformFunction<ChartProps>;
 export type PostTransformProps = TransformFunction;
 
 export type BuildQueryFunction<T extends ChartFormData> = (formData: T) => QueryContext;
