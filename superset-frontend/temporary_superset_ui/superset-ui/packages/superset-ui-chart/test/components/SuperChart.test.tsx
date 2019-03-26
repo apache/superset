@@ -110,8 +110,15 @@ describe('SuperChart', () => {
       }, 0);
     });
     it('uses preTransformProps when specified', done => {
+      const chartPropsWithPayload = new ChartProps({
+        payload: { character: 'hulk' },
+      });
       const wrapper = shallow(
-        <SuperChart chartType="my-chart" preTransformProps={() => ({ character: 'hulk' })} />,
+        <SuperChart
+          chartType="my-chart"
+          preTransformProps={() => chartPropsWithPayload}
+          overrideTransformProps={props => props.payload}
+        />,
       );
       setTimeout(() => {
         expect(
