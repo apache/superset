@@ -23,3 +23,22 @@
 @import "./cosmo/bootswatch.less";
 
 @stroke-primary:  @brand-primary;
+
+body {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  flex: 0 1 auto;
+}
+
+#app {
+  flex: 1 1 auto;
+  position: relative;
+}

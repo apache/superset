@@ -174,6 +174,7 @@ export default function(bootstrapData) {
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,
+      superset_can_csv: dashboard.superset_can_csv,
       slice_can_edit: dashboard.slice_can_edit,
       common: {
         flash_messages: common.flash_messages,
@@ -185,6 +186,7 @@ export default function(bootstrapData) {
       refresh: false,
       filters,
       expandedSlices: dashboard.metadata.expanded_slices || {},
+      refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
       showBuilderPane: dashboard.dash_edit_perm && editMode,

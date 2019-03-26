@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
+import { MenuItem, SplitButton, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
@@ -40,10 +40,12 @@ const propTypes = {
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
   offline: PropTypes.bool,
+  saveQueryWarning: PropTypes.string,
 };
 const defaultProps = {
   queryEditors: [],
   offline: false,
+  saveQueryWarning: null,
 };
 
 let queryCount = 1;
@@ -194,72 +196,73 @@ class TabbedSqlEditors extends React.PureComponent {
       }
       const state = latestQuery ? latestQuery.state : '';
 
-      const tabTitle = (
-        <div>
+      const title = (
+        <React.Fragment>
           <TabStatusIcon onClose={() => this.removeQueryEditor(qe)} tabState={state} />{' '}
           {qe.title}{' '}
-          <DropdownButton
-            bsSize="small"
-            id={'ddbtn-tab-' + i}
-            className="ddbtn-tab"
-            title=""
-          >
-            <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
-              <div className="icon-container">
-                <i className="fa fa-close" />
-              </div>
-              {t('Close tab')}
-            </MenuItem>
-            <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
-              <div className="icon-container">
-                <i className="fa fa-i-cursor" />
-              </div>
-              {t('Rename tab')}
-            </MenuItem>
-            <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
-              <div className="icon-container">
-                <i className="fa fa-cogs" />
-              </div>
-              {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
-            </MenuItem>
-            <MenuItem eventKey="4" onClick={() => this.removeAllOtherQueryEditors(qe)}>
-              <div className="icon-container">
-                <i className="fa fa-times-circle-o" />
-              </div>
-              {t('Close all other tabs')}
-            </MenuItem>
-          </DropdownButton>
-        </div>
+        </React.Fragment>
+      );
+      const tabTitle = (
+        <SplitButton
+          bsSize="small"
+          id={'ddbtn-tab-' + i}
+          className="ddbtn-tab"
+          title={title}
+        >
+          <MenuItem eventKey="1" onClick={() => this.removeQueryEditor(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-close" />
+            </div>
+            {t('Close tab')}
+          </MenuItem>
+          <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-i-cursor" />
+            </div>
+            {t('Rename tab')}
+          </MenuItem>
+          <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
+            <div className="icon-container">
+              <i className="fa fa-cogs" />
+            </div>
+            {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+          </MenuItem>
+          <MenuItem eventKey="4" onClick={() => this.removeAllOtherQueryEditors(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-times-circle-o" />
+            </div>
+            {t('Close all other tabs')}
+          </MenuItem>
+        </SplitButton>
       );
       return (
         <Tab key={qe.id} title={tabTitle} eventKey={qe.id}>
-          <div className="panel panel-default">
-            <div className="panel-body">
-              {isSelected && (
-                <SqlEditor
-                  tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
-                  queryEditor={qe}
-                  editorQueries={this.state.queriesArray}
-                  dataPreviewQueries={this.state.dataPreviewQueries}
-                  latestQuery={latestQuery}
-                  database={database}
-                  actions={this.props.actions}
-                  hideLeftBar={this.state.hideLeftBar}
-                  defaultQueryLimit={this.props.defaultQueryLimit}
-                  maxRow={this.props.maxRow}
-                />
-              )}
-            </div>
-          </div>
+          {isSelected && (
+            <SqlEditor
+              tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
+              queryEditor={qe}
+              editorQueries={this.state.queriesArray}
+              dataPreviewQueries={this.state.dataPreviewQueries}
+              latestQuery={latestQuery}
+              database={database}
+              actions={this.props.actions}
+              hideLeftBar={this.state.hideLeftBar}
+              defaultQueryLimit={this.props.defaultQueryLimit}
+              maxRow={this.props.maxRow}
+              saveQueryWarning={this.props.saveQueryWarning}
+            />
+          )}
         </Tab>
       );
     });
     return (
       <Tabs
         bsStyle="tabs"
+        animation={false}
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         onSelect={this.handleSelect.bind(this)}
         id="a11y-query-editor-tabs"
+        className="SqlEditorTabs"
       >
         {editors}
         <Tab
@@ -268,6 +271,7 @@ class TabbedSqlEditors extends React.PureComponent {
               <i className="fa fa-plus-circle" />&nbsp;
             </div>
           }
+          className="addEditorTab"
           eventKey="add_tab"
           disabled={this.props.offline}
         />
@@ -289,6 +293,7 @@ function mapStateToProps({ sqlLab, common }) {
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,
+    saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
   };
 }
 function mapDispatchToProps(dispatch) {

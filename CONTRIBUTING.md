@@ -432,9 +432,9 @@ npm run lint
 
 ### Python Testing
 
-All python tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
+All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
 a standardized testing framework.
-All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
 ```bash
 tox -e <environment>
@@ -462,9 +462,38 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
+#### Typing
+
+To ensure clarity, consistency, all readability, _all_ new functions should use
+[type hints](https://docs.python.org/3/library/typing.html) and include a
+docstring using Sphinx documentation.
+
+Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
+syntax for listing explicitly raised exceptions is proposed and thus the
+recommendation is to put this information in a docstring, i.e.,
+
+
+```python
+import math
+from typing import Union
+
+
+def sqrt(x: Union[float, int]) -> Union[float, int]:
+    """
+    Return the square root of x.
+
+    :param x: A number
+    :returns: The square root of the given number
+    :raises ValueError: If the number is negative
+    """
+
+    return math.sqrt(x)
+```
+
+
 ### JavaScript Testing
 
-We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
 cd superset/assets

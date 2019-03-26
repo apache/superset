@@ -92,7 +92,7 @@ Database Support
 
 Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
+[most common databases](https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html).
 
 Superset can be used to visualize data out of most databases:
 * MySQL
@@ -188,6 +188,7 @@ the world know they are using Superset. Join our growing community!
  1. [Fordeal](http://www.fordeal.com)
  1. [GfK Data Lab](http://datalab.gfk.com)
  1. [Grassroot](https://www.grassrootinstitute.org/)
+ 1. [Hostnfly](https://www.hostnfly.com/)
  1. [HuiShouBao](http://www.huishoubao.com/)
  1. [jampp](https://jampp.com/)
  1. [Konfío](http://konfio.mx)

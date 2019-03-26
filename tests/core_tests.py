@@ -622,16 +622,6 @@ class CoreTests(SupersetTestCase):
         assert 'language' in resp
         self.logout()
 
-    def test_viz_get_fillna_for_columns(self):
-        slc = self.get_slice('Girls', db.session)
-        q = slc.viz.query_obj()
-        results = slc.viz.datasource.query(q)
-        fillna_columns = slc.viz.get_fillna_for_columns(results.df.columns)
-        self.assertDictEqual(
-            fillna_columns,
-            {'name': ' NULL', 'sum__num': 0},
-        )
-
     def test_import_csv(self):
         self.login(username='admin')
         filename = 'testCSV.csv'

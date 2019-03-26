@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,23 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-console_log==0.2.10
-flake8-commas==2.0.0
-flake8-import-order==0.18
-flake8-mypy==17.8.0
-flake8-quotes==1.0.0
-flake8==3.6.0
-flask-cors==3.0.6
-ipdb==0.11
-mypy==0.670
-mysqlclient==1.3.13
-pip-tools==3.5.0
-psycopg2-binary==2.7.5
-pycodestyle==2.4.0
-pyhive==0.6.1
-pylint==1.9.2
-python-dotenv==0.10.1
-redis==2.10.6
-statsd==3.3.0
-thrift==0.11.0
-tox==3.5.3
+
+# Use this to sign the tar balls generated from
+# python setup.py sdist --formats=gztar
+# ie. sign.sh <my_tar_ball>
+# you will still be required to type in your signing key password
+# or it needs to be available in your keychain
+
+NAME=${1}
+
+gpg --armor --output ${NAME}.asc --detach-sig ${NAME}
+gpg --print-md SHA512 ${NAME} > ${NAME}.sha512

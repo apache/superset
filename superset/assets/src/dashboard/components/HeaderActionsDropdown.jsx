@@ -40,6 +40,8 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
+  setRefreshFrequency: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   userCanEdit: PropTypes.bool.isRequired,
@@ -66,6 +68,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     };
 
     this.changeCss = this.changeCss.bind(this);
+    this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
   }
 
   componentWillMount() {
@@ -95,12 +98,17 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.props.updateCss(css);
   }
 
+  changeRefreshInterval(refreshInterval) {
+    this.props.setRefreshFrequency(refreshInterval);
+    this.props.startPeriodicRender(refreshInterval * 1000);
+  }
+
   render() {
     const {
       dashboardTitle,
       dashboardId,
-      startPeriodicRender,
       forceRefreshAllCharts,
+      refreshFrequency,
       editMode,
       css,
       hasUnsavedChanges,
@@ -135,6 +143,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             layout={layout}
             filters={filters}
             expandedSlices={expandedSlices}
+            refreshFrequency={refreshFrequency}
             css={css}
             onSave={onSave}
             isMenuItem
@@ -160,9 +169,8 @@ class HeaderActionsDropdown extends React.PureComponent {
           {t('Force refresh dashboard')}
         </MenuItem>
         <RefreshIntervalModal
-          onChange={refreshInterval =>
-            startPeriodicRender(refreshInterval * 1000)
-          }
+          refreshFrequency={refreshFrequency}
+          onChange={this.changeRefreshInterval}
           triggerNode={<span>{t('Set auto-refresh interval')}</span>}
         />
         {editMode && (

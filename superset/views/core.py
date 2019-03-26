@@ -44,7 +44,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend,
+    app, appbuilder, cache, conf, db, results_backend,
     security_manager, sql_lab, viz)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
@@ -109,6 +109,14 @@ SQLTable = Table(
     extend_existing=True)
 
 
+class DatabaseFilter(SupersetFilter):
+    def apply(self, query, func):  # noqa
+        if security_manager.all_database_access():
+            return query
+        database_perms = self.get_view_menus('database_access')
+        return query.filter(self.model.perm.in_(database_perms))
+
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -116,11 +124,12 @@ class SliceFilter(SupersetFilter):
 
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
+        database_perms = self.get_view_menus('database_access')
         query = (
             query.outerjoin(SQLTable, self.model.datasource_id == SQLTable.c.id)
             .outerjoin(models.Database, models.Database.id == SQLTable.c.database_id)
             .filter(or_(
-                models.Database.perm.in_(datasource_perms),
+                models.Database.perm.in_(database_perms),
                 self.model.perm.in_(datasource_perms),
             ))
         )
@@ -210,7 +219,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'sqlalchemy_uri': utils.markdown(
             'Refer to the '
             '[SqlAlchemy docs]'
-            '(http://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#'
+            '(https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#'
             'database-urls) '
             'for more information on how to structure your URI.', True),
         'expose_in_sqllab': _('Expose this DB in SQL Lab'),
@@ -233,10 +242,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'JSON string containing extra configuration elements.<br/>'
             '1. The ``engine_params`` object gets unpacked into the '
             '[sqlalchemy.create_engine]'
-            '(http://docs.sqlalchemy.org/en/latest/core/engines.html#'
+            '(https://docs.sqlalchemy.org/en/latest/core/engines.html#'
             'sqlalchemy.create_engine) call, while the ``metadata_params`` '
             'gets unpacked into the [sqlalchemy.MetaData]'
-            '(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
+            '(https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html'
             '#sqlalchemy.schema.MetaData) call.<br/>'
             '2. The ``metadata_cache_timeout`` is a cache timeout setting '
             'in seconds for metadata fetch of this database. Specify it as '
@@ -285,6 +294,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_multi_schema_metadata_fetch': _('Allow Multi Schema Metadata Fetch'),
         'backend': _('Backend'),
     }
+    base_filters = [['id', DatabaseFilter, lambda: []]]
 
     def pre_add(self, db):
         self.check_extra(db)
@@ -401,7 +411,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else e
+                form.name.data) if isinstance(e, IntegrityError) else str(e)
             flash(
                 message,
                 'danger')
@@ -595,7 +605,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     edit_columns = [
         'dashboard_title', 'slug', 'owners', 'position_json', 'css',
         'json_metadata']
-    show_columns = edit_columns + ['table_names', 'slices']
+    show_columns = edit_columns + ['table_names', 'charts']
     search_columns = ('dashboard_title', 'slug', 'owners')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
@@ -622,7 +632,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
         'slug': _('Slug'),
-        'slices': _('Charts'),
+        'charts': _('Charts'),
         'owners': _('Owners'),
         'creator': _('Creator'),
         'modified': _('Modified'),
@@ -633,8 +643,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, obj):
-        obj.slug = obj.slug.strip() or None
+        obj.slug = obj.slug or None
         if obj.slug:
+            obj.slug = obj.slug.strip()
             obj.slug = obj.slug.replace(' ', '-')
             obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
         if g.user not in obj.owners:
@@ -1111,7 +1122,7 @@ class Superset(BaseSupersetView):
         if not slc:
             abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
-            parse.quote(json.dumps(form_data)),
+            parse.quote(json.dumps({'slice_id': slice_id})),
         )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
@@ -1142,7 +1153,7 @@ class Superset(BaseSupersetView):
 
     def get_raw_results(self, viz_obj):
         return self.json_response({
-            'data': viz_obj.get_df().to_dict('records'),
+            'data': viz_obj.get_df_payload()['df'].to_dict('records'),
         })
 
     def get_samples(self, viz_obj):
@@ -1426,7 +1437,7 @@ class Superset(BaseSupersetView):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-        form_data, _ = self.get_form_data()
+        form_data, unused_slc = self.get_form_data()
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
@@ -1463,7 +1474,7 @@ class Superset(BaseSupersetView):
                     status=400)
 
             flash(
-                'Slice [{}] was added to dashboard [{}]'.format(
+                _('Chart [{}] was added to dashboard [{}]').format(
                     slc.slice_name,
                     dash.dashboard_title),
                 'info')
@@ -1479,8 +1490,8 @@ class Superset(BaseSupersetView):
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
             flash(
-                'Dashboard [{}] just got created and slice [{}] was added '
-                'to it'.format(
+                _('Dashboard [{}] just got created and chart [{}] was added '
+                  'to it').format(
                     dash.dashboard_title,
                     slc.slice_name),
                 'info')
@@ -1724,6 +1735,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['refresh_frequency'] = data.get('refresh_frequency', 0)
         default_filters_data = json.loads(data.get('default_filters', '{}'))
         applicable_filters = \
             {key: v for key, v in default_filters_data.items()
@@ -1865,6 +1877,20 @@ class Superset(BaseSupersetView):
     def csrf_token(self):
         return Response(
             self.render_template('superset/csrf_token.json'),
+            mimetype='text/json',
+        )
+
+    @api
+    @has_access_api
+    @expose('/available_domains/', methods=['GET'])
+    def available_domains(self):
+        """
+        Returns the list of available Superset Webserver domains (if any)
+        defined in config. This enables charts embedded in other apps to
+        leverage domain sharding if appropriately configured.
+        """
+        return Response(
+            json.dumps(conf.get('SUPERSET_WEBSERVER_DOMAINS')),
             mimetype='text/json',
         )
 
@@ -2174,6 +2200,7 @@ class Superset(BaseSupersetView):
             security_manager.can_access('can_save_dash', 'Superset')
         dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
         superset_can_explore = security_manager.can_access('can_explore', 'Superset')
+        superset_can_csv = security_manager.can_access('can_csv', 'Superset')
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
         standalone_mode = request.args.get('standalone') == 'true'
@@ -2195,6 +2222,7 @@ class Superset(BaseSupersetView):
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
             'superset_can_explore': superset_can_explore,
+            'superset_can_csv': superset_can_csv,
             'slice_can_edit': slice_can_edit,
         })
 

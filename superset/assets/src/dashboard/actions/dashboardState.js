@@ -123,6 +123,11 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
+export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
+export function setRefreshFrequency(refreshFrequency) {
+  return { type: SET_REFRESH_FREQUENCY, refreshFrequency };
+}
+
 export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
@@ -236,7 +241,10 @@ export function addSliceToDashboard(id) {
         ),
       );
     }
-    const form_data = selectedSlice.form_data;
+    const form_data = {
+      ...selectedSlice.form_data,
+      slice_id: selectedSlice.slice_id,
+    };
     const newChart = {
       ...initChart,
       id,

@@ -105,7 +105,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above
     const qe = this.props.queryEditor;
     return (
-      <div className="sqlEditorLeftBar">
+      <div className="SqlEditorLeftBar">
         <TableSelector
           dbId={qe.dbId}
           schema={qe.schema}
@@ -117,14 +117,12 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           database={this.props.database}
           handleError={this.props.actions.addDangerToast}
         />
-        <hr />
-        <div className="m-t-5">
-          <div className="scrollbar-container">
-            <div className="scrollbar-content" style={{ height: tableMetaDataHeight }}>
-              {this.props.tables.map(table => (
-                <TableElement table={table} key={table.id} actions={this.props.actions} />
-              ))}
-            </div>
+        <div className="divider" />
+        <div className="scrollbar-container">
+          <div className="scrollbar-content" style={{ height: tableMetaDataHeight }}>
+            {this.props.tables.map(table => (
+              <TableElement table={table} key={table.id} actions={this.props.actions} />
+            ))}
           </div>
         </div>
         {shouldShowReset &&

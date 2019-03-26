@@ -17,7 +17,9 @@
 import inspect
 
 import mock
-from sqlalchemy import column
+from sqlalchemy import column, select, table
+from sqlalchemy.dialects.mssql import pymssql
+from sqlalchemy.types import String, UnicodeText
 
 from superset import db_engine_specs
 from superset.db_engine_specs import (
@@ -142,12 +144,26 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         q2 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20'
         q3 = 'select * from (select * from my_subquery limit 10);'
         q4 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20;'
+        q5 = 'select * from mytable limit 10, 20'
+        q6 = 'select * from mytable limit 10 offset 20'
+        q7 = 'select * from mytable limit'
+        q8 = 'select * from mytable limit 10.0'
+        q9 = 'select * from mytable limit x'
+        q10 = 'select * from mytable limit x, 20'
+        q11 = 'select * from mytable limit x offset 20'
 
         self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
         self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q5), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q6), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q7), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q8), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q9), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q10), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q11), None)
 
     def test_wrapped_query(self):
         self.sql_limit_regex(
@@ -332,3 +348,35 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEqual(label.quote, True)
         label_expected = '3b26974078683be078219674eeb8f5'
         self.assertEqual(label, label_expected)
+
+    def test_mssql_column_types(self):
+        def assert_type(type_string, type_expected):
+            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+            if type_expected is None:
+                self.assertIsNone(type_assigned)
+            else:
+                self.assertIsInstance(type_assigned, type_expected)
+
+        assert_type('INT', None)
+        assert_type('STRING', String)
+        assert_type('CHAR(10)', String)
+        assert_type('VARCHAR(10)', String)
+        assert_type('TEXT', String)
+        assert_type('NCHAR(10)', UnicodeText)
+        assert_type('NVARCHAR(10)', UnicodeText)
+        assert_type('NTEXT', UnicodeText)
+
+    def test_mssql_where_clause_n_prefix(self):
+        dialect = pymssql.dialect()
+        spec = MssqlEngineSpec
+        str_col = column('col', type_=spec.get_sqla_column_type('VARCHAR(10)'))
+        unicode_col = column('unicode_col', type_=spec.get_sqla_column_type('NTEXT'))
+        tbl = table('tbl')
+        sel = select([str_col, unicode_col]).\
+            select_from(tbl).\
+            where(str_col == 'abc').\
+            where(unicode_col == 'abc')
+
+        query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
+        query_expected = "SELECT col, unicode_col \nFROM tbl \nWHERE col = 'abc' AND unicode_col = N'abc'"  # noqa
+        self.assertEqual(query, query_expected)
