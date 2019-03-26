@@ -156,12 +156,15 @@ class BaseEngineSpec(object):
         :param time_grain: Optional time grain, e.g. P1Y for 1 year
         :return: TimeExpression object
         """
-        grain = cls.time_grain_functions.get(time_grain) if time_grain else None
-        if time_grain and not grain:
-            raise NotImplementedError(
-                f'No grain spec for {time_grain} for database {db.database_name}')
 
-        time_expr = grain.function if grain else '{col}'
+        if time_grain:
+            time_expr = cls.time_grain_functions.get(time_grain)
+            if not time_expr:
+                raise NotImplementedError(
+                    f'No grain spec for {time_grain} for database {db.database_name}')
+        else:
+            time_expr = '{col}'
+
         # if epoch, translate to DATE using db specific conf
         if pdf == 'epoch_s':
             time_expr = time_expr.replace('{col}', cls.epoch_to_dttm())
