@@ -37,7 +37,6 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 import simplejson as json
 import sqlalchemy as sqla
-from sqlalchemy import and_, create_engine, MetaData, update
 from sqlalchemy import (
     and_, Column, create_engine, ForeignKey, Integer, MetaData, or_, Table, update)
 from sqlalchemy.engine.url import make_url
