@@ -104,29 +104,23 @@ class SaveModal extends React.PureComponent {
       dashboardId,
     } = this.props;
 
+    const scale = CategoricalColorNamespace.getScale(
+      colorScheme,
+      colorNamespace,
+    );
+    const labelColors = scale.getColorMap();
     const data = {
       positions,
       css,
       color_namespace: colorNamespace,
       color_scheme: colorScheme,
+      label_colors: labelColors,
       expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       default_filters: safeStringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
-
-    try {
-      const scale = CategoricalColorNamespace.getScale(
-        colorScheme,
-        colorNamespace,
-      );
-      const labelColors = scale.getColorMap();
-      data.label_colors = labelColors;
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('@superset-ui/color needs to be updated');
-    }
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
       this.props.addDangerToast(
