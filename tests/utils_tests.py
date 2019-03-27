@@ -17,9 +17,9 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 import unittest
+from unittest.mock import patch
 import uuid
 
-from mock import patch
 import numpy
 
 from superset.exceptions import SupersetException
