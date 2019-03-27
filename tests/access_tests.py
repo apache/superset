@@ -17,8 +17,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
-
-import mock
+from unittest import mock
 
 from superset import app, db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry

@@ -17,9 +17,9 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from unittest.mock import Mock, patch
 
 from flask_appbuilder.security.sqla import models as ab_models
-from mock import Mock, patch
 import pandas as pd
 
 from superset import app, db, is_feature_enabled, security_manager

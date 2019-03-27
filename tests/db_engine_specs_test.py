@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+from unittest import mock
 
-import mock
 from sqlalchemy import column
 
 from superset import db_engine_specs
