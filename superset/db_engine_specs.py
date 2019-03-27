@@ -131,7 +131,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: Dict[str, str] = {}
+    time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -811,7 +811,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
     }
 
-    type_code_map: dict = {}  # loaded from get_datatype only if needed
+    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -1830,7 +1830,7 @@ class PinotEngineSpec(BaseEngineSpec):
     supports_column_aliases = False
 
     # Pinot does its own conversion below
-    time_grain_functions = {
+    time_grain_functions: Dict[Optional[str], str] = {
         'PT1S': '1:SECONDS',
         'PT1M': '1:MINUTES',
         'PT1H': '1:HOURS',
