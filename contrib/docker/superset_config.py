@@ -59,4 +59,4 @@ CELERY_CONFIG = CeleryConfig
 
 from werkzeug.contrib.cache import RedisCache
 RESULTS_BACKEND = RedisCache(
-    host='localhost', port=6379, key_prefix='superset_results')
+    host=REDIS_HOST, port=REDIS_PORT, key_prefix='superset_results')
