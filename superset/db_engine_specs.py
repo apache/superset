@@ -158,7 +158,7 @@ class BaseEngineSpec(object):
             time_expr = cls.time_grain_functions.get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
-                    f'No grain spec for {time_grain} for database {db.database_name}')
+                    f'No grain spec for {time_grain} for database {cls.engine}')
         else:
             time_expr = '{col}'
 
