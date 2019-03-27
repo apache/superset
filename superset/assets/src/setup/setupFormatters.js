@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, getNumberFormatterRegistry, createSiAtMostNDigitFormatter, NumberFormats } from '@superset-ui/number-format';
+import { createSmartNumberFormatter, getNumberFormatter, getNumberFormatterRegistry, createSiAtMostNDigitFormatter, NumberFormats } from '@superset-ui/number-format';
 import { getTimeFormatterRegistry, smartDateFormatter, smartDateVerboseFormatter } from '@superset-ui/time-format';
 
 export default function setupFormatters() {
@@ -27,6 +27,7 @@ export default function setupFormatters() {
     .setDefaultKey(defaultNumberFormatter.id)
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
+    .registerValue('smart_number', createSmartNumberFormatter)
     .registerValue(',0', getNumberFormatter(',.4~f'))
     .registerValue('null', getNumberFormatter(',.4~f'))
     .registerValue('%', getNumberFormatter('.0%'))

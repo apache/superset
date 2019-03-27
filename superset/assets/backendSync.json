@@ -1631,7 +1631,7 @@
       "freeForm": true,
       "label": "Number format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "smart_number",
       "choices": [
         [
           ".1s",
@@ -2081,7 +2081,7 @@
       "freeForm": true,
       "label": "X Axis Format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "smart_number",
       "choices": [
         [
           ".1s",
@@ -2161,7 +2161,7 @@
       "freeForm": true,
       "label": "Y Axis Format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "smart_number",
       "choices": [
         [
           ".1s",
@@ -2202,7 +2202,7 @@
       "type": "SelectControl",
       "freeForm": true,
       "label": "Right Axis Format",
-      "default": ".3s",
+      "default": "smart_number",
       "choices": [
         [
           ".1s",
