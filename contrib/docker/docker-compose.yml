@@ -49,7 +49,7 @@ services:
       REDIS_PORT: 6379
       # If using production, comment development volume below
       #SUPERSET_ENV: production
-      SUPERSET_ENV: development
+      SUPERSET_ENV: production
     ports:
       - 8088:8088
     command: "tail -f /dev/null"
@@ -59,8 +59,6 @@ services:
     volumes:
       # this is needed to communicate with the postgres and redis services
       - ./superset_config.py:/home/superset/superset/superset_config.py
-      # this is needed for development, remove with SUPERSET_ENV=production
-      - ../../superset:/home/superset/superset
 
 volumes:
   postgres:
