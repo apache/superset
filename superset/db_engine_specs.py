@@ -36,10 +36,8 @@ import os
 import re
 import textwrap
 import time
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib import parse
-
-from typing import Optional
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -133,7 +131,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions: dict = {}
+    time_grain_functions: Dict[str, str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False

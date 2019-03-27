@@ -463,8 +463,8 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             where(unicode_col == 'abc')
 
         query = str(sel.compile(dialect=dialect, compile_kwargs={'literal_binds': True}))
-        query_expected = "SELECT col, unicode_col \n" \
-                         "FROM tbl \n" \
+        query_expected = 'SELECT col, unicode_col \n' \
+                         'FROM tbl \n' \
                          "WHERE col = 'abc' AND unicode_col = N'abc'"
         self.assertEqual(query, query_expected)
 
@@ -491,7 +491,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         col = literal_column('COALESCE(a, b)')
         expr = PostgresEngineSpec.get_time_expr(col, None, None)
         result = str(expr.compile(dialect=postgresql.dialect()))
-        self.assertEqual(result, "COALESCE(a, b)")
+        self.assertEqual(result, 'COALESCE(a, b)')
 
     def test_pg_time_expression_literal_1y_grain(self):
         col = literal_column('COALESCE(a, b)')
@@ -521,7 +521,7 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         col = column('MixedCase')
         expr = MssqlEngineSpec.get_time_expr(col, None, 'P1Y')
         result = str(expr.compile(dialect=mssql.dialect()))
-        self.assertEqual(result, "DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)")
+        self.assertEqual(result, 'DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)')
 
     def test_oracle_time_expression_reserved_keyword_1m_grain(self):
         col = column('decimal')
