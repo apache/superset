@@ -150,6 +150,7 @@ def execute_sql_statement(
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
     SQL_MAX_ROWS = app.config.get('SQL_MAX_ROW')
+    ALLOW_SQL_MAX_ROW_OVERRIDE = app.config.get('ALLOW_SQL_MAX_ROW_OVERRIDE')
 
     if not parsed_query.is_readonly() and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -166,7 +167,8 @@ def execute_sql_statement(
         sql = parsed_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     if parsed_query.is_select():
-        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
+        if SQL_MAX_ROWS and (not query.limit or (
+                query.limit > SQL_MAX_ROWS and not ALLOW_SQL_MAX_ROW_OVERRIDE)):
             query.limit = SQL_MAX_ROWS
         if query.limit:
             sql = database.apply_limit_to_sql(sql, query.limit)

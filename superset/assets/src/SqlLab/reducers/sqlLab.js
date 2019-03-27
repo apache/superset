@@ -52,6 +52,7 @@ export default function sqlLabReducer(state = {}, action) {
         sql: action.query.sql,
         queryLimit: action.query.queryLimit,
         maxRow: action.query.maxRow,
+        allowMaxRowOverride: action.query.allowMaxRowOverride,
       };
 
       return sqlLabReducer(state, actions.addQueryEditor(qe));

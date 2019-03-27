@@ -62,6 +62,7 @@ const propTypes = {
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  allowMaxRowOverride: PropTypes.bool,
   saveQueryWarning: PropTypes.string,
 };
 
@@ -298,6 +299,11 @@ class SqlEditor extends React.PureComponent {
         </OverlayTrigger>
       );
     }
+    let queryLimit = (this.props.queryEditor.queryLimit !== undefined) ?
+    this.props.queryEditor.queryLimit : this.props.defaultQueryLimit;
+    if (!this.props.allowMaxRowOverride && queryLimit > this.props.maxRow) {
+      queryLimit = this.props.maxRow;
+    }
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div>
@@ -332,10 +338,10 @@ class SqlEditor extends React.PureComponent {
             </span>
             <span className="inlineBlock m-r-5">
               <LimitControl
-                value={(this.props.queryEditor.queryLimit !== undefined) ?
-                  this.props.queryEditor.queryLimit : this.props.defaultQueryLimit}
+                value={queryLimit}
                 defaultQueryLimit={this.props.defaultQueryLimit}
                 maxRow={this.props.maxRow}
+                allowMaxRowOverride={this.props.allowMaxRowOverride}
                 onChange={this.setQueryLimit.bind(this)}
               />
             </span>

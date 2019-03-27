@@ -34,6 +34,7 @@ const propTypes = {
   value: PropTypes.number,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  allowMaxRowOverride: PropTypes.bool,
   onChange: PropTypes.func.isRequired,
 };
 
@@ -62,7 +63,8 @@ export default class LimitControl extends React.PureComponent {
 
   isValidLimit(limit) {
     const value =  parseInt(limit, 10);
-    return !(Number.isNaN(value) || value <= 0 || (this.props.maxRow && value > this.props.maxRow));
+    return !(Number.isNaN(value) || value <= 0 ||
+      (!this.props.allowMaxRowOverride && this.props.maxRow && value > this.props.maxRow));
   }
 
   handleToggle() {
@@ -78,6 +80,10 @@ export default class LimitControl extends React.PureComponent {
     const isValid = this.isValidLimit(textValue);
     const errorMsg = 'Row limit must be positive integer' +
       (this.props.maxRow ? ` and not greater than ${this.props.maxRow}` : '');
+    let limit = this.props.defaultQueryLimit;
+    if (this.props.defaultQueryLimit > this.props.maxRow && !this.props.allowMaxRowOverride) {
+      limit = this.props.maxRow;
+    }
     return (
       <Popover id="sqllab-limit-results">
         <div style={{ width: '100px' }}>
@@ -87,7 +93,7 @@ export default class LimitControl extends React.PureComponent {
           />
           <FormGroup>
             <FormControl
-              type="text"
+              type="number"
               value={textValue}
               placeholder={t(`Max: ${this.props.maxRow}`)}
               bsSize="small"
@@ -107,7 +113,7 @@ export default class LimitControl extends React.PureComponent {
             <Button
               bsSize="small"
               className="float-right reset"
-              onClick={this.setValueAndClose.bind(this, this.props.defaultQueryLimit.toString())}
+              onClick={this.setValueAndClose.bind(this, limit.toString())}
             >
               Reset
             </Button>

@@ -34,6 +34,7 @@ const propTypes = {
   defaultDbId: PropTypes.number,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
+  allowMaxRowOverride: PropTypes.bool,
   databases: PropTypes.object.isRequired,
   queries: PropTypes.object.isRequired,
   queryEditors: PropTypes.array,
@@ -249,6 +250,7 @@ class TabbedSqlEditors extends React.PureComponent {
               hideLeftBar={this.state.hideLeftBar}
               defaultQueryLimit={this.props.defaultQueryLimit}
               maxRow={this.props.maxRow}
+              allowMaxRowOverride={this.props.allowMaxRowOverride}
               saveQueryWarning={this.props.saveQueryWarning}
             />
           )}
@@ -293,6 +295,7 @@ function mapStateToProps({ sqlLab, common }) {
     offline: sqlLab.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,
+    allowMaxRowOverride: common.conf.ALLOW_SQL_MAX_ROW_OVERRIDE,
     saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
   };
 }
