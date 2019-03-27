@@ -52,6 +52,7 @@ little bit helps, and credit will always be given.
   - [Creating a new visualization type](#creating-a-new-visualization-type)
   - [Adding a DB migration](#adding-a-db-migration)
   - [Merging DB migrations](#merging-db-migrations)
+  - [SQL Lab Async](#sql-lab-async)
 
 ## Types of Contributions
 
@@ -686,3 +687,29 @@ To fix it:
     ```bash
     superset db upgrade
     ```
+
+### SQL Lab Async
+
+It's possible to configure a local database to operate in `async` mode,
+to work on `async` related features.
+
+To do this, you'll need to:
+* Add an additional database entry. We recommend you copy the connection
+  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  features you want to use. Don't forget to check the `Async` box
+* Configure a results backend, here's a local `FileSystemCache` example,
+  not recommended for production,
+  but perfect for testing (stores cache in `/tmp`)
+    ```python
+    from werkzeug.contrib.cache import FileSystemCache
+    RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
+    ```
+
+Note that:
+* for changes that affect the worker logic, you'll have to
+  restart the `celery worker` process for the changes to be reflected.
+* The message queue used is a `sqlite` database using the `SQLAlchemy`
+  experimental broker. Ok for testing, but not recommended in production
+* In some cases, you may want to create a context that is more aligned
+  to your production environment, and use the similar broker as well as
+  results backend configuration
