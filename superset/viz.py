@@ -1139,14 +1139,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
 
+        if DTTM_ALIAS.upper() in df.columns:
+            index = DTTM_ALIAS.upper()
+        else:
+            index = DTTM_ALIAS
+
         if not aggregate:
             df = df.pivot_table(
-                index=DTTM_ALIAS,
+                index=index,
                 columns=fd.get('groupby'),
                 values=self.metric_labels)
         else:
             df = df.pivot_table(
-                index=DTTM_ALIAS,
+                index=index,
                 columns=fd.get('groupby'),
                 values=self.metric_labels,
                 fill_value=0,
