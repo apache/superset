@@ -37,9 +37,7 @@ services:
       - postgres:/var/lib/postgresql/data
 
   superset:
-    build:
-      context: ../../
-      dockerfile: contrib/docker/Dockerfile
+    image: apache/incubator-superset
     restart: unless-stopped
     environment:
       POSTGRES_DB: superset
@@ -54,6 +52,7 @@ services:
       SUPERSET_ENV: development
     ports:
       - 8088:8088
+    command: "tail -f /dev/null"
     depends_on:
       - postgres
       - redis
