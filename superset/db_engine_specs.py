@@ -91,21 +91,21 @@ builtin_time_grains = {
 }
 
 
-class TimeExpression(ColumnClause):
+class TimestampExpression(ColumnClause):
     def __init__(self, expr: str, col: ColumnClause, **kwargs):
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
 
         :param expr: Sql expression with '{col}' denoting the locations where the col
         object will be rendered.
-        :param col: A ColumnClause instance
+        :param col: the target column
         """
         super().__init__(expr, **kwargs)
         self.col = col
 
 
-@compiles(TimeExpression)
-def compile_timegrain_expression(element, compiler, **kw):
+@compiles(TimestampExpression)
+def compile_timegrain_expression(element: TimestampExpression, compiler, **kw):
     return element.name.replace('{col}', compiler.process(element.col, **kw))
 
 
@@ -144,15 +144,15 @@ class BaseEngineSpec(object):
     try_remove_schema_from_table_name = True
 
     @classmethod
-    def get_time_expr(cls, col: ColumnClause, pdf: Optional[str],
-                      time_grain: Optional[str]) -> TimeExpression:
+    def get_timestamp_expr(cls, col: ColumnClause, pdf: Optional[str],
+                           time_grain: Optional[str]) -> TimestampExpression:
         """
         Construct a TimeExpression to be used in a SQLAlchemy query.
 
         :param col: Target column for the TimeExpression
-        :param pdf: Optional date format (seconds or milliseconds)
-        :param time_grain: Optional time grain, e.g. P1Y for 1 year
-        :return: TimeExpression object
+        :param pdf: date format (seconds or milliseconds)
+        :param time_grain: time grain, e.g. P1Y for 1 year
+        :return: TimestampExpression object
         """
         if time_grain:
             time_expr = cls.time_grain_functions.get(time_grain)
@@ -168,7 +168,7 @@ class BaseEngineSpec(object):
         elif pdf == 'epoch_ms':
             time_expr = time_expr.replace('{col}', cls.epoch_ms_to_dttm())
 
-        return TimeExpression(time_expr, col, type_=DateTime)
+        return TimestampExpression(time_expr, col, type_=DateTime)
 
     @classmethod
     def get_time_grains(cls):
@@ -1842,8 +1842,8 @@ class PinotEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def get_time_expr(cls, col: ColumnClause, pdf: Optional[str],
-                      time_grain: Optional[str]) -> TimeExpression:
+    def get_timestamp_expr(cls, col: ColumnClause, pdf: Optional[str],
+                           time_grain: Optional[str]) -> TimestampExpression:
         is_epoch = pdf in ('epoch_s', 'epoch_ms')
         if not is_epoch:
             raise NotImplementedError('Pinot currently only supports epochs')
@@ -1857,7 +1857,7 @@ class PinotEngineSpec(BaseEngineSpec):
             raise NotImplementedError('No pinot grain spec for ' + str(time_grain))
         # In pinot the output is a string since there is no timestamp column like pg
         time_expr = f'DATETIMECONVERT({{col}}, "{tf}", "{tf}", "{granularity}")'
-        return TimeExpression(time_expr, col)
+        return TimestampExpression(time_expr, col)
 
     @classmethod
     def make_select_compatible(cls, groupby_exprs, select_exprs):

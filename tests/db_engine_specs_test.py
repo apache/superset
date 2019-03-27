@@ -489,48 +489,48 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_pg_time_expression_literal_no_grain(self):
         col = literal_column('COALESCE(a, b)')
-        expr = PostgresEngineSpec.get_time_expr(col, None, None)
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(result, 'COALESCE(a, b)')
 
     def test_pg_time_expression_literal_1y_grain(self):
         col = literal_column('COALESCE(a, b)')
-        expr = PostgresEngineSpec.get_time_expr(col, None, 'P1Y')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, 'P1Y')
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(result, "DATE_TRUNC('year', COALESCE(a, b))")
 
     def test_pg_time_expression_lower_column_no_grain(self):
         col = column('lower_case')
-        expr = PostgresEngineSpec.get_time_expr(col, None, None)
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(result, 'lower_case')
 
     def test_pg_time_expression_lower_case_column_sec_1y_grain(self):
         col = column('lower_case')
-        expr = PostgresEngineSpec.get_time_expr(col, 'epoch_s', 'P1Y')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, 'epoch_s', 'P1Y')
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(result, "DATE_TRUNC('year', (timestamp 'epoch' + lower_case * interval '1 second'))")  # noqa
 
     def test_pg_time_expression_mixed_case_column_1y_grain(self):
         col = column('MixedCase')
-        expr = PostgresEngineSpec.get_time_expr(col, None, 'P1Y')
+        expr = PostgresEngineSpec.get_timestamp_expr(col, None, 'P1Y')
         result = str(expr.compile(dialect=postgresql.dialect()))
         self.assertEqual(result, "DATE_TRUNC('year', \"MixedCase\")")
 
     def test_mssql_time_expression_mixed_case_column_1y_grain(self):
         col = column('MixedCase')
-        expr = MssqlEngineSpec.get_time_expr(col, None, 'P1Y')
+        expr = MssqlEngineSpec.get_timestamp_expr(col, None, 'P1Y')
         result = str(expr.compile(dialect=mssql.dialect()))
         self.assertEqual(result, 'DATEADD(year, DATEDIFF(year, 0, [MixedCase]), 0)')
 
     def test_oracle_time_expression_reserved_keyword_1m_grain(self):
         col = column('decimal')
-        expr = OracleEngineSpec.get_time_expr(col, None, 'P1M')
+        expr = OracleEngineSpec.get_timestamp_expr(col, None, 'P1M')
         result = str(expr.compile(dialect=oracle.dialect()))
         self.assertEqual(result, "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')")
 
     def test_pinot_time_expression_sec_1m_grain(self):
         col = column('tstamp')
-        expr = PinotEngineSpec.get_time_expr(col, 'epoch_s', 'P1M')
+        expr = PinotEngineSpec.get_timestamp_expr(col, 'epoch_s', 'P1M')
         result = str(expr.compile())
         self.assertEqual(result, 'DATETIMECONVERT(tstamp, "1:SECONDS:EPOCH", "1:SECONDS:EPOCH", "1:MONTHS")')  # noqa
