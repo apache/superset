@@ -16,8 +16,8 @@
 # under the License.
 import json
 import unittest
+from unittest.mock import Mock
 
-from mock import Mock
 from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
 import pydruid.utils.postaggregator as postaggs
 
