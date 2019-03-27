@@ -18,8 +18,7 @@
 from datetime import datetime
 import json
 import unittest
-
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from superset import db, security_manager
 from superset.connectors.druid.models import (

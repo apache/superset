@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import inspect
+from unittest import mock
 
-import mock
 from sqlalchemy import column, select, table
 from sqlalchemy.dialects.mssql import pymssql
 from sqlalchemy.types import String, UnicodeText
