@@ -32,4 +32,3 @@ redis==2.10.6
 statsd==3.3.0
 thrift==0.11.0
 tox==3.5.3
-SQLAlchemy-Continuum==1.3.6
