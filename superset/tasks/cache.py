@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=too-few-public-methods
 
+import json
 import logging
 import urllib.parse
 
@@ -33,6 +34,11 @@ from superset.tasks.celery_app import app as celery_app
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def default_filters(dashboard):
+    # XXX add error handling
+    return json.loads(json.loads(dashboard.json_metadata).get('default_filters')).values()
 
 
 def get_url(params):
