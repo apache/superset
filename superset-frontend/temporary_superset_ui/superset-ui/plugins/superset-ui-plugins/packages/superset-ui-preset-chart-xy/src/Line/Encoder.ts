@@ -1,6 +1,27 @@
-import { MarkPropChannelDef, XFieldDef, YFieldDef } from '../encodeable/types/FieldDef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { PartialSpec } from '../encodeable/types/Specification';
+import { EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
+
+/**
+ * Define channel types
+ */
+// This is a workaround until TypeScript 3.4 which has const context
+// which will allow use to derive type from object literal
+// without type widening (e.g. 'X' instead of string).
+// Now we have to define class with readonly fields
+// to be able to use "typeof" to infer strict types
+// See more details from
+// https://github.com/Microsoft/TypeScript/issues/20195
+// https://github.com/Microsoft/TypeScript/pull/29510
+const channelTypes = new class Channels {
+  readonly x = 'X';
+  readonly y = 'Y';
+  readonly color = 'Color';
+  readonly fill = 'Category';
+  readonly strokeDasharray = 'Category';
+}();
+
+export type ChannelTypes = typeof channelTypes;
 
 /**
  * Define output type for each channel
@@ -14,18 +35,12 @@ export interface Outputs {
 }
 
 /**
- * Define encoding config for each channel
+ * Derive encoding config
  */
-export interface Encoding {
-  x: XFieldDef<Outputs['x']>;
-  y: YFieldDef<Outputs['y']>;
-  color: MarkPropChannelDef<Outputs['color']>;
-  fill: MarkPropChannelDef<Outputs['fill']>;
-  strokeDasharray: MarkPropChannelDef<Outputs['strokeDasharray']>;
-}
+export type Encoding = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>;
 
-export default class Encoder extends AbstractEncoder<Outputs, Encoding> {
-  static DEFAULT_ENCODINGS: Encoding = {
+export default class Encoder extends AbstractEncoder<ChannelTypes, Outputs> {
+  static readonly DEFAULT_ENCODINGS: Encoding = {
     color: { value: '#222' },
     fill: { value: false },
     strokeDasharray: { value: '' },
@@ -33,17 +48,11 @@ export default class Encoder extends AbstractEncoder<Outputs, Encoding> {
     y: { field: 'y', type: 'quantitative' },
   };
 
-  constructor(spec: PartialSpec<Encoding>) {
-    super(spec, Encoder.DEFAULT_ENCODINGS);
-  }
+  static readonly CHANNEL_OPTIONS = {
+    fill: { legend: false },
+  };
 
-  createChannels() {
-    return {
-      color: this.createChannel('color'),
-      fill: this.createChannel('fill', { legend: false }),
-      strokeDasharray: this.createChannel('strokeDasharray'),
-      x: this.createChannel('x'),
-      y: this.createChannel('y'),
-    };
+  constructor(spec: PartialSpec<Encoding>) {
+    super(channelTypes, spec, Encoder.DEFAULT_ENCODINGS, Encoder.CHANNEL_OPTIONS);
   }
 }

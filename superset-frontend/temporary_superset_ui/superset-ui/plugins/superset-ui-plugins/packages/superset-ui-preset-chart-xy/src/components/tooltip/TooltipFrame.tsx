@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { PureComponent } from 'react';
 
 type Props = {
   className?: string;
@@ -7,7 +7,7 @@ type Props = {
 
 const CONTAINER_STYLE = { padding: 8 };
 
-class TooltipFrame extends React.PureComponent<Props, {}> {
+class TooltipFrame extends PureComponent<Props, {}> {
   static defaultProps = {
     className: '',
   };

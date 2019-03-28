@@ -1,52 +1,80 @@
 import { Value } from 'vega-lite/build/src/fielddef';
-import ChannelEncoder from './ChannelEncoder';
-import { ChannelOptions } from './types/Channel';
-import { ChannelDef, isFieldDef } from './types/FieldDef';
+import { ObjectWithKeysFromAndValueType } from './types/Base';
+import { ChannelOptions, EncodingFromChannelsAndOutputs, ChannelType } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-
-export type ObjectWithKeysFromAndValueType<T extends {}, V> = { [key in keyof T]: V };
-
-export type ChannelOutputs<T> = ObjectWithKeysFromAndValueType<T, Value>;
-
-export type BaseEncoding<Output extends ObjectWithKeysFromAndValueType<Output, Value>> = {
-  [key in keyof Output]: ChannelDef<Output[key]>
-};
-
-export type Channels<
-  Outputs extends ChannelOutputs<Encoding>,
-  Encoding extends BaseEncoding<Outputs>
-> = { readonly [k in keyof Outputs]: ChannelEncoder<Encoding[k], Outputs[k]> };
+import { isFieldDef } from './types/FieldDef';
+import ChannelEncoder from './ChannelEncoder';
 
 export default abstract class AbstractEncoder<
-  Outputs extends ChannelOutputs<Encoding>,
-  Encoding extends BaseEncoding<Outputs>,
+  // The first 3 generics depends on each other
+  // to ensure all of them will have the exact same keys
+  ChannelTypes extends ObjectWithKeysFromAndValueType<Outputs, ChannelType>,
+  Outputs extends ObjectWithKeysFromAndValueType<Encoding, Value>,
+  Encoding extends EncodingFromChannelsAndOutputs<
+    ChannelTypes,
+    Outputs
+  > = EncodingFromChannelsAndOutputs<ChannelTypes, Outputs>,
   Options extends BaseOptions = BaseOptions
 > {
+  readonly channelTypes: ChannelTypes;
   readonly spec: FullSpec<Encoding, Options>;
-  readonly channels: Channels<Outputs, Encoding>;
-
-  readonly legends: {
-    [key: string]: (keyof Encoding)[];
+  readonly channels: {
+    readonly [k in keyof ChannelTypes]: ChannelEncoder<Encoding[k], Outputs[k]>
   };
 
-  constructor(spec: PartialSpec<Encoding, Options>, defaultEncoding?: Encoding) {
+  readonly legends: {
+    [key: string]: (keyof ChannelTypes)[];
+  };
+
+  constructor(
+    channelTypes: ChannelTypes,
+    spec: PartialSpec<Encoding, Options>,
+    defaultEncoding?: Encoding,
+    channelOptions: Partial<{ [k in keyof ChannelTypes]: ChannelOptions }> = {},
+  ) {
+    this.channelTypes = channelTypes;
     this.spec = this.createFullSpec(spec, defaultEncoding);
-    this.channels = this.createChannels();
-    this.legends = {};
+
+    type ChannelName = keyof ChannelTypes;
+    type Channels = { readonly [k in ChannelName]: ChannelEncoder<Encoding[k], Outputs[k]> };
+
+    const channelNames = Object.keys(this.channelTypes) as ChannelName[];
+
+    const { encoding } = this.spec;
+    this.channels = channelNames
+      .map(
+        (name: ChannelName) =>
+          new ChannelEncoder<Encoding[typeof name], Outputs[typeof name]>({
+            definition: encoding[name],
+            name,
+            options: {
+              ...this.spec.options,
+              ...channelOptions[name],
+            },
+            type: channelTypes[name],
+          }),
+      )
+      .reduce((prev: Partial<Channels>, curr) => {
+        const all = prev;
+        all[curr.name as ChannelName] = curr;
+
+        return all;
+      }, {}) as Channels;
 
     // Group the channels that use the same field together
     // so they can share the same legend.
-    (Object.keys(this.channels) as (keyof Encoding)[])
-      .map((key: keyof Encoding) => this.channels[key])
+    this.legends = {};
+    channelNames
+      .map((name: ChannelName) => this.channels[name])
       .filter(c => c.hasLegend())
       .forEach(c => {
         if (isFieldDef(c.definition)) {
-          const key = c.name as keyof Encoding;
+          const name = c.name as ChannelName;
           const { field } = c.definition;
           if (this.legends[field]) {
-            this.legends[field].push(key);
+            this.legends[field].push(name);
           } else {
-            this.legends[field] = [key];
+            this.legends[field] = [name];
           }
         }
       });
@@ -70,27 +98,6 @@ export default abstract class AbstractEncoder<
       },
     };
   }
-
-  protected createChannel<ChannelName extends keyof Outputs>(
-    name: ChannelName,
-    options?: ChannelOptions,
-  ) {
-    const { encoding } = this.spec;
-
-    return new ChannelEncoder<Encoding[ChannelName], Outputs[ChannelName]>(
-      `${name}`,
-      encoding[name],
-      {
-        ...this.spec.options,
-        ...options,
-      },
-    );
-  }
-
-  /**
-   * subclass should override this
-   */
-  protected abstract createChannels(): Channels<Outputs, Encoding>;
 
   hasLegend() {
     return Object.keys(this.legends).length > 0;

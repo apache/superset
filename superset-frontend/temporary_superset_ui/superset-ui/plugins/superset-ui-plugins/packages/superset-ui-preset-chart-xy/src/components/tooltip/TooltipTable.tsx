@@ -1,4 +1,4 @@
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, PureComponent } from 'react';
 
 type Props = {
   className?: string;
@@ -12,7 +12,7 @@ type Props = {
 
 const VALUE_CELL_STYLE: CSSProperties = { paddingLeft: 8, textAlign: 'right' };
 
-export default class TooltipTable extends React.PureComponent<Props, {}> {
+export default class TooltipTable extends PureComponent<Props, {}> {
   static defaultProps = {
     className: '',
     data: [],

@@ -1,76 +1,77 @@
 import { Value } from 'vega-lite/build/src/fielddef';
-import { CategoricalColorScale } from '@superset-ui/color';
-import { ScaleOrdinal } from 'd3-scale';
-import { TimeFormatter } from '@superset-ui/time-format';
-import { NumberFormatter } from '@superset-ui/number-format';
+import { extractFormatFromChannelDef } from './parsers/extractFormat';
+import extractScale, { ScaleAgent } from './parsers/extractScale';
+import extractGetter from './parsers/extractGetter';
+import { ChannelOptions, ChannelType } from './types/Channel';
+import { PlainObject } from './types/Data';
 import {
   ChannelDef,
-  Formatter,
   isScaleFieldDef,
   isMarkPropFieldDef,
   isValueDef,
+  isFieldDef,
+  isNonValueDef,
 } from './types/FieldDef';
-import { PlainObject } from './types/Data';
-import extractScale from './parsers/extractScale';
-import extractGetter from './parsers/extractGetter';
-import extractFormat from './parsers/extractFormat';
-import extractAxis, { isXYChannel } from './parsers/extractAxis';
 import isEnabled from './utils/isEnabled';
 import isDisabled from './utils/isDisabled';
-import { ChannelOptions } from './types/Channel';
 import identity from './utils/identity';
+import AxisAgent from './AxisAgent';
 
 export default class ChannelEncoder<Def extends ChannelDef<Output>, Output extends Value = Value> {
-  readonly name: string;
+  readonly name: string | Symbol | number;
+  readonly type: ChannelType;
   readonly definition: Def;
   readonly options: ChannelOptions;
 
-  readonly axis?: PlainObject;
-  protected readonly getValue: (datum: PlainObject) => Value;
-  readonly scale?: ScaleOrdinal<string, Output> | CategoricalColorScale | ((x: any) => Output);
-  readonly formatter: Formatter;
-
-  readonly encodeValue: (value: any) => Output;
+  protected readonly getValue: (datum: PlainObject) => Value | undefined;
+  readonly encodeValue: (value: any) => Output | null | undefined;
   readonly formatValue: (value: any) => string;
+  readonly scale?: ScaleAgent<Output>;
+  readonly axis?: AxisAgent<Def, Output>;
 
-  constructor(name: string, definition: Def, options: ChannelOptions = {}) {
+  constructor({
+    name,
+    type,
+    definition,
+    options = {},
+  }: {
+    name: string | Symbol | number;
+    type: ChannelType;
+    definition: Def;
+    options?: ChannelOptions;
+  }) {
     this.name = name;
+    this.type = type;
     this.definition = definition;
     this.options = options;
 
     this.getValue = extractGetter(definition);
+    this.formatValue = extractFormatFromChannelDef(definition);
 
-    const formatter = extractFormat(definition);
-    this.formatter = formatter;
-    if (formatter instanceof NumberFormatter) {
-      this.formatValue = (value: any) => formatter(value);
-    } else if (formatter instanceof TimeFormatter) {
-      this.formatValue = (value: any) => formatter(value);
-    } else {
-      this.formatValue = formatter;
+    this.scale = extractScale(this.type, definition, options.namespace);
+    // Has to extract axis after format and scale
+    if (
+      this.isXY() &&
+      isNonValueDef(this.definition) &&
+      (('axis' in this.definition && isEnabled(this.definition.axis)) ||
+        !('axis' in this.definition))
+    ) {
+      this.axis = new AxisAgent<Def, Output>(this);
     }
 
-    const scale = extractScale<Output>(definition, options.namespace);
-    this.scale = scale;
-    if (typeof scale === 'undefined') {
-      this.encodeValue = identity;
-    } else if (scale instanceof CategoricalColorScale) {
-      this.encodeValue = (value: any) => scale(`${value}`);
-    } else {
-      this.encodeValue = (value: any) => scale(value);
-    }
-
-    this.axis = extractAxis(name, definition, this.formatter);
-  }
-
-  get(datum: PlainObject, otherwise?: any) {
-    const value = this.getValue(datum);
-
-    return otherwise !== undefined && (value === null || value === undefined) ? otherwise : value;
+    this.encodeValue = this.scale ? this.scale.encodeValue : identity;
+    this.encode = this.encode.bind(this);
+    this.format = this.format.bind(this);
+    this.get = this.get.bind(this);
   }
 
   encode(datum: PlainObject, otherwise?: Output) {
-    const output = this.encodeValue(this.get(datum));
+    const value = this.get(datum);
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    const output = this.encodeValue(value);
 
     return otherwise !== undefined && (output === null || output === undefined)
       ? otherwise
@@ -81,14 +82,22 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     return this.formatValue(this.get(datum));
   }
 
+  get(datum: PlainObject, otherwise?: any) {
+    const value = this.getValue(datum);
+
+    return otherwise !== undefined && (value === null || value === undefined) ? otherwise : value;
+  }
+
+  getTitle() {
+    if (isFieldDef(this.definition)) {
+      return this.definition.title || this.definition.field;
+    }
+
+    return undefined;
+  }
+
   hasLegend() {
-    if (isDisabled(this.options.legend)) {
-      return false;
-    }
-    if (isXYChannel(this.name)) {
-      return false;
-    }
-    if (isValueDef(this.definition)) {
+    if (isDisabled(this.options.legend) || this.isXY() || isValueDef(this.definition)) {
       return false;
     }
     if (isMarkPropFieldDef(this.definition)) {
@@ -96,5 +105,17 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     }
 
     return isScaleFieldDef(this.definition);
+  }
+
+  isX() {
+    return this.type === 'X' || this.type === 'XBand';
+  }
+
+  isXY() {
+    return this.type === 'X' || this.type === 'Y' || this.type === 'XBand' || this.type === 'YBand';
+  }
+
+  isY() {
+    return this.type === 'Y' || this.type === 'YBand';
   }
 }
