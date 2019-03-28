@@ -19,6 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import './Loading.css';
+
 const propTypes = {
   size: PropTypes.number,
   position: PropTypes.oneOf(['floating', 'normal']),
@@ -47,7 +49,7 @@ export default function Loading({ size, position, className }) {
   };
   return (
     <img
-      className={'loading ' + className}
+      className={`loading ${className}`}
       alt="Loading..."
       src="/static/assets/images/loading.gif"
       style={styleWithWidth}
