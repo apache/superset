@@ -161,7 +161,7 @@ class Chart extends React.Component {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
-    exportChart(this.props.chart.formData);
+    exportChart(this.props.formData);
   }
 
   exportCSV() {
