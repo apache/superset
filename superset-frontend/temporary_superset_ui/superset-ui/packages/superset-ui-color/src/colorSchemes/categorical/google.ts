@@ -5,6 +5,7 @@ import CategoricalScheme from '../../CategoricalScheme';
 const schemes = [
   {
     id: 'googleCategory10c',
+    label: 'Google Category 10c',
     colors: [
       '#3366cc',
       '#dc3912',
@@ -20,6 +21,7 @@ const schemes = [
   },
   {
     id: 'googleCategory20c',
+    label: 'Google Category 20c',
     colors: [
       '#3366cc',
       '#dc3912',
