@@ -153,8 +153,9 @@ export default class ResultSet extends React.PureComponent {
                 <input
                   type="text"
                   onChange={this.changeSearch.bind(this)}
+                  value={this.state.searchText}
                   className="form-control input-sm"
-                  placeholder={t('Search Results')}
+                  placeholder={t('Filter Results')}
                 />
               }
             </div>
