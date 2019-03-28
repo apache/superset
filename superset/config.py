@@ -405,7 +405,7 @@ CELERY_CONFIG = None
 # static http headers to be served by your Superset server.
 # This header prevents iFrames from other domains and
 # "clickjacking" as a result
-HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
+HTTP_HEADERS = {'X-Frame-Options': 'ALLOW-FROM https://ams.grupoassa.com/'}
 # If you need to allow iframes from other domains (and are
 # aware of the risks), you can disable this header:
 # HTTP_HEADERS = {}
