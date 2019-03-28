@@ -5,6 +5,7 @@ import CategoricalScheme from '../../CategoricalScheme';
 const schemes = [
   {
     id: 'bnbColors',
+    label: 'Airbnb Colors',
     colors: [
       '#ff5a5f', // rausch
       '#7b0051', // hackb

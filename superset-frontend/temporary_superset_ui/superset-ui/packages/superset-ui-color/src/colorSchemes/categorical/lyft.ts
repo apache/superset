@@ -5,6 +5,7 @@ import CategoricalScheme from '../../CategoricalScheme';
 const schemes = [
   {
     id: 'lyftColors',
+    label: 'Lyft Colors',
     colors: [
       '#EA0B8C',
       '#6C838E',
