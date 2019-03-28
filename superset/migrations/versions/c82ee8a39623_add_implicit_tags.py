@@ -71,5 +71,5 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table('tag')
     op.drop_table('tagged_object')
+    op.drop_table('tag')
