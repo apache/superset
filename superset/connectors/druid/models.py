@@ -280,7 +280,7 @@ class DruidColumn(Model, BaseColumn):
     export_parent = 'datasource'
 
     def __repr__(self):
-        return self.column_name
+        return self.column_name or str(self.id)
 
     @property
     def expression(self):
