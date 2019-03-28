@@ -7,20 +7,25 @@ declare module '@data-ui/xy-chart' {
   };
 
   interface XYChartProps {
-    theme: any;
     width: number;
     height: number;
+    ariaLabel: string;
+    eventTrigger?: any;
     margin?: {
       top?: number;
       right?: number;
       bottom?: number;
       left?: number;
     };
-    ariaLabel: string;
+    onMouseMove?: (...args: any[]) => void;
+    onMouseLeave?: (...args: any[]) => void;
+    renderTooltip: any;
+    showYGrid: boolean;
+    snapTooltipToDataX: boolean;
+    theme: any;
+    tooltipData: any;
     xScale: any;
     yScale: any;
-    renderTooltip: any;
-    eventTrigger?: any;
   }
 
   export class AreaSeries extends React.PureComponent<Props, {}> {}

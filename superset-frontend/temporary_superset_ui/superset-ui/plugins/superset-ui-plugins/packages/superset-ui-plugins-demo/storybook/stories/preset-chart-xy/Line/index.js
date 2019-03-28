@@ -1,8 +1,14 @@
+import { LineChartPlugin as LegacyLineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src/legacy';
 import { LineChartPlugin } from '../../../../../superset-ui-preset-chart-xy/src';
-import Stories from './Stories';
+import BasicStories from './stories/basic';
+import LegacyStories from './stories/legacy';
+import MissingStories from './stories/missing';
+import TimeShiftStories from './stories/timeShift';
+import { LINE_PLUGIN_TYPE, LINE_PLUGIN_LEGACY_TYPE } from './constants';
 
-new LineChartPlugin().configure({ key: 'line2' }).register();
+new LegacyLineChartPlugin().configure({ key: LINE_PLUGIN_LEGACY_TYPE }).register();
+new LineChartPlugin().configure({ key: LINE_PLUGIN_TYPE }).register();
 
 export default {
-  examples: [...Stories],
+  examples: [...BasicStories, ...MissingStories, ...TimeShiftStories, ...LegacyStories],
 };
