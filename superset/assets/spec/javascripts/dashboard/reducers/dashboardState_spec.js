@@ -138,6 +138,7 @@ describe('dashboardState reducer', () => {
       maxUndoHistoryExceeded: false,
       editMode: false,
       builderPaneType: BUILDER_PANE_TYPE.NONE,
+      updatedColorScheme: false,
     });
   });
 

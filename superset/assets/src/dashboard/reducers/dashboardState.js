@@ -87,7 +87,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, builderPaneType: action.builderPaneType };
     },
     [SET_COLOR_SCHEME]() {
-      return { ...state, colorScheme: action.colorScheme };
+      return {
+        ...state,
+        colorScheme: action.colorScheme,
+        updatedColorScheme: true,
+      };
     },
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
@@ -109,6 +113,7 @@ export default function dashboardStateReducer(state = {}, action) {
         maxUndoHistoryExceeded: false,
         editMode: false,
         builderPaneType: BUILDER_PANE_TYPE.NONE,
+        updatedColorScheme: false,
       };
     },
 
