@@ -17,7 +17,7 @@ chardet==3.0.4            # via requests
 click==6.7
 colorama==0.3.9
 contextlib2==0.5.5
-croniter==0.3.26
+croniter==0.3.29
 cryptography==2.4.2
 decorator==4.3.0          # via retry
 defusedxml==0.5.0         # via python3-openid
