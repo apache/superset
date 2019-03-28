@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-few-public-methods
 
 import logging
 import urllib.parse
@@ -21,6 +22,7 @@ import urllib.parse
 from celery.utils.log import get_task_logger
 from flask import url_for
 import requests
+from requests.exceptions import RequestException
 from sqlalchemy import and_, func
 
 from superset import app, db
@@ -107,7 +109,7 @@ class TopNDashboardsStrategy(Strategy):
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
                 'kwargs': {
                     'strategy_name': 'top_n_dashboards',
-                    'n': 5,
+                    'top_n': 5,
                 },
             },
         }
@@ -116,8 +118,9 @@ class TopNDashboardsStrategy(Strategy):
 
     name = 'top_n_dashboards'
 
-    def __init__(self, n=5):
-        self.n = n
+    def __init__(self, top_n=5):
+        super(TopNDashboardsStrategy, self).__init__(self)
+        self.top_n = top_n
 
     def get_urls(self):
         session = db.session()
@@ -125,11 +128,11 @@ class TopNDashboardsStrategy(Strategy):
 
         records = (
             session
-            .query(Log)
+            .query(Log.dashboard_id, func.count(Log.dashboard_id))
             .filter(Log.dashboard_id.isnot(None))
             .group_by(Log.dashboard_id)
             .order_by(func.count(Log.dashboard_id).desc())
-            .limit(self.n)
+            .limit(self.top_n)
             .all()
         )
         dash_ids = [record.dashboard_id for record in records]
@@ -163,6 +166,7 @@ class DashboardTagsStrategy(Strategy):
     name = 'dashboard_tags'
 
     def __init__(self, tags=None):
+        super(DashboardTagsStrategy, self).__init__(self)
         self.tags = tags or []
 
     def get_urls(self):
@@ -233,25 +237,26 @@ def cache_warmup(strategy_name, *args, **kwargs):
         if class_.name == strategy_name:
             break
     else:
-        logger.error(f'No strategy {strategy_name} found!')
-        return
+        message = f'No strategy {strategy_name} found!'
+        logger.error(message)
+        return message
 
     logger.info(f'Loading {class_.__name__}')
     try:
         strategy = class_(*args, **kwargs)
         logger.info('Success!')
-    except Exception:
-        logger.exception('Error loading strategy!')
-        return
+    except TypeError:
+        message = 'Error loading strategy!'
+        logger.exception(message)
+        return message
 
     results = {'success': [], 'errors': []}
     for url in strategy.get_urls():
-        print(url)
         try:
             logger.info(f'Fetching {url}')
             requests.get(url)
             results['success'].append(url)
-        except Exception:
+        except RequestException:
             logger.exception('Error warming up cache!')
             results['errors'].append(url)
 
