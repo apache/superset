@@ -94,7 +94,6 @@ class SupersetSecurityManager(SecurityManager):
         'metric_access',
     ])
 
-
     def get_schema_perm(self, database, schema):
         if schema:
             return '[{}].[{}]'.format(database, schema)
