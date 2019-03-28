@@ -19,10 +19,9 @@ from superset import db
 from superset.models.core import Log
 from superset.models.tags import (
     get_tag,
-    Tag,
+    ObjectTypes,
     TaggedObject,
     TagTypes,
-    ObjectTypes,
 )
 from superset.tasks.cache import (
     DashboardTagsStrategy,
