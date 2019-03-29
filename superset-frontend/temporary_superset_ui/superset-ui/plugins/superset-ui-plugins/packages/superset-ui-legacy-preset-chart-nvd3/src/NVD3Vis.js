@@ -40,6 +40,7 @@ import {
   generateBubbleTooltipContent,
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
+  generateTimePivotTooltip,
   getMaxLabelSize,
   getTimeOrNumberFormatter,
   hideTooltips,
@@ -539,6 +540,11 @@ function nvd3Vis(element, props) {
           return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         });
       }
+
+      chart.useInteractiveGuideline(true);
+      chart.interactiveLayer.tooltip.contentGenerator(d =>
+        generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
+      );
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(colorScheme);
       chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
