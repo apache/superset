@@ -38,7 +38,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@superset-ui/build-config": "^0.0.4",
+    "@superset-ui/build-config": "^0.0.6",
     "@superset-ui/chart": "^0.10.8",
     "@superset-ui/color": "^0.10.0",
     "@superset-ui/connection": "^0.10.0",
