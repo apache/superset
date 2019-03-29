@@ -1368,6 +1368,11 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 _('You don\'t have the rights to ') + _('alter this ') + _('chart'),
                 status=400)
+        
+        if action == 'overwrite' and not check_creator(slc, raise_if_false=False):
+            return json_error_response(
+                _('You don\'t have the rights to ') + _('alter this ') + _('chart'),
+                status=400)
 
         if action == 'saveas' and not slice_add_perm:
             return json_error_response(
