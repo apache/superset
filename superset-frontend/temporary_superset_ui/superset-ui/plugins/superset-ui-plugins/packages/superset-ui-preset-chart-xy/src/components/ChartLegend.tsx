@@ -86,6 +86,6 @@ export default class ChartLegend<
       );
     });
 
-    return <React.Fragment>{legends}</React.Fragment>;
+    return <>{legends}</>;
   }
 }

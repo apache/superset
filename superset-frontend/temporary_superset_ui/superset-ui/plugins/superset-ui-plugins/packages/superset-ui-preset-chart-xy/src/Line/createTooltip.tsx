@@ -20,7 +20,7 @@ export default function createTooltip(encoder: Encoder, allSeries: Series[]) {
   }) {
     return (
       <TooltipFrame>
-        <React.Fragment>
+        <>
           <div>
             <strong>{encoder.channels.x.formatValue(datum.x)}</strong>
           </div>
@@ -41,7 +41,7 @@ export default function createTooltip(encoder: Encoder, allSeries: Series[]) {
                 }))}
             />
           )}
-        </React.Fragment>
+        </>
       </TooltipFrame>
     );
   }
