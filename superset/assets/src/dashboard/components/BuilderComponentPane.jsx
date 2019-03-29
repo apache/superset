@@ -19,49 +19,37 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
-import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
-import { t } from '@superset-ui/translation';
 
-import NewColumn from './gridComponents/new/NewColumn';
-import NewDivider from './gridComponents/new/NewDivider';
-import NewHeader from './gridComponents/new/NewHeader';
-import NewRow from './gridComponents/new/NewRow';
-import NewTabs from './gridComponents/new/NewTabs';
-import NewMarkdown from './gridComponents/new/NewMarkdown';
-import SliceAdder from '../containers/SliceAdder';
-
-const SUPERSET_HEADER_HEIGHT = 59;
+import InsertComponentPane, {
+  SUPERSET_HEADER_HEIGHT,
+} from './InsertComponentPane';
+import ColorComponentPane from './ColorComponentPane';
+import { BUILDER_PANE_TYPE } from '../util/constants';
 
 const propTypes = {
   topOffset: PropTypes.number,
-  toggleBuilderPane: PropTypes.func.isRequired,
+  showBuilderPane: PropTypes.func.isRequired,
+  builderPaneType: PropTypes.string.isRequired,
+  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
 };
 
 const defaultProps = {
   topOffset: 0,
+  colorScheme: undefined,
 };
 
 class BuilderComponentPane extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      slideDirection: 'slide-out',
-    };
-
-    this.openSlicesPane = this.slide.bind(this, 'slide-in');
-    this.closeSlicesPane = this.slide.bind(this, 'slide-out');
-  }
-
-  slide(direction) {
-    this.setState({
-      slideDirection: direction,
-    });
-  }
-
   render() {
-    const { topOffset } = this.props;
+    const {
+      topOffset,
+      builderPaneType,
+      showBuilderPane,
+      setColorSchemeAndUnsavedChanges,
+      colorScheme,
+    } = this.props;
     return (
       <div
         className="dashboard-builder-sidepane"
@@ -78,56 +66,22 @@ class BuilderComponentPane extends React.PureComponent {
                     className="viewport"
                     style={isSticky ? { ...style, top: topOffset } : null}
                   >
-                    <div
-                      className={cx(
-                        'slider-container',
-                        this.state.slideDirection,
-                      )}
-                    >
-                      <div className="component-layer slide-content">
-                        <div className="dashboard-builder-sidepane-header">
-                          <span>{t('Insert components')}</span>
-                          <i
-                            className="fa fa-times trigger"
-                            onClick={this.props.toggleBuilderPane}
-                            role="none"
-                          />
-                        </div>
-                        <div
-                          className="new-component static"
-                          role="none"
-                          onClick={this.openSlicesPane}
-                        >
-                          <div className="new-component-placeholder fa fa-area-chart" />
-                          <div className="new-component-label">
-                            {t('Your charts & filters')}
-                          </div>
-
-                          <i className="fa fa-arrow-right trigger" />
-                        </div>
-                        <NewTabs />
-                        <NewRow />
-                        <NewColumn />
-                        <NewHeader />
-                        <NewMarkdown />
-                        <NewDivider />
-                      </div>
-                      <div className="slices-layer slide-content">
-                        <div
-                          className="dashboard-builder-sidepane-header"
-                          onClick={this.closeSlicesPane}
-                          role="none"
-                        >
-                          <i className="fa fa-arrow-left trigger" />
-                          <span>{t('Your charts and filters')}</span>
-                        </div>
-                        <SliceAdder
-                          height={
-                            height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-                          }
-                        />
-                      </div>
-                    </div>
+                    {builderPaneType === BUILDER_PANE_TYPE.ADD_COMPONENTS && (
+                      <InsertComponentPane
+                        height={height}
+                        isSticky={isSticky}
+                        showBuilderPane={showBuilderPane}
+                      />
+                    )}
+                    {builderPaneType === BUILDER_PANE_TYPE.COLORS && (
+                      <ColorComponentPane
+                        showBuilderPane={showBuilderPane}
+                        setColorSchemeAndUnsavedChanges={
+                          setColorSchemeAndUnsavedChanges
+                        }
+                        colorScheme={colorScheme}
+                      />
+                    )}
                   </div>
                 )}
               </Sticky>
