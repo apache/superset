@@ -36,9 +36,42 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def default_filters(dashboard):
-    # XXX add error handling
-    return json.loads(json.loads(dashboard.json_metadata).get('default_filters')).values()
+def get_form_data(chart_id, dashboard=None):
+    """
+    Build `form_data` for chart GET request from dashboard's `default_filters`.
+
+    When a dashboard has `default_filters` they need to be added  as extra
+    filters in the GET request for charts.
+
+    """
+    form_data = {'slice_id': chart_id}
+
+    if dashboard is None or not dashboard.json_metadata:
+        return form_data
+
+    json_metadata = json.loads(dashboard.json_metadata)
+
+    # do not apply filters if chart is immune to them
+    if chart_id in json_metadata['filter_immune_slices']:
+        return form_data
+
+    default_filters = json.loads(json_metadata.get('default_filters', 'null'))
+    if not default_filters:
+        return form_data
+
+    # are some of the fields in the chart immune to filters?
+    filter_immune_slice_fields = json_metadata['filter_immune_slice_fields']
+    immune_fields = filter_immune_slice_fields.get(str(chart_id), [])
+
+    extra_filters = []
+    for filters in default_filters.values():
+        for col, val in filters.items():
+            if col not in immune_fields:
+                extra_filters.append({'col': col, 'op': 'in', 'val': val})
+    if extra_filters:
+        form_data['extra_filters'] = extra_filters
+
+    return form_data
 
 
 def get_url(params):
@@ -48,7 +81,7 @@ def get_url(params):
     with app.test_request_context():
         return urllib.parse.urljoin(
             baseurl,
-            url_for('Superset.warm_up_cache', **params),
+            url_for('Superset.explore_json', **params),
         )
 
 
@@ -99,10 +132,10 @@ class DummyStrategy(Strategy):
     name = 'dummy'
 
     def get_urls(self):
-        session = db.session()
+        session = db.create_scoped_session()
         charts = session.query(Slice).all()
 
-        return [get_url({'slice_id': chart.id}) for chart in charts]
+        return [get_url({'form_data': get_form_data(chart.id)}) for chart in charts]
 
 
 class TopNDashboardsStrategy(Strategy):
@@ -125,12 +158,12 @@ class TopNDashboardsStrategy(Strategy):
     name = 'top_n_dashboards'
 
     def __init__(self, top_n=5):
-        super(TopNDashboardsStrategy, self).__init__(self)
+        super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
 
     def get_urls(self):
-        session = db.session()
-        charts = set()
+        urls = []
+        session = db.create_scoped_session()
 
         records = (
             session
@@ -146,11 +179,14 @@ class TopNDashboardsStrategy(Strategy):
             session
             .query(Dashboard)
             .filter(Dashboard.id.in_(dash_ids))
+            .all()
         )
         for dashboard in dashboards:
-            charts.update(dashboard.slices)
+            for chart in dashboard.slices:
+                urls.append(
+                    get_url({'form_data': get_form_data(chart.id, dashboard)}))
 
-        return [get_url({'slice_id': chart.id}) for chart in charts]
+        return urls
 
 
 class DashboardTagsStrategy(Strategy):
@@ -172,12 +208,12 @@ class DashboardTagsStrategy(Strategy):
     name = 'dashboard_tags'
 
     def __init__(self, tags=None):
-        super(DashboardTagsStrategy, self).__init__(self)
+        super(DashboardTagsStrategy, self).__init__()
         self.tags = tags or []
 
     def get_urls(self):
-        session = db.session()
-        charts = set()
+        urls = []
+        session = db.create_scoped_session()
 
         tags = (
             session
@@ -204,7 +240,9 @@ class DashboardTagsStrategy(Strategy):
             .filter(Dashboard.id.in_(dash_ids))
         )
         for dashboard in tagged_dashboards:
-            charts.update(dashboard.slices)
+            for chart in dashboard.slices:
+                urls.append(
+                    get_url({'form_data': get_form_data(chart.id, dashboard)}))
 
         # add charts that are tagged
         tagged_objects = (
@@ -222,9 +260,10 @@ class DashboardTagsStrategy(Strategy):
             .query(Slice)
             .filter(Slice.id.in_(chart_ids))
         )
-        charts.update(tagged_charts)
+        for chart in tagged_charts:
+            urls.append(get_url({'form_data': get_form_data(chart.id)}))
 
-        return [get_url({'slice_id': chart.id}) for chart in charts]
+        return urls
 
 
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
