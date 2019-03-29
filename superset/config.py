@@ -19,6 +19,8 @@ from superset.stats_logger import DummyStatsLogger
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 
+SQL_MAX_ROW = 100
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if 'SUPERSET_HOME' in os.environ:
     DATA_DIR = os.environ['SUPERSET_HOME']
