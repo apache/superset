@@ -58,8 +58,8 @@ class ControlPanelsContainer extends React.Component {
     let mapF = controls[controlName].mapStateToProps;
 
     // Looking to find mapStateToProps override for this viz type
-    const config = controlPanelConfigs[this.props.controls.viz_type.value].controlOverrides;
-    const controlOverrides = config || {};
+    const config = controlPanelConfigs[this.props.controls.viz_type.value] || {};
+    const controlOverrides = config.controlOverrides || {};
     if (controlOverrides[controlName] && controlOverrides[controlName].mapStateToProps) {
       mapF = controlOverrides[controlName].mapStateToProps;
     }
