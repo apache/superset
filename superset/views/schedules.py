@@ -90,7 +90,8 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     edit_form_extra_fields = add_form_extra_fields
 
     def process_form(self, form, is_created):
-        recipients = form.test_email_recipients.data.strip() if form.test_email_recipients.data else None
+        recipients_data = form.test_email_recipients.data
+        recipients = recipients_data.strip() if recipients_data else None
         self._extra_data['test_email'] = form.test_email.data
         self._extra_data['test_email_recipients'] = recipients
 
