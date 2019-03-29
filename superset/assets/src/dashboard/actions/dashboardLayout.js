@@ -209,7 +209,8 @@ export function undoLayoutAction() {
 
     if (
       dashboardLayout.past.length === 0 &&
-      !dashboardState.maxUndoHistoryExceeded
+      !dashboardState.maxUndoHistoryExceeded &&
+      !dashboardState.updatedColorScheme
     ) {
       dispatch(setUnsavedChanges(false));
     }

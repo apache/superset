@@ -20,7 +20,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import DashboardBuilder from '../components/DashboardBuilder';
 
-import { toggleBuilderPane } from '../actions/dashboardState';
+import {
+  setColorSchemeAndUnsavedChanges,
+  showBuilderPane,
+} from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -30,7 +33,8 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
   return {
     dashboardLayout: undoableLayout.present,
     editMode: dashboardState.editMode,
-    showBuilderPane: dashboardState.showBuilderPane,
+    builderPaneType: dashboardState.builderPaneType,
+    colorScheme: dashboardState.colorScheme,
   };
 }
 
@@ -39,7 +43,8 @@ function mapDispatchToProps(dispatch) {
     {
       deleteTopLevelTabs,
       handleComponentDrop,
-      toggleBuilderPane,
+      showBuilderPane,
+      setColorSchemeAndUnsavedChanges,
     },
     dispatch,
   );

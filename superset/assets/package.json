@@ -49,7 +49,7 @@
   "dependencies": {
     "@data-ui/sparkline": "^0.0.54",
     "@superset-ui/chart": "^0.9.6",
-    "@superset-ui/color": "^0.9.5",
+    "@superset-ui/color": "^0.10.8",
     "@superset-ui/connection": "^0.9.5",
     "@superset-ui/core": "^0.9.5",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.1.1",
