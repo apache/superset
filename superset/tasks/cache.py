@@ -101,7 +101,8 @@ class Strategy:
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
                 'kwargs': {
                     'strategy_name': 'top_n_dashboards',
-                    'n': 10,
+                    'top_n': 10,
+                    'since': '7 days ago',
                 },
             },
         }

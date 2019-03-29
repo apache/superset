@@ -35,6 +35,9 @@ from superset.tasks.cache import (
 from .base_tests import SupersetTestCase
 
 
+TEST_URL = 'http://0.0.0.0:8081/superset/explore_json'
+
+
 class CacheWarmUpTests(SupersetTestCase):
 
     def __init__(self, *args, **kwargs):
@@ -152,13 +155,13 @@ class CacheWarmUpTests(SupersetTestCase):
         strategy = DummyStrategy()
         result = sorted(strategy.get_urls())
         expected = [
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+1%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+17%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+18%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+19%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+30%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+31%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+8%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+1%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+17%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+18%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+19%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+8%7D',
         ]
         self.assertEqual(result, expected)
 
@@ -172,7 +175,7 @@ class CacheWarmUpTests(SupersetTestCase):
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
         expected = [
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+31%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
         ]
         self.assertEqual(result, expected)
 
@@ -196,7 +199,7 @@ class CacheWarmUpTests(SupersetTestCase):
 
         result = sorted(strategy.get_urls())
         expected = [
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+31%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
         ]
         self.assertEqual(result, expected)
 
@@ -219,7 +222,7 @@ class CacheWarmUpTests(SupersetTestCase):
 
         result = sorted(strategy.get_urls())
         expected = [
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+30%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
         ]
         self.assertEqual(result, expected)
 
@@ -227,7 +230,7 @@ class CacheWarmUpTests(SupersetTestCase):
 
         result = sorted(strategy.get_urls())
         expected = [
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+30%7D',
-            'http://0.0.0.0:8081/superset/explore_json/?form_data=%7B%27slice_id%27%3A+31%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+30%7D',
+            f'{TEST_URL}/?form_data=%7B%27slice_id%27%3A+31%7D',
         ]
         self.assertEqual(result, expected)

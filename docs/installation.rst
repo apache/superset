@@ -488,7 +488,8 @@ section in `config.py`:
             'schedule': crontab(minute=0, hour='*'),  # hourly
             'kwargs': {
                 'strategy_name': 'top_n_dashboards',
-                'n': 5,
+                'top_n': 5,
+                'since': '7 days ago',
             },
         },
     }
