@@ -150,6 +150,7 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
+    without_limit_sql = executed_sql
     if (superset_query.is_select() and SQL_MAX_ROWS and
             (not query.limit or query.limit > SQL_MAX_ROWS)):
         query.limit = SQL_MAX_ROWS
@@ -180,6 +181,7 @@ def execute_sql(
         logging.info(query.executed_sql)
         query_start_time = now_as_float()
         db_engine_spec.execute(cursor, query.executed_sql, async_=True)
+        query.executed_sql = without_limit_sql
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
