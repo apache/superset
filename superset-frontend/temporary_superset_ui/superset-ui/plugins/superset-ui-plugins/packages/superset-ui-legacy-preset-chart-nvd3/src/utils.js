@@ -160,6 +160,36 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
   return tooltip;
 }
 
+export function generateTimePivotTooltip(d, xFormatter, yFormatter) {
+  const tooltipTitle = xFormatter(d.value);
+  let tooltip = '';
+
+  tooltip +=
+    "<table><thead><tr><td colspan='3'>" +
+    `<strong class='x-value'>${tooltipTitle}</strong>` +
+    '</td></tr></thead><tbody>';
+
+  d.series.forEach(series => {
+    if (series.highlight) {
+      let label = '';
+      if (series.key === 'current') {
+        label = series.key;
+      } else {
+        label = `${series.key} of the selected frequence`;
+      }
+      tooltip +=
+        "<tr><td class='legend-color-guide'>" +
+        `<div style="background-color: ${series.color};"></div></td>` +
+        `<td class='key'>${label}</td>` +
+        `<td class='value'>${yFormatter(series.value)}</td></tr>`;
+    }
+  });
+
+  tooltip += '</tbody></table>';
+
+  return dompurify.sanitize(tooltip);
+}
+
 function getLabel(stringOrObjectWithLabel) {
   return stringOrObjectWithLabel.label || stringOrObjectWithLabel;
 }
