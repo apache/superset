@@ -178,6 +178,7 @@ the world know they are using Superset. Join our growing community!
  1. [Brilliant.org](https://brilliant.org/)
  1. [Capital Service S.A.](http://capitalservice.pl)
  1. [Clark.de](http://clark.de/)
+ 1. [Cloudsmith](https://cloudsmith.io)
  1. [CnOvit](http://www.cnovit.com/)
  1. [Dial Once](https://www.dial-once.com/en/)
  1. [Digit Game Studios](https://www.digitgaming.com/)
