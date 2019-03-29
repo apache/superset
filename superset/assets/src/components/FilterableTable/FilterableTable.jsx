@@ -164,7 +164,6 @@ export default class FilterableTable extends PureComponent {
     const {
       filterText,
       headerHeight,
-      height,
       orderedColumnKeys,
       overscanRowCount,
       rowHeight,
@@ -182,10 +181,12 @@ export default class FilterableTable extends PureComponent {
       .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
     }
 
+    let { height } = this.props;
     let totalTableHeight = height;
     if (this.container && this.totalTableWidth > this.container.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
-      // if the content overflows
+      // and the height of the table container if the content overflows
+      height -= SCROLL_BAR_HEIGHT;
       totalTableHeight -= SCROLL_BAR_HEIGHT;
     }
 
