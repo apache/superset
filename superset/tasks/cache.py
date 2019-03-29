@@ -30,6 +30,7 @@ from superset import app, db
 from superset.models.core import Dashboard, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
+from superset.utils.core import parse_human_datetime
 
 
 logger = get_task_logger(__name__)
@@ -52,7 +53,7 @@ def get_form_data(chart_id, dashboard=None):
     json_metadata = json.loads(dashboard.json_metadata)
 
     # do not apply filters if chart is immune to them
-    if chart_id in json_metadata['filter_immune_slices']:
+    if chart_id in json_metadata.get('filter_immune_slices', []):
         return form_data
 
     default_filters = json.loads(json_metadata.get('default_filters', 'null'))
@@ -60,7 +61,7 @@ def get_form_data(chart_id, dashboard=None):
         return form_data
 
     # are some of the fields in the chart immune to filters?
-    filter_immune_slice_fields = json_metadata['filter_immune_slice_fields']
+    filter_immune_slice_fields = json_metadata.get('filter_immune_slice_fields', {})
     immune_fields = filter_immune_slice_fields.get(str(chart_id), [])
 
     extra_filters = []
@@ -149,6 +150,7 @@ class TopNDashboardsStrategy(Strategy):
                 'kwargs': {
                     'strategy_name': 'top_n_dashboards',
                     'top_n': 5,
+                    'since': '7 days ago',
                 },
             },
         }
@@ -157,9 +159,10 @@ class TopNDashboardsStrategy(Strategy):
 
     name = 'top_n_dashboards'
 
-    def __init__(self, top_n=5):
+    def __init__(self, top_n=5, since='7 days ago'):
         super(TopNDashboardsStrategy, self).__init__()
         self.top_n = top_n
+        self.since = parse_human_datetime(since)
 
     def get_urls(self):
         urls = []
@@ -168,7 +171,10 @@ class TopNDashboardsStrategy(Strategy):
         records = (
             session
             .query(Log.dashboard_id, func.count(Log.dashboard_id))
-            .filter(Log.dashboard_id.isnot(None))
+            .filter(and_(
+                Log.dashboard_id.isnot(None),
+                Log.dttm >= self.since,
+            ))
             .group_by(Log.dashboard_id)
             .order_by(func.count(Log.dashboard_id).desc())
             .limit(self.top_n)
