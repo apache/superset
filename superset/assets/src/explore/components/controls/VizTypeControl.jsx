@@ -130,8 +130,6 @@ export default class VizTypeControl extends React.PureComponent {
       .concat(registry.entries().filter(({ key }) => !typesWithDefaultOrder.has(key)))
       .filter(entry => entry.value.name.toLowerCase().includes(filterString));
 
-    const selectedType = registry.get(value);
-
     const rows = [];
     for (let i = 0; i <= filteredTypes.length; i += IMAGE_PER_ROW) {
       rows.push(
@@ -155,11 +153,11 @@ export default class VizTypeControl extends React.PureComponent {
         >
           <React.Fragment>
             <Label onClick={this.toggleModal} style={LABEL_STYLE}>
-              {selectedType ? selectedType.name : `${value}`}
+              {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
-            <div className="text-danger">
+            {(!registry.has(value) && <div className="text-danger">
               <i className="fa fa-exclamation-circle text-danger" /> <small>This visualization type is not supported.</small>
-            </div>
+            </div>)}
           </React.Fragment>
         </OverlayTrigger>
         <Modal
