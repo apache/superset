@@ -186,10 +186,10 @@ class SqlEditor extends React.PureComponent {
   }
   runQuery() {
     if (this.props.database) {
-      this.startQuery(this.props.database.allow_run_async);
+      this.startQuery();
     }
   }
-  startQuery(runAsync = false, ctas = false) {
+  startQuery(ctas = false) {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
@@ -200,7 +200,7 @@ class SqlEditor extends React.PureComponent {
       tempTableName: ctas ? this.state.ctas : '',
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync,
+      runAsync: this.props.database ? this.props.database.allow_run_async : false,
       ctas,
     };
     this.props.actions.runQuery(query);
@@ -212,7 +212,7 @@ class SqlEditor extends React.PureComponent {
     }
   }
   createTableAs() {
-    this.startQuery(true, true);
+    this.startQuery(true);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
