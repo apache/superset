@@ -16,14 +16,14 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-
 ##### SUMMARY
 <!--- Describe the change below, including rationale and design decisions -->
 
-##### TEST PLAN
-<!--- What steps were taken to verify features impacted by refactor -->
+##### BEFORE/AFTER SCREENSHOTS OR ANIMATED GIF
+<!--- Skip this if not applicable -->
 
-<!--- What tests were added to confirm this refactor won't cause regressions -->
+##### TEST PLAN
+<!--- What steps were taken to verify -->
 
 ##### ADDITIONAL INFORMATION
 <!--- HINT: Include "Fixes #nnn" if you are fixing an existing issue --> 
@@ -31,7 +31,11 @@ under the License.
     [ ] Has associated issue:
     [ ] Changes UI
     [ ] Requires DB Migration. Confirm DB Migration upgrade and downgrade tested.
+    [ ] Introduces new feature or API
     [ ] Removes existing feature or API
+    [ ] Fixes bug
+    [ ] Refactors code
+    [ ] Adds test(s)
 
 ##### REVIEWERS
 
