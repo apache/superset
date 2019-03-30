@@ -1,19 +1,48 @@
-# @superset-ui : Change Log
+## [0.10.9](https://github.com/apache-superset/superset-ui/compare/v0.10.8...v0.10.9) (2019-03-29)
 
-## 0.10.5 (2019-03-21) ([98308f1](https://github.com/apache-superset/superset-ui/commit/98308f1))
 
+### ✨ Features
+
+* add labels to color scheme ([#125](https://github.com/apache-superset/superset-ui/issues/125)) ([98a14a2](https://github.com/apache-superset/superset-ui/commit/98a14a2))
+
+
+## [0.10.8](https://github.com/apache-superset/superset-ui/compare/v0.10.7...v0.10.8) (2019-03-26)
+
+
+### 🐞 Bug Fixes
+
+* Fixed type definition for chart plugin ([#123](https://github.com/apache-superset/superset-ui/issues/123)) ([6230a3b](https://github.com/apache-superset/superset-ui/commit/6230a3b))
+
+
+### ✨ Features
+
+* getter function to return color mapping ([#124](https://github.com/apache-superset/superset-ui/issues/124)) ([46e78ad](https://github.com/apache-superset/superset-ui/commit/46e78ad))
+
+
+## [0.10.7](https://github.com/apache-superset/superset-ui/compare/v0.10.6...v0.10.7) (2019-03-22)
+
+### 🐞 Bug Fixes
+
+* import types from package, not monorepo ([#122](https://github.com/apache-superset/superset-ui/pull/122))
+
+## [0.10.6](https://github.com/apache-superset/superset-ui/compare/v0.10.5...v0.10.6) (2019-03-22)
+
+### 🛠️ Internal
+
+* remove faux `@superset-ui/core` TS declaration ([#121](https://github.com/apache-superset/superset-ui/pull/121))
+
+## 0.10.5 (2019-03-21)
 
 ### ✨ Features
 
 * 🎸 Improved QueryObject to handle more fields (#116) ([57a64b1](https://github.com/apache-superset/superset-ui/commit/57a64b1)), closes [#116](https://github.com/apache-superset/superset-ui/issues/116)
 * Add `<ChartDataProvider />` (#120) ([ade9dbe](https://github.com/apache-superset/superset-ui/commit/ade9dbe)), closes [#120](https://github.com/apache-superset/superset-ui/issues/120)
 
-### 📜Documentation 
+### 📜 Documentation
 * Add TS support + CORS demo (#118) ([34581f3](https://github.com/apache-superset/superset-ui/commit/34581f3)), closes [#118](https://github.com/apache-superset/superset-ui/issues/118)
 
 
 ## 0.10.4 (2019-03-11)
-
 
 ### ✨ Features
 
