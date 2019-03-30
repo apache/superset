@@ -1506,6 +1506,7 @@ class Superset(BaseSupersetView):
             'can_overwrite': is_owner(slc, g.user),
             'form_data': slc.form_data,
             'slice': slc.data,
+            'dashboard_id': dash.id if dash else None,
         }
 
         if request.args.get('goto_dash') == 'true':
