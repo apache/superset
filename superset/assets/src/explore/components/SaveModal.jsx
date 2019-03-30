@@ -55,11 +55,11 @@ class SaveModal extends React.Component {
   }
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
-      let dashboardIds = this.props.dashboards.map(dashboard => dashboard.value);
-      let recentDashboard = sessionStorage.getItem("save_chart_recent_dashboard");
+      const dashboardIds = this.props.dashboards.map(dashboard => dashboard.value);
+      let recentDashboard = sessionStorage.getItem('save_chart_recent_dashboard');
       recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
       if (recentDashboard !== null && dashboardIds.indexOf(recentDashboard) !== -1) {
-        this.setState( { saveToDashboardId: recentDashboard, addToDash: 'existing' } );
+        this.setState({ saveToDashboardId: recentDashboard, addToDash: 'existing' });
       }
     });
   }
@@ -133,9 +133,9 @@ class SaveModal extends React.Component {
 
     this.props.actions.saveSlice(this.props.form_data, sliceParams).then(({ data }) => {
       if (data.dashboard_id === null) {
-        sessionStorage.removeItem("save_chart_recent_dashboard");
+        sessionStorage.removeItem('save_chart_recent_dashboard');
       } else {
-        sessionStorage.setItem("save_chart_recent_dashboard", data.dashboard_id);
+        sessionStorage.setItem('save_chart_recent_dashboard', data.dashboard_id);
       }
       // Go to new slice url or dashboard url
       if (gotodash) {
