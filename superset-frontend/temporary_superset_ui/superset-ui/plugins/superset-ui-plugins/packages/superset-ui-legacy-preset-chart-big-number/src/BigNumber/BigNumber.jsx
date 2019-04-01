@@ -229,8 +229,10 @@ class BigNumberVis extends React.PureComponent {
       return (
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
-            {this.renderHeader(Math.ceil(headerFontSize * height))}
-            {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+            {this.renderHeader(Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height))}
+            {this.renderSubheader(
+              Math.ceil(subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height),
+            )}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
