@@ -1,7 +1,7 @@
 import { getNumberFormatter } from '@superset-ui/number-format';
 import { getTimeFormatter } from '@superset-ui/time-format';
 import { Type } from 'vega-lite/build/src/type';
-import { isTypedFieldDef, ChannelDef } from '../types/FieldDef';
+import { isTypedFieldDef, ChannelDef } from '../types/ChannelDef';
 
 const fallbackFormatter = (v: any) => `${v}`;
 

@@ -1,5 +1,5 @@
 import { get } from 'lodash/fp';
-import { isValueDef, ChannelDef } from '../types/FieldDef';
+import { isValueDef, ChannelDef } from '../types/ChannelDef';
 import identity from '../utils/identity';
 
 export default function extractGetter(definition: ChannelDef) {

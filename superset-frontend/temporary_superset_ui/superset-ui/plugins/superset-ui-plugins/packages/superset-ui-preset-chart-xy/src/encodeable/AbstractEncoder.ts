@@ -1,8 +1,8 @@
-import { Value } from 'vega-lite/build/src/fielddef';
+import { Value } from 'vega-lite/build/src/channeldef';
 import { ObjectWithKeysFromAndValueType } from './types/Base';
 import { ChannelOptions, EncodingFromChannelsAndOutputs, ChannelType } from './types/Channel';
 import { FullSpec, BaseOptions, PartialSpec } from './types/Specification';
-import { isFieldDef } from './types/FieldDef';
+import { isFieldDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 
 export default abstract class AbstractEncoder<

@@ -1,11 +1,11 @@
 /* eslint-disable no-magic-numbers */
 import { CSSProperties } from 'react';
-import { Value } from 'vega-lite/build/src/fielddef';
+import { Value } from 'vega-lite/build/src/channeldef';
 import { getTextDimension } from '@superset-ui/dimension';
 import { CategoricalColorScale } from '@superset-ui/color';
 import { extractFormatFromTypeAndFormat } from './parsers/extractFormat';
 import { CoreAxis, LabelOverlapStrategy } from './types/Axis';
-import { PositionFieldDef, ChannelDef } from './types/FieldDef';
+import { PositionFieldDef, ChannelDef } from './types/ChannelDef';
 import ChannelEncoder from './ChannelEncoder';
 import { DEFAULT_LABEL_ANGLE } from '../utils/constants';
 

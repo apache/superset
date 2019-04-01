@@ -1,5 +1,5 @@
-import { Value } from 'vega-lite/build/src/fielddef';
-import { XFieldDef, YFieldDef, ChannelDef, MarkPropChannelDef, TextChannelDef } from './FieldDef';
+import { Value } from 'vega-lite/build/src/channeldef';
+import { XFieldDef, YFieldDef, ChannelDef, MarkPropChannelDef, TextChannelDef } from './ChannelDef';
 import { ObjectWithKeysFromAndValueType } from './Base';
 
 // eslint-disable-next-line import/prefer-default-export
