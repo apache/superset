@@ -495,15 +495,17 @@ function nvd3Vis(element, props) {
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
     }
-    const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
-    if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
-      chart.xAxis.tickFormat(xAxisFormatter);
-    } else {
-      chart.xAxis.tickFormat(d =>
-        d.length > MAX_NO_CHARACTERS_IN_LABEL
-          ? `${d.substring(0, MAX_NO_CHARACTERS_IN_LABEL)}…`
-          : d,
-      );
+    if (chart.xAxis && chart.xAxis.tickFormat) {
+      const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
+      if (isXAxisString) {
+        chart.xAxis.tickFormat(d =>
+          d.length > MAX_NO_CHARACTERS_IN_LABEL
+            ? `${d.substring(0, MAX_NO_CHARACTERS_IN_LABEL)}…`
+            : d,
+        );
+      } else {
+        chart.xAxis.tickFormat(xAxisFormatter);
+      }
     }
 
     let yAxisFormatter = getTimeOrNumberFormatter(yAxisFormat);
