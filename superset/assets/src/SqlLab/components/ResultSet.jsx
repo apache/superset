@@ -220,7 +220,7 @@ export default class ResultSet extends React.PureComponent {
           </React.Fragment>
         );
       } else if (data && data.length === 0) {
-        return <Alert bsStyle="warning">The query returned no data</Alert>;
+        return <Alert bsStyle="warning">{t('The query returned no data')}</Alert>;
       }
     }
     if (query.cached) {
