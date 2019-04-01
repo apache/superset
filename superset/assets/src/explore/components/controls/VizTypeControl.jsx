@@ -37,7 +37,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChange: () => { },
+  onChange: () => {},
 };
 
 const registry = getChartMetadataRegistry();
@@ -156,7 +156,7 @@ export default class VizTypeControl extends React.PureComponent {
               {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
             {(!registry.has(value) && <div className="text-danger">
-              <i className="fa fa-exclamation-circle text-danger" /> <small>This visualization type is not supported.</small>
+              <i className="fa fa-exclamation-circle text-danger" /> <small>{t('This visualization type is not supported.')}</small>
             </div>)}
           </React.Fragment>
         </OverlayTrigger>
