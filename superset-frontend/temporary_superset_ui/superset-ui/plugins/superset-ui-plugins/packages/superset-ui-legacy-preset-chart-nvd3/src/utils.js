@@ -175,7 +175,7 @@ export function generateTimePivotTooltip(d, xFormatter, yFormatter) {
       if (series.key === 'current') {
         label = series.key;
       } else {
-        label = `${series.key} of the selected frequence`;
+        label = `${series.key} of the selected frequency:`;
       }
       tooltip +=
         "<tr><td class='legend-color-guide'>" +
