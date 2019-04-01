@@ -31,6 +31,7 @@ import {
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
   UPDATE_CSS,
+  SET_REFRESH_FREQUENCY,
 } from '../actions/dashboardState';
 import { BUILDER_PANE_TYPE } from '../util/constants';
 
@@ -159,6 +160,9 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_UNSAVED_CHANGES]() {
       const { hasUnsavedChanges } = action.payload;
       return { ...state, hasUnsavedChanges };
+    },
+    [SET_REFRESH_FREQUENCY]() {
+      return { ...state, refreshFrequency: action.refreshFrequency };
     },
   };
 

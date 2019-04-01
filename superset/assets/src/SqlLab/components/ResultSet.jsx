@@ -117,6 +117,10 @@ export default class ResultSet extends React.PureComponent {
   }
   renderControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
+      let data = this.props.query.results.data;
+      if (this.props.cache && this.props.query.cached) {
+        data = this.state.data;
+      }
       return (
         <div className="ResultSetControls">
           <div className="clearfix">
@@ -134,7 +138,7 @@ export default class ResultSet extends React.PureComponent {
                   </Button>}
 
                 <CopyToClipboard
-                  text={prepareCopyToClipboardTabularData(this.props.query.results.data)}
+                  text={prepareCopyToClipboardTabularData(data)}
                   wrapped={false}
                   copyNode={
                     <Button bsSize="small">

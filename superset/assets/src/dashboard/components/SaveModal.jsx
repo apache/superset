@@ -44,6 +44,7 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
+  refreshFrequency: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -102,6 +103,7 @@ class SaveModal extends React.PureComponent {
       expandedSlices,
       filters,
       dashboardId,
+      refreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -120,6 +122,7 @@ class SaveModal extends React.PureComponent {
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       default_filters: safeStringify(filters),
       duplicate_slices: this.state.duplicateSlices,
+      refresh_frequency: refreshFrequency,
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {

@@ -52,6 +52,7 @@ little bit helps, and credit will always be given.
   - [Creating a new visualization type](#creating-a-new-visualization-type)
   - [Adding a DB migration](#adding-a-db-migration)
   - [Merging DB migrations](#merging-db-migrations)
+  - [SQL Lab Async](#sql-lab-async)
 
 ## Types of Contributions
 
@@ -432,9 +433,9 @@ npm run lint
 
 ### Python Testing
 
-All python tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
+All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
 a standardized testing framework.
-All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
 ```bash
 tox -e <environment>
@@ -462,9 +463,38 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
+#### Typing
+
+To ensure clarity, consistency, all readability, _all_ new functions should use
+[type hints](https://docs.python.org/3/library/typing.html) and include a
+docstring using Sphinx documentation.
+
+Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
+syntax for listing explicitly raised exceptions is proposed and thus the
+recommendation is to put this information in a docstring, i.e.,
+
+
+```python
+import math
+from typing import Union
+
+
+def sqrt(x: Union[float, int]) -> Union[float, int]:
+    """
+    Return the square root of x.
+
+    :param x: A number
+    :returns: The square root of the given number
+    :raises ValueError: If the number is negative
+    """
+
+    return math.sqrt(x)
+```
+
+
 ### JavaScript Testing
 
-We use [Jest](https://jestjs.io/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
 ```bash
 cd superset/assets
@@ -657,3 +687,29 @@ To fix it:
     ```bash
     superset db upgrade
     ```
+
+### SQL Lab Async
+
+It's possible to configure a local database to operate in `async` mode,
+to work on `async` related features.
+
+To do this, you'll need to:
+* Add an additional database entry. We recommend you copy the connection
+  string from the database labeled `main`, and then enable `SQL Lab` and the 
+  features you want to use. Don't forget to check the `Async` box
+* Configure a results backend, here's a local `FileSystemCache` example,
+  not recommended for production,
+  but perfect for testing (stores cache in `/tmp`)
+    ```python
+    from werkzeug.contrib.cache import FileSystemCache
+    RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
+    ```
+
+Note that:
+* for changes that affect the worker logic, you'll have to
+  restart the `celery worker` process for the changes to be reflected.
+* The message queue used is a `sqlite` database using the `SQLAlchemy`
+  experimental broker. Ok for testing, but not recommended in production
+* In some cases, you may want to create a context that is more aligned
+  to your production environment, and use the similar broker as well as
+  results backend configuration

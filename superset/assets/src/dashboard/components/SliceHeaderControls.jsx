@@ -29,6 +29,7 @@ const propTypes = {
   cachedDttm: PropTypes.string,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
+  supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
@@ -46,6 +47,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   supersetCanExplore: false,
+  supersetCanCSV: false,
   sliceCanEdit: false,
 };
 
@@ -134,7 +136,9 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          {this.props.supersetCanCSV && (
+            <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+          )}
 
           {this.props.supersetCanExplore && (
             <MenuItem onClick={this.exploreChart}>

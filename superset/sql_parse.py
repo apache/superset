@@ -127,7 +127,6 @@ class ParsedQuery(object):
         table_name_preceding_token = False
 
         for item in token.tokens:
-            logging.debug(('  ' * depth) + str(item.ttype) + str(item.value))
             if item.is_group and not self.__is_identifier(item):
                 self.__extract_from_token(item, depth=depth + 1)
 

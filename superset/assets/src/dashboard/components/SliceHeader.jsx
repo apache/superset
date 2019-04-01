@@ -41,6 +41,7 @@ const propTypes = {
   annotationError: PropTypes.object,
   sliceName: PropTypes.string,
   supersetCanExplore: PropTypes.bool,
+  supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
 };
 
@@ -61,6 +62,7 @@ const defaultProps = {
   isExpanded: false,
   sliceName: '',
   supersetCanExplore: false,
+  supersetCanCSV: false,
   sliceCanEdit: false,
 };
 
@@ -82,6 +84,7 @@ class SliceHeader extends React.PureComponent {
       innerRef,
       sliceName,
       supersetCanExplore,
+      supersetCanCSV,
       sliceCanEdit,
       editMode,
       updateSliceName,
@@ -133,6 +136,7 @@ class SliceHeader extends React.PureComponent {
               exploreChart={exploreChart}
               exportCSV={exportCSV}
               supersetCanExplore={supersetCanExplore}
+              supersetCanCSV={supersetCanCSV}
               sliceCanEdit={sliceCanEdit}
             />
           )}

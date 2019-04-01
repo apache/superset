@@ -130,7 +130,11 @@ export default class TableSelector extends React.PureComponent {
           this.setState(() => ({
             filterOptions,
             tableLoading: false,
-            tableOptions: json.options,
+            tableOptions: json.options.map(o => ({
+              value: o.value,
+              label: o.label,
+              title: o.label,
+            })),
           }));
         })
         .catch(() => {
@@ -150,7 +154,7 @@ export default class TableSelector extends React.PureComponent {
 
       return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const schemaOptions = json.schemas.map(s => ({ value: s, label: s }));
+          const schemaOptions = json.schemas.map(s => ({ value: s, label: s, title: s }));
           this.setState({ schemaOptions, schemaLoading: false });
         })
         .catch(() => {

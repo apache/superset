@@ -94,7 +94,7 @@ def downgrade():
             flts = params.get('filter_configs')
             if not flts:
                 continue
-            params['metrics'] = [flts[0].get('metric')]
+            params['metric'] = flts[0].get('metric')
             params['groupby'] = [o.get('column') for o in flts]
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as e:

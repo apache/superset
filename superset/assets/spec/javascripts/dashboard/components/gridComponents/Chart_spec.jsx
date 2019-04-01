@@ -58,6 +58,7 @@ describe('Chart', () => {
     editMode: false,
     isExpanded: false,
     supersetCanExplore: false,
+    supersetCanCSV: false,
     sliceCanEdit: false,
   };
 

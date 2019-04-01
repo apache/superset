@@ -26,7 +26,13 @@ import {
   SortDirection,
   SortIndicator,
 } from 'react-virtualized';
-import { getTextWidth } from '../../modules/visUtils';
+import { getTextDimension } from '@superset-ui/dimension';
+
+function getTextWidth(text, font = '12px Roboto') {
+  return getTextDimension({ text, style: { font } }).width;
+}
+
+const SCROLL_BAR_HEIGHT = 15;
 
 const SCROLL_BAR_HEIGHT = 15;
 

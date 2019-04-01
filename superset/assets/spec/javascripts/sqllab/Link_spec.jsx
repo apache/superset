@@ -24,7 +24,7 @@ import Link from '../../../src/SqlLab/components/Link';
 describe('Link', () => {
   const mockedProps = {
     tooltip: 'This is a tooltip',
-    href: 'http://www.airbnb.com',
+    href: 'https://www.airbnb.com',
   };
   it('renders', () => {
     expect(React.isValidElement(<Link>TEST</Link>)).toBe(true);

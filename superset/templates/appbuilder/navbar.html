@@ -30,7 +30,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="/superset{{ logo_target_path }}">
+      <a class="navbar-brand" href="{{ '/superset' + logo_target_path if current_user.username is defined else '#' }}">
         <img
           width="{{ app_icon_width }}"
           src="{{ appbuilder.app_icon }}"

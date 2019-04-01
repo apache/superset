@@ -56,7 +56,14 @@ as needed.
 Start with Docker
 -----------------
 
-If you know docker, then you're lucky, we have shortcut road for you to 
+.. note ::
+    The Docker-related files and documentation has been
+    community-contributed and
+    is not actively maintained and managed by the core committers working on
+    the project. Some issues have been reported as of 2019-01.
+    Help and contributions around Docker are welcomed!
+
+If you know docker, then you're lucky, we have shortcut road for you to
 initialize development environment: ::
 
     git clone https://github.com/apache/incubator-superset/
@@ -73,7 +80,7 @@ From there, the container server will reload on modification of the superset pyt
 and javascript source code.
 Don't forget to reload the page to take the new frontend into account though.
 
-See also `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#webpack-dev-server>`_,
+See also `CONTRIBUTING.md#building <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#building>`_,
 for alternative way of serving the frontend.
 
 It is also possible to run Superset in non-development mode: in the `docker-compose.yml` file remove
@@ -208,7 +215,7 @@ setup known to work well in production: ::
         superset:app
 
 Refer to the
-`Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
+`Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
 Note that *gunicorn* does not
@@ -312,7 +319,7 @@ as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
-<http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
+<https://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure it.
 
 Make sure to change:
@@ -382,7 +389,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Teradata     | ``pip install sqlalchemy-teradata`` | ``teradata://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
-|  Pinot        | ``pip install pinotdb`` | ``pinot+http://controller:5436/query?server=http://controller:5983/``                                 |
+|  Pinot        | ``pip install pinotdb``             | ``pinot+http://controller:5436/``               |
+|               |                                     | ``query?server=http://controller:5983/``        |
 +---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other databases are supported, the main criteria being the
@@ -406,11 +414,6 @@ You can also use `PyAthena` library(no java required) like this ::
     awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
-
-MSSQL
------
-
-Full Unicode support requires SQLAlchemy 1.3 or later.
 
 Snowflake
 ---------
@@ -490,9 +493,9 @@ find an ``extra`` field as a ``JSON`` blob.
 
 This JSON string contains extra configuration elements. The ``engine_params``
 object gets unpacked into the
-`sqlalchemy.create_engine <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
+`sqlalchemy.create_engine <https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
 while the ``metadata_params`` get unpacked into the
-`sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+`sqlalchemy.MetaData <https://docs.sqlalchemy.org/en/rel_1_2/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
 
 Schemas (Postgres & Redshift)
@@ -576,7 +579,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 
 
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
-* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
+* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <https://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 
 DOMAIN SHARDING
@@ -588,7 +591,7 @@ next available socket. PR (`#5039 <https://github.com/apache/incubator-superset/
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
-*``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
+* ``SUPERSET_WEBSERVER_DOMAINS``: list of allowed hostnames for domain sharding feature. default `None`
 
 
 MIDDLEWARE
@@ -810,7 +813,7 @@ Building from source
 
 More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment. See `CONTRIBUTING.md <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#local-development>`_.
+your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
 
 Blueprints
 ----------
