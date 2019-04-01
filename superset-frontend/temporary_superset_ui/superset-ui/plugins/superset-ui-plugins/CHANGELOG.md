@@ -1,4 +1,23 @@
-<a name="0.10.3"></a>
+# [0.10.4](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.3...v0.10.4) (2019-04-01)
+
+
+### Bug Fixes
+
+* big number with trendline fix ([#34](https://github.com/apache-superset/superset-ui-plugins/issues/34)) ([679a3f2](https://github.com/apache-superset/superset-ui-plugins/commit/679a3f2))
+* broken build due to file rename in vega-lite ([#37](https://github.com/apache-superset/superset-ui-plugins/issues/37)) ([17cb5f6](https://github.com/apache-superset/superset-ui-plugins/commit/17cb5f6))
+* exception thrown for charts without a x-axis ([#36](https://github.com/apache-superset/superset-ui-plugins/issues/36)) ([04cae86](https://github.com/apache-superset/superset-ui-plugins/commit/04cae86))
+* fine tune time pivot chart tooltip ([#33](https://github.com/apache-superset/superset-ui-plugins/issues/33)) ([6924b98](https://github.com/apache-superset/superset-ui-plugins/commit/6924b98))
+* line chart tooltip should use full datetime format ([#24](https://github.com/apache-superset/superset-ui-plugins/issues/24)) ([836818b](https://github.com/apache-superset/superset-ui-plugins/commit/836818b))
+
+
+### Features
+
+* improve the tooltip for the time pivot chart ([#30](https://github.com/apache-superset/superset-ui-plugins/issues/30)) ([ad6ab28](https://github.com/apache-superset/superset-ui-plugins/commit/ad6ab28))
+* line chart with revised encodeable utilities ([#26](https://github.com/apache-superset/superset-ui-plugins/issues/26)) ([c9b8195](https://github.com/apache-superset/superset-ui-plugins/commit/c9b8195))
+* update tooltip and use selector ([#31](https://github.com/apache-superset/superset-ui-plugins/issues/31)) ([6a59b21](https://github.com/apache-superset/superset-ui-plugins/commit/6a59b21))
+
+
+
 ## [0.10.3](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.2...v0.10.3) (2019-03-22)
 
 
@@ -13,12 +32,10 @@
 
 
 
-<a name="0.10.2"></a>
 ## [0.10.2](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.1...v0.10.2) (2019-03-18)
 
 
 
-<a name="0.10.1"></a>
 ## [0.10.1](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.0...v0.10.1) (2019-03-18)
 
 
@@ -36,7 +53,6 @@
 
 
 
-<a name="0.10.0"></a>
 # [0.10.0](https://github.com/apache-superset/superset-ui-plugins/compare/v0.1.1...v0.10.0) (2019-03-05)
 
 
@@ -58,32 +74,26 @@
 
 
 
-<a name="0.1.1"></a>
 ## [0.1.1](https://github.com/apache-superset/superset-ui-plugins/compare/v0.1.0...v0.1.1) (2019-02-14)
 
 
 
-<a name="0.1.0"></a>
 # [0.1.0](https://github.com/apache-superset/superset-ui-plugins/compare/v0.0.3...v0.1.0) (2019-02-13)
 
 
 
-<a name="0.0.3"></a>
 ## [0.0.3](https://github.com/apache-superset/superset-ui-plugins/compare/v0.0.2...v0.0.3) (2019-02-13)
 
 
 
-<a name="0.0.2"></a>
 ## [0.0.2](https://github.com/apache-superset/superset-ui-plugins/compare/v0.0.1...v0.0.2) (2019-02-12)
 
 
 
-<a name="0.0.1"></a>
 ## [0.0.1](https://github.com/apache-superset/superset-ui-plugins/compare/v0.0.1-alpha.0...v0.0.1) (2019-02-09)
 
 
 
-<a name="0.0.1-alpha.0"></a>
 ## 0.0.1-alpha.0 (2019-02-07)
 
 
