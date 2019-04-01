@@ -62,7 +62,7 @@ class ChartRenderer extends React.Component {
     this.state = {};
 
     this.createChartProps = ChartProps.createSelector();
-    this.hasQueryResponseChnage = false;
+    this.hasQueryResponseChange = false;
 
     this.setTooltip = this.setTooltip.bind(this);
     this.handleAddFilter = this.handleAddFilter.bind(this);
@@ -79,10 +79,10 @@ class ChartRenderer extends React.Component {
       !nextProps.refreshOverlayVisible;
 
     if (resultsReady) {
-      this.hasQueryResponseChnage =
+      this.hasQueryResponseChange =
         nextProps.queryResponse !== this.props.queryResponse;
 
-      if (this.hasQueryResponseChnage ||
+      if (this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
@@ -137,7 +137,7 @@ class ChartRenderer extends React.Component {
 
     // only log chart render time which is triggered by query results change
     // currently we don't log chart re-render time, like window resize etc
-    if (this.hasQueryResponseChnage) {
+    if (this.hasQueryResponseChange) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
         viz_type: vizType,
@@ -154,7 +154,7 @@ class ChartRenderer extends React.Component {
     actions.chartRenderingFailed(error.toString(), chartId, info ? info.componentStack : null);
 
     // only trigger render log when query is changed
-    if (this.hasQueryResponseChnage) {
+    if (this.hasQueryResponseChange) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
         has_err: true,
