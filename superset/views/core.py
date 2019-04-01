@@ -107,6 +107,7 @@ class DatabaseFilter(SupersetFilter):
         database_perms = self.get_view_menus('database_access')
         return query.filter(self.model.perm.in_(database_perms))
 
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():

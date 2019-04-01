@@ -90,11 +90,6 @@ const defaultProps = {
   colorScheme: undefined,
 };
 
-const defaultProps = {
-  colorNamespace: undefined,
-  colorScheme: undefined,
-};
-
 class Header extends React.PureComponent {
   static discardChanges() {
     window.location.reload();
