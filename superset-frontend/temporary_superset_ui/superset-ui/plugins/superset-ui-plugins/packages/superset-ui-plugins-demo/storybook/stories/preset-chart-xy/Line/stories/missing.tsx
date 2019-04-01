@@ -8,7 +8,7 @@ const missingData = {
   keys: data.keys,
   values: data.values.map(({ y, ...rest }) => ({
     ...rest,
-    y: Math.random() < 0.05 ? null : y,
+    y: Math.random() < 0.25 ? null : y,
   })),
 };
 

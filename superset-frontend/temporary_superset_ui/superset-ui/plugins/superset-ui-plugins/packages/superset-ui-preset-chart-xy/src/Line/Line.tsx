@@ -12,6 +12,7 @@ import {
 import { chartTheme, ChartTheme } from '@data-ui/theme';
 import { Margin, Dimension } from '@superset-ui/dimension';
 import { groupBy, flatMap, uniqueId, values } from 'lodash';
+import { createSelector } from 'reselect';
 import createTooltip from './createTooltip';
 import XYChartLayout from '../utils/XYChartLayout';
 import WithLegend from '../components/WithLegend';
@@ -59,13 +60,22 @@ class LineChart extends PureComponent<Props> {
 
   constructor(props: Props) {
     super(props);
-    const { encoding } = this.props;
 
-    this.encoder = new Encoder({ encoding });
+    const createEncoder = createSelector(
+      (enc: Encoding) => enc,
+      (enc: Encoding) => new Encoder({ encoding: enc }),
+    );
+
+    this.createEncoder = () => {
+      this.encoder = createEncoder(this.props.encoding);
+    };
+
+    this.encoder = createEncoder(this.props.encoding);
     this.renderChart = this.renderChart.bind(this);
   }
 
   encoder: Encoder;
+  private createEncoder: () => void;
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
@@ -113,6 +123,7 @@ class LineChart extends PureComponent<Props> {
             />,
             <AreaSeries
               key={`${series.key}-fill`}
+              seriesKey={series.key}
               data={series.values}
               interpolation="linear"
               fill={`url(#${gradientId})`}
@@ -202,9 +213,9 @@ class LineChart extends PureComponent<Props> {
   }
 
   render() {
-    const { className, data, width, height, encoding } = this.props;
+    const { className, data, width, height } = this.props;
 
-    this.encoder = new Encoder({ encoding });
+    this.createEncoder();
     const renderLegend = this.encoder.hasLegend()
       ? // eslint-disable-next-line react/jsx-props-no-multi-spaces
         () => <ChartLegend<ChannelTypes, Outputs, Encoding> data={data} encoder={this.encoder} />
