@@ -1,4 +1,4 @@
-import { Value } from 'vega-lite/build/src/fielddef';
+import { Value } from 'vega-lite/build/src/channeldef';
 import { DateTime } from 'vega-lite/build/src/datetime';
 import { SchemeParams, ScaleType } from 'vega-lite/build/src/scale';
 
