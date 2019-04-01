@@ -1,3 +1,1 @@
-module.exports = {
-  extends: ['@commitlint/config-conventional', '@commitlint/config-lerna-scopes'],
-};
+module.exports = require('@superset-ui/commit-config/commitlint.config');
