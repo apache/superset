@@ -1,11 +1,12 @@
-import React, { CSSProperties, PureComponent } from 'react';
+import React, { CSSProperties, PureComponent, ReactNode } from 'react';
 
 type Props = {
   className?: string;
   data: {
-    key: string;
+    key: string | number;
+    keyColumn: ReactNode;
     keyStyle?: CSSProperties;
-    value: string | number;
+    valueColumn: ReactNode;
     valueStyle?: CSSProperties;
   }[];
 };
@@ -24,11 +25,11 @@ export default class TooltipTable extends PureComponent<Props, {}> {
     return (
       <table className={className}>
         <tbody>
-          {data.map(({ key, keyStyle, value, valueStyle }) => (
+          {data.map(({ key, keyColumn, keyStyle, valueColumn, valueStyle }, i) => (
             <tr key={key}>
-              <td style={keyStyle}>{key}</td>
+              <td style={keyStyle}>{keyColumn}</td>
               <td style={valueStyle ? { ...VALUE_CELL_STYLE, ...valueStyle } : VALUE_CELL_STYLE}>
-                {value}
+                {valueColumn}
               </td>
             </tr>
           ))}
