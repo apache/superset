@@ -76,8 +76,8 @@ export default class LimitControl extends React.PureComponent {
   renderPopover() {
     const textValue = this.state.textValue;
     const isValid = this.isValidLimit(textValue);
-    const errorMsg = 'Row limit must be positive integer' +
-      (this.props.maxRow ? ` and not greater than ${this.props.maxRow}` : '');
+    const errorMsg = t('Row limit must be positive integer') +
+        (this.props.maxRow ? t(' and not greater than %s', this.props.maxRow) : '');
     return (
       <Popover id="sqllab-limit-results">
         <div style={{ width: '100px' }}>
