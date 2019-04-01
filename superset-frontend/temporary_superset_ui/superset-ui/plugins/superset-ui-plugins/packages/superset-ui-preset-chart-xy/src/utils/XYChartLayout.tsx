@@ -9,7 +9,7 @@ import { AxisOrient } from 'vega';
 import createTickComponent from './createTickComponent';
 import ChartFrame from '../components/ChartFrame';
 import ChannelEncoder from '../encodeable/ChannelEncoder';
-import { XFieldDef, YFieldDef } from '../encodeable/types/FieldDef';
+import { XFieldDef, YFieldDef } from '../encodeable/types/ChannelDef';
 import { PlainObject } from '../encodeable/types/Data';
 import { DEFAULT_LABEL_ANGLE } from './constants';
 

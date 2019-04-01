@@ -1,5 +1,5 @@
 // eslint-disable no-unused-vars
-import { ValueDef, Value } from 'vega-lite/build/src/fielddef';
+import { ValueDef, Value } from 'vega-lite/build/src/channeldef';
 import { Type } from 'vega-lite/build/src/type';
 import { TimeFormatter } from '@superset-ui/time-format';
 import { NumberFormatter } from '@superset-ui/number-format';

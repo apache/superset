@@ -1,7 +1,7 @@
 import React, { CSSProperties, PureComponent } from 'react';
 import { scaleOrdinal } from '@vx/scale';
 import { LegendOrdinal, LegendItem, LegendLabel } from '@vx/legend';
-import { Value } from 'vega-lite/build/src/fielddef';
+import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { Dataset } from '../encodeable/types/Data';
 import { ObjectWithKeysFromAndValueType } from '../encodeable/types/Base';
