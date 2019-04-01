@@ -42,7 +42,7 @@ class ShareSqlLabQuery extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      shortUrl: 'Loading ...',
+      shortUrl: t('Loading ...'),
       showOverlay: false,
     };
     this.getCopyUrl = this.getCopyUrl.bind(this);
@@ -69,7 +69,7 @@ class ShareSqlLabQuery extends React.Component {
     return (
       <Popover id="sqllab-shareurl-popover">
         <CopyToClipboard
-          text={this.state.shortUrl || 'Loading ...'}
+          text={this.state.shortUrl || t('Loading ...')}
           copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
         />
       </Popover>

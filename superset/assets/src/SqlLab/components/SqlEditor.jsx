@@ -144,19 +144,19 @@ class SqlEditor extends React.PureComponent {
       {
         name: 'runQuery1',
         key: 'ctrl+r',
-        descr: 'Run query',
+        descr: t('Run query'),
         func: this.runQuery,
       },
       {
         name: 'runQuery2',
         key: 'ctrl+enter',
-        descr: 'Run query',
+        descr: t('Run query'),
         func: this.runQuery,
       },
       {
         name: 'newTab',
         key: 'ctrl+t',
-        descr: 'New tab',
+        descr: t('New tab'),
         func: () => {
           this.props.actions.addQueryEditor({
             ...this.props.queryEditor,
@@ -168,7 +168,7 @@ class SqlEditor extends React.PureComponent {
       {
         name: 'stopQuery',
         key: 'ctrl+x',
-        descr: 'Stop query',
+        descr: t('Stop query'),
         func: this.stopQuery,
       },
     ];
@@ -287,9 +287,9 @@ class SqlEditor extends React.PureComponent {
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
         <Tooltip id="tooltip">
-          It appears that the number of rows in the query results displayed
-          was limited on the server side to
-          the {this.props.latestQuery.rows} limit.
+          {t(`It appears that the number of rows in the query results displayed
+           was limited on the server side to
+           the %s limit.`, this.props.latestQuery.rows)}
         </Tooltip>
       );
       limitWarning = (
@@ -341,7 +341,7 @@ class SqlEditor extends React.PureComponent {
             </span>
             <span className="m-l-5">
               <Hotkeys
-                header="Keyboard shortcuts"
+                header={t('Keyboard shortcuts')}
                 hotkeys={hotkeys}
               />
             </span>
