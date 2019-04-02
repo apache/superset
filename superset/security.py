@@ -27,73 +27,72 @@ from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 
-READ_ONLY_MODEL_VIEWS = {
-    'DatabaseAsync',
-    'DatabaseView',
-    'DruidClusterModelView',
-}
-
-USER_MODEL_VIEWS = {
-    'UserDBModelView',
-    'UserLDAPModelView',
-    'UserOAuthModelView',
-    'UserOIDModelView',
-    'UserRemoteUserModelView',
-}
-
-GAMMA_READ_ONLY_MODEL_VIEWS = {
-    'SqlMetricInlineView',
-    'TableColumnInlineView',
-    'TableModelView',
-    'DruidColumnInlineView',
-    'DruidDatasourceModelView',
-    'DruidMetricInlineView',
-} | READ_ONLY_MODEL_VIEWS
-
-ADMIN_ONLY_VIEW_MENUS = {
-    'AccessRequestsModelView',
-    'Manage',
-    'SQL Lab',
-    'Queries',
-    'Refresh Druid Metadata',
-    'ResetPasswordView',
-    'RoleModelView',
-    'Security',
-} | USER_MODEL_VIEWS
-
-ALPHA_ONLY_VIEW_MENUS = {
-    'Upload a CSV',
-}
-
-ADMIN_ONLY_PERMISSIONS = {
-    'all_database_access',
-    'can_sql_json',  # TODO: move can_sql_json to sql_lab role
-    'can_override_role_permissions',
-    'can_sync_druid_source',
-    'can_override_role_permissions',
-    'can_approve',
-    'can_update_role',
-}
-
-READ_ONLY_PERMISSION = {
-    'can_show',
-    'can_list',
-}
-
-ALPHA_ONLY_PERMISSIONS = set([
-    'muldelete',
-    'all_datasource_access',
-])
-
-OBJECT_SPEC_PERMISSIONS = set([
-    'database_access',
-    'schema_access',
-    'datasource_access',
-    'metric_access',
-])
-
 
 class SupersetSecurityManager(SecurityManager):
+    READ_ONLY_MODEL_VIEWS = {
+        'DatabaseAsync',
+        'DatabaseView',
+        'DruidClusterModelView',
+    }
+
+    USER_MODEL_VIEWS = {
+        'UserDBModelView',
+        'UserLDAPModelView',
+        'UserOAuthModelView',
+        'UserOIDModelView',
+        'UserRemoteUserModelView',
+    }
+
+    GAMMA_READ_ONLY_MODEL_VIEWS = {
+        'SqlMetricInlineView',
+        'TableColumnInlineView',
+        'TableModelView',
+        'DruidColumnInlineView',
+        'DruidDatasourceModelView',
+        'DruidMetricInlineView',
+    } | READ_ONLY_MODEL_VIEWS
+
+    ADMIN_ONLY_VIEW_MENUS = {
+        'AccessRequestsModelView',
+        'Manage',
+        'SQL Lab',
+        'Queries',
+        'Refresh Druid Metadata',
+        'ResetPasswordView',
+        'RoleModelView',
+        'Security',
+    } | USER_MODEL_VIEWS
+
+    ALPHA_ONLY_VIEW_MENUS = {
+        'Upload a CSV',
+    }
+
+    ADMIN_ONLY_PERMISSIONS = {
+        'all_database_access',
+        'can_sql_json',  # TODO: move can_sql_json to sql_lab role
+        'can_override_role_permissions',
+        'can_sync_druid_source',
+        'can_override_role_permissions',
+        'can_approve',
+        'can_update_role',
+    }
+
+    READ_ONLY_PERMISSION = {
+        'can_show',
+        'can_list',
+    }
+
+    ALPHA_ONLY_PERMISSIONS = set([
+        'muldelete',
+        'all_datasource_access',
+    ])
+
+    OBJECT_SPEC_PERMISSIONS = set([
+        'database_access',
+        'schema_access',
+        'datasource_access',
+        'metric_access',
+    ])
 
     def get_schema_perm(self, database, schema):
         if schema:
@@ -263,7 +262,7 @@ class SupersetSecurityManager(SecurityManager):
             self.add_permission_view_menu(permission_name, view_menu_name)
 
     def is_user_defined_permission(self, perm):
-        return perm.permission.name in OBJECT_SPEC_PERMISSIONS
+        return perm.permission.name in self.OBJECT_SPEC_PERMISSIONS
 
     def create_custom_permissions(self):
         # Global perms
@@ -359,21 +358,21 @@ class SupersetSecurityManager(SecurityManager):
 
     def is_admin_only(self, pvm):
         # not readonly operations on read only model views allowed only for admins
-        if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
-                pvm.permission.name not in READ_ONLY_PERMISSION):
+        if (pvm.view_menu.name in self.READ_ONLY_MODEL_VIEWS and
+                pvm.permission.name not in self.READ_ONLY_PERMISSION):
             return True
         return (
-            pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
-            pvm.permission.name in ADMIN_ONLY_PERMISSIONS
+            pvm.view_menu.name in self.ADMIN_ONLY_VIEW_MENUS or
+            pvm.permission.name in self.ADMIN_ONLY_PERMISSIONS
         )
 
     def is_alpha_only(self, pvm):
-        if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
-                pvm.permission.name not in READ_ONLY_PERMISSION):
+        if (pvm.view_menu.name in self.GAMMA_READ_ONLY_MODEL_VIEWS and
+                pvm.permission.name not in self.READ_ONLY_PERMISSION):
             return True
         return (
-            pvm.view_menu.name in ALPHA_ONLY_VIEW_MENUS or
-            pvm.permission.name in ALPHA_ONLY_PERMISSIONS
+            pvm.view_menu.name in self.ALPHA_ONLY_VIEW_MENUS or
+            pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
     def is_admin_pvm(self, pvm):
@@ -395,7 +394,7 @@ class SupersetSecurityManager(SecurityManager):
                 'can_sql_json', 'can_csv', 'can_search_queries', 'can_sqllab_viz',
                 'can_sqllab',
             } or
-            (pvm.view_menu.name in USER_MODEL_VIEWS and
+            (pvm.view_menu.name in self.USER_MODEL_VIEWS and
              pvm.permission.name == 'can_list'))
 
     def is_granter_pvm(self, pvm):
