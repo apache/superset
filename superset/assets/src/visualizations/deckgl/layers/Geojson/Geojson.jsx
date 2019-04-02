@@ -78,9 +78,11 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
 function setTooltipContent(o) {
   return (
     o.object.extraProps &&
-    <div>
+    <div className="deckgl-tooltip">
       {
-        Object.keys(o.object.extraProps).map(prop => <div>{`${prop}: `}<strong>{o.object.extraProps[prop]}</strong></div>)
+        Object.keys(o.object.extraProps).map((prop, index) =>
+          <div key={`prop-${index}`}>{`${prop}: `}<strong>{o.object.extraProps[prop]}</strong></div>,
+        )
       }
     </div>
   );

@@ -29,7 +29,7 @@ function getPoints(data) {
 
 function setTooltipContent(formData) {
   return o => (
-    <div>
+    <div className="deckgl-tooltip">
       <div>{`${t('Longitude and Latitude')}: `}<strong>{`${o.object.position[0]}, ${o.object.position[1]}`}</strong></div>
       {
         o.object.cat_color && <div>{`${t('Category')}: `}<strong>{o.object.cat_color}</strong></div>
