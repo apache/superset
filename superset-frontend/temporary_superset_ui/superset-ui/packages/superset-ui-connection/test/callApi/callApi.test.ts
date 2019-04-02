@@ -1,6 +1,7 @@
 /* eslint promise/no-callback-in-promise: 'off' */
 import fetchMock from 'fetch-mock';
 import callApi from '../../src/callApi/callApi';
+import * as constants from '../../src/constants';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import throwIfCalled from '../utils/throwIfCalled';
@@ -17,16 +18,23 @@ describe('callApi()', () => {
   const mockPostUrl = '/mock/post/url';
   const mockPutUrl = '/mock/put/url';
   const mockPatchUrl = '/mock/patch/url';
+  const mockCacheUrl = '/mock/cache/url';
 
   const mockGetPayload = { get: 'payload' };
   const mockPostPayload = { post: 'payload' };
   const mockPutPayload = { post: 'payload' };
   const mockPatchPayload = { post: 'payload' };
+  const mockCachePayload = {
+    status: 200,
+    body: 'BODY',
+    headers: { Etag: 'etag' },
+  };
 
   fetchMock.get(mockGetUrl, mockGetPayload);
   fetchMock.post(mockPostUrl, mockPostPayload);
   fetchMock.put(mockPutUrl, mockPutPayload);
   fetchMock.patch(mockPatchUrl, mockPatchPayload);
+  fetchMock.get(mockCacheUrl, mockCachePayload);
 
   afterEach(fetchMock.reset);
 
@@ -289,6 +297,92 @@ describe('callApi()', () => {
 
         return Promise.resolve();
       });
+    });
+  });
+
+  it('caches requests with ETags', () =>
+    callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
+
+      return caches.open(constants.CACHE_KEY).then(supersetCache =>
+        supersetCache.match(mockCacheUrl).then(cachedResponse => {
+          expect(cachedResponse).toBeDefined();
+
+          return Promise.resolve();
+        }),
+      );
+    }));
+
+  it('works when the Cache API is disabled', () => {
+    Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
+
+    return callApi({ url: mockCacheUrl, method: 'GET' }).then(firstResponse => {
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
+      expect(firstResponse.body).toEqual('BODY');
+
+      return callApi({ url: mockCacheUrl, method: 'GET' }).then(secondResponse => {
+        const fetchParams = calls[1][1];
+        expect(calls).toHaveLength(2);
+
+        // second call should not have If-None-Match header
+        expect(fetchParams.headers).toBeUndefined();
+        expect(secondResponse.body).toEqual('BODY');
+
+        Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
+
+        return Promise.resolve();
+      });
+    });
+  });
+
+  it('sends known ETags in the If-None-Match header', () =>
+    // first call sets the cache
+    callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
+
+      // second call sends the Etag in the If-None-Match header
+      return callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
+        const fetchParams = calls[1][1];
+        const headers = { 'If-None-Match': 'etag' };
+        expect(calls).toHaveLength(2);
+        expect(fetchParams.headers).toEqual(expect.objectContaining(headers));
+
+        return Promise.resolve();
+      });
+    }));
+
+  it('reuses cached responses on 304 status', () =>
+    // first call sets the cache
+    callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
+      const calls = fetchMock.calls(mockCacheUrl);
+      expect(calls).toHaveLength(1);
+
+      // second call reuses the cached payload on a 304
+      const mockCachedPayload = { status: 304 };
+      fetchMock.get(mockCacheUrl, mockCachedPayload, { overwriteRoutes: true });
+
+      return callApi({ url: mockCacheUrl, method: 'GET' }).then(response => {
+        expect(calls).toHaveLength(2);
+        expect(response.body).toEqual('BODY');
+
+        return Promise.resolve();
+      });
+    }));
+
+  it('throws error when cache fails on 304', () => {
+    // this should never happen, since a 304 is only returned if we have
+    // the cached response and sent the If-None-Match header
+    const mockUncachedUrl = '/mock/uncached/url';
+    const mockCachedPayload = { status: 304 };
+    fetchMock.get(mockUncachedUrl, mockCachedPayload);
+
+    return callApi({ url: mockUncachedUrl, method: 'GET' }).catch(error => {
+      const calls = fetchMock.calls(mockUncachedUrl);
+      expect(calls).toHaveLength(1);
+      expect(error.message).toEqual('Received 304 but no content is cached!');
     });
   });
 
