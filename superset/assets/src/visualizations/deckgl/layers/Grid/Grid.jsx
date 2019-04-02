@@ -26,7 +26,7 @@ import { createDeckGLComponent } from '../../factory';
 
 function setTooltipContent(o) {
   return (
-    <div>
+    <div className="deckgl-tooltip">
       <div>{`${t('Longitude and Latitude')}: `}<strong>{`${o.object.position[0]}, ${o.object.position[1]}`}</strong></div>
       <div>{`${t('Height')}: `}<strong>{o.object.elevationValue}</strong></div>
     </div>

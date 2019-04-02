@@ -52,7 +52,7 @@ function setTooltipContent(formData) {
   return (o) => {
     const metricLabel = formData.metric.label || formData.metric;
     return (
-      <div>
+      <div className="deckgl-tooltip">
         <div>{formData.lineColumn}: <strong>{o.object[formData.lineColumn]}</strong></div>
         {formData.metric && <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
       </div>

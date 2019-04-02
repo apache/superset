@@ -33,7 +33,7 @@ function getPoints(data) {
 
 function setTooltipContent(formData) {
   return o => (
-    <div>
+    <div className="deckgl-tooltip">
       <div>{`${t('Start (Longitude, Latitude)')}: `}<strong>{`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}</strong></div>
       <div>{`${t('End (Longitude, Latitude)')}: `}<strong>{`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}</strong></div>
       {
