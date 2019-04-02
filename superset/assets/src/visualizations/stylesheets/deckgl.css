@@ -17,6 +17,6 @@
  * under the License.
  */
  .deckgl-tooltip > div {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
