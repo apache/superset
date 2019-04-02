@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-nvd3",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "description": "Superset Legacy Chart - NVD3",
   "sideEffects": false,
   "main": "lib/index.js",
