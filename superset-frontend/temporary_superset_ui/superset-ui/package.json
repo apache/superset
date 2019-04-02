@@ -66,6 +66,12 @@
       "typescript"
     ],
     "jest": {
+      "globals": {
+        "caches": true
+      },
+      "setupFiles": [
+        "<rootDir>/test/setupTests.ts"
+      ],
       "testPathIgnorePatterns": [
         "<rootDir>/packages/generator-superset"
       ],

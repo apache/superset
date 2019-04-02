@@ -1,5 +1,7 @@
+/* eslint compat/compat: 'off' */
 import 'whatwg-fetch';
 import { CallApi } from '../types';
+import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
 
 // This function fetches an API response and returns the corresponding json
 export default function callApi({
@@ -26,6 +28,38 @@ export default function callApi({
     signal,
   };
 
+  if (method === 'GET' && CACHE_AVAILABLE) {
+    return caches.open(CACHE_KEY).then(supersetCache =>
+      supersetCache
+        .match(url)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            // if we have a cached response, send its ETag in the
+            // `If-None-Match` header in a conditional request
+            const etag = cachedResponse.headers.get('Etag') as string;
+            request.headers = { ...request.headers, 'If-None-Match': etag };
+          }
+
+          return fetch(url, request);
+        })
+        .then(response => {
+          if (response.status === HTTP_STATUS_NOT_MODIFIED) {
+            return supersetCache.match(url).then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse.clone();
+              }
+              throw new Error('Received 304 but no content is cached!');
+            });
+          } else if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
+            supersetCache.delete(url);
+            supersetCache.put(url, response.clone());
+          }
+
+          return response;
+        }),
+    );
+  }
+
   if (
     (method === 'POST' || method === 'PATCH' || method === 'PUT') &&
     typeof postPayload === 'object'
@@ -44,5 +78,5 @@ export default function callApi({
     request.body = formData;
   }
 
-  return fetch(url, request); // eslint-disable-line compat/compat
+  return fetch(url, request);
 }
