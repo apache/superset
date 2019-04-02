@@ -46,13 +46,13 @@
     "vega-lite": "^3.1.0"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.10.2",
-    "@superset-ui/color": "^0.10.0",
-    "@superset-ui/core": "^0.10.0",
-    "@superset-ui/dimension": "^0.10.4",
-    "@superset-ui/number-format": "^0.10.0",
-    "@superset-ui/time-format": "^0.10.0",
-    "@superset-ui/translation": "^0.10.0",
+    "@superset-ui/chart": "^0.10.2 || ^0.11.0",
+    "@superset-ui/color": "^0.10.0 || ^0.11.0",
+    "@superset-ui/core": "^0.10.0 || ^0.11.0",
+    "@superset-ui/dimension": "^0.10.4 || ^0.11.0",
+    "@superset-ui/number-format": "^0.10.0 || ^0.11.0",
+    "@superset-ui/time-format": "^0.10.0 || ^0.11.0",
+    "@superset-ui/translation": "^0.10.0 || ^0.11.0",
     "react": "^16.2"
   }
 }

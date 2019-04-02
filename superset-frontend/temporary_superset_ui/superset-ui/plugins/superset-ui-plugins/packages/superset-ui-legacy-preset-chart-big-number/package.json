@@ -32,13 +32,13 @@
     "shortid": "^2.2.14"
   },
   "peerDependencies": {
-    "@superset-ui/chart": "^0.10.0",
-    "@superset-ui/color": "^0.10.0",
-    "@superset-ui/core": "^0.10.0",
-    "@superset-ui/dimension": "^0.10.0",
-    "@superset-ui/number-format": "^0.10.0",
-    "@superset-ui/time-format": "^0.10.0",
-    "@superset-ui/translation": "^0.10.0",
+    "@superset-ui/chart": "^0.10.0 || ^0.11.0",
+    "@superset-ui/color": "^0.10.0 || ^0.11.0",
+    "@superset-ui/core": "^0.10.0 || ^0.11.0",
+    "@superset-ui/dimension": "^0.10.0 || ^0.11.0",
+    "@superset-ui/number-format": "^0.10.0 || ^0.11.0",
+    "@superset-ui/time-format": "^0.10.0 || ^0.11.0",
+    "@superset-ui/translation": "^0.10.0 || ^0.11.0",
     "react": "^15 || ^16"
   }
 }
