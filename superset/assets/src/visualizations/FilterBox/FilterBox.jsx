@@ -93,9 +93,26 @@ class FilterBox extends React.Component {
       actions: { setControlValue: this.changeFilter },
     });
     const mapFunc = control.mapStateToProps;
+    const props = {
+      ...this.props,
+      // the control expects datasource attributes to be snake case
+      datasource: this.snakeCaseAttributes(this.props.datasource),
+    };
     return mapFunc
-      ? Object.assign({}, control, mapFunc(this.props))
+      ? Object.assign({}, control, mapFunc(props))
       : control;
+  }
+
+  snakeCaseAttributes(obj) {
+    return Object.keys(obj)
+      .reduce((o, k) => Object.assign(o, { [this.camelCaseToSnakeCase(k)]: obj[k] }), {});
+  }
+
+  camelCaseToSnakeCase(attribute) {
+    return attribute
+      .split('')
+      .map(c => c === c.toUpperCase() ? `_${c.toLowerCase()}` : c)
+      .join('');
   }
 
   clickApply() {

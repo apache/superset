@@ -916,7 +916,7 @@ export const controls = {
     'The options here are defined on a per database ' +
     'engine basis in the Superset source code.'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.timeGrainSqla : null,
+      choices: (state.datasource) ? state.datasource.time_grain_sqla : null,
     }),
   },
 
