@@ -3,7 +3,7 @@ import { SupersetClient } from '@superset-ui/connection';
 import ErrorMessage from './ErrorMessage';
 
 export type Props = {
-  children: ({ payload }: { payload: object }) => ReactNode;
+  children: ({ payload }: { payload?: object }) => ReactNode;
   endpoint?: string;
   host: string;
   method?: 'POST' | 'GET';
@@ -16,7 +16,7 @@ type State = {
   payload?: object;
 };
 
-export const renderError = error => (
+export const renderError = (error: Error) => (
   <div>
     The following error occurred, make sure you have <br />
     1) configured CORS in Superset to receive requests from this domain. <br />
@@ -35,7 +35,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
     this.handleVerify = this.handleVerify.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     const { endpoint, host, postPayload, method } = this.props;
     if (
       (this.state.didVerify || this.state.error) &&
