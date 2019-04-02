@@ -2544,7 +2544,7 @@ class Superset(BaseSupersetView):
             database_id=int(database_id),
             sql=sql,
             schema=schema,
-            select_as_cta=request.form.get('select_as_cta') == 'true',
+            select_as_cta=select_as_cta,
             start_time=now_as_float(),
             tab_name=request.form.get('tab'),
             status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
