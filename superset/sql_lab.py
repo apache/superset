@@ -141,9 +141,7 @@ def get_sql_results(
             return handle_query_error(str(e), query, session)
 
 
-def execute_sql_statement(
-        sql_statement, query, user_name, session,
-        cursor, return_results=False):
+def execute_sql_statement(sql_statement, query, user_name, session, cursor):
     """Executes a single SQL statement"""
     database = query.database
     db_engine_spec = database.db_engine_spec
@@ -256,11 +254,9 @@ def execute_sql_statements(
                 logging.info(msg)
                 query.set_extra_json_key('progress', msg)
                 session.commit()
-                is_last_statement = i == len(statements) - 1
                 try:
                     cdf = execute_sql_statement(
-                        statement, query, user_name, session, cursor,
-                        return_results=is_last_statement and return_results)
+                        statement, query, user_name, session, cursor)
                     msg = f'Running statement {i+1} out of {statement_count}'
                 except Exception as e:
                     msg = str(e)
@@ -282,7 +278,6 @@ def execute_sql_statements(
             show_cols=False,
             latest_partition=False)
     query.end_time = now_as_float()
-    session.commit()
 
     payload.update({
         'status': query.status,
