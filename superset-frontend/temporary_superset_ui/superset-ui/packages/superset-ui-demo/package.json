@@ -51,5 +51,8 @@
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
     "storybook-addon-jsx": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/storybook__addon-knobs": "^4.0.4"
   }
 }

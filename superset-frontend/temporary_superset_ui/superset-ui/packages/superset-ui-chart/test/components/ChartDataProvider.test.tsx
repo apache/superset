@@ -9,8 +9,11 @@ const defaultMockLoadFormData = jest.fn(allProps => Promise.resolve(allProps.for
 
 // coerce here else get: Type 'Mock<Promise<any>, []>' is not assignable to type 'Mock<Promise<any>, any[]>'
 let mockLoadFormData = defaultMockLoadFormData as jest.Mock<Promise<any>, any>;
-const mockLoadDatasource = jest.fn(datasource => Promise.resolve(datasource));
-const mockLoadQueryData = jest.fn(input => Promise.resolve(input));
+const mockLoadDatasource = jest.fn(datasource => Promise.resolve(datasource)) as jest.Mock<
+  Promise<any>,
+  any
+>;
+const mockLoadQueryData = jest.fn(input => Promise.resolve(input)) as jest.Mock<Promise<any>, any>;
 
 // ChartClient is now a mock
 jest.mock('../../src/clients/ChartClient', () =>
