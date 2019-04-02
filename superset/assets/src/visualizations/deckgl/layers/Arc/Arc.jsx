@@ -17,6 +17,8 @@
  * under the License.
  */
 import { ArcLayer } from 'deck.gl';
+import React from 'react';
+import { t } from '@superset-ui/translation';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
 
@@ -29,6 +31,18 @@ function getPoints(data) {
   return points;
 }
 
+function setTooltipContent(formData) {
+  return o => (
+    <div>
+      <div>{`${t('Start (Longitude, Latitude)')}: `}<strong>{`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}</strong></div>
+      <div>{`${t('End (Longitude, Latitude)')}: `}<strong>{`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}</strong></div>
+      {
+        formData.dimension && <div>{`${formData.dimension}: `}<strong>{`${o.object.cat_color}`}</strong></div>
+      }
+    </div>
+  );
+}
+
 export function getLayer(fd, payload, onAddFilter, setTooltip) {
   const data = payload.data.features;
   const sc = fd.colorPicker;
@@ -39,7 +53,7 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
     getSourceColor: d => d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
     getTargetColor: d => d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     strokeWidth: (fd.strokeWidth) ? fd.strokeWidth : 3,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }
 

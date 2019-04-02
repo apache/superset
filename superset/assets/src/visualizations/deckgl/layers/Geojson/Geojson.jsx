@@ -75,6 +75,17 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
+function setTooltipContent(o) {
+  return (
+    o.object.extraProps &&
+    <div>
+      {
+        Object.keys(o.object.extraProps).map(prop => <div>{`${prop}: `}<strong>{o.object.extraProps[prop]}</strong></div>)
+      }
+    </div>
+  );
+}
+
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
   const fc = fd.fillColorPicker;
@@ -106,7 +117,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     stroked: fd.stroked,
     extruded: fd.extruded,
     pointRadiusScale: fd.pointRadiusScale,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 
