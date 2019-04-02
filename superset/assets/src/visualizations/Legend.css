@@ -22,7 +22,7 @@ div.legend {
     background: #fff;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
     margin: 24px;
-    padding: 12px 24px;
+    padding: 12px 20px;
     outline: none;
     overflow-y: scroll;
     max-height: 200px;
@@ -37,4 +37,8 @@ ul.categories {
 ul.categories li a {
     color: rgb(51, 51, 51);
     text-decoration: none;
+}
+
+ul.categories li a span {
+    margin-right: 10px;
 }
