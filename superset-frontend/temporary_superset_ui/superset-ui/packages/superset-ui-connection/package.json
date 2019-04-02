@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.1.2",
-    "json-bigint": "^0.3.0",
     "whatwg-fetch": "^2.0.4"
   },
   "publishConfig": {
