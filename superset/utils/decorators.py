@@ -25,6 +25,12 @@ from superset import app, cache
 from superset.utils.dates import now_as_float
 
 
+# If a user sets `max_age` to 0, for long the browser should cache the
+# resource? Flask-Caching will cache forever, but for the HTTP header we need
+# to specify a "far future" date.
+FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
+
+
 @contextmanager
 def stats_timing(stats_key, stats_logger):
     """Provide a transactional scope around a series of operations."""
@@ -73,7 +79,8 @@ def etag_cache(max_age, check_perms=bool):
                 response = f(*args, **kwargs)
                 response.cache_control.public = True
                 response.last_modified = datetime.utcnow()
-                response.expires = response.last_modified + timedelta(seconds=max_age)
+                expiration = max_age if max_age != 0 else FAR_FUTURE
+                response.expires = response.last_modified + timedelta(seconds=expiration)
                 response.add_etag()
                 try:
                     cache.set(cache_key, response, timeout=max_age)
