@@ -43,7 +43,7 @@ export default class Legend extends React.PureComponent {
 
     const categories = Object.entries(this.props.categories).map(([k, v]) => {
       const style = { color: 'rgba(' + v.color.join(', ') + ')' };
-      const icon = v.enabled ? '\u25CF' : '\u25CB';
+      const icon = v.enabled ? '\u25FC' : '\u25FB';
       return (
         <li key={k}>
           <a
