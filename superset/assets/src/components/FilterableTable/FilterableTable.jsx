@@ -34,10 +34,6 @@ function getTextWidth(text, font = '12px Roboto') {
 
 const SCROLL_BAR_HEIGHT = 15;
 
-const SCROLL_BAR_HEIGHT = 15;
-
-const SCROLL_BAR_HEIGHT = 15;
-
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
