@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
 import { fitBounds } from 'viewport-mercator-project';
 import * as d3array from 'd3-array';
 import sandboxedEval from '../../../modules/sandbox';
@@ -50,20 +48,12 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, setTooltip, onSelect) {
+export function commonLayerProps(formData, setTooltip, setTooltipContent, onSelect) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator;
+  let tooltipContentGenerator = setTooltipContent;
   if (fd.jsTooltip) {
     tooltipContentGenerator = sandboxedEval(fd.jsTooltip);
-  } else if (fd.lineColumn && fd.metric && ['geohash', 'zipcode'].indexOf(fd.lineType) >= 0) {
-    const metricLabel = fd.metric.label || fd.metric;
-    tooltipContentGenerator = o => (
-      <div>
-        <div>{fd.lineColumn}: <strong>{o.object[fd.lineColumn]}</strong></div>
-        {fd.metric &&
-          <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
-      </div>);
   }
   if (tooltipContentGenerator) {
     onHover = (o) => {
