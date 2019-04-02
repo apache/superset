@@ -254,7 +254,6 @@ def execute_sql_statements(
                 logging.info(msg)
                 query.set_extra_json_key('progress', msg)
                 session.commit()
-                is_last_statement = i == len(statements) - 1
                 try:
                     cdf = execute_sql_statement(
                         statement, query, user_name, session, cursor)
