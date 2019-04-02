@@ -48,6 +48,18 @@ function getElevation(d, colorScaler) {
     : d.elevation;
 }
 
+function setTooltipContent(formData) {
+  return (o) => {
+    const metricLabel = formData.metric.label || formData.metric;
+    return (
+      <div>
+        <div>{formData.lineColumn}: <strong>{o.object[formData.lineColumn]}</strong></div>
+        {formData.metric && <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
+      </div>
+    );
+  };
+}
+
 export function getLayer(formData, payload, setTooltip, selected, onSelect, filters) {
   const fd = formData;
   const fc = fd.fillColorPicker;
@@ -95,7 +107,7 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, onSelect),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd), onSelect),
   });
 }
 
