@@ -1,4 +1,13 @@
-# [0.10.4](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.3...v0.10.4) (2019-04-01)
+# [0.10.5](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.4...v0.10.5) (2019-04-02)
+
+
+### Features
+
+* update dependencies to make plugins compatible with 0.11 ([#38](https://github.com/apache-superset/superset-ui-plugins/issues/38)) ([9cd76ab](https://github.com/apache-superset/superset-ui-plugins/commit/9cd76ab))
+
+
+
+## [0.10.4](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.3...v0.10.4) (2019-04-01)
 
 
 ### Bug Fixes
