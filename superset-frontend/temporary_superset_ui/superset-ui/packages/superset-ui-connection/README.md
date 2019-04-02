@@ -23,6 +23,7 @@ a high-level it supports:
 - supports `GET` and `POST` requests (no `PUT` or `DELETE`)
 - timeouts
 - query aborts through the `AbortController` API
+- conditional `GET` requests using `If-None-Match` and `ETag` headers
 
 #### Example usage
 
