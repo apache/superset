@@ -25,6 +25,7 @@ import DeckGLContainer from '../../DeckGLContainer';
 import { hexToRGB } from '../../../../modules/colors';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps } from '../common';
+import TooltipRow from '../../TooltipRow';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -81,7 +82,7 @@ function setTooltipContent(o) {
     <div className="deckgl-tooltip">
       {
         Object.keys(o.object.extraProps).map((prop, index) =>
-          <div key={`prop-${index}`}>{`${prop}: `}<strong>{o.object.extraProps[prop]}</strong></div>,
+          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={o.object.extraProps[prop]} />,
         )
       }
     </div>

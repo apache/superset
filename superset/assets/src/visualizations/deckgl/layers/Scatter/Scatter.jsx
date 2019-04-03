@@ -21,6 +21,7 @@ import React from 'react';
 import { t } from '@superset-ui/translation';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../../../modules/geo';
 
 function getPoints(data) {
@@ -30,12 +31,12 @@ function getPoints(data) {
 function setTooltipContent(formData) {
   return o => (
     <div className="deckgl-tooltip">
-      <div>{`${t('Longitude and Latitude')}: `}<strong>{`${o.object.position[0]}, ${o.object.position[1]}`}</strong></div>
+      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
       {
-        o.object.cat_color && <div>{`${t('Category')}: `}<strong>{o.object.cat_color}</strong></div>
+        o.object.cat_color && <TooltipRow label={`${t('Category')}: `} value={o.object.cat_color} />
       }
       {
-        o.object.metric && <div>{`${formData.pointRadiusFixed.value}: `}<strong>{o.object.metric}</strong></div>
+        o.object.metric && <TooltipRow label={`${formData.pointRadiusFixed.value}: `} value={o.object.metric} />
       }
     </div>
   );

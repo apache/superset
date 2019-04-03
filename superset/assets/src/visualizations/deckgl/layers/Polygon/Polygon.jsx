@@ -25,6 +25,7 @@ import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
+import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import { commonLayerProps, fitViewport } from '../common';
@@ -53,8 +54,8 @@ function setTooltipContent(formData) {
     const metricLabel = formData.metric.label || formData.metric;
     return (
       <div className="deckgl-tooltip">
-        <div>{formData.lineColumn}: <strong>{o.object[formData.lineColumn]}</strong></div>
-        {formData.metric && <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
+        <TooltipRow label={`${formData.lineColumn}: `} value={o.object[formData.lineColumn]} />
+        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={o.object[metricLabel]} />}
       </div>
     );
   };
