@@ -52,8 +52,8 @@ export function commonLayerProps(formData, setTooltip, setTooltipContent, onSele
   const fd = formData;
   let onHover;
   let tooltipContentGenerator = setTooltipContent;
-  if (fd.jsTooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.jsTooltip);
+  if (fd.js_tooltip) {
+    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
   }
   if (tooltipContentGenerator) {
     onHover = (o) => {
@@ -69,13 +69,13 @@ export function commonLayerProps(formData, setTooltip, setTooltipContent, onSele
     };
   }
   let onClick;
-  if (fd.jsOnclickHref) {
+  if (fd.js_onclick_href) {
     onClick = (o) => {
-      const href = sandboxedEval(fd.jsOnclickHref)(o);
+      const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
     };
-  } else if (fd.tableFilter && onSelect !== undefined) {
-    onClick = o => onSelect(o.object[fd.lineColumn]);
+  } else if (fd.table_filter && onSelect !== undefined) {
+    onClick = o => onSelect(o.object[fd.line_column]);
   }
   return {
     onClick,
