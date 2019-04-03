@@ -363,7 +363,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         return self.column_name
 
     num_types = (
-        'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
+        'DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'NUMBER',
         'LONG', 'REAL', 'NUMERIC', 'DECIMAL', 'MONEY',
     )
     date_types = ('DATE', 'TIME', 'DATETIME')
