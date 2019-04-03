@@ -68,12 +68,23 @@ class Chart extends React.PureComponent {
   }
   componentDidMount() {
     if (this.props.triggerQuery) {
-      this.props.actions.runQuery(
-        this.props.formData,
-        false,
-        this.props.timeout,
-        this.props.chartId,
-      );
+      if (this.props.chartId > 0) {
+        // Load saved chart with a GET request
+        this.props.actions.getSavedChart(
+          this.props.formData,
+          false,
+          this.props.timeout,
+          this.props.chartId,
+        );
+      } else {
+        // Create chart with POST request
+        this.props.actions.postChartFormData(
+          this.props.formData,
+          false,
+          this.props.timeout,
+          this.props.chartId,
+        );
+      }
     }
   }
 

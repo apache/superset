@@ -29,7 +29,7 @@ export default () => describe('edit mode', () => {
       const dashboard = bootstrapData.dashboard_data;
       const boxplotChartId = dashboard.slices.find(slice => (slice.form_data.viz_type === 'box_plot')).slice_id;
       const boxplotRequest = `/superset/explore_json/?form_data={"slice_id":${boxplotChartId}}`;
-      cy.route('POST', boxplotRequest).as('boxplotRequest');
+      cy.route('GET', boxplotRequest).as('boxplotRequest');
     });
 
     cy.get('.dashboard-header').contains('Edit dashboard').click();

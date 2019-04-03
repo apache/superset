@@ -14,9 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from contextlib2 import contextmanager
+from datetime import datetime, timedelta
+from functools import wraps
+import logging
 
+from contextlib2 import contextmanager
+from flask import request
+
+from superset import app, cache
 from superset.utils.dates import now_as_float
+
+
+# If a user sets `max_age` to 0, for long the browser should cache the
+# resource? Flask-Caching will cache forever, but for the HTTP header we need
+# to specify a "far future" date.
+FAR_FUTURE = 365 * 24 * 60 * 60  # 1 year in seconds
 
 
 @contextmanager
@@ -29,3 +41,61 @@ def stats_timing(stats_key, stats_logger):
         raise e
     finally:
         stats_logger.timing(stats_key, now_as_float() - start_ts)
+
+
+def etag_cache(max_age, check_perms=bool):
+    """
+    A decorator for caching views and handling etag conditional requests.
+
+    The decorator caches the response, returning headers for etag and last
+    modified. If the client makes a request that matches, the server will
+    return a "304 Not Mofified" status.
+
+    If no cache is set, the decorator will still set the ETag header, and
+    handle conditional requests.
+
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # check if the user can access the resource
+            check_perms(*args, **kwargs)
+
+            try:
+                # build the cache key from the function arguments and any other
+                # additional GET arguments (like `form_data`, eg).
+                key_args = list(args)
+                key_kwargs = kwargs.copy()
+                key_kwargs.update(request.args)
+                cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
+                response = cache.get(cache_key)
+            except Exception:  # pylint: disable=broad-except
+                if app.debug:
+                    raise
+                logging.exception('Exception possibly due to cache backend.')
+                response = None
+
+            if response is None or request.method == 'POST':
+                response = f(*args, **kwargs)
+                response.cache_control.public = True
+                response.last_modified = datetime.utcnow()
+                expiration = max_age if max_age != 0 else FAR_FUTURE
+                response.expires = response.last_modified + timedelta(seconds=expiration)
+                response.add_etag()
+                try:
+                    cache.set(cache_key, response, timeout=max_age)
+                except Exception:  # pylint: disable=broad-except
+                    logging.exception('Exception possibly due to cache backend.')
+
+            return response.make_conditional(request)
+
+        if cache:
+            wrapper.uncached = f
+            wrapper.cache_timeout = max_age
+            wrapper.make_cache_key = \
+                cache._memoize_make_cache_key(  # pylint: disable=protected-access
+                    make_name=None, timeout=max_age)
+
+        return wrapper
+
+    return decorator
