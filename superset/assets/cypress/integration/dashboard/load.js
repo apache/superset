@@ -34,7 +34,7 @@ export default () => describe('load', () => {
       // then define routes and create alias for each requests
       slices.forEach((slice) => {
         const alias = `getJson_${slice.slice_id}`;
-        cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}`).as(alias);
+        cy.route('GET', `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}`).as(alias);
         aliases.push(`@${alias}`);
       });
     });

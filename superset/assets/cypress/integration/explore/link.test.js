@@ -26,7 +26,8 @@ describe('Test explore links', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Open and close view query modal', () => {
@@ -35,7 +36,7 @@ describe('Test explore links', () => {
 
     cy.get('button#query').click();
     cy.get('span').contains('View query').parent().click();
-    cy.wait('@getJson').then(() => {
+    cy.wait('@postJson').then(() => {
       cy.get('code');
     });
     cy.get('.modal-header').within(() => {
@@ -83,7 +84,7 @@ describe('Test explore links', () => {
     const newChartName = 'Test chart';
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.url().then((url) => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
@@ -109,7 +110,7 @@ describe('Test explore links', () => {
     cy.get('.modal-content').within(() => {
       cy.get('button#btn_modal_save').click();
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then((response) => {
       cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
     });

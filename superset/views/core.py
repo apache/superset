@@ -50,7 +50,6 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
-from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
@@ -58,6 +57,7 @@ from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
+from superset.utils.decorators import etag_cache
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -65,9 +65,10 @@ from .base import (
     get_error_msg, handle_api_exception, json_error_response, json_success,
     SupersetFilter, SupersetModelView, YamlExportMixin,
 )
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_datasource_info, get_form_data, get_viz
 
 config = app.config
+CACHE_DEFAULT_TIMEOUT = config.get('CACHE_DEFAULT_TIMEOUT', 0)
 stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 DAR = models.DatasourceAccessRequest
@@ -98,6 +99,46 @@ def get_database_access_error_msg(database_name):
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
     return obj and user in obj.owners
+
+
+def check_datasource_perms(self, datasource_type=None, datasource_id=None):
+    """
+    Check if user can access a cached response from explore_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+
+    """
+    form_data = get_form_data()[0]
+    datasource_id, datasource_type = get_datasource_info(
+        datasource_id, datasource_type, form_data)
+    viz_obj = get_viz(
+        datasource_type=datasource_type,
+        datasource_id=datasource_id,
+        form_data=form_data,
+        force=False,
+    )
+    security_manager.assert_datasource_permission(viz_obj.datasource)
+
+
+def check_slice_perms(self, slice_id):
+    """
+    Check if user can access a cached response from slice_json.
+
+    This function takes `self` since it must have the same signature as the
+    the decorated method.
+
+    """
+    form_data, slc = get_form_data(slice_id, use_slice_data=True)
+    datasource_type = slc.datasource.type
+    datasource_id = slc.datasource.id
+    viz_obj = get_viz(
+        datasource_type=datasource_type,
+        datasource_id=datasource_id,
+        form_data=form_data,
+        force=False,
+    )
+    security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
 class DatabaseFilter(SupersetFilter):
@@ -1012,89 +1053,10 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
-    def get_form_data(self, slice_id=None, use_slice_data=False):
-        form_data = {}
-        post_data = request.form.get('form_data')
-        request_args_data = request.args.get('form_data')
-        # Supporting POST
-        if post_data:
-            form_data.update(json.loads(post_data))
-        # request params can overwrite post body
-        if request_args_data:
-            form_data.update(json.loads(request_args_data))
-
-        url_id = request.args.get('r')
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
-                url_form_data = json.loads(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
-
-        if request.args.get('viz_type'):
-            # Converting old URLs
-            form_data = cast_form_data(form_data)
-
-        form_data = {
-            k: v
-            for k, v in form_data.items()
-            if k not in FORM_DATA_KEY_BLACKLIST
-        }
-
-        # When a slice_id is present, load from DB and override
-        # the form_data from the DB with the other form_data provided
-        slice_id = form_data.get('slice_id') or slice_id
-        slc = None
-
-        # Check if form data only contains slice_id
-        contains_only_slc_id = not any(key != 'slice_id' for key in form_data)
-
-        # Include the slice_form_data if request from explore or slice calls
-        # or if form_data only contains slice_id
-        if slice_id and (use_slice_data or contains_only_slc_id):
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
-            if slc:
-                slice_form_data = slc.form_data.copy()
-                slice_form_data.update(form_data)
-                form_data = slice_form_data
-
-        update_time_range(form_data)
-
-        return form_data, slc
-
-    def get_viz(
-            self,
-            slice_id=None,
-            form_data=None,
-            datasource_type=None,
-            datasource_id=None,
-            force=False,
-    ):
-        if slice_id:
-            slc = (
-                db.session.query(models.Slice)
-                .filter_by(id=slice_id)
-                .one()
-            )
-            return slc.get_viz()
-        else:
-            viz_type = form_data.get('viz_type', 'table')
-            datasource = ConnectorRegistry.get_datasource(
-                datasource_type, datasource_id, db.session)
-            viz_obj = viz.viz_types[viz_type](
-                datasource,
-                form_data=form_data,
-                force=force,
-            )
-            return viz_obj
-
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
         endpoint = '/superset/explore/?form_data={}'.format(
@@ -1138,18 +1100,7 @@ class Superset(BaseSupersetView):
         })
 
     def generate_json(
-            self, datasource_type, datasource_id, form_data,
-            csv=False, query=False, force=False, results=False,
-            samples=False,
-    ):
-        viz_obj = self.get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=force,
-        )
-        security_manager.assert_datasource_permission(viz_obj.datasource)
-
+            self, viz_obj, csv=False, query=False, results=False, samples=False):
         if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
@@ -1173,21 +1124,25 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/slice_json/<slice_id>')
+    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_slice_perms)
     def slice_json(self, slice_id):
-        form_data, slc = self.get_form_data(slice_id, use_slice_data=True)
+        form_data, slc = get_form_data(slice_id, use_slice_data=True)
         datasource_type = slc.datasource.type
         datasource_id = slc.datasource.id
-
-        return self.generate_json(datasource_type=datasource_type,
-                                  datasource_id=datasource_id,
-                                  form_data=form_data)
+        viz_obj = get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            force=False,
+        )
+        return self.generate_json(viz_obj)
 
     @log_this
     @api
     @has_access_api
     @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
-        form_data = self.get_form_data()[0]
+        form_data = get_form_data()[0]
         form_data['layer_id'] = layer_id
         form_data['filters'] = [{'col': 'layer_id',
                                  'op': '==',
@@ -1207,6 +1162,7 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
+    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_datasource_perms)
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
 
@@ -1223,18 +1179,21 @@ class Superset(BaseSupersetView):
         samples = request.args.get('samples') == 'true'
         force = request.args.get('force') == 'true'
 
-        form_data = self.get_form_data()[0]
-        datasource_id, datasource_type = self.datasource_info(
+        form_data = get_form_data()[0]
+        datasource_id, datasource_type = get_datasource_info(
             datasource_id, datasource_type, form_data)
-
-        return self.generate_json(
+        viz_obj = get_viz(
             datasource_type=datasource_type,
             datasource_id=datasource_id,
             form_data=form_data,
+            force=force,
+        )
+
+        return self.generate_json(
+            viz_obj,
             csv=csv,
             query=query,
             results=results,
-            force=force,
             samples=samples,
         )
 
@@ -1260,34 +1219,15 @@ class Superset(BaseSupersetView):
             datasource_id=datasource_id,
             **request.args))
 
-    @staticmethod
-    def datasource_info(datasource_id, datasource_type, form_data):
-        """Compatibility layer for handling of datasource info
-
-        datasource_id & datasource_type used to be passed in the URL
-        directory, now they should come as part of the form_data,
-        This function allows supporting both without duplicating code"""
-        datasource = form_data.get('datasource', '')
-        if '__' in datasource:
-            datasource_id, datasource_type = datasource.split('__')
-            # The case where the datasource has been deleted
-            datasource_id = None if datasource_id == 'None' else datasource_id
-
-        if not datasource_id:
-            raise Exception(
-                'The datasource associated with this chart no longer exists')
-        datasource_id = int(datasource_id)
-        return datasource_id, datasource_type
-
     @log_this
     @has_access
     @expose('/explore/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore/', methods=['GET', 'POST'])
     def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
-        form_data, slc = self.get_form_data(use_slice_data=True)
+        form_data, slc = get_form_data(use_slice_data=True)
 
-        datasource_id, datasource_type = self.datasource_info(
+        datasource_id, datasource_type = get_datasource_info(
             datasource_id, datasource_type, form_data)
 
         error_redirect = '/chart/list/'
@@ -1413,7 +1353,7 @@ class Superset(BaseSupersetView):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-        form_data, unused_slc = self.get_form_data()
+        form_data = get_form_data()[0]
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
@@ -2105,8 +2045,8 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                form_data = self.get_form_data(slc.id, use_slice_data=True)[0]
-                obj = self.get_viz(
+                form_data = get_form_data(slc.id, use_slice_data=True)[0]
+                obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
                     form_data=form_data,
@@ -2874,7 +2814,7 @@ class Superset(BaseSupersetView):
         This method exposes an API endpoint to
         get the database query string for this slice
         """
-        viz_obj = self.get_viz(slice_id)
+        viz_obj = get_viz(slice_id)
         security_manager.assert_datasource_permission(viz_obj.datasource)
         return self.get_query_string_response(viz_obj)
 
