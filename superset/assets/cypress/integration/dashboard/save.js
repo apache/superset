@@ -57,7 +57,7 @@ export default () => describe('save', () => {
 
     // should have box_plot chart
     const boxplotRequest = `/superset/explore_json/?form_data={"slice_id":${boxplotChartId}}`;
-    cy.route('POST', boxplotRequest).as('boxplotRequest');
+    cy.route('GET', boxplotRequest).as('boxplotRequest');
     cy.wait('@boxplotRequest');
     cy.get('.grid-container .box_plot').should('be.exist');
 
