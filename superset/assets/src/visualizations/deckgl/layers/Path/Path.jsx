@@ -21,6 +21,7 @@ import React from 'react';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o) {
   return (
@@ -28,7 +29,7 @@ function setTooltipContent(o) {
     <div className="deckgl-tooltip">
       {
         Object.keys(o.object.extraProps).map((prop, index) =>
-          <div key={`prop-${index}`}>{`${prop}: `}<strong>{o.object.extraProps[prop]}</strong></div>,
+          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={o.object.extraProps[prop]} />,
         )
       }
     </div>

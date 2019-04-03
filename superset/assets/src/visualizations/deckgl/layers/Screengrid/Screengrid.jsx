@@ -26,6 +26,7 @@ import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps, fitViewport } from '../common';
+import TooltipRow from '../../TooltipRow';
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -34,8 +35,8 @@ function getPoints(data) {
 function setTooltipContent(o) {
   return (
     <div className="deckgl-tooltip">
-      <div>{`${t('Longitude and Latitude')}: `}<strong>{`${o.object.position[0]}, ${o.object.position[1]}`}</strong></div>
-      <div>{`${t('Weight')}: `}<strong>{o.object.weight}</strong></div>
+      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
+      <TooltipRow label={`${t('Weight')}: `} value={o.object.weight} />
     </div>
   );
 }

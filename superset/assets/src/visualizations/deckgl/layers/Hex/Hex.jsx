@@ -23,12 +23,13 @@ import { t } from '@superset-ui/translation';
 import { commonLayerProps, getAggFunc  } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o) {
   return (
     <div className="deckgl-tooltip">
-      <div>{`${t('Centroid (Longitude and Latitude)')}: `}<strong>{`(${o.object.centroid[0]}, ${o.object.centroid[1]})`}</strong></div>
-      <div>{`${t('Height')}: `}<strong>{o.object.elevationValue}</strong></div>
+      <TooltipRow label={`${t('Centroid (Longitude and Latitude)')}: `} value={`(${o.object.centroid[0]}, ${o.object.centroid[1]})`} />
+      <TooltipRow label={`${t('Height')}: `} value={o.object.elevationValue} />
     </div>
   );
 }
