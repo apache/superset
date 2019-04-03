@@ -215,7 +215,7 @@ class ExploreViewContainer extends React.Component {
 
   triggerQueryIfNeeded() {
     if (this.props.chart.triggerQuery && !this.hasErrors()) {
-      this.props.actions.runQuery(
+      this.props.actions.postChartFormData(
         this.props.form_data,
         false,
         this.props.timeout,
@@ -255,7 +255,8 @@ class ExploreViewContainer extends React.Component {
     const formData = history.state;
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
-      this.props.actions.runQuery(formData, false, this.props.timeout, this.props.chart.id);
+      this.props.actions.postChartFormData(
+        formData, false, this.props.timeout, this.props.chart.id);
     }
   }
 
