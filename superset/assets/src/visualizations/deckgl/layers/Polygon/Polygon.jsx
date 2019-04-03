@@ -25,6 +25,7 @@ import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
+import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import { commonLayerProps, fitViewport } from '../common';
@@ -46,6 +47,18 @@ function getElevation(d, colorScaler) {
   return colorScaler(d)[3] === 0
     ? 0
     : d.elevation;
+}
+
+function setTooltipContent(formData) {
+  return (o) => {
+    const metricLabel = formData.metric.label || formData.metric;
+    return (
+      <div className="deckgl-tooltip">
+        <TooltipRow label={`${formData.line_column}: `} value={`${o.object[formData.line_column]}`} />
+        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />}
+      </div>
+    );
+  };
 }
 
 export function getLayer(formData, payload, setTooltip, selected, onSelect, filters) {
@@ -95,7 +108,7 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, onSelect),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd), onSelect),
   });
 }
 

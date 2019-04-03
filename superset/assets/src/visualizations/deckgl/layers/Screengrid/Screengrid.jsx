@@ -21,13 +21,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ScreenGridLayer } from 'deck.gl';
+import { t } from '@superset-ui/translation';
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import { getPlaySliderParams } from '../../../../modules/time';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps, fitViewport } from '../common';
+import TooltipRow from '../../TooltipRow';
 
 function getPoints(data) {
   return data.map(d => d.position);
+}
+
+function setTooltipContent(o) {
+  return (
+    <div className="deckgl-tooltip">
+      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
+      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.weight}`} />
+    </div>
+  );
 }
 
 export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
@@ -61,7 +72,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip, filters) {
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: d => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 
