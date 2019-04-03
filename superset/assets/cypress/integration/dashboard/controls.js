@@ -39,7 +39,7 @@ export default () => describe('top-level controls', () => {
         .forEach((id) => {
           const sliceRequest = `getJson_${id}`;
           sliceRequests.push(`@${sliceRequest}`);
-          cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(sliceRequest);
+          cy.route('GET', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(sliceRequest);
 
           const forceRefresh = `getJson_${id}_force`;
           forceRefreshRequests.push(`@${forceRefresh}`);
