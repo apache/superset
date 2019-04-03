@@ -17,10 +17,22 @@
  * under the License.
  */
 import { GridLayer } from 'deck.gl';
+import React from 'react';
+import { t } from '@superset-ui/translation';
 
 import { commonLayerProps, getAggFunc  } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
+
+function setTooltipContent(o) {
+  return (
+    <div className="deckgl-tooltip">
+      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
+      <TooltipRow label={`${t('Height')}: `} value={`${o.object.elevationValue}`} />
+    </div>
+  );
+}
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
@@ -48,7 +60,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     outline: false,
     getElevationValue: aggFunc,
     getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 

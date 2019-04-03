@@ -17,9 +17,24 @@
  * under the License.
  */
 import { PathLayer } from 'deck.gl';
+import React from 'react';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../../../modules/sandbox';
 import { createDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
+
+function setTooltipContent(o) {
+  return (
+    o.object.extraProps &&
+    <div className="deckgl-tooltip">
+      {
+        Object.keys(o.object.extraProps).map((prop, index) =>
+          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={`${o.object.extraProps[prop]}`} />,
+        )
+      }
+    </div>
+  );
+}
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
@@ -42,7 +57,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data,
     rounded: true,
     widthScale: 1,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 

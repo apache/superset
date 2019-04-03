@@ -17,12 +17,29 @@
  * under the License.
  */
 import { ScatterplotLayer } from 'deck.gl';
+import React from 'react';
+import { t } from '@superset-ui/translation';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
+import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../../../modules/geo';
 
 function getPoints(data) {
   return data.map(d => d.position);
+}
+
+function setTooltipContent(formData) {
+  return o => (
+    <div className="deckgl-tooltip">
+      <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
+      {
+        o.object.cat_color && <TooltipRow label={`${t('Category')}: `} value={`${o.object.cat_color}`} />
+      }
+      {
+        o.object.metric && <TooltipRow label={`${formData.point_radius_fixed.value}: `} value={`${o.object.metric}`} />
+      }
+    </div>
+  );
 }
 
 export function getLayer(fd, payload, onAddFilter, setTooltip) {
@@ -46,7 +63,7 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
     radiusMinPixels: fd.min_radius || null,
     radiusMaxPixels: fd.max_radius || null,
     outline: false,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }
 

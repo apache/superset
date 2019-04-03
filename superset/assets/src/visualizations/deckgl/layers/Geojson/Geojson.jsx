@@ -25,6 +25,7 @@ import DeckGLContainer from '../../DeckGLContainer';
 import { hexToRGB } from '../../../../modules/colors';
 import sandboxedEval from '../../../../modules/sandbox';
 import { commonLayerProps } from '../common';
+import TooltipRow from '../../TooltipRow';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -75,6 +76,19 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
+function setTooltipContent(o) {
+  return (
+    o.object.extraProps &&
+    <div className="deckgl-tooltip">
+      {
+        Object.keys(o.object.extraProps).map((prop, index) =>
+          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={`${o.object.extraProps[prop]}`} />,
+        )
+      }
+    </div>
+  );
+}
+
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
   const fc = fd.fill_color_picker;
@@ -106,7 +120,7 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     stroked: fd.stroked,
     extruded: fd.extruded,
     pointRadiusScale: fd.point_radius_scale,
-    ...commonLayerProps(fd, setTooltip),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
 
