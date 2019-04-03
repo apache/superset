@@ -77,8 +77,8 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const fc = fd.fillColorPicker;
-  const sc = fd.strokeColorPicker;
+  const fc = fd.fill_color_picker;
+  const sc = fd.stroke_color_picker;
   const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
   const strokeColor = [sc.r, sc.g, sc.b, 255 * sc.a];
   const propOverrides = {};
@@ -93,19 +93,19 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
   recurseGeoJson(payload.data, propOverrides);
 
   let jsFnMutator;
-  if (fd.jsDataMutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.jsDataMutator);
+    jsFnMutator = sandboxedEval(fd.js_data_mutator);
     features = jsFnMutator(features);
   }
 
   return new GeoJsonLayer({
-    id: `geojson-layer-${fd.sliceId}`,
+    id: `geojson-layer-${fd.slice_id}`,
     filled: fd.filled,
     data: features,
     stroked: fd.stroked,
     extruded: fd.extruded,
-    pointRadiusScale: fd.pointRadiusScale,
+    pointRadiusScale: fd.point_radius_scale,
     ...commonLayerProps(fd, setTooltip),
   });
 }
@@ -145,7 +145,7 @@ function deckGeoJson(props) {
       mapboxApiAccessToken={payload.data.mapboxApiKey}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.mapboxStyle}
+      mapStyle={formData.mapbox_style}
       setControlValue={setControlValue}
     />
   );
