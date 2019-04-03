@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/translation';
-import { NVD3TimeSeries, annotations } from './sections';
+import { annotations } from './sections';
 import { D3_TIME_FORMAT_OPTIONS } from '../controls';
 
 export default {
