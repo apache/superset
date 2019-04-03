@@ -1,3 +1,20 @@
+# [0.11.0](https://github.com/apache-superset/superset-ui/compare/v0.10.10...v0.11.0) (2019-04-02)
+
+
+### 💔 BREAKING CHANGE
+
+* Revert "Handle BigNumber conversions in JSON properly (without loss of precision) (#71)" (#126)
+
+This reverts commit e3866129b2b3cbd6e099fe4ab66319c4fe6ae485. It should not cause critical issue or require additional migration from `0.10.x`. However, since this is a change in the expected output, we bump the version to be safe.
+
+## [0.10.10](https://github.com/apache-superset/superset-ui/compare/v0.10.9...v0.10.10) (2019-04-02)
+
+
+### ✨ Features
+
+* add support for conditional get requests ([#119](https://github.com/apache-superset/superset-ui/issues/119)) ([2ca55ed](https://github.com/apache-superset/superset-ui/commit/2ca55ed))
+
+
 ## [0.10.9](https://github.com/apache-superset/superset-ui/compare/v0.10.8...v0.10.9) (2019-03-29)
 
 
