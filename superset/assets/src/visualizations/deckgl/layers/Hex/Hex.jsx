@@ -24,23 +24,23 @@ import { createDeckGLComponent } from '../../factory';
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const c = fd.colorPicker;
+  const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
     ...d,
     color: [c.r, c.g, c.b, 255 * c.a],
   }));
 
-  if (fd.jsDataMutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.jsDataMutator);
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-  const aggFunc = getAggFunc(fd.jsAggFunction, p => p.weight);
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
   return new HexagonLayer({
-    id: `hex-layer-${fd.sliceId}`,
+    id: `hex-layer-${fd.slice_id}`,
     data,
     pickable: true,
-    radius: fd.gridSize,
+    radius: fd.grid_size,
     minColor: [0, 0, 0, 0],
     extruded: fd.extruded,
     maxColor: [c.r, c.g, c.b, 255 * c.a],

@@ -23,22 +23,22 @@ import { createDeckGLComponent } from '../../factory';
 
 export function getLayer(formData, payload, onAddFilter, setTooltip) {
   const fd = formData;
-  const c = fd.colorPicker;
+  const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   let data = payload.data.features.map(feature => ({
     ...feature,
     path: feature.path,
-    width: fd.lineWidth,
+    width: fd.line_width,
     color: fixedColor,
   }));
 
-  if (fd.jsDataMutator) {
-    const jsFnMutator = sandboxedEval(fd.jsDataMutator);
+  if (fd.js_data_mutator) {
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
 
   return new PathLayer({
-    id: `path-layer-${fd.sliceId}`,
+    id: `path-layer-${fd.slice_id}`,
     data,
     rounded: true,
     widthScale: 1,
