@@ -54,8 +54,8 @@ function setTooltipContent(formData) {
     const metricLabel = formData.metric.label || formData.metric;
     return (
       <div className="deckgl-tooltip">
-        <TooltipRow label={`${formData.line_column}: `} value={o.object[formData.line_column]} />
-        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={o.object[metricLabel]} />}
+        <TooltipRow label={`${formData.line_column}: `} value={`${o.object[formData.line_column]}`} />
+        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />}
       </div>
     );
   };

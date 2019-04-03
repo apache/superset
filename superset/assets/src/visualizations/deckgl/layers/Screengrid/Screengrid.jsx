@@ -36,7 +36,7 @@ function setTooltipContent(o) {
   return (
     <div className="deckgl-tooltip">
       <TooltipRow label={`${t('Longitude and Latitude')}: `} value={`${o.object.position[0]}, ${o.object.position[1]}`} />
-      <TooltipRow label={`${t('Weight')}: `} value={o.object.weight} />
+      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.weight}`} />
     </div>
   );
 }

@@ -22,12 +22,8 @@ import PropTypes from 'prop-types';
 const propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
-  key: PropTypes.string,
 };
 
-const defaultProps = {
-  key: '',
-};
 
 export default class TooltipRow extends React.PureComponent {
   render() {
@@ -38,4 +34,3 @@ export default class TooltipRow extends React.PureComponent {
 }
 
 TooltipRow.propTypes = propTypes;
-TooltipRow.defaultProps = defaultProps;

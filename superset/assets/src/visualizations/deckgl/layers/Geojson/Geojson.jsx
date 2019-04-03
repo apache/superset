@@ -82,7 +82,7 @@ function setTooltipContent(o) {
     <div className="deckgl-tooltip">
       {
         Object.keys(o.object.extraProps).map((prop, index) =>
-          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={o.object.extraProps[prop]} />,
+          <TooltipRow key={`prop-${index}`} label={`${prop}: `} value={`${o.object.extraProps[prop]}`} />,
         )
       }
     </div>
