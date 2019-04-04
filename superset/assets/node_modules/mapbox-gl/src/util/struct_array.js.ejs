@@ -1,0 +1,108 @@
+<%
+const {
+    arrayClass,
+    members,
+    size,
+    usedTypes,
+    hasAnchorPoint,
+    layoutClass,
+    includeStructAccessors
+} = locals
+
+const StructTypeClass = arrayClass.replace('Array', 'Struct');
+const StructArrayClass = arrayClass;
+const StructArrayLayoutClass = layoutClass;
+-%>
+<%
+// collect components
+const components = [];
+for (const member of members) {
+    for (let c = 0; c < member.components; c++) {
+        let name = member.name;
+        if (member.components > 1) {
+            name += c;
+        }
+        components.push({name, member, component: c});
+    }
+}
+
+if (includeStructAccessors) {
+-%>
+class <%=StructTypeClass%> extends Struct {
+    _structArray: <%=StructArrayClass%>;
+<%
+    // property declarations
+    for (const {name} of components) {-%>
+    <%=name%>: number;
+<%  }
+    if (hasAnchorPoint) { -%>
+    anchorPoint: Point;
+<%  } -%>
+<%
+for (const {name, member, component} of components) {
+    const elementOffset = `this._pos${member.size.toFixed(0)}`;
+    const componentOffset = (member.offset / member.size + component).toFixed(0);
+    const index = `${elementOffset} + ${componentOffset}`;
+    const componentAccess = `this._structArray.${member.view}[${index}]`;
+-%>
+    get <%=name%>() { return <%=componentAccess%>; }
+    set <%=name%>(x) { <%=componentAccess%> = x; }
+<%
+}
+// Special case used for the CollisionBoxArray type
+if (hasAnchorPoint) {
+-%>
+    get anchorPoint() { return new Point(this.anchorPointX, this.anchorPointY); }
+<%
+}
+-%>
+}
+
+<%=StructTypeClass%>.prototype.size = <%=size%>;
+
+export type <%=StructTypeClass.replace('Struct', '')%> = <%=StructTypeClass%>;
+
+<%
+} // end 'if (includeStructAccessors)'
+-%>
+
+/**
+ * @private
+ */
+export class <%=StructArrayClass%> extends <%=StructArrayLayoutClass%> {
+<%
+if (StructArrayClass === 'GlyphOffsetArray' || StructArrayClass === 'SymbolLineVertexArray') {
+    // component getters
+    for (const member of members) {
+        for (let c = 0; c < member.components; c++) {
+            if (!includeStructAccessors) continue;
+            let name = `get${member.name}`;
+            if (member.components > 1) {
+                name += c;
+            }
+            const componentOffset = (member.offset / member.size + c).toFixed(0);
+            const componentStride = size / member.size;
+-%>
+    <%=name%>(index: number) { return this.<%=member.view%>[index * <%=componentStride%> + <%=componentOffset%>]; }
+<%
+        }
+    }
+}
+
+// get(i)
+if (includeStructAccessors) {
+-%>
+    /**
+     * Return the <%=StructTypeClass%> at the given location in the array.
+     * @param {number} index The index of the element.
+     */
+    get(index: number): <%=StructTypeClass%> {
+        assert(!this.isTransferred);
+        return new <%=StructTypeClass%>(this, index);
+    }
+<%
+}
+-%>
+}
+
+register('<%=StructArrayClass%>', <%=StructArrayClass%>);

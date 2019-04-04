@@ -946,29 +946,38 @@
     "groupby": {
       "type": "SelectControl",
       "multi": true,
+      "freeForm": true,
       "label": "Group by",
       "default": [],
       "includeTime": false,
       "description": "One or many controls to group by",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false
     },
     "dimension": {
       "type": "SelectControl",
       "multi": false,
+      "freeForm": true,
       "label": "Dimension",
       "default": null,
       "includeTime": false,
       "description": "Select a dimension",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false
     },
     "columns": {
       "type": "SelectControl",
       "multi": true,
+      "freeForm": true,
       "label": "Columns",
       "default": [],
       "includeTime": false,
       "description": "One or many controls to pivot as columns",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false
     },
     "all_columns": {
       "type": "SelectControl",
@@ -976,7 +985,10 @@
       "label": "Columns",
       "default": [],
       "description": "Columns to display",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false,
+      "freeForm": true
     },
     "spatial": {
       "type": "SpatialControl",
@@ -1873,20 +1885,26 @@
     "series": {
       "type": "SelectControl",
       "multi": false,
+      "freeForm": true,
       "label": "Series",
       "default": null,
       "includeTime": false,
       "description": "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false
     },
     "entity": {
       "type": "SelectControl",
       "multi": false,
+      "freeForm": true,
       "label": "Entity",
       "default": null,
       "includeTime": false,
       "description": "This defines the element to be plotted on the chart",
       "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false,
       "validators": [
         null
       ]
@@ -2412,8 +2430,8 @@
           "max"
         ],
         [
-          "stdev",
-          "stdev"
+          "std",
+          "std"
         ],
         [
           "var",
@@ -3701,11 +3719,14 @@
     "js_columns": {
       "type": "SelectControl",
       "multi": true,
+      "freeForm": true,
       "label": "Extra data for JS",
       "default": [],
       "includeTime": false,
       "description": "List of extra columns made available in Javascript functions",
-      "valueKey": "column_name"
+      "valueKey": "column_name",
+      "allowAll": true,
+      "commaChoosesOption": false
     },
     "stroked": {
       "type": "CheckboxControl",
@@ -3721,6 +3742,15 @@
       "description": "Whether to fill the objects",
       "default": true
     },
+    "filter_configs": {
+      "type": "CollectionControl",
+      "label": "Filters",
+      "description": "Filter configuration for the filter box",
+      "validators": [
+        null
+      ],
+      "controlName": "FilterBoxItemControl"
+    },
     "normalized": {
       "type": "CheckboxControl",
       "label": "Normalized",
@@ -3730,4 +3760,3 @@
     }
   }
 }
-

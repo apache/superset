@@ -1,0 +1,103 @@
+{
+  "name": "webpack-dev-server",
+  "version": "3.1.14",
+  "description": "Serves a webpack app. Updates the browser on changes.",
+  "bin": "bin/webpack-dev-server.js",
+  "main": "lib/Server.js",
+  "files": [
+    "bin",
+    "lib",
+    "ssl",
+    "client"
+  ],
+  "engines": {
+    "node": ">= 6.11.5"
+  },
+  "scripts": {
+    "lint": "eslint bin lib test examples client-src",
+    "test": "nyc --reporter lcovonly mocha --full-trace --check-leaks --exit",
+    "prepare": "rimraf ./ssl/*.pem && npm run -s transpile:index && npm run -s build:live && npm run -s build:index && npm run -s build:sockjs",
+    "transpile:index": "babel client-src/default --out-dir client --ignore *.config.js",
+    "build:index": "webpack ./client-src/default/index.js -o client/index.bundle.js --color --config client-src/default/webpack.config.js",
+    "build:live": "webpack ./client-src/live/index.js -o client/live.bundle.js --color --config client-src/live/webpack.config.js",
+    "build:sockjs": "webpack ./client-src/sockjs/index.js -o client/sockjs.bundle.js --color --config client-src/sockjs/webpack.config.js",
+    "webpack-dev-server": "cd $INIT_CWD && node ../../../bin/webpack-dev-server.js",
+    "release": "standard-version"
+  },
+  "dependencies": {
+    "ansi-html": "0.0.7",
+    "bonjour": "^3.5.0",
+    "chokidar": "^2.0.0",
+    "compression": "^1.5.2",
+    "connect-history-api-fallback": "^1.3.0",
+    "debug": "^3.1.0",
+    "del": "^3.0.0",
+    "express": "^4.16.2",
+    "html-entities": "^1.2.0",
+    "http-proxy-middleware": "~0.18.0",
+    "import-local": "^2.0.0",
+    "internal-ip": "^3.0.1",
+    "ip": "^1.1.5",
+    "killable": "^1.0.0",
+    "loglevel": "^1.4.1",
+    "opn": "^5.1.0",
+    "portfinder": "^1.0.9",
+    "schema-utils": "^1.0.0",
+    "selfsigned": "^1.9.1",
+    "semver": "^5.6.0",
+    "serve-index": "^1.7.2",
+    "sockjs": "0.3.19",
+    "sockjs-client": "1.3.0",
+    "spdy": "^4.0.0",
+    "strip-ansi": "^3.0.0",
+    "supports-color": "^5.1.0",
+    "url": "^0.11.0",
+    "webpack-dev-middleware": "3.4.0",
+    "webpack-log": "^2.0.0",
+    "yargs": "12.0.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1",
+    "copy-webpack-plugin": "^4.5.1",
+    "css-loader": "^1.0.0",
+    "eslint": "^5.4.0",
+    "eslint-config-webpack": "^1.2.5",
+    "eslint-plugin-import": "^2.9.0",
+    "execa": "^0.11.0",
+    "file-loader": "^2.0.0",
+    "html-loader": "^0.5.5",
+    "html-webpack-plugin": "^3.0.6",
+    "jquery": "^3.2.1",
+    "less": "^3.7.1",
+    "less-loader": "^4.1.0",
+    "marked": "^0.5.0",
+    "mocha": "^5.2.0",
+    "mocha-sinon": "^2.0.0",
+    "nyc": "^12.0.2",
+    "rimraf": "^2.6.2",
+    "should": "^13.2.0",
+    "sinon": "^6.1.5",
+    "standard-version": "^4.4.0",
+    "style-loader": "^0.22.1",
+    "supertest": "^3.0.0",
+    "url-loader": "^1.1.1",
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0",
+    "ws": "^6.0.0"
+  },
+  "peerDependencies": {
+    "webpack": "^4.0.0"
+  },
+  "author": "Tobias Koppers @sokra",
+  "bugs": "https://github.com/webpack/webpack-dev-server/issues",
+  "homepage": "https://github.com/webpack/webpack-dev-server#readme",
+  "repository": "https://github.com/webpack/webpack-dev-server.git",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/webpack-dev-server/-/webpack-dev-server-3.1.14.tgz"
+,"_integrity": "sha512-mGXDgz5SlTxcF3hUpfC8hrQ11yhAttuUQWf1Wmb+6zo3x6rb7b9mIfuQvAPLdfDRCGRGvakBWHdHOa0I9p/EVQ=="
+,"_from": "webpack-dev-server@3.1.14"
+}

@@ -1,0 +1,45 @@
+{
+  "name": "postcss-discard-duplicates",
+  "version": "4.0.2",
+  "description": "Discard duplicate rules in your CSS files with PostCSS.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "LICENSE-MIT"
+  ],
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "keywords": [
+    "css",
+    "dedupe",
+    "optimise",
+    "postcss",
+    "postcss-plugin"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "postcss": "^7.0.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0"
+  },
+  "homepage": "https://github.com/cssnano/cssnano",
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-discard-duplicates/-/postcss-discard-duplicates-4.0.2.tgz"
+,"_integrity": "sha512-ZNQfR1gPNAiXZhgENFfEglF93pciw0WxMkJeVmw8eF+JZBbMD7jp6C67GqJAXVZP2BWbOztKfbsdmMp/k8c6oQ=="
+,"_from": "postcss-discard-duplicates@4.0.2"
+}

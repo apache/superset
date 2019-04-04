@@ -1,0 +1,47 @@
+{
+  "name": "yargs-parser",
+  "version": "10.1.0",
+  "description": "the mighty option parser used by yargs",
+  "main": "index.js",
+  "scripts": {
+    "test": "nyc mocha test/*.js",
+    "posttest": "standard",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "release": "standard-version"
+  },
+  "repository": {
+    "url": "git@github.com:yargs/yargs-parser.git"
+  },
+  "keywords": [
+    "argument",
+    "parser",
+    "yargs",
+    "command",
+    "cli",
+    "parsing",
+    "option",
+    "args",
+    "argument"
+  ],
+  "author": "Ben Coe <ben@npmjs.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "coveralls": "^2.11.12",
+    "mocha": "^3.0.1",
+    "nyc": "^11.4.1",
+    "standard": "^10.0.2",
+    "standard-version": "^4.3.0"
+  },
+  "dependencies": {
+    "camelcase": "^4.1.0"
+  },
+  "files": [
+    "lib",
+    "index.js"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-10.1.0.tgz"
+,"_integrity": "sha512-VCIyR1wJoEBZUqk5PA+oOBF6ypbwh5aNB3I50guxAL/quggdfs4TtNHQrSazFA3fYZ+tEqfs0zIGlv0c/rgjbQ=="
+,"_from": "yargs-parser@10.1.0"
+}

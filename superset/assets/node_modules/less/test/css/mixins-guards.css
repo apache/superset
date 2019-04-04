@@ -1,0 +1,211 @@
+.light1 {
+  color: white;
+  margin: 1px;
+}
+.light2 {
+  color: black;
+  margin: 1px;
+}
+.max1 {
+  width: 6;
+}
+.max2 {
+  width: 8;
+}
+.glob1 {
+  margin: auto auto;
+}
+.ops1 {
+  height: gt-or-eq;
+  height: lt-or-eq;
+  height: lt-or-eq-alias;
+}
+.ops2 {
+  height: gt-or-eq;
+  height: not-eq;
+}
+.ops3 {
+  height: lt-or-eq;
+  height: lt-or-eq-alias;
+  height: not-eq;
+}
+.default1 {
+  content: default;
+}
+.test1 {
+  content: "true.";
+}
+.test2 {
+  content: "false.";
+}
+.test3 {
+  content: "false.";
+}
+.test4 {
+  content: "false.";
+}
+.test5 {
+  content: "false.";
+}
+.bool1 {
+  content: true and true;
+  content: true;
+  content: false, true;
+  content: false and true and true, true;
+  content: false, true and true;
+  content: false, false, true;
+  content: false, true and true and true, false;
+  content: not false;
+  content: not false and false, not false;
+}
+.equality-units {
+  test: pass;
+}
+.colorguardtest {
+  content: is red;
+  content: is not blue its red;
+  content: is not blue its purple;
+}
+.stringguardtest {
+  content: "theme1" is "theme1";
+  content: "theme1" is not "theme2";
+  content: "theme1" is 'theme1';
+  content: "theme1" is not 'theme2';
+  content: 'theme1' is "theme1";
+  content: 'theme1' is not "theme2";
+  content: 'theme1' is 'theme1';
+  content: 'theme1' is not 'theme2';
+  content: theme1 is not "theme2";
+  content: theme1 is not 'theme2';
+  content: theme1 is theme1;
+}
+.variouse-types-comparison {
+  /**/
+  content: true is not equal to false;
+  content: false is not equal to true too;
+  /**/
+  content: 1 is not equal to true;
+  content: true is not equal to 1 too;
+  /**/
+  content: 2 is equal to 2px;
+  content: 2px is equal to 2 too;
+  /**/
+  content: 3 is equal to 3;
+  content: 3 is equal to 3 too;
+  /**/
+  content: 5 is not equal to 4;
+  content: 4 is not equal to 5 too;
+  /**/
+  content: abc is equal to abc;
+  content: abc is equal to abc too;
+  /**/
+  content: abc is not equal to "abc";
+  content: "abc" is not equal to abc too;
+  /**/
+  content: 'abc' is less than "abd";
+  content: "abd" is greater than 'abc' too;
+  content: 'abc' is not equal to "abd";
+  content: "abd" is not equal to 'abc' too;
+  /**/
+  content: 6 is equal to 6;
+  content: 6 is equal to 6 too;
+  /**/
+  content: 8 is less than 9 too;
+  content: 9 is greater than 8;
+  content: 9 is not equal to 8;
+  content: 8 is not equal to 9 too;
+  /**/
+  content: a is not equal to b;
+  content: b is not equal to a too;
+  /**/
+  content: 1 2 is not equal to 3;
+  content: 3 is not equal to 1 2 too;
+}
+.list-comparison {
+  /**/
+  content: a b c is equal to a b c;
+  content: a b c is equal to a b c too;
+  /**/
+  content: a b c is not equal to a b d;
+  content: a b d is not equal to a b c too;
+  /**/
+  content: a, b, c is equal to a, b, c;
+  content: a, b, c is equal to a, b, c too;
+  /**/
+  content: a, b, c is not equal to a, b, d;
+  content: a, b, d is not equal to a, b, c too;
+  /**/
+  content: 1 2px 300ms is equal to 1em 2 0.3s;
+  content: 1em 2 0.3s is equal to 1 2px 300ms too;
+  /**/
+  content: 1 2 3 is not equal to 1, 2, 3;
+  content: 1, 2, 3 is not equal to 1 2 3 too;
+  /**/
+  content: 1, 2, 3 is equal to 1, 2, 3;
+  content: 1, 2, 3 is equal to 1, 2, 3 too;
+  /**/
+  content: 1 2 3 1, 2, 3 is equal to 1 2 3 1, 2, 3;
+  content: 1 2 3 1, 2, 3 is equal to 1 2 3 1, 2, 3 too;
+  /**/
+  content: 1 2 3 1, 2, 3 is not equal to 1, 2, 3 1 2 3;
+  content: 1, 2, 3 1 2 3 is not equal to 1 2 3 1, 2, 3 too;
+  /**/
+  content: 1 2 3 1, 2, 3 4 is equal to 1 2 3 1, 2, 3 4;
+  content: 1 2 3 1, 2, 3 4 is equal to 1 2 3 1, 2, 3 4 too;
+}
+#tryNumberPx {
+  catch: all;
+  declare: 4;
+  declare: 4px;
+}
+.call-lock-mixin .call-inner-lock-mixin {
+  a: 1;
+  x: 1;
+}
+.mixin-generated-class {
+  a: 1;
+}
+#guarded-caller {
+  guarded: namespace;
+  silent: namespace;
+  guarded: with default;
+}
+#guarded-deeper {
+  should: match 1;
+}
+#parenthesisNot-true {
+  parenthesisNot: just-value;
+  parenthesisNot: negated twice 1;
+  parenthesisNot: negated twice 2;
+  parenthesisNot: negated twice 3;
+}
+#parenthesisNot-false {
+  parenthesisNot: negated once inside;
+  parenthesisNot: negated once outside;
+  parenthesisNot: negated once middle;
+}
+#orderOfEvaluation-false-false-true {
+  no-parenthesis: evaluated true 1a;
+  no-parenthesis: evaluated true 1b;
+  no-parenthesis: evaluated true 1d;
+  no-parenthesis: evaluated true 3;
+  no-parenthesis: evaluated true 4;
+  with-parenthesis: evaluated true;
+}
+#orderOfEvaluation-false-false-false {
+  no-parenthesis: evaluated true 2a;
+  no-parenthesis: evaluated true 2b;
+  no-parenthesis: evaluated true 2c;
+}
+#orderOfEvaluation-true-true-false {
+  no-parenthesis: evaluated true 1a;
+  no-parenthesis: evaluated true 1b;
+  no-parenthesis: evaluated true 1c;
+  no-parenthesis: evaluated true 1d;
+  no-parenthesis: evaluated true 1e;
+  no-parenthesis: evaluated true 2a;
+  no-parenthesis: evaluated true 2b;
+  no-parenthesis: evaluated true 2c;
+  no-parenthesis: evaluated true 4;
+  with-parenthesis: evaluated true;
+}

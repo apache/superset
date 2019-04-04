@@ -1,0 +1,12 @@
+{
+	"root": true,
+
+	"extends": "@ljharb",
+
+	"rules": {
+		"dot-notation": [2, { "allowKeywords": false }],
+		"func-name-matching": 1,
+		"max-nested-callbacks": [2, 3],
+		"max-statements": [2, 19]
+	}
+}

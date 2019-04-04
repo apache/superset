@@ -1,0 +1,42 @@
+.nvd3 .nv-groups path.nv-line {
+    fill: none;
+}
+
+.nvd3 .nv-groups path.nv-area {
+    stroke: none;
+}
+
+.nvd3.nv-line .nvd3.nv-scatter .nv-groups .nv-point {
+    fill-opacity: 0;
+    stroke-opacity: 0;
+}
+
+.nvd3.nv-scatter.nv-single-point .nv-groups .nv-point {
+    fill-opacity: .5 !important;
+    stroke-opacity: .5 !important;
+}
+
+
+.with-transitions .nvd3 .nv-groups .nv-point {
+    transition: stroke-width 250ms linear, stroke-opacity 250ms linear;
+}
+
+.nvd3.nv-scatter .nv-groups .nv-point.hover,
+.nvd3 .nv-groups .nv-point.hover {
+    stroke-width: 7px;
+    fill-opacity: .95 !important;
+    stroke-opacity: .95 !important;
+}
+
+
+.nvd3 .nv-point-paths path {
+    stroke: #aaa;
+    stroke-opacity: 0;
+    fill: #eee;
+    fill-opacity: 0;
+}
+
+
+.nvd3 .nv-indexLine {
+    cursor: ew-resize;
+}

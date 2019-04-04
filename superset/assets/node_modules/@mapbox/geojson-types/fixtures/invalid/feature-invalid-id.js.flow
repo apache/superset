@@ -1,0 +1,13 @@
+// @flow strict
+
+import type {
+    GeoJSONFeature
+} from '../../index';
+
+const wrongIdType: GeoJSONFeature = {
+    type: 'Feature',
+    geometry: null,
+    properties: {},
+    id: []
+};
+

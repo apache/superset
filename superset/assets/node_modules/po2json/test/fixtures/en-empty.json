@@ -1,0 +1,40 @@
+{
+   "": {
+      "project-id-version": "po2json",
+      "pot-creation-date": "2012-10-26 12:00+0000",
+      "po-revision-date": "2013-11-08 09:09+0200",
+      "last-translator": "Illimar Tambek <illimar.tambek@gmail.com>",
+      "language-team": "po2json",
+      "mime-version": "1.0",
+      "plural-forms": "nplurals=2; plural=(n != 1);",
+      "content-type": "text/plain; charset=UTF-8",
+      "content-transfer-encoding": "8bit",
+      "x-generator": "Poedit 1.5.7",
+      "language": "en"
+   },
+   "Hello, world!\n": [
+      null,
+      "Hello, world!\n"
+   ],
+   "string context\u0004the contextual phrase": [
+      null,
+      "the contextual phrase"
+   ],
+   "this is the first line\nthis is the next one\nbut this is the last\n": [
+      null,
+      "this is the first line\nthis is the next one\nbut this is the last\n"
+   ],
+   "one product": [
+      "%d products",
+      "one product",
+      "%d products"
+   ],
+   "A sentence with \"quotation\" marks.": [
+      null,
+      "A sentence with \"quotation\" marks."
+   ],
+   "A fuzzy translation": [
+      null,
+      "A fuzzy translation"
+   ]
+}

@@ -1,0 +1,4 @@
+ArgumentError: error evaluating function `percentage`: argument must be a number in {path}percentage-non-number-argument.less on line 2, column 15:
+1 div {
+2   percentage: percentage(16/17);
+3 }

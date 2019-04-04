@@ -1,0 +1,142 @@
+// importing plugin globally
+@plugin "plugin/plugin-global";
+
+// transitively include plugins from importing another sheet
+@import "./plugin/plugin-transitive";
+
+
+// `test-global` function should be reachable
+// `test-local`  function should not be reachable
+// `test-shadow` function should return global version
+.class {
+  trans  : test-transitive();
+  global : test-global();
+  local  : test-local();
+  shadow : test-shadow();
+
+  // `test-global` function should propagate and be reachable
+  // `test-local`  function should be reachable
+  // `test-shadow` function should return local version, shadowing global version
+  .local {
+    @plugin (option) "./plugin/plugin-local";
+    global : test-global();
+    local  : test-local();
+    shadow : test-shadow();
+  }
+}
+
+// calling a mixin or detached ruleset should not bubble local plugins
+// imported inside either into the parent scope.
+.mixin() {
+  @plugin "./plugin/plugin-local";
+  mixin-local  : test-local();
+  mixin-global : test-global();
+  mixin-shadow : test-shadow();
+}
+@ruleset : {
+  @plugin "./plugin/plugin-local";
+  ruleset-local  : test-local();
+  ruleset-global : test-global();
+  ruleset-shadow : test-shadow();
+};
+#ns {
+  @plugin (test=test) "./plugin/plugin-local";
+  .mixin() {
+    ns-mixin-global : test-global();
+    ns-mixin-local  : test-local();
+    ns-mixin-shadow : test-shadow();
+  }
+}
+.class {
+  #ns > .mixin();
+  .mixin();
+  @ruleset();
+  class-local : test-local();
+}
+
+
+// `test-global` function should propagate into directive scope
+@media screen {
+  .test {
+    result : test-global();
+  }
+}
+@font-face {
+  result : test-global();
+}
+
+// `test-global` function should propagate into nested directive scopes
+@media screen and (min-width:100px) {
+  @media (max-width:400px) {
+		.test {
+			result : test-global();
+		}
+	}
+}
+
+.test {
+  @media screen {
+    @plugin "./plugin/plugin-local";
+    result : test-local();
+  }
+}
+
+@plugin "./plugin/plugin-tree-nodes";
+@ruleset2: test-detached-ruleset();
+.root {
+  @ruleset2();
+}
+.test-empty {
+  val1: foo;
+  test-collapse();
+  val2: foo;
+}
+.test-simple {
+  @plugin "./plugin/plugin-simple";
+  value: pi-anon();
+  value: (pi() * 2);
+}
+.test-conflicts {
+  @plugin "./plugin/plugin-scope1";
+  value: foo();
+}
+.test-conflicts {
+  @plugin "./plugin/plugin-scope2";
+  value: foo();
+}
+.test-conflicts {
+  @plugin "./plugin/plugin-scope1";
+  value: foo();
+}
+.test-collection {
+  @plugin "./plugin/plugin-collection";
+  @var: 32;
+  store(@var);
+  store(5);
+  store("bird");
+  list: list();
+}
+
+test-atrule("@charset"; '"utf-8"');
+test-atrule("@arbitrary"; "value after ()");
+
+// no minVersion specified
+@plugin (option1) "./plugin/plugin-set-options";
+@plugin "./plugin/plugin-set-options";
+@plugin (option2) "./plugin/plugin-set-options";
+@plugin "./plugin/plugin-set-options";
+@plugin (option3) "./plugin/plugin-set-options";
+
+// specifies minVersion: [2,0,0]
+@plugin (option1) "./plugin/plugin-set-options-v2";
+@plugin "./plugin/plugin-set-options-v2";
+@plugin (option2) "./plugin/plugin-set-options-v2";
+@plugin "./plugin/plugin-set-options-v2";
+@plugin (option3) "./plugin/plugin-set-options-v2";
+
+// specifies minVersion: [3,0,0]
+@plugin (option1) "./plugin/plugin-set-options-v3";
+@plugin "./plugin/plugin-set-options-v3";
+@plugin (option2) "./plugin/plugin-set-options-v3";
+@plugin "./plugin/plugin-set-options-v3";
+@plugin (option3) "./plugin/plugin-set-options-v3";

@@ -1,0 +1,39 @@
+{
+  "name": "async-limiter",
+  "version": "1.0.0",
+  "description": "asynchronous function queue with adjustable concurrency",
+  "keywords": [
+    "throttle",
+    "async",
+    "limiter",
+    "asynchronous",
+    "job",
+    "task",
+    "concurrency",
+    "concurrent"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "coveralls": "^2.11.2",
+    "eslint": "^4.6.1",
+    "eslint-plugin-mocha": "^4.11.0",
+    "intelli-espower-loader": "^1.0.1",
+    "istanbul": "^0.3.2",
+    "mocha": "^3.5.2",
+    "power-assert": "^1.4.4"
+  },
+  "scripts": {
+    "test": "mocha --R intelli-espower-loader test/",
+    "travis": "npm run lint && npm run coverage",
+    "coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | coveralls",
+    "example": "node example",
+    "lint": "eslint ."
+  },
+  "repository": "https://github.com/strml/async-limiter.git",
+  "author": "Samuel Reed <samuel.trace.reed@gmail.com",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/async-limiter/-/async-limiter-1.0.0.tgz"
+,"_integrity": "sha512-jp/uFnooOiO+L211eZOoSyzpOITMXx1rBITauYykG3BRYPu8h0UcxsPNB04RR5vo4Tyz3+ay17tR6JVf9qzYWg=="
+,"_from": "async-limiter@1.0.0"
+}

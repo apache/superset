@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NVD3 Examples List</title>
+</head>
+<body>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        window.onload = function() {
+            $('body').ready(function() {
+                $('li a').each(function(i, elem) {
+                    $(elem).click(function(evt) {
+                        $('#show').prop('src', $(evt.target).prop('href'));
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        $('li').removeClass('selected');
+                        $(evt.target).parents('li').addClass('selected');
+                        return false;
+                    });
+                });
+            });
+        }
+    </script>
+    <style>
+        body {
+            font-family: Helvetica;
+            /* IE10 Consumer Preview */
+            background-image: -ms-radial-gradient(left top, circle farthest-corner, #FFFFFF 0%, #DEE2FF 100%);
+
+            /* Mozilla Firefox */
+            background-image: -moz-radial-gradient(left top, circle farthest-corner, #FFFFFF 0%, #DEE2FF 100%);
+
+            /* Opera */
+            background-image: -o-radial-gradient(left top, circle farthest-corner, #FFFFFF 0%, #DEE2FF 100%);
+
+            /* Webkit (Safari/Chrome 10) */
+            background-image: -webkit-gradient(radial, left top, 0, left top, 1012, color-stop(0, #FFFFFF), color-stop(1, #DEE2FF));
+
+            /* Webkit (Chrome 11+) */
+            background-image: -webkit-radial-gradient(left top, circle farthest-corner, #FFFFFF 0%, #DEE2FF 100%);
+
+            /* W3C Markup, IE10 Release Preview */
+            background-image: radial-gradient(circle farthest-corner at left top, #FFFFFF 0%, #DEE2FF 100%);
+        }
+
+        ul {
+            list-style: none;
+            float: left;
+            margin-right: 5px;
+            border-right: solid 1px #ccc;
+            padding: 5px;
+        }
+
+        li {
+            padding: 4px;
+            min-width: 100px;
+
+        }
+        li:hover {
+            background-color: #ccc;
+        }
+        li.selected {
+            padding: 3px;
+            background-color: #FF9900;
+            border: 1px solid #999;
+        }
+
+        a {
+            text-decoration: none;
+            display:block;
+            font-size: 12px;
+            font-family: arial;
+            outline: none;
+        }
+        table { width: 100%; }
+        td { vertical-align: top; }
+        html, body, div { margin: 0; padding: 0}
+        body { padding: 20px; }
+
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: 0px;
+        }
+        #show_wrapper {
+            border: 1px solid #666;
+            min-width: 800px;
+            float: left;
+        }
+
+    </style>
+
+    <h2>NVD3 Examples List</h2>
+        <ul>
+            <li><a href="bullet.html">Bullet</a>
+            <li><a href="bulletChart.html">BulletChart</a>
+            <li><a href="crossfilter.html">Crossfilter</a>
+            <li><a href="crossfilterWithDimentions.html">CrossfilterWithDimentions</a>
+            <li><a href="crossfilterWithTables.html">CrossfilterWithTables</a>
+            <li><a href="cumulativeLineChart.html">CumulativeLineChart</a>
+            <li><a href="discreteBarChart.html">DiscreteBarChart</a>
+            <li><a href="historicalBar.html">HistoricalBar</a>
+            <li><a href="historicalBarChart.html">HistoricalBarChart</a>
+            <li><a href="horizon.html">Horizon</a>
+            <li><a href="indentedtree.html">Indentedtree</a>
+            <li><a href="legend.html">Legend</a>
+            <li><a href="furiousLegend.html">Furious Legend</a>
+            <li><a href="line.html">Line</a>
+            <li><a href="lineChart.html">LineChart</a>
+            <li><a href="lineChartSVGResize.html">LineChartSVGResize</a>
+            <li><a href="linePlusBarChart.html">LinePlusBarChart</a>
+            <li><a href="linePlusBarWithFocusChart.html">LinePlusBarWithFocusChart</a>
+            <li><a href="lineWithFisheyeChart.html">LineWithFisheyeChart</a>
+            <li><a href="lineWithFocusChart.html">LineWithFocusChart</a>
+            <li><a href="sankeyChart.html">SankeyChart</a>
+        </ul>
+        <ul>
+            <li><a href="multiBar.html">MultiBar</a>
+            <li><a href="multiBarChart.html">MultiBarChart</a>
+            <li><a href="multiBarHorizontalChart.html">MultiBarHorizontalChart</a>
+            <li><a href="multiChart.html">MultiChart</a>
+            <li><a href="parallelCoordinates.html">ParallelCoordinates</a>
+            <li><a href="pie.html">Pie</a>
+            <li><a href="pieChart.html">PieChart</a>
+            <li><a href="scatter.html">Scatter</a>
+            <li><a href="scatterChart.html">ScatterChart</a>
+            <li><a href="scatterPlusLineChart.html">ScatterPlusLineChart</a>
+            <li><a href="sparkline.html">Sparkline</a>
+            <li><a href="sparklinePlus.html">SparklinePlus</a>
+            <li><a href="stackedArea.html">StackedArea</a>
+            <li><a href="stackedAreaChart.html">StackedAreaChart</a>
+        </ul>
+
+        <ul>
+            <strong>Test pages</strong>
+            <li><a href="../test/lineChartTest.html">Line Chart</a></li>
+            <li><a href="../test/pieChartTest.html">Pie Chart</a></li>
+            <li><a href="../test/ScatterChartTest.html">Scatter Chart</a></li>
+            <li><a href="../test/stackedAreaChartTest.html">Stacked Area Chart</a></li>
+            <li><a href="../test/multiBarChartTest.html">Multibar Chart</a></li>
+            <li><a href="../test/polylinearTest.html">Polylinear Scale Line Chart</a></li>
+            <li><a href="../test/realTimeChartTest.html">Real Time Chart</a></li>
+        </ul>
+
+        <div id="show_wrapper"><iframe id="show"></iframe></div>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>debug page</title>
+    <meta charset='utf-8'>
+</head>
+<body>
+    <script>var exports = {};</script>
+    <script src='../dist/pbf-dev.js'></script>
+    <script src='data.js'></script>
+    <script src='vector_tile.js'></script>
+    <script>
+        function read(data) {
+            return Tile.read(new Pbf(data));
+        }
+        function write(tile) {
+            var pbf = new Pbf();
+            Tile.write(tile, pbf);
+            return pbf.finish();
+        }
+
+        var tile = read(data),
+            tileJSON = JSON.stringify(tile);
+
+        console.time('decode');
+        for (var i = 0; i < 10; i++) read(data);
+        console.timeEnd('decode');
+
+        console.time('encode');
+        for (var i = 0; i < 10; i++) write(tile);
+        console.timeEnd('encode');
+
+        console.time('JSON.parse');
+        for (var i = 0; i < 10; i++) JSON.parse(tileJSON);
+        console.timeEnd('JSON.parse');
+
+        console.time('JSON.stringify');
+        for (var i = 0; i < 10; i++) JSON.stringify(tile);
+        console.timeEnd('JSON.stringify');
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "component-emitter",
+  "description": "Event emitter",
+  "version": "1.2.1",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "component": {
+    "scripts": {
+      "emitter/index.js": "index.js"
+    }
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/component/emitter.git"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "files": ["index.js", "LICENSE"]
+
+,"_resolved": "https://registry.npmjs.org/component-emitter/-/component-emitter-1.2.1.tgz"
+,"_integrity": "sha1-E3kY1teCg/ffemt8WmPhQOaUJeY="
+,"_from": "component-emitter@1.2.1"
+}

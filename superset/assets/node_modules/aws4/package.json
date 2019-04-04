@@ -1,0 +1,75 @@
+{
+  "name": "aws4",
+  "version": "1.8.0",
+  "description": "Signs and prepares requests using AWS Signature Version 4",
+  "author": "Michael Hart <michael.hart.au@gmail.com> (http://github.com/mhart)",
+  "main": "aws4.js",
+  "keywords": [
+    "amazon",
+    "aws",
+    "signature",
+    "s3",
+    "ec2",
+    "autoscaling",
+    "cloudformation",
+    "elasticloadbalancing",
+    "elb",
+    "elasticbeanstalk",
+    "cloudsearch",
+    "dynamodb",
+    "kinesis",
+    "lambda",
+    "glacier",
+    "sqs",
+    "sns",
+    "iam",
+    "sts",
+    "ses",
+    "swf",
+    "storagegateway",
+    "datapipeline",
+    "directconnect",
+    "redshift",
+    "opsworks",
+    "rds",
+    "monitoring",
+    "cloudtrail",
+    "cloudfront",
+    "codedeploy",
+    "elasticache",
+    "elasticmapreduce",
+    "elastictranscoder",
+    "emr",
+    "cloudwatch",
+    "mobileanalytics",
+    "cognitoidentity",
+    "cognitosync",
+    "cognito",
+    "containerservice",
+    "ecs",
+    "appstream",
+    "keymanagementservice",
+    "kms",
+    "config",
+    "cloudhsm",
+    "route53",
+    "route53domains",
+    "logs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhart/aws4.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^2.4.5",
+    "should": "^8.2.2"
+  },
+  "scripts": {
+    "test": "mocha ./test/fast.js ./test/slow.js -b -t 100s -R list"
+  }
+
+,"_resolved": "https://registry.npmjs.org/aws4/-/aws4-1.8.0.tgz"
+,"_integrity": "sha512-ReZxvNHIOv88FlT7rxcXIIC0fPt4KZqZbOlivyWtXLt8ESx84zd3kMC6iK5jVeS2qt+g7ftS7ye4fi06X5rtRQ=="
+,"_from": "aws4@1.8.0"
+}

@@ -1,0 +1,37 @@
+@-moz-document regexp("(\d{0,15})") {
+  a {
+    color: red;
+  }
+}
+.custom-property {
+  --this: () => {
+    basically anything until final semi-colon;
+    even other stuff; // i\'m serious;
+  };
+  --that: () => {
+    basically anything until final semi-colon;
+    even other stuff; // i\'m serious;
+  };
+  --custom-color: #ff3333 #ff3333;
+  custom-color: #ff3333 #ff3333;
+}
+.var {
+  --fortran: read (*, *, iostat=1) radius, height;
+}
+@-moz-whatever (foo: "(" bam ")") {
+  bar: foo;
+}
+#selector,
+.bar,
+foo[attr="blah"] {
+  bar: value;
+}
+@media (min-width: 640px) {
+  .holy-crap {
+    this: works;
+  }
+}
+.test-comment {
+  --value: a /* { ; } */;
+  --comment-within: ( /* okay?; comment; */ );
+}

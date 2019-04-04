@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - "4.4.7"
+notifications:
+  email:
+    - dustin@dustindiaz.com
+
+script: NODE_ENV=test ./node_modules/.bin/mocha --reporter spec

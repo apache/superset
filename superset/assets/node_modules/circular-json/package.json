@@ -1,0 +1,41 @@
+{
+  "version": "0.3.3",
+  "name": "circular-json",
+  "description": "JSON does not handle circular references. This version does",
+  "license": "MIT",
+  "homepage": "https://github.com/WebReflection/circular-json",
+  "keywords": [
+    "JSON",
+    "circular",
+    "reference",
+    "recursive",
+    "recursion",
+    "parse",
+    "stringify"
+  ],
+  "generator": "https://github.com/WebReflection/gitstrap",
+  "author": {
+    "name": "Andrea Giammarchi",
+    "web": "http://webreflection.blogspot.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/WebReflection/circular-json.git"
+  },
+  "main": "./build/circular-json.node.js",
+  "scripts": {
+    "test": "istanbul cover test/circular-json.js",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "web": "$(sleep 2 && open http://0.0.0.0:7151/) & tiny-cdn run ./"
+  },
+  "devDependencies": {
+    "coveralls": "^2.13.0",
+    "istanbul": "^0.4.5",
+    "tiny-cdn": "^0.7.0",
+    "tressa": "^0.3.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/circular-json/-/circular-json-0.3.3.tgz"
+,"_integrity": "sha512-UZK3NBx2Mca+b5LsG7bY183pHWt5Y1xts4P3Pz7ENTwGVnJOUWbRb3ocjvX7hx9tq/yTAdclXm9sZ38gNuem4A=="
+,"_from": "circular-json@0.3.3"
+}

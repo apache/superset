@@ -1,0 +1,42 @@
+<!doctype html>
+<head>
+	<title>react-autosize-input umd example</title>
+	<link rel="stylesheet" href="example.css">
+</head>
+<body>
+	<div class="container">
+		<h1>React Autosize Input</h1>
+		<h2>Standalone example</h2>
+			<!-- the React application is loaded in the #example element -->
+		<div id="example"></div>
+		<div class="hint">
+			The component above is provided by the umd build, and React is loaded from <a href="https://unpkg.com/">unpkg</a>.
+		</div>
+		<div class="footer">
+			Copyright &copy; Jed Watson 2018. MIT Licensed.
+		</div>
+	</div>
+	<script src="https://unpkg.com/babel-standalone@6/babel.min.js" charset="utf-8"></script>
+	<script src="https://unpkg.com/react@15.6.1/dist/react.js"></script>
+	<script src="https://unpkg.com/react-dom@15.6.1/dist/react-dom.js"></script>
+	<script src="https://unpkg.com/prop-types@15.5.10/prop-types.js"></script>
+	<script src="../../dist/react-input-autosize.js"></script>
+	<script type="text/babel">
+		var Example = React.createClass({
+			getInitialState: function() {
+				return {
+					inputValue: ''
+				};
+			},
+			updateValue: function(event) {
+				this.setState({
+					inputValue: event.target.value
+				});
+			},
+			render: function() {
+				return <AutosizeInput autoFocus value={this.state.inputValue} onChange={this.updateValue} />
+			}
+		});
+		ReactDOM.render(<Example />, document.getElementById('example'));
+	</script>
+</body>

@@ -1,0 +1,112 @@
+{
+  "name": "extglob",
+  "description": "Extended glob support for JavaScript. Adds (almost) the expressive power of regular expressions to glob patterns.",
+  "version": "2.0.4",
+  "homepage": "https://github.com/micromatch/extglob",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Devon Govett (http://badassjs.com)",
+    "Isiah Meadows (https://www.isiahmeadows.com)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Matt Bierner (http://mattbierner.com)",
+    "Shinnosuke Watanabe (https://shinnn.github.io)"
+  ],
+  "repository": "micromatch/extglob",
+  "bugs": {
+    "url": "https://github.com/micromatch/extglob/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "array-unique": "^0.3.2",
+    "define-property": "^1.0.0",
+    "expand-brackets": "^2.1.4",
+    "extend-shallow": "^2.0.1",
+    "fragment-cache": "^0.2.1",
+    "regex-not": "^1.0.0",
+    "snapdragon": "^0.8.1",
+    "to-regex": "^3.0.1"
+  },
+  "devDependencies": {
+    "bash-match": "^1.0.2",
+    "for-own": "^1.0.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.1",
+    "helper-changelog": "^0.3.0",
+    "is-windows": "^1.0.1",
+    "micromatch": "^3.0.4",
+    "minimatch": "^3.0.4",
+    "minimist": "^1.2.0",
+    "mocha": "^3.5.0",
+    "multimatch": "^2.1.0"
+  },
+  "keywords": [
+    "bash",
+    "extended",
+    "extglob",
+    "glob",
+    "globbing",
+    "ksh",
+    "match",
+    "pattern",
+    "patterns",
+    "regex",
+    "test",
+    "wildcard"
+  ],
+  "lintDeps": {
+    "devDependencies": {
+      "files": {
+        "options": {
+          "ignore": [
+            "benchmark/**/*.js"
+          ]
+        }
+      }
+    }
+  },
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "related": {
+      "list": [
+        "braces",
+        "expand-brackets",
+        "expand-range",
+        "fill-range",
+        "micromatch"
+      ]
+    },
+    "helpers": [
+      "helper-changelog"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/extglob/-/extglob-2.0.4.tgz"
+,"_integrity": "sha512-Nmb6QXkELsuBr24CJSkilo6UHHgbekK5UiZgfE6UHD3Eb27YC6oD+bhcT+tJ6cl8dmsgdQxnWlcry8ksBIBLpw=="
+,"_from": "extglob@2.0.4"
+}

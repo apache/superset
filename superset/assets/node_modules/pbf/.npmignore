@@ -1,0 +1,3 @@
+coverage
+*.log
+.nyc_output

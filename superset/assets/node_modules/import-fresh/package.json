@@ -1,0 +1,52 @@
+{
+  "name": "import-fresh",
+  "version": "2.0.0",
+  "description": "Import a module while bypassing the cache",
+  "license": "MIT",
+  "repository": "sindresorhus/import-fresh",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava",
+    "heapdump": "optional-dev-dependency && node heapdump.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "require",
+    "cache",
+    "uncache",
+    "uncached",
+    "module",
+    "fresh",
+    "bypass"
+  ],
+  "dependencies": {
+    "caller-path": "^2.0.0",
+    "resolve-from": "^3.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "optional-dev-dependency": "^2.0.1",
+    "xo": "^0.18.2"
+  },
+  "optionalDevDependencies": {
+    "heapdump": "^0.3.7"
+  },
+  "xo": {
+    "rules": {
+      "import/no-extraneous-dependencies": "off"
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/import-fresh/-/import-fresh-2.0.0.tgz"
+,"_integrity": "sha1-2BNVwVYS04bGH53dOSLUMEgipUY="
+,"_from": "import-fresh@2.0.0"
+}

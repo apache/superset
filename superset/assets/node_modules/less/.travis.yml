@@ -1,0 +1,33 @@
+language: node_js
+cache:
+  directories:
+    - travis-phantomjs
+node_js:
+  - "9"
+  - "8"
+  - "6"
+before_install:
+  # from https://github.com/travis-ci/travis-ci/issues/3225#issuecomment-177592725
+  # and also from https://github.com/travis-ci/travis-ci/issues/3225#issuecomment-200965782
+  - phantomjs --version
+  - export PATH=$PWD/travis-phantomjs/phantomjs-2.1.1-linux-x86_64/bin:$PATH
+  - phantomjs --version
+  # Clear cache and download new copy of PhantomJS if the current version doesn't match 2.1.1.
+  - "if [ $(phantomjs --version) != '2.1.1' ]; then rm -rf $PWD/travis-phantomjs; mkdir -p $PWD/travis-phantomjs; fi"
+  - "if [ $(phantomjs --version) != '2.1.1' ]; then wget https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 -O $PWD/travis-phantomjs/phantomjs-2.1.1-linux-x86_64.tar.bz2; fi"
+  - "if [ $(phantomjs --version) != '2.1.1' ]; then tar -xvf $PWD/travis-phantomjs/phantomjs-2.1.1-linux-x86_64.tar.bz2 -C $PWD/travis-phantomjs; fi"
+  - phantomjs --version
+install:
+  - npm install -g grunt-cli
+  # node 0.10 & 0.12 have race condition issues when running custom install scripts
+  # this can cause phantomjs-prebuilt install script to fail with the error:
+  # <Cannot find module 'boom'>
+  # Seems related to: https://github.com/npm/npm/issues/8152
+  # using <travis_retry> solves this.
+  - travis_retry npm install
+env:
+  global:
+    - PHANTOMJS_CDNURL=http://cnpmjs.org/downloads
+    - secure: TrNVruWYaUK5ALga1y7wRY+MLjWJECUSCsBmKW5EUmIevOUxqHWu7M89FANKxstEeFRRAGH3QJbloRxnzIgh0U0ah5npE9XA1bYXGO5khoXeIyk7pNRfjIo8aEnJH1Vp8vWA6J6ovxdJ7lCFKEGvGKxGde50knVl7KFVVULlX2U=
+    - secure: Rzh+CEI7YRvvVkOruPE8Z0dkU0s13V6b6cpqbN72vxbJl/Jm5PUZkjTFJdkWJrW3ErhCKX6EC7XdGvrclqEA9WAqKzrecqCJYqTnw4MwqiAj6F9wqE/BqhoWg4xPxm0MK/7eJMvLCgjNpe+gc1CaeFJZkLSNWn6nOFke+vVlf9Q=
+sudo: false

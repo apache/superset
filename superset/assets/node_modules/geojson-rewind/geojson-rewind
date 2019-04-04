@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+var rewind = require('./'),
+    concat = require('concat-stream'),
+    fs = require('fs'),
+    sharkdown = require('sharkdown'),
+    argv = require('minimist')(process.argv.slice(2), {
+        boolean: 'counterclockwise'
+    });
+
+if (process.stdin.isTTY && !argv._[0]) {
+    process.stdout.write(sharkdown(fs.readFileSync(__dirname + '/HELP.md')));
+    process.exit(1);
+}
+
+(argv._.length ? fs.createReadStream(argv._[0]) : process.stdin).pipe(concat(convert));
+
+function convert(data) {
+    process.stdout.write(JSON.stringify(rewind(JSON.parse(data), argv.counterclockwise), argv));
+}

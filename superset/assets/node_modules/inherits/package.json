@@ -1,0 +1,33 @@
+{
+  "name": "inherits",
+  "description": "Browser-friendly inheritance fully compatible with standard node.js inherits()",
+  "version": "2.0.3",
+  "keywords": [
+    "inheritance",
+    "class",
+    "klass",
+    "oop",
+    "object-oriented",
+    "inherits",
+    "browser",
+    "browserify"
+  ],
+  "main": "./inherits.js",
+  "browser": "./inherits_browser.js",
+  "repository": "git://github.com/isaacs/inherits",
+  "license": "ISC",
+  "scripts": {
+    "test": "node test"
+  },
+  "devDependencies": {
+    "tap": "^7.1.0"
+  },
+  "files": [
+    "inherits.js",
+    "inherits_browser.js"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.3.tgz"
+,"_integrity": "sha1-Yzwsg+PaQqUC9SRmAiSA9CCCYd4="
+,"_from": "inherits@2.0.3"
+}

@@ -1,0 +1,22 @@
+syntax = "proto2";
+
+enum MessageType {
+     UNKNOWN = 0;
+     GREETING = 1;
+}
+
+message CustomType {
+}
+
+message Envelope {
+    MessageType type = 1;
+    string name = 2;
+    bool flag = 3;
+    float weight = 4;
+    int32 id = 5;
+    repeated string tags = 6;
+    repeated int32 numbers = 7;
+    bytes bytes = 8;
+    CustomType custom = 9;
+    repeated MessageType types = 10;
+}

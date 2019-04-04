@@ -1,0 +1,53 @@
+{
+  "name": "fsevents",
+  "version": "1.2.4",
+  "description": "Native Access to Mac OS-X FSEvents",
+  "main": "fsevents.js",
+  "dependencies": {
+    "nan": "^2.9.2",
+    "node-pre-gyp": "^0.10.0"
+  },
+  "os": [
+    "darwin"
+  ],
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "scripts": {
+    "install": "node install",
+    "prepublish": "if [ $(npm -v | head -c 1) -lt 3 ]; then exit 1; fi && npm dedupe",
+    "test": "tap ./test",
+    "node-pre-gyp": "node-pre-gyp"
+  },
+  "binary": {
+    "module_name": "fse",
+    "module_path": "./lib/binding/{configuration}/{node_abi}-{platform}-{arch}/",
+    "remote_path": "./v{version}/",
+    "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz",
+    "host": "https://fsevents-binaries.s3-us-west-2.amazonaws.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/strongloop/fsevents.git"
+  },
+  "keywords": [
+    "fsevents",
+    "mac"
+  ],
+  "author": "Philipp Dunkel <pip@pipobscure.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/strongloop/fsevents/issues"
+  },
+  "bundledDependencies": [
+    "node-pre-gyp"
+  ],
+  "homepage": "https://github.com/strongloop/fsevents",
+  "devDependencies": {
+    "tap": "~0.4.8"
+  }
+
+,"_resolved": "https://registry.npmjs.org/fsevents/-/fsevents-1.2.4.tgz"
+,"_integrity": "sha512-z8H8/diyk76B7q5wg+Ud0+CqzcAF3mBBI/bA5ne5zrRUUIvNkJY//D3BqyH571KuAC4Nr7Rw7CjWX4r0y9DvNg=="
+,"_from": "fsevents@1.2.4"
+}

@@ -1,0 +1,90 @@
+{
+  "name": "to-regex-range",
+  "description": "Pass two numbers, get a regex-compatible source string for matching ranges. Validated against more than 2.78 million test assertions.",
+  "version": "2.1.1",
+  "homepage": "https://github.com/micromatch/to-regex-range",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "micromatch/to-regex-range",
+  "bugs": {
+    "url": "https://github.com/micromatch/to-regex-range/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-number": "^3.0.0",
+    "repeat-string": "^1.6.1"
+  },
+  "devDependencies": {
+    "fill-range": "^3.1.1",
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.2.0",
+    "text-table": "^0.2.0",
+    "time-diff": "^0.3.1"
+  },
+  "keywords": [
+    "alpha",
+    "alphabetical",
+    "bash",
+    "brace",
+    "date",
+    "expand",
+    "expansion",
+    "glob",
+    "match",
+    "matches",
+    "matching",
+    "number",
+    "numerical",
+    "range",
+    "ranges",
+    "regex",
+    "sequence",
+    "sh",
+    "to",
+    "year"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "expand-range",
+        "fill-range",
+        "micromatch",
+        "repeat-element",
+        "repeat-string"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "helpers": [
+      "./examples.js"
+    ],
+    "reflinks": [
+      "0-5",
+      "0-9",
+      "1-5",
+      "1-9"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/to-regex-range/-/to-regex-range-2.1.1.tgz"
+,"_integrity": "sha1-fIDBe53+vlmeJzZ+DU3VWQFB2zg="
+,"_from": "to-regex-range@2.1.1"
+}

@@ -1,0 +1,4 @@
+RuntimeError: No matching definition was found for `.non-matching-mixin(x, y)` in {path}mixin-not-defined-2.less on line 6, column 3:
+5 x {
+6   .non-matching-mixin(x, y);
+7 }

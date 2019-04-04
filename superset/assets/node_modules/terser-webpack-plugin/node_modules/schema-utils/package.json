@@ -1,0 +1,45 @@
+{
+  "name": "schema-utils",
+  "version": "1.0.0",
+  "description": "webpack Validation Utils",
+  "main": "src/index.js",
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">= 4"
+  },
+  "scripts": {
+    "lint": "eslint --cache src test",
+    "test": "jest --env node --verbose --coverage",
+    "clean": "del-cli coverage",
+    "commits": "commitlint --from $(git rev-list --tags --max-count=1)",
+    "release": "npm run commits && standard-version"
+  },
+  "dependencies": {
+    "ajv": "^6.1.0",
+    "ajv-errors": "^1.0.0",
+    "ajv-keywords": "^3.1.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^7.0.0",
+    "@commitlint/config-conventional": "^7.0.0",
+    "@webpack-contrib/eslint-config-webpack": "^2.0.0",
+    "del-cli": "^1.0.0",
+    "eslint": "^5.0.0",
+    "eslint-plugin-import": "^2.0.0",
+    "eslint-plugin-prettier": "^2.0.0",
+    "jest": "^21.0.0",
+    "prettier": "^1.0.0",
+    "standard-version": "^4.0.0"
+  },
+  "author": "webpack Contrib (https://github.com/webpack-contrib)",
+  "bugs": "https://github.com/webpack-contrib/schema-utils/issues",
+  "homepage": "https://github.com/webpack-contrib/schema-utils",
+  "repository": "https://github.com/webpack-contrib/schema-utils",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/schema-utils/-/schema-utils-1.0.0.tgz"
+,"_integrity": "sha512-i27Mic4KovM/lnGsy8whRCHhc7VicJajAjTrYg11K9zfZXnYIt4k5F+kZkwjnrhKzLic/HLU4j11mjsz2G/75g=="
+,"_from": "schema-utils@1.0.0"
+}

@@ -1,0 +1,251 @@
+.slider {
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  &.slider-horizontal {
+    width: $slider-horizontal-width;
+    height: $slider-line-height;
+    .slider-track {
+      height: $slider-line-height/2;
+      width: 100%;
+      margin-top: -$slider-line-height/4;
+      top:  50%;
+      left: 0;
+    }
+    .slider-selection, .slider-track-low, .slider-track-high {
+      height: 100%;
+      top: 0;
+      bottom: 0;
+    }
+    .slider-tick,
+    .slider-handle {
+      margin-left: -$slider-line-height/2;
+      &.triangle {
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+        border-width: 0 $slider-line-height/2 $slider-line-height/2 $slider-line-height/2;
+        width: 0;
+        height: 0;
+        border-bottom-color: $slider-primary-bottom;
+        margin-top: 0;
+      }
+    }
+    .slider-tick-container {
+      white-space: nowrap;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
+    .slider-tick-label-container {
+      white-space: nowrap;
+      margin-top: $slider-line-height;
+      .slider-tick-label {
+        display: inline-block;
+        padding-top: $slider-line-height * 1.2;
+        text-align: center;
+      }
+    }
+    &.slider-rtl {
+      .slider-track {
+        left: initial;
+        right: 0;
+      }
+      .slider-tick,
+      .slider-handle {
+        margin-left: initial;
+        margin-right: -$slider-line-height/2;
+      }
+      .slider-tick-container {
+        left: initial;
+        right: 0;
+      }
+    }
+  }
+  &.slider-vertical {
+    height: $slider-vertical-height;
+    width: $slider-line-height;
+    .slider-track {
+      width: $slider-line-height/2;
+      height: 100%;
+      left: 25%;
+      top: 0;
+    }
+    .slider-selection {
+      width: 100%;
+      left: 0;
+      top: 0;
+      bottom: 0;
+    }
+    .slider-track-low, .slider-track-high {
+      width: 100%;
+      left: 0;
+      right: 0;
+    }
+    .slider-tick,
+    .slider-handle {
+      margin-top: -$slider-line-height/2;
+      &.triangle {
+        border-width: $slider-line-height/2 0 $slider-line-height/2 $slider-line-height/2;
+        width:  1px;
+        height: 1px;
+        border-left-color: $slider-primary-bottom;
+        margin-left: 0;
+      }
+    }
+    .slider-tick-label-container {
+      white-space: nowrap;
+      .slider-tick-label {
+        padding-left: $slider-line-height * .2;
+      }
+    }
+    &.slider-rtl {
+      .slider-track {
+        left: initial;
+        right: 25%;
+      }
+      .slider-selection {
+        left: initial;
+        right: 0;
+      }
+      .slider-tick,
+      .slider-handle {
+        &.triangle {
+          border-width: $slider-line-height/2 $slider-line-height/2 $slider-line-height/2 0;
+        }
+      }
+      .slider-tick-label-container {
+        .slider-tick-label {
+          padding-left: initial;
+          padding-right: $slider-line-height * .2;
+        }
+      }
+    }
+  }
+  &.slider-disabled {
+    .slider-handle {
+      @include slider_background-image($slider-gray-2, $slider-gray-1, mix($slider-gray-2, $slider-gray-1));
+    }
+    .slider-track {
+      @include slider_background-image($slider-gray-3, $slider-gray-4, mix($slider-gray-3, $slider-gray-4));
+      cursor: not-allowed;
+    }
+  }
+  input {
+    display: none;
+  }
+  .tooltip-inner {
+    white-space: nowrap;
+    max-width: none;
+  }
+  .tooltip {
+    pointer-events: none;
+
+    &.top {
+      margin-top: -36px;
+    }
+  }
+
+  .tooltip-inner {
+    white-space: nowrap;
+    max-width: none;
+  }
+
+  .hide {
+    display: none;
+  }
+}
+
+.slider-track {
+  @include slider_background-image($slider-gray-5, $slider-gray-6, mix($slider-gray-5, $slider-gray-6));
+  @include slider_box-shadow(inset 0 1px 2px rgba(0,0,0,0.1));
+  @include slider_border-radius($slider-border-radius);
+
+  position: absolute;
+  cursor: pointer;
+}
+
+.slider-selection {
+  @include slider_background-image($slider-gray-6, $slider-gray-5, mix($slider-gray-6, $slider-gray-5));
+  @include slider_box-shadow(inset 0 -1px 0 rgba(0,0,0,0.15));
+  @include slider_box-sizing(border-box);
+  @include slider_border-radius($slider-border-radius);
+
+  position: absolute;
+}
+.slider-selection.tick-slider-selection {
+  @include slider_background-image($slider-secondary-top, $slider-secondary-bottom, mix($slider-secondary-top, $slider-secondary-bottom));
+}
+
+.slider-track-low, .slider-track-high {
+  @include slider_box-sizing(border-box);
+  @include slider_border-radius($slider-border-radius);
+
+  position: absolute;
+  background: transparent;
+}
+
+.slider-handle {
+  @include slider_background-image($slider-primary-top, $slider-primary-bottom, mix($slider-primary-top, $slider-primary-bottom));
+  @include slider_box-shadow(inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05));
+
+  position: absolute;
+  top: 0;
+  width:  $slider-line-height;
+  height: $slider-line-height;
+  background-color: $slider-primary;
+  border: 0px solid transparent;
+  &:hover {
+    cursor: pointer;
+  }
+  &.round {
+    @include slider_border-radius($slider-line-height);
+  }
+  &.triangle {
+    background: transparent none;
+  }
+  &.custom {
+    background: transparent none;
+    &::before{
+      line-height: $slider-line-height;
+      font-size: 20px;
+      content: '\2605'; //unicode star character
+      color: $slider-unicode-color;
+    }
+  }
+}
+
+.slider-tick {
+  @include slider_background-image($slider-gray-5, $slider-gray-6, mix($slider-gray-5, $slider-gray-6));
+  @include slider_box-shadow(inset 0 -1px 0 rgba(0,0,0,0.15));
+  @include slider_box-sizing(border-box);
+
+  position: absolute;
+  cursor: pointer;
+  width: $slider-line-height;
+  height: $slider-line-height;
+  filter: none;
+  opacity: 0.8;
+  border: 0px solid transparent;
+
+  &.round {
+    border-radius: 50%;
+  }
+  &.triangle {
+    background: transparent none;
+  }
+  &.custom {
+    background: transparent none;
+    &::before {
+      line-height: $slider-line-height;
+      font-size: 20px;
+      content: '\2605'; //unicode star character
+      color: $slider-unicode-color;
+    }
+  }
+  &.in-selection {
+    @include slider_background-image($slider-secondary-top, $slider-secondary-bottom, mix($slider-secondary-top, $slider-secondary-bottom));
+    opacity: 1;
+  }
+}

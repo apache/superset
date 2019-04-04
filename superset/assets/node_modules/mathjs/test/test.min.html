@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>mathjs test</title>
+
+  <script src="../dist/math.min.js" type="text/javascript"></script>
+</head>
+<body>
+<p>
+  Use the mathjs library from the console...
+</p>
+<script>
+  function print (args) {
+    for (var i = 0; i < arguments.length; i++) {
+      document.write(arguments[i] + '');
+    }
+    document.write('<br>');
+  }
+
+  var complex1 = math.complex(3, -4);
+  print(complex1.toString());
+
+  print('sqrt(25) = ' + math.sqrt(25));
+  print('sqrt(' + complex1.toString() + ') = ' + math.sqrt(complex1));
+  print('sqrt(-4) = ' + math.sqrt(-4));
+
+  var parser = math.parser();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+    "name": "hammerjs",
+    "main": "hammer.js",
+    "ignore": [
+        "tests",
+        "src",
+        ".bowerrc",
+        ".gitignore",
+        ".jscsrc",
+        ".jshintrc",
+        ".travis.yml",
+        "component.json",
+        "Gruntfile.coffee",
+        "package.json"
+    ]
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>mathjs test</title>
+
+  <script src="../dist/math.js" type="text/javascript"></script>
+</head>
+<body>
+<p>
+  Use the mathjs library from the console...
+</p>
+<script>
+  // create an instance of math.js
+  math.config({
+    number: 'BigNumber'
+  });
+
+  function print (args) {
+    for (var i = 0; i < arguments.length; i++) {
+      document.write(arguments[i] + '');
+    }
+    document.write('<br>');
+  }
+
+  var complex1 = math.complex(3, -4);
+  print(complex1.toString());
+
+  print('sqrt(25) = ' + math.sqrt(25));
+  print('sqrt(' + complex1.toString() + ') = ' + math.sqrt(complex1));
+  print('sqrt(-4) = ' + math.sqrt(-4));
+
+  var parser = math.parser();
+
+  print(math.unit('0.01m').toString());
+  print(math.unit('1m').toString());
+  print(math.unit('10m').toString());
+  print(math.unit('100m').toString());
+  print(math.unit('500m').toString());
+  print(math.unit('800m').toString());
+  print(math.unit('1000m').toString());
+  print(math.unit('1100m').toString());
+
+  print(parser.eval('a=[1,2,3;4,5,6]'));
+  var a = parser.get('a');
+  //print(parser.eval('a[1,1]'));
+  print(parser.eval('a[2,1:2]'));
+  print(parser.eval('b=2.3'));
+  print(parser.eval('b + 2'));
+  print(parser.eval('0.1 + 0.2'));
+
+</script>
+</body>
+</html>

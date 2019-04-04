@@ -1,0 +1,64 @@
+<html>
+<head>
+  <title>Pi Machin</title>
+  <script src="../node_modules/decimal.js/decimal.js"></script>
+</head>
+<body>
+<script language="javascript">
+  Decimal.config({precision: 100});
+
+  // arctan(x) = x - x^3/3 + x^5/5 - x^7/7 + x^9/9 - ...
+  //           = x - x^2*x^1/3 + x^2*x^3/5 - x^2*x^5/7 + x^2*x^7/9 - ...
+  function arctan(x) {
+    var y = x;
+    var yPrev = NaN;
+    var x2 = x.times(x);
+    var num = x;
+    var sign = -1;
+
+    for (var k = 3; !y.equals(yPrev); k += 2) {
+      num = num.times(x2);
+
+      yPrev = y;
+      y = (sign > 0) ? y.plus(num.div(k)) : y.minus(num.div(k));
+      sign = -sign;
+    }
+
+    return y;
+  }
+
+  function pi() {
+    // Machin: Pi / 4 = 4 * arctan(1 / 5) - arctan(1/239)
+    // http://milan.milanovic.org/math/english/pi/machin.html
+
+    // we calculate pi with a few decimal places extra to prevent round off issues
+    var DecimalPlus = Decimal.constructor({precision: Decimal.precision + 4});
+    var pi4th = new DecimalPlus(4).times(arctan(new DecimalPlus(1).div(5)))
+        .minus(arctan(new DecimalPlus(1).div(239)));
+
+    // the final pi has the requested number of decimals
+    return new Decimal(4).times(pi4th);
+  }
+
+  console.time('calculation');
+
+  var calculatedPi = pi();
+
+  console.timeEnd('calculation');
+
+  var mathematicaPi = '3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664...';
+
+  document.write('<code>Calculated:&nbsp;&nbsp;' + calculatedPi + '</code><br>');
+  document.write('<code>Mathematica:&nbsp;' + mathematicaPi + '</code>');
+
+
+  /*
+  var mathematicaPi = '3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664...';
+
+  document.write('<code>Calculated:&nbsp;&nbsp;' + pi + '</code><br>');
+  document.write('<code>Mathematica:&nbsp;' + mathematicaPi + '</code>');
+*/
+
+</script>
+</body>
+</html>

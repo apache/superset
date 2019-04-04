@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>typed-function | basic usage</title>
+  <script src="../typed-function.js"></script>
+</head>
+<body>
+<script>
+  // create a typed function
+  var fn1 = typed({
+    'number, string': function (a, b) {
+      return 'a is a number, b is a string';
+    }
+  });
+
+  // use the function
+  document.write(fn1(2, 'foo') + '<br>'); // outputs 'a is a number, b is a string'
+</script>
+</body>
+</html>

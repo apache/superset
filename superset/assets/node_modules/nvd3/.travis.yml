@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+    - "0.12"
+before_install:
+    - "npm install -g bower"
+    - "npm install -g grunt-cli"
+    - "export DISPLAY=:99.0"
+    - "sh -e /etc/init.d/xvfb start"
+#   Meteor Tinytest support
+    - "curl https://install.meteor.com | /bin/sh"
+    - export PATH="$HOME/.meteor:$PATH"
+    - "npm install -g spacejam"
+install:
+    - "npm install"
+    - "bower install"
+
+script:
+    - "npm test"
+    - "spacejam test-packages ./"

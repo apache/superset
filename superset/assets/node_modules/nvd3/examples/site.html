@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Nvd3 - reusable charts for D3.js</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script>
+        $('body').ready(function() {
+            // preload iframe with message
+            var iframe = document.getElementById('show');
+            var iframedoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframedoc.body.innerHTML = ''
+                + '<br><br>'
+                + '<div style="text-align: center; color: #CCC; font-family: arial; font-size: 14px; font-weight:bold;">'
+                + 'Click the links above to load the example here'
+                + '</div>';
+
+            $('.showbases').click(function(evt){
+                evt.preventDefault();
+                evt.stopPropagation();
+                $(evt.target).fadeOut();
+                $('.chartlinks').stop().slideUp({complete: function() {
+                    $('.showcharts').fadeIn();
+                    $('.baselinks').slideDown();
+                }});
+            });
+            $('.showcharts').click(function(evt){
+                evt.preventDefault();
+                evt.stopPropagation();
+                $(evt.target).fadeOut();
+                $('.baselinks').stop().slideUp({complete: function() {
+                    $('.showbases').fadeIn();
+                    $('.chartlinks').slideDown();
+                }});
+            });
+            $('.examplelinks a').each(function(i, elem) {
+                $(elem).click(function(evt) {
+                    $('#show').prop('src', $(evt.target).prop('href'));
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    $('.examplelinks a').removeClass('selected');
+                    $(evt.target).addClass('selected');
+                    // add link to source
+                    var urlparts = $(evt.target).prop('href').split('/');
+                    var file = urlparts[urlparts.length - 1];
+                    var sourceurl = 'https://github.com/nvd3-community/nvd3/blob/gh-pages/examples/' + file;
+                    $('#tosource').prop('href', sourceurl).fadeIn();
+                    // also set link to view only the example
+                    $('#showonlythis').prop('href', $(evt.target).prop('href'));
+                    // done
+                    $('#example_options').attr('style', '');
+                    return false;
+                });
+            });
+        });
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+</head>
+<body>
+
+<header>
+    <h1>Nvd3</h1>
+    <p>A reusable chart library for d3.js</p>
+</header>
+
+<div id="banner">
+    <div>
+        <span id="logo"></span>
+
+        <a href="https://github.com/nvd3-community/nvd3" target="github" class="button fork"><strong>GitHub</strong></a>
+        <a href="site.html" class="button fork docs selected"><strong>Examples</strong></a>
+        <a href="documentation.html" class="button fork docs"><strong>Documentation</strong></a>
+        <div class="downloads">
+            <span>Downloads:</span>
+            <ul>
+                <li><a href="https://github.com/nvd3-community/nvd3/zipball/master" class="button">ZIP</a></li>
+                <li><a href="https://github.com/nvd3-community/nvd3/tarball/master" class="button">TAR</a></li>
+            </ul>
+        </div>
+    </div>
+</div><!-- end banner -->
+
+<div class="wrapper">
+    <nav>
+        <ul></ul>
+    </nav>
+    <section>
+        <h3>
+            Welcome to NVD3, reusable D3.js charts!
+        </h3>
+
+        <p>
+            View our examples below, and check out our repository or download our latest code
+            using the buttons above!
+        </p>
+
+        <div>
+            <a href="#" class="showcharts">Show Chart Examples</a>
+            <a href="#" class="showbases">Show Base Examples</a>
+        </div>
+        <div class="examplelinks chartlinks">
+            <a href="bulletChart.html">BulletChart</a> |
+            <a href="cumulativeLineChart.html">CumulativeLineChart</a> |
+            <a href="lineChart.html">lineChart</a> |
+            <a href="lineChartSVGResize.html">LineChartZoom</a> |
+            <a href="lineWithFocusChart.html">LineWithFocusChart</a> |
+            <a href="linePlusBarChart.html">LinePlusBarChart</a> |
+            <a href="discreteBarChart.html">DiscreteBarChart</a> |
+            <a href="historicalBarChart.html">HistoricalBarChart</a> |
+            <a href="TimeSeries.html">TimeSeries</a> |
+            <a href="multiBarChart.html">MultiBarChart</a> |
+            <a href="multiBarChart2.html">MultiBarChart2</a> |
+            <a href="multiBarHorizontalChart.html">MultiBarHorizontalChart</a> |
+            <a href="multiChart.html">MultiChart</a> |
+            <a href="donutChart.html">DonutCharts</a> |
+            <a href="pieChart.html">PieCharts</a> |
+            <a href="monitoringChart.html">MonitoringCharts</a> |
+            <a href="scatterChart.html">ScatterChart</a> |
+            <a href="scatterPlusLineChart.html">ScatterPlusLineChart</a> |
+            <a href="sparklinePlus.html">SparklinePlus</a> |
+            <a href="stackedAreaChart.html">StackedAreaChart</a> |
+            <a href="parallelCoordinates.html">parallelCoordinates</a> |
+            <a href="candlestickChart.html">CandlestickChart</a> |
+            <a href="ohlcChart.html">ohlcChart</a> |
+            <a href="sunburst.html">sunburst</a> |
+            <a href="boxPlot.html">boxPlot</a> |
+            <a href="boxPlotCustomModel.html">boxPlotCustomModel</a> |
+            <a href="forceDirected.html">forceDirected</a> 
+        </div>
+
+        <div class="examplelinks baselinks">
+            <a href="sparkline.html">Sparkline</a> |
+            <a href="scatter.html">Scatter</a> |
+            <a href="pie.html">Pie</a> |
+            <a href="legend.html">Legend</a> |
+            <a href="bullet.html">Bullet</a> |
+            <a href="line.html">Line</a> |
+            <a href="candlestick.html">Candlestick</a> |
+            <a href="ohlc.html">ohlc</a> |
+            <a href="stackedArea.html">StackedArea</a> |
+            <a href="tooltip.html">tooltip</a>
+        </div>
+
+        <div id="show_wrapper"><iframe id="show"></iframe></div>
+        <div id="example_options" style="visibility: hidden;">
+            <a target="source" id="tosource" href="#">View source for the example above!</a> |
+            <a target="alone" id="showonlythis" href="#">View Just This</a>
+        </div>
+
+    </section>
+</div>
+</body>
+</html>

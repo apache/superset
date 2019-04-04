@@ -1,0 +1,33 @@
+{
+  "name": "run-async",
+  "version": "2.3.0",
+  "description": "Utility method to run function either synchronously or asynchronously using the common `this.async()` style.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "engines": {
+    "node": ">=0.12.0"
+  },
+  "repository": "SBoudrias/run-async",
+  "keywords": [
+    "flow",
+    "flow-control",
+    "async"
+  ],
+  "files": [
+    "index.js"
+  ],
+  "author": "Simon Boudrias <admin@simonboudrias.com>",
+  "license": "MIT",
+  "dependencies": {
+    "is-promise": "^2.1.0"
+  },
+  "devDependencies": {
+    "mocha": "^3.1.2"
+  }
+
+,"_resolved": "https://registry.npmjs.org/run-async/-/run-async-2.3.0.tgz"
+,"_integrity": "sha1-A3GrSuC91yDUFm19/aZP96RFpsA="
+,"_from": "run-async@2.3.0"
+}

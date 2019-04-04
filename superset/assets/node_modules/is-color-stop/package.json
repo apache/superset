@@ -1,0 +1,48 @@
+{
+  "name": "is-color-stop",
+  "description": "Check if a string is CSS color stop",
+  "version": "1.1.0",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "nyc --reporter=lcov --reporter=text mocha",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "lint": "eslint --ext .js lib util ./index.js"
+  },
+  "devDependencies": {
+    "coveralls": "^2.13.1",
+    "eslint": "^4.3.0",
+    "eslint-config-airbnb": "^15.1.0",
+    "eslint-plugin-import": "^2.7.0",
+    "mocha": "^3.4.2",
+    "nyc": "^11.0.3"
+  },
+  "dependencies": {
+    "css-color-names": "^0.0.4",
+    "hex-color-regex": "^1.1.0",
+    "hsl-regex": "^1.0.0",
+    "hsla-regex": "^1.0.0",
+    "rgb-regex": "^1.0.1",
+    "rgba-regex": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pigcan/is-color-stop.git"
+  },
+  "keywords": [
+    "color-stop",
+    "is-color"
+  ],
+  "author": "pigcan <jiangjay818@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pigcan/is-color-stop/issues"
+  },
+  "homepage": "https://github.com/pigcan/is-color-stop#readme"
+
+,"_resolved": "https://registry.npmjs.org/is-color-stop/-/is-color-stop-1.1.0.tgz"
+,"_integrity": "sha1-z/9HGu5N1cnhWFmPvhKWe1za00U="
+,"_from": "is-color-stop@1.1.0"
+}

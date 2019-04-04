@@ -1,0 +1,17 @@
+mathjs      A+A         21 microseconds
+mathjs      A*A        288 microseconds
+mathjs      A'          23 microseconds
+mathjs      det(A)   10349 microseconds
+sylvester   A+A         20 microseconds
+sylvester   A*A        184 microseconds
+sylvester   A'          11 microseconds
+sylvester   det(A)     103 microseconds
+numericjs   A+A          6 microseconds
+numericjs   A*A         30 microseconds
+numericjs   A'           3 microseconds
+numericjs   det(A)      15 microseconds
+ndarray     A+A          6 microseconds
+ndarray     A*A         42 microseconds
+ndarray     A'           4 microseconds
+ndarray     det(A)      10 microseconds
+

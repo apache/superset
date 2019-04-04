@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <script src="lib/stream_layers.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, #chart1, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chart1" class='with-3d-shadow with-transitions'>
+    <svg></svg>
+</div>
+
+<script>
+
+    var test_data = stream_layers(3,10+Math.random()*100,.1).map(function(data, i) {
+        return {
+            key: 'Stream' + i,
+            values: data
+        };
+    });
+
+    console.log('td',test_data);
+
+    var negative_test_data = new d3.range(0,3).map(function(d,i) {
+        return {
+            key: 'Stream' + i,
+            values: new d3.range(0,11).map( function(f,j) {
+                return {
+                    y: 10 + Math.random()*100 * (Math.floor(Math.random()*100)%2 ? 1 : -1),
+                    x: j
+                }
+            })
+        };
+    });
+
+    var chart;
+    nv.addGraph(function() {
+        chart = nv.models.multiBarChart()
+            .barColor(d3.scale.category20().range())
+            .duration(300)
+            .margin({bottom: 100, left: 70})
+            .rotateLabels(45)
+            .groupSpacing(0.1)
+        ;
+
+        chart.reduceXTicks(false).staggerLabels(true);
+
+        chart.xAxis
+            .axisLabel("ID of Furry Cat Households")
+            .axisLabelDistance(35)
+            .showMaxMin(false)
+            .tickFormat(d3.format(',.6f'))
+        ;
+
+        chart.yAxis
+            .axisLabel("Change in Furry Cat Population")
+            .axisLabelDistance(-5)
+            .tickFormat(d3.format(',.01f'))
+        ;
+
+        chart.dispatch.on('renderEnd', function(){
+            nv.log('Render Complete');
+        });
+
+        d3.select('#chart1 svg')
+            .datum(negative_test_data)
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+
+        chart.dispatch.on('stateChange', function(e) {
+            nv.log('New State:', JSON.stringify(e));
+        });
+        chart.state.dispatch.on('change', function(state){
+            nv.log('state', JSON.stringify(state));
+        });
+
+        return chart;
+    });
+
+</script>
+</body>
+</html>

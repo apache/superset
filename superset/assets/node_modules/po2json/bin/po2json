@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+
+var po2json = require('../'),
+	fs = require('fs'),
+  assert = require('assert'),
+  argv = process.argv;
+
+var opts = require("nomnom")
+  .script('po2json')
+  .option('pretty', {
+    abbr: 'p',
+    flag: true,
+    help: 'pretty-print JSON'
+  })
+  .option('fuzzy', {
+    abbr: 'F',
+    flag: true,
+    help: 'include fuzzy messages'
+  })
+  .option('format', {
+    abbr: 'f',
+    default: 'raw',
+    help: 'output format, one of: raw, jed, jed1.x, mf (messageformat)'
+  })
+  .option('domain', {
+    abbr: 'd',
+    default: 'messages',
+    help: 'domain'
+  })
+  .option('fallback-to-msgid', {
+    flag: true,
+    help: 'Use msgid if translation is missing (nplurals must match)'
+  })
+  .option('input', {
+    position: 0,
+    required: true,
+    list: false,
+    help: 'input file'
+  })
+  .option('output', {
+    position: 1,
+    required: true,
+    list: false,
+    help: 'output file'
+  })
+  .parse();
+
+opts.stringify = true;
+
+var result = po2json.parseFileSync(opts.input, opts),
+    stream = fs.createWriteStream(opts.output, {});
+
+stream.write(result);

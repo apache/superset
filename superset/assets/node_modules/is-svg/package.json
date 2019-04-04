@@ -1,0 +1,48 @@
+{
+	"name": "is-svg",
+	"version": "3.0.0",
+	"description": "Check if a string or buffer is SVG",
+	"license": "MIT",
+	"repository": "sindresorhus/is-svg",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"svg",
+		"vector",
+		"graphics",
+		"image",
+		"img",
+		"pic",
+		"picture",
+		"type",
+		"detect",
+		"check",
+		"is",
+		"string",
+		"str",
+		"buffer"
+	],
+	"dependencies": {
+		"html-comment-regex": "^1.1.0"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/is-svg/-/is-svg-3.0.0.tgz"
+,"_integrity": "sha512-gi4iHK53LR2ujhLVVj+37Ykh9GLqYHX6JOVXbLAucaG/Cqw9xwdFOjDM2qeifLs1sF1npXXFvDu0r5HNgCMrzQ=="
+,"_from": "is-svg@3.0.0"
+}

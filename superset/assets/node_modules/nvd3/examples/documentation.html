@@ -1,0 +1,1010 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Nvd3 - reusable charts for D3.js</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.rawgit.com/isagalaev/highlight.js/8.4/src/styles/tomorrow.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/languages/javascript.min.js"></script>
+
+    <script>
+
+        function expandall(name) {
+            $('#ul_' + name).show().find("li").click();
+        }
+
+        function expandchart(name) {
+            $('#ul_' + name).toggle();
+        }
+
+        function parse_options(container, obj) {
+            var t = obj.name;
+            var extra = obj.note;
+
+            var op = $('<li>');
+            if (extra !== undefined) {
+                t += ' <span class="inherited">' + extra + '</span>';
+            }
+            op.addClass('option');
+            op.prop('name', obj.name);
+            op.html(t);
+            container.append(op);
+        }
+
+        function getProps(obj, key) {
+            var props = [];
+            if (obj.hasOwnProperty(key)) {
+                var _obj = obj[key];
+                if (typeof _obj === 'object') {
+                    props.push.apply(props, Object.keys(_obj));
+                }
+            }
+            return props;
+        }
+
+        $('body').ready(function () {
+            var charts = [
+                'pieChart',
+                'lineChart',
+                'parallelCoordinatesChart',
+                'scatterChart',
+                'stackedAreaChart',
+                'sparklinePlus',
+                'multiChart',
+                'multiBarHorizontalChart',
+                'multiBarChart',
+                'lineWithFocusChart',
+                'linePlusBarChart',
+                'historicalBarChart',
+                'discreteBarChart',
+                'cumulativeLineChart',
+                'bulletChart',
+                'ohlcBarChart',
+                'boxPlotChart',
+                'sunburstChart',
+                'candlestickBarChart'
+            ].sort();
+            var parts = [
+                'line',
+                'axis',
+                'bullet',
+                'scatter',
+                'ohlcBar',
+                'pie',
+                'historicalBar',
+                'multiBarHorizontal',
+                'multiBar',
+                'legend',
+                'tooltip',
+                'boxPlot',
+                'candlestickBar',
+                'sparkline',
+                'discreteBar',
+                'sunburst',
+                'parallelCoordinates'
+            ].sort();
+            var c = $('#optionlist');
+            var jump = $('#optionjump');
+            charts = charts.concat(parts);
+
+            // loop through chart options, build the list of options for each
+            for (var i in charts) {
+                var name = charts[i];
+                if (nv.models[name]) {
+                    var chart = nv.models[name]();
+
+                    // add the chart object name, and jump link to it
+                    c.append("<h3 class='option' id='" + name + "'>" + name + " <span class='expand'>[ <a href=\"javascript:expandchart('" + name + "')\">toggle</a> | <a href=\"javascript:expandall('" + name + "')\">toggle options</a> | <a href='#'>Top</a> ]</span></h3>");
+                    jump.append("<div><a href='#" + name + "'>" + name + "</a></div>");
+
+                    // build list of sub-components for this chart object
+                    var props = Object.getOwnPropertyNames(chart);
+                    var propdom = $('<div></div>').addClass('propdom');
+                    var proplist = {};
+                    var dispatchList = [];
+
+                    for (var p in props) {
+                        try {
+                            var prop = chart[props[p]];
+                            if ((prop instanceof Object) && !(prop instanceof Array) && prop._options) {
+                                proplist[props[p]] = props[p];
+                            }
+                        } catch(e) {}
+                    }
+
+                    // only add sub-component list if some exist.
+                    if (Object.keys(proplist).length > 0) {
+                        propdom.append($('<span class="label">Components: </span>'));
+                        var pstrings = [];
+                        for (var p in proplist) {
+                            pstrings.push('<span class="prop">' + p + '</span>');
+                        }
+                        propdom.append($(pstrings.join(', ')));
+                    }
+
+                    // add event dispatchers by the chart;
+                    dispatchList = getProps(chart, 'dispatch');
+                    if (dispatchList.length) {
+                        propdom.append($('<br/>'));
+                        propdom.append($('<span class="label">Events: </span>'));
+                        var dispatchString = dispatchList.map(function(dispatcherName) {
+                            return '<span class="event">' + dispatcherName + '</span>';
+                        }).join(' ');
+                        propdom.append(dispatchString);
+                    }
+
+                    if (propdom.children().length) {
+                        propdom.addClass('populated');
+                        c.append(propdom);
+                    }
+
+                    // build the list of options for this chart object
+                    var ul = $('<ul id="ul_' + name +'">');
+
+                    // collect all the options
+                    var alloptions = {};
+                    if (chart._options) {
+                        var ops = Object.getOwnPropertyNames(chart._options);
+                        for (var t in ops) {
+                            alloptions[ops[t]] = {name: ops[t]}
+                        }
+                    }
+                    if (chart._inherited) {
+                        for (var j2 in chart._inherited) {
+                            var op = chart._inherited[j2];
+                            if (chart._options[op] === undefined) {
+                                alloptions[op] = {name: op, note: '(inherited)'};
+                            }
+                        }
+                    }
+                    if (chart._d3options) {
+                        for (var j3 in chart._d3options) {
+                            var op2 = chart._d3options[j3];
+                            alloptions[op2] = {name: op2, note: '(inherited from D3)'}
+                        }
+                    }
+
+                    // now print the all out in alphabetical order
+                    var alpha = Object.keys(alloptions).sort();
+                    for (var j4 in alpha) {
+                        // ignore internal options (start with an underscore)
+                        if (alpha[j4].substring(0, 1) !== '_') {
+                            parse_options(ul, alloptions[alpha[j4]]);
+                        }
+                    }
+
+                    // append the list of options to the dom
+                    c.append(ul);
+                } else {
+                    console.log('Chart missing: ', name);
+                }
+            }
+
+            // set each option so if it's clicked, it will build and display the option information
+            $('.option').click(function(evt) {
+                var a = $(evt.target);
+                var name = a.prop('name');
+
+                // trigger only for li, not child dom
+                if (!a.is('li')) return;
+
+                if (a.find('.option-info').length) {
+                    a.removeClass('option-selected');
+                    a.find('.option-info').remove();
+                } else {
+                    a.addClass('option-selected');
+                    var info = '';
+                    if (option_info[name]) {
+
+
+
+                        var desc = option_info[name]['desc'];
+                        var def;
+                        // if defaultValueGetter exists, it is a function to pull the actual default value from an instance of the chart
+                        if (option_info[name]['defaultValueGetter']) {
+                            var chartName = a.parent().attr('id').substring(3); // first 3 chars are a 'ul_' appended to the chart name
+                            def = JSON.stringify(option_info[name]['defaultValueGetter'](nv.models[chartName]()), null, 1);
+                        } else {
+                            def = option_info[name]['default'];
+                        }
+                        var ex = option_info[name]['examples'];
+                        var refs = option_info[name]['refs'] || [];
+                        var example_obj = option_info[name]['example_object'] || 'chart';
+                        var examples = [];
+                        var inputs = [];
+
+                        // process examples
+                        for (var i in ex) {
+                            var e = ex[i];
+                            var etype = e instanceof Array ? 'array' : typeof e;
+                            if (inputs.indexOf(etype) < 0) {
+                                inputs.push(etype);
+                            }
+                            if (etype == 'object' || etype == 'array' || etype == 'string')
+                                e = JSON.stringify(e);
+                            if (etype == 'function') {
+                                // if function, remove the first 20 spaces in each line
+                                // due to indention in the info object
+                                e = e.toString().replace(/(\r\n|\n|\r)\s{16}/gm,'\n');
+                            }
+                            examples.push(example_obj + '.' + name + '(' + $('<div/>').text(e).html() + ')');
+                        }
+
+                        // build html of other option info
+                        if (desc) {
+                            info += "<div class='part'>Description:</div>";
+                            info += "<div>" + desc + "</div>";
+                            for (var r in refs) {
+                                info += '<div><a target="nvref" href="' + refs[r] + '">' + refs[r] + '</a></div>';
+                            }
+                        }
+                        if (inputs.length) {
+                            info += "<div class='part'>Input Type(s):</div>";
+                            info += "<div>" + inputs.join(' or ') + "</div>";
+                        }
+                        if (def !== undefined) {
+                            info += "<div class='part'>Default:</div>";
+                            info += "<div>" + def + "</div>";
+                        }
+                        if (examples.length) {
+                            info += "<div class='part'>Example(s):</div>";
+                            info += "<div class='example'><code class='javascript'>" + examples.join("</code><code class='javascript'>") + "</code></div>";
+                        }
+                    } else {
+                        info = 'No info for this option yet...';
+                    }
+                    a.append('<div class="option-info">' + info + '</div>');
+                    a.find('code').each(function(i, block) {
+                        hljs.highlightBlock(block);
+                    });
+                }
+            });
+        });
+    </script>
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+</head>
+<body>
+
+<header>
+    <h1>Nvd3</h1>
+    <p>A reusable chart library for d3.js</p>
+</header>
+
+<div id="banner">
+    <div>
+        <span id="logo"></span>
+
+        <a href="https://github.com/nvd3-community/nvd3" target="github" class="button fork"><strong>GitHub</strong></a>
+        <a href="site.html" class="button fork docs"><strong>Examples</strong></a>
+        <a href="documentation.html" class="button fork docs selected"><strong>Documentation</strong></a>
+        <div class="downloads">
+            <span>Downloads:</span>
+            <ul>
+                <li><a href="https://github.com/nvd3-community/nvd3/zipball/master" class="button">ZIP</a></li>
+                <li><a href="https://github.com/nvd3-community/nvd3/tarball/master" class="button">TAR</a></li>
+            </ul>
+        </div>
+    </div>
+</div><!-- end banner -->
+
+<div class="wrapper">
+    <nav>
+        <ul></ul>
+    </nav>
+    <section>
+        <h3>
+            NVD3 Documentation
+        </h3>
+
+        <p>
+            This page lists out all options available to the charts and is generated programatically using
+            the new options object model.  All options can be called as functions on the chart object
+            to get the option vaue (if no argument given) or to set the value.   Alternatively,
+            you can use the options() method on the chart object and pass in a dictionary of the
+            option names and values to set them all at once.
+        </p>
+
+        Example:
+        <pre>
+            var chart = nv.models.pieChart();
+            chart.width(500);
+            chart.title('stuff').titleOffset(-10);
+            chart.options({height: 500, donut: true});
+        </pre>
+        <h3>Shortcuts to Charts and Chart Parts</h3>
+        <div id="optionjump"></div>
+
+        <div style="height: 50px"></div>
+
+        <h3 class="option"><span class="expand all">[ <a href="javascript:$('#optionlist>ul').toggle()">toggle all</a> ]</span></h3>
+
+        <div id="optionlist"></div>
+
+    </section>
+</div>
+<!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
+
+<!--
+start option info
+Options for each chart type check this dictionary for info about the option.
+Each option can have a description, what the default value is (if any),
+and an example input list that is used to build what inputs are accepted
+as well as used to print out examples using those example inputs.
+-->
+<script>
+    var option_info = {
+        title: {
+            desc: "Text to include within the middle of a donut chart",
+            default: "Blank String",
+            examples: ['Customers']
+        },
+        titleOffset: {
+            desc: "Vertical offset for the donut chart title",
+            examples: [-10, 23]
+        },
+        color: {
+            desc: "Colors to use for the different data.  If an array is given, it is converted to a function automatically.",
+            default: "nv.utils.defaultColor()",
+            examples: [
+                ['#FF0000', '#00FF00', '#0000FF'],
+                function (d, i) {
+                    var colors = d3.scale.category20().range().slice(10);
+                    return colors[i % colors.length-1];
+                }
+            ]
+        },
+        showLegend: {
+            desc: "Whether to display the legend or not",
+            default: true,
+            examples: [true]
+        },
+        showControls: {
+            desc: "Whether to show extra controls or not.  Extra controls include things like making mulitBar charts stacked or side by side.",
+            default: true,
+            examples: [true]
+        },
+        tooltips: {
+            desc: "Deprecated.  Use chart.tooltip.enabled or chart.interactive to control if tooltips are enabled or not."
+        },
+        tooltipContent: {
+            desc: "Deprecated.  Use chart.tooltip.contentGenerator or chart.interactiveGuideline.tooltip.contentGenerator to control tooltip content."
+        },
+        noData: {
+            desc: "Message to display if no data is provided",
+            default: 'No Data Available.',
+            examples: ["There is no Data to display"]
+        },
+        duration: {
+            desc: "Duration in ms to take when updating chart.  For things like bar charts, each bar can animate by itself but the total time taken should be this value.",
+            default: 250,
+            examples: [1000]
+        },
+        defaultState: {
+            desc: "No longer used.  Use chart.dispatch.changeState(...) instead."
+        },
+        showLabels: {
+            desc: "Show pie/donut chart labels for each slice",
+            default: true,
+            examples: [true]
+        },
+        width: {
+            desc: "The width the graph or component created inside the SVG should be made.",
+            default: "The width of the container element (normally the svg itself)",
+            examples: [900]
+        },
+        height: {
+            desc: "The height the graph or component created inside the SVG should be made.",
+            default: "The height of the container element (normally the svg itself)",
+            examples: [600]
+        },
+        donut: {
+            desc: "Whether to make a pie graph a donut graph or not.",
+            default: false,
+            examples: [true]
+        },
+        margin: {
+            desc: "Object containing the margins for the chart or component.  You can specify only certain margins in the object to change just those parts.",
+            defaultValueGetter: function(chart){ return chart.margin(); },
+            examples: [
+                {top: 10, bottom: 10},
+                {left: 5, right: 5, top: 10, bottom: 10}
+            ]
+        },
+        growOnHover: {
+            desc: "For pie/donut charts, whether to increase slice radius on hover or not",
+            default: true,
+            examples: [true]
+        },
+        labelsOutside: {
+            desc: "Whether pie/donut chart labels should be outside the slices instead of inside them",
+            default: true,
+            examples: [true]
+        },
+        cornerRadius: {
+            desc: "D3 3.4+, For donut charts only, the corner radius of the slices.  Typically used with padAngle.",
+            default: false,
+            examples: [true]
+        },
+        padAngle: {
+            desc: "D3 3.4+, For donut charts only, the percent of the chart that should be spacing between slices.",
+            default: 0,
+            examples: [0.05]
+        },
+        labelThreshold: {
+            desc: "Pie/donut and Sunburst charts: The slice threshold size to not display the label because it would be too small of a space",
+            default: 0.02,
+            examples: [0.05]
+        },
+        startAngle: {
+            desc: "Function used to manage the starting angle of the pie/donut chart",
+            default: "Ignored unless set",
+            examples: [
+                function(d) {
+                    return d.startAngle/2 - Math.PI/2;
+                }
+            ]
+        },
+        endAngle: {
+            desc: "Function used to manage the ending angle of the pie/donut chart",
+            default: "Ignored unless set",
+            examples: [
+                function(d) {
+                    return d.endAngle/2 - Math.PI/2;
+                }
+            ]
+        },
+        labelType: {
+            desc: "pie/donut charts only: what kind of data to display for the slice labels.  Options are key, value, or percent. ",
+            default: 'key',
+            examples: ['key', 'value', 'percent']
+        },
+        x: {
+            desc: "Proxy function to return the X value so adjustments can be made if needed.  For pie/donut chart this returns the key for the slice.",
+            default: "function(d){ return d.x; }",
+            examples: [
+                function(d){
+                    return d.x;
+                }
+            ]
+        },
+        y: {
+            desc: "Proxy function to return the Y value so adjustments can be made if needed.  For pie/donut chart this returns the value for the slice.",
+            default: "function(d){ return d.y; }",
+            examples: [
+                function(d){
+                    // don't show negative values
+                    return d.y < 0 ? 0 : d.y;
+                }
+            ]
+        },
+        id: {
+            desc: "Applies the provided ID as part of the unique class name for the chart.  For tooltip, this value is read-only.  For charts, you can use this to specify custom CSS for particular charts.  For example, if you set the chart to have id 'woot', you can customize the CSS using the selector .nvd3.nv-chart-woot",
+            default: "A random ID is generated by default",
+            examples: [123, "chart56"]
+        },
+        showXAxis: {
+            desc: "Display or hide the X axis",
+            default: true,
+            examples: [false]
+        },
+        showYAxis: {
+            desc: "Display or hide the Y axis",
+            default: true,
+            examples: [false]
+        },
+        rightAlignYAxis: {
+            desc: "When only one Y axis is used, this puts the Y axis on the right side instead of the left.",
+            default: false,
+            examples: [true]
+        },
+        useInteractiveGuideline: {
+            desc: "Sets the chart to use a guideline and floating tooltip instead of requiring the user to hover over specific hotspots.  Turning this on will set the 'interactive' and 'useVoronoi' options to false to avoid conflicting.",
+            default: false,
+            examples: [true]
+        },
+        defined: {
+            desc: "A provided function that allows a line to be non-continuous when not defined.",
+            refs: ["https://github.com/mbostock/d3/wiki/SVG-Shapes#line_defined"],
+            default: "function(d,i) { return !isNaN(getY(d,i)) && getY(d,i) !== null }",
+            examples: [
+                function(d,i) {
+                    // returns false if Y value is non-numeric or null
+                    return !isNaN(getY(d,i)) && getY(d,i) !== null
+                }
+            ]
+        },
+        interpolate: {
+            desc: "controls the line interpolation between points, many options exist, see the D3 reference:",
+            refs: ['https://github.com/mbostock/d3/wiki/SVG-Shapes#line_interpolate'],
+            default: "linear",
+            examples: ["linear", "step"]
+        },
+        clipEdge: {
+            desc: "If true, masks lines within the X and Y scales using a clip-path",
+            default: false,
+            examples: [true]
+        },
+        isArea: {
+            desc: "Function to define if a line is a normal line or if it fills in the area.  Notice the default gets the value from the line's definition in data.  If a non-function is given, it the value is used for all lines.",
+            default: "function(d) { return d.area }",
+            examples: [
+                true,
+                function(d) {
+                    return !!d.myCustomAttribute;
+                }
+            ]
+        },
+        useVoronoi: {
+            desc: "Use voronoi diagram to select nearest point to display tooltip instead of requiring a hover over the specific point itself.  Setting this to false will also set clipVoronoi to false.",
+            refs: [
+                "https://github.com/mbostock/d3/wiki/Voronoi-Geom",
+                "http://bl.ocks.org/njvack/1405439",
+                "http://bl.ocks.org/mbostock/8033015"],
+            default: true,
+            examples: [false]
+        },
+        clipVoronoi: {
+            desc: "When useVoronoi is on, this masks each voronoi section with a circle to limit selection to smaller area.",
+            refs: [
+                "https://github.com/mbostock/d3/wiki/Voronoi-Geom",
+                "http://bl.ocks.org/njvack/1405439",
+                "http://bl.ocks.org/mbostock/8033015"],
+            default: true,
+            examples: [false]
+        },
+        showVoronoi: {
+            desc: "Displays the voronoi areas on the chart.  This is mostly helpful when debugging issues.",
+            refs: [
+                "https://github.com/mbostock/d3/wiki/Voronoi-Geom",
+                "http://bl.ocks.org/njvack/1405439",
+                "http://bl.ocks.org/mbostock/8033015"],
+            default: false,
+            examples: [true]
+        },
+        clipRadius: {
+            desc: "When useVoronoi and clipVoronoi are true, you can control the clip radius with this option.  Essentially this lets you set how far away from the actual point you can put the mouse for it to select the point.",
+            default: 25,
+            examples: [
+                20,
+                function(d) {
+                    return 20;
+                }
+            ]
+        },
+        xScale: {
+            desc: "Override the default scale type for the X axis",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear"],
+            default: "d3.scale.linear()"
+        },
+        yScale: {
+            desc: "Override the default scale type for the Y axis",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear"],
+            default: "d3.scale.linear()"
+        },
+        pointScale: {
+            desc: "Override the default scale type for the shapes used in the scatter plot. Scatter is also used to make the hover points on lines.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear"],
+            default: "d3.scale.linear()"
+        },
+        pointSize: {
+            desc: "Specifies the size of the points in a scatter.  Scatter is also used to make the hover points on lines.",
+            default: "function(d) { return d.size || 1}",
+            refs: ["https://github.com/mbostock/d3/wiki/SVG-Shapes#symbol_size"],
+            examples: [
+                0.5,
+                function(d) {
+                    // use function attached to the data to calculate size
+                    return d.calculateSymbolSize();
+                }
+            ]
+        },
+        forcePoint: {
+            desc: "Like forceX and forceY, this forces certain values onto the point scale",
+            default: "[]",
+            examples: [1,2,3,4]
+        },
+        pointDomain: {
+            desc: "Like xDomain and yDomain, this sets the range for the point scale.  Scatter is also used to make the hover points on lines.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_domain"],
+            default: "The scale is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        pointRange: {
+            desc: "Like xRange and yRange, this sets the range for the point scale.  Scatter is also used to make the hover points on lines.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_range"],
+            default: "The range is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        pointShape: {
+            desc: "Specify the shape of the points in a scatter.  Scatter is also used to make the hover points on lines.  You can also create your own symbols and set them onto nv.utils.symbolMap if you want, then just reference them by name like the others (see scatterGraph example for a demo)",
+            refs: ["https://github.com/mbostock/d3/wiki/SVG-Shapes#symbol_type"],
+            default: "function(d) { return d.shape || 'circle' }",
+            examples: [
+                'circle',
+                'cross',
+                function (d) {
+                    return d.calculateSymbolType();
+                }
+            ]
+        },
+        pointActive: {
+            desc: "Function used to determine if scatter points are active or not, returns false to denote them as inactive and true for active.",
+            default: "function(d) { return !d.notActive }",
+            examples: [
+                function(d) {
+                    // d has x, y, size, shape, and series attributes.
+                    // here, we disable all points that are not a circle
+                    return d.shape !== 'circle';
+                }
+            ]
+        },
+        xDomain: {
+            desc: "Defines the whole X scale's domain.  Using this will disable calculating the domain based on the data.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_domain"],
+            default: "The scale is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        yDomain: {
+            desc: "Defines the whole Y scale's domain.  Using this will disable calculating the domain based on the data.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_domain"],
+            default: "The scale is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        xRange: {
+            desc: "Override the X scale's range.  Using this will disable calculating the range based on the data and chart width/height.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_range"],
+            default: "The range is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        yRange: {
+            desc: "Override the Y scale's range.  Using this will disable calculating the range based on the data and chart width/height.",
+            refs: ["https://github.com/mbostock/d3/wiki/Quantitative-Scales#linear_range"],
+            default: "The range is dynamically calculated based on graph data",
+            examples: [
+                [-20, -10, 0, 10, 20],
+                [-1, -0.5, 0.5, 1]
+            ]
+        },
+        forceX: {
+            desc: "List of numbers to Force into the X scale (ie. 0, or a max / min, etc.).  This ensures the numbers are in the X domain but doesn't override the whole domain.  This option only applies if you have not overridden the whole domain with the xDomain option.",
+            default: "[]",
+            examples: [
+                [-50, 0, 50]
+            ]
+        },
+        forceY: {
+            desc: "List of numbers to Force into the Y scale (ie. 0, or a max / min, etc.).  This ensures the numbers are in the Y domain but doesn't override the whole domain.  This option only applies if you have not overridden the whole domain with the yDomain option.",
+            default: "[]",
+            examples: [
+                [-50, 0, 50]
+            ]
+        },
+        valueFormat: {
+            desc: "D3 Format object for the label of pie/donut, discrete bar and multibar charts.",
+            default: "d3.format(',.2f')"
+        },
+        donutRatio: {
+            desc: "Percent of pie radius to cut out of the middle to make the donut.  It is multiplied by the outer radius to calculate the inner radius, thus it should be between 0 and 1.",
+            default: "0.5",
+            examples: [0.75]
+        },
+        legendPosition: {
+            desc: "Position of the legend (top or right)",
+            default: "top",
+            examples: ["top", "right"]
+        },
+        labelSunbeamLayout: {
+            desc: "?",
+            default: false,
+            examples: [true]
+        },
+        interactive: {
+            desc: "A master flag for turning chart interaction on and off.  This overrides all tooltip, voronoi, and guideline options.",
+            default: true,
+            examples: [false]
+        },
+        interactiveUpdateDelay: {
+            desc: "Advanced option.  This is the delay in milliseconds before updating the interactive elements in a chart.  If set to 0, the interactive components are synchronously updated during the chart's update cycle.  If set to a larger value, then a timeout is created and the interactive elements are updated asynchronously. There is a mild performance advantage to using 0, while the default of 300 is intended to allow smoother animations.",
+            default: 300,
+            examples: [0,300]
+        },
+        staggerLabels: {
+            desc: "Makes the X labels stagger at different distances from the axis so they're less likely to overlap.",
+            default: false,
+            examples: [true]
+        },
+        showValues: {
+            desc: "Prints the Y values on the top of the bars.  Only recommended to use if there aren't many bars.",
+            default: false,
+            examples: [true]
+        },
+        showLastValue: {
+            desc: "Shows the last value in the sparkline to the right of the line.",
+            default: true,
+            examples: [false]
+        },
+        padData: {
+            desc: "?",
+            default: false,
+            examples: [true]
+        },
+        barColor: {
+            desc: "For bar charts, the 'color' option makes each bar a different color.  For multibar, this option lets you specific a color for each bar group to have the same color but differentiated by shading.",
+            default: "Not Enabled",
+            examples: [
+                ['#FF0000', '#00FF00', '#0000FF'],
+                function (d, i) {
+                    var colors = d3.scale.category20().range().slice(10);
+                    return colors[i % colors.length-1];
+                }
+            ]
+        },
+        rotateLabels: {
+            desc: "Rotates the X axis labels by the specified degree.",
+            default: 0,
+            examples: [90, -45]
+        },
+        legendLeftAxisHint: {
+            desc: "The extra text after the label in the legend that tells what axis the series belongs to, for any series on the left axis.",
+            default: " (left axis)",
+            examples: [" (L)", " [LEFT]"]
+        },
+        legendRightAxisHint: {
+            desc: "The extra text after the label in the legend that tells what axis the series belongs to, for any seris on the right axis.",
+            default: " (right axis)",
+            examples: [" (R)", " [RIGHT]"]
+        },
+        controlLabels: {
+            desc: "Object that defines the labels for control items in the graph.  For instance, in the stackedAreaChart, there are controls for making it stacked, expanded, or stream.  For stacked bar charts, there is stacked and grouped.",
+            default: "Depends on chart type",
+            examples: [
+                {stacked: "Stack It", stream: "Stream dat", expanded: "Xpand"},
+                {grouped: "Group em", stacked: "Stack em"}
+            ]
+        },
+        controlOptions: {
+            desc: "Override the labels for control items in the graph displayed",
+            default: "['Stacked', 'Stream', 'Expanded']",
+            examples: [
+                ['Stacked', 'Stream'],
+                ['Stacked', 'Expanded'],
+                ['Stream', 'Expanded'],
+            ]
+        },
+        groupSpacing: {
+            desc: "The padding between bar groups, this is passed as the padding attribute of rangeBands",
+            refs: ["https://github.com/mbostock/d3/wiki/Ordinal-Scales#ordinal_rangeBands"],
+            default: 0.1,
+            examples: [0.5]
+        },
+        padding: {
+            desc: "Specifies how much spacing there is between legend items.",
+            default: "28",
+            examples: ["40"]
+        },
+        arcsRadius: {
+            desc: "Specifies each slice size, by an inner and a outer radius. Values between 0 and 1.",
+            default: "[{inner: donutRatio, outer: 1}]",
+            examples: [{inner: 0.6, outer: 0.8}]
+        },
+        lineTension: {
+            desc: "Specifies each line tension. Values between 0 and 1.",
+            default: 1,
+            examples: [0.85]
+        },
+        dimensions: {
+            desc: "Deprecated. Use dimensionData instead. "
+        },
+        dimensionNames: {
+            desc: "Deprecated. Use dimensionData instead. "
+        },
+        dimensionFormats: {
+            desc: "Deprecated. Use dimensionData instead. "
+        },
+        dimensionData: {
+            desc: "Deprecated. Use dimensionData instead. ",
+            default: "[]",
+            examples: [
+            	[
+            	    {key:"P1",format: "0.2f", tooltip: "Parameter 1"},
+	                { key: "P2", format: "%", tooltip: "Parameter 2" }
+	            ]
+	        ]
+        },
+        displayBrush: {
+            desc: "Support brush on axis",
+            default: true,
+            examples: [false]
+        },
+        filters: {
+	    desc: "Contain all informations on active brush",
+            default: "[]",
+            examples: [
+            	[
+            		{dimension: "P1", extent: [0, 1]},
+			        {dimension: "P3", extent: [0.4, 0.8]}
+		        ]
+	        ]
+        },
+        gravity: {
+            desc: "Can be 'n','s','e','w'. Determines how tooltip is positioned.",
+            default: "w",
+            examples: ['n'],
+            example_object: 'chart.tooltip'
+        },
+        snapDistance: {
+            desc: "Tolerance allowed before tooltip is moved from its current position (creates 'snapping' effect)",
+            default: 0,
+            examples: [10],
+            example_object: 'chart.tooltip'
+        },
+        fixedTop: {
+            desc: "For tooltip: If not null, this fixes the top position of the tooltip.",
+            default: 'null',
+            examples: [50],
+            example_object: 'chart.tooltip'
+        },
+        chartContainer: {
+            desc: "For tooltip: Parent dom element of the SVG that holds the chart.  This will make the tooltip dom be created inside this container instead of on the document body.",
+            default: 'null',
+            example_object: 'chart.tooltip'
+        },
+        hidden: {
+            desc: "For tooltip: show or hide the tooltip by setting this to true or false.  Tooltips used to be created and destroyed, but now we re-used the element and set opacity to 1 or 0.",
+            default: 'false',
+            examples: [true],
+            example_object: 'chart.tooltip'
+        },
+        hideDelay: {
+            desc: "Delay in ms before the tooltip hides itself after a mouseout event.  A new mouseover event cancels the hide if within this timeout period.",
+            default: 400,
+            examples: [200],
+            example_object: 'chart.tooltip'
+        },
+        position: {
+            desc: "For tooltip: sets the top/left positioning for the tooltip.  Should be given an object with 'left' and/or 'top' attributes.  You can override just one, just like the 'margin' option on charts.",
+            default: "Starts off with {top: 0, left: 0}",
+            examples: [{top: 200, left: 300}, {left: 50}],
+            example_object: 'chart.tooltip'
+        },
+        contentGenerator: {
+            desc: "For tooltip: Function that generates the tooltip content html.  This replaces the 'tooltipContent' option that was on most charts.  Please note that the data passed this function is usually different depending on the chart, so you'll probably need to console.log() the input object.  Also, the data passed is always a single object now, so previous functions written for the tooltipContent option will have to be adjusted accordingly.",
+            default: "See contentGenerator function in tooltip.js",
+            examples: [function(obj, elem) { return JSON.stringify(obj)}],
+            example_object: 'chart.tooltip'
+        },
+        valueFormatter: {
+            desc: "For tooltip: formats the y axis value(s) in the tooltip",
+            default: "Uses the yAxis' tickFormat() option",
+            examples: [function(d) { return d > 0 ? d : 0; }],
+            example_object: 'chart.tooltip'
+        },
+        headerFormatter: {
+            desc: "For tooltip: formats the x axis value in the tooltip",
+            default: "Uses the xAxis' tickFormat() option",
+            examples: [function(d) { return d + ' monkeys' }],
+            example_object: 'chart.tooltip'
+        },
+        headerEnabled: {
+            desc: "For tooltip: show the x axis value in the tooltip or not (not valid for pie charts for instance)",
+            default: "true",
+            examples: [false],
+            example_object: 'chart.tooltip'
+        },
+        enabled: {
+            desc: "For tooltip: completely enables or disabled the tooltip",
+            default: "true",
+            examples: [false],
+            example_object: 'chart.tooltip'
+        },
+        tooltipElem: {
+            desc: "For tooltip: returns the dom element of the tooltip.  This is read-only, you cannot set this value."
+        },
+        mode: {
+            desc: "For sunburst only: specifies the mode of drawing the sunburst segments. Can be 'value' or 'count'. 'value' draws the segments according to the 'value' attribute of the leaf nodes, 'count' draws according to the amount of siblings a node has. 'size' is deprecated.",
+            default: "count",
+            refs: ["http://bl.ocks.org/kerryrodden/477c1bfb081b783f80ad"],
+            examples: ["value"]
+        },
+        groupColorByParent: {
+            desc: "For sunburst only: specifies wether the leaf elements of a parent get the same color as the parent or if they are colored individually.",
+            default: "true",
+            examples: [true, false]
+        },
+        showLabels: {
+            desc: "For sunburst only: specifies if labels are displayed. The labels are centered on the arcs. The actual output can be adjusted by specifying the 'labelFormat' function.",
+            default: "false",
+            examples: [true, false]
+        },
+        labelFormat: {
+            desc: "For sunburst only: you can alter the label output by providing a callback function. The function gets the data of the current arc as parameter. It expects you to return the plain text to be shown.",
+            default: "function(d){if(mode === 'count'){return d.name + ' #' + d.value}else{return d.name + ' ' + d.value}}",
+            examples: [function(d){ return d.name;}]
+        },
+        sort: {
+            desc: "For sunburst only: lets you specify the sort order of the arcs.",
+            default: "function(d1, d2){return d1.name > d2.name;}",
+            examples: [function(d1, d2){return d1.value > d2.value;}]
+        },
+        key: {
+            desc: "For sunburst only: you may specify how the elements are identified. The arc's data is passed into the provided function and expects an identifying string as return value. This is important when updating the chart with changed data.",
+            default: "function(d){return d.name;}",
+            examples: [function(d){return d._id;}]
+        },
+        switchYAxisOrder: {
+            desc: "If two Y axis are used, this option changes the order of both axis.",
+            default: "false",
+            examples: [true, false]
+        },
+        wrapLabels: {
+            desc: "Splits long X labels by new lines in order to prevent overlapping.",
+            default: false,
+            examples: [true]
+        },
+        undefinedValuesLabel: {
+            desc: "For parallel coordinate: Label displayed under the undefined values line.",
+            default: 'undefined values',
+            examples: ["values not defined"]
+        },
+        fontSize: {
+            desc: "Sets the font-size CSS style on axis labels.",
+            default: "undefined",
+            examples: ["12px", "1em"]
+        },
+        nanValue: {
+            desc: "For parallel coordinate: Text displayed in tooltip for NaN/Undefined values",
+            default: 'undefined',
+            examples: ["-"]
+        },
+        showMinMaxPoints: {
+            desc: "For sparklines: Toggle whether to highlight the minimum and maximum values with points",
+            default: true,
+            examples: [true, false]
+        },
+        showCurrentPoint: {
+            desc: "For sparklines: Toggle whether to highlight the current value with a point",
+            default: true,
+            examples: [true, false]
+        },
+        pointBorderColor: {
+            desc: "For scatter plot: colors the border of the different data points",
+            default: "Uses color attribute value",
+            examples: ['#FF0000', '#00FF00', '#0000FF']
+        },
+        syncBrushing: {
+            desc: "For focus: Toggle whether to constantly dispatch onBrush event when zooming or just when zoom end",
+            default: true,
+            examples: [true, false]
+        }
+    };
+</script>
+
+</body>
+</html>

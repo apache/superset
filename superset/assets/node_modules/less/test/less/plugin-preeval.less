@@ -1,0 +1,15 @@
+@plugin "./plugin/plugin-preeval";
+
+.two(@rules: {}) {
+    :root.two & {
+        @rules();
+    }
+}
+
+.one {
+    .two({
+        --foo: @replace !important;
+    });
+}
+
+@stop: end;

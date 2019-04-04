@@ -1,0 +1,62 @@
+{
+  "name": "deep-equal",
+  "version": "1.0.1",
+  "description": "node's assert.deepEqual algorithm",
+  "main": "index.js",
+  "directories": {
+    "lib": ".",
+    "example": "example",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "devDependencies": {
+    "tape": "^3.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/substack/node-deep-equal.git"
+  },
+  "keywords": [
+    "equality",
+    "equal",
+    "compare"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT",
+  "testling": {
+    "files": "test/*.js",
+    "browsers": {
+      "ie": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "ff": [
+        3.5,
+        10,
+        15
+      ],
+      "chrome": [
+        10,
+        22
+      ],
+      "safari": [
+        5.1
+      ],
+      "opera": [
+        12
+      ]
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/deep-equal/-/deep-equal-1.0.1.tgz"
+,"_integrity": "sha1-9dJgKStmDghO/0zbyfCK0yR0SLU="
+,"_from": "deep-equal@1.0.1"
+}

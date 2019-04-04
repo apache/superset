@@ -1,0 +1,71 @@
+{
+  "name": "cliui",
+  "version": "4.1.0",
+  "description": "easily create complex multi-column command-line-interfaces",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "standard",
+    "test": "nyc mocha",
+    "coverage": "nyc --reporter=text-lcov mocha | coveralls",
+    "release": "standard-version"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/yargs/cliui.git"
+  },
+  "config": {
+    "blanket": {
+      "pattern": [
+        "index.js"
+      ],
+      "data-cover-never": [
+        "node_modules",
+        "test"
+      ],
+      "output-reporter": "spec"
+    }
+  },
+  "standard": {
+    "ignore": [
+      "**/example/**"
+    ],
+    "globals": [
+      "it"
+    ]
+  },
+  "keywords": [
+    "cli",
+    "command-line",
+    "layout",
+    "design",
+    "console",
+    "wrap",
+    "table"
+  ],
+  "author": "Ben Coe <ben@npmjs.com>",
+  "license": "ISC",
+  "dependencies": {
+    "string-width": "^2.1.1",
+    "strip-ansi": "^4.0.0",
+    "wrap-ansi": "^2.0.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chalk": "^1.1.2",
+    "coveralls": "^2.11.8",
+    "mocha": "^3.0.0",
+    "nyc": "^10.0.0",
+    "standard": "^8.0.0",
+    "standard-version": "^3.0.0"
+  },
+  "files": [
+    "index.js"
+  ],
+  "engine": {
+    "node": ">=4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cliui/-/cliui-4.1.0.tgz"
+,"_integrity": "sha512-4FG+RSG9DL7uEwRUZXZn3SS34DiDPfzP0VOiEwtUWlE+AR2EIg+hSyvrIgUUfhdgR/UkAeW2QHgeP+hWrXs7jQ=="
+,"_from": "cliui@4.1.0"
+}

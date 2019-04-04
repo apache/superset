@@ -1,0 +1,21 @@
+{
+  "name": "lodash.memoize",
+  "version": "4.1.2",
+  "description": "The lodash method `_.memoize` exported as a module.",
+  "homepage": "https://lodash.com/",
+  "icon": "https://lodash.com/icon.svg",
+  "license": "MIT",
+  "keywords": "lodash-modularized, memoize",
+  "author": "John-David Dalton <john.david.dalton@gmail.com> (http://allyoucanleet.com/)",
+  "contributors": [
+    "John-David Dalton <john.david.dalton@gmail.com> (http://allyoucanleet.com/)",
+    "Blaine Bublitz <blaine.bublitz@gmail.com> (https://github.com/phated)",
+    "Mathias Bynens <mathias@qiwi.be> (https://mathiasbynens.be/)"
+  ],
+  "repository": "lodash/lodash",
+  "scripts": { "test": "echo \"See https://travis-ci.org/lodash/lodash-cli for testing details.\"" }
+
+,"_resolved": "https://registry.npmjs.org/lodash.memoize/-/lodash.memoize-4.1.2.tgz"
+,"_integrity": "sha1-vMbEmkKihA7Zl/Mj6tpezRguC/4="
+,"_from": "lodash.memoize@4.1.2"
+}

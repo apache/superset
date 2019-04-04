@@ -1,0 +1,27 @@
+{
+  "author": "Mikeal Rogers <mikeal.rogers@gmail.com> (http://www.futurealoof.com)",
+  "name": "oauth-sign",
+  "description": "OAuth 1 signing. Formerly a vendor lib in mikeal/request, now a standalone module.",
+  "version": "0.9.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "url": "https://github.com/mikeal/oauth-sign"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  },
+  "scripts": {
+    "test": "node test.js"
+  }
+
+,"_resolved": "https://registry.npmjs.org/oauth-sign/-/oauth-sign-0.9.0.tgz"
+,"_integrity": "sha512-fexhUFFPTGV8ybAtSIGbV6gOkSv8UtRbDBnAyLQw4QPKkgNlsH2ByPGtMUqdWkos6YCRmAqViwgZrJc/mRDzZQ=="
+,"_from": "oauth-sign@0.9.0"
+}

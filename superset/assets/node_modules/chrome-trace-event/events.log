@@ -1,0 +1,2 @@
+[{"ts":84716485545,"pid":21887,"tid":21887,"ph":"b","name":"doSomething","id":"abc"},
+{"ts":84717491639,"pid":21887,"tid":21887,"ph":"e","name":"doSomething","id":"abc"},

@@ -1,0 +1,40 @@
+{
+  "name": "lru-cache",
+  "description": "A cache object that deletes the least-recently-used items.",
+  "version": "4.1.5",
+  "author": "Isaac Z. Schlueter <i@izs.me>",
+  "keywords": [
+    "mru",
+    "lru",
+    "cache"
+  ],
+  "scripts": {
+    "test": "tap test/*.js --100 -J",
+    "snap": "TAP_SNAPSHOT=1 tap test/*.js -J",
+    "posttest": "standard test/*.js index.js",
+    "coveragerport": "tap --coverage-report=html",
+    "lintfix": "standard --fix test/*.js index.js",
+    "preversion": "npm test",
+    "postversion": "npm publish --tag=legacy",
+    "postpublish": "git push origin --all; git push origin --tags"
+  },
+  "main": "index.js",
+  "repository": "git://github.com/isaacs/node-lru-cache.git",
+  "devDependencies": {
+    "benchmark": "^2.1.4",
+    "standard": "^12.0.1",
+    "tap": "^12.1.0"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "pseudomap": "^1.0.2",
+    "yallist": "^2.1.2"
+  },
+  "files": [
+    "index.js"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-4.1.5.tgz"
+,"_integrity": "sha512-sWZlbEP2OsHNkXrMl5GYk/jKk70MBng6UU4YI/qGDYbgf6YbP4EvmqISbXCoJiRKs+1bSpFHVgQxvJ17F2li5g=="
+,"_from": "lru-cache@4.1.5"
+}

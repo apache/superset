@@ -1,0 +1,133 @@
+.nvtooltip {
+    position: absolute;
+    background-color: rgba(255,255,255,1.0);
+    color: rgba(0,0,0,1.0);
+    padding: 1px;
+    border: 1px solid rgba(0,0,0,.2);
+    z-index: 10000;
+    display: block;
+
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    text-align: left;
+    pointer-events: none;
+
+    white-space: nowrap;
+
+    user-select: none;
+}
+
+.nvtooltip {
+    background: rgba(255,255,255, 0.8);
+    border: 1px solid rgba(0,0,0,0.5);
+    border-radius: 4px;
+}
+
+/*Give tooltips that old fade in transition by
+    putting a "with-transitions" class on the container div.
+*/
+.nvtooltip.with-transitions, .with-transitions .nvtooltip {
+    transition: opacity 50ms linear;
+
+    transition-delay: 200ms;
+}
+
+.nvtooltip.x-nvtooltip,
+.nvtooltip.y-nvtooltip {
+    padding: 8px;
+}
+
+.nvtooltip h3 {
+    margin: 0;
+    padding: 4px 14px;
+    line-height: 18px;
+    font-weight: normal;
+    background-color: rgba(247,247,247,0.75);
+    color: rgba(0,0,0,1.0);
+    text-align: center;
+
+    border-bottom: 1px solid #ebebeb;
+
+    border-radius: 5px 5px 0 0;
+}
+
+.nvtooltip p {
+    margin: 0;
+    padding: 5px 14px;
+    text-align: center;
+}
+
+.nvtooltip span {
+    display: inline-block;
+    margin: 2px 0;
+}
+
+.nvtooltip table {
+    margin: 6px;
+    border-spacing:0;
+}
+
+
+.nvtooltip table td {
+    padding: 2px 9px 2px 0;
+    vertical-align: middle;
+}
+
+.nvtooltip table td.key {
+    font-weight: normal;
+}
+
+.nvtooltip table td.key.total {
+    font-weight: bold;
+}
+
+.nvtooltip table td.value {
+    text-align: right;
+    font-weight: bold;
+}
+
+.nvtooltip table td.percent {
+    color: darkgray;
+}
+
+.nvtooltip table tr.highlight td {
+    padding: 1px 9px 1px 0;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-top-style: solid;
+    border-top-width: 1px;
+}
+
+.nvtooltip table td.legend-color-guide div {
+    width: 8px;
+    height: 8px;
+    vertical-align: middle;
+}
+
+.nvtooltip table td.legend-color-guide div {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #999;
+}
+
+.nvtooltip .footer {
+    padding: 3px;
+    text-align: center;
+}
+
+.nvtooltip-pending-removal {
+    pointer-events: none;
+    display: none;
+}
+
+
+/****
+Interactive Layer
+*/
+.nvd3 .nv-interactiveGuideLine {
+    pointer-events:none;
+}
+
+.nvd3 line.nv-guideline {
+    stroke: #ccc;
+}

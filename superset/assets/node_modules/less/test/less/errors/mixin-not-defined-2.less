@@ -1,0 +1,7 @@
+.non-matching-mixin(@a @b) {
+  args: @a @b;  
+}
+
+x {
+  .non-matching-mixin(x, y);
+}

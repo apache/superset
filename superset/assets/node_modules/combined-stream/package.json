@@ -1,0 +1,29 @@
+{
+  "author": "Felix Geisendörfer <felix@debuggable.com> (http://debuggable.com/)",
+  "name": "combined-stream",
+  "description": "A stream that emits multiple other streams one after another.",
+  "version": "1.0.7",
+  "homepage": "https://github.com/felixge/node-combined-stream",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/felixge/node-combined-stream.git"
+  },
+  "main": "./lib/combined_stream",
+  "scripts": {
+    "test": "node test/run.js"
+  },
+  "engines": {
+    "node": ">= 0.8"
+  },
+  "dependencies": {
+    "delayed-stream": "~1.0.0"
+  },
+  "devDependencies": {
+    "far": "~0.0.7"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/combined-stream/-/combined-stream-1.0.7.tgz"
+,"_integrity": "sha512-brWl9y6vOB1xYPZcpZde3N9zDByXTosAeMDo4p1wzo6UMOX4vumB+TP1RZ76sfE6Md68Q0NJSrE/gbezd4Ul+w=="
+,"_from": "combined-stream@1.0.7"
+}

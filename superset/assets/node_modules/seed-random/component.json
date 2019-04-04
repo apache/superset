@@ -1,0 +1,13 @@
+{
+  "name": "seed-random",
+  "repo": "ForbesLindesay/seed-random",
+  "description": "Generate random numbers with a seed, useful for reproducible tests",
+  "version": "2.2.0",
+  "keywords": [],
+  "dependencies": {},
+  "development": {},
+  "license": "MIT",
+  "scripts": [
+    "index.js"
+  ]
+}

@@ -1,0 +1,1760 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"read",
+				"readTime"
+			],
+			[
+				"write",
+				"writeTime"
+			],
+			[
+				"tota",
+				"totalTime"
+			],
+			[
+				"total",
+				"totalSize"
+			],
+			[
+				"start",
+				"startPos"
+			],
+			[
+				"num",
+				"numBytes"
+			],
+			[
+				"cop",
+				"copyWithin"
+			],
+			[
+				"code",
+				"codePoint"
+			],
+			[
+				"encode",
+				"encodeUtf8"
+			],
+			[
+				"defau",
+				"defaults_implicit.proto"
+			],
+			[
+				"enum",
+				"enumValues"
+			],
+			[
+				"enu",
+				"enumValues"
+			],
+			[
+				"writeRaw",
+				"writeRawString"
+			],
+			[
+				"new",
+				"newStacks"
+			],
+			[
+				"bucket",
+				"bucketsInOrder"
+			],
+			[
+				"depe",
+				"dependenciesLoaded"
+			],
+			[
+				"buck",
+				"bucketIcons"
+			],
+			[
+				"spri",
+				"spriteLoaded"
+			],
+			[
+				"dpe",
+				"dependentBuckets"
+			],
+			[
+				"news",
+				"newIcons"
+			],
+			[
+				"bucke",
+				"bucketsInOrder"
+			],
+			[
+				"prot",
+				"prototype"
+			],
+			[
+				"Sym",
+				"SymbolBucket"
+			],
+			[
+				"upda",
+				"updateStyle"
+			],
+			[
+				"rot",
+				"rotationMatrix"
+			],
+			[
+				"comp",
+				"compareCenterDist"
+			],
+			[
+				"cent",
+				"centerDist"
+			],
+			[
+				"cen",
+				"centerDist"
+			],
+			[
+				"cover",
+				"covering"
+			],
+			[
+				"ord",
+				"orderedIDs"
+			],
+			[
+				"com",
+				"compareKeyZoom"
+			],
+			[
+				"or",
+				"ordered"
+			],
+			[
+				"text",
+				"textFeatures"
+			],
+			[
+				"tet",
+				"textFeatures"
+			],
+			[
+				"attr",
+				"attrubute"
+			],
+			[
+				"Attr",
+				"AttributeType"
+			],
+			[
+				"buf",
+				"bufferOptions"
+			],
+			[
+				"buffer",
+				"bufferset"
+			],
+			[
+				"out",
+				"outlineElementOptions"
+			],
+			[
+				"att",
+				"attribType"
+			],
+			[
+				"vert",
+				"vertex"
+			],
+			[
+				"vr",
+				"vertex"
+			],
+			[
+				"ver",
+				"vertexOptions"
+			],
+			[
+				"item",
+				"itemSize"
+			],
+			[
+				"set",
+				"setAttribPointers"
+			],
+			[
+				"attrib",
+				"attributes"
+			],
+			[
+				"place",
+				"placementZoom"
+			],
+			[
+				"atr",
+				"attributeNames"
+			],
+			[
+				"arg",
+				"argNames"
+			],
+			[
+				"feature",
+				"featuresAt"
+			],
+			[
+				"clie",
+				"clientY"
+			],
+			[
+				"_onC",
+				"_onContextMenu"
+			],
+			[
+				"tile",
+				"tileExtent"
+			],
+			[
+				"load",
+				"loadGeometry"
+			],
+			[
+				"colli",
+				"collisionTile"
+			],
+			[
+				"coor",
+				"coordinates"
+			],
+			[
+				"includ",
+				"includeGeometry"
+			],
+			[
+				"fea",
+				"features"
+			],
+			[
+				"fling",
+				"flingDuration"
+			],
+			[
+				"inert",
+				"inertiaMaxSpeed"
+			],
+			[
+				"iner",
+				"inertiaMaxSpeed"
+			],
+			[
+				"_zoo",
+				"_zoomTimeout"
+			],
+			[
+				"_zoom",
+				"_zoomIn"
+			],
+			[
+				"_on",
+				"_onDblClick"
+			],
+			[
+				"origin",
+				"originalEvent"
+			],
+			[
+				"fn",
+				"function"
+			],
+			[
+				"inte",
+				"interaction"
+			],
+			[
+				"_o",
+				"_onDblClick"
+			],
+			[
+				"_onMo",
+				"_onMove"
+			],
+			[
+				"_onTo",
+				"_onTouchEnd"
+			],
+			[
+				"_onTouch",
+				"_onTouchMove"
+			],
+			[
+				"add",
+				"addEventListener"
+			],
+			[
+				"box",
+				"boxZoom"
+			],
+			[
+				"_onMouse",
+				"_onMouseUp"
+			],
+			[
+				"get",
+				"getCanvas"
+			],
+			[
+				"user",
+				"userAgent"
+			],
+			[
+				"prev",
+				"preventDefault"
+			],
+			[
+				"_upda",
+				"_updateTransform"
+			],
+			[
+				"_remove",
+				"_removeAllTiles"
+			],
+			[
+				"_reset",
+				"_resetAll"
+			],
+			[
+				"_update",
+				"_updateTransform"
+			],
+			[
+				"pane",
+				"panePos"
+			],
+			[
+				"fun",
+				"function"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "test/pbf.test.js",
+			"settings":
+			{
+				"buffer_size": 13280,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "index.js",
+			"settings":
+			{
+				"buffer_size": 19686,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "README.md",
+			"settings":
+			{
+				"buffer_size": 13017,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "\n15:00 - Plenary Chamber - osm2vectortiles guys\n15:30 - meh\n\n16:30 - meh keynote from IBM\n17:00 - Sol Katz award\n17:30 - closing\n18:00 - beer",
+			"settings":
+			{
+				"buffer_size": 141,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bench/bench-tiles.js",
+			"settings":
+			{
+				"buffer_size": 1412,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "package.json",
+			"settings":
+			{
+				"buffer_size": 1639,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bin/pbf",
+			"settings":
+			{
+				"buffer_size": 521,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bench/bench.js",
+			"settings":
+			{
+				"buffer_size": 1184,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bench/bench.html",
+			"settings":
+			{
+				"buffer_size": 1127,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bench/vector_tile.js",
+			"settings":
+			{
+				"buffer_size": 3960,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "compile.js",
+			"settings":
+			{
+				"buffer_size": 9930,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 277.0,
+		"last_filter": "java",
+		"selected_items":
+		[
+			[
+				"java",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"jav",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"spa",
+				"Indentation: Convert to Spaces"
+			],
+			[
+				"pretty",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"space",
+				"Indentation: Convert to Spaces"
+			],
+			[
+				"spac",
+				"Indentation: Convert to Spaces"
+			],
+			[
+				"mark",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"glsl",
+				"Set Syntax: OpenGL SL"
+			],
+			[
+				"in",
+				"Package Control: Install Package"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"install ",
+				"Package Control: Install Package"
+			],
+			[
+				"packa",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 467.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = 'eb2297e1a458f27d836c04bb0cbaf282' + 'd0e7a3098092775ccb37ca9d6b2e4b7d'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/mourner/projects/pbf",
+		"/Users/mourner/projects/pbf/bench",
+		"/Users/mourner/projects/pbf/bin",
+		"/Users/mourner/projects/pbf/temp"
+	],
+	"file_history":
+	[
+		"/Users/mourner/projects/pbf/perf.log",
+		"/Users/mourner/projects/pbf/bench/bench-tiles.js",
+		"/Users/mourner/projects/pbf/test/buffer.test.js",
+		"/Users/mourner/projects/pbf/buffer.js",
+		"/Users/mourner/projects/pbf/bench/vector_tile.js",
+		"/Users/mourner/projects/pbf/bench/bench.js",
+		"/Users/mourner/projects/pbf/LICENSE",
+		"/Users/mourner/projects/pbf/uniq.js",
+		"/Users/mourner/projects/pbf/test/pbf.test.js",
+		"/Users/mourner/projects/pbf/index.js",
+		"/Users/mourner/projects/pbf/test/compile.test.js",
+		"/Users/mourner/projects/pbf/test/fixtures/defaults.proto",
+		"/Users/mourner/projects/pbf/test/fixtures/defaults_implicit.proto",
+		"/Users/mourner/projects/pbf/compile.js",
+		"/Users/mourner/projects/pbf/package.json",
+		"/Users/mourner/projects/pbf/README.md",
+		"/Users/mourner/projects/pbf/testbuf.js",
+		"/Users/mourner/projects/pbf/debug.js",
+		"/Users/mourner/projects/pbf/.gitignore",
+		"/Users/mourner/projects/pbf/.travis.yml",
+		"/Users/mourner/projects/pbf/bin/pbf",
+		"/Users/mourner/projects/mapbox-gl-js/js/style/animation_loop.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/dispatcher.js",
+		"/Users/mourner/projects/mapbox-gl-js/debug/index.html",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/actor.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/source.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/style/style.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/worker.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/browser/browser.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/line_atlas.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/resolve_text.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/worker_tile.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/browser/dispatcher.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/geo/transform.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/circle_bucket.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/fill_bucket.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer_set.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/geo/transform.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_circle.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/line_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/element_groups.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/data/symbol_bucket.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/data/line_bucket.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/data/fill_bucket.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/data/create_bucket.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/tile.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_fill.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_line.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_vertices.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/symbol_bucket.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/buffer/buffer.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_symbol.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/collision_box_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/draw_collision_debug.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/line_bucket.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/symbol_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/outline_element_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/triangle_element_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/fill_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/circle_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/glyph_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/line_element_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/buffer_set.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/buffer/icon_vertex_buffer.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/buffer/fill_vertex_buffer.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/buffer/icon_vertex_buffer.js",
+		"/Users/mourner/projects/mapbox-gl-js/bench/bucket-stats/site.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/gl_util.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/util.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/shaders.js",
+		"/Users/mourner/projects/mapbox-gl-js/shaders/sdf.fragment.glsl",
+		"/Users/mourner/projects/mapbox-gl-js/shaders/sdf.vertex.glsl",
+		"/Users/mourner/projects/mapbox-gl-js/shaders/icon.vertex.glsl",
+		"/Users/mourner/projects/mapbox-gl-js/shaders/icon.fragment.glsl",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/interaction.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/browser/dom.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/evented.js",
+		"/Users/mourner/projects/mapbox-gl-js/package.json",
+		"/Users/mourner/projects/mapbox-gl-js/README.md",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/canvas.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/data/feature_tree.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/drag_pan.js",
+		"/Users/mourner/projects/mapbox-gl-js/debug/site.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/ui/map.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/debug/streets-v8.json",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/tile_pyramid.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/render/painter.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/feature_tree.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/lib/debugtext.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/util/util.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/ui/camera.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/.gitignore",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/vector_tile_source.js",
+		"/Users/mourner/projects/mapbox-gl-js/debug/featuresIn.html",
+		"/Users/mourner/projects/mapbox-gl-js/test/render.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/get_anchors.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/quads.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/collision_tile.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/geo/coordinate.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/tile_coord.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/source/geojson_source.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/popup.js",
+		"/Users/mourner/projects/mapbox-gl-js/CHANGELOG.md",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/browser/ajax.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/pinch.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/control/navigation.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/camera.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/data/create_bucket.js",
+		"/Users/mourner/projects/mapbox-gl-js/docs/_posts/examples/3400-01-05-featuresat.html",
+		"/Users/mourner/projects/mapbox-gl-js/js/geo/lng_lat.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/box_zoom.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/scroll_zoom.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/drag_rotate.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/dblclick_zoom.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/ajax.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/map.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/style/style_batch.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/style/style_declaration.js",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/style/style.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/ui/handler/keyboard.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/check_max_angle.js",
+		"/Users/mourner/projects/mapbox-gl-js/dist/mapbox-gl.css",
+		"/Users/mourner/projects/mapbox-gl-js/js/style/reference.js",
+		"/Users/mourner/projects/mapbox-gl-js/.eslintrc",
+		"/Users/mourner/projects/mapbox-gl-js/test/js/source/vector_tile_source.test.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/util/mru_cache.js",
+		"/Users/mourner/projects/mapbox-gl-js/js/symbol/clip_line.js"
+	],
+	"find":
+	{
+		"height": 48.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"3.0",
+			"1e6",
+			"protocol-buffers",
+			"Proto compiler: ",
+			"varint64",
+			"readVarintRemainder",
+			"readVarint64",
+			"buf",
+			"readvarint",
+			"GrowArrayElementsStub",
+			"readVarint()",
+			"readVarint",
+			"'true'",
+			"publishStats",
+			"totalTime",
+			"totalSize",
+			"trampo",
+			".readvarint(",
+			"readpackedVarint",
+			"readvarint",
+			"this.readVarint()",
+			"readvarint",
+			"readfields",
+			"ArgumentsAdaptorTrampoline",
+			"false",
+			"readFields",
+			"ArgumentsAdaptorTrampoline",
+			"readfields",
+			"buf",
+			"numBytes",
+			"end",
+			"start",
+			"compileFieldRead",
+			"<<<",
+			"length",
+			"bytes",
+			"reallocForRawMessage",
+			"writeUtf8",
+			"bytes.push",
+			"writeUtf",
+			"codePoint",
+			"codepoint",
+			"codePoint",
+			"codepoint",
+			"codePoint",
+			"tempCodePoint",
+			"fourthByte",
+			"thirdByte",
+			"secondByte",
+			"firstByte",
+			"buffer.js ",
+			"buffer",
+			"buf.write(",
+			"utf8Length",
+			"this",
+			"res",
+			"end",
+			"start",
+			"tostring",
+			"copy",
+			"readInt32",
+			"writeInt32",
+			"writeuint32",
+			"readint",
+			"readuint",
+			"this",
+			"readuint32le",
+			"readUInt32LE",
+			"writeUInt32LE",
+			"readUInt32LE",
+			"writefloat",
+			"buf.slice",
+			".slice",
+			"writefloat",
+			"readdouble",
+			"readfloat",
+			"this",
+			"readfloat",
+			"LE(",
+			"le",
+			"LE",
+			"buffer",
+			"decodeCodePointsArray",
+			"(",
+			"MAX_ARGUMENTS_LENGTH",
+			"buf",
+			"start",
+			"isBuffer",
+			"code",
+			"bytes",
+			"        if (!out) out = [];\n",
+			"()",
+			"compileFieldRead",
+			"packed",
+			"readPacked",
+			"arr",
+			"readPacked",
+			"isPacked",
+			"ispacked",
+			"EmbeddedType",
+			"value",
+			"values",
+			"value",
+			"getdefaultvalue",
+			"ispacked",
+			"repeated",
+			"ctx._defaults[field.name]",
+			"compileDest",
+			".default",
+			"options.default",
+			".default",
+			"setDefaultValue",
+			"Container",
+			"values",
+			"castDefaultValue",
+			"100000",
+			"10000",
+			"Buffer",
+			"buffer",
+			"Buffer",
+			"buffer",
+			"    new Uint8Array(new Buffer(10000));\n",
+			"buffer",
+			"readvarint",
+			"bytes",
+			"slice",
+			"this.buf",
+			"readvarint"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"\"interactive\": false"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 9,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "test/pbf.test.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13280,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "index.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 19686,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								18122,
+								19685
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 10349.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "README.md",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13017,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1157,
+								1157
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 141,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1,
+								1
+							]
+						],
+						"settings":
+						{
+							"auto_name": "",
+							"default_dir": "/Users/mourner/projects/pbf",
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "bench/bench-tiles.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1412,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								901,
+								901
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "package.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1639,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1055,
+								1055
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "bin/pbf",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 521,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "bench/bench.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1184,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								247,
+								318
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "bench/bench.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1127,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15,
+								15
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "bench/vector_tile.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3960,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 11.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "compile.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9930,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 3720.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "pbf.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"te",
+				"test/pbf.test.js"
+			],
+			[
+				"in",
+				"index.js"
+			],
+			[
+				"per",
+				"perf.log"
+			],
+			[
+				"com",
+				"compile.js"
+			],
+			[
+				"ben",
+				"bench/bench.js"
+			],
+			[
+				"vec",
+				"bench/vector_tile.js"
+			],
+			[
+				"pbf.te",
+				"test/pbf.test.js"
+			],
+			[
+				"be",
+				"bench/bench.js"
+			],
+			[
+				"spri",
+				"js/symbol/sprite_atlas.js"
+			],
+			[
+				"glyph",
+				"js/symbol/glyph_source.js"
+			],
+			[
+				"sprite",
+				"js/symbol/sprite_atlas.js"
+			],
+			[
+				"anim",
+				"js/style/animation_loop.js"
+			],
+			[
+				"brow",
+				"js/util/browser/browser.js"
+			],
+			[
+				"painprop",
+				"js/style/paint_properties.js"
+			],
+			[
+				"styletra",
+				"js/style/style_transition.js"
+			],
+			[
+				"layer",
+				"js/style/style_layer.js"
+			],
+			[
+				"lineat",
+				"js/render/line_atlas.js"
+			],
+			[
+				"sty",
+				"js/style/style.js"
+			],
+			[
+				"map",
+				"js/ui/map.js"
+			],
+			[
+				"style",
+				"js/style/style.js"
+			],
+			[
+				"styl",
+				"js/style/style.js"
+			],
+			[
+				"sour",
+				"js/source/source.js"
+			],
+			[
+				"bufer",
+				"js/data/buffer.js"
+			],
+			[
+				"buf",
+				"js/data/buffer.js"
+			],
+			[
+				"act",
+				"js/util/actor.js"
+			],
+			[
+				"disp",
+				"js/util/browser/dispatcher.js"
+			],
+			[
+				"dispa",
+				"js/util/browser/dispatcher.js"
+			],
+			[
+				"worker",
+				"js/source/worker_tile.js"
+			],
+			[
+				"actor",
+				"js/util/actor.js"
+			],
+			[
+				"tran",
+				"js/geo/transform.js"
+			],
+			[
+				"tile",
+				"js/source/tile.js"
+			],
+			[
+				"cam",
+				"js/ui/camera.js"
+			],
+			[
+				"tile_",
+				"test/js/source/tile_pyramid.test.js"
+			],
+			[
+				"camer",
+				"test/js/ui/camera.test.js"
+			],
+			[
+				"geojs",
+				"test/js/source/geojson_source.test.js"
+			],
+			[
+				"trans",
+				"test/js/geo/transform.test.js"
+			],
+			[
+				"tra",
+				"js/geo/transform.js"
+			],
+			[
+				"pyr",
+				"js/source/tile_pyramid.js"
+			],
+			[
+				"util",
+				"js/util/util.js"
+			],
+			[
+				"resol",
+				"js/symbol/resolve_text.js"
+			],
+			[
+				"dis",
+				"js/util/dispatcher.js"
+			],
+			[
+				"symbo",
+				"js/data/symbol_bucket.js"
+			],
+			[
+				"ac",
+				"js/util/actor.js"
+			],
+			[
+				"ind",
+				"debug/index.html"
+			],
+			[
+				"acto",
+				"js/util/actor.js"
+			],
+			[
+				"buffe",
+				"js/data/buffer.js"
+			],
+			[
+				"draw",
+				"js/render/draw_vertices.js"
+			],
+			[
+				"buff",
+				"js/data/buffer.js"
+			],
+			[
+				"draw_fi",
+				"js/render/draw_fill.js"
+			],
+			[
+				"bu",
+				"js/data/buffer.js"
+			],
+			[
+				"draw_co",
+				"js/render/draw_collision_debug.js"
+			],
+			[
+				"icon_",
+				"test/js/buffer/icon_vertex_buffer.test.js"
+			],
+			[
+				"buffer",
+				"js/data/buffer.js"
+			],
+			[
+				"iconver",
+				"shaders/icon.vertex.glsl"
+			],
+			[
+				"iconve",
+				"js/data/buffer/icon_vertex_buffer.js"
+			],
+			[
+				"sdf.ve",
+				"shaders/sdf.vertex.glsl"
+			],
+			[
+				"icon",
+				"shaders/icon.fragment.glsl"
+			],
+			[
+				"sdf",
+				"shaders/sdf.fragment.glsl"
+			],
+			[
+				"sha",
+				"js/render/shaders.js"
+			],
+			[
+				"circle",
+				"js/data/circle_bucket.js"
+			],
+			[
+				"draw_li",
+				"js/render/draw_line.js"
+			],
+			[
+				"gl_",
+				"js/render/gl_util.js"
+			],
+			[
+				"utl",
+				"js/util/util.js"
+			],
+			[
+				"line",
+				"js/data/buffer/line_vertex_buffer.js"
+			],
+			[
+				"lineve",
+				"js/data/buffer/line_vertex_buffer.js"
+			],
+			[
+				"ajax",
+				"js/util/ajax.js"
+			],
+			[
+				"map.t",
+				"test/js/ui/map.test.js"
+			],
+			[
+				"test",
+				"test/render.test.js"
+			],
+			[
+				"check",
+				"js/symbol/check_max_angle.js"
+			],
+			[
+				"geta",
+				"js/symbol/get_anchors.js"
+			],
+			[
+				"inte",
+				"js/ui/interaction.js"
+			],
+			[
+				"aja",
+				"js/util/ajax.js"
+			],
+			[
+				"map.",
+				"test/js/ui/map.test.js"
+			],
+			[
+				"fea",
+				"js/data/feature_tree.js"
+			],
+			[
+				"worke",
+				"js/source/worker.js"
+			],
+			[
+				"map.te",
+				"test/js/ui/map.test.js"
+			],
+			[
+				"tilecoo",
+				"js/source/tile_coord.js"
+			],
+			[
+				"tile.",
+				"js/source/tile.js"
+			],
+			[
+				"aj",
+				"js/util/ajax.js"
+			],
+			[
+				"site",
+				"debug/site.js"
+			],
+			[
+				"dragpa",
+				"js/ui/handler/drag_pan.js"
+			],
+			[
+				"drag",
+				"js/ui/handler/drag_rotate.js"
+			],
+			[
+				"dom",
+				"js/util/browser/dom.js"
+			],
+			[
+				"int",
+				"js/ui/interaction.js"
+			],
+			[
+				"si",
+				"debug/site.js"
+			],
+			[
+				"event",
+				"js/util/evented.js"
+			],
+			[
+				"inter",
+				"js/ui/interaction.js"
+			],
+			[
+				"came",
+				"test/js/ui/camera.test.js"
+			],
+			[
+				"transfo",
+				"test/js/geo/transform.test.js"
+			],
+			[
+				"dragp",
+				"js/ui/handler/drag_pan.js"
+			],
+			[
+				"lngl",
+				"js/geo/lng_lat.js"
+			],
+			[
+				"inerti",
+				"js/ui/interaction.js"
+			],
+			[
+				"vecto",
+				"js/source/vector_tile_source.js"
+			],
+			[
+				"feat",
+				"js/data/feature_tree.js"
+			],
+			[
+				"featu",
+				"test/js/data/feature_tree.test.js"
+			],
+			[
+				"re",
+				"js/style/reference.js"
+			],
+			[
+				"debu",
+				"js/lib/debugtext.js"
+			],
+			[
+				"fe",
+				"js/data/feature_tree.js"
+			],
+			[
+				"util.test",
+				"test/js/util/util.test.js"
+			],
+			[
+				"dfea",
+				"js/data/feature_tree.js"
+			],
+			[
+				"refe",
+				"js/style/reference.js"
+			],
+			[
+				"esl",
+				".eslintrc"
+			],
+			[
+				"wo",
+				"js/source/worker.js"
+			],
+			[
+				"work",
+				"js/source/worker_tile.js"
+			],
+			[
+				"coll",
+				"js/symbol/collision_tile.js"
+			],
+			[
+				"worer",
+				"js/source/worker_tile.js"
+			],
+			[
+				"wor",
+				"js/source/worker.js"
+			],
+			[
+				"mru",
+				"js/util/mru_cache.js"
+			],
+			[
+				"clip_",
+				"js/symbol/clip_line.js"
+			],
+			[
+				"canvas",
+				"js/util/canvas.js"
+			],
+			[
+				"sit",
+				"debug/site.js"
+			],
+			[
+				"git",
+				".gitignore"
+			],
+			[
+				"buck",
+				"js/data/symbol_bucket.js"
+			],
+			[
+				"bucket",
+				"js/data/create_bucket.js"
+			],
+			[
+				"tileco",
+				"js/source/tile_coord.js"
+			],
+			[
+				"coord",
+				"js/geo/coordinate.js"
+			],
+			[
+				"quads",
+				"js/symbol/quads.js"
+			],
+			[
+				"collision",
+				"js/symbol/collision_tile.js"
+			],
+			[
+				"symbol",
+				"js/data/symbol_bucket.js"
+			],
+			[
+				"workert",
+				"js/source/worker_tile.js"
+			],
+			[
+				"sou",
+				"js/source/source.js"
+			],
+			[
+				"style.te",
+				"test/js/style/style.test.js"
+			],
+			[
+				"feature",
+				"test/js/data/feature_tree.test.js"
+			],
+			[
+				"popup",
+				"js/ui/popup.js"
+			],
+			[
+				"scroll",
+				"js/ui/handler/scroll_zoom.js"
+			],
+			[
+				"key",
+				"js/ui/handler/keyboard.js"
+			],
+			[
+				"dra",
+				"js/ui/handler/drag_pan.js"
+			],
+			[
+				"nav",
+				"js/ui/control/navigation.js"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"~/projects/mapbox-gl-js/mapbox-gl-js.sublime-project"
+			],
+			[
+				"ear",
+				"~/projects/earcut/earcut.sublime-project"
+			],
+			[
+				"lea",
+				"~/projects/Leaflet/Leaflet.sublime-project"
+			],
+			[
+				"geoj",
+				"~/projects/geojson-vt/geojson-vt.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 249.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

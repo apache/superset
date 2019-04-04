@@ -1,0 +1,47 @@
+{
+  "name": "copy-concurrently",
+  "version": "1.0.5",
+  "description": "Promises of copies of files, directories and symlinks, with concurrency controls and win32 junction fallback.",
+  "main": "copy.js",
+  "scripts": {
+    "test": "standard && tap --coverage test"
+  },
+  "keywords": [
+    "copy",
+    "cpr"
+  ],
+  "author": "Rebecca Turner <me@re-becca.org> (http://re-becca.org/)",
+  "license": "ISC",
+  "dependencies": {
+    "aproba": "^1.1.1",
+    "fs-write-stream-atomic": "^1.0.8",
+    "iferr": "^0.1.5",
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.5.4",
+    "run-queue": "^1.0.0"
+  },
+  "devDependencies": {
+    "standard": "^8.6.0",
+    "tacks": "^1.2.6",
+    "tap": "^10.1.1"
+  },
+  "files": [
+    "copy.js",
+    "is-windows.js"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/npm/copy-concurrently.git"
+  },
+  "bugs": {
+    "url": "https://github.com/npm/copy-concurrently/issues"
+  },
+  "homepage": "https://www.npmjs.com/package/copy-concurrently"
+
+,"_resolved": "https://registry.npmjs.org/copy-concurrently/-/copy-concurrently-1.0.5.tgz"
+,"_integrity": "sha512-f2domd9fsVDFtaFcbaRZuYXwtdmnzqbADSwhSWYxYB/Q8zsdUUFMXVRwXGDMWmbEzAn1kdRrtI1T/KTFOL4X2A=="
+,"_from": "copy-concurrently@1.0.5"
+}

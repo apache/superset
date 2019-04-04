@@ -1,0 +1,16 @@
+﻿.named-colors-in-expressions {
+    color-0: 0 -red;  
+    color-1: 1 - red; 
+    color-2: red * 2;
+    color-3: 2 * red;
+    @3: -red;
+    &-bar@{3} {x: y}
+    @color: red;
+    &-bar@{color} {a: a};
+    background-color: blue-2;
+    color: green-black;
+    animation: blue-change 5s infinite;
+}
+.division {
+    value: ((16px ./ 2) / 2) / 2;
+}

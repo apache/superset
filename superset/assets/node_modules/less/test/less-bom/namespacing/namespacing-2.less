@@ -1,0 +1,27 @@
+﻿@import "imports/library.less";
+
+.bar {
+  width: #library.sizes[@width];
+  height: #library.add-one(1px)[@return];
+}
+
+// I'm gonna override some values
+#library {
+  .sizes() {
+    @width: 800px;
+  }
+}
+
+.foo {
+  width: #library.sizes[@width];
+}
+
+.foods() {
+  @dessert: ice cream;
+}
+
+@key-to-lookup: dessert;
+
+.lunch {
+  treat: .foods[@@key-to-lookup];
+}

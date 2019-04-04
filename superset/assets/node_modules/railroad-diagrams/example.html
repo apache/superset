@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<style>
+body {
+	background-color: hsl(30,20%, 95%);
+}
+h1 {
+	font-family: sans-serif;
+	font-size: 1em;
+}
+div svg.railroad-diagram {
+	width: 80%;  /* Scale to the width of the parent */
+	height: 100%;  /* Preserve the ratio. Could be related to https://bugs.webkit.org/show_bug.cgi?id=82489 */
+}
+</style>
+<link rel='stylesheet' href='railroad-diagrams.css'>
+<script src='railroad-diagrams.js'></script>
+<body>
+<h1 id='ident'>IDENT</h1>
+<div>
+<script >
+ComplexDiagram(
+	Choice(0, Skip(), '-'),
+	Choice(0, NonTerminal('name-start char'), NonTerminal('escape')),
+	ZeroOrMore(
+		Choice(0, NonTerminal('name char'), NonTerminal('escape')))).addTo();
+</script>
+</div>
+<h1 id='function'>FUNCTION</h1>
+<script>
+Diagram(NonTerminal('IDENT'), '(').addTo();
+</script>
+<h1 id='at-keyword'>AT-KEYWORD</h1>
+<script>
+Diagram('@', NonTerminal('IDENT')).addTo();
+</script>
+<h1 id='hash'>HASH</h1>
+<script>
+Diagram('#', NonTerminal('IDENT')).addTo();
+</script>
+<h1 id='string'>STRING</h1>
+<script>
+Diagram(
+	Choice(0,
+		Sequence(
+			'"',
+			ZeroOrMore(
+				Choice(0,
+					NonTerminal('not " or \\'),
+					NonTerminal('escape'))),
+			'"'),
+		Sequence(
+			"'",
+			ZeroOrMore(
+				Choice(0,
+					NonTerminal("not ' or \\"),
+					NonTerminal('escape'))),
+			"'"))).addTo();
+</script>
+<h1 id='url'>URL</h1>
+<script>
+Diagram(
+	Choice(0, 'u', 'U'),
+	Choice(0, 'r', 'R'),
+	Choice(0, 'l', 'L'),
+	'(',
+	Choice(1,
+		Optional(NonTerminal('WS')),
+		Sequence(
+			Optional(NonTerminal('WS')),
+			NonTerminal('STRING'),
+			Optional(NonTerminal('WS'))),
+		Sequence(
+			Optional(NonTerminal('WS')),
+			OneOrMore(
+				Choice(0,
+					NonTerminal('not " \' ( ) WS or NPC'),
+					NonTerminal('escape'))),
+			Optional(NonTerminal('WS')))),
+	')').addTo();
+</script>
+<h1>NUMBER</h1>
+<script>
+Diagram(
+	Choice(1, '+', Skip(), '-'),
+	Choice(0,
+		Sequence(
+			OneOrMore(NonTerminal('digit')),
+			'.',
+			OneOrMore(NonTerminal('digit'))),
+		OneOrMore(NonTerminal('digit')),
+		Sequence(
+			'.',
+			OneOrMore(NonTerminal('digit')))),
+	Choice(0,
+		Skip(),
+		Sequence(
+			Choice(0, 'e', 'E'),
+			Choice(1, '+', Skip(), '-'),
+			OneOrMore(NonTerminal('digit'))))).addTo();
+</script>
+<h1>DIMENSION</h1>
+<script>
+Diagram(NonTerminal('NUMBER'), NonTerminal('IDENT')).addTo();
+</script>
+<h1>PERCENTAGE</h1>
+<script>
+Diagram(NonTerminal('NUMBER'), '%').addTo();
+</script>
+<h1>UNICODE-RANGE</h1>
+<script>
+Diagram(
+	Choice(0,
+		'U',
+		'u'),
+	'+',
+	Choice(0,
+		Sequence(OneOrMore(NonTerminal('hex digit'), Comment('1-6 times'))),
+		Sequence(
+			ZeroOrMore(NonTerminal('hex digit'), Comment('1-5 times')),
+			OneOrMore('?', Comment('1 to (6 - digits) times'))),
+		Sequence(
+			OneOrMore(NonTerminal('hex digit'), Comment('1-6 times')),
+			'-',
+			OneOrMore(NonTerminal('hex digit'), Comment('1-6 times'))))).addTo();
+</script>
+<h1>COMMENT</h1>
+<script>
+Diagram(
+	'/*',
+	ZeroOrMore(
+		NonTerminal("anything but * followed by /")),
+	'*/').addTo();
+</script>
+<h1>CDO</h1>
+<script>
+Diagram("<" + "!--").addTo();
+</script>
+<h1>CDC</h1>
+<script>
+Diagram("-->").addTo();
+</script>

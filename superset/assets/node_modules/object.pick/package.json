@@ -1,0 +1,64 @@
+{
+  "name": "object.pick",
+  "description": "Returns a filtered copy of an object with only the specified keys, similar to `_.pick` from lodash / underscore.",
+  "version": "1.3.0",
+  "homepage": "https://github.com/jonschlinkert/object.pick",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/object.pick",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/object.pick/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^3.0.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.1.2",
+    "vinyl": "^2.0.0"
+  },
+  "keywords": [
+    "object",
+    "pick"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "extend-shallow",
+        "get-value",
+        "mixin-deep",
+        "set-value"
+      ],
+      "highlight": "object.omit"
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/object.pick/-/object.pick-1.3.0.tgz"
+,"_integrity": "sha1-h6EKxMFpS9Lhy/U1kaZhQftd10c="
+,"_from": "object.pick@1.3.0"
+}

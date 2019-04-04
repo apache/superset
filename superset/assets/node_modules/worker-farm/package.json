@@ -1,0 +1,35 @@
+{
+  "name": "worker-farm",
+  "description": "Distribute processing tasks to child processes with an über-simple API and baked-in durability & custom concurrency options.",
+  "version": "1.6.0",
+  "homepage": "https://github.com/rvagg/node-worker-farm",
+  "authors": [
+    "Rod Vagg @rvagg <rod@vagg.org> (https://github.com/rvagg)"
+  ],
+  "keywords": [
+    "worker",
+    "child",
+    "processing",
+    "farm"
+  ],
+  "main": "./lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rvagg/node-worker-farm.git"
+  },
+  "dependencies": {
+    "errno": "~0.1.7"
+  },
+  "devDependencies": {
+    "tape": "~4.9.0"
+  },
+  "scripts": {
+    "test": "node ./tests/"
+  },
+  "types": "./index.d.ts",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/worker-farm/-/worker-farm-1.6.0.tgz"
+,"_integrity": "sha512-6w+3tHbM87WnSWnENBUvA2pxJPLhQUg5LKwUQHq3r+XPhIM+Gh2R5ycbwPCyuGbNg+lPgdcnQUhuC02kJCvffQ=="
+,"_from": "worker-farm@1.6.0"
+}

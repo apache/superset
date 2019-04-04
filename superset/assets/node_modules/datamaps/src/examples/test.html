@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>.active { fill: blue !important;}</style>
+    </head>
+    <body>
+
+        <div id="container1" style="border:1px dotted blue; width: 800px; height: 375px; float:right; position: relative;"></div>
+        <div id="container2" style="width: 500px; height: 300px; position: relative;"></div>
+        <div id="container3" style="width: 500px; height: 300px; position: relative;"></div>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+        <script src="js/components/d3/d3.min.js"></script>
+        <script src="js/components/topojson/topojson.js"></script>
+        <script src="rel/datamaps.all.js"></script>
+        <script>
+
+        $('#container3').datamaps({
+            geographyConfig: {
+                highlightOnHover: false,
+                popupTemplate: function(geography, data) {
+                    if (data) {
+                        return "<div class='hoverinfo'>Name of War: " + data.warName + "</div>";
+                    }
+                }
+            },
+            fills: {
+                defaultFill: 'blue',
+                war: 'red'
+            },
+            data: {
+                'USA': {
+                    fillKey: 'war',
+                    warName: 'USA/Afgan War'
+                }
+            },
+            done: function(datamap) {
+                var svg = datamap.svg;
+                svg.selectAll('.datamaps-subunit').on('click', function(d) {
+                    debugger;
+                })
+            }
+        });
+
+         var b= new Datamap({
+            element: document.getElementById('container1'),
+            scope: 'subunits',
+            setProjection: function(element, options) {
+                var projection = d3.geo.albers()
+                    .center([0, 55.4])
+                    .rotate([4.4, 0])
+                    .parallels([50, 60])
+                    .scale(2000)
+                    .translate([element.offsetWidth / 2, element.offsetHeight / 2]);
+
+                var path =  d3.geo.path()
+                        .projection(projection);
+
+                return {path: path, projection: projection};
+            },
+            geographyConfig: {
+                dataUrl: '//' + window.location.host + '/public/js/data/uk.topo.json',
+                popupTemplate: function(geography, data) {
+                    data = data || {};
+                    return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Electoral Votes: ' + data.electoralVotes + '</div>';
+                },
+                highlightBorderWidth: 5
+            },
+
+            bubbleConfig: {
+                popupTemplate: function(geography, data) {
+                    return '<div class="hoverinfo"><strong>' + data.name + '</strong></div>';
+                },
+                highlightFillOpacity: .85,
+            },
+            fills: {
+                defaultFill: '#ABDDA4',
+                REP: '#ff0000',
+                DEM: '#00ffdd'
+            },
+            data:{
+                "AZ": {
+                    "fillKey": "REP",
+                    "electoralVotes": 5
+                },
+                "CA": {
+                    "fillKey": "DEM",
+                    "electoralVotes": 10
+                },
+                "USA": {
+                    "fillKey": "REP",
+                    "neat": 1991
+                }
+            },
+
+            done: function(datamap) {
+                var svg = datamap.svg;
+                svg.selectAll('.datamaps-bubble').on('mouseenter', function(d) {
+                    console.log('yeahhh', d);
+                });
+
+                svg.selectAll('.datamaps-subunit').on('click', function(d) {
+                   d3.select(this).classed('active');
+                });
+
+                b.bubbles([{
+                    name: 'Gerboise Bleue',
+                    radius: 20,
+                    yeild: 70,
+                    country: 'France',
+                    significance: 'First fission weapon test by France',
+                    date: '1960-02-13',
+                    fillKey: 'DEM',
+                    longitude: -0.1275,
+                    latitude: 51.507222
+          }], {
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        popupOnHover: true,
+        popupTemplate: function(geography, data) {
+          return '<div class="hoverinfo"><strong>' + data.name + '</strong></div>';
+        },
+        fillOpacity: 0.75,
+        animate: true,
+        highlightOnHover: true,
+        highlightFillColor: '#FA0FA0',
+        highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
+        highlightBorderWidth: 2,
+        highlightFillOpacity: 0.85
+    });
+            }
+        });
+
+window.setTimeout(function() {
+                b.bubbles([{
+                                name: 'Gerboise Bleue',
+                                radius: 55,
+                                yeild: 70,
+                                country: 'France',
+                                significance: 'First fission weapon test by France',
+                                date: '1960-02-13',
+                                fillKey: 'DEM',
+                                longitude: -0.2275,
+                                latitude: 51.807222
+                      }], function(layer) { console.log('layer!', layer); });
+            }, 5000);
+
+        
+
+        var world = new Datamap({
+            element: document.getElementById('container2'),
+            scope: 'usa',
+            // setProjection: function(element, options) {
+            //     var projection, path; 
+            //     var width = element.offsetWidth,
+            //         height = element.offsetHeight;
+
+            //     var projection = d3.geo.orthographic()
+            //         .scale(width / 4)
+            //         .rotate([50,0,0])
+            //         .translate([width / 2, height / 2])
+            //         .clipAngle(90)
+            //         .precision(.1);
+
+
+            //     path = d3.geo.path()
+            //       .projection( projection );
+
+            //     return {path: path, projection: projection};
+
+            // },
+            projection: 'mercator',
+            fills: {
+                defaultFill: '#ABDDA4',
+                'DEM': 'blue'
+            },
+            geographyConfig: {
+                hideAntarctica: false
+            }
+        });
+
+        world.bubbles([
+                 {
+                    name: 'Gerboise Bleue',
+                    radius: 20,
+                    yeild: 70,
+                    country: 'France',
+                    significance: 'First fission weapon test by France',
+                    date: '1960-02-13',
+                    fillKey: 'DEM',
+                    latitude: 30.99128,
+                    longitude: -97.13858
+                  },{
+                    name: 'Canopus',
+                    radius: 10,
+                    yeild: 2600,
+                    country: 'France',
+                    significance: 'First "staged" thermonuclear test by France',
+                    fillKey: 'REP',
+                    date: '1968-08-24',
+                    latitude: 30.29128,
+                    longitude: 497.73858
+
+                  }, {
+                    name: 'Canopus',
+                    radius: 10,
+                    yeild: 2600,
+                    country: 'France',
+                    significance: 'First "staged" thermonuclear test by France',
+                    fillKey: 'REP',
+                    date: '1968-08-24',
+                    latitude: 30.29128,
+                    longitude: -97.73858
+
+                  }
+            ], {
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        popupOnHover: true,
+        popupTemplate: function(geography, data) {
+          return '<div class="hoverinfo"><strong>' + data.name + '</strong></div>';
+        },
+        fillOpacity: 0.75,
+        animate: true,
+        highlightOnHover: true,
+        highlightFillColor: '#FA0FA0',
+        highlightBorderColor: 'rgba(250, 15, 160, 0.2)',
+        highlightBorderWidth: 2,
+        highlightFillOpacity: 0.85
+    })
+
+
+        </script>
+        <h2 class="info"></h2>
+    </body>
+</html>
+

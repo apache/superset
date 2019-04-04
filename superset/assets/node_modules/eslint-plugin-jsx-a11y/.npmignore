@@ -1,0 +1,8 @@
+.DS_Store
+.flowconfig
+.travis.yml
+coverage
+node_modules
+npm-debug.log
+reports
+yarn-error.log

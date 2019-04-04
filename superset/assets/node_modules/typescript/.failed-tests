@@ -1,0 +1,3 @@
+compiler tests compiler tests for tests/cases/compiler/unionTypeWithRecursiveSubtypeReduction2.ts Correct errors for tests/cases/compiler/unionTypeWithRecursiveSubtypeReduction2.ts
+conformance tests conformance tests for tests/cases/conformance/types/intersection/intersectionAndUnionTypes.ts Correct errors for tests/cases/conformance/types/intersection/intersectionAndUnionTypes.ts
+conformance tests conformance tests for tests/cases/conformance/types/union/contextualTypeWithUnionTypeObjectLiteral.ts Correct errors for tests/cases/conformance/types/union/contextualTypeWithUnionTypeObjectLiteral.ts

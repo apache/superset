@@ -1,0 +1,38 @@
+{
+  "name": "resolve-from",
+  "version": "1.0.1",
+  "description": "Resolve the path of a module like require.resolve() but from a given path",
+  "license": "MIT",
+  "repository": "sindresorhus/resolve-from",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "require",
+    "resolve",
+    "path",
+    "module",
+    "from",
+    "like",
+    "path"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-1.0.1.tgz"
+,"_integrity": "sha1-Jsv+k10a7uq7Kbw/5a6wHpPUQiY="
+,"_from": "resolve-from@1.0.1"
+}

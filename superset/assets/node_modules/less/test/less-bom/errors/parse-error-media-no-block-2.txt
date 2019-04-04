@@ -1,0 +1,2 @@
+SyntaxError: media definitions require block statements after any features in {path}parse-error-media-no-block-2.less on line 1, column 7:
+1 @media

@@ -1,0 +1,12 @@
+{
+	"rules": {
+		"max-nested-callbacks": [2, 3],
+		"max-params": 0,
+		"max-statements-per-line": [2, { "max": 2 }],
+		"no-invalid-this": [1],
+		"sort-keys": 0,
+		"array-bracket-newline": 0,
+		"array-element-newline": 0,
+		"object-curly-newline": 0,
+	}
+}

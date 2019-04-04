@@ -1,0 +1,50 @@
+{
+	"name": "get-stream",
+	"version": "4.1.0",
+	"description": "Get a stream as a string, buffer, or array",
+	"license": "MIT",
+	"repository": "sindresorhus/get-stream",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js",
+		"buffer-stream.js"
+	],
+	"keywords": [
+		"get",
+		"stream",
+		"promise",
+		"concat",
+		"string",
+		"text",
+		"buffer",
+		"read",
+		"data",
+		"consume",
+		"readable",
+		"readablestream",
+		"array",
+		"object"
+	],
+	"dependencies": {
+		"pump": "^3.0.0"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"into-stream": "^3.0.0",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/get-stream/-/get-stream-4.1.0.tgz"
+,"_integrity": "sha512-GMat4EJ5161kIy2HevLlr4luNjBgvmj413KaQA7jt4V8B4RDsfpHk7WQ9GVqfYyyx8OS/L66Kox+rJRNklLK7w=="
+,"_from": "get-stream@4.1.0"
+}

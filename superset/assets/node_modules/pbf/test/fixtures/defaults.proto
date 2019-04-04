@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+enum MessageType {
+     UNKNOWN = 0;
+     GREETING = 1;
+}
+
+message Envelope {
+	MessageType type = 1 [default = GREETING];
+	string name = 2 [default = test];
+	bool flag = 3 [default = true];
+	float weight = 4 [default = 1.5];
+	int32 id = 5 [default = 1];
+}

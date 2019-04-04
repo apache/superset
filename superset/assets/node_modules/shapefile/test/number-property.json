@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [1, 2, 7, 8],
+  "features": [
+    {"type": "Feature","properties": {},"geometry": {"type": "Point", "coordinates": [1, 2]}},
+    {"type": "Feature","properties": {"foo": 42},"geometry": {"type": "Point", "coordinates": [3, 4]}},
+    {"type": "Feature","properties": {"foo": -4},"geometry": {"type": "Point", "coordinates": [7, 8]}}
+  ]
+}

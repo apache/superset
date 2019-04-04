@@ -1,0 +1,53 @@
+{
+  "name": "image-size",
+  "version": "0.5.5",
+  "description": "get dimensions of any image file",
+  "main": "lib/index.js",
+  "files": [
+    "bin",
+    "lib"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "bin": {
+    "image-size": "bin/image-size.js"
+  },
+  "scripts": {
+    "pretest": "jshint",
+    "test": "mocha specs",
+    "coverage": "istanbul cover _mocha specs"
+  },
+  "repository": "image-size/image-size",
+  "keywords": [
+    "image",
+    "size",
+    "dimensions",
+    "resolution",
+    "width",
+    "height",
+    "png",
+    "jpeg",
+    "bmp",
+    "gif",
+    "psd",
+    "tiff",
+    "webp",
+    "svg"
+  ],
+  "author": "netroy <aditya@netroy.in> (http://netroy.in/)",
+  "license": "MIT",
+  "devDependencies": {
+    "escomplex-js": "^1.2.0",
+    "expect.js": "^0.3.1",
+    "glob": "^7.1.1",
+    "istanbul": "^1.1.0-alpha.1",
+    "jshint": "^2.9.4",
+    "mocha": "^3.4.1",
+    "sinon": "^2.2.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/image-size/-/image-size-0.5.5.tgz"
+,"_integrity": "sha1-Cd/Uq50g4p6xw+gLiZA3jfnjy5w="
+,"_from": "image-size@0.5.5"
+}

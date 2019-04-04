@@ -1,0 +1,17 @@
+#imported-file {
+  background-image: url("http://example.com/assets/css/folder/relative/path");
+  background-image: url("http://example.com/assets/css/relative/path");
+  background-image: url("http://example.com/assets/relative/path");
+  background-image: url("http://example.com/assets/css/folder/module");
+  background-image: url("http://example.com/assets/css/folder/module/path");
+  background-image: url("http://example.com/assets/css/folder/module/relative/path");
+}
+#rootpath-rewrite-urls-all {
+  background-image: url("http://example.com/assets/css/relative/path");
+  background-image: url("http://example.com/assets/relative/path");
+  background-image: url("http://example.com/assets/css/path");
+  background-image: url("http://example.com/assets/css");
+  background-image: url("http://example.com/assets/css/module");
+  background-image: url("http://example.com/assets/css/module/path");
+  background-image: url("http://example.com/assets/css/module/relative/path");
+}

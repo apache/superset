@@ -1,0 +1,4 @@
+RuntimeError: error evaluating function `image-height`: Image size functions are not supported in browser version of less in image-height-error.less on line 2, column 11:
+1 .test-height{
+2   height: image-height("../data/image.jpg")
+3 }

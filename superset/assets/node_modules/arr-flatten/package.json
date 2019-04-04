@@ -1,0 +1,80 @@
+{
+  "name": "arr-flatten",
+  "description": "Recursively flatten an array or arrays.",
+  "version": "1.1.0",
+  "homepage": "https://github.com/jonschlinkert/arr-flatten",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Luke Edwards (https://lukeed.com)"
+  ],
+  "repository": "jonschlinkert/arr-flatten",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/arr-flatten/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "ansi-bold": "^0.1.1",
+    "array-flatten": "^2.1.1",
+    "array-slice": "^1.0.0",
+    "benchmarked": "^1.0.0",
+    "compute-flatten": "^1.0.0",
+    "flatit": "^1.1.1",
+    "flatten": "^1.0.2",
+    "flatten-array": "^1.0.0",
+    "glob": "^7.1.1",
+    "gulp-format-md": "^0.1.12",
+    "just-flatten-it": "^1.1.23",
+    "lodash.flattendeep": "^4.4.0",
+    "m_flattened": "^1.0.1",
+    "mocha": "^3.2.0",
+    "utils-flatten": "^1.0.0",
+    "write": "^0.3.3"
+  },
+  "keywords": [
+    "arr",
+    "array",
+    "elements",
+    "flat",
+    "flatten",
+    "nested",
+    "recurse",
+    "recursive",
+    "recursively"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "arr-filter",
+        "arr-union",
+        "array-each",
+        "array-unique"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/arr-flatten/-/arr-flatten-1.1.0.tgz"
+,"_integrity": "sha512-L3hKV5R/p5o81R7O02IGnwpDmkp6E982XhtbuwSe3O4qOtMMMtodicASA1Cny2U+aCXcNpml+m4dPsvsJ3jatg=="
+,"_from": "arr-flatten@1.1.0"
+}

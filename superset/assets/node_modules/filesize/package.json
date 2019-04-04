@@ -1,0 +1,48 @@
+{
+  "name": "filesize",
+  "description": "JavaScript library to generate a human readable String describing the file size",
+  "version": "3.6.1",
+  "homepage": "https://filesizejs.com",
+  "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/avoidwork/filesize.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/avoidwork/filesize.js/issues"
+  },
+  "license": "BSD-3-Clause",
+  "main": "lib/filesize",
+  "engines": {
+    "node": ">= 0.4.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-minify": "^0.3.0",
+    "grunt": "^1.0.1",
+    "grunt-babel": "^7.0.0",
+    "grunt-cli": "^1.2.0",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-nodeunit": "^1.0.0",
+    "grunt-contrib-uglify": "^3.3.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-eslint": "^20.1.0"
+  },
+  "keywords": [
+    "file",
+    "filesize",
+    "size",
+    "readable",
+    "file system",
+    "bytes",
+    "diff"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/filesize/-/filesize-3.6.1.tgz"
+,"_integrity": "sha512-7KjR1vv6qnicaPMi1iiTcI85CyYwRO/PSFCu6SvqL8jN2Wjt/NIYQTFtFs7fSDCYOstUkEWIQGFUg5YZQfjlcg=="
+,"_from": "filesize@3.6.1"
+}

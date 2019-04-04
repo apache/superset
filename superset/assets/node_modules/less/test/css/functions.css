@@ -1,0 +1,233 @@
+#functions {
+  color: #660000;
+  width: 16;
+  height: undefined("self");
+  border-width: 5;
+  variable: 11;
+  background: linear-gradient(#000, #fff);
+}
+#built-in {
+  escaped: -Some::weird(#thing, y);
+  lighten: #ffcccc;
+  lighten-relative: #ff6666;
+  darken: #330000;
+  darken-relative: #990000;
+  saturate: #203c31;
+  saturate-relative: #28342f;
+  desaturate: #29332f;
+  desaturate-relative: #233930;
+  greyscale: #2e2e2e;
+  hsl-clamp: hsl(0, 0%, 100%);
+  spin-p: hsl(20, 50%, 50%);
+  spin-n: hsl(350, 50%, 50%);
+  luma-white: 100%;
+  luma-black: 0%;
+  luma-black-alpha: 0%;
+  luma-red: 21.26%;
+  luma-green: 71.52%;
+  luma-blue: 7.22%;
+  luma-yellow: 92.78%;
+  luma-cyan: 78.74%;
+  luma-differs-from-luminance: 23.89833349%;
+  luminance-white: 100%;
+  luminance-black: 0%;
+  luminance-black-alpha: 0%;
+  luminance-red: 21.26%;
+  luminance-differs-from-luma: 36.40541176%;
+  contrast-filter: contrast(30%);
+  saturate-filter: saturate(5%);
+  contrast-white: #000000;
+  contrast-black: #ffffff;
+  contrast-red: #ffffff;
+  contrast-green: #000000;
+  contrast-blue: #ffffff;
+  contrast-yellow: #000000;
+  contrast-cyan: #000000;
+  contrast-light: #111111;
+  contrast-dark: #eeeeee;
+  contrast-wrongorder: #111111;
+  contrast-light-thresh: #111111;
+  contrast-dark-thresh: #eeeeee;
+  contrast-high-thresh: #eeeeee;
+  contrast-low-thresh: #111111;
+  contrast-light-thresh-per: #111111;
+  contrast-dark-thresh-per: #eeeeee;
+  contrast-high-thresh-per: #eeeeee;
+  contrast-low-thresh-per: #111111;
+  replace: "Hello, World!";
+  replace-captured: "This is a new string.";
+  replace-with-flags: "2 + 2 = 4";
+  replace-single-quoted: 'foo-2';
+  replace-escaped-string: bar-2;
+  replace-keyword: baz-2;
+  replace-with-color: "#135#1357";
+  replace-with-number: "2em07";
+  format: "rgb(32, 128, 64)";
+  format-string: "hello world";
+  format-multiple: "hello earth 2";
+  format-url-encode: "red is %23ff0000";
+  format-single-quoted: 'hello single world';
+  format-escaped-string: hello escaped world;
+  format-color-as-string: "#123";
+  format-number-as-string: "4px";
+  eformat: rgb(32, 128, 64);
+  unitless: 12;
+  unit: 14em;
+  unitpercentage: 100%;
+  get-unit: px;
+  get-unit-empty: ;
+  hue: 98;
+  saturation: 12%;
+  lightness: 95%;
+  hsvhue: 98;
+  hsvsaturation: 12%;
+  hsvvalue: 95%;
+  red: 255;
+  green: 255;
+  blue: 255;
+  rounded: 11;
+  rounded-two: 10.67;
+  roundedpx: 3px;
+  roundedpx-three: 3.333px;
+  rounded-percentage: 10%;
+  ceil: 11px;
+  floor: 12px;
+  sqrt: 5px;
+  pi: 3.14159265;
+  mod: 2m;
+  abs: 4%;
+  tan: 0.90040404;
+  sin: 0.17364818;
+  cos: 0.84385396;
+  atan: 0.1rad;
+  atan: 34deg;
+  atan: 45deg;
+  pow: 64px;
+  pow: 64;
+  pow: 27;
+  min: 0;
+  min: 5;
+  min: 1pt;
+  min: 3mm;
+  max: 3;
+  max: 5em;
+  percentage: 20%;
+  color-quoted-digit: #dda0dd;
+  color-quoted-keyword: #dda0dd;
+  color-color: #dda0dd;
+  color-keyword: #dda0dd;
+  tint: #898989;
+  tint-full: #ffffff;
+  tint-percent: #898989;
+  tint-negative: #656565;
+  shade: #686868;
+  shade-full: #000000;
+  shade-percent: #686868;
+  shade-negative: #868686;
+  fade-out: rgba(255, 0, 0, 0.95);
+  fade-in: rgba(255, 0, 0, 0.95);
+  fade-out-relative: rgba(255, 0, 0, 0.95);
+  fade-in-relative: rgba(255, 0, 0, 0.945);
+  fade-out2: rgba(255, 0, 0, 0);
+  fade-out2-relative: rgba(255, 0, 0, 0.25);
+  hsv: #4d2926;
+  hsva: rgba(77, 40, 38, 0.2);
+  mix: #ff3300;
+  mix-0: #ffff00;
+  mix-100: #ff0000;
+  mix-weightless: #ff8000;
+  mixt: rgba(255, 0, 0, 0.5);
+}
+#built-in .is-a {
+  ruleset: true;
+  color: true;
+  color1: true;
+  color2: true;
+  color3: true;
+  keyword: true;
+  number: true;
+  string: true;
+  pixel: true;
+  percent: true;
+  em: true;
+  ex: true;
+  rem: true;
+  vw: true;
+  vh: true;
+  vmin: true;
+  vmax: true;
+  ch: true;
+  cm: true;
+  mm: true;
+  pt: true;
+  q: true;
+  in: true;
+  cat: true;
+  no-unit-is-empty: true;
+  case-insensitive-1: true;
+  case-insensitive-2: true;
+}
+#alpha {
+  alpha: hsla(25, 50%, 40%, 0.6);
+  alpha2: 0.5;
+  alpha3: 0;
+}
+#blendmodes {
+  multiply: #ed0000;
+  screen: #f600f6;
+  overlay: #ed0000;
+  softlight: #fa0000;
+  hardlight: #0000ed;
+  difference: #f600f6;
+  exclusion: #f600f6;
+  average: #7b007b;
+  negation: #d73131;
+}
+#extract-and-length {
+  extract: 3 2 1 C B A;
+  length: 6;
+}
+#quoted-functions-in-mixin {
+  replace-double-quoted: 'foo-2';
+  replace-single-quoted: 'foo-4';
+  replace-escaped-string: bar-2;
+  replace-keyword: baz-2;
+  replace-anonymous: qux-2;
+  format-double-quoted: "hello world";
+  format-single-quoted: 'hello single world';
+  format-escaped-string: hello escaped world;
+  format-keyword: hello;
+  format-anonymous: hello anonymous world;
+}
+#list-details {
+  length: 2;
+  one: a 1;
+  two: b 2;
+  two-length: 2;
+  two-one: b;
+  two-two: 2;
+}
+/* comment1 */
+html {
+  color: #8080ff;
+}
+#boolean {
+  a: true;
+  b: false;
+  c: false;
+}
+#if {
+  a: 1;
+  b: 2;
+  c: 3;
+  e: ;
+  f: 6;
+  g: 3;
+  h: 5;
+  i: 6;
+  j: 8;
+  k: 1;
+  /* results in void */
+  color: green;
+  color: purple;
+}

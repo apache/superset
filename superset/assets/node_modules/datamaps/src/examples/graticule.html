@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://d3js.org/topojson.v1.min.js"></script>
+  <!-- I recommend you host this file on your own, since this will change without warning -->
+  <script src="/src/rel/datamaps.world.js?v=1"></script>
+  <h2>Datamaps</h2>
+  <div id="container1" style="position: relative; width: 500px; height: 600px;"></div>
+ 
+     <script>
+       //basic map config with custom fills, mercator projection
+      var map = new Datamap({
+        scope: 'world',
+        element: document.getElementById('container1'),
+        projection: 'orthographic',
+        fills: {
+          defaultFill: 'rgba(0,0,0,0.7)',
+          lt50: 'rgba(0,244,244,0.9)',
+          gt50: 'red'
+        },
+        projectionConfig: {
+          rotation: [97,-30]
+        },
+        data: {
+          '071': {fillKey: 'lt50' },
+          '001': {fillKey: 'gt50' }       
+        }
+      });
+
+      map.graticule();
+
+      
+     </script>
+</body>

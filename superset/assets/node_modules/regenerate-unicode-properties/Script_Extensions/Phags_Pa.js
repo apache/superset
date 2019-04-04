@@ -1,0 +1,1 @@
+module.exports = require('regenerate')(0x1805).addRange(0x1802, 0x1803).addRange(0xA840, 0xA877);

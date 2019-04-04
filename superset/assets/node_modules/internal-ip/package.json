@@ -1,0 +1,54 @@
+{
+	"name": "internal-ip",
+	"version": "3.0.1",
+	"description": "Get your internal IP address",
+	"license": "MIT",
+	"repository": "sindresorhus/internal-ip",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"ip",
+		"ipv6",
+		"ipv4",
+		"address",
+		"internal",
+		"local",
+		"machine",
+		"system",
+		"net",
+		"gateway"
+	],
+	"os": [
+		"android",
+		"darwin",
+		"freebsd",
+		"linux",
+		"openbsd",
+		"sunos",
+		"win32"
+	],
+	"dependencies": {
+		"default-gateway": "^2.6.0",
+		"ipaddr.js": "^1.5.2"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/internal-ip/-/internal-ip-3.0.1.tgz"
+,"_integrity": "sha512-NXXgESC2nNVtU+pqmC9e6R8B1GpKxzsAQhffvh5AL79qKnodd+L7tnEQmTiUAVngqLalPbSqRA7XGIEL5nCd0Q=="
+,"_from": "internal-ip@3.0.1"
+}

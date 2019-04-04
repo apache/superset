@@ -1,0 +1,38 @@
+{
+  "name": "commondir",
+  "version": "1.0.1",
+  "description": "compute the closest common parent for file paths",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "tape": "^3.5.0"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/substack/node-commondir.git"
+  },
+  "keywords": [
+    "common",
+    "path",
+    "directory",
+    "file",
+    "parent",
+    "root"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT",
+  "engine": {
+    "node": ">=0.4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/commondir/-/commondir-1.0.1.tgz"
+,"_integrity": "sha1-3dgA2gxmEnOTzKWVDqloo6rxJTs="
+,"_from": "commondir@1.0.1"
+}

@@ -1,0 +1,46 @@
+{
+  "name": "sockjs",
+  "description": "SockJS-node is a server counterpart of SockJS-client a JavaScript library that provides a WebSocket-like object in the browser. SockJS gives you a coherent, cross-browser, Javascript API which creates a low latency, full duplex, cross-domain communication channel between the browser and the web server.",
+  "version": "0.3.19",
+  "author": "Marek Majkowski",
+  "bugs": {
+    "url": "https://github.com/sockjs/sockjs-node/issues"
+  },
+  "contributors": [
+    {
+      "name": "Bryce Kahle",
+      "email": "bkahle@gmail.com"
+    },
+    {
+      "name": "Marek Majkowski",
+      "email": "deadbeef@popcount.org"
+    }
+  ],
+  "dependencies": {
+    "faye-websocket": "^0.10.0",
+    "uuid": "^3.0.1"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.8.0"
+  },
+  "homepage": "https://github.com/sockjs/sockjs-node",
+  "keywords": [
+    "websockets",
+    "websocket"
+  ],
+  "license": "MIT",
+  "main": "index",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sockjs/sockjs-node.git"
+  },
+  "scripts": {
+    "version": "make build && git add Changelog",
+    "postversion": "npm publish",
+    "postpublish": "git push origin --all && git push origin --tags"
+  }
+
+,"_resolved": "https://registry.npmjs.org/sockjs/-/sockjs-0.3.19.tgz"
+,"_integrity": "sha512-V48klKZl8T6MzatbLlzzRNhMepEys9Y4oGFpypBFFn1gLI/QQ9HtLLyWJNbPlwGLelOVOEijUbTTJeLLI59jLw=="
+,"_from": "sockjs@0.3.19"
+}

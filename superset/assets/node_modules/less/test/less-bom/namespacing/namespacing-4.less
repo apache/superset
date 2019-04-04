@@ -1,0 +1,33 @@
+﻿#ns {
+  .mixin(@a) when (@a = 1) {
+    @a: 20px;
+  }
+}
+
+.alias() {
+  #ns.mixin(1);
+}
+
+#library {
+  .core() {
+    .colors() {
+      primary: blue;
+      foreground: white;
+    }
+  }
+}
+
+#library {
+  .core() {
+    .colors() {
+      primary: rebeccapurple;
+    }
+  }
+}
+
+.foo {
+  .colors() { #library.core.colors; }
+  width: .alias[@a];
+  background: .colors[primary];
+  color: .colors[foreground];
+}

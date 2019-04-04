@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>math.js | currency conversion</title>
+
+  <script src="../../dist/math.js"></script>
+
+  <style>
+    body,
+    html,
+    input {
+      font-size: 11pt;
+      font-family: verdana, arial, sans-serif;
+      color: #4d4d4d;
+      max-width: 600px;
+    }
+
+    h1 {
+      font-size: 120%;
+    }
+
+    input {
+      padding: 5px;
+      width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Currency conversion with math.js</h1>
+
+<p>
+  This example demonstrates how you can fetch actual currencies from <a href="http://fixer.io">fixer.io</a> and use them in math.js.
+</p>
+
+<p id="info">
+  fetching currencies...
+</p>
+<p>
+  <label for="expr">Enter an expression with currencies:</label>
+</p>
+<div id="form" style="display: none;">
+  <p>
+    <input id="expr" value="5 EUR + 2 * 3 EUR in USD" /><br/>
+  </p>
+  <p id="result"></p>
+</div>
+
+<script>
+  fetchAndImportCurrencies()
+      .then(function (currencies) {
+        document.getElementById('expr').oninput = evaluate;
+        document.getElementById('form').style.display = '';
+        document.getElementById('info').innerHTML = 'Available currencies: ' + currencies.join(', ');
+
+        evaluate();
+      })
+
+  function fetchAndImportCurrencies () {
+    // fetch actual currency conversion rates
+    return fetch('https://api.fixer.io/latest')
+        .then(function (response) {
+          return response.json();
+        }).then(function (data) {
+          // import the currencies
+          math.createUnit(data.base)
+          Object.keys(data.rates).forEach(function (currency) {
+            math.createUnit(currency, math.unit(1 / data.rates[currency], data.base));
+          });
+
+          // return an array with all available currencies
+          return Object.keys(data.rates).concat(data.base);
+        });
+  }
+
+  function evaluate () {
+    var expr = document.getElementById('expr');
+    var result = document.getElementById('result');
+
+    try {
+      var resultStr = math.format(math.eval(expr.value), {notation: 'fixed', precision: 2})
+      result.innerHTML = '<span style="color: dodgerblue;">' + resultStr + '</span>';
+    }
+    catch (err) {
+      result.innerHTML = '<span style="color: red;">' + err.toString() + '</span>';
+    }
+  }
+</script>
+</body>
+</html>

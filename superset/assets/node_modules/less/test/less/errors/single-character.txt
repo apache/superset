@@ -1,0 +1,2 @@
+ParseError: Unrecognised input. Possibly missing something in {path}single-character.less on line 1, column 2:
+1 x

@@ -1,0 +1,17 @@
+{
+  "name": "ua-parser-js",
+  "version": "0.7.19",
+  "authors": [
+    "Faisal Salman <fyzlman@gmail.com>"
+  ],
+  "private": false,
+  "main": "src/ua-parser.js",
+  "ignore": [
+    "build",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {}
+}

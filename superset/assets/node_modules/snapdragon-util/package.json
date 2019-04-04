@@ -1,0 +1,69 @@
+{
+  "name": "snapdragon-util",
+  "description": "Utilities for the snapdragon parser/compiler.",
+  "version": "3.0.1",
+  "homepage": "https://github.com/jonschlinkert/snapdragon-util",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/snapdragon-util",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/snapdragon-util/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^3.2.0"
+  },
+  "devDependencies": {
+    "define-property": "^1.0.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.12",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.0",
+    "isobject": "^3.0.0",
+    "mocha": "^3.3.0",
+    "snapdragon": "^0.11.0",
+    "snapdragon-node": "^1.0.6"
+  },
+  "keywords": [
+    "capture",
+    "compile",
+    "compiler",
+    "convert",
+    "match",
+    "parse",
+    "parser",
+    "plugin",
+    "render",
+    "snapdragon",
+    "snapdragonplugin",
+    "transform",
+    "util"
+  ],
+  "verb": {
+    "toc": "collapsible",
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/snapdragon-util/-/snapdragon-util-3.0.1.tgz"
+,"_integrity": "sha512-mbKkMdQKsjX4BAL4bRYTj21edOf8cN7XHdYUJEe+Zn99hVEYcMvKPct1IqNe7+AZPirn8BCDOQBHQZknqmKlZQ=="
+,"_from": "snapdragon-util@3.0.1"
+}

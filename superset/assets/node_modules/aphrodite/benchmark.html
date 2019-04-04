@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Aphrodite Benchmark</title>
+<script type="text/javascript" src="./dist/aphrodite.umd.js"></script>
+<!-- setup -->
+<script type="text/javascript">
+// build up an array of styles objects to run our test on
+var runs = 10000;
+var styles = new Array(runs);
+for (var i = 0; i < runs; i += 1) {
+  const style = {
+    [`a${Math.random()}`]: {
+      display: 'flex',
+      transition: 'all 0s',
+      alignItems: 'center',
+      WebkitAlignItems: 'center',
+      justifyContent: 'center',
+
+      ':after': {
+          content: 'foo',
+      }
+    },
+
+    [`b${Math.random()}`]: {
+      [`a${Math.random()}`]: Math.random(),
+      [`b${Math.random()}`]: String(Math.random()),
+      [`c${Math.random()}`]: String(Math.random()),
+    },
+
+    [`c${Math.random()}`]: {
+      [`a${Math.random()}`]: Math.random(),
+      [`b${Math.random()}`]: String(Math.random()),
+      [`c${Math.random()}`]: String(Math.random()),
+    },
+  };
+  styles[i] = style;
+}
+</script>
+
+<!-- test -->
+<script type="text/javascript">
+// prevent caching optimizations
+eval('');
+
+var processedStyles = new Array(styles.length);
+performance.mark('start_stylesheet_create');
+for (var i = 0; i < styles.length; i += 1) {
+  processedStyles[i] = aphrodite.StyleSheet.create(styles[i]);
+}
+performance.mark('end_stylesheet_create');
+
+performance.mark('start_css');
+for (var i = 0; i < processedStyles.length; i += 1) {
+  aphrodite.css(Object.values(processedStyles[i]));
+}
+performance.mark('end_css');
+
+performance.measure('StyleSheet.create()', 'start_stylesheet_create', 'end_stylesheet_create');
+performance.measure('css()', 'start_css', 'end_css');
+performance.clearMarks();
+</script>
+</head>
+
+<body>
+  <!--
+    StyleSheet.create before:
+
+    185
+    165
+    166
+    165
+    165
+
+
+    average: 170
+
+    StyleSheet.create after:
+
+    138
+    152
+    153
+    148
+    148
+
+    average: 148
+
+  15% faster
+
+    css before:
+
+    1750
+    1740
+    1810
+    1790
+    1780
+
+    average: 1774
+
+    css after:
+
+    836
+    850
+    863
+    846
+    853
+
+    average: 850
+
+  109% faster
+
+    1780
+    1900
+    1720
+    1700
+    1770
+
+    average: 1774
+
+
+  -->
+
+</body>
+</html>

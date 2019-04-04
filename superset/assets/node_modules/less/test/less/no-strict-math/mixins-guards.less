@@ -1,0 +1,25 @@
+// https://github.com/less/less.js/issues/2798
+.test-2798 when ((8+4) < 13) { 
+  regression: fixed; 
+}
+.test-2798 when ((8+6) < 13) { 
+  regression: should not be visible; 
+}
+.conditions-parser-1 when (8+4 < 13) {
+  only-atomic: ok;
+}
+.conditions-parser-1 when (8+6 < 13) {
+  only-atomic: should not be visible;
+}
+.conditions-parser-2 when (8+(5-1) < 13) {
+  only-atomic-with-nested-parenthesis: ok;
+}
+.conditions-parser-2 when (8+(15-1) < 13) {
+  only-atomic-with-nested-parenthesis: should not be visible;
+}
+.conditions-parser-3 when (8 < (13+1)) {
+  only-atomic-nested-parenthesis-on-right: ok;
+}
+.conditions-parser-3 when (8 < (3+1)) {
+  only-atomic-nested-parenthesis-on-right: should not be visible;
+}

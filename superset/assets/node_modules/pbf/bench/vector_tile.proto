@@ -1,0 +1,100 @@
+syntax = "proto2";
+
+package vector_tile;
+
+option optimize_for = LITE_RUNTIME;
+
+message Tile {
+        enum GeomType {
+             UNKNOWN = 0;
+             POINT = 1;
+             LINESTRING = 2;
+             POLYGON = 3;
+        }
+
+        // Variant type encoding
+        message Value {
+                // Exactly one of these values may be present in a valid message
+                optional string string_value = 1;
+                optional float float_value = 2;
+                optional double double_value = 3;
+                optional int64 int_value = 4;
+                optional uint64 uint_value = 5;
+                optional sint64 sint_value = 6;
+                optional bool bool_value = 7;
+
+                extensions 8 to max;
+        }
+
+        message Feature {
+                optional uint64 id = 1 [ default = 0 ];
+
+                // Tags of this feature are encoded as repeated pairs of
+                // integers. Even indexed values (n, beginning with 0) are
+                // themselves indexes into the layer's keys list. Odd indexed
+                // values (n+1) are indexes into the layer's values list.
+                // The first (n=0) tag of a feature, therefore, has a key of
+                // layer.keys[feature.tags[0]] and a value of 
+                // layer.values[feature.tags[1]].
+                repeated uint32 tags = 2 [ packed = true ];
+
+                // The type of geometry stored in this feature.
+                optional GeomType type = 3 [ default = UNKNOWN ];
+
+                // Contains a stream of commands and parameters (vertices). The
+                // repeat count is shifted to the left by 3 bits. This means
+                // that the command has 3 bits (0-7). The repeat count
+                // indicates how often this command is to be repeated. Defined
+                // commands are:
+                // - MoveTo:    1   (2 parameters follow)
+                // - LineTo:    2   (2 parameters follow)
+                // - ClosePath: 7   (no parameters follow)
+                //
+                // Commands are encoded as uint32 varints. Vertex parameters
+                // are encoded as deltas to the previous position and, as they
+                // may be negative, are further "zigzag" encoded as unsigned
+                // 32-bit ints:
+                //
+                //   n = (n << 1) ^ (n >> 31)
+                //
+                // Ex.: MoveTo(3, 6), LineTo(8, 12), LineTo(20, 34), ClosePath
+                // Encoded as: [ 9 6 12 18 10 12 24 44 15 ]
+                //               |       |              `> [00001 111] command type 7 (ClosePath), length 1
+                //               |       |       ===== relative LineTo(+12, +22) == LineTo(20, 34)
+                //               |       | ===== relative LineTo(+5, +6) == LineTo(8, 12)
+                //               |       `> [00010 010] = command type 2 (LineTo), length 2
+                //               | ==== relative MoveTo(+3, +6)
+                //               `> [00001 001] = command type 1 (MoveTo), length 1
+                //
+                // The original position is (0,0).
+                repeated uint32 geometry = 4 [ packed = true ];
+        }
+
+        message Layer {
+                // Any compliant implementation must first read the version
+                // number encoded in this message and choose the correct
+                // implementation for this version number before proceeding to
+                // decode other parts of this message.
+                required uint32 version = 15 [ default = 1 ];
+
+                required string name = 1;
+
+                // The actual features in this tile.
+                repeated Feature features = 2;
+
+                // Dictionary encoding for keys
+                repeated string keys = 3;
+
+                // Dictionary encoding for values
+                repeated Value values = 4;
+
+                // The bounding box in this tile spans from 0..4095 units
+                optional uint32 extent = 5 [ default = 4096 ];
+
+                extensions 16 to max;
+        }
+
+        repeated Layer layers = 3;
+
+        extensions 16 to 8191;
+}

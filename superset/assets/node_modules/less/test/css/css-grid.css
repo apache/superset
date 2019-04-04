@@ -1,0 +1,24 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: [col1-start] 9fr [col1-end] 10px [col2-start] 3fr [col2-end];
+  grid-template-rows: auto;
+}
+.wrapper {
+  display: grid;
+  grid-template-columns: [left-bound] auto [container-left] 1170px [container-right] auto [right-bound];
+  grid-template-rows: [row-1-start] 140px [row-2-start] 390px [row-3-start] 200px [row-4-start] 120px [row-5-start] 120px [row-6-start] 120px;
+}
+.container-12 {
+  z-index: 20;
+  display: grid;
+  grid-column: container-left / span 1;
+  grid-row: 2;
+  grid-template-columns: [wrapcol-1-start] 1fr [wrapcol-1-end] 15px [wrapcol-2-start] 1fr [wrapcol-2-end] 15px [wrapcol-3-start] 1fr [wrapcol-3-end] 15px [wrapcol-4-start] 1fr [wrapcol-4-end] 15px [wrapcol-5-start] 1fr [wrapcol-5-end] 15px [wrapcol-6-start] 1fr [wrapcol-6-end] 15px [wrapcol-7-start] 1fr [wrapcol-7-end] 15px [wrapcol-8-start] 1fr [wrapcol-8-end] 15px [wrapcol-9-start] 1fr [wrapcol-9-end] 15px [wrapcol-10-start] 1fr [wrapcol-10-end] 15px [wrapcol-11-start] 1fr [wrapcol-11-end] 15px [wrapcol-12-start] 1fr [wrapcol-12-end];
+  grid-template-rows: repeat(14, [gutter] 10px [row] 60px);
+}
+.wrapper {
+  display: grid;
+  grid-template-columns: 9fr 1.875em 3fr;
+  grid-template-rows: auto;
+  grid-template-areas: "header header header" "content . sidebar" "footer footer footer";
+}

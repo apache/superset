@@ -1,0 +1,25 @@
+language: node_js
+os:
+ - linux
+node_js:
+  - "10"
+  - "8"
+  - "6"
+before_install:
+  - 'nvm install-latest-npm'
+script:
+  - 'if [ -n "${PRETEST-}" ]; then npm run pretest ; fi'
+  - 'if [ -n "${POSTTEST-}" ]; then npm run posttest ; fi'
+  - 'if [ -n "${COVERAGE-}" ]; then npm run coverage ; fi'
+  - 'if [ -n "${TEST-}" ]; then npm run tests-only ; fi'
+sudo: false
+env:
+  - TEST=true
+matrix:
+  fast_finish: true
+  include:
+    - node_js: "node"
+      env: PRETEST=true
+  allow_failures:
+    - os: osx
+    - env: TEST=true ALLOW_FAILURE=true

@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message Envelope {
+    map<string, string> kv = 1;
+    map<string, int32> kn = 2;
+}

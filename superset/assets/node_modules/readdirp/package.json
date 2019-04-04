@@ -1,0 +1,54 @@
+{
+  "author": "Thorsten Lorenz <thlorenz@gmx.de> (thlorenz.com)",
+  "name": "readdirp",
+  "description": "Recursive version of fs.readdir with streaming api.",
+  "version": "2.2.1",
+  "homepage": "https://github.com/paulmillr/readdirp",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/paulmillr/readdirp.git"
+  },
+  "engines": {
+    "node": ">=0.10"
+  },
+  "files": [
+    "readdirp.js",
+    "stream-api.js"
+  ],
+  "keywords": [
+    "recursive",
+    "fs",
+    "stream",
+    "streams",
+    "readdir",
+    "filesystem",
+    "find",
+    "filter"
+  ],
+  "main": "readdirp.js",
+  "scripts": {
+    "test-main": "(cd test && set -e; for t in ./*.js; do node $t; done)",
+    "test-0.10": "nave use 0.10 npm run test-main",
+    "test-0.12": "nave use 0.12 npm run test-main",
+    "test-4": "nave use 4.4 npm run test-main",
+    "test-6": "nave use 6.2 npm run test-main",
+    "test-all": "npm run test-main && npm run test-0.10 && npm run test-0.12 && npm run test-4 && npm run test-6",
+    "test": "npm run test-main"
+  },
+  "dependencies": {
+    "graceful-fs": "^4.1.11",
+    "micromatch": "^3.1.10",
+    "readable-stream": "^2.0.2"
+  },
+  "devDependencies": {
+    "nave": "^0.5.1",
+    "proxyquire": "^1.7.9",
+    "tap": "1.3.2",
+    "through2": "^2.0.0"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/readdirp/-/readdirp-2.2.1.tgz"
+,"_integrity": "sha512-1JU/8q+VgFZyxwrJ+SVIOsh+KywWGpds3NTqikiKpDMZWScmAYyKIgqkO+ARvNWJfXeXR1zxz7aHF4u4CyH6vQ=="
+,"_from": "readdirp@2.2.1"
+}

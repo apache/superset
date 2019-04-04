@@ -1,0 +1,43 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# https://github.com/jokeyrhyme/standard-editorconfig
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# Set default charset
+[*]
+charset = utf-8
+
+# Other good defaults
+[*]
+indent_size = 2
+indent_style = space
+trim_trailing_whitespace = true
+
+# HTML
+[*.{htm,html}]
+indent_size = 4
+indent_style = space
+trim_trailing_whitespace = true
+
+# JavaScript, JSX
+[*.{js,jsx}]
+indent_size = 4
+indent_style = space
+
+# JSON
+[*.json]
+indent_size = 2
+indent_style = space
+
+# YAML
+# http://yaml.org/spec/1.2/2009-07-21/spec.html#id2576668
+[*.{yaml,yml}]
+indent_size = 2
+indent_style = space

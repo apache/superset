@@ -1,0 +1,86 @@
+{
+  "name": "cache-base",
+  "description": "Basic object cache with `get`, `set`, `del`, and `has` methods for node.js/javascript projects.",
+  "version": "1.0.1",
+  "homepage": "https://github.com/jonschlinkert/cache-base",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "(https://github.com/wtgtybhertgeghgtwtg)"
+  ],
+  "repository": "jonschlinkert/cache-base",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/cache-base/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "collection-visit": "^1.0.0",
+    "component-emitter": "^1.2.1",
+    "get-value": "^2.0.6",
+    "has-value": "^1.0.0",
+    "isobject": "^3.0.1",
+    "set-value": "^2.0.0",
+    "to-object-path": "^0.3.0",
+    "union-value": "^1.0.0",
+    "unset-value": "^1.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "base",
+    "cache",
+    "config",
+    "data",
+    "get",
+    "has",
+    "hash",
+    "hasown",
+    "object",
+    "set",
+    "store"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highligh": "base",
+      "list": [
+        "base-methods",
+        "get-value",
+        "has-value",
+        "option-cache",
+        "set-value",
+        "unset-value"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/cache-base/-/cache-base-1.0.1.tgz"
+,"_integrity": "sha512-AKcdTnFSWATd5/GCPRxr2ChwIJ85CeyrEyjRHlKxQ56d4XJMGym0uAiKn0xbLOGOl3+yRpOTi484dVCEc5AUzQ=="
+,"_from": "cache-base@1.0.1"
+}

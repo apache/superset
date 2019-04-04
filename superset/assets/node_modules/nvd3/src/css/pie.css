@@ -1,0 +1,37 @@
+.nvd3.nv-pie path {
+    stroke-opacity: 0;
+    transition: fill-opacity 250ms linear, stroke-width 250ms linear, stroke-opacity 250ms linear;
+}
+
+.nvd3.nv-pie .nv-pie-title {
+    font-size: 24px;
+    fill: rgba(19, 196, 249, 0.59);
+}
+
+.nvd3.nv-pie .nv-slice text {
+    stroke: #000;
+    stroke-width: 0;
+}
+
+.nvd3.nv-pie path {
+    stroke: #fff;
+    stroke-width: 1px;
+    stroke-opacity: 1;
+}
+
+.nvd3.nv-pie path {
+    fill-opacity: .7;
+}
+
+.nvd3.nv-pie .hover path {
+    fill-opacity: 1;
+}
+
+.nvd3.nv-pie .nv-label {
+    pointer-events: none;
+}
+
+.nvd3.nv-pie .nv-label rect {
+    fill-opacity: 0;
+    stroke-opacity: 0;
+}

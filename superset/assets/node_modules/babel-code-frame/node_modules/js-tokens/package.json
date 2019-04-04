@@ -1,0 +1,34 @@
+{
+  "name": "js-tokens",
+  "version": "3.0.2",
+  "author": "Simon Lydell",
+  "license": "MIT",
+  "description": "A regex that tokenizes JavaScript.",
+  "keywords": [
+    "JavaScript",
+    "js",
+    "token",
+    "tokenize",
+    "regex"
+  ],
+  "files": [
+    "index.js"
+  ],
+  "repository": "lydell/js-tokens",
+  "scripts": {
+    "test": "mocha --ui tdd",
+    "esprima-compare": "node esprima-compare ./index.js everything.js/es5.js",
+    "build": "node generate-index.js",
+    "dev": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.12.6",
+    "esprima": "^4.0.0",
+    "everything.js": "^1.0.3",
+    "mocha": "^3.4.2"
+  }
+
+,"_resolved": "https://registry.npmjs.org/js-tokens/-/js-tokens-3.0.2.tgz"
+,"_integrity": "sha1-mGbfOVECEw449/mWvOtlRDIJwls="
+,"_from": "js-tokens@3.0.2"
+}

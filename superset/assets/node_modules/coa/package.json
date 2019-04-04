@@ -1,0 +1,57 @@
+{
+  "name": "coa",
+  "description": "Command-Option-Argument: Yet another parser for command line options.",
+  "version": "2.0.2",
+  "homepage": "http://github.com/veged/coa",
+  "author": "Sergey Berezhnoy <veged@ya.ru> (http://github.com/veged)",
+  "maintainers": [
+    "Sergey Berezhnoy <veged@ya.ru> (http://github.com/veged)",
+    "Sergey Belov <peimei@ya.ru> (http://github.com/arikon)"
+  ],
+  "contributors": [
+    "Sergey Belov <peimei@ya.ru> (http://github.com/arikon)"
+  ],
+  "files": [
+    "lib/",
+    "index.js",
+    "coa.d.ts",
+    "README.ru.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/veged/coa.git"
+  },
+  "directories": {
+    "lib": "./lib"
+  },
+  "dependencies": {
+    "@types/q": "^1.5.1",
+    "chalk": "^2.4.1",
+    "q": "^1.1.2"
+  },
+  "devDependencies": {
+    "chai": "~1.7.2",
+    "coveralls": "^2.11.16",
+    "eslint": "^4.15.0",
+    "eslint-config-pedant": "^1.0.0",
+    "mocha": "~1.21.4",
+    "nyc": "^10.1.2"
+  },
+  "scripts": {
+    "clean": "rm -r .nyc_output coverage",
+    "coverage": "nyc --reporter=text --reporter=html mocha; echo; echo 'Open coverage/index.html file in your browser'",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "nyc mocha"
+  },
+  "engines": {
+    "node": ">= 4.0"
+  },
+  "types": "./coa.d.ts",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/coa/-/coa-2.0.2.tgz"
+,"_integrity": "sha512-q5/jG+YQnSy4nRTV4F7lPepBJZ8qBNJJDBuJdoejDyLXgmL7IEo+Le2JDZudFTFt7mrCqIRaSjws4ygRCTCAXA=="
+,"_from": "coa@2.0.2"
+}

@@ -1,0 +1,54 @@
+{
+  "name": "ansi-styles",
+  "version": "2.2.1",
+  "description": "ANSI escape codes for styling strings in the terminal",
+  "license": "MIT",
+  "repository": "chalk/ansi-styles",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "maintainers": [
+    "Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)",
+    "Joshua Appelman <jappelman@xebia.com> (jbnicolai.com)"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "ansi",
+    "styles",
+    "color",
+    "colour",
+    "colors",
+    "terminal",
+    "console",
+    "cli",
+    "string",
+    "tty",
+    "escape",
+    "formatting",
+    "rgb",
+    "256",
+    "shell",
+    "xterm",
+    "log",
+    "logging",
+    "command-line",
+    "text"
+  ],
+  "devDependencies": {
+    "mocha": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.1.tgz"
+,"_integrity": "sha1-tDLdM1i2NM914eRmQ2gkBTPB3b4="
+,"_from": "ansi-styles@2.2.1"
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="../bower_components/d3/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <style>
+        body {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        .ghost {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        #chart1 {
+            height: 1000px
+        }
+        #chart2, #chart3 {
+            height: 500px
+        }
+    </style>
+</head>
+<body>
+    <p> Charts: </p>
+    <div class="ghost">
+        <div id="chart1">
+            <p> Chart 1</p>
+            <svg></svg>
+        </div>
+        <div id="chart2">
+            <svg></svg>
+        </div>
+        <div id="chart3">
+            <svg></svg>
+        </div>
+        <div id="chart4">
+            <svg></svg>
+        </div>
+    </div>
+    <script>
+    createChart('#chart1');
+    createChart('#chart2');
+    createChart('#chart3');
+
+    function createChart(id) {
+        nv.addGraph(function () {
+            var chart = nv.models.lineChart()
+                .useInteractiveGuideline(true);
+
+            d3.select(id + ' svg')
+                .datum(data())
+                .transition().duration(500)
+                .call(chart);
+
+            nv.utils.windowResize(chart.update);
+
+            return chart;
+        });
+
+
+        function data() {
+            var sin = [],
+                cos = [];
+
+            for (var i = 0; i < 100; i++) {
+                sin.push({
+                    x: i,
+                    y: Math.sin(i / 10)
+                });
+                cos.push({
+                    x: i,
+                    y: .5 * Math.cos(i / 10)
+                });
+            }
+
+            return [{
+                values: sin,
+                key: 'Sine Wave',
+                color: '#ff7f0e'
+            }, {
+                values: cos,
+                key: 'Cosine Wave',
+                color: '#2ca02c'
+            }];
+        }
+    }
+    </script>
+</body>
+</html>

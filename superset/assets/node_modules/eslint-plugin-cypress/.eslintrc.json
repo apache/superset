@@ -1,0 +1,5 @@
+{
+  "extends": [
+    "plugin:cypress-dev/general"
+  ]
+}

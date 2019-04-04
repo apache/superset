@@ -1,0 +1,29 @@
+{
+  "name": "setprototypeof",
+  "version": "1.1.0",
+  "description": "A small polyfill for Object.setprototypeof",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wesleytodd/setprototypeof.git"
+  },
+  "keywords": [
+    "polyfill",
+    "object",
+    "setprototypeof"
+  ],
+  "author": "Wes Todd",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wesleytodd/setprototypeof/issues"
+  },
+  "homepage": "https://github.com/wesleytodd/setprototypeof"
+
+,"_resolved": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.1.0.tgz"
+,"_integrity": "sha512-BvE/TwpZX4FXExxOxZyRGQQv651MSwmWKZGqvmPcRIjDqWub67kTKuIMx43cZZrS/cBBzwBcNDWoFxt2XEFIpQ=="
+,"_from": "setprototypeof@1.1.0"
+}

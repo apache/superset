@@ -1,0 +1,10 @@
+// @flow strict
+
+import type {
+    GeoJSONFeature
+} from '../../index';
+
+const noProperties: GeoJSONFeature = {
+    type: 'Feature',
+    geometry: null
+};

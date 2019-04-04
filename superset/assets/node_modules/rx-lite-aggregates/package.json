@@ -1,0 +1,44 @@
+{
+  "name": "rx-lite-aggregates",
+  "title": "Reactive Extensions for JavaScript (RxJS) Aggregates",
+  "description": "Lightweight library with aggregate functions for composing asynchronous and event-based operations in JavaScript",
+  "version": "4.0.8",
+  "homepage": "https://github.com/Reactive-Extensions/RxJS",
+  "author": {
+    "name": "Cloud Programmability Team",
+    "url": "https://github.com/Reactive-Extensions/RxJS/blob/master/authors.txt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Reactive-Extensions/RxJS.git"
+  },
+  "licenses": [
+    {
+      "type": "Apache License, Version 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  ],
+  "bugs": "https://github.com/Reactive-Extensions/RxJS/issues",
+  "jam": {
+    "main": "rx.lite.aggregates.js"
+  },
+  "browser": {
+    "index.js": "rx.lite.aggregates.js"
+  },
+  "dependencies": {
+    "rx-lite": "*"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "React",
+    "Reactive",
+    "Events",
+    "Rx",
+    "RxJS"
+  ],
+  "main": "rx.lite.aggregates.js"
+
+,"_resolved": "https://registry.npmjs.org/rx-lite-aggregates/-/rx-lite-aggregates-4.0.8.tgz"
+,"_integrity": "sha1-dTuHqJoRyVRnxKwWJsTvxOBcZ74="
+,"_from": "rx-lite-aggregates@4.0.8"
+}

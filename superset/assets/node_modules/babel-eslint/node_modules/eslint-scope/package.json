@@ -1,0 +1,50 @@
+{
+  "name": "eslint-scope",
+  "description": "ECMAScript scope analyzer for ESLint",
+  "homepage": "http://github.com/eslint/eslint-scope",
+  "main": "lib/index.js",
+  "version": "3.7.1",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "repository": "eslint/eslint-scope",
+  "bugs": {
+    "url": "https://github.com/eslint/eslint-scope/issues"
+  },
+  "license": "BSD-2-Clause",
+  "scripts": {
+    "test": "node Makefile.js test",
+    "lint": "node Makefile.js lint",
+    "release": "eslint-release",
+    "ci-release": "eslint-ci-release",
+    "gh-release": "eslint-gh-release",
+    "alpharelease": "eslint-prerelease alpha",
+    "betarelease": "eslint-prerelease beta"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "lib"
+  ],
+  "dependencies": {
+    "esrecurse": "^4.1.0",
+    "estraverse": "^4.1.1"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "eslint": "^3.15.0",
+    "eslint-config-eslint": "^4.0.0",
+    "eslint-release": "^0.10.1",
+    "espree": "^3.1.1",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "npm-license": "^0.3.3",
+    "shelljs": "^0.7.6",
+    "typescript": "~2.0.10",
+    "typescript-eslint-parser": "^1.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/eslint-scope/-/eslint-scope-3.7.1.tgz"
+,"_integrity": "sha1-PWPD7f2gLgbgGkUq2IyqzHzctug="
+,"_from": "eslint-scope@3.7.1"
+}

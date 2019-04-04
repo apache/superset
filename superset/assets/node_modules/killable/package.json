@@ -1,0 +1,31 @@
+{
+  "name": "killable",
+  "version": "1.0.1",
+  "description": "Keeps track of a server's open sockets so they can be destroyed at a moment's notice.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marten-de-vries/killable.git"
+  },
+  "keywords": [
+    "express",
+    "http",
+    "server",
+    "socket",
+    "kill",
+    "truncate",
+    "destroy",
+    "restart",
+    "shutdown",
+    "immeadiately"
+  ],
+  "author": "Marten de Vries",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marten-de-vries/killable/issues"
+  }
+
+,"_resolved": "https://registry.npmjs.org/killable/-/killable-1.0.1.tgz"
+,"_integrity": "sha512-LzqtLKlUwirEUyl/nicirVmNiPvYs7l5n8wOPP7fyJVpUPkvCnW/vuiXGpylGUlnPDnB7311rARzAt3Mhswpjg=="
+,"_from": "killable@1.0.1"
+}

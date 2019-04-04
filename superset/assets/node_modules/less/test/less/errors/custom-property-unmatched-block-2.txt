@@ -1,0 +1,4 @@
+ParseError: Expected ']' in {path}custom-property-unmatched-block-2.less on line 5, column 3:
+4     is-unmatched: [
+5   }}
+6 }

@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+
+var fs = require("fs");
+
+var d3 = require("d3"),
+    optimist = require("optimist"),
+    rw = require("rw").dash,
+    topojson = require("../"),
+    mergeProperties = require("../lib/topojson/merge-properties");
+
+var argv = optimist
+    .usage("Usage: \033[1mtopojson-group\033[0m [options] -- file\n\n"
+
++ "Version: " + topojson.version + "\n\n"
+
++ "Groups geometries with the same id into multi-geometries.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output TopoJSON file name",
+      default: "-",
+    })
+    .options("p", {
+      alias: "properties",
+      describe: "properties to preserve in grouped objects (if consistent)",
+      default: true
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (argv.help) return;
+      if (argv._.length > 1) throw new Error("at most one input file allowed");
+      if (!argv._.length) argv._ = ["-"];
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var topology = JSON.parse(rw.readFileSync(argv._[0], "utf8"));
+
+for (var key in topology.objects) {
+  var object = topology.objects[key];
+
+  if (object.geometries) {
+    var groupById = d3.map(),
+        groups = [];
+
+    object.geometries.forEach(function(geometry) {
+      var group = groupById.get(geometry.id);
+      if (group) group.push(geometry);
+      else groups.push(groupById.set(geometry.id, [geometry]));
+    });
+
+    object.geometries = groups.map(function(group) {
+      return group.length === 1 ? group[0] : multi(group);
+    });
+  }
+}
+
+// Output JSON.
+rw.writeFileSync(argv.o, JSON.stringify(topology), "utf8");
+
+function multi(geometries) {
+  var type = geometries[0].type,
+      coordinates = /Point$/.test(type) ? "coordinates" : "arcs",
+      array = [];
+
+  geometries.forEach(function(geometry) {
+    if (/^Multi/.test(geometry.type)) {
+      geometry[coordinates].forEach(function(coordinates) { array.push(coordinates); });
+    } else {
+      array.push(geometry[coordinates]);
+    }
+  });
+
+  var geometry = {
+    id: geometries[0].id,
+    type: /^Multi/.test(type) ? type : "Multi" + type
+  };
+
+  geometry[coordinates] = array;
+
+  if (argv.p) {
+    var properties = mergeProperties();
+    geometries.forEach(properties.merge);
+    properties.apply(geometry);
+  }
+
+  return geometry;
+}

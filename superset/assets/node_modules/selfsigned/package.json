@@ -1,0 +1,43 @@
+{
+  "name": "selfsigned",
+  "version": "1.10.4",
+  "description": "Generate self signed certificates private and public keys",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -t 5000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jfromaniello/selfsigned.git"
+  },
+  "keywords": [
+    "openssl",
+    "self",
+    "signed",
+    "certificates"
+  ],
+  "author": "José F. Romaniello <jfromaniello@gmail.com> (http://joseoncode.com)",
+  "contributors": [
+    {
+      "name": "Paolo Fragomeni",
+      "email": "paolo@async.ly",
+      "url": "http://async.ly"
+    },
+    {
+      "name": "Charles Bushong",
+      "email": "bushong1@gmail.com",
+      "url": "http://github.com/bushong1"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "node-forge": "0.7.5"
+  },
+  "devDependencies": {
+    "mocha": "^5.1.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/selfsigned/-/selfsigned-1.10.4.tgz"
+,"_integrity": "sha512-9AukTiDmHXGXWtWjembZ5NDmVvP2695EtpgbCsxCa68w3c88B+alqbmZ4O3hZ4VWGXeGWzEVdvqgAJD8DQPCDw=="
+,"_from": "selfsigned@1.10.4"
+}

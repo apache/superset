@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message Envelope {
+    int32 id = 1;
+    oneof value {
+        int32 int = 2;
+        float float = 3;
+        string string = 4;
+    }
+}

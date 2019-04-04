@@ -1,0 +1,37 @@
+{
+  "name": "hsl-regex",
+  "description": "Regex for matching HSL colors.",
+  "author": "John Otander",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/regexps/hsl-regex.git"
+  },
+  "keywords": [
+    "hsl",
+    "regex",
+    "regexp",
+    "color",
+    "css"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/regexps/hsl-regex/issues"
+  },
+  "homepage": "https://github.com/regexps/hsl-regex",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/hsl-regex/-/hsl-regex-1.0.0.tgz"
+,"_integrity": "sha1-1JMwx4ntgZ4nakwNJy3/owsY/m4="
+,"_from": "hsl-regex@1.0.0"
+}

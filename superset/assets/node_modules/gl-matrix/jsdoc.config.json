@@ -1,0 +1,9 @@
+{
+    "source": {
+        "include": [ "src/gl-matrix" ]
+    },
+    "opts": {
+        "recurse": true,
+        "destination": "./docs/"
+    }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "thunky",
+  "version": "1.0.3",
+  "description": "delay the evaluation of a paramless async function and cache the result",
+  "main": "index.js",
+  "devDependencies": {
+    "standard": "^12.0.1",
+    "tape": "^4.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mafintosh/thunky.git"
+  },
+  "scripts": {
+    "test": "standard && tape test.js"
+  },
+  "keywords": [
+    "memo",
+    "thunk",
+    "async",
+    "lazy",
+    "control",
+    "flow",
+    "cache"
+  ],
+  "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/mafintosh/thunky/issues"
+  },
+  "homepage": "https://github.com/mafintosh/thunky#readme",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/thunky/-/thunky-1.0.3.tgz"
+,"_integrity": "sha512-YwT8pjmNcAXBZqrubu22P4FYsh2D4dxRmnWBOL8Jk8bUcRUtc5326kx32tuTmFDAZtLOGEVNl8POAR8j896Iow=="
+,"_from": "thunky@1.0.3"
+}

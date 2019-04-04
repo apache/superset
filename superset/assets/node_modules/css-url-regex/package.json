@@ -1,0 +1,35 @@
+{
+  "name": "css-url-regex",
+  "version": "1.1.0",
+  "description": "Regular expression for matching CSS urls.",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "ava"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnotander/css-url-regex.git"
+  },
+  "keywords": [
+    "css",
+    "css-url",
+    "regex",
+    "regexp"
+  ],
+  "author": "John Otander <johnotander@gmail.com> (http://johnotander.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/johnotander/css-url-regex/issues"
+  },
+  "homepage": "https://github.com/johnotander/css-url-regex",
+  "devDependencies": {
+    "ava": "^0.2.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/css-url-regex/-/css-url-regex-1.1.0.tgz"
+,"_integrity": "sha1-g4NCMMyfdMRX3lnuvRVD/uuDt+w="
+,"_from": "css-url-regex@1.1.0"
+}

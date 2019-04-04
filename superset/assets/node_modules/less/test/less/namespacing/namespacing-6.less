@@ -1,0 +1,26 @@
+.wrapper(@another-mixin) {
+  @another-mixin();
+}
+
+.something(foo) {
+  width: 10px;
+}
+
+.output-height() {
+  height: 10px;
+}
+
+.rule-1 {
+  @alias: .something(foo);
+  @alias();
+}
+
+.rule-2 {
+  @alias: .something(foo);
+  .wrapper(@alias);
+}
+
+.rule-3 {
+  .wrapper(.something(foo));
+  .wrapper(.output-height());
+}

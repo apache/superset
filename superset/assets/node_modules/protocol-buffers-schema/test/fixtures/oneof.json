@@ -1,0 +1,40 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "messages": [
+    {
+      "name": "SampleMessage",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "tag": 4,
+          "map": null,
+          "oneof": "test_oneof",
+          "required": false,
+          "repeated": false,
+          "options": {}
+        },
+        {
+          "name": "sub_message",
+          "type": "SubMessage",
+          "tag": 9,
+          "map": null,
+          "oneof": "test_oneof",
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+
+      ],
+      "extensions": null
+    }
+  ],
+  "options": {},
+  "extends": []
+}

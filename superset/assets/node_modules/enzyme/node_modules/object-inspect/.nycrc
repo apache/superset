@@ -1,0 +1,17 @@
+{
+  "all": true,
+  "check-coverage": true,
+  "instrumentation": false,
+  "sourceMap": false,
+  "reporter": "html",
+  "lines": 94.94,
+  "statements": 94.25,
+  "functions": 96,
+  "branches": 91.02,
+  "exclude": [
+    "coverage",
+    "example",
+    "test",
+    "test-core-js.js"
+  ]
+}

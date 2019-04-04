@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<svg id="test1"></svg>
+
+<script>
+
+    nv.addGraph(function() {
+
+        var chart = nv.models.scatter()
+            .margin({top: 20, right: 20, bottom: 20, left: 20})
+            .pointSize(function(d) { return d.z })
+            .useVoronoi(false);
+
+        d3.select('#test1')
+            .datum(randomData())
+            .transition().duration(500)
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+        return chart;
+    });
+
+    function randomData() {
+        var data = [];
+
+        for (i = 0; i < 2; i++) {
+            data.push({
+                key: 'Group ' + i,
+                values: []
+            });
+
+            for (j = 0; j < 100; j++) {
+                data[i].values.push({x: Math.random(), y: Math.random(), z: Math.random()});
+            }
+        }
+
+        return data;
+    }
+
+</script>
+</body>
+</html>

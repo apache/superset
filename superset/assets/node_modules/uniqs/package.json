@@ -1,0 +1,25 @@
+{
+  "name": "uniqs",
+  "version": "2.0.0",
+  "description": "Tiny utility to create unions and de-duplicated lists",
+  "keywords": [
+    "unique",
+    "uniq",
+    "dedupe",
+    "union"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fgnass/uniqs.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "author": "Felix Gnass <fgnass@gmail.com>",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/uniqs/-/uniqs-2.0.0.tgz"
+,"_integrity": "sha1-/+3ks2slKQaW5uFl1KWe25mOawI="
+,"_from": "uniqs@2.0.0"
+}

@@ -1,0 +1,44 @@
+{
+  "name": "pluralize",
+  "version": "7.0.0",
+  "description": "Pluralize and singularize any word",
+  "main": "pluralize.js",
+  "files": [
+    "pluralize.js"
+  ],
+  "scripts": {
+    "lint": "semistandard",
+    "test-spec": "mocha -R spec --bail",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- -R spec --bail",
+    "test": "npm run lint && npm run test-cov"
+  },
+  "repository": "https://github.com/blakeembrey/pluralize.git",
+  "keywords": [
+    "plural",
+    "plurals",
+    "pluralize",
+    "singular",
+    "singularize",
+    "inflection"
+  ],
+  "author": {
+    "name": "Blake Embrey",
+    "email": "hello@blakeembrey.com",
+    "url": "http://blakeembrey.me"
+  },
+  "license": "MIT",
+  "readmeFilename": "Readme.md",
+  "engines": {
+    "node": ">=4"
+  },
+  "devDependencies": {
+    "chai": "^4.0.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "semistandard": "^11.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/pluralize/-/pluralize-7.0.0.tgz"
+,"_integrity": "sha512-ARhBOdzS3e41FbkW/XWrTEtukqqLoK5+Z/4UeDaLuSW+39JPeFgs4gCGqsrJHVZX0fUrx//4OF0K1CUGwlIFow=="
+,"_from": "pluralize@7.0.0"
+}

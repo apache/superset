@@ -1,0 +1,63 @@
+{
+  "name": "inquirer",
+  "version": "3.3.0",
+  "description": "A collection of common interactive command line user interfaces.",
+  "author": "Simon Boudrias <admin@simonboudrias.com>",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/inquirer.js",
+  "keywords": [
+    "command",
+    "prompt",
+    "stdin",
+    "cli",
+    "tty",
+    "menu"
+  ],
+  "scripts": {
+    "test": "gulp",
+    "prepublish": "gulp prepublish"
+  },
+  "repository": "SBoudrias/Inquirer.js",
+  "license": "MIT",
+  "dependencies": {
+    "ansi-escapes": "^3.0.0",
+    "chalk": "^2.0.0",
+    "cli-cursor": "^2.1.0",
+    "cli-width": "^2.0.0",
+    "external-editor": "^2.0.4",
+    "figures": "^2.0.0",
+    "lodash": "^4.3.0",
+    "mute-stream": "0.0.7",
+    "run-async": "^2.2.0",
+    "rx-lite": "^4.0.8",
+    "rx-lite-aggregates": "^4.0.8",
+    "string-width": "^2.1.0",
+    "strip-ansi": "^4.0.0",
+    "through": "^2.3.6"
+  },
+  "devDependencies": {
+    "chai": "^4.0.1",
+    "cmdify": "^0.0.4",
+    "eslint": "^4.2.0",
+    "eslint-config-xo-space": "^0.16.0",
+    "gulp": "^3.9.0",
+    "gulp-codacy": "^1.0.0",
+    "gulp-coveralls": "^0.1.0",
+    "gulp-eslint": "^4.0.0",
+    "gulp-exclude-gitignore": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-line-ending-corrector": "^1.0.1",
+    "gulp-mocha": "^3.0.0",
+    "gulp-nsp": "^2.1.0",
+    "gulp-plumber": "^1.0.0",
+    "mocha": "^3.4.2",
+    "mockery": "^2.1.0",
+    "sinon": "^3.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/inquirer/-/inquirer-3.3.0.tgz"
+,"_integrity": "sha512-h+xtnyk4EwKvFWHrUYsWErEVR+igKtLdchu+o0Z1RL7VU/jVMFbYir2bp6bAj8efFNxWqHX0dIss6fJQ+/+qeQ=="
+,"_from": "inquirer@3.3.0"
+}

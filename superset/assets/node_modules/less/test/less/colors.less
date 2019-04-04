@@ -1,0 +1,116 @@
+#yelow {
+  #short {
+    color: #fea;
+  }
+  #long {
+    color: #ffeeaa;
+  }
+  #rgba {
+    color: rgba(255, 238, 170, 0.1);
+  }
+  #argb {
+    color: argb(rgba(255, 238, 170, 0.1));
+  }
+}
+
+#blue {
+  #short {
+    color: #00f;
+  }
+  #long {
+    color: #0000ff;
+  }
+  #rgba {
+    color: rgba(0, 0, 255, 0.1);
+  }
+  #argb {
+    color: argb(rgba(0, 0, 255, 0.1));
+  }
+}
+
+#alpha #hsla {
+    color: hsla(11, 20%, 20%, 0.6);
+}
+
+#overflow {
+  .a { color: (#111111 - #444444); } // #000000
+  .b { color: (#eee + #fff); } // #ffffff
+  .c { color: (#aaa * 3); } // #ffffff
+  .d { color: (#00ee00 + #009900); } // #00ff00
+  .e { color: rgba(-99.9, 31.4159, 321, 0.42); }
+}
+
+#grey {
+  color: rgb(200, 200, 200);
+}
+
+#333333 {
+  color: rgb(20%, 20%, 20%);
+}
+
+#808080 {
+  color: hsl(50, 0%, 50%);
+}
+
+#00ff00 {
+  color: hsl(120, 100%, 50%);
+}
+
+.lightenblue {
+    color: lighten(blue, 10%);
+}
+
+.darkenblue {
+    color: darken(blue, 10%);
+}
+
+.unknowncolors {
+    color: blue2;
+    border: 2px solid superred;
+}
+
+.transparent {
+    color: transparent;
+    background-color: rgba(0, 0, 0, 0);
+}
+#alpha {
+    @colorvar: rgba(150, 200, 150, 0.7);
+    #fromvar {
+        opacity: alpha(@colorvar);
+    }
+    #short {
+        opacity: alpha(#aaa);
+    }
+    #long {
+        opacity: alpha(#bababa);
+    }
+    #rgba {
+        opacity: alpha(rgba(50, 120, 95, 0.2));
+    }
+    #hsl {
+        opacity: alpha(hsl(120, 100%, 50%));
+    }
+}
+
+#percentage {
+  color: red(rgb(100%, 0, 0));
+  border-color: rgba(100%, 0, 0, 50%);
+}
+
+#rrggbbaa {
+  test-1: #55FF5599;
+  test-2: #5F59;
+  test-3: lighten(#55FF5599, 10%);
+  test-4: fade(#5F59, 10%);
+  test-5: rgba(#55FF5599);
+  test-6: rgba(#5F59);
+  test-7: rgba(#5F59, 0.5);
+  test-8: rgba(var(--color-accent), 0.2);
+  test-9: rgb(var(--color-accent));
+  test-9: hsla(var(--color-accent));
+  test-10: color('#55FF5599');
+  test-11: hsla(#5F59);
+  test-12: hsla(#5F59, 0.5);
+  --semi-transparent-dark-background: #001e00ee;
+  --semi-transparent-dark-background-2: rgba(0, 30, 0, 238); // invalid opacity will be capped
+}

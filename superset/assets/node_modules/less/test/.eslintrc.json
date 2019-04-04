@@ -1,0 +1,9 @@
+{
+  "env": {
+    "node": true,
+    "browser": true
+  },
+  "parserOptions": { 
+    "ecmaVersion": 6
+  }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="assets/style.css">
+    <title>Hammer.js</title>
+
+    <style>
+        .tester {
+            margin: 20px 0;
+            padding: 10px;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .scroll-space {
+            height: 9000px;
+        }
+
+        #native, #no-native {
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.1em;
+            padding: 10px 20px;
+            display: none;
+            margin: 25px 0;
+        }
+
+        .show {
+            display: block !important;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <p>Hammer provides a <a href="../../src/touchaction.js">kind of polyfill</a>
+            for the browsers that don't support the <a href="http://www.w3.org/TR/pointerevents/#the-touch-action-css-property">touch-action</a> property.</p>
+
+        <div id="native" class="green">Your browser has support for the touch-action property!</div>
+        <div id="no-native" class="red">Your browser doesn't support the touch-action property,
+            so we use the polyfill.</div>
+
+        <h2>touch-action: auto</h2>
+        <p>Should prevent nothing.</p>
+        <div class="tester azure" id="auto"></div>
+
+        <h2>touch-action: pan-y</h2>
+        <p>Should prevent scrolling on horizontal movement. This is set by default when creating a Hammer instance.</p>
+        <div class="tester azure" id="pan-y"></div>
+
+        <h2>touch-action: pan-x</h2>
+        <p>Should prevent scrolling on vertical movement.</p>
+        <div class="tester azure" id="pan-x"></div>
+
+        <h2>touch-action: pan-x pan-y</h2>
+        <p>Should <strong>not</strong> prevent any scrolling on any movement. Horizontal and vertical scrolling handled by the browser directly.</p>
+        <div class="tester azure" id="pan-x-pan-y"></div>
+
+        <h2>touch-action: none</h2>
+        <p>Should prevent all.</p>
+        <div class="tester azure" id="none"></div>
+    </div>
+    <script src="../../hammer.js"></script>
+    <script>
+        var support = Hammer.prefixed(document.body.style, 'touchAction');
+        document.getElementById(support ? 'native' : 'no-native').className += ' show';
+
+        var touchActions = ['auto', 'pan-y', 'pan-x', 'pan-x pan-y', 'none'];
+        Hammer.each(touchActions, function(touchAction) {
+            var el = document.getElementById(touchAction.replace(" ", "-"));
+
+            var mc = Hammer(el, {
+                touchAction: touchAction
+            });
+            mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+            mc.get('pinch').set({ enable: true });
+            mc.get('rotate').set({ enable: true });
+
+            mc.on("pan swipe rotate pinch tap doubletap press", function(ev) {
+                el.textContent = ev.type +" "+ el.textContent;
+            });
+        });
+    </script>
+
+    <div class="scroll-space"></div>
+    <p>hi.</p>
+
+</body>
+</html>

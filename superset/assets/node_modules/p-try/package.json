@@ -1,0 +1,47 @@
+{
+  "name": "p-try",
+  "version": "1.0.0",
+  "description": "`Promise#try()` ponyfill - Starts a promise chain",
+  "license": "MIT",
+  "repository": "sindresorhus/p-try",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "promise",
+    "try",
+    "resolve",
+    "function",
+    "catch",
+    "async",
+    "await",
+    "promises",
+    "settled",
+    "ponyfill",
+    "polyfill",
+    "shim",
+    "bluebird"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "esnext": true
+  }
+
+,"_resolved": "https://registry.npmjs.org/p-try/-/p-try-1.0.0.tgz"
+,"_integrity": "sha1-y8ec26+P1CKOE/Yh8rGiN8GyB7M="
+,"_from": "p-try@1.0.0"
+}

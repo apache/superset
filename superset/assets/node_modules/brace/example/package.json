@@ -1,0 +1,16 @@
+{
+  "name": "example",
+  "description": "example showing off how to use brace with browserify to include an ace editor in a page",
+  "main": "example.js",
+  "dependencies": {
+    "browserify": "~2.13.2",
+    "brace": "~0.1.1"
+  },
+  "devDependencies": {},
+  "keywords": [],
+  "author": {
+    "name": "Thorsten Lorenz",
+    "email": "thlorenz@gmx.de",
+    "url": "http://thlorenz.com"
+  }
+}

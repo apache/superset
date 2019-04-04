@@ -1,0 +1,39 @@
+{
+  "name": "alphanum-sort",
+  "version": "1.0.2",
+  "description": "Alphanumeric sorting algorithm",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "eslint": "^1.5.1",
+    "javascript-natural-sort": "^0.7.1",
+    "tap-spec": "^4.1.0",
+    "tape": "^4.2.0"
+  },
+  "scripts": {
+    "test": "eslint lib test.js && tape test.js | tap-spec"
+  },
+  "author": "Bogdan Chadkin <trysound@yandex.ru>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TrySound/alphanum-sort.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TrySound/alphanum-sort/issues"
+  },
+  "homepage": "https://github.com/TrySound/alphanum-sort",
+  "keywords": [
+    "sort",
+    "alphanum",
+    "alphanumeric",
+    "natural",
+    "human"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/alphanum-sort/-/alphanum-sort-1.0.2.tgz"
+,"_integrity": "sha1-l6ERlkmyEa0zaR2fn0hqjsn74KM="
+,"_from": "alphanum-sort@1.0.2"
+}

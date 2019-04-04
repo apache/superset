@@ -1,0 +1,41 @@
+{
+  "name": "remove-trailing-separator",
+  "version": "1.1.0",
+  "description": "Removes separators from the end of the string.",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "xo",
+    "pretest": "npm run lint",
+    "test": "nyc ava",
+    "report": "nyc report --reporter=html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darsain/remove-trailing-separator.git"
+  },
+  "keywords": [
+    "remove",
+    "strip",
+    "trailing",
+    "separator"
+  ],
+  "author": "darsain",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/darsain/remove-trailing-separator/issues"
+  },
+  "homepage": "https://github.com/darsain/remove-trailing-separator#readme",
+  "devDependencies": {
+    "ava": "^0.16.0",
+    "coveralls": "^2.11.14",
+    "nyc": "^8.3.0",
+    "xo": "^0.16.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/remove-trailing-separator/-/remove-trailing-separator-1.1.0.tgz"
+,"_integrity": "sha1-wkvOKig62tW8P1jg1IJJuSN52O8="
+,"_from": "remove-trailing-separator@1.1.0"
+}

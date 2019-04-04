@@ -1,0 +1,69 @@
+@charset "utf-8";
+.other {
+  trans: transitive;
+}
+.class {
+  trans: transitive;
+  global: global;
+  local: test-local();
+  shadow: global;
+}
+.class .local {
+  global: global;
+  local: local;
+  shadow: local;
+}
+.class {
+  ns-mixin-global: global;
+  ns-mixin-local: local;
+  ns-mixin-shadow: local;
+  mixin-local: local;
+  mixin-global: global;
+  mixin-shadow: local;
+  ruleset-local: local;
+  ruleset-global: global;
+  ruleset-shadow: local;
+  class-local: test-local();
+}
+@media screen {
+  .test {
+    result: global;
+  }
+}
+@font-face {
+  result: global;
+}
+@media screen and (min-width: 100px) and (max-width: 400px) {
+  .test {
+    result: global;
+  }
+}
+@media screen {
+  .test {
+    result: local;
+  }
+}
+.root {
+  prop: value;
+}
+.test-empty {
+  val1: foo;
+  val2: foo;
+}
+.test-simple {
+  value: 3.141592653589793;
+  value: 6.28318531;
+}
+.test-conflicts {
+  value: foo;
+}
+.test-conflicts {
+  value: bar;
+}
+.test-conflicts {
+  value: foo;
+}
+.test-collection {
+  list: 32, 5, "bird";
+}
+@arbitrary value after ();

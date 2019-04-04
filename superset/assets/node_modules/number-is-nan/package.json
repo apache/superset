@@ -1,0 +1,39 @@
+{
+  "name": "number-is-nan",
+  "version": "1.0.1",
+  "description": "ES2015 Number.isNaN() ponyfill",
+  "license": "MIT",
+  "repository": "sindresorhus/number-is-nan",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "es2015",
+    "ecmascript",
+    "ponyfill",
+    "polyfill",
+    "shim",
+    "number",
+    "is",
+    "nan",
+    "not"
+  ],
+  "devDependencies": {
+    "ava": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/number-is-nan/-/number-is-nan-1.0.1.tgz"
+,"_integrity": "sha1-CXtgK1NCKlIsGvuHkDGDNpQaAR0="
+,"_from": "number-is-nan@1.0.1"
+}

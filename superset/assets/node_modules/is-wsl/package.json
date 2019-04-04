@@ -1,0 +1,44 @@
+{
+  "name": "is-wsl",
+  "version": "1.1.0",
+  "description": "Check if the process is running inside Windows Subsystem for Linux (Bash on Windows)",
+  "license": "MIT",
+  "repository": "sindresorhus/is-wsl",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "check",
+    "wsl",
+    "windows",
+    "subsystem",
+    "linux",
+    "detect",
+    "bash",
+    "process",
+    "console",
+    "terminal",
+    "is"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "clear-require": "^2.0.0",
+    "proxyquire": "^1.7.11",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-wsl/-/is-wsl-1.1.0.tgz"
+,"_integrity": "sha1-HxbkqiKwTRM2tmGIpmrzxgDDpm0="
+,"_from": "is-wsl@1.1.0"
+}

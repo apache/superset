@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+var fs = require("fs");
+
+console.log(JSON.stringify({
+  "name": "d3-geo-projection",
+  "version": require("../package.json").version,
+  "main": "d3.geo.projection.js",
+  "scripts": [
+    "d3.geo.projection.js"
+  ],
+  "ignore": [
+    ".DS_Store",
+    ".git",
+    ".gitignore",
+    ".npmignore",
+    "Makefile",
+    "bin",
+    "index.js",
+    "node_modules",
+    "package.json",
+    "src",
+    "test"
+  ]
+}, null, 2));

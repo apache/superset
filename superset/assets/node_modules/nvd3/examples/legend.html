@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<h3>Legend 1</h3>
+<button id="changeData">Click to Change Legend</button>
+<svg id="test1" class="nvd3"></svg>
+
+<h3>Legend 2</h3>
+<p>Setting align(false)</p>
+<svg id="test2" class="nvd3"></svg>
+
+<h3>Legend 3</h3>
+<p>Setting legend padding distance</p>
+<svg id="test3" class="nvd3"></svg>
+
+<script>
+    var width = 500,
+        height = 20;
+
+    var legend = nv.models.legend();
+
+    d3.select('#test1')
+        .attr('width', width)
+        .attr('height', height)
+        .datum(sinAndCos());
+
+    var legend2 = nv.models.legend()
+        .align(false);
+
+    d3.select('#test2')
+        .attr('width', width)
+        .attr('height', height)
+        .datum(sinAndCos()).call(legend2);
+
+    var legend3 = nv.models.legend()
+        .width(900)
+        .padding(70);
+
+    d3.select('#test3')
+        .attr('width', 900)
+        .attr('height', 200)
+        .datum(sinAndCos()).call(legend3);
+
+    var update = function() {
+        d3.select('#test1').call(legend);
+    }
+
+    update();
+    legend.dispatch.on('stateChange', function(d) { 
+        console.log(d);
+        update();
+    });
+
+    d3.select('#changeData').on('click', function() {
+        d3.select('#test1')
+        .datum(differentData())
+        .call(legend);
+    });
+
+    function sinAndCos() {
+        return [
+            {key: "Sine Wave"},
+            {key: "A Very Long Label With Over Twenty Characters"},
+            {key: "A Very Long Series Label With Over Twenty Characters"},
+            {key: "A Very Long Series Label With Over Twenty Characters"},
+            {key: "Cosine Wave"},
+            {key: "Another test label"}
+        ];
+    }
+
+    function differentData() {
+        return [
+            {key: "Fixed Income"},
+            {key: "Derivatives"},
+            {key: "Credit Default Swaps"},
+            {key: "Equities"},
+            {key: "Bonds"},
+            {key: "Stocks"},
+            {key: "Apple"}
+        ];
+    }
+
+</script>
+</body>
+</html>

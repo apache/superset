@@ -1,0 +1,25 @@
+{ "name"            : "faye-websocket"
+, "description"     : "Standards-compliant WebSocket server and client"
+, "homepage"        : "https://github.com/faye/faye-websocket-node"
+, "author"          : "James Coglan <jcoglan@gmail.com> (http://jcoglan.com/)"
+, "keywords"        : ["websocket", "eventsource"]
+, "license"         : "MIT"
+
+, "version"         : "0.11.1"
+, "engines"         : {"node": ">=0.8.0"}
+, "main"            : "./lib/faye/websocket"
+, "dependencies"    : {"websocket-driver": ">=0.5.1"}
+, "devDependencies" : {"jstest": "", "pace": "", "permessage-deflate": ""}
+
+, "scripts"         : {"test": "jstest spec/runner.js"}
+
+, "repository"      : { "type"  : "git"
+                      , "url"   : "git://github.com/faye/faye-websocket-node.git"
+                      }
+
+, "bugs"            : "https://github.com/faye/faye-websocket-node/issues"
+
+,"_resolved": "https://registry.npmjs.org/faye-websocket/-/faye-websocket-0.11.1.tgz"
+,"_integrity": "sha1-8O/hjE9W5PQK/H4Gxxn9XuYYjzg="
+,"_from": "faye-websocket@0.11.1"
+}

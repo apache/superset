@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>typed-function | basic usage</title>
+  <script src="../typed-function.js"></script>
+</head>
+<body>
+<script>
+
+  console.time('create');
+  for (var i = 0; i < 1000; i++) {
+    // create a typed function
+    var fn1 = typed('fn1', {
+      'number, string':  function (a, b) {
+        return 'a is a number, b is a string';
+      },
+      'number, number':  function (a, b) {
+        return 'a is a number, b is a number';
+      }
+    });
+  }
+  console.timeEnd('create');
+
+  console.time('invoke');
+  for (var i = 0; i < 1e7; i++) {
+    // create a typed function
+    var res = fn1(2, 'foo');
+  }
+  console.timeEnd('invoke');
+
+  console.log('fn1', fn1.toString());
+
+  // use the function
+  //document.write(fn1(2, 'foo') + '<br>'); // outputs 'a is a number, b is a string'
+
+
+
+  var signature0 = function (a, b) {
+    return 'a is a number, b is a string';
+  };
+
+  var signature1 = function (a, b) {
+    return 'a is a number, b is a number';
+  };
+
+  var test0 = function (x) {
+    return typeof x === 'number';
+  };
+
+  var test1 = function (x) {
+    return typeof x === 'string';
+  };
+
+  var createError = function () {
+    console.log('Error')
+  };
+
+  function fn2(arg0, arg1) {
+    "use strict";
+    if (test0(arg0)) { // type: number
+      if (test1(arg1)) { // type: string
+        if (arguments.length === 2) {
+          return signature0(arg0, arg1); // signature: number, string
+        }
+        if (arguments.length > 2) {
+          throw createError('', [arg0 , arg1], 2)
+        }
+      }
+      if (test0(arg1)) { // type: number
+        if (arguments.length === 2) {
+          return signature1(arg0, arg1); // signature: number, number
+        }
+        if (arguments.length > 2) {
+          throw createError('', [arg0 , arg1], 2)
+        }
+      }
+      throw createError('', [arg0 , arg1], 1, 'string,number');
+    }
+    throw createError('', [arg0 , arg1], 0, 'number');
+  }
+
+
+  console.time('invoke2');
+  for (var i = 0; i < 1e7; i++) {
+    // create a typed function
+    var res = fn2(2, 'foo');
+  }
+  console.timeEnd('invoke2');
+
+
+  // inline type checks
+  function fn3(arg0, arg1) {
+    "use strict";
+    if (typeof arg0 === 'number') { // type: number
+      if (typeof arg1 === 'string') { // type: string
+        if (arguments.length === 2) {
+          return signature0(arg0, arg1); // signature: number, string
+        }
+        if (arguments.length > 2) {
+          throw createError('', [arg0 , arg1], 2)
+        }
+      }
+      if (typeof arg1 === 'number') { // type: number
+        if (arguments.length === 2) {
+          return signature1(arg0, arg1); // signature: number, number
+        }
+        if (arguments.length > 2) {
+          throw createError('', [arg0 , arg1], 2)
+        }
+      }
+      throw createError('', [arg0 , arg1], 1, 'string,number');
+    }
+    throw createError('', [arg0 , arg1], 0, 'number');
+  }
+
+
+  console.time('invoke3');
+  for (var i = 0; i < 1e7; i++) {
+    // create a typed function
+    var res = fn3(2, 'foo');
+  }
+  console.timeEnd('invoke3');
+
+
+</script>
+</body>
+</html>

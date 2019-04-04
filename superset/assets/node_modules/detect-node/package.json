@@ -1,0 +1,28 @@
+{
+  "name": "detect-node",
+  "version": "2.0.4",
+  "description": "Detect Node.JS (as opposite to browser environment) (reliable)",
+  "main": "index.js",
+  "browser": "browser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iliakan/detect-node"
+  },
+  "keywords": [
+    "detect",
+    "node"
+  ],
+  "author": "Ilya Kantor",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iliakan/detect-node/issues"
+  },
+  "homepage": "https://github.com/iliakan/detect-node"
+
+,"_resolved": "https://registry.npmjs.org/detect-node/-/detect-node-2.0.4.tgz"
+,"_integrity": "sha512-ZIzRpLJrOj7jjP2miAtgqIfmzbxa4ZOr5jJc601zklsfEx9oTzmmj2nVpIPRpNlRTIh8lc1kyViIY7BWSGNmKw=="
+,"_from": "detect-node@2.0.4"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "postcss",
+  "version": "6.0.23",
+  "description": "Tool for transforming styles with JS plugins",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "keywords": ["css", "postcss", "rework", "preprocessor", "parser", "source map", "transform", "manipulation", "transpiler"],
+  "author": "Andrey Sitnik <andrey@sitnik.ru>",
+  "license": "MIT",
+  "homepage": "https://postcss.org/",
+  "repository": "postcss/postcss",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "source-map": "^0.6.1",
+    "supports-color": "^5.4.0"
+  },
+  "main": "lib/postcss",
+  "types": "lib/postcss.d.ts",
+  "browser": {
+    "supports-color": false,
+    "chalk": false,
+    "fs": false
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss/-/postcss-6.0.23.tgz"
+,"_integrity": "sha512-soOk1h6J3VMTZtVeVpv15/Hpdl2cBLX3CAw4TAbkpTJiNPk9YP/zWcD1ND+xEtvyuuvKzbxliTOIyvkSeSJ6ag=="
+,"_from": "postcss@6.0.23"
+}

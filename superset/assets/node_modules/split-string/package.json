@@ -1,0 +1,69 @@
+{
+  "name": "split-string",
+  "description": "Split a string on a character except when the character is escaped.",
+  "version": "3.1.0",
+  "homepage": "https://github.com/jonschlinkert/split-string",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/split-string",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/split-string/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^3.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3"
+  },
+  "keywords": [
+    "character",
+    "escape",
+    "split",
+    "string"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "titles": [
+      ".",
+      "install",
+      "Why use this?"
+    ],
+    "related": {
+      "list": [
+        "deromanize",
+        "randomatic",
+        "repeat-string",
+        "romanize"
+      ]
+    },
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/split-string/-/split-string-3.1.0.tgz"
+,"_integrity": "sha512-NzNVhJDYpwceVVii8/Hu6DKfD2G+NrQHlS/V/qgv763EYudVwEcMQNxd2lh+0VrUByXN/oJkl5grOhYWvQUYiw=="
+,"_from": "split-string@3.1.0"
+}

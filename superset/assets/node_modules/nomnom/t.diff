@@ -1,0 +1,44 @@
+diff --git a/package.json b/package.json
+index 88de4c0..f030c65 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "nomnom",
+   "description": "Option parser with generated usage and commands",
+-  "version": "1.6.0",
++  "version": "1.6.1",
+   "author": "Heather Arthur <fayearthur@gmail.com>",
+   "scripts": {
+     "test": "./node_modules/.bin/nodeunit test/*.js"
+diff --git a/test/matching.js b/test/matching.js
+index 8d347eb..a0cf14a 100644
+--- a/test/matching.js
++++ b/test/matching.js
+@@ -1,5 +1,5 @@
+ var nomnom = require("../nomnom");
+-    
++
+ var opts = {
+    pos1: {
+       position: 0
+@@ -41,8 +41,8 @@ var parser = nomnom().options(opts);
+ 
+ exports.testPositional = function(test) {
+    var options = parser.parse(["--flag1", "val1", "--config", "file", "val2"]);
+-   
+-   test.equal(options.pos1, "val1");
++
++   test.equal(options.pos1, "val");
+    test.equal(options.pos2, "val2");
+    test.deepEqual(options._, ["val1", "val2"])
+    test.done();
+@@ -50,7 +50,7 @@ exports.testPositional = function(test) {
+ 
+ exports.testAbbr = function(test) {
+    var options = parser.parse(["-d", "yes", "--num-lines", "3"]);
+-   
++
+    test.equal(options.debug, "yes")
+    test.equal(options.numLines, 3)
+    test.done();

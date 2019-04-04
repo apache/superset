@@ -1,0 +1,46 @@
+{
+	"name": "normalize-url",
+	"version": "3.3.0",
+	"description": "Normalize a URL",
+	"license": "MIT",
+	"repository": "sindresorhus/normalize-url",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && nyc ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"normalize",
+		"url",
+		"uri",
+		"address",
+		"string",
+		"normalization",
+		"normalisation",
+		"query",
+		"querystring",
+		"simplify",
+		"strip",
+		"trim",
+		"canonical"
+	],
+	"devDependencies": {
+		"ava": "*",
+		"coveralls": "^3.0.0",
+		"nyc": "^12.0.2",
+		"xo": "*"
+	}
+
+,"_resolved": "https://registry.npmjs.org/normalize-url/-/normalize-url-3.3.0.tgz"
+,"_integrity": "sha512-U+JJi7duF1o+u2pynbp2zXDW2/PADgC30f0GsHZtRh+HOcXHnw137TrNlyxxRvWW5fjKd3bcLHPxofWuCjaeZg=="
+,"_from": "normalize-url@3.3.0"
+}

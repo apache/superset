@@ -1,0 +1,31 @@
+diff --git a/test/values.js b/test/values.js
+index efad789..7fa1078 100644
+--- a/test/values.js
++++ b/test/values.js
+@@ -26,6 +26,12 @@ var opts = {
+    },
+    def2: {
+       default: "val1"
++   },
++   "2d": {
++      flag: true
++   },
++   "3d": {
++      abbr: "3"
+    }
+ }
+ 
+@@ -80,8 +86,12 @@ exports.testDash = function(test) {
+ };
+ 
+ exports.testNumbers = function(test) {
+-  var options = parser.parseArgs(['sum', '-1', '2.5', '-3.5', '4']);
++  var options = parser.parseArgs(['sum', '-1', '2.5', '-3.5', '4', '--2d', '-3', 'test']);
+ 
+   test.deepEqual(options.list3, ['-1', '2.5', '-3.5', '4']);
++  test.strictEqual(options['2d'], true);
++  test.strictEqual(options['3d'], "test")
+   test.done();
+ };
++
++

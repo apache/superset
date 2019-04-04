@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="../bower_components/d3/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <style>
+        body{
+            transform: translate(-225px,0px);
+        }
+        svg{
+
+            position: absolute;
+            left: 225px;
+        }
+    </style>
+</head>
+<body>
+    <svg style="height: 400px; width: 400px"></svg>
+    <script>
+        function drawGraph() {
+            nv.addGraph(function() {
+                var chart = nv.models.lineChart().useInteractiveGuideline(true);
+                var myData = [{key: 'key', values: [{x: 1, y: 1}]}];
+
+                d3.select('svg')
+                    .datum(myData)
+                    .call(chart);
+
+                return chart;
+            });
+        }
+
+        drawGraph();
+    </script>
+</body>
+</html>

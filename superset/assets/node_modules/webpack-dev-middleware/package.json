@@ -1,0 +1,50 @@
+{
+  "name": "webpack-dev-middleware",
+  "version": "3.4.0",
+  "description": "A development middleware for webpack",
+  "main": "index.js",
+  "files": [
+    "lib",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 6"
+  },
+  "scripts": {
+    "lint": "eslint index.js lib test",
+    "test": "nyc --reporter lcovonly mocha --full-trace --check-leaks --exit",
+    "release": "standard-version"
+  },
+  "dependencies": {
+    "memory-fs": "~0.4.1",
+    "mime": "^2.3.1",
+    "range-parser": "^1.0.3",
+    "webpack-log": "^2.0.0"
+  },
+  "devDependencies": {
+    "assert": "^1.4.1",
+    "eslint": "^5.4.0",
+    "eslint-config-webpack": "^1.2.5",
+    "eslint-plugin-import": "^2.14.0",
+    "express": "^4.14.0",
+    "file-loader": "^2.0.0",
+    "mocha": "^5.2.0",
+    "nyc": "^12.0.2",
+    "sinon": "^6.1.5",
+    "standard-version": "^4.4.0",
+    "supertest": "^3.1.0",
+    "webpack": "^4.17.1"
+  },
+  "peerDependencies": {
+    "webpack": "^4.0.0"
+  },
+  "author": "Tobias Koppers @sokra",
+  "bugs": "https://github.com/webpack/webpack-dev-middleware/issues",
+  "homepage": "https://github.com/webpack/webpack-dev-middleware",
+  "repository": "https://github.com/webpack/webpack-dev-middleware.git",
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/webpack-dev-middleware/-/webpack-dev-middleware-3.4.0.tgz"
+,"_integrity": "sha512-Q9Iyc0X9dP9bAsYskAVJ/hmIZZQwf/3Sy4xCAZgL5cUkjZmUZLt4l5HpbST/Pdgjn3u6pE7u5OdGd1apgzRujA=="
+,"_from": "webpack-dev-middleware@3.4.0"
+}

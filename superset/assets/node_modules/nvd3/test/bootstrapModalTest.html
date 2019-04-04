@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="../bower_components/d3/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <script   src="https://code.jquery.com/jquery-2.2.4.min.js"   integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="   crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h3>Noraml Example</h3>
+        <div id="noraml-container"></div>
+
+        <h3>Modal Example</h3>
+        <div>
+            <a href="#myModal" role="button" class="btn btn-default" data-toggle="modal">Launch Modal</a>
+        </div>
+
+        <div class="modal" id="myModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-offset-top">
+                <div class="modal-content">
+                    <div class="modal-body">
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+$(function(){
+
+    drawGraph('#noraml-container');
+    
+    $('#myModal').on('shown.bs.modal', function () {
+      drawGraph('#myModal .modal-body');
+		});
+    
+    
+    function drawGraph(containerSelector) {
+        nv.addGraph(function() {
+            var chart = nv.models.multiBarChart().useInteractiveGuideline(true);
+            var values = [{x: 1, y: 8}, {x: 2, y: 5}, {x: 3, y: 10}];
+            var myData = [ { key: 'key', values: values } ];
+
+            $(containerSelector).html('');
+            d3.select(containerSelector).append('svg')
+                .datum(myData)
+                .call(chart);
+
+            return chart;
+        });
+    }
+});
+    </script>
+</body>
+</html>

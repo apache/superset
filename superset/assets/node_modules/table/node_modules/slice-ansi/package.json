@@ -1,0 +1,57 @@
+{
+  "name": "slice-ansi",
+  "version": "1.0.0",
+  "description": "Slice a string with ANSI escape codes",
+  "license": "MIT",
+  "repository": "chalk/slice-ansi",
+  "author": {
+    "name": "David Caccavella",
+    "email": "threedeecee@gmail.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "slice",
+    "string",
+    "ansi",
+    "styles",
+    "color",
+    "colour",
+    "colors",
+    "terminal",
+    "console",
+    "cli",
+    "tty",
+    "escape",
+    "formatting",
+    "rgb",
+    "256",
+    "shell",
+    "xterm",
+    "log",
+    "logging",
+    "command-line",
+    "text"
+  ],
+  "dependencies": {
+    "is-fullwidth-code-point": "^2.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "chalk": "^2.0.1",
+    "random-item": "^1.0.0",
+    "strip-ansi": "^4.0.0",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/slice-ansi/-/slice-ansi-1.0.0.tgz"
+,"_integrity": "sha512-POqxBK6Lb3q6s047D/XsDVNPnF9Dl8JSaqe9h9lURl0OdNqy/ujDrOiIHtsqXMGbWWTIomRzAMaTyawAU//Reg=="
+,"_from": "slice-ansi@1.0.0"
+}

@@ -1,0 +1,34 @@
+{
+  "name": "multicast-dns-service-types",
+  "version": "1.1.0",
+  "description": "Parse and stringify mdns service types",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "standard": "^3.5.0",
+    "tape": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/multicast-dns-service-types.git"
+  },
+  "scripts": {
+    "test": "standard && tape test.js"
+  },
+  "author": "Mathias Buus (@mafintosh)",
+  "license": "MIT",
+  "keywords": [
+    "mdns",
+    "bonjour",
+    "zero",
+    "conf"
+  ],
+  "bugs": {
+    "url": "https://github.com/mafintosh/multicast-dns-service-types/issues"
+  },
+  "homepage": "https://github.com/mafintosh/multicast-dns-service-types"
+
+,"_resolved": "https://registry.npmjs.org/multicast-dns-service-types/-/multicast-dns-service-types-1.1.0.tgz"
+,"_integrity": "sha1-iZ8R2WhuXgXLkbNdXw5jt3PPyQE="
+,"_from": "multicast-dns-service-types@1.1.0"
+}

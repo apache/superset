@@ -1,0 +1,41 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "messages": [{
+    "name": "Person",
+    "enums": [{
+      "name": "PhoneType",
+      "values": {
+        "MOBILE": {
+          "value": 0,
+          "options": {
+            "enum_value_is_deprecated": "true",
+            "some_second_option": "\"value1,value2,value3\"",
+            "some_third_option": "'[value1,value2,value3]'"
+          }
+        },
+        "HOME": {
+          "value": 1,
+          "options": {
+            "enum_value_is_deprecated": "true"
+          }
+        },
+        "WORK": {
+          "value": 2,
+          "options": {}
+        }
+      },
+      "options": {
+        "allow_alias": true
+      }
+    }],
+    "extends": [],
+    "messages": [],
+    "fields": [],
+    "extensions": null
+  }],
+  "options": {},
+  "extends": []
+}

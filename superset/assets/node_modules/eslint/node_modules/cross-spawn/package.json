@@ -1,0 +1,57 @@
+{
+  "name": "cross-spawn",
+  "version": "5.1.0",
+  "description": "Cross platform child_process#spawn and child_process#spawnSync",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/prepare && mocha --bail test/test",
+    "lint": "eslint '{*.js,lib/**/*.js,test/**/*.js}'"
+  },
+  "bugs": {
+    "url": "https://github.com/IndigoUnited/node-cross-spawn/issues/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IndigoUnited/node-cross-spawn.git"
+  },
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "keywords": [
+    "spawn",
+    "spawnSync",
+    "windows",
+    "cross",
+    "platform",
+    "path",
+    "ext",
+    "path-ext",
+    "path_ext",
+    "shebang",
+    "hashbang",
+    "cmd",
+    "execute"
+  ],
+  "author": "IndigoUnited <hello@indigounited.com> (http://indigounited.com)",
+  "license": "MIT",
+  "dependencies": {
+    "lru-cache": "^4.0.1",
+    "shebang-command": "^1.2.0",
+    "which": "^1.2.9"
+  },
+  "devDependencies": {
+    "@satazor/eslint-config": "^3.0.0",
+    "eslint": "^3.0.0",
+    "expect.js": "^0.3.0",
+    "glob": "^7.0.0",
+    "mkdirp": "^0.5.1",
+    "mocha": "^3.0.2",
+    "once": "^1.4.0",
+    "rimraf": "^2.5.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-5.1.0.tgz"
+,"_integrity": "sha1-6L0O/uWPz/b4+UUQoKVUu/ojVEk="
+,"_from": "cross-spawn@5.1.0"
+}

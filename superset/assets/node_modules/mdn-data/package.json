@@ -1,0 +1,40 @@
+{
+  "name": "mdn-data",
+  "version": "1.1.4",
+  "description": "Open Web data by the Mozilla Developer Network",
+  "main": "index.js",
+  "files": [
+    "api/*.json",
+    "css/*.json",
+    "l10n/*.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mdn/data.git"
+  },
+  "keywords": [
+    "data",
+    "mdn",
+    "mozilla",
+    "css"
+  ],
+  "author": "Mozilla Developer Network",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/mdn/data/issues"
+  },
+  "homepage": "https://developer.mozilla.org",
+  "devDependencies": {
+    "ajv": "^5.0.1",
+    "better-ajv-errors": "^0.5.1"
+  },
+  "scripts": {
+    "lint": "node test/lint",
+    "travis": "npm test",
+    "test": "npm run lint"
+  }
+
+,"_resolved": "https://registry.npmjs.org/mdn-data/-/mdn-data-1.1.4.tgz"
+,"_integrity": "sha512-FSYbp3lyKjyj3E7fMl6rYvUdX0FBXaluGqlFoYESWQlyUTq8R+wp0rkFxoYFqZlHCvsUXGjyJmLQSnXToYhOSA=="
+,"_from": "mdn-data@1.1.4"
+}

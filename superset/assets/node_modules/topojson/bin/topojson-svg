@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+
+var fs = require("fs"),
+    os = require("os"),
+    rw = require("rw").dash,
+    d3 = require("d3"),
+    optimist = require("optimist"),
+    topojson = require("../");
+
+var argv = optimist
+    .usage("Usage: \033[1mtopojson-svg\033[0m [options] -- file\n\n"
+
++ "Version: " + topojson.version + "\n\n"
+
++ "Converts a TopoJSON file to SVG. Assumes the input is already projected\n"
++ "and simplified as needed; if not, use \033[1mtopojson\033[0m to process the TopoJSON\n"
++ "file first, and then pass the output to this program.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output SVG file name",
+      default: "-"
+    })
+    .options("width", {
+      describe: "width of the output SVG",
+      default: null
+    })
+    .options("height", {
+      describe: "height of the output SVG",
+      default: null
+    })
+    .options("precision", {
+      describe: "number of digits after the decimal place to output",
+      default: undefined
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (argv.help) return;
+      if (argv._.length > 1) throw new Error("at most one input file allowed");
+      if (!argv._.length) argv._ = ["-"];
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var precision = Math.pow(10, argv.precision);
+
+var topology = JSON.parse(rw.readFileSync(argv._[0], "utf8"));
+
+var path = d3.geo.path().projection(isNaN(precision) ? null : d3.geo.transform({
+  point: function(x, y) {
+    this.stream.point(
+      Math.round(x * precision) / precision,
+      Math.round(y * precision) / precision
+    );
+  }
+}));
+
+var out = (argv.o === "-" || argv.o === "/dev/stdout")
+    ? process.stdout
+    : fs.createWriteStream(argv.o, "utf8");
+
+out.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>" + os.EOL);
+out.write("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">" + os.EOL);
+out.write("<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\""
+  + (argv.width == null ? "" : " width=\"" + +argv.width + "\"")
+  + (argv.height == null ? "" : " height=\"" + +argv.height + "\"")
+  + (argv.width == null || argv.height == null ? "" : " viewBox=\"0 0 " + +argv.width + " " + +argv.height + "\"")
+  + ">" + os.EOL);
+
+for (var key in topology.objects) {
+  out.write("  <g id=\"object-" + quote(key) + "\">" + os.EOL);
+  var object = topology.objects[key];
+  if (object.type === "GeometryCollection") object.geometries.forEach(outputGeometry);
+  else outputGeometry(object);
+  out.write("  </g>" + os.EOL);
+}
+
+out.write("</svg>" + os.EOL);
+
+if (out !== process.stdout) out.end();
+
+function quote(string) {
+  return string.replace(/"/g, "&quot;");
+}
+
+function outputGeometry(geometry) {
+  out.write("    <path");
+  if (geometry.id != null) out.write(" id=\"feature-" + quote(geometry.id + "") + "\"");
+  var d = path(topojson.feature(topology, geometry));
+  out.write((d == null ? "" : " d=\"" + d + "\"") + "></path>" + os.EOL);
+}

@@ -1,0 +1,72 @@
+{
+  "name": "vendors",
+  "version": "1.0.2",
+  "description": "List of vendor prefixes known to the web platform",
+  "license": "MIT",
+  "keywords": [
+    "css",
+    "html",
+    "dom",
+    "web",
+    "platform",
+    "vendor",
+    "prefix",
+    "prefixes"
+  ],
+  "repository": "wooorm/vendors",
+  "bugs": "https://github.com/wooorm/vendors/issues",
+  "author": "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)",
+  "contributors": [
+    "Titus Wormer <tituswormer@gmail.com> (http://wooorm.com)"
+  ],
+  "main": "index.json",
+  "files": [
+    "index.json"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "^16.0.0",
+    "esmangle": "^1.0.0",
+    "prettier": "^1.12.1",
+    "remark-cli": "^5.0.0",
+    "remark-preset-wooorm": "^4.0.0",
+    "tape": "^4.4.0",
+    "xo": "^0.20.0"
+  },
+  "scripts": {
+    "format": "remark . -qfo && prettier --write '**/*.js' && xo --fix",
+    "build-bundle": "browserify index.json -s vendors > vendors.js",
+    "build-mangle": "esmangle vendors.js > vendors.min.js",
+    "build": "npm run build-bundle && npm run build-mangle",
+    "test-api": "node test",
+    "test": "npm run format && npm run build && npm run test-api"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "useTabs": false,
+    "singleQuote": true,
+    "bracketSpacing": false,
+    "semi": false,
+    "trailingComma": "none"
+  },
+  "xo": {
+    "prettier": true,
+    "esnext": false,
+    "rules": {
+      "no-var": "off",
+      "prefer-arrow-callback": "off"
+    },
+    "ignores": [
+      "vendors.js"
+    ]
+  },
+  "remarkConfig": {
+    "plugins": [
+      "preset-wooorm"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/vendors/-/vendors-1.0.2.tgz"
+,"_integrity": "sha512-w/hry/368nO21AN9QljsaIhb9ZiZtZARoVH5f3CsFbawdLdayCgKRPup7CggujvySMxx0I91NOyxdVENohprLQ=="
+,"_from": "vendors@1.0.2"
+}

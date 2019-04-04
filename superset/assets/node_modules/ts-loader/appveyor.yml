@@ -1,0 +1,25 @@
+image: Visual Studio 2017
+environment:
+  FORCE_COLOR: 1
+  nodejs_version: "8"
+  matrix:
+  - TYPESCRIPT: typescript@3.1.1
+  - TYPESCRIPT: typescript@next
+  - TYPESCRIPT: typescript@3.0.1
+  - TYPESCRIPT: typescript@2.9.2
+  - TYPESCRIPT: typescript@2.8.1
+  - TYPESCRIPT: typescript@2.7.1
+  - TYPESCRIPT: typescript@2.6.1
+  - TYPESCRIPT: typescript@2.5.2
+  - TYPESCRIPT: typescript@2.4.1
+install:
+  - ps: Install-Product node $env:nodejs_version
+  - yarn install
+  - yarn build
+  - yarn lint
+  - yarn add %TYPESCRIPT%
+test_script:
+  - node --version
+  - yarn --version
+  - yarn test
+build: off

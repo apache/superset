@@ -1,0 +1,43 @@
+{
+  "name": "fastparse",
+  "version": "1.1.2",
+  "description": "A very simple and stupid parser, based on a statemachine and regular expressions.",
+  "main": "lib/Parser.js",
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "mocha",
+    "travis": "npm run cover -- --report lcovonly",
+    "lint": "eslint lib",
+    "precover": "npm run lint",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha",
+    "publish-patch": "mocha && npm version patch && git push && git push --tags && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webpack/fastparse.git"
+  },
+  "keywords": [
+    "parser",
+    "regexp"
+  ],
+  "files": [
+    "lib"
+  ],
+  "author": "Tobias Koppers @sokra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/webpack/fastparse/issues"
+  },
+  "homepage": "https://github.com/webpack/fastparse",
+  "devDependencies": {
+    "coveralls": "^2.11.2",
+    "eslint": "^0.21.2",
+    "istanbul": "^0.3.14",
+    "mocha": "^2.2.5",
+    "should": "^6.0.3"
+  }
+
+,"_resolved": "https://registry.npmjs.org/fastparse/-/fastparse-1.1.2.tgz"
+,"_integrity": "sha512-483XLLxTVIwWK3QTrMGRqUfUpoOs/0hbQrl2oz4J0pAcm3A3bu84wxTFqGqkJzewCLdME38xJLJAxBABfQT8sQ=="
+,"_from": "fastparse@1.1.2"
+}

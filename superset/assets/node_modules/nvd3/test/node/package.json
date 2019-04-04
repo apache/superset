@@ -1,0 +1,13 @@
+{
+  "name": "node-test",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "d3": "<=3.4.4",
+    "invariant": "1.0.2"
+  },
+  "devDependencies": {
+    "grunt-browserify": "3.3.0",
+    "grunt-contrib-copy": "~0.4.1"
+  }
+}

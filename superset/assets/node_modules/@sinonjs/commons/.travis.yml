@@ -1,0 +1,33 @@
+language: node_js
+
+sudo: false
+
+node_js:
+  # https://github.com/nodejs/LTS
+  - "6" # ends April 2019
+  - "8" # ends December 2019
+  - "10" # ends April 2021
+
+cache:
+  directories:
+  - node_modules
+
+env:
+  - HUSKY_SKIP_INSTALL=true
+
+before_script:
+  - npm install coveralls
+
+  # Make npm run work for the script phase:
+  - if [ "x$TRAVIS_NODE_VERSION" = "x6" ]; then npm config set ignore-scripts false; fi
+  # these build targets only need to run once per build, so let's conserve a few resources
+  - if [ "x$TRAVIS_NODE_VERSION" = "x10" ]; then npm run lint; fi
+
+script:
+  - npm run test-check-coverage
+
+after_success:
+  - if [ "x$TRAVIS_NODE_VERSION" = "x10" ]; then cat ./coverage/lcov.info | coveralls lib; fi
+
+git:
+  depth: 3

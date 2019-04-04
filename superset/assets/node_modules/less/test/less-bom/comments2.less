@@ -1,0 +1,31 @@
+﻿@media all and/*! */(max-width:1024px) {}
+@-webkit-keyframes hover /* Safari and Chrome */{  }
+.bg {
+  background-image: linear-gradient(#333 /*{comment}*/, #111);
+}
+#planadvisor,
+/*comment*//*comment*/
+.first,/*comment*//*comment*/.planning {
+    margin:10px;
+    total-width: @total-width;
+}
+@base                       :   1;
+@column-width               :   @base * 6em;                //      Width of column             */
+@gutter-width               :   2em;                        //      Width of column spacing     */
+@columns                    :   12;                         //      Number of Columns           */
+@gridsystem-width           :   (@column-width *            //      For calculating the total   */
+                                    @columns) + (               //      width of the content area.  */
+                                    @gutter-width *             //      We strongly recommend you   */
+                                    @columns);                  //      do not change this formula. */
+@total-width                :   @gridsystem-width;          //      set to 100% for fluid grid  */
+
+// .............................................................................
+
+.some-inline-comments {
+    a: yes /* comment */;
+    b: red /* comment */;
+   @c: yes /* comment */;
+   @d: red /* comment */;
+    c: @c;
+    d: @d;
+}

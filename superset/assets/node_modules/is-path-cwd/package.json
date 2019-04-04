@@ -1,0 +1,37 @@
+{
+  "name": "is-path-cwd",
+  "version": "1.0.0",
+  "description": "Check if a path is CWD",
+  "license": "MIT",
+  "repository": "sindresorhus/is-path-cwd",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "http://sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "path",
+    "cwd",
+    "pwd",
+    "check",
+    "filepath",
+    "file",
+    "folder"
+  ],
+  "devDependencies": {
+    "mocha": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-path-cwd/-/is-path-cwd-1.0.0.tgz"
+,"_integrity": "sha1-0iXsIxMuie3Tj9p2dHLmLmXxEG0="
+,"_from": "is-path-cwd@1.0.0"
+}

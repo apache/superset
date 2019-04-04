@@ -1,0 +1,365 @@
+{
+  "type": "object",
+  "properties": {
+    "hot": {
+      "type": "boolean"
+    },
+    "hotOnly": {
+      "type": "boolean"
+    },
+    "lazy": {
+      "type": "boolean"
+    },
+    "bonjour": {
+      "type": "boolean"
+    },
+    "host": {
+      "type": "string"
+    },
+    "allowedHosts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "filename": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "instanceof": "RegExp"
+        },
+        {
+          "instanceof": "Function"
+        }
+      ]
+    },
+    "publicPath": {
+      "type": "string"
+    },
+    "port": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "socket": {
+      "type": "string"
+    },
+    "watchOptions": {
+      "type": "object"
+    },
+    "writeToDisk": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "instanceof": "Function"
+        }
+      ]
+    },
+    "headers": {
+      "type": "object"
+    },
+    "logLevel": {
+      "enum": [
+        "info",
+        "warn",
+        "error",
+        "debug",
+        "trace",
+        "silent"
+      ]
+    },
+    "clientLogLevel": {
+      "enum": [
+        "none",
+        "info",
+        "error",
+        "warning"
+      ]
+    },
+    "overlay": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "errors": {
+              "type": "boolean"
+            },
+            "warnings": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "progress": {
+      "type": "boolean"
+    },
+    "key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "instanceof": "Buffer"
+        }
+      ]
+    },
+    "cert": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "instanceof": "Buffer"
+        }
+      ]
+    },
+    "ca": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "instanceof": "Buffer"
+        }
+      ]
+    },
+    "pfx": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "instanceof": "Buffer"
+        }
+      ]
+    },
+    "pfxPassphrase": {
+      "type": "string"
+    },
+    "requestCert": {
+      "type": "boolean"
+    },
+    "inline": {
+      "type": "boolean"
+    },
+    "disableHostCheck": {
+      "type": "boolean"
+    },
+    "public": {
+      "type": "string"
+    },
+    "https": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "contentBase": {
+      "anyOf": [
+        {
+          "enum": [
+            false
+          ]
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "watchContentBase": {
+      "type": "boolean"
+    },
+    "open": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "useLocalIp": {
+      "type": "boolean"
+    },
+    "openPage": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compress": {
+      "type": "boolean"
+    },
+    "proxy": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "instanceof": "Function"
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "historyApiFallback": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "staticOptions": {
+      "type": "object"
+    },
+    "setup": {
+      "instanceof": "Function"
+    },
+    "before": {
+      "instanceof": "Function"
+    },
+    "after": {
+      "instanceof": "Function"
+    },
+    "stats": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "enum": [
+            "none",
+            "errors-only",
+            "minimal",
+            "normal",
+            "verbose"
+          ]
+        }
+      ]
+    },
+    "reporter": {
+      "instanceof": "Function"
+    },
+    "logTime": {
+      "type": "boolean"
+    },
+    "noInfo": {
+      "type": "boolean"
+    },
+    "quiet": {
+      "type": "boolean"
+    },
+    "serverSideRender": {
+      "type": "boolean"
+    },
+    "index": {
+      "type": "string"
+    },
+    "log": {
+      "instanceof": "Function"
+    },
+    "warn": {
+      "instanceof": "Function"
+    }
+  },
+  "errorMessage": {
+    "properties": {
+      "hot": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-hot)",
+      "hotOnly": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-hotonly)",
+      "lazy": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-lazy-)",
+      "bonjour": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-bonjour)",
+      "publicPath": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-publicpath-)",
+      "host": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-host)",
+      "allowedHosts": "should be {Array} (https://webpack.js.org/configuration/dev-server/#devserver-allowedhosts)",
+      "logLevel": "should be {String} and equal to one of the allowed values\n\n [ 'trace', 'debug', 'info', 'warn', 'error', 'silent' ]\n\n(https://webpack.js.org/configuration/dev-server/#devserver-loglevel)",
+      "filename": "should be {String|RegExp|Function} (https://webpack.js.org/configuration/dev-server/#devserver-filename-)",
+      "port": "should be {String|Number} (https://webpack.js.org/configuration/dev-server/#devserver-port)",
+      "socket": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-socket)",
+      "watchOptions": "should be {Object} (https://webpack.js.org/configuration/dev-server/#devserver-watchoptions)",
+      "writeToDisk": "should be {Boolean|Function} (https://github.com/webpack/webpack-dev-middleware#writetodisk)",
+      "headers": "should be {Object} (https://webpack.js.org/configuration/dev-server/#devserver-headers-)",
+      "clientLogLevel": "should be {String} and equal to one of the allowed values\n\n [ 'trace', 'debug', 'info', 'warn', 'error', 'silent' ]\n\n(https://webpack.js.org/configuration/dev-server/#devserver-clientloglevel)",
+      "overlay": "should be {Object|Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-overlay)",
+      "progress": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-progress-cli-only)",
+      "key": "should be {String|Buffer} (https://webpack.js.org/configuration/dev-server/#devserver-key)",
+      "cert": "should be {String|Buffer} (https://webpack.js.org/configuration/dev-server/#devserver-cert)",
+      "ca": "should be {String|Buffer} (https://webpack.js.org/configuration/dev-server/#devserver-ca)",
+      "pfx": "should be {String|Buffer} (https://webpack.js.org/configuration/dev-server/#devserver-pfx)",
+      "pfxPassphrase": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-pfxpassphrase)",
+      "requestCert": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-requestcert)",
+      "inline": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-inline)",
+      "disableHostCheck": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-disablehostcheck)",
+      "public": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-public)",
+      "https": "should be {Object|Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-https)",
+      "contentBase": "should be {Array} (https://webpack.js.org/configuration/dev-server/#devserver-contentbase)",
+      "watchContentBase": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-watchcontentbase)",
+      "open": "should be {String|Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-open)",
+      "useLocalIp": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-uselocalip)",
+      "openPage": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-openpage)",
+      "features": "should be {Array} (https://webpack.js.org/configuration/dev-server/#devserver-features)",
+      "compress": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-compress)",
+      "proxy": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-hot)",
+      "historyApiFallback": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-historyapifallback)",
+      "staticOptions": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-staticOptions)",
+      "setup": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-setup)",
+      "before": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-before)",
+      "after": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-after)",
+      "stats": "should be {Boolean|Object|String} (https://webpack.js.org/configuration/dev-server/#devserver-stats-)",
+      "reporter": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-reporter)",
+      "logTime": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-logtime)",
+      "noInfo": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-noinfo-)",
+      "quiet": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-quiet-)",
+      "serverSideRender": "should be {Boolean} (https://webpack.js.org/configuration/dev-server/#devserver-serversiderender)",
+      "index": "should be {String} (https://webpack.js.org/configuration/dev-server/#devserver-index)",
+      "log": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-log)",
+      "warn": "should be {Function} (https://webpack.js.org/configuration/dev-server/#devserver-warn)"
+    }
+  },
+  "additionalProperties": false
+}

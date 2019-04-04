@@ -1,0 +1,259 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [
+    "google/protobuf/descriptor.proto"
+  ],
+  "enums": [
+    {
+      "name": "MyEnum",
+      "values": {
+        "FOO": {
+          "value": 1,
+          "options": {
+            "my_enum_value_option": "321"
+          }
+        },
+        "BAR": {
+          "value": 2,
+          "options": {}
+        }
+      },
+      "options": {
+        "my_enum_option": true
+      }
+    }
+  ],
+  "messages": [
+    {
+      "name": "MyMessage",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "fields": [
+        {
+          "name": "foo",
+          "type": "int32",
+          "tag": 1,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {
+            "my_field_option": "4.5"
+          }
+        },
+        {
+          "name": "bar",
+          "type": "string",
+          "tag": 2,
+          "map": null,
+          "oneof": null,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ],
+      "extensions": null
+    },
+    {
+      "name": "RequestType",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "fields": [],
+      "extensions": null
+    },
+    {
+      "name": "ResponseType",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "fields": [],
+      "extensions": null
+    }
+  ],
+  "options": {
+    "my_file_option": "Helloworld!"
+  },
+  "extends": [
+    {
+      "name": "google.protobuf.FileOptions",
+      "message": {
+        "name": "google.protobuf.FileOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_file_option",
+            "type": "string",
+            "tag": 50000,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.MessageOptions",
+      "message": {
+        "name": "google.protobuf.MessageOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_message_option",
+            "type": "int32",
+            "tag": 50001,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.FieldOptions",
+      "message": {
+        "name": "google.protobuf.FieldOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_field_option",
+            "type": "float",
+            "tag": 50002,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.EnumOptions",
+      "message": {
+        "name": "google.protobuf.EnumOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_enum_option",
+            "type": "bool",
+            "tag": 50003,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.EnumValueOptions",
+      "message": {
+        "name": "google.protobuf.EnumValueOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_enum_value_option",
+            "type": "uint32",
+            "tag": 50004,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.ServiceOptions",
+      "message": {
+        "name": "google.protobuf.ServiceOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_service_option",
+            "type": "MyEnum",
+            "tag": 50005,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    },
+    {
+      "name": "google.protobuf.MethodOptions",
+      "message": {
+        "name": "google.protobuf.MethodOptions",
+        "enums": [],
+        "extends": [],
+        "messages": [],
+        "fields": [
+          {
+            "name": "my_method_option",
+            "type": "MyMessage",
+            "tag": 50006,
+            "map": null,
+            "oneof": null,
+            "required": false,
+            "repeated": false,
+            "options": {}
+          }
+        ],
+        "extensions": null
+      }
+    }
+  ],
+  "services": [
+    {
+      "name": "MyService",
+      "methods": [
+        {
+          "name": "MyMethod",
+          "input_type": "RequestType",
+          "output_type": "ResponseType",
+          "client_streaming": false,
+          "server_streaming": false,
+          "options": {
+            "my_method_option.foo": "567",
+            "my_method_option.bar": "Somestring"
+          }
+        }
+      ],
+      "options": {
+        "my_service_option": "FOO",
+        "my_service_option_map": {
+          "foo": "bar"
+        }
+      }
+    }
+  ]
+}

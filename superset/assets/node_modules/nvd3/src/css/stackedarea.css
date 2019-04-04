@@ -1,0 +1,16 @@
+/* stacked area */
+.nvd3.nv-stackedarea path.nv-area {
+    fill-opacity: .7;
+    stroke-opacity: 0;
+    transition: fill-opacity 250ms linear, stroke-opacity 250ms linear;
+}
+
+.nvd3.nv-stackedarea path.nv-area.hover {
+    fill-opacity: .9;
+}
+
+
+.nvd3.nv-stackedarea .nv-groups .nv-point {
+    stroke-opacity: 0;
+    fill-opacity: 0;
+}

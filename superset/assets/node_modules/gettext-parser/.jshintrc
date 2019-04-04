@@ -1,0 +1,18 @@
+{
+    "indent": 4,
+    "node": true,
+    "globalstrict": true,
+    "evil": true,
+    "unused": true,
+    "undef": true,
+    "newcap": true,
+    "esnext": true,
+    "curly": true,
+    "eqeqeq": true,
+    "expr": true,
+
+    "predef": [
+        "describe",
+        "it"
+    ]
+}

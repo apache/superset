@@ -1,0 +1,10 @@
+@media (min-width: 16 + 1) {
+  .foo {
+    bar: 1;
+  }
+}
+@media (min-width: 16 / 9) {
+  .foo {
+    bar: 1;
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "shebang-regex",
+  "version": "1.0.0",
+  "description": "Regular expression for matching a shebang",
+  "license": "MIT",
+  "repository": "sindresorhus/shebang-regex",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "re",
+    "regex",
+    "regexp",
+    "shebang",
+    "match",
+    "test"
+  ],
+  "devDependencies": {
+    "ava": "0.0.4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-1.0.0.tgz"
+,"_integrity": "sha1-2kL0l0DAtC2yypcoVxyxkMmO/qM="
+,"_from": "shebang-regex@1.0.0"
+}

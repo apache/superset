@@ -1,0 +1,49 @@
+/* sparkline */
+.nvd3.nv-sparkline path {
+    fill: none;
+}
+
+.nvd3.nv-sparklineplus g.nv-hoverValue {
+    pointer-events: none;
+}
+
+.nvd3.nv-sparklineplus .nv-hoverValue line {
+    stroke: #333;
+    stroke-width: 1.5px;
+}
+
+.nvd3.nv-sparklineplus,
+.nvd3.nv-sparklineplus g {
+    pointer-events: all;
+}
+
+.nvd3 .nv-hoverArea {
+    fill-opacity: 0;
+    stroke-opacity: 0;
+}
+
+.nvd3.nv-sparklineplus .nv-xValue,
+.nvd3.nv-sparklineplus .nv-yValue {
+    stroke-width: 0;
+    font-size: .9em;
+    font-weight: normal;
+}
+
+.nvd3.nv-sparklineplus .nv-yValue {
+    stroke: #f66;
+}
+
+.nvd3.nv-sparklineplus .nv-maxValue {
+    stroke: #2ca02c;
+    fill: #2ca02c;
+}
+
+.nvd3.nv-sparklineplus .nv-minValue {
+    stroke: #d62728;
+    fill: #d62728;
+}
+
+.nvd3.nv-sparklineplus .nv-currentValue {
+    font-weight: bold;
+    font-size: 1.1em;
+}

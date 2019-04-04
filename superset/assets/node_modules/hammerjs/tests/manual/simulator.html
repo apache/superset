@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="assets/style.css">
+    <title>Hammer.js</title>
+</head>
+<body>
+
+<div class="container">
+
+    <div id="hit" class="bg4" style="padding: 30px; height: 300px; position: relative;">
+    </div>
+
+    <pre id="debug" style="overflow:hidden; background: #eee; padding: 15px;"></pre>
+
+    <pre id="log" style="overflow:hidden;"></pre>
+
+</div>
+
+<script src="../../node_modules/hammer-simulator/index.js"></script>
+<script src="../../hammer.js"></script>
+<script>
+
+    var program = [
+        ['pan', ['deltaX','deltaY']],
+        ['pinch', ['scale']],
+        ['tap', ['pos']],
+        ['swipe', ['deltaX','deltaY']],
+        ['pinch', ['pos','scale']],
+        ['pan', ['pos']],
+        ['rotate', ['pos','rotation']],
+        ['doubleTap', ['pos']],
+        ['pinchRotate', ['pos','scale','rotation']],
+    ];
+
+    function randomRange(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    function randomRangeInt(min, max) {
+        return Math.round(randomRange(min, max));
+    }
+
+    function gestureOption(name) {
+        var max = el.offsetWidth * .9;
+        switch(name) {
+            case 'deltaY':
+            case 'deltaX':
+                return randomRangeInt(10, max * .5);
+            case 'pos':
+                return [randomRangeInt(10, max), randomRangeInt(10, max)];
+            case 'scale':
+                return randomRange(.2, 2);
+            case 'rotation':
+                return randomRange(-180, 180);
+        }
+    }
+
+    function walkProgram(done) {
+        var clone = [].concat(program);
+        (function next() {
+            if(clone.length) {
+                var entry = clone.shift();
+                var options = {};
+                for(var i=0; i<entry[1].length; i++) {
+                    options[entry[1][i]] = gestureOption(entry[1][i]);
+                }
+                setTimeout(function() {
+                    log.innerHTML = '';
+                    Simulator.gestures[entry[0]](el, options, next);
+                }, 1000);
+            } else {
+                done();
+            }
+        }());
+    }
+
+    function startSimulator() {
+        walkProgram(startSimulator);
+    }
+
+
+    var el = document.querySelector("#hit");
+    var log = document.querySelector("#log");
+    var debug = document.querySelector("#debug");
+
+    var mc = new Hammer(el);
+    mc.get('pinch').set({ enable: true, threshold:.1 });
+    mc.get('rotate').set({ enable: true });
+    mc.on("swipe pan multipan press pinch rotate tap doubletap", logGesture);
+
+    function logGesture(ev) {
+        log.textContent = ev.toDirString();
+    }
+
+    Object.prototype.toDirString = function() {
+        var output = [];
+        for(var key in this) {
+            if(this.hasOwnProperty(key)) {
+                var value = this[key];
+                if(Array.isArray(value)) {
+                    value = "Array("+ value.length +"):"+ value;
+                } else if(value instanceof HTMLElement) {
+                    value = value +" ("+ value.outerHTML.substring(0, 50) +"...)";
+                }
+                output.push(key +": "+ value);
+            }
+        }
+        return output.join("\n")
+    };
+
+    startSimulator();
+
+</script>
+
+</body>
+</html>

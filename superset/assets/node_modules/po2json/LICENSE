@@ -1,0 +1,28 @@
+Pure Javascript implementation of Uniforum message translation.
+Copyright (C) 2008 Joshua I. Miller <unrtst@cpan.org>, all rights reserved
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU Library General Public License as published
+by the Free Software Foundation; either version 2, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
+
+PO parser from http://jsgettext.berlios.de/lib/Gettext.js
+adapted for Node.js and modified to be more like po2json.pl
+- Zach Carter <zcarter@cse.usf.edu>
+
+Further adapted to be used inside a node.js environment instead of the command line. Import with a require statement:
+var po2json = require('po2json.js')
+po2json.parse('filename', function(result) {
+   on parse complete callaback, result is the json string.
+});
+- Daniel Roberts <danielrobertsdesign@gmail.com>

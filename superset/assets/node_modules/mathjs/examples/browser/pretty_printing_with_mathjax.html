@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>math.js | pretty printing with MathJax</title>
+
+  <script src="../../dist/math.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/mathjax/2.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML.js"></script>
+
+  <style>
+    body,
+    html,
+    table td,
+    table th,
+    input[type=text] {
+      font-size: 11pt;
+      font-family: verdana, arial, sans-serif;
+    }
+
+    h1 {
+      font-size: 11pt;
+    }
+
+    input[type=text] {
+      padding: 5px;
+      width: 400px;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    table td,
+    table th {
+      padding: 5px;
+      border: 1px solid lightgray;
+    }
+
+    table th {
+      background-color: lightgray;
+    }
+
+  </style>
+</head>
+<body>
+
+<h1>
+  Expression evaluation with math.js, pretty printing with MathJax
+</h1>
+
+<table>
+  <tr>
+    <th>Expression</th>
+    <td><input type="text" id="expr"/></td>
+  </tr>
+  <tr>
+    <th>Pretty print</th>
+    <td><div id="pretty">$$$$</div></td>
+  </tr>
+  <tr>
+    <th>Result</th>
+    <td><div id="result"></div></td>
+  </tr>
+</table>
+<b>Parenthesis option:</b>
+<input type="radio" name="parenthesis" value="keep" onclick="parenthesis = 'keep'; expr.oninput();" checked>keep
+<input type="radio" name="parenthesis" value="auto" onclick="parenthesis = 'auto'; expr.oninput();">auto
+<input type="radio" name="parenthesis" value="all" onclick="parenthesis = 'all'; expr.oninput();">all
+<br/>
+<b>Implicit multiplication:</b>
+<input type="radio" name="implicit" value="hide" onclick="implicit = 'hide'; expr.oninput();" checked>hide
+<input type="radio" name="implicit" value="show" onclick="implicit = 'show'; expr.oninput();">show
+
+
+<script>
+  var expr = document.getElementById('expr'),
+      pretty = document.getElementById('pretty'),
+      result = document.getElementById('result'),
+      parenthesis = 'keep',
+      implicit = 'hide';
+
+  // initialize with an example expression
+  expr.value = 'sqrt(75 / 3) + det([[-1, 2], [3, 1]]) - sin(pi / 4)^2';
+  pretty.innerHTML = '$$' + math.parse(expr.value).toTex({parenthesis: parenthesis}) + '$$';
+  result.innerHTML = math.format(math.eval(expr.value));
+
+  expr.oninput = function () {
+    var node = null;
+
+    try {
+      // parse the expression
+      node = math.parse(expr.value);
+
+      // evaluate the result of the expression
+      result.innerHTML = math.format(node.compile().eval());
+    }
+    catch (err) {
+      result.innerHTML = '<span style="color: red;">' + err.toString() + '</span>';
+    }
+
+    try {
+      // export the expression to LaTeX
+        var latex = node ? node.toTex({parenthesis: parenthesis, implicit: implicit}) : '';
+      console.log('LaTeX expression:', latex);
+
+      // display and re-render the expression
+      var elem = MathJax.Hub.getAllJax('pretty')[0];
+      MathJax.Hub.Queue(['Text', elem, latex]);
+    }
+    catch (err) {}
+  };
+</script>
+
+</body>
+</html>

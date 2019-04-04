@@ -1,0 +1,8 @@
+{
+  "branch": "pull/14384",
+  "buildNumber": "12853",
+  "checksum": "7b1e67b",
+  "commit": "8599a6296",
+  "environment": "ci",
+  "reactVersion": "16.6.1-canary-8599a6296"
+}

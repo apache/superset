@@ -1,0 +1,32 @@
+{
+  "syntax": 3,
+  "package": null,
+  "imports": [],
+  "enums": [],
+  "messages": [
+    {
+      "name": "Data",
+      "enums": [],
+      "extends": [],
+      "messages": [],
+      "fields": [
+        {
+          "name": "data",
+          "type": "map",
+          "map": {
+            "from": "string",
+            "to": "bytes"
+          },
+          "oneof": null,
+          "tag": 1,
+          "required": false,
+          "repeated": false,
+          "options": {}
+        }
+      ],
+      "extensions": null
+    }
+  ],
+  "options": {},
+  "extends": []
+}

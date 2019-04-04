@@ -1,0 +1,52 @@
+{
+  "name": "dot-prop",
+  "version": "4.2.0",
+  "description": "Get, set, or delete a property from a nested object using a dot path",
+  "license": "MIT",
+  "repository": "sindresorhus/dot-prop",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava",
+    "bench": "matcha bench.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "obj",
+    "object",
+    "prop",
+    "property",
+    "dot",
+    "path",
+    "get",
+    "set",
+    "delete",
+    "del",
+    "access",
+    "notation",
+    "dotty"
+  ],
+  "dependencies": {
+    "is-obj": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "matcha": "^0.7.0",
+    "xo": "*"
+  },
+  "xo": {
+    "esnext": true
+  }
+
+,"_resolved": "https://registry.npmjs.org/dot-prop/-/dot-prop-4.2.0.tgz"
+,"_integrity": "sha512-tUMXrxlExSW6U2EXiiKGSBVdYgtV8qlHL+C10TsW4PURY/ic+eaysnSkwB4kA/mBlCyy/IKDJ+Lc3wbWeaXtuQ=="
+,"_from": "dot-prop@4.2.0"
+}

@@ -1,0 +1,19 @@
+message MsgNormal {
+	required int32 field1 = 1;
+	optional string field2 = 2;
+	required int32 field3 = 3;
+	optional int32 exField1 = 101;
+	optional string exField2 = 102;
+}
+
+message MsgExtend {
+	required int32 field1 = 1;
+	optional string field2 = 2;
+	required int32 field3 = 3;
+	extensions 100 to 200;
+}
+
+extend MsgExtend {
+	optional int32 exField1 = 101;
+	optional string exField2 = 102;
+}

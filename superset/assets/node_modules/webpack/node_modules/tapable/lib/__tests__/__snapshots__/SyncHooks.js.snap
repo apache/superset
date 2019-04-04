@@ -1,0 +1,876 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SyncBailHook should have to correct behavior 1`] = `
+Object {
+  "async": Object {},
+  "intercept": Object {},
+  "sync": Object {
+    "callAsyncIntercepted": Object {
+      "type": "async",
+      "value": 6,
+    },
+    "callAsyncInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncError": Object {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncErrorCalled2": true,
+    "callAsyncMultipleSyncWithArg": Object {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": Object {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": Object {
+      "type": "async",
+      "value": 85,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": Object {
+      "type": "async",
+      "value": 129,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncNone": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSync": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncCalled": true,
+    "callAsyncSingleSyncWithArg": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "callIntercepted": Object {
+      "type": "return",
+      "value": 6,
+    },
+    "callInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedTap1": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callMultipleSync": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callMultipleSyncCalled1": true,
+    "callMultipleSyncError": Object {
+      "error": "Error in sync2",
+    },
+    "callMultipleSyncErrorCalled1": true,
+    "callMultipleSyncErrorCalled2": true,
+    "callMultipleSyncWithArg": Object {
+      "type": "return",
+      "value": 84,
+    },
+    "callMultipleSyncWithArgCalled1": 42,
+    "callMultipleSyncWithArgFirstReturn": Object {
+      "type": "return",
+      "value": 84,
+    },
+    "callMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callMultipleSyncWithArgLastReturn": Object {
+      "type": "return",
+      "value": 85,
+    },
+    "callMultipleSyncWithArgLastReturnCalled1": 42,
+    "callMultipleSyncWithArgLastReturnCalled2": 42,
+    "callMultipleSyncWithArgNoReturn": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgNoReturnCalled1": 42,
+    "callMultipleSyncWithArgNoReturnCalled2": 42,
+    "callMultipleSyncWithArgs": Object {
+      "type": "return",
+      "value": 129,
+    },
+    "callMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callNone": Object {
+      "type": "no result",
+    },
+    "callNoneWithArg": Object {
+      "type": "no result",
+    },
+    "callSingleSync": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSyncCalled": true,
+    "callSingleSyncWithArg": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": Object {
+      "type": "promise",
+      "value": 6,
+    },
+    "promiseInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncError": Object {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncErrorCalled2": true,
+    "promiseMultipleSyncWithArg": Object {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturn": Object {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturn": Object {
+      "type": "promise",
+      "value": 85,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": Object {
+      "type": "promise",
+      "value": 129,
+    },
+    "promiseMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "promiseNone": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSync": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncCalled": true,
+    "promiseSingleSyncWithArg": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;
+
+exports[`SyncHook should have to correct behavior 1`] = `
+Object {
+  "async": Object {},
+  "intercept": Object {},
+  "sync": Object {
+    "callAsyncIntercepted": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncCalled1": true,
+    "callAsyncMultipleSyncCalled2": true,
+    "callAsyncMultipleSyncError": Object {
+      "error": "Error in sync2",
+      "type": "async",
+    },
+    "callAsyncMultipleSyncErrorCalled1": true,
+    "callAsyncMultipleSyncErrorCalled2": true,
+    "callAsyncMultipleSyncWithArg": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 42,
+    "callAsyncMultipleSyncWithArgFirstReturn": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgLastReturn": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncMultipleSyncWithArgsCalled2": Array [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncNone": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSync": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncCalled": true,
+    "callAsyncSingleSyncWithArg": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "callIntercepted": Object {
+      "type": "no result",
+    },
+    "callInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callMultipleSync": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncCalled1": true,
+    "callMultipleSyncCalled2": true,
+    "callMultipleSyncError": Object {
+      "error": "Error in sync2",
+    },
+    "callMultipleSyncErrorCalled1": true,
+    "callMultipleSyncErrorCalled2": true,
+    "callMultipleSyncWithArg": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgCalled1": 42,
+    "callMultipleSyncWithArgCalled2": 42,
+    "callMultipleSyncWithArgFirstReturn": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callMultipleSyncWithArgFirstReturnCalled2": 42,
+    "callMultipleSyncWithArgLastReturn": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgLastReturnCalled1": 42,
+    "callMultipleSyncWithArgLastReturnCalled2": 42,
+    "callMultipleSyncWithArgNoReturn": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgNoReturnCalled1": 42,
+    "callMultipleSyncWithArgNoReturnCalled2": 42,
+    "callMultipleSyncWithArgs": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callMultipleSyncWithArgsCalled2": Array [
+      42,
+      43,
+      44,
+    ],
+    "callNone": Object {
+      "type": "no result",
+    },
+    "callNoneWithArg": Object {
+      "type": "no result",
+    },
+    "callSingleSync": Object {
+      "type": "no result",
+    },
+    "callSingleSyncCalled": true,
+    "callSingleSyncWithArg": Object {
+      "type": "no result",
+    },
+    "callSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncCalled1": true,
+    "promiseMultipleSyncCalled2": true,
+    "promiseMultipleSyncError": Object {
+      "error": "Error in sync2",
+      "type": "promise",
+    },
+    "promiseMultipleSyncErrorCalled1": true,
+    "promiseMultipleSyncErrorCalled2": true,
+    "promiseMultipleSyncWithArg": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 42,
+    "promiseMultipleSyncWithArgFirstReturn": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 42,
+    "promiseMultipleSyncWithArgLastReturn": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "promiseMultipleSyncWithArgsCalled2": Array [
+      42,
+      43,
+      44,
+    ],
+    "promiseNone": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSync": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncCalled": true,
+    "promiseSingleSyncWithArg": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;
+
+exports[`SyncLoopHook should have to correct behavior 1`] = `
+Object {
+  "async": Object {},
+  "sync": Object {
+    "callAsyncInterceptedSync": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncInterceptedSyncCalled1": 83,
+    "callAsyncInterceptedSyncCalled2": 42,
+    "callAsyncInterceptedSyncCalledCall": 1,
+    "callAsyncInterceptedSyncCalledLoop": 83,
+    "callAsyncInterceptedSyncCalledTap": 125,
+    "callAsyncMultipleSync": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncMultipleSyncCalled1": 83,
+    "callAsyncMultipleSyncCalled2": 42,
+    "callAsyncNone": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncNoneWithArg": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSync": Object {
+      "type": "async",
+      "value": undefined,
+    },
+    "callAsyncSingleSyncCalled": 42,
+    "callInterceptedSync": Object {
+      "type": "no result",
+    },
+    "callInterceptedSyncCalled1": 83,
+    "callInterceptedSyncCalled2": 42,
+    "callInterceptedSyncCalledCall": 1,
+    "callInterceptedSyncCalledLoop": 83,
+    "callInterceptedSyncCalledTap": 125,
+    "callMultipleSync": Object {
+      "type": "no result",
+    },
+    "callMultipleSyncCalled1": 83,
+    "callMultipleSyncCalled2": 42,
+    "callNone": Object {
+      "type": "no result",
+    },
+    "callNoneWithArg": Object {
+      "type": "no result",
+    },
+    "callSingleSync": Object {
+      "type": "no result",
+    },
+    "callSingleSyncCalled": 42,
+    "promiseInterceptedSync": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseInterceptedSyncCalled1": 83,
+    "promiseInterceptedSyncCalled2": 42,
+    "promiseInterceptedSyncCalledCall": 1,
+    "promiseInterceptedSyncCalledLoop": 83,
+    "promiseInterceptedSyncCalledTap": 125,
+    "promiseMultipleSync": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseMultipleSyncCalled1": 83,
+    "promiseMultipleSyncCalled2": 42,
+    "promiseNone": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseNoneWithArg": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSync": Object {
+      "type": "promise",
+      "value": undefined,
+    },
+    "promiseSingleSyncCalled": 42,
+  },
+}
+`;
+
+exports[`SyncWaterfallHook should have to correct behavior 1`] = `
+Object {
+  "async": Object {},
+  "intercept": Object {},
+  "sync": Object {
+    "callAsyncIntercepted": Object {
+      "type": "async",
+      "value": 9,
+    },
+    "callAsyncInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callAsyncInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callAsyncInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callAsyncMultipleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncError": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncMultipleSyncWithArg": Object {
+      "type": "async",
+      "value": 127,
+    },
+    "callAsyncMultipleSyncWithArgCalled1": 42,
+    "callAsyncMultipleSyncWithArgCalled2": 84,
+    "callAsyncMultipleSyncWithArgFirstReturn": Object {
+      "type": "async",
+      "value": 84,
+    },
+    "callAsyncMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgFirstReturnCalled2": 84,
+    "callAsyncMultipleSyncWithArgLastReturn": Object {
+      "type": "async",
+      "value": 85,
+    },
+    "callAsyncMultipleSyncWithArgLastReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgLastReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgNoReturn": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncMultipleSyncWithArgNoReturnCalled1": 42,
+    "callAsyncMultipleSyncWithArgNoReturnCalled2": 42,
+    "callAsyncMultipleSyncWithArgs": Object {
+      "type": "async",
+      "value": 217,
+    },
+    "callAsyncMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callAsyncMultipleSyncWithArgsCalled2": Array [
+      129,
+      43,
+      44,
+    ],
+    "callAsyncNone": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncNoneWithArg": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callAsyncSingleSyncWithArg": Object {
+      "type": "async",
+      "value": 42,
+    },
+    "callAsyncSingleSyncWithArgCalled": 42,
+    "callIntercepted": Object {
+      "type": "return",
+      "value": 9,
+    },
+    "callInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "callInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "callInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "callMultipleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callMultipleSyncError": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callMultipleSyncWithArg": Object {
+      "type": "return",
+      "value": 127,
+    },
+    "callMultipleSyncWithArgCalled1": 42,
+    "callMultipleSyncWithArgCalled2": 84,
+    "callMultipleSyncWithArgFirstReturn": Object {
+      "type": "return",
+      "value": 84,
+    },
+    "callMultipleSyncWithArgFirstReturnCalled1": 42,
+    "callMultipleSyncWithArgFirstReturnCalled2": 84,
+    "callMultipleSyncWithArgLastReturn": Object {
+      "type": "return",
+      "value": 85,
+    },
+    "callMultipleSyncWithArgLastReturnCalled1": 42,
+    "callMultipleSyncWithArgLastReturnCalled2": 42,
+    "callMultipleSyncWithArgNoReturn": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callMultipleSyncWithArgNoReturnCalled1": 42,
+    "callMultipleSyncWithArgNoReturnCalled2": 42,
+    "callMultipleSyncWithArgs": Object {
+      "type": "return",
+      "value": 217,
+    },
+    "callMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "callMultipleSyncWithArgsCalled2": Array [
+      129,
+      43,
+      44,
+    ],
+    "callNone": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callNoneWithArg": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "callSingleSyncWithArg": Object {
+      "type": "return",
+      "value": 42,
+    },
+    "callSingleSyncWithArgCalled": 42,
+    "promiseIntercepted": Object {
+      "type": "promise",
+      "value": 9,
+    },
+    "promiseInterceptedCall1": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedCall2": Array [
+      1,
+      2,
+      3,
+    ],
+    "promiseInterceptedTap1": Object {
+      "fn": 2,
+      "name": "sync2",
+      "type": "sync",
+    },
+    "promiseInterceptedTap2": Object {
+      "fn": 3,
+      "name": "sync1",
+      "type": "sync",
+    },
+    "promiseMultipleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncError": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseMultipleSyncWithArg": Object {
+      "type": "promise",
+      "value": 127,
+    },
+    "promiseMultipleSyncWithArgCalled1": 42,
+    "promiseMultipleSyncWithArgCalled2": 84,
+    "promiseMultipleSyncWithArgFirstReturn": Object {
+      "type": "promise",
+      "value": 84,
+    },
+    "promiseMultipleSyncWithArgFirstReturnCalled1": 42,
+    "promiseMultipleSyncWithArgFirstReturnCalled2": 84,
+    "promiseMultipleSyncWithArgLastReturn": Object {
+      "type": "promise",
+      "value": 85,
+    },
+    "promiseMultipleSyncWithArgLastReturnCalled1": 42,
+    "promiseMultipleSyncWithArgLastReturnCalled2": 42,
+    "promiseMultipleSyncWithArgNoReturn": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseMultipleSyncWithArgNoReturnCalled1": 42,
+    "promiseMultipleSyncWithArgNoReturnCalled2": 42,
+    "promiseMultipleSyncWithArgs": Object {
+      "type": "promise",
+      "value": 217,
+    },
+    "promiseMultipleSyncWithArgsCalled1": Array [
+      42,
+      43,
+      44,
+    ],
+    "promiseMultipleSyncWithArgsCalled2": Array [
+      129,
+      43,
+      44,
+    ],
+    "promiseNone": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseNoneWithArg": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSync": Object {
+      "error": "Waterfall hooks must have at least one argument",
+    },
+    "promiseSingleSyncWithArg": Object {
+      "type": "promise",
+      "value": 42,
+    },
+    "promiseSingleSyncWithArgCalled": 42,
+  },
+}
+`;

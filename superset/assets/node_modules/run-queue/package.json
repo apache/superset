@@ -1,0 +1,37 @@
+{
+  "name": "run-queue",
+  "version": "1.0.3",
+  "description": "A promise based, dynamic priority queue runner, with concurrency limiting.",
+  "main": "queue.js",
+  "scripts": {
+    "test": "standard && tap -J test"
+  },
+  "keywords": [],
+  "author": "Rebecca Turner <me@re-becca.org> (http://re-becca.org/)",
+  "license": "ISC",
+  "devDependencies": {
+    "standard": "^8.6.0",
+    "tap": "^10.2.0"
+  },
+  "files": [
+    "queue.js"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "aproba": "^1.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iarna/run-queue.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iarna/run-queue/issues"
+  },
+  "homepage": "https://npmjs.com/package/run-queue"
+
+,"_resolved": "https://registry.npmjs.org/run-queue/-/run-queue-1.0.3.tgz"
+,"_integrity": "sha1-6Eg5bwV9Ij8kOGkkYY4laUFh7Ec="
+,"_from": "run-queue@1.0.3"
+}

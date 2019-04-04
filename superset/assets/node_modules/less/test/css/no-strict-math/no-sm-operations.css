@@ -1,0 +1,18 @@
+.named-colors-in-expressions {
+  color-0: 0 -red;
+  color-1: #000101;
+  color-2: #ff0000;
+  color-3: #ff0000;
+  background-color: blue-2;
+  color: green-black;
+  animation: blue-change 5s infinite;
+}
+.named-colors-in-expressions-bar-red {
+  x: y;
+}
+.named-colors-in-expressions-barred {
+  a: a;
+}
+.division {
+  value: 2px;
+}

@@ -1,0 +1,76 @@
+{
+  "name": "json3",
+  "version": "3.3.2",
+  "description": "A modern JSON implementation compatible with nearly all JavaScript platforms.",
+  "homepage": "http://bestiejs.github.io/json3",
+  "main": "./lib/json3",
+  "keywords": ["json", "spec", "ecma", "es5", "lexer", "parser", "stringify"],
+  "licenses": [{
+    "type": "MIT",
+    "url": "http://kit.mit-license.org/"
+  }],
+  "author": {
+    "name": "Kit Cambridge",
+    "email": "github@kitcambridge.be",
+    "web": "http://kitcambridge.be/"
+  },
+  "maintainers": [{
+    "name": "Kit Cambridge",
+    "email": "github@kitcambridge.be",
+    "web": "http://kitcambridge.be/"
+  }, {
+    "name": "Benjamin Tan",
+    "email": "demoneaux@gmail.com",
+    "web": "http://d10.github.io/"
+  }],
+  "contributors": [{
+    "name": "Mangled Deutz",
+    "email": "olivier@webitup.fr",
+    "web": "http://tech.roxee.tv/"
+  }, {
+    "name": "Øyvind Sean Kinsey",
+    "email": "oyvind@kinsey.no",
+    "web": "http://fb.me/ok"
+  }, {
+    "name": "Oskar Schöldström",
+    "email": "public@oxy.fi",
+    "web": "http://oxy.fi/"
+  }, {
+    "name": "Kiryl Yermakou",
+    "email": "rma4ok@gmail.com",
+    "web": "https://github.com/rma4ok"
+  }],
+  "bugs": {
+    "url": "https://github.com/bestiejs/json3/issues"
+  },
+  "scripts": {
+    "test": "node test/test_*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bestiejs/json3.git"
+  },
+  "files": ["README.md", "LICENSE", "lib/json3.js", "lib/json3.min.js"],
+  "jam": {
+    "main": "./lib/json3.js",
+    "includes": ["README.md", "LICENSE", "lib/json3.js", "lib/json3.min.js"]
+  },
+  "volo": {
+    "type": "directory",
+    "ignore": [
+      ".*",
+      "build.js",
+      "index.html",
+      "component.json",
+      "bower.json",
+      "benchmark",
+      "page",
+      "test",
+      "vendor"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/json3/-/json3-3.3.2.tgz"
+,"_integrity": "sha1-PAQ0dD35Pi9cQq7nsZvLSDV19OE="
+,"_from": "json3@3.3.2"
+}

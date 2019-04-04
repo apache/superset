@@ -1,0 +1,9 @@
+sudo: false
+language: node_js
+node_js:
+  - "iojs"
+  - "0.12"
+  - "0.10"
+after_success:
+  - "npm run cover"
+  - "cat artifacts/lcov.info | ./node_modules/coveralls/bin/coveralls.js"

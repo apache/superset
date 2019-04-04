@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+package embedded_type;
+
+option optimize_for = LITE_RUNTIME;
+
+message EmbeddedType {
+    message Container {
+        message Inner {
+            optional string value = 1;
+        }
+
+        repeated Inner values = 1;
+    }
+
+    optional string value = 1 [default = test];
+    optional Container sub_field = 4;
+    optional Container.Inner sub_sub_field = 5;
+}

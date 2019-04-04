@@ -1,0 +1,115 @@
+{
+  "name": "immutable",
+  "version": "3.8.2",
+  "description": "Immutable Data Collections",
+  "license": "MIT",
+  "homepage": "https://facebook.github.com/immutable-js",
+  "author": {
+    "name": "Lee Byron",
+    "url": "https://github.com/leebyron"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/facebook/immutable-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/facebook/immutable-js/issues"
+  },
+  "main": "dist/immutable.js",
+  "typings": "dist/immutable-nonambient.d.ts",
+  "typescript": {
+    "definition": "dist/immutable.d.ts"
+  },
+  "scripts": {
+    "build": "grunt default && gulp default",
+    "lint": "eslint src/ && grunt lint && gulp lint",
+    "testonly": "./resources/node_test.sh",
+    "test": "npm run lint && npm run testonly",
+    "perf": "node ./resources/bench.js",
+    "start": "npm run build && node ./pages/resources/start.js",
+    "deploy": "(cd ./pages/out && git init && git config user.name \"Travis CI\" && git config user.email \"github@fb.com\" && git add . && git commit -m \"Deploy to GitHub Pages\" && git push --force --quiet \"https://${GH_TOKEN}@github.com/facebook/immutable-js.git\" master:gh-pages > /dev/null 2>1)"
+  },
+  "jest": {
+    "scriptPreprocessor": "resources/jestPreprocessor.js",
+    "testFileExtensions": [
+      "js",
+      "ts"
+    ],
+    "persistModuleRegistryBetweenSpecs": true
+  },
+  "devDependencies": {
+    "acorn": "0.11.x",
+    "babel-eslint": "^4.1.8",
+    "benchmark": "^1.0.0",
+    "bluebird": "3.1.1",
+    "browser-sync": "2.11.0",
+    "browserify": "^5.11.2",
+    "colors": "1.1.2",
+    "del": "2.2.0",
+    "es6-transpiler": "0.7.18",
+    "eslint": "^1.10.3",
+    "estraverse": "1.9.3",
+    "express": "^4.13.4",
+    "fbjs-scripts": "^0.5.0",
+    "grunt": "0.4.5",
+    "grunt-cli": "0.1.13",
+    "grunt-contrib-clean": "0.7.0",
+    "grunt-contrib-copy": "0.8.2",
+    "grunt-contrib-jshint": "0.11.3",
+    "grunt-release": "0.13.0",
+    "gulp": "3.9.0",
+    "gulp-concat": "2.6.0",
+    "gulp-filter": "3.0.1",
+    "gulp-header": "1.7.1",
+    "gulp-jest": "^0.2.1",
+    "gulp-jshint": "^1.8.4",
+    "gulp-less": "3.0.5",
+    "gulp-size": "2.0.0",
+    "gulp-sourcemaps": "1.6.0",
+    "gulp-uglify": "1.5.1",
+    "gulp-util": "3.0.7",
+    "harmonize": "1.4.4",
+    "jasmine-check": "^0.1.2",
+    "jest-cli": "^0.5.10",
+    "jshint-stylish": "^0.4.0",
+    "magic-string": "0.10.2",
+    "marked": "0.3.5",
+    "microtime": "^2.0.0",
+    "node-jsx": "^0.12.4",
+    "react": "^0.12.0",
+    "react-router": "^0.11.2",
+    "react-tools": "^0.12.0",
+    "rollup": "0.24.0",
+    "run-sequence": "1.1.5",
+    "through2": "2.0.0",
+    "typescript": "1.7.5",
+    "uglify-js": "2.6.1",
+    "vinyl-buffer": "1.0.0",
+    "vinyl-source-stream": "1.1.0"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "files": [
+    "dist",
+    "contrib",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "immutable",
+    "persistent",
+    "lazy",
+    "data",
+    "datastructure",
+    "functional",
+    "collection",
+    "stateless",
+    "sequence",
+    "iteration"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/immutable/-/immutable-3.8.2.tgz"
+,"_integrity": "sha1-wkOZUUVbs5kT2vKBN28VMOEErfM="
+,"_from": "immutable@3.8.2"
+}

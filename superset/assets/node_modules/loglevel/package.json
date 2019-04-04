@@ -1,0 +1,60 @@
+{
+  "name": "loglevel",
+  "description": "Minimal lightweight logging for JavaScript, adding reliable log level methods to any available console.log methods",
+  "version": "1.6.1",
+  "homepage": "https://github.com/pimterry/loglevel",
+  "author": {
+    "name": "Tim Perry",
+    "email": "pimterry@gmail.com",
+    "url": "http://tim-perry.co.uk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/pimterry/loglevel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pimterry/loglevel/issues"
+  },
+  "license": "MIT",
+  "main": "lib/loglevel",
+  "engines": {
+    "node": ">= 0.6.0"
+  },
+  "scripts": {
+    "test": "grunt test",
+    "ci": "grunt ci",
+    "dist": "grunt dist",
+    "watch": "grunt watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-cli": "~0.1.13",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-concat": "~0.5.0",
+    "grunt-contrib-connect": "~0.8.0",
+    "grunt-contrib-jasmine": "~0.5.2",
+    "grunt-contrib-jshint": "^1.1.0",
+    "grunt-contrib-qunit": "~0.5.2",
+    "grunt-contrib-uglify": "~0.5.1",
+    "grunt-contrib-watch": "~0.6.1",
+    "grunt-coveralls": "^1.0.0",
+    "grunt-jasmine-node": "~0.2.1",
+    "grunt-open": "~0.2.3",
+    "grunt-preprocess": "^4.0.0",
+    "grunt-saucelabs": "^8.2.0",
+    "grunt-template-jasmine-istanbul": "~0.2.5",
+    "grunt-template-jasmine-requirejs": "~0.1.6",
+    "qunitjs": "1.14.0"
+  },
+  "keywords": [
+    "log",
+    "logger",
+    "logging",
+    "browser"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/loglevel/-/loglevel-1.6.1.tgz"
+,"_integrity": "sha1-4PyVEztu8nbNyIh82vJKpvFW+Po="
+,"_from": "loglevel@1.6.1"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "atob",
+  "homepage": "https://git.coolaj86.com/coolaj86/atob.js.git",
+  "description": "atob for Node.JS and Linux / Mac / Windows CLI (it's a one-liner)",
+  "repository": {
+    "type": "git",
+    "url": "git://git.coolaj86.com/coolaj86/atob.js.git"
+  },
+  "keywords": [
+    "atob",
+    "browser"
+  ],
+  "author": "AJ ONeal <coolaj86@gmail.com> (https://coolaj86.com)",
+  "engines": {
+    "node": ">= 4.5.0"
+  },
+  "main": "node-atob.js",
+  "browser": "browser-atob.js",
+  "bin": {
+    "atob": "bin/atob.js"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "version": "2.1.2"
+
+,"_resolved": "https://registry.npmjs.org/atob/-/atob-2.1.2.tgz"
+,"_integrity": "sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg=="
+,"_from": "atob@2.1.2"
+}

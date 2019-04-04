@@ -1,0 +1,50 @@
+﻿@function-name: regexp;
+@d-value: 15;
+@-moz-document @function-name("(\d{0,@{d-value}})") {
+	a {
+		color: red;
+	}
+}
+
+.custom-property {
+  --this: () => {
+    basically anything until final semi-colon;
+    even other stuff; // i\'m serious;
+  };
+  @this: () => {
+    basically anything until final semi-colon;
+    even other stuff; // i\'m serious;
+  };
+  --that: @this;
+  @red: lighten(red, 10%);
+  --custom-color: @red lighten(red, 10%);
+  custom-color: $--custom-color;
+}
+
+@iostat: 1;
+.var {
+  --fortran: read (*, *, iostat=@iostat) radius, height;
+}
+
+@boom-boom: bam;
+@-moz-whatever (foo: "(" @boom-boom ")") {
+  bar: foo;
+}
+
+@selectorList: #selector, .bar, foo[attr="blah"];
+@{selectorList} {
+  bar: value;
+}
+
+@size: 640px;
+@tablet: (min-width: @size);
+@media @tablet {
+  .holy-crap {
+    this: works;
+  }
+}
+// @todo - fix comment absorption after property
+.test-comment {
+  --value: a/* { ; } */;
+  --comment-within: ( /* okay?; comment; */ );
+}

@@ -1,0 +1,76 @@
+{
+  "name": "is-data-descriptor",
+  "description": "Returns true if a value has the characteristics of a valid JavaScript data descriptor.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-data-descriptor",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Rouven Weßling (www.rouvenwessling.de)"
+  ],
+  "repository": "jonschlinkert/is-data-descriptor",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-data-descriptor/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^6.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3"
+  },
+  "keywords": [
+    "accessor",
+    "check",
+    "data",
+    "descriptor",
+    "get",
+    "getter",
+    "is",
+    "keys",
+    "object",
+    "properties",
+    "property",
+    "set",
+    "setter",
+    "type",
+    "valid",
+    "value"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "is-accessor-descriptor",
+        "is-data-descriptor",
+        "is-descriptor",
+        "isobject"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-data-descriptor/-/is-data-descriptor-1.0.0.tgz"
+,"_integrity": "sha512-jbRXy1FmtAoCjQkVmIVYwuuqDFUbaOeDjmed1tOGPrsMhtJA4rD9tkgA0F1qJ3gRFRXcHYVkdeaP50Q5rE/jLQ=="
+,"_from": "is-data-descriptor@1.0.0"
+}

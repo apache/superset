@@ -1,0 +1,43 @@
+{
+  "author": {
+    "name": "Ben Newman",
+    "email": "bn@cs.stanford.edu"
+  },
+  "name": "private",
+  "description": "Utility for associating truly private state with any JavaScript object",
+  "keywords": [
+    "private",
+    "access control",
+    "access modifiers",
+    "encapsulation",
+    "secret",
+    "state",
+    "privilege",
+    "scope",
+    "es5"
+  ],
+  "version": "0.1.8",
+  "homepage": "http://github.com/benjamn/private",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/benjamn/private.git"
+  },
+  "license": "MIT",
+  "main": "private.js",
+  "files": [
+    "private.js"
+  ],
+  "scripts": {
+    "test": "mocha --reporter spec --full-trace test/run.js"
+  },
+  "engines": {
+    "node": ">= 0.6"
+  },
+  "devDependencies": {
+    "mocha": "^4.0.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/private/-/private-0.1.8.tgz"
+,"_integrity": "sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg=="
+,"_from": "private@0.1.8"
+}

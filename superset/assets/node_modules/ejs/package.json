@@ -1,0 +1,48 @@
+{
+  "name": "ejs",
+  "description": "Embedded JavaScript templates",
+  "keywords": [
+    "template",
+    "engine",
+    "ejs"
+  ],
+  "version": "2.6.1",
+  "author": "Matthew Eernisse <mde@fleegix.org> (http://fleegix.org)",
+  "contributors": [
+    "Timothy Gu <timothygu99@gmail.com> (https://timothygu.github.io)"
+  ],
+  "license": "Apache-2.0",
+  "main": "./lib/ejs.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mde/ejs.git"
+  },
+  "bugs": "https://github.com/mde/ejs/issues",
+  "homepage": "https://github.com/mde/ejs",
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "^13.1.1",
+    "eslint": "^4.14.0",
+    "git-directory-deploy": "^1.5.1",
+    "istanbul": "~0.4.3",
+    "jake": "^8.0.16",
+    "jsdoc": "^3.4.0",
+    "lru-cache": "^4.0.1",
+    "mocha": "^5.0.5",
+    "uglify-js": "^3.3.16"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "jake test",
+    "lint": "eslint \"**/*.js\" Jakefile",
+    "coverage": "istanbul cover node_modules/mocha/bin/_mocha",
+    "doc": "jake doc",
+    "devdoc": "jake doc[dev]"
+  }
+
+,"_resolved": "https://registry.npmjs.org/ejs/-/ejs-2.6.1.tgz"
+,"_integrity": "sha512-0xy4A/twfrRCnkhfk8ErDi5DqdAsAqeGxht4xkCUrsvhhbQNs7E+4jV0CN7+NKIY0aHE72+XvqtBIXzD31ZbXQ=="
+,"_from": "ejs@2.6.1"
+}

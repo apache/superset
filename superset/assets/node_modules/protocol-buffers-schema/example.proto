@@ -1,0 +1,13 @@
+// example file
+
+message Test {
+  map<string, string> data = 1;
+  required string hello = 2;
+  oneof test {
+    uint32 age = 3;
+    uint32 year = 4;
+  }
+  message Nested {
+    optional bytes thing = 1;
+  }
+}

@@ -1,0 +1,30 @@
+@val: 10px;
+.no-math {
+  @c: 10px + 20px;
+  @calc: (@val + 30px);
+  root: calc(100% - @c);
+  root2: calc(100% - @calc);
+  @var: 50vh/2;
+  width: calc(50% + (@var - 20px));
+  height: calc(50% + ((@var - 20px)));
+  min-height: calc(((10vh)) + calc((5vh)));
+  foo: 1 + 2 calc(3 + 4) 5 + 6;
+  @floor: floor(1 + .1);
+  bar: calc(@floor + 20%);
+}
+
+.b {
+  @a: 10px;
+  @b: 10px;
+
+  one: calc(100% - ((min(@a + @b))));
+  two: calc(100% - (((@a + @b))));
+  three: calc(e('100%') - (3 * 1));
+  four: calc(~'100%' - (3 * 1));
+  nested: calc(calc(2.25rem + 2px) - 1px * 2);
+}
+
+.c {
+  @v: 10px;
+  height: calc(100% - ((@v * 3) + (@v * 2)));
+}

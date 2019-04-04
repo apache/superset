@@ -1,0 +1,88 @@
+// Protocol Version 1
+
+message tile {
+    enum GeomType {
+        Unknown = 0;
+        Point = 1;
+        LineString = 2;
+        Polygon = 3;
+    }
+
+    // Variant type encoding
+    message value {
+        // Exactly one of these values may be present in a valid message
+        optional string string_value = 1;
+        optional float float_value = 2;
+        optional double double_value = 3;
+        optional int64 int_value = 4;
+        optional uint64 uint_value = 5;
+        optional sint64 sint_value = 6;
+        optional bool bool_value = 7;
+
+        extensions 8 to max;
+    }
+
+    message feature {
+        optional uint64 id = 1;
+
+        // Tags of this feature. Even numbered values refer to the nth
+        // value in the keys list on the tile message, odd numbered
+        // values refer to the nth value in the values list on the tile
+        // message.
+        repeated uint32 tags = 2 [ packed = true ];
+
+        // The type of geometry stored in this feature.
+        optional GeomType type = 3 [ default = Unknown ];
+
+        // Contains a stream of commands and parameters (vertices). The
+        // repeat count is shifted to the left by 3 bits. This means
+        // that the command has 3 bits (0-7). The repeat count
+        // indicates how often this command is to be repeated. Defined
+        // commands are:
+        // - MoveTo:    1   (2 parameters follow)
+        // - LineTo:    2   (2 parameters follow)
+        // - ClosePath: 7   (no parameters follow)
+        //
+        // Ex.: MoveTo(3, 6), LineTo(8, 12), LineTo(20, 34), ClosePath
+        // Encoded as: [ 9 3 6 18 5 6 12 22 15 ]
+        //                                  == command type 7 (ClosePath), length 1
+        //                             ===== relative LineTo(+12, +22) == LineTo(20, 34)
+        //                         === relative LineTo(+5, +6) == LineTo(8, 12)
+        //                      == [00010 010] = command type 2 (LineTo), length 2
+        //                  === relative MoveTo(+3, +6)
+        //              == [00001 001] = command type 1 (MoveTo), length 1
+        // Commands are encoded as uint32 varints, vertex parameters are
+        // encoded as sint32 varints (zigzag). Vertex parameters are
+        // also encoded as deltas to the previous position. The original
+        // position is (0,0)
+        repeated uint32 geometry = 4 [ packed = true ];
+    }
+
+    message layer {
+        // Any compliant implementation must first read the version
+        // number encoded in this message and choose the correct
+        // implementation for this version number before proceeding to
+        // decode other parts of this message.
+        required uint32 version = 15 [ default = 1 ];
+
+        required string name = 1;
+
+        // The actual features in this tile.
+        repeated feature features = 2;
+
+        // Dictionary encoding for keys
+        repeated string keys = 3;
+
+        // Dictionary encoding for values
+        repeated value values = 4;
+
+        // The bounding box in this tile spans from 0..4095 units
+        optional uint32 extent = 5 [ default = 4096 ];
+
+        extensions 16 to max;
+    }
+
+    repeated layer layers = 3;
+
+    extensions 16 to 8191;
+}

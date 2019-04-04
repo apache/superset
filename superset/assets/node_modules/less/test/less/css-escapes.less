@@ -1,0 +1,42 @@
+@ugly: fuchsia;
+
+.escape\|random\|char {
+    color: red;
+}
+
+.mixin\!tUp {
+    font-weight: bold;
+}
+
+// class="404"
+.\34 04 {
+    background: red;
+
+    strong {
+        color: @ugly;
+        .mixin\!tUp;
+    }
+}
+
+.trailingTest\+ {
+    color: red;
+}
+
+/* This hideous test of hideousness checks for the selector "blockquote" with various permutations of hex escapes */
+\62\6c\6f \63 \6B \0071 \000075o\74 e {
+    color: silver;
+}
+
+[ng\:cloak],
+ng\:form {
+  display: none;
+}
+
+// In Bootstrap v3
+.bootstrap {
+    background-color: #000 \9;
+}
+
+textarea {
+    font-family: 'helvetica neue','wenquanyi micro hei',\5FAE\8F6F\96C5\9ED1, \5B8B\4F53, sans-serif;
+}

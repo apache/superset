@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="teststyle.css" rel="stylesheet" type='text/css'>
+<script src="../bower_components/d3/d3.js"></script>
+<script src="../build/nv.d3.js"></script>
+
+<body class='with-3d-shadow with-transitions'>
+  <h3>Box Plot test cases</h3>
+  <div class='chart half' id="outlierObjects">
+    Normal data with outlier objects (partial overrides: value/label/color)
+    <svg></svg>
+  </div>
+  <div class='chart half' id="customModel">
+    Custom data model overrides
+    <svg></svg>
+  </div>
+  <div class='chart half' id="emptyChart">
+    Empty chart
+    <svg></svg>
+  </div>
+  <div class='chart half' id="chart1">
+    Normal data (maxBoxWidth and staggerLabel options)
+    <svg></svg>
+  </div>
+  <div class='chart half' id="forceY">
+    Normal data (forceY)
+    <svg></svg>
+  </div>
+  <div class='chart half' id="chart3">
+    Single box
+    <svg></svg>
+  </div>
+  <div class='chart half' id="chart4">
+    Twelve boxes (repeating)
+    <svg></svg>
+  </div>
+  <div class='chart half' id="bad_whiskers">
+    Bad whiskers
+    <svg></svg>
+  </div>
+  <div class='chart half' id="bad_outliers">
+    Bad outliers
+    <svg></svg>
+  </div>
+  <div class='chart half' id="zeroWhiskers">
+    Zero whiskers
+    <svg></svg>
+  </div>
+<script>
+
+function testData1() {
+    return  [
+       {
+         label: "Sample A",
+         values: {
+           Q1: 120,
+           Q2: 150,
+           Q3: 200,
+           whisker_low: 115,
+           whisker_high: 210,
+           outliers: [50, 100, 225]
+         },
+       },
+       {
+         label: "Sample B",
+         values: {
+           Q1: 300,
+           Q2: 350,
+           Q3: 400,
+           whisker_low: 225,
+           whisker_high: 400,
+           outliers: [175]
+         },
+       },
+       {
+         label: "Sample C",
+         values: {
+           Q1: 50,
+           Q2: 100,
+           Q3: 125,
+           whisker_low: 25,
+           whisker_high: 175,
+           outliers: [0]
+         },
+       }
+     ];
+}
+
+function testOutlierObjects() {
+    return [
+        {
+            label: "A1",
+            values: { Q1: 120, Q2: 150, Q3: 200, whisker_low: 115, whisker_high: 210,
+                outliers: [
+                    {value: 50, label: 'apples'}, {value: 100, color: '#000000'},
+                    {value: 250, label: 'Artifical outlier', color: '#F00'}, {value: 225}
+                ]
+            }
+        },
+        {
+            label: "B2",
+            values: { Q1: 300, Q2: 350, Q3: 400, whisker_low: 225, whisker_high: 400,
+                outliers: [{value: 75}]
+            }
+        },
+        {
+            label: "C3",
+            values: { Q1: 50, Q2: 100, Q3: 125, whisker_low: 25, whisker_high: 175,
+                outliers: [{value: 0, label: 'Bananas', color: '#000000'}]
+            }
+        }
+    ];
+}
+
+function testCustomObjectModel() {
+    return [
+        {
+            title: 'Custom Attributes 1',
+            q1: 1.05, q3: 2.7, maxOutlier: 6, maxRegularValue: 4.4,
+            mean: 3.365, median: 1.3, minOutlier: 0.4, minRegularValue: 0.4,
+            outlData: [
+                {data: 6, text: 'Source 1'},
+                {data: 14.5, text: 'Source 2'},
+                {data: 12, text: 'Reference Value', color: '#000'},
+                {data: 4.5, text: 'Source 3'}
+            ],
+            seriesColor: '#247E42'
+        },
+        {
+            title: 'Custom Attributes 2',
+            q1: 1.05, q3: 2.849999996, maxOutlier: 4.9, maxRegularValue: 4.9,
+            mean: 3.4949999, median: 1.5, minOutlier: 0.3, minRegularValue: 0.3,
+            outlData: [
+                {data: 15.2, text: 'Source 1'},
+                {data: 10, text: 'Reference Value', color: '#F00'},
+                {data: 7.5, color: '#00F'}
+            ],
+            seriesColor: '#334693'
+        }
+    ]
+}
+
+function testSingleBox() {
+    return [
+        {
+            label: 'Sample A',
+            values: {
+                Q1: 120,
+                Q2: 150,
+                Q3: 200,
+                whisker_low: 115,
+                whisker_high: 210,
+                outliers: [50, 100, 225]
+            }
+        }
+    ]
+}
+
+function testDozenBoxes() {
+    return [
+       { label: "Sample A", values: { Q1: 120, Q2: 150, Q3: 200, whisker_low: 115, whisker_high: 210, outliers: [50, 100, 225] } },
+       { label: "Sample B", values: { Q1: 300, Q2: 350, Q3: 400, whisker_low: 225, whisker_high: 400, outliers: [175] } },
+       { label: "Sample C", values: { Q1: 50, Q2: 100, Q3: 125, whisker_low: 25, whisker_high: 75, outliers: [0] } },
+
+       { label: "Sample D", values: { Q1: 120, Q2: 150, Q3: 200, whisker_low: 115, whisker_high: 210, outliers: [50, 100, 225] } },
+       { label: "Sample E", values: { Q1: 300, Q2: 350, Q3: 400, whisker_low: 225, whisker_high: 400, outliers: [175] } },
+       { label: "Sample F", values: { Q1: 50, Q2: 100, Q3: 125, whisker_low: 25, whisker_high: 75, outliers: [0] } },
+
+       { label: "Sample H", values: { Q1: 120, Q2: 150, Q3: 200, whisker_low: 115, whisker_high: 210, outliers: [50, 100, 225] } },
+       { label: "Sample I", values: { Q1: 300, Q2: 350, Q3: 400, whisker_low: 225, whisker_high: 400, outliers: [175] } },
+       { label: "Sample J", values: { Q1: 50, Q2: 100, Q3: 125, whisker_low: 25, whisker_high: 75, outliers: [0] } },
+
+       { label: "Sample K", values: { Q1: 120, Q2: 150, Q3: 200, whisker_low: 115, whisker_high: 210, outliers: [50, 100, 225] } },
+       { label: "Sample L", values: { Q1: 300, Q2: 350, Q3: 400, whisker_low: 225, whisker_high: 400, outliers: [175] } },
+       { label: "Sample M", values: { Q1: 50, Q2: 100, Q3: 125, whisker_low: 25, whisker_high: 75, outliers: [0] } },
+    ]
+}
+
+function badWhiskers() {
+    return [
+        {
+          "label": "Missing High",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: 50,
+            outliers: []
+          }
+        },
+        {
+          "label": "Missing Low",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_high: 200,
+            outliers: []
+          }
+        },
+        {
+          "label": "Null High",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: 50,
+            whisker_high: null,
+            outliers: []
+          }
+        },
+        {
+          "label": "Null Low",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: null,
+            whisker_high: 200,
+            outliers: []
+          }
+        },
+        {
+          "label": "Both Missing",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            outliers: []
+          }
+        },
+        {
+          "label": "Both Null",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: null,
+            whisker_high: null,
+            outliers: []
+          }
+        },
+        {
+          "label": "Both Missing with Outliers",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            outliers: [25, 250]
+          }
+        }
+    ]
+}
+
+function badOutliers() {
+    return [
+        {
+          "label": "Empty outlier list",
+          "values": {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: 50,
+            whisker_high: 200,
+            outliers: []
+          }
+        },
+        {
+          label: "Null outliers",
+          values: {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: 50,
+            whisker_high: 200,
+            outliers: null
+          }
+        },
+        {
+          label: "No outliers",
+          values: {
+            Q1: 100,
+            Q2: 125,
+            Q3: 150,
+            whisker_low: 50,
+            whisker_high: 200,
+          }
+        }
+    ]
+}
+
+function zeroWhiskers() {
+  return [
+    {
+      label: 'Zero Whisker Low',
+      values: {
+        Q1: 1,
+        Q2: 2,
+        Q3: 3,
+        whisker_high: 10,
+        whisker_low: 0,
+        outliers: [-1, 11]
+      }
+    },
+    {
+      label: 'Zero Whisker High',
+      values: {
+        Q1: -3,
+        Q2: -2,
+        Q3: -1,
+        whisker_high: 0,
+        whisker_low: -5,
+        outliers: [-10, 1]
+      }
+    }
+  ];
+};
+
+defaultChartConfig("outlierObjects", testOutlierObjects, {
+  outlierValue: function (d) { return d.value },
+  outlierColor: function (d) { return d.color },
+  outlierLabel: function (d) {
+    if (d.label) { return d.value + ' ' + d.label }
+    return d.value;
+  }
+});
+
+defaultChartConfig("customModel", testCustomObjectModel, {
+    x: function (d) { return d.title },
+    itemColor: function (d) { return d.seriesColor },
+    outliers: function (d) { return d.outlData },
+    outlierValue: function (d) { return d.data },
+    outlierLabel: function (d) {
+        if (d.text) { return d.data + ' ' + d.text }
+        return d.data;
+    },
+    outlierColor: function (d) { return d.color },
+    q1: function (d) { return d.q1 },
+    q2: function (d) { return d.median },
+    q3: function (d) { return d.q3 },
+    wl: function (d) { return d.minRegularValue },
+    wh: function (d) { return d.maxRegularValue }
+});
+
+defaultChartConfig("emptyChart", {}, {});
+
+defaultChartConfig("chart1", testData1, {
+  staggerLabels: true,
+  maxBoxWidth: 32
+});
+
+defaultChartConfig("forceY", testData1, {
+  yDomain: [0, 500]
+});
+
+defaultChartConfig("chart3", testSingleBox, {});
+
+defaultChartConfig("chart4", testDozenBoxes, {
+  staggerLabels: true,
+  maxBoxWidth: 32
+});
+
+defaultChartConfig("bad_whiskers", badWhiskers, {
+  staggerLabels: true
+});
+defaultChartConfig("bad_outliers", badOutliers, {});
+defaultChartConfig("zeroWhiskers", zeroWhiskers, {});
+
+function defaultChartConfig(containerId, data, chartOptions) {
+  nv.addGraph(function() {
+      var chart;
+      chart = nv.models.boxPlotChart()
+        .x(function(d) { return d.label })
+        .y(function(d) { return d.values.Q3 })
+        .margin({bottom: 100});
+      chart.options(chartOptions);
+
+      d3.select('#' + containerId + ' svg')
+        .datum(data)
+        .call(chart);
+
+      nv.utils.windowResize(chart.update);
+
+      return chart;
+  });
+}
+</script>

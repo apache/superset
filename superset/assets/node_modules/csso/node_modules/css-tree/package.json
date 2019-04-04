@@ -1,0 +1,99 @@
+{
+  "name": "css-tree",
+  "version": "1.0.0-alpha.29",
+  "description": "CSSTree is a tool set to work with CSS, including fast detailed parser (string->AST), walker (AST traversal), generator (AST->string) and lexer (validation and matching) based on knowledge of spec and browser implementations",
+  "keywords": [
+    "css",
+    "ast",
+    "tokenizer",
+    "parser",
+    "walker",
+    "lexer",
+    "generator",
+    "utils",
+    "syntax",
+    "validation"
+  ],
+  "homepage": "https://github.com/csstree/csstree",
+  "author": "Roman Dvornov <rdvornov@gmail.com> (https://github.com/lahmatiy)",
+  "maintainers": [
+    {
+      "name": "Roman Dvornov",
+      "email": "rdvornov@gmail.com",
+      "github-username": "lahmatiy"
+    }
+  ],
+  "license": "MIT",
+  "repository": "csstree/csstree",
+  "bugs": {
+    "url": "https://github.com/csstree/csstree/issues"
+  },
+  "main": "./lib/index",
+  "browser": {
+    "./data": "./dist/default-syntax.json"
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "mocha": true,
+      "es6": true
+    },
+    "rules": {
+      "no-duplicate-case": 2,
+      "no-undef": 2,
+      "no-unused-vars": [
+        2,
+        {
+          "vars": "all",
+          "args": "after-used"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "lint": "jscs data lib scripts test && eslint data lib scripts test && node scripts/review-syntax-patch --lint && node scripts/update-docs --lint",
+    "update:docs": "node scripts/update-docs",
+    "review:syntax-patch": "node scripts/review-syntax-patch",
+    "build": "npm run gen:syntax && browserify --standalone csstree lib/index.js | uglifyjs --compress --mangle -o dist/csstree.js",
+    "lint-and-test": "npm run lint && npm test",
+    "test": "mocha --reporter progress",
+    "gen:syntax": "node scripts/gen-syntax-data",
+    "coverage": "istanbul cover _mocha -- -R min",
+    "prepublish": "npm run build",
+    "travis": "npm run lint-and-test && npm run coveralls",
+    "coveralls": "istanbul cover _mocha --report lcovonly -- -R min && cat ./coverage/lcov.info | coveralls",
+    "hydrogen": "node --trace-hydrogen --trace-phase=Z --trace-deopt --code-comments --hydrogen-track-positions --redirect-code-traces --redirect-code-traces-to=code.asm --trace_hydrogen_file=code.cfg --print-opt-code bin/parse --stat -o /dev/null"
+  },
+  "dependencies": {
+    "mdn-data": "~1.1.0",
+    "source-map": "^0.5.3"
+  },
+  "devDependencies": {
+    "browserify": "^13.0.0",
+    "coveralls": "^2.11.6",
+    "eslint": "^2.13.1",
+    "istanbul": "^0.4.2",
+    "jscs": "~3.0.7",
+    "json-to-ast": "~2.0.1",
+    "mocha": "^3.0.2",
+    "uglify-js": "^2.6.1"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "files": [
+    "bin",
+    "data",
+    "dist/csstree.js",
+    "dist/default-syntax.json",
+    "docs",
+    "lib",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ]
+
+,"_resolved": "https://registry.npmjs.org/css-tree/-/css-tree-1.0.0-alpha.29.tgz"
+,"_integrity": "sha512-sRNb1XydwkW9IOci6iB2xmy8IGCj6r/fr+JWitvJ2JxQRPzN3T4AGGVWCMlVmVwM1gtgALJRmGIlWv5ppnGGkg=="
+,"_from": "css-tree@1.0.0-alpha.29"
+}

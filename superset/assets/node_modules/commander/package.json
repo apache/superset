@@ -1,0 +1,42 @@
+{
+  "name": "commander",
+  "version": "2.19.0",
+  "description": "the complete solution for node.js command-line programs",
+  "keywords": [
+    "commander",
+    "command",
+    "option",
+    "parser"
+  ],
+  "author": "TJ Holowaychuk <tj@vision-media.ca>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tj/commander.js.git"
+  },
+  "scripts": {
+    "lint": "eslint index.js",
+    "test": "node test/run.js && npm run test-typings",
+    "test-typings": "tsc -p tsconfig.json"
+  },
+  "main": "index",
+  "files": [
+    "index.js",
+    "typings/index.d.ts"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^10.11.3",
+    "eslint": "^5.6.1",
+    "should": "^13.2.3",
+    "sinon": "^6.3.4",
+    "standard": "^12.0.1",
+    "ts-node": "^7.0.1",
+    "typescript": "^2.9.2"
+  },
+  "typings": "typings/index.d.ts"
+
+,"_resolved": "https://registry.npmjs.org/commander/-/commander-2.19.0.tgz"
+,"_integrity": "sha512-6tvAOO+D6OENvRAh524Dh9jcfKTYDQAqvqezbCW82xj5X0pSrcpxtvRKHLG0yBY6SD7PSDrJaj+0AiOcKVd1Xg=="
+,"_from": "commander@2.19.0"
+}

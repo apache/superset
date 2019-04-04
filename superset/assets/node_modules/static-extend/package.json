@@ -1,0 +1,67 @@
+{
+  "name": "static-extend",
+  "description": "Adds a static `extend` method to a class, to simplify inheritance. Extends the static properties, prototype properties, and descriptors from a `Parent` constructor onto `Child` constructors.",
+  "version": "0.1.2",
+  "homepage": "https://github.com/jonschlinkert/static-extend",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/static-extend",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/static-extend/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^0.2.5",
+    "object-copy": "^0.1.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "class",
+    "ctor",
+    "descriptor",
+    "extend",
+    "extends",
+    "inherit",
+    "inheritance",
+    "merge",
+    "method",
+    "prop",
+    "properties",
+    "property",
+    "prototype"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/static-extend/-/static-extend-0.1.2.tgz"
+,"_integrity": "sha1-YICcOcv/VTNyJv1eC1IPNB8ftcY="
+,"_from": "static-extend@0.1.2"
+}

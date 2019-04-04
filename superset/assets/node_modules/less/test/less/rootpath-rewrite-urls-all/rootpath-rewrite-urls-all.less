@@ -1,0 +1,11 @@
+@import "./folder/file.less";
+
+#rootpath-rewrite-urls-all {
+  background-image: url("./relative/path");
+  background-image: url("../relative/path");
+  background-image: url("./relative/../path");
+  background-image: url("./relative/../path/..");
+  background-image: url("module");
+  background-image: url("module/path");
+  background-image: url("module/path/../relative/path");
+}

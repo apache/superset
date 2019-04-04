@@ -1,0 +1,51 @@
+{
+  "name": "anymatch",
+  "version": "2.0.0",
+  "description": "Matches strings against configurable strings, globs, regular expressions, and/or functions",
+  "files": [
+    "index.js"
+  ],
+  "author": {
+    "name": "Elan Shanker",
+    "url": "http://github.com/es128"
+  },
+  "license": "ISC",
+  "homepage": "https://github.com/micromatch/anymatch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/micromatch/anymatch"
+  },
+  "bugs": {
+    "url": "https://github.com/micromatch/anymatch/issues"
+  },
+  "keywords": [
+    "match",
+    "any",
+    "string",
+    "file",
+    "fs",
+    "list",
+    "glob",
+    "regex",
+    "regexp",
+    "regular",
+    "expression",
+    "function"
+  ],
+  "scripts": {
+    "test": "istanbul cover _mocha && cat ./coverage/lcov.info | coveralls"
+  },
+  "dependencies": {
+    "micromatch": "^3.1.4",
+    "normalize-path": "^2.1.1"
+  },
+  "devDependencies": {
+    "coveralls": "^2.7.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/anymatch/-/anymatch-2.0.0.tgz"
+,"_integrity": "sha512-5teOsQWABXHHBFP9y3skS5P3d/WfWXpv3FUpy+LorMrNYaT9pI4oLMQX7jzQ2KklNpGpWHzdCXTDT2Y3XGlZBw=="
+,"_from": "anymatch@2.0.0"
+}

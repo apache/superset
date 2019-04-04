@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - "0.10"
+before_install:
+  - npm install -g npm@~1.4.6
+script:
+  - npm test
+  - npm run cov

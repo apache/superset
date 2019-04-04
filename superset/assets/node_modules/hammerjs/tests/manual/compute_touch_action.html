@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title></title>
+</head>
+<body>
+    Open the inspector and play a bit with the touchAction property.
+    <script src="../../hammer.min.js"></script>
+    <script>
+        var mc = new Hammer(document.body);
+        mc.add(new Hammer.Swipe({ direction: Hammer.DIRECTION_HORIZONTAL }));
+        mc.add(new Hammer.Pan({ direction: Hammer.DIRECTION_HORIZONTAL }));
+
+        console.log(document.body.style.touchAction)
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+#ns {
+  .sizes() {
+    @small: 600px;
+  }
+  .breakpoint(@size) {
+    @val: #ns.sizes[@@size];
+    @min: (min-width: @val);
+    @max: not all and @min;
+  }
+}
+
+#ns {
+  .sizes() {
+    @small: 480px;
+  }
+}
+
+.valToGet() {
+  keyword: small;
+}
+
+@media #ns.breakpoint(.valToGet[])[@max] {
+  .selector {
+    prop: val;
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "enhanced-resolve",
+  "version": "4.1.0",
+  "author": "Tobias Koppers @sokra",
+  "description": "Offers a async require.resolve function. It's highly configurable.",
+  "files": [
+    "lib",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "graceful-fs": "^4.1.2",
+    "memory-fs": "^0.4.0",
+    "tapable": "^1.0.0"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "devDependencies": {
+    "beautify-lint": "^1.0.3",
+    "codecov.io": "^0.1.6",
+    "coveralls": "^2.11.6",
+    "eslint": "^3.14.1",
+    "eslint-plugin-node": "^3.0.5",
+    "eslint-plugin-nodeca": "^1.0.3",
+    "istanbul": "^0.4.1",
+    "js-beautify": "^1.5.10",
+    "mocha": "^2.3.4",
+    "should": "^8.0.2"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  },
+  "main": "lib/node.js",
+  "homepage": "http://github.com/webpack/enhanced-resolve",
+  "scripts": {
+    "beautify-lint": "beautify-lint lib/**.js test/*.js",
+    "beautify": "beautify-rewrite lib/**.js test/*.js",
+    "lint": "eslint lib test",
+    "pretest": "npm run lint && npm run beautify-lint",
+    "test": "mocha --full-trace --check-leaks",
+    "precover": "npm run lint && npm run beautify-lint",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha",
+    "travis": "npm run cover -- --report lcovonly"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/webpack/enhanced-resolve.git"
+  }
+
+,"_resolved": "https://registry.npmjs.org/enhanced-resolve/-/enhanced-resolve-4.1.0.tgz"
+,"_integrity": "sha512-F/7vkyTtyc/llOIn8oWclcB25KdRaiPBpZYDgJHgh/UHtpgT2p2eldQgtQnLtUvfMKPKxbRaQM/hHkvLHt1Vng=="
+,"_from": "enhanced-resolve@4.1.0"
+}

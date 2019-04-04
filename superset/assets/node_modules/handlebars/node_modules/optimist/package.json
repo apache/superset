@@ -1,0 +1,43 @@
+{
+    "name" : "optimist",
+    "version" : "0.6.1",
+    "description" : "Light-weight option parsing with an argv hash. No optstrings attached.",
+    "main" : "./index.js",
+    "dependencies" : {
+        "wordwrap" : "~0.0.2",
+        "minimist" : "~0.0.1"
+    },
+    "devDependencies" : {
+        "hashish": "~0.0.4",
+        "tap" : "~0.4.0"
+    },
+    "scripts" : {
+        "test" : "tap ./test/*.js"
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/substack/node-optimist.git"
+    },
+    "keywords" : [
+        "argument",
+        "args",
+        "option",
+        "parser",
+        "parsing",
+        "cli",
+        "command"
+    ],
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    },
+    "license" : "MIT/X11",
+    "engine" : {
+        "node" : ">=0.4"
+    }
+
+,"_resolved": "https://registry.npmjs.org/optimist/-/optimist-0.6.1.tgz"
+,"_integrity": "sha1-2j6nRob6IaGaERwybpDrFaAZZoY="
+,"_from": "optimist@0.6.1"
+}

@@ -1,0 +1,18 @@
+@-webkit-keyframes hover {
+  /* Safari and Chrome */
+}
+.bg {
+  background-image: linear-gradient(#333 /*{comment}*/, #111);
+}
+#planadvisor,
+.first,
+.planning {
+  margin: 10px;
+  total-width: 96em;
+}
+.some-inline-comments {
+  a: yes /* comment */;
+  b: red /* comment */;
+  c: yes /* comment */;
+  d: red /* comment */;
+}

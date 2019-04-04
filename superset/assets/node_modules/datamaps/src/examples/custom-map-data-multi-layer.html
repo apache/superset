@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://d3js.org/topojson.v1.min.js"></script>
+  <!-- I recommend you host this file on your own, since this will change without warning -->
+  <script src="/src/rel/datamaps.world.js?v=1"></script>
+  <h2>Datamaps New York Test</h2>
+  <p><a href="http://datamaps.github.io/">DataMaps Project Homepage</a>, Counties referred to by their <a href="http://en.wikipedia.org/wiki/List_of_counties_in_New_York">FIPS code</a></p>
+  <div id="container1" style="position: relative; width: 900px; height: 450px;"></div>
+ 
+ <style>
+.land {
+  fill: rgba(240, 175, 10, 0.5) ;
+  stroke-width: 0.5px;
+  stroke: #f0af0a !important;
+  pointer-events: none;
+}
+ </style>
+     
+     <script>
+       //basic map config with custom fills, mercator projection
+      var map = new Datamap({
+        element: document.getElementById('container1'),
+        geographyConfig: {
+          dataUrl: 'http://joelgombin.fr/cartes/comm.couleur.json',
+          borderWidth: 0
+        },
+        scope: 'comm.couleur',
+        fills: {
+          defaultFill: 'blue',
+          lt50: 'rgba(0,244,244,0.9)',
+          gt50: 'red'
+        },
+        
+        data: {
+          '071': {fillKey: 'lt50' },
+          '001': {fillKey: 'gt50' }       
+        },
+
+        done: function(datamap) {
+          datamap.dept();
+        }
+      });
+
+      map.addPlugin('dept', function() {
+        map.svg.insert("path", ".datamaps-subunits")
+          .datum(topojson.feature(map.customTopo, map.customTopo.objects.dept))
+          .attr("class", "land")
+          .attr("d", map.path)
+      });
+
+
+
+
+
+      
+     </script>
+</body>

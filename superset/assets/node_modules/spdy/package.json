@@ -1,0 +1,59 @@
+{
+  "name": "spdy",
+  "version": "4.0.0",
+  "description": "Implementation of the SPDY protocol on node.js.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "standard",
+    "test": "mocha --reporter=spec test/*-test.js",
+    "coverage": "istanbul cover node_modules/.bin/_mocha -- --reporter=spec test/**/*-test.js"
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ],
+  "keywords": [
+    "spdy"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/indutny/node-spdy.git"
+  },
+  "homepage": "https://github.com/indutny/node-spdy",
+  "bugs": {
+    "email": "node-spdy+bugs@indutny.com",
+    "url": "https://github.com/spdy-http2/node-spdy/issues"
+  },
+  "author": "Fedor Indutny <fedor.indutny@gmail.com>",
+  "contributors": [
+    "Chris Storm <github@eeecooks.com>",
+    "François de Metz <francois@2metz.fr>",
+    "Ilya Grigorik <ilya@igvita.com>",
+    "Roberto Peon",
+    "Tatsuhiro Tsujikawa",
+    "Jesse Cravens <jesse.cravens@gmail.com>"
+  ],
+  "dependencies": {
+    "debug": "^4.1.0",
+    "handle-thing": "^2.0.0",
+    "http-deceiver": "^1.2.7",
+    "select-hose": "^2.0.0",
+    "spdy-transport": "^3.0.0"
+  },
+  "devDependencies": {
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "pre-commit": "^1.2.2",
+    "standard": "^12.0.1"
+  },
+  "engines": {
+    "node": ">=6.0.0",
+    "npm": ">=6.0.0"
+  },
+  "main": "./lib/spdy",
+  "optionalDependencies": {}
+
+,"_resolved": "https://registry.npmjs.org/spdy/-/spdy-4.0.0.tgz"
+,"_integrity": "sha512-ot0oEGT/PGUpzf/6uk4AWLqkq+irlqHXkrdbk51oWONh3bxQmBuljxPNl66zlRRcIJStWq0QkLUCPOPjgjvU0Q=="
+,"_from": "spdy@4.0.0"
+}

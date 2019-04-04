@@ -1,0 +1,53 @@
+{
+  "name": "css-selector-tokenizer",
+  "version": "0.7.1",
+  "description": "Parses and stringifies CSS selectors",
+  "main": "lib/index.js",
+  "scripts": {
+    "lint": "eslint lib",
+    "pretest": "npm run lint",
+    "test": "mocha",
+    "autotest": "chokidar lib test -c 'npm test'",
+    "precover": "npm run lint",
+    "cover": "istanbul cover node_modules/mocha/bin/_mocha",
+    "travis": "npm run cover -- --report lcovonly",
+    "publish-patch": "npm test && npm version patch && git push && git push --tags && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/css-modules/css-selector-tokenizer.git"
+  },
+  "keywords": [
+    "css-modules",
+    "selectors"
+  ],
+  "files": [
+    "lib"
+  ],
+  "author": "Tobias Koppers @sokra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/css-modules/css-selector-tokenizer/issues"
+  },
+  "homepage": "https://github.com/css-modules/css-selector-tokenizer",
+  "dependencies": {
+    "cssesc": "^0.1.0",
+    "fastparse": "^1.1.1",
+    "regexpu-core": "^1.0.0"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^0.2.1",
+    "codecov.io": "^0.1.2",
+    "coveralls": "^2.11.2",
+    "eslint": "^0.21.2",
+    "istanbul": "^0.3.14",
+    "mocha": "^2.2.5"
+  },
+  "directories": {
+    "test": "test"
+  }
+
+,"_resolved": "https://registry.npmjs.org/css-selector-tokenizer/-/css-selector-tokenizer-0.7.1.tgz"
+,"_integrity": "sha512-xYL0AMZJ4gFzJQsHUKa5jiWWi2vH77WVNg7JYRyewwj6oPh4yb/y6Y9ZCw9dsj/9UauMhtuxR+ogQd//EdEVNA=="
+,"_from": "css-selector-tokenizer@0.7.1"
+}

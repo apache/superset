@@ -1,0 +1,45 @@
+{
+  "name": "postcss-unique-selectors",
+  "version": "4.0.1",
+  "description": "Ensure CSS selectors are unique.",
+  "main": "dist/index.js",
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "files": [
+    "LICENSE-MIT",
+    "dist"
+  ],
+  "keywords": [
+    "css",
+    "postcss",
+    "postcss-plugin"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/cssnano/cssnano",
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0"
+  },
+  "dependencies": {
+    "alphanum-sort": "^1.0.0",
+    "postcss": "^7.0.0",
+    "uniqs": "^2.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/postcss-unique-selectors/-/postcss-unique-selectors-4.0.1.tgz"
+,"_integrity": "sha512-+JanVaryLo9QwZjKrmJgkI4Fn8SBgRO6WXQBJi7KiAVPlmxikB5Jzc4EvXMT2H0/m0RjrVVm9rGNhZddm/8Spg=="
+,"_from": "postcss-unique-selectors@4.0.1"
+}

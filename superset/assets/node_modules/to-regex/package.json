@@ -1,0 +1,66 @@
+{
+  "name": "to-regex",
+  "description": "Generate a regex from a string or array of strings.",
+  "version": "3.0.2",
+  "homepage": "https://github.com/jonschlinkert/to-regex",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/to-regex",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/to-regex/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^2.0.2",
+    "extend-shallow": "^3.0.2",
+    "regex-not": "^1.0.2",
+    "safe-regex": "^1.1.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3"
+  },
+  "keywords": [
+    "match",
+    "regex",
+    "regular expression",
+    "test",
+    "to"
+  ],
+  "verb": {
+    "toc": {
+      "method": "preWrite"
+    },
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "has-glob",
+        "is-glob",
+        "path-regex",
+        "to-regex-range"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/to-regex/-/to-regex-3.0.2.tgz"
+,"_integrity": "sha512-FWtleNAtZ/Ki2qtqej2CXTOayOH9bHDQF+Q48VpWyDXjbYxA4Yz8iDB31zXOBUlOHHKidDbqGVrTUvQMPmBGBw=="
+,"_from": "to-regex@3.0.2"
+}

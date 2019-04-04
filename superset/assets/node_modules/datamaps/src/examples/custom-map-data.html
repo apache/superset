@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://d3js.org/topojson.v1.min.js"></script>
+  <!-- I recommend you host this file on your own, since this will change without warning -->
+  <script src="/src/rel/datamaps.usa.js?v=1"></script>
+  <h2>Datamaps New York Test</h2>
+  <p><a href="http://datamaps.github.io/">DataMaps Project Homepage</a>, Counties referred to by their <a href="http://en.wikipedia.org/wiki/List_of_counties_in_New_York">FIPS code</a></p>
+  <div id="container1" style="position: relative; width: 500px; height: 450px;"></div>
+ 
+     
+     <script>
+       //basic map config with custom fills, mercator projection
+      var map = new Datamap({
+        scope: 'subunits-ny',
+        element: document.getElementById('container1'),
+        projection: '',
+        geographyConfig: {
+          dataUrl: 'test.json'
+        },
+        setProjection: function(element) {
+          var projection = d3.geo.equirectangular()
+            .center([-72, 43])
+            .rotate([4.4, 0])
+            .scale(4000)
+            .translate([element.offsetWidth / 2, element.offsetHeight / 2]);
+          var path = d3.geo.path()
+            .projection(projection);
+          
+          return {path: path, projection: projection};
+        },
+        fills: {
+          defaultFill: '#f0af0a',
+          lt50: 'rgba(0,244,244,0.9)',
+          gt50: 'red'
+        },
+        
+        data: {
+          '071': {fillKey: 'lt50' },
+          '001': {fillKey: 'gt50' }       
+        }
+      });
+
+      map.bubbles([
+        {longitude: -77, latitude: 43, radius: 30, fillKey: 'gt50'}
+      ], {
+        popupOnHover: false,
+        highlightOnHover: false
+      });
+
+
+      
+     </script>
+</body>

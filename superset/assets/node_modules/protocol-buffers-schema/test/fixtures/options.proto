@@ -1,0 +1,8 @@
+
+message OptionFields {
+  optional string type = 2 [mylist = "some,values,[here]"];
+}
+
+message MoreOptionFields {
+  optional string values = 3 [mylist2 = '[more, values], [here]'];
+}

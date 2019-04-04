@@ -1,0 +1,4 @@
+SyntaxError: Could not evaluate variable call @alias in {path}namespacing-3.less on line 7, column 3:
+6   @alias: .theme;  // aliasing not allowed without ()
+7   foo: @alias[foo];
+8 }

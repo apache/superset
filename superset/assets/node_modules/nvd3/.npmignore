@@ -1,0 +1,14 @@
+
+.idea
+*.swp
+*~
+*.log
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+node_modules
+bower_components
+coverage
+test-results.xml
+*.orig

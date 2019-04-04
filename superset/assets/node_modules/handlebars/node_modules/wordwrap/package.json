@@ -1,0 +1,41 @@
+{
+    "name" : "wordwrap",
+    "description" : "Wrap those words. Show them at what columns to start and stop.",
+    "version" : "0.0.3",
+    "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/substack/node-wordwrap.git"
+    },
+    "main" : "./index.js",
+    "keywords" : [
+        "word",
+        "wrap",
+        "rule",
+        "format",
+        "column"
+    ],
+    "directories" : {
+        "lib" : ".",
+        "example" : "example",
+        "test" : "test"
+    },
+    "scripts" : {
+        "test" : "expresso"
+    },
+    "devDependencies" : {
+        "expresso" : "=0.7.x"
+    },
+    "engines" : {
+        "node" : ">=0.4.0"
+    },
+    "license" : "MIT",
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    }
+
+,"_resolved": "https://registry.npmjs.org/wordwrap/-/wordwrap-0.0.3.tgz"
+,"_integrity": "sha1-o9XabNXAvAAI03I0u68b7WMFkQc="
+,"_from": "wordwrap@0.0.3"
+}

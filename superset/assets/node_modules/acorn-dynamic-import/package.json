@@ -1,0 +1,49 @@
+{
+  "name": "acorn-dynamic-import",
+  "description": "Support dynamic imports in acorn",
+  "main": "lib/index.js",
+  "homepage": "https://github.com/kesne/acorn-dynamic-import",
+  "author": "Jordan Gensler <jordangens@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kesne/acorn-dynamic-import"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "babel src --out-dir lib",
+    "test": "npm run lint && npm run tests-only",
+    "lint": "eslint .",
+    "tests-only": "mocha",
+    "prepublish": "in-publish && safe-publish-latest && npm run build || not-in-publish",
+    "check-changelog": "expr $(git status --porcelain 2>/dev/null| grep \"^\\s*M.*CHANGELOG.md\" | wc -l) >/dev/null || (echo 'Please edit CHANGELOG.md' && exit 1)",
+    "check-only-changelog-changed": "(expr $(git status --porcelain 2>/dev/null| grep -v \"CHANGELOG.md\" | wc -l) >/dev/null && echo 'Only CHANGELOG.md may have uncommitted changes' && exit 1) || exit 0",
+    "version:major": "npm --no-git-tag-version version major",
+    "version:minor": "npm --no-git-tag-version version minor",
+    "version:patch": "npm --no-git-tag-version version patch",
+    "postversion": "git commit package.json CHANGELOG.md -m \"v$npm_package_version\" && npm run tag && git push && git push --tags",
+    "preversion": "npm run test && npm run check-changelog && npm run check-only-changelog-changed",
+    "tag": "git tag v$npm_package_version"
+  },
+  "dependencies": {
+    "acorn": "^5.0.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-eslint": "^7.1.1",
+    "babel-preset-airbnb": "^2.1.1",
+    "babel-register": "^6.18.0",
+    "chai": "^3.0.0",
+    "eslint": "^3.10.2",
+    "eslint-config-airbnb-base": "^10.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "in-publish": "^2.0.0",
+    "mocha": "^2.2.5",
+    "rimraf": "^2.5.4",
+    "safe-publish-latest": "^1.1.1"
+  },
+  "version": "3.0.0"
+
+,"_resolved": "https://registry.npmjs.org/acorn-dynamic-import/-/acorn-dynamic-import-3.0.0.tgz"
+,"_integrity": "sha512-zVWV8Z8lislJoOKKqdNMOB+s6+XV5WERty8MnKBeFgwA+19XJjJHs2RP5dzM57FftIs+jQnRToLiWazKr6sSWg=="
+,"_from": "acorn-dynamic-import@3.0.0"
+}

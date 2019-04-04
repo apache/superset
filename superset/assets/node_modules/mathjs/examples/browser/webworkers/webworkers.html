@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>math.js | web workers</title>
+</head>
+<body>
+
+<p>
+  In this example, a math.js parser is running in a separate
+  <a href="http://www.html5rocks.com/en/tutorials/workers/basics/">web worker</a>,
+  preventing the user interface from freezing during heavy calculations.
+</p>
+
+<p id="results"></p>
+
+<script>
+  /**
+   * MathWorker evaluates expressions asynchronously in a web worker.
+   *
+   * Example usage:
+   *
+   *     var worker = new MathWorker();
+   *     var expr = '12 / (2.3 + 0.7)';
+   *     worker.eval(expr, function (err, result) {
+   *       console.log(err, result)
+   *     });
+   */
+  function MathWorker () {
+    this.worker = new Worker('worker.js');
+    this.callbacks = {};
+    this.seq = 0;
+
+    // create a listener to receive responses from the web worker
+    var me = this;
+    this.worker.addEventListener('message', function(event) {
+      var response = JSON.parse(event.data);
+
+      // find the callback corresponding to this response
+      var callback = me.callbacks[response.id];
+      delete me.callbacks[response.id];
+
+      // call the requests callback with the result
+      callback(response.err, response.result);
+    }, false);
+  }
+
+  /**
+   * Evaluate an expression
+   * @param {string} expr
+   * @param {Function} callback   Called as callback(err, result)
+   */
+  MathWorker.prototype.eval = function eval (expr, callback) {
+    // build a request,
+    // add an id so we can link returned responses to the right callback
+    var id = this.seq++;
+    var request = {
+      id: id,
+      expr: expr
+    };
+
+    // queue the callback, it will be called when the worker returns the result
+    this.callbacks[id] = callback;
+
+    // send the request to the worker
+    this.worker.postMessage(JSON.stringify(request));
+  };
+
+  // create a MathWorker
+  var worker = new MathWorker();
+
+  // evaluate an expression via the worker
+  worker.eval('12 / (2.3 + 0.7)', function (err, result) {
+    document.getElementById('results').innerHTML += 'result: ' + result + '<br>';
+  });
+
+</script>
+
+</body>
+</html>

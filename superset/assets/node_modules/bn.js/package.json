@@ -1,0 +1,40 @@
+{
+  "name": "bn.js",
+  "version": "4.11.8",
+  "description": "Big number implementation in pure javascript",
+  "main": "lib/bn.js",
+  "scripts": {
+    "lint": "semistandard",
+    "unit": "mocha --reporter=spec test/*-test.js",
+    "test": "npm run lint && npm run unit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:indutny/bn.js"
+  },
+  "keywords": [
+    "BN",
+    "BigNum",
+    "Big number",
+    "Modulo",
+    "Montgomery"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/bn.js/issues"
+  },
+  "homepage": "https://github.com/indutny/bn.js",
+  "browser": {
+    "buffer": false
+  },
+  "devDependencies": {
+    "istanbul": "^0.3.5",
+    "mocha": "^2.1.0",
+    "semistandard": "^7.0.4"
+  }
+
+,"_resolved": "https://registry.npmjs.org/bn.js/-/bn.js-4.11.8.tgz"
+,"_integrity": "sha512-ItfYfPLkWHUjckQCk8xC+LwxgK8NYcXywGigJgSwOP8Y2iyWT4f2vsZnoOXTTbo+o5yXmIUJ4gn5538SO5S3gA=="
+,"_from": "bn.js@4.11.8"
+}

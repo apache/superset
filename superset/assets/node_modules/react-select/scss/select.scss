@@ -1,0 +1,75 @@
+/**
+ * React Select
+ * ============
+ * Created by Jed Watson and Joss Mackison for KeystoneJS, http://www.keystonejs.com/
+ * https://twitter.com/jedwatson https://twitter.com/jossmackison https://twitter.com/keystonejs
+ * MIT License: https://github.com/JedWatson/react-select
+*/
+
+// Variables
+// ------------------------------
+
+// control options
+$select-input-bg:                   #fff !default;
+$select-input-bg-disabled:          #f9f9f9 !default;
+$select-input-bg-focus:             $select-input-bg !default;
+$select-input-border-color:         #ccc !default;
+$select-input-border-radius:        4px !default;
+$select-input-border-focus:         #08c !default; // blue
+$select-input-box-shadow-focus:     inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 5px -1px fade($select-input-border-focus, 50%) !default;
+$select-input-border-width:         1px !default;
+$select-input-height:               36px !default;
+$select-input-internal-height:      ($select-input-height - ($select-input-border-width * 2)) !default;
+$select-input-placeholder:          #aaa !default;
+$select-text-color:                 #333 !default;
+$select-link-hover-color:           $select-input-border-focus !default;
+$select-input-hover-box-shadow:     0 1px 0 rgba(0, 0, 0, 0.06) !default;
+
+$select-padding-vertical:           8px !default;
+$select-padding-horizontal:         10px !default;
+
+// menu options
+$select-menu-zindex:                1000 !default;
+$select-menu-max-height:            200px !default;
+$select-menu-box-shadow:            $select-input-hover-box-shadow !default;
+
+$select-option-color:               lighten($select-text-color, 20%) !default;
+$select-option-bg:                  $select-input-bg !default;
+$select-option-focused-color:       $select-text-color !default;
+$select-option-focused-bg:          #f2f9fc !default; // pale blue
+$select-option-selected-color:      $select-text-color !default;
+$select-option-selected-bg:         #f5faff !default; // lightest blue
+$select-option-disabled-color:      lighten($select-text-color, 60%) !default;
+
+$select-noresults-color:            lighten($select-text-color, 40%) !default;
+
+// clear "x" button
+$select-clear-size:                 floor(($select-input-height / 2)) !default;
+$select-clear-color:                #999 !default;
+$select-clear-hover-color:          #D0021B !default; // red
+$select-clear-width:                ($select-input-internal-height / 2) !default;
+
+// arrow indicator
+$select-arrow-color:                #999 !default;
+$select-arrow-color-hover:          #666 !default;
+$select-arrow-width:                5px !default;
+
+// loading indicator
+$select-loading-size:               16px !default;
+$select-loading-color:              $select-text-color !default;
+$select-loading-color-bg:           $select-input-border-color !default;
+
+// multi-select item
+$select-item-border-radius:         2px !default;
+$select-item-gutter:                5px !default;
+$select-item-padding-vertical:      2px !default;
+$select-item-padding-horizontal:    5px !default;
+$select-item-font-size:             .9em !default;
+$select-item-color:                 #08c !default; // pale blue
+$select-item-bg:                    #f2f9fc !default;
+$select-item-border-color:          darken($select-item-bg, 10%) !default;
+$select-item-hover-color:           darken($select-item-color, 5%) !default; // pale blue
+$select-item-hover-bg:              darken($select-item-bg, 5%) !default;
+$select-item-disabled-color:        #333 !default;
+$select-item-disabled-bg:           #fcfcfc !default;
+$select-item-disabled-border-color: darken($select-item-disabled-bg, 10%) !default;

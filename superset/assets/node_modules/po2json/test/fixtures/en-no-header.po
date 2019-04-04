@@ -1,0 +1,4 @@
+# Very minimal .po
+
+msgid "Hello World"
+msgstr "Hello World"

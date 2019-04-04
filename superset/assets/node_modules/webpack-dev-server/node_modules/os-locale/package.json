@@ -1,0 +1,49 @@
+{
+	"name": "os-locale",
+	"version": "3.1.0",
+	"description": "Get the system locale",
+	"license": "MIT",
+	"repository": "sindresorhus/os-locale",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=6"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"locale",
+		"lang",
+		"language",
+		"system",
+		"os",
+		"string",
+		"str",
+		"user",
+		"country",
+		"id",
+		"identifier",
+		"region"
+	],
+	"dependencies": {
+		"execa": "^1.0.0",
+		"lcid": "^2.0.0",
+		"mem": "^4.0.0"
+	},
+	"devDependencies": {
+		"ava": "^1.0.1",
+		"import-fresh": "^3.0.0",
+		"xo": "^0.23.0"
+	}
+
+,"_resolved": "https://registry.npmjs.org/os-locale/-/os-locale-3.1.0.tgz"
+,"_integrity": "sha512-Z8l3R4wYWM40/52Z+S265okfFj8Kt2cC2MKY+xNi3kFs+XGI7WXu/I309QQQYbRW4ijiZ+yxs9pqEhJh0DqW3Q=="
+,"_from": "os-locale@3.1.0"
+}

@@ -1,0 +1,32 @@
+﻿@import "imports/a-better-bootstrap";
+
+#theme.dark.navbar {
+  .colors() {
+    primary: rebeccapurple;
+  }
+  .colors(dark) {
+    primary: black;
+    secondary: grey;
+  }
+  .test() {
+    val: output;
+  }
+}
+
+.my-navbar {
+  #theme.dark.navbar();
+  background: .colors[primary];
+  .test();
+}
+
+.another-navbar {
+  @colors: #theme.dark.navbar.colors() !important;
+  background: @colors[primary];
+  border: 1px solid @colors[secondary];
+}
+
+.another {
+  @colors: #theme.dark.navbar.colors(dark);
+  background: @colors[primary];
+  border: 1px solid @colors[secondary];
+}

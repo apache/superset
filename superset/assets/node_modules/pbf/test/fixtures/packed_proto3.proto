@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package vector_tile;
+
+option optimize_for = LITE_RUNTIME;
+
+enum MessageType {
+     UNKNOWN = 0;
+     GREETING = 1;
+}
+
+message NotPacked {
+  repeated int32 value = 1;
+  repeated MessageType types = 2;
+}
+message FalsePacked {
+  repeated int32 value = 1 [packed=false];
+  repeated MessageType types = 2 [packed=false];
+}
+message Packed {
+  repeated int32 value = 16;
+}

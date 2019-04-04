@@ -1,0 +1,58 @@
+<%
+  const type = locals.type;
+  const layoutProperties = locals.layoutProperties;
+  const paintProperties = locals.paintProperties;
+-%>
+// This file is generated. Edit build/generate-style-code.js, then run `yarn run codegen`.
+// @flow
+/* eslint-disable */
+
+import styleSpec from '../../style-spec/reference/latest';
+
+import {
+    Properties,
+    DataConstantProperty,
+    DataDrivenProperty,
+    CrossFadedDataDrivenProperty,
+    CrossFadedProperty,
+    ColorRampProperty
+} from '../properties';
+
+import type Color from '../../style-spec/util/color';
+
+import type Formatted from '../../style-spec/expression/types/formatted';
+
+<% if (layoutProperties.length) { -%>
+export type LayoutProps = {|
+<% for (const property of layoutProperties) { -%>
+    "<%= property.name %>": <%- propertyType(property) %>,
+<% } -%>
+|};
+
+const layout: Properties<LayoutProps> = new Properties({
+<% for (const property of layoutProperties) { -%>
+    "<%= property.name %>": <%- propertyValue(property, 'layout') %>,
+<% } -%>
+});
+<% } -%>
+<% if(paintProperties.length){ %>
+export type PaintProps = {|
+<% for (const property of paintProperties) { -%>
+    "<%= property.name %>": <%- propertyType(property) %>,
+<% } -%>
+|};
+<% } else{ %>
+export type PaintProps = {};
+<% } %>
+const paint: Properties<PaintProps> = new Properties({
+<% for (const property of paintProperties) { -%>
+    "<%= property.name %>": <%- propertyValue(property, 'paint') %>,
+<% } -%>
+});
+
+// Note: without adding the explicit type annotation, Flow infers weaker types
+// for these objects from their use in the constructor to StyleLayer, as
+// {layout?: Properties<...>, paint: Properties<...>}
+export default ({ paint<% if (layoutProperties.length) { %>, layout<% } %> }: $Exact<{
+  paint: Properties<PaintProps><% if (layoutProperties.length) { %>, layout: Properties<LayoutProps><% } %>
+}>);

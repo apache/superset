@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "cacheKey": {
+      "instanceof": "Function"
+    },
+    "cacheIdentifier": {
+      "type": "string"
+    },
+    "cacheDirectory": {
+      "type": "string"
+    },
+    "read": {
+      "instanceof": "Function"
+    },
+    "write": {
+      "instanceof": "Function"
+    }
+  },
+  "additionalProperties": false
+}

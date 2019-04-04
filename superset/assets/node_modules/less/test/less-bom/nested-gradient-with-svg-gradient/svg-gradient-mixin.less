@@ -1,0 +1,15 @@
+﻿.gradient-mixin(@color) {
+  background: svg-gradient(to bottom,
+    fade(@color, 0%) 0%,
+    fade(@color, 5%) 60%,
+    fade(@color, 10%) 70%,
+    fade(@color, 15%) 73%,
+    fade(@color, 20%) 75%,
+    fade(@color, 25%) 80%,
+    fade(@color, 30%) 85%,
+    fade(@color, 35%) 88%,
+    fade(@color, 40%) 90%,
+    fade(@color, 45%) 95%,
+    fade(@color, 50%) 100%
+  );
+}

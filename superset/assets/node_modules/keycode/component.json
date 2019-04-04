@@ -1,0 +1,24 @@
+{
+  "name": "keycode",
+  "repo": "timoxley/keycode",
+  "description": "Map of keyboard codes",
+  "version": "2.2.0",
+  "development": {
+    "timoxley/assert": "*"
+  },
+  "scripts": [
+    "index.js"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "keyboard",
+    "keycode",
+    "keyboardevent",
+    "ascii",
+    "keydown",
+    "keyup",
+    "metakey",
+    "keyname",
+    "keypress"
+  ]
+}

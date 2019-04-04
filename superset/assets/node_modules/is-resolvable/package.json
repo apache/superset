@@ -1,0 +1,41 @@
+{
+	"name": "is-resolvable",
+	"version": "1.1.0",
+	"description": "Check if a module ID is resolvable with require()",
+	"repository": "shinnn/is-resolvable",
+	"author": "Shinnosuke Watanabe (https://github.com/shinnn)",
+	"scripts": {
+		"pretest": "eslint --fix --format=codeframe index.js test.js",
+		"test": "node --throw-deprecation --track-heap-objects test.js",
+		"coverage": "istanbul cover --print=both test.js"
+	},
+	"license": "ISC",
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"file",
+		"path",
+		"resolve",
+		"resolvable",
+		"check",
+		"module"
+	],
+	"devDependencies": {
+		"@shinnn/eslint-config-node": "^5.0.0",
+		"eslint": "^4.16.0",
+		"istanbul": "^0.4.5",
+		"tape": "^4.8.0"
+	},
+	"eslintConfig": {
+		"extends": "@shinnn/node",
+		"rules": {
+			"no-var": "off",
+			"prefer-template": "off"
+		}
+	}
+
+,"_resolved": "https://registry.npmjs.org/is-resolvable/-/is-resolvable-1.1.0.tgz"
+,"_integrity": "sha512-qgDYXFSR5WvEfuS5dMj6oTMEbrrSaM0CrFk2Yiq/gXnBvD9pMa2jGXxyhGLfvhZpuMZe18CJpFxAt3CRs42NMg=="
+,"_from": "is-resolvable@1.1.0"
+}

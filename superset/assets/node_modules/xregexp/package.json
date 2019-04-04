@@ -1,0 +1,51 @@
+{
+  "name": "xregexp",
+  "version": "4.0.0",
+  "description": "Extended regular expressions",
+  "homepage": "http://xregexp.com/",
+  "author": "Steven Levithan <steves_list@hotmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/slevithan/xregexp.git"
+  },
+  "keywords": [
+    "regex",
+    "regexp",
+    "regular expression",
+    "unicode"
+  ],
+  "main": "./lib",
+  "files": [
+    "src",
+    "lib",
+    "xregexp-all.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "babel": "babel src -d lib",
+    "prebuild": "npm run lint && npm run babel",
+    "build": "browserify lib/index.js --standalone XRegExp > xregexp-all.js",
+    "pretest": "npm run build",
+    "test": "jasmine JASMINE_CONFIG_PATH=tests/jasmine.json",
+    "test-saucelabs": "npm run pretest && zuul tests/spec/*.js",
+    "test-browser": "npm run test-saucelabs -- --local --open",
+    "prepublish": "npm test"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-array-includes": "^2.0.3",
+    "babel-plugin-transform-xregexp": "^0.0.4",
+    "babel-preset-env": "^1.4.0",
+    "browserify": "^12.0.1",
+    "eslint": "^3.19.0",
+    "jasmine": "^2.5.3",
+    "zuul": "^3.11.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/xregexp/-/xregexp-4.0.0.tgz"
+,"_integrity": "sha512-PHyM+sQouu7xspQQwELlGwwd05mXUFqwFYfqPO0cC7x4fxyHnnuetmQr6CjJiafIDoH4MogHb9dOoJzR/Y4rFg=="
+,"_from": "xregexp@4.0.0"
+}

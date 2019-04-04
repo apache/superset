@@ -1,0 +1,49 @@
+.block_1 {
+  color: red;
+  background-color: red;
+  width: 50px;
+  height: 25px;
+  border: 1px solid #ff3333;
+  content: "red";
+  prop: red;
+}
+.block_1:hover {
+  background-color: green;
+  color: green;
+}
+.block_1 .one {
+  background: red;
+}
+.block_2 {
+  color: red;
+  color: blue;
+}
+.block_2 .two {
+  background-color: blue;
+}
+.block_3 {
+  color: red;
+  color: yellow;
+  color: blue;
+}
+.block_3 .three {
+  background-color: blue;
+}
+.block_4 {
+  color: red;
+  color: blue;
+  color: yellow;
+}
+.block_4 .four {
+  background-color: yellow;
+}
+a {
+  background-color: red, foo;
+}
+ab {
+  background: red, foo;
+}
+.value_as_property {
+  prop1: color;
+  color: #FF0000;
+}

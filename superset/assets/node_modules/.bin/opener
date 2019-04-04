@@ -1,0 +1,1 @@
+../opener/bin/opener-bin.js

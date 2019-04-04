@@ -1,0 +1,58 @@
+{
+  "name": "pkg-dir",
+  "version": "1.0.0",
+  "description": "Find the root directory of a npm package",
+  "license": "MIT",
+  "repository": "sindresorhus/pkg-dir",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "package",
+    "json",
+    "root",
+    "npm",
+    "entry",
+    "find",
+    "up",
+    "find-up",
+    "findup",
+    "look-up",
+    "look",
+    "file",
+    "search",
+    "match",
+    "package",
+    "resolve",
+    "parent",
+    "parents",
+    "folder",
+    "directory",
+    "dir",
+    "walk",
+    "walking",
+    "path"
+  ],
+  "dependencies": {
+    "find-up": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/pkg-dir/-/pkg-dir-1.0.0.tgz"
+,"_integrity": "sha1-ektQio1bstYp1EcFb/TpyTFM89Q="
+,"_from": "pkg-dir@1.0.0"
+}

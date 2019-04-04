@@ -1,0 +1,24 @@
+## Available `stylesheet` props 
+* coy
+* dark
+* funky
+* okaidia
+* solarizedlight
+* tomorrow
+* twilight
+* prism
+* atomDark
+* base16AteliersulphurpoolLight
+* cb
+* darcula
+* duotoneDark
+* duotoneEarth
+* duotoneForest
+* duotoneLight
+* duotoneSea
+* duotoneSpace
+* ghcolors
+* hopscotch
+* pojoaque
+* vs
+* xonokai

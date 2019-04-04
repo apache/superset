@@ -1,0 +1,3 @@
+ParseError: Unrecognised input. Possibly missing something in {path}parse-error-missing-bracket.less on line 3, column 1:
+2   background-color: #fff;
+3 

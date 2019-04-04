@@ -1,0 +1,22 @@
+{
+  "name": "indexes-of",
+  "description": "line String/Array#indexOf but return all the indexes in an array",
+  "version": "1.0.1",
+  "homepage": "https://github.com/dominictarr/indexes-of",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/indexes-of.git"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "Dominic Tarr <dominic.tarr@gmail.com> (dominictarr.com)",
+  "license": "MIT",
+  "devDependencies": {
+    "tape": "~2.1.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/indexes-of/-/indexes-of-1.0.1.tgz"
+,"_integrity": "sha1-8w9xbI4r00bHtn0985FVZqfAVgc="
+,"_from": "indexes-of@1.0.1"
+}

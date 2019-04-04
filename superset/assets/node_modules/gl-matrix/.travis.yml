@@ -1,0 +1,9 @@
+language: node_js
+sudo: false
+node_js:
+  - "7.0.0"
+script:
+  - npm run build
+  - npm run build-min
+  - npm run build-esm
+  - mocha --compilers js:babel-register --recursive spec

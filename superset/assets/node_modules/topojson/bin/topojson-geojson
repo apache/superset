@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+var path = require("path"),
+    rw = require("rw").dash,
+    optimist = require("optimist"),
+    type = require("../lib/topojson/type"),
+    topojson = require("../");
+
+var argv = optimist
+    .usage("Usage: \033[1mtopojson-geojson\033[0m [options] [file …]\n\n"
+
++ "Converts the specified input TopoJSON objects to GeoJSON.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output GeoJSON directory",
+      default: process.cwd()
+    })
+    .options("precision", {
+      describe: "number of digits after the decimal place to output",
+      default: undefined
+    })
+    .options("id-property", {
+      describe: "demote geometry id to specified feature property",
+      default: null
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (argv.help) return;
+      if (argv._.length > 1) throw new Error("at most one input file allowed");
+      if (!argv._.length) argv._ = ["-"];
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var precision = Math.pow(10, argv.precision), round = isNaN(precision)
+    ? function(x) { return x; }
+    : function(x) { return Math.round(x * precision) / precision; };
+
+// Convert TopoJSON back to GeoJSON.
+var topology = JSON.parse(rw.readFileSync(argv._[0], "utf8"));
+for (var key in topology.objects) {
+  var object = topojson.feature(topology, topology.objects[key]);
+
+  type({
+    Feature: function(feature) {
+      if (argv["id-property"] != null) {
+        feature.properties[argv["id-property"]] = feature.id;
+        delete feature.id;
+      }
+      return this.defaults.Feature.call(this, feature);
+    },
+    point: function(point) {
+      point[0] = round(point[0]);
+      point[1] = round(point[1]);
+    }
+  }).object(object);
+
+  rw.writeFileSync(path.join(argv.o, key + ".json"), JSON.stringify(object), "utf8");
+}

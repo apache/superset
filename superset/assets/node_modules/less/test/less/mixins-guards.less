@@ -1,0 +1,358 @@
+
+// Stacking, functions..
+
+.light (@a) when (lightness(@a) > 50%) {
+  color: white;
+}
+.light (@a) when (lightness(@a) < 50%) {
+  color: black;
+}
+.light (@a) {
+  margin: 1px;
+}
+
+.light1 { .light(#ddd) }
+.light2 { .light(#444) }
+
+// Arguments against each other
+
+.max (@a, @b) when (@a > @b) {
+  width: @a;
+}
+.max (@a, @b) when (@a < @b) {
+  width: @b;
+}
+
+.max1 { .max(3, 6) }
+.max2 { .max(8, 1) }
+
+// Globals inside guards
+
+@g: auto;
+
+.glob (@a) when (@a = @g) {
+  margin: @a @g;
+}
+.glob1 { .glob(auto) }
+
+// Other operators
+
+.ops (@a) when (@a >= 0) {
+  height: gt-or-eq;
+}
+.ops (@a) when (@a =< 0) {
+  height: lt-or-eq;
+}
+.ops (@a) when (@a <= 0) {
+  height: lt-or-eq-alias;
+}
+.ops (@a) when not(@a = 0) {
+  height: not-eq;
+}
+.ops1 { .ops(0) }
+.ops2 { .ops(1) }
+.ops3 { .ops(-1) }
+
+// Scope and default values
+
+@a: auto;
+
+.default (@a: inherit) when (@a = inherit) {
+  content: default;
+}
+.default1 { .default }
+
+// true & false keywords
+.test (@a) when (@a) {
+    content: "true.";
+}
+.test (@a) when not (@a) {
+    content: "false.";
+}
+
+.test1 { .test(true) }
+.test2 { .test(false) }
+.test3 { .test(1) }
+.test4 { .test(boo) }
+.test5 { .test("true") }
+
+// Boolean expressions
+
+.bool () when (true) and (false)                             { content: true and false } // FALSE
+.bool () when (true) and (true)                              { content: true and true } // TRUE
+.bool () when (true)                                         { content: true } // TRUE
+.bool () when (false) and (false)                            { content: true } // FALSE
+.bool () when (false), (true)                                { content: false, true } // TRUE
+.bool () when (false) and (true) and (true),  (true)         { content: false and true and true, true } // TRUE
+.bool () when (true)  and (true) and (false), (false)        { content: true and true and false, false } // FALSE
+.bool () when (false), (true) and (true)                     { content: false, true and true } // TRUE
+.bool () when (false), (false), (true)                       { content: false, false, true } // TRUE
+.bool () when (false), (false) and (true), (false)           { content: false, false and true, false } // FALSE
+.bool () when (false), (true) and (true) and (true), (false) { content: false, true and true and true, false } // TRUE
+.bool () when not (false)                                    { content: not false }
+.bool () when not (true) and not (false)                     { content: not true and not false }
+.bool () when not (true) and not (true)                      { content: not true and not true }
+.bool () when not (false) and (false), not (false)           { content: not false and false, not false }
+
+.bool1 { .bool }
+
+.equality-unit-test(@num) when (@num = 1%) {
+  test: fail;
+}
+.equality-unit-test(@num) when (@num = 2) {
+  test: pass;
+}
+.equality-units {
+  .equality-unit-test(1px);
+  .equality-unit-test(2px);
+}
+
+.colorguard(@col) when (@col = red)                         { content: is @col; }
+.colorguard(@col) when not (blue = @col)                    { content: is not blue its @col; }
+.colorguard(@col)                                           {}
+.colorguardtest {
+    .colorguard(red);
+    .colorguard(blue);
+    .colorguard(purple);
+}
+
+.stringguard(@str) when (@str = "theme1")					{ content: @str is "theme1"; }
+.stringguard(@str) when not ("theme2" = @str)				{ content: @str is not "theme2"; }
+.stringguard(@str) when (@str = 'theme1')					{ content: @str is 'theme1'; }
+.stringguard(@str) when not ('theme2' = @str)				{ content: @str is not 'theme2'; }
+.stringguard(@str) when (~"theme1" = @str)					{ content: @str is theme1; }
+.stringguard(@str)                                          {}
+.stringguardtest {
+    .stringguard("theme1");
+    .stringguard("theme2");
+    .stringguard('theme1');
+    .stringguard('theme2');
+    .stringguard(theme1);
+}
+
+.generic(@a, @b) {/**/}
+.generic(@a, @b) when (@a = @b) {content: @a is equal to @b}
+.generic(@a, @b) when (@b = @a) {content: @b is equal to @a too}
+.generic(@a, @b) when (@a < @b) {content: @a is less than @b}
+.generic(@a, @b) when (@b < @a) {content: @b is less than @a too}
+.generic(@a, @b) when (@a > @b) {content: @a is greater than @b}
+.generic(@a, @b) when (@b > @a) {content: @b is greater than @a too}
+.generic(@a, @b) when not(@a = @b) {content: @a is not equal to @b}
+.generic(@a, @b) when not(@b = @a) {content: @b is not equal to @a too}
+
+.variouse-types-comparison {
+    .generic(true, false);
+    .generic(1, true);
+    .generic(2, 2px);
+    .generic(3, ~"3");
+    .generic(5, ~"4");
+    .generic(abc, ~"abc");
+    .generic(abc, "abc");
+    .generic('abc', "abd");
+    .generic(6, e("6"));
+    .generic(9, 8);
+    .generic(a, b);
+    .generic(1 2, 3);
+}
+
+.list-comparison {
+    .generic(a b c, a b c);
+    .generic(a b c, a b d);
+    .generic(a, b, c; a, b, c);
+    .generic(a, b, c; a, b, d);
+    .generic(1 2px 300ms, 1em 2 .3s);
+    
+    @space-list: 1 2 3;
+    @comma-list: 1, 2, 3;
+    @compound: @space-list @comma-list;
+    
+    .generic(@space-list, @comma-list);
+    .generic(@comma-list, ~"1, 2, 3");
+    .generic(@compound, @space-list @comma-list);
+    .generic(@compound, @comma-list @space-list);
+    .generic(@compound 4, ~"1 2 3 1, 2, 3 4");
+}
+
+.mixin(...) {
+  catch:all;
+}
+.mixin(@var) when (@var=4) {
+  declare: 4;
+}
+.mixin(@var) when (@var=4px) {
+  declare: 4px;
+}
+#tryNumberPx {
+  .mixin(4px);
+}
+
+.lock-mixin(@a) {
+ .inner-locked-mixin(@x: @a) when (@a = 1) {
+    a: @a;
+    x: @x;
+  }
+}
+.call-lock-mixin {
+  .lock-mixin(1);
+  .call-inner-lock-mixin {
+    .inner-locked-mixin();
+  }
+}
+.bug-100cm-1m(@a) when (@a = 1) {
+  .failed {
+    one-hundred: not-equal-to-1;
+  }
+}
+.bug-100cm-1m(100cm);
+
+#ns {
+    .mixin-for-root-usage(@a) when (@a > 0) {
+        .mixin-generated-class {
+            a: @a;
+        }
+    }
+}
+
+#ns > .mixin-for-root-usage(1);
+
+@namespaceGuard: 1;
+#guarded when (@namespaceGuard>0) {
+  #deeper {
+    .mixin() {
+      guarded: namespace;
+    }
+  }
+}
+#guarded() when (@namespaceGuard>0) {
+  #deeper {
+    .mixin() {
+      silent: namespace;
+    }
+  }
+}
+#guarded(@variable) when (@namespaceGuard>0) {
+  #deeper {
+    .mixin() {
+      should: not match because namespace argument;
+    }
+  }
+}
+#guarded(@variable: default) when (@namespaceGuard>0) {
+  #deeper {
+    .mixin() {
+      guarded: with default;
+    }
+  }
+}
+#guarded when (@namespaceGuard<0) {
+  #deeper {
+    .mixin() {
+      should: not match because namespace guard;
+    }
+  }
+}
+#guarded-caller {
+  #guarded > #deeper > .mixin();
+}
+#top {
+  #deeper when (@namespaceGuard<0) {
+    .mixin(@a) {
+      should: not match because namespace guard;
+    }
+  }
+  #deeper() when (@namespaceGuard>0) {
+    .mixin(@a) {
+      should: match @a;
+    }
+  }
+}
+#guarded-deeper {
+  #top > #deeper > .mixin(1);
+}
+
+// namespaced & guarded mixin in root
+// outputs nothing but should pass:
+
+@guarded-mixin-for-root: true;
+#ns {
+    .guarded-mixin-for-root() when (@guarded-mixin-for-root) {}
+}
+#ns > .guarded-mixin-for-root();
+// various combinations of nested or, and, parenthesis and negation
+.parenthesisNot(@value) when ((((@value)))) {
+  parenthesisNot: just-value;
+}
+.parenthesisNot(@value) when (((not(@value)))) {
+  parenthesisNot: negated once inside;
+}
+.parenthesisNot(@value) when not((((@value)))) {
+  parenthesisNot: negated once outside;
+}
+.parenthesisNot(@value) when ((not((@value)))) {
+  parenthesisNot: negated once middle;
+}
+.parenthesisNot(@value) when not(((not(@value)))) {
+  parenthesisNot: negated twice 1;
+}
+.parenthesisNot(@value) when (not((not(@value)))) {
+  parenthesisNot: negated twice 2;
+}
+.parenthesisNot(@value) when ((not(not(@value)))) {
+  parenthesisNot: negated twice 3;
+}
+.parenthesisNot (...) when (default()) {
+  parenthesisNot: none matched;
+}
+
+#parenthesisNot-true {
+  .parenthesisNot(true);
+}
+#parenthesisNot-false {
+  .parenthesisNot(false);
+}
+
+.orderOfEvaluation(@a1, @a2, @a3) when ((@a1) and (@a2) or (@a3)) {
+  no-parenthesis: evaluated true 1a;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when ((@a3) or (@a1) and (@a2)) {
+  no-parenthesis: evaluated true 1b;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when ((@a1) and ((@a2) or (@a3))) {
+  no-parenthesis: evaluated true 1c;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when (@a3), (@a1) and (@a2) {
+  no-parenthesis: evaluated true 1d;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when (((@a3) or (@a1)) and (@a2)) {
+  no-parenthesis: evaluated true 1e;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when ((@a1) and (@a2) or not (@a3)) {
+  no-parenthesis: evaluated true 2a;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when (not (@a3) or (@a1) and (@a2)) {
+  no-parenthesis: evaluated true 2b;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when not (@a3), (@a1) and (@a2) {
+  no-parenthesis: evaluated true 2c;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when (not (@a1) and (@a2) or (@a3)) {
+  no-parenthesis: evaluated true 3;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when ((((@a1) and (@a2) or (@a3)))) {
+  no-parenthesis: evaluated true 4;
+}
+.orderOfEvaluation(@a1, @a2, @a3) when (((@a1) and (@a2)) or (@a3)) {
+  with-parenthesis: evaluated true;
+}
+.orderOfEvaluation(...) when (default()) {
+  orderOfEvaluation: evaluated false;
+}
+#orderOfEvaluation-false-false-true {
+  .orderOfEvaluation(false, false, true);
+}
+#orderOfEvaluation-false-false-false {
+  .orderOfEvaluation(false, false, false);
+}
+#orderOfEvaluation-true-true-false {
+  .orderOfEvaluation(true, true, false);
+}

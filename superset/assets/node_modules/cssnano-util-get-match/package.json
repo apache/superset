@@ -1,0 +1,35 @@
+{
+  "name": "cssnano-util-get-match",
+  "version": "4.0.0",
+  "main": "dist/index.js",
+  "description": "Convert a list of keywords into a single keyword match.",
+  "scripts": {
+    "prepublish": "cross-env BABEL_ENV=publish babel src --out-dir dist --ignore /__tests__/"
+  },
+  "files": [
+    "LICENSE-MIT",
+    "dist"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.0.0",
+    "cross-env": "^5.0.0"
+  },
+  "author": {
+    "name": "Ben Briggs",
+    "email": "beneb.info@gmail.com",
+    "url": "http://beneb.info"
+  },
+  "repository": "cssnano/cssnano",
+  "homepage": "https://github.com/cssnano/cssnano",
+  "bugs": {
+    "url": "https://github.com/cssnano/cssnano/issues"
+  },
+  "engines": {
+    "node": ">=6.9.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/cssnano-util-get-match/-/cssnano-util-get-match-4.0.0.tgz"
+,"_integrity": "sha1-wOTKB/U4a7F+xeUiULT1lhNlFW0="
+,"_from": "cssnano-util-get-match@4.0.0"
+}

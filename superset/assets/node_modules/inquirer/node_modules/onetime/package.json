@@ -1,0 +1,44 @@
+{
+  "name": "onetime",
+  "version": "2.0.1",
+  "description": "Ensure a function is only called once",
+  "license": "MIT",
+  "repository": "sindresorhus/onetime",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "once",
+    "function",
+    "one",
+    "onetime",
+    "func",
+    "fn",
+    "single",
+    "call",
+    "called",
+    "prevent"
+  ],
+  "dependencies": {
+    "mimic-fn": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/onetime/-/onetime-2.0.1.tgz"
+,"_integrity": "sha1-BnQoIw/WdEOyeUsiu6UotoZ5YtQ="
+,"_from": "onetime@2.0.1"
+}

@@ -1,0 +1,39 @@
+{
+  "name": "hpack.js",
+  "version": "2.1.6",
+  "description": "HPACK implementation",
+  "main": "lib/hpack.js",
+  "scripts": {
+    "test": "mocha test/*-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/indutny/hpack.js.git"
+  },
+  "keywords": [
+    "HPACK",
+    "HTTP2",
+    "compress",
+    "decompress",
+    "headers"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/hpack.js/issues"
+  },
+  "homepage": "https://github.com/indutny/hpack.js#readme",
+  "devDependencies": {
+    "mocha": "^2.2.5"
+  },
+  "dependencies": {
+    "inherits": "^2.0.1",
+    "obuf": "^1.0.0",
+    "readable-stream": "^2.0.1",
+    "wbuf": "^1.1.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/hpack.js/-/hpack.js-2.1.6.tgz"
+,"_integrity": "sha1-h3dMCUnlE/QuhFdbPEVoH63ioLI="
+,"_from": "hpack.js@2.1.6"
+}

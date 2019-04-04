@@ -1,0 +1,51 @@
+{
+  "name": "find-cache-dir",
+  "version": "1.0.0",
+  "description": "My well-made module",
+  "license": "MIT",
+  "repository": "avajs/find-cache-dir",
+  "author": {
+    "name": "James Talmage",
+    "email": "james@talmage.io",
+    "url": "github.com/jamestalmage"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && nyc ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "cache",
+    "directory",
+    "dir",
+    "caching",
+    "find",
+    "search"
+  ],
+  "dependencies": {
+    "commondir": "^1.0.1",
+    "make-dir": "^1.0.0",
+    "pkg-dir": "^2.0.0"
+  },
+  "devDependencies": {
+    "ava": "^0.19.1",
+    "coveralls": "^2.11.6",
+    "del": "^2.2.2",
+    "nyc": "^10.3.2",
+    "xo": "^0.18.2"
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text"
+    ]
+  }
+
+,"_resolved": "https://registry.npmjs.org/find-cache-dir/-/find-cache-dir-1.0.0.tgz"
+,"_integrity": "sha1-kojj6ePMN0hxfTnq3hfPcfww7m8="
+,"_from": "find-cache-dir@1.0.0"
+}

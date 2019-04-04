@@ -1,0 +1,20 @@
+/* boxplot CSS */
+.nvd3 .nv-boxplot circle {
+  fill-opacity: 0.5;
+}
+
+.nvd3 .nv-boxplot circle:hover {
+  fill-opacity: 1;
+}
+
+.nvd3 .nv-boxplot rect:hover {
+  fill-opacity: 1;
+}
+
+.nvd3 line.nv-boxplot-median {
+  stroke: black;
+}
+
+.nv-boxplot-tick:hover {
+  stroke-width: 2.5px;
+}

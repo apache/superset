@@ -1,0 +1,94 @@
+{
+  "name": "class-utils",
+  "description": "Utils for working with JavaScript classes and prototype methods.",
+  "version": "0.3.6",
+  "homepage": "https://github.com/jonschlinkert/class-utils",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "(https://github.com/wtgtybhertgeghgtwtg)"
+  ],
+  "repository": "jonschlinkert/class-utils",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/class-utils/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-union": "^3.1.0",
+    "define-property": "^0.2.5",
+    "isobject": "^3.0.0",
+    "static-extend": "^0.1.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.7",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.4.5",
+    "should": "^8.2.2",
+    "through2": "^2.0.1"
+  },
+  "keywords": [
+    "array",
+    "assign",
+    "class",
+    "copy",
+    "ctor",
+    "define",
+    "delegate",
+    "descriptor",
+    "extend",
+    "extends",
+    "inherit",
+    "inheritance",
+    "merge",
+    "method",
+    "object",
+    "prop",
+    "properties",
+    "property",
+    "prototype",
+    "util",
+    "utils"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "define-property",
+        "delegate-properties",
+        "is-descriptor"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/class-utils/-/class-utils-0.3.6.tgz"
+,"_integrity": "sha512-qOhPa/Fj7s6TY8H8esGu5QNpMMQxz79h+urzrNYN6mn+9BnxlDGf5QZ+XeCDsxSjPqsSR56XOZOJmpeurnLMeg=="
+,"_from": "class-utils@0.3.6"
+}

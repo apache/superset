@@ -1,0 +1,142 @@
+﻿//simple case: @document
+.parent {
+  color:green;
+  
+  @document url-prefix() {
+    .child {
+      color:red;
+    }
+  }   
+}
+
+//selectors joinings test
+.top {
+  @supports (sandwitch: butter) {
+    .inside & {
+      property: value;
+    }
+  }
+}
+
+@supports (sandwitch: bread) {
+  .in1 {
+    .in2 {
+      property: value;
+    }
+  }
+}
+
+.top {
+  .inside & {
+    @supports (sandwitch: ham) {
+      property: value;
+    }
+  }
+}
+
+//combined with @font-face which has different kind of body
+@supports (font-family: weirdFont) {
+  @font-face {
+    font-family: something;
+    src: made-up-url;
+  }
+}
+
+@font-face {
+  @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+    font-family: something;
+    src: made-up-url;
+  }
+}
+
+//bubling through media
+@supports (property: value) {
+  .outOfMedia & {
+    @media (max-size: 2px) {
+      @supports (whatever: something) {
+        property: value;
+      } 
+    }
+  }
+}
+
+.onTop & {
+  @supports (property: value) {
+    @media (max-size: 2px) {
+      @supports (whatever: something) {
+        property: value;
+      } 
+    }
+  }
+}
+
+
+//long combination of supports and media
+@media print {
+  html {
+    in-html: visible;
+    @supports (upper: test) {
+      in-supports: first;
+      div {
+        in-div: visible;
+        @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+          in-supports: second;
+          @media screen {
+            font-weight: 400;
+            nested {
+              property: value;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+//another long combination of supports and media
+@media print {
+  @media (max-size: 2px) {
+    .in1 {
+      stay: here;
+      @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+        .in2 & {
+          @supports (whatever: something) {
+            property: value;
+          } 
+        }
+      }
+    }
+  }
+}
+
+//called from mixin 
+.nestedSupportsMixin() {
+  font-weight: 300;
+  -webkit-font-smoothing: subpixel-antialiased;
+  @supports not (-webkit-font-smoothing: subpixel-antialiased) {
+    font-weight: 400;
+    nested {
+      property: value;
+    }
+  }
+}
+
+html {
+    .nestedSupportsMixin;
+}
+
+// selectors should not propagate into all directive types
+.onTop {
+  @font-face {
+    font-family: something;
+    src: made-up-url;
+  }
+
+  @keyframes "textscale" {
+      0% { font-size : 1em; }
+    100% { font-size : 2em; }
+  }
+
+  animation   : "textscale";
+  font-family : something;
+}

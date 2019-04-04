@@ -1,0 +1,17 @@
+{
+   "": {
+     "project-id-version": "VERSION",
+     "po-revision-date": "2016-08-08 14:08+0000",
+     "last-translator": "FULL NAME <EMAIL@ADDRESS>",
+     "language-team": "LANGUAGE TEAM <EMAIL@ADDRESS>",
+     "language": "ja",
+     "mime-version": "1.0",
+     "content-type": "text/plain; charset=UTF-8",
+     "content-transfer-encoding": "8bit",
+     "plural-forms": "nplurals=1; plural=0;"
+   },
+   "♂ Male": [ null, "男性" ],
+   "partner application": [ "partner applications", [ "パートナーアプリ" ] ],
+   "result": [ "results", [ "検索結果" ] ],
+   "For %s person starting at %s": [ "For %s people starting at %s", ["For %1$s people starting at %2$s"] ]
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<title>Railroad Diagram Generator</title>
+<script src="railroad-diagrams.js"></script>
+<link href="railroad-diagrams.css" rel=stylesheet>
+<textarea class='input'>Diagram(
+  Optional('+', 'skip'),
+  Choice(0, 
+    NonTerminal('name-start char'), 
+    NonTerminal('escape')),
+    ZeroOrMore(
+      Choice(0, 
+        NonTerminal('name char'), 
+        NonTerminal('escape'))))</textarea>
+<div class='output-image'></div>
+<textarea class='output-text' readonly></textarea>
+</div>
+<script>
+window.find = document.querySelector.bind(document);
+
+find('.input').addEventListener('input', process, false);
+
+window.addEventListener('load', process, false);
+
+function process() {
+	var input = find('.input').value;
+	try {
+		var result = eval(input).format();
+	} catch (e) {
+		return;
+	}
+	find('.output-image').innerHTML = '';
+	result.addTo(find('.output-image'));
+	find('.output-text').textContent = result;
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+.input {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 50%;
+	height: 50%;
+}
+.output-text {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 50%;
+	height: 50%;
+}
+.output-image {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	right: 0;
+	height: 50%;
+}
+</style>

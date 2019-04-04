@@ -1,0 +1,41 @@
+{
+  "name": "eslint-visitor-keys",
+  "version": "1.0.0",
+  "description": "Constants and utilities about visitor keys to traverse AST.",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "engines": {
+    "node": ">=4"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^4.7.2",
+    "eslint-config-eslint": "^4.0.0",
+    "eslint-release": "^0.10.3",
+    "mocha": "^3.5.3",
+    "nyc": "^11.2.1",
+    "opener": "^1.4.3"
+  },
+  "scripts": {
+    "lint": "eslint lib tests/lib",
+    "pretest": "npm run -s lint",
+    "test": "nyc mocha tests/lib",
+    "coverage": "nyc report --reporter lcov && opener coverage/lcov-report/index.html",
+    "release": "eslint-release",
+    "ci-release": "eslint-ci-release"
+  },
+  "repository": "eslint/eslint-visitor-keys",
+  "keywords": [],
+  "author": "Toru Nagashima (https://github.com/mysticatea)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/eslint/eslint-visitor-keys/issues"
+  },
+  "homepage": "https://github.com/eslint/eslint-visitor-keys#readme"
+
+,"_resolved": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz"
+,"_integrity": "sha512-qzm/XxIbxm/FHyH341ZrbnMUpe+5Bocte9xkmFMzPMjRaZMcXww+MpBptFvtU+79L362nqiLhekCxCxDPaUMBQ=="
+,"_from": "eslint-visitor-keys@1.0.0"
+}

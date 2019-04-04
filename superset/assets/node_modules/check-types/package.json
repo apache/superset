@@ -1,0 +1,52 @@
+{
+    "name": "check-types",
+    "version": "7.4.0",
+    "description": "A little library for asserting types and values.",
+    "homepage": "https://gitlab.com/philbooth/check-types.js",
+    "bugs": "https://gitlab.com/philbooth/check-types.js/issues",
+    "license": "MIT",
+    "author": "Phil Booth <pmbooth@gmail.com> (https://philbooth.me/)",
+    "main": "./src/check-types",
+    "repository": {
+        "type": "git",
+        "url": "https://gitlab.com/philbooth/check-types.js.git"
+    },
+    "keywords": [
+        "type",
+        "types",
+        "type-check",
+        "type-checking",
+        "duck-typing",
+        "arguments",
+        "parameters",
+        "values",
+        "data",
+        "contract",
+        "assert",
+        "check",
+        "verify",
+        "safe",
+        "safety"
+    ],
+    "devDependencies": {
+        "jshint": "2.9.x",
+        "mocha": "3.2.x",
+        "chai": "3.5.x",
+        "uglify-js": "2.7.x",
+        "please-release-me": "2.0.x"
+    },
+    "scripts": {
+        "lint": "jshint ./src/check-types.js",
+        "test": "mocha --ui tdd --reporter spec --colors ./test/check-types.js",
+        "minify": "uglifyjs ./src/check-types.js --compress --mangle --output ./src/check-types.min.js"
+    },
+    "files": [
+        "COPYING",
+        "HISTORY.md",
+        "src"
+    ]
+
+,"_resolved": "https://registry.npmjs.org/check-types/-/check-types-7.4.0.tgz"
+,"_integrity": "sha512-YbulWHdfP99UfZ73NcUDlNJhEIDgm9Doq9GhpyXbF+7Aegi3CVV7qqMCKTTqJxlvEvnQBp9IA+dxsGN6xK/nSg=="
+,"_from": "check-types@7.4.0"
+}

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message Envelope {
+	int32 int = 1;
+	uint32 uint = 2;
+	int64 long = 3;
+	uint64 ulong = 4;
+}

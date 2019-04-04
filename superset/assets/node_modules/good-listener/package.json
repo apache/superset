@@ -1,0 +1,39 @@
+{
+  "name": "good-listener",
+  "description": "A more versatile way of adding & removing event listeners",
+  "version": "1.2.2",
+  "repository": "zenorocha/good-listener",
+  "license": "MIT",
+  "main": "src/listen.js",
+  "keywords": [
+    "event",
+    "listener"
+  ],
+  "dependencies": {
+    "delegate": "^3.1.2"
+  },
+  "devDependencies": {
+    "browserify": "^13.0.0",
+    "chai": "^3.5.0",
+    "karma": "^1.3.0",
+    "karma-browserify": "^5.0.1",
+    "karma-chai": "^0.1.0",
+    "karma-mocha": "^1.2.0",
+    "karma-phantomjs-launcher": "^1.0.0",
+    "karma-sinon": "^1.0.4",
+    "mocha": "^3.1.2",
+    "phantomjs-polyfill": "0.0.2",
+    "phantomjs-prebuilt": "^2.1.3",
+    "simulant": "^0.2.2",
+    "sinon": "^1.17.3",
+    "watchify": "^3.7.0"
+  },
+  "scripts": {
+    "build": "browserify src/listen.js -s listen -o dist/good-listener.js",
+    "test": "karma start --single-run"
+  }
+
+,"_resolved": "https://registry.npmjs.org/good-listener/-/good-listener-1.2.2.tgz"
+,"_integrity": "sha1-1TswzfkxPf+33JoNR3CWqm0UXFA="
+,"_from": "good-listener@1.2.2"
+}

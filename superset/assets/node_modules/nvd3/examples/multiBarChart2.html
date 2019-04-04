@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <script src="lib/stream_layers.js"></script>
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, #test1, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="test1">
+    <svg></svg>
+</div>
+
+<script>
+
+    //var test_data = stream_layers(3,128,.1).map(function(data, i) {
+    var test_data = stream_layers(3,128,.1).map(function(data, i) {
+        return {
+            key: (i == 1) ? 'Non-stackable Stream' + i: 'Stream' + i,
+            nonStackable: (i == 1),
+            values: data
+        };
+    });
+    nv.addGraph({
+        generate: function() {
+            var width = nv.utils.windowSize().width,
+                height = nv.utils.windowSize().height;
+
+            var chart = nv.models.multiBarChart()
+                .width(width)
+                .height(height)
+                .stacked(true)
+                ;
+
+            chart.dispatch.on('renderEnd', function(){
+                console.log('Render Complete');
+            });
+
+            var svg = d3.select('#test1 svg').datum(test_data);
+            console.log('calling chart');
+            svg.transition().duration(0).call(chart);
+
+            return chart;
+        },
+        callback: function(graph) {
+            nv.utils.windowResize(function() {
+                var width = nv.utils.windowSize().width;
+                var height = nv.utils.windowSize().height;
+                graph.width(width).height(height);
+
+                d3.select('#test1 svg')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .transition().duration(0)
+                    .call(graph);
+
+            });
+        }
+    });
+
+</script>
+</body>
+</html>

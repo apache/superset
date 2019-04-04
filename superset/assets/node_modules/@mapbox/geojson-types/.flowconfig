@@ -1,0 +1,17 @@
+[ignore]
+.*/jsonlint-lines/.*
+
+[include]
+
+[libs]
+
+[lints]
+
+[options]
+
+[strict]
+nonstrict-import
+unclear-type
+unsafe-getters-setters
+untyped-import
+untyped-type-import

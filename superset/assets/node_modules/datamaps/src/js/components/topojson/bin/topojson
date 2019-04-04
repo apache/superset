@@ -1,0 +1,355 @@
+#!/usr/bin/env node
+
+var path = require("path"),
+    fs = require("fs"),
+    dsv = require("dsv"),
+    optimist = require("optimist"),
+    shapefile = require("shapefile"),
+    queue = require("queue-async"),
+    topojson = require("../");
+
+var argv = optimist
+    .usage("Usage: \033[1mtopojson\033[0m [options] [file …]\n\n"
+
++ "Version: " + topojson.version + "\n\n"
+
++ "Converts the specified input shapefile, GeoJSON or TopoJSON objects to\n"
++ "TopoJSON, outputting a single TopoJSON topology object. The `objects`\n"
++ "property of the output topology is a map from input file name to geometry\n"
++ "object.")
+
+    .options("o", {
+      alias: "out",
+      describe: "output TopoJSON file name",
+      default: "/dev/stdout",
+    })
+    .options("q", {
+      alias: "quantization",
+      describe: "maximum number of differentiable points along either dimension",
+      default: 1e4,
+    })
+    .options("s", {
+      alias: "simplify",
+      describe: "precision threshold for Visvalingam simplification, in steradians",
+      default: 0,
+    })
+    .options("simplify-proportion", {
+      describe: "proportion of points to retain for Visvalingam simplification",
+      default: 0,
+    })
+    .options("cartesian", {
+      describe: "assume Cartesian coordinates",
+      type: "boolean",
+      default: false
+    })
+    .options("spherical", {
+      describe: "assume Spherical coordinates",
+      type: "boolean",
+      default: false
+    })
+    .options("force-clockwise", {
+      describe: "force clockwise exterior rings and counterclockwise interior rings",
+      type: "boolean",
+      default: true
+    })
+    .options("stitch-poles", {
+      describe: "splice antimeridian cuts for polygons that encompass a pole",
+      type: "boolean",
+      default: true
+    })
+    .options("allow-empty", {
+      describe: "preserve null or empty features (e.g., zero-area polygons)",
+      type: "boolean",
+      default: false
+    })
+    .options("id-property", {
+      describe: "name of feature property to promote to geometry id",
+      default: null
+    })
+    .options("p", {
+      alias: "properties",
+      describe: "feature properties to preserve; no name preserves all properties",
+      default: false
+    })
+    .options("e", {
+      alias: "external-properties",
+      describe: "CSV or TSV file to join properties (by id) to output features"
+    })
+    .options("shapefile-encoding", {
+      describe: "character encoding for reading shapefile properties",
+      default: null
+    })
+    .options("ignore-shapefile-properties", {
+      describe: "skip reading shapefile properties (.dbf) for faster performance",
+      type: "boolean",
+      default: false
+    })
+    .options("x", {
+      alias: "longitude",
+      describe: "name of the x (longitude) property for CSV or TSV geometry input",
+      default: "longitude"
+    })
+    .options("y", {
+      alias: "latitude",
+      describe: "name of the y (latitude) property for CSV or TSV geometry input",
+      default: "latitude"
+    })
+    .options("width", {
+      describe: "scale and translate to fit a viewport of the specified width",
+      default: null
+    })
+    .options("height", {
+      describe: "scale and translate to fit a viewport of the specified height",
+      default: null
+    })
+    .options("margin", {
+      describe: "pixels of margin to reserve when scaling to fit a viewport",
+      default: 0
+    })
+    .options("bbox", {
+      describe: "include bbox property in generated topology",
+      type: "boolean",
+      default: false
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .check(function(argv) {
+      if (!argv._.length) throw new Error("input required");
+      if (+argv.s && +argv["simplify-proportion"]) throw new Error("--simplify and --simplify-proportion are exclusive");
+      if (argv.cartesian && argv.spherical) throw new Error("--spherical and --cartesian are exclusive");
+      if (argv.spherical && ((argv.width = +argv.width) || (argv.height = +argv.height))) throw new Error("--width and --height requires Cartesian coordinates");
+      if (typeof argv.p === "string") argv.p = argv.p.split(",");
+      argv.margin = +argv.margin;
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+var objects = {},
+    id = argv["id-property"];
+
+// Create a property-to-identifier function.
+id = id == null
+    ? function(d) { return d.id; }
+    : parsePropertyId(typeof id === "string" ? id.split(",") : id);
+
+// Create the property transform function.
+var propertyTransform = argv.p === true ? function(o, k, v) { o[k] = v; return true; }
+    : argv.p === false ? function() {}
+    : parsePropertyTransform(argv.p);
+
+// Load any external properties.
+var externalProperties = {};
+if (typeof argv.e === "string") argv.e = [argv.e];
+if (argv.e) argv.e.forEach(readExternalProperties);
+
+// Create a map from basename to JSON object.
+// Convert TopoJSON back to GeoJSON in preparation for merge, as needed.
+var q = queue(1);
+argv._.forEach(function(file) {
+  q.defer(/\.shp$/i.test(file) ? inputShapefile
+      : /\.csv$/i.test(file) ? inputDsv(dsv.csv)
+      : /\.tsv$/i.test(file) ? inputDsv(dsv.tsv)
+      : inputJson, file);
+});
+q.await(output);
+
+function inputDsv(dsv) {
+  return function(file, callback) {
+    file = qualify(file);
+    fs.readFile(file.path, "utf8", function(error, text) {
+      if (error) return callback(error);
+
+      objects[file.name] = {
+        type: "FeatureCollection",
+        features: dsv.parse(text).map(function(row) {
+          var x = row[argv.x],
+              y = row[argv.y];
+          delete row[argv.x];
+          delete row[argv.y];
+          return {
+            type: "Feature",
+            id: id(row),
+            properties: row,
+            geometry: !x || !y || isNaN(x) || isNaN(y) ? null : {
+              type: "Point",
+              coordinates: [+x, +y]
+            }
+          };
+        })
+      };
+
+      callback(null);
+    });
+  };
+}
+
+function inputShapefile(file, callback) {
+  file = qualify(file);
+
+  var object = objects[file.name] = {
+    type: "FeatureCollection",
+    features: []
+  };
+
+  shapefile.readStream(file.path, {encoding: argv["shapefile-encoding"], "ignore-properties": !!argv["ignore-shapefile-properties"]})
+      .on("error", callback)
+      .on("feature", function(feature) { object.features.push(feature); })
+      .on("end", callback);
+}
+
+function inputJson(file, callback) {
+  file = qualify(file);
+
+  var object = JSON.parse(fs.readFileSync(file.path));
+
+  if (object.type === "Topology") {
+    for (var key in object.objects) {
+      objects[key] = topojson.feature(object, object.objects[key]);
+    }
+  } else {
+    objects[file.name] = object;
+  }
+
+  callback(null);
+}
+
+function output(error) {
+  if (error) return console.trace(error);
+  var options = {
+    "verbose": true,
+    "quantization": +argv.q,
+    "coordinate-system": argv.spherical ? "spherical" : argv.cartesian ? "cartesian" : "auto",
+    "stitch-poles": argv["stitch-poles"],
+    "id": id,
+    "property-transform": propertyTransform
+  };
+
+  // Convert GeoJSON to TopoJSON.
+  var object = topojson.topology(objects, options);
+
+  // Translate and scale to fit the viewport.
+  if (argv.width || argv.height) {
+    if (options["coordinate-system"] !== "cartesian") throw new Error("--width and --height require Cartesian coordinates");
+    var dx = object.bbox[2] - object.bbox[0],
+        dy = object.bbox[3] - object.bbox[1],
+        m = argv.margin,
+        w = Math.max(0, argv.width - m * 2),
+        h = Math.max(0, argv.height - m * 2),
+        k;
+
+    if (w && h) {
+      k = Math.min(w / dx, h / dy);
+    } else if (w) {
+      k = w / dx;
+      h = k * dy;
+    } else {
+      k = h / dy;
+      w = k * dx;
+    }
+
+    object.transform.scale[0] *= k;
+    object.transform.scale[1] *= -k;
+    object.transform.translate[0] = (w - dx * k) / 2 + m;
+    object.transform.translate[1] = (h + dy * k) / 2 + m;
+  }
+
+  // Simplify.
+  if (+argv.s > 0 || +argv["simplify-proportion"] > 0) topojson.simplify(object, {
+    "verbose": true,
+    "coordinate-system": options["coordinate-system"],
+    "minimum-area": +argv.s,
+    "retain-proportion": +argv["simplify-proportion"]
+  });
+
+  // Force clockwise polygons, as appropriate.
+  if (!!argv["force-clockwise"]) topojson.clockwise(object, {
+    "verbose": true,
+    "coordinate-system": options["coordinate-system"]
+  });
+
+  // Remove empty (collapsed) features.
+  if (!argv["allow-empty"]) topojson.filter(object, {
+    "verbose": true,
+    "coordinate-system": options["coordinate-system"]
+  });
+
+  // Bind with external properties.
+  if (argv.e) topojson.bind(object, externalProperties);
+
+  // Delete the bbox if not desired.
+  if (!argv["bbox"]) delete object.bbox;
+
+  // Output JSON.
+  var json = JSON.stringify(object);
+  if (argv.o === "/dev/stdout") console.log(json);
+  else fs.writeFileSync(argv.o, json, "utf8");
+}
+
+function qualify(file) {
+  var i = file.indexOf("=");
+  return {
+    name: i >= 0 ? file.substring(0, i) : path.basename(file, path.extname(file)),
+    path: i >= 0 ? file.substring(i + 1) : file
+  };
+}
+
+function parsePropertyId(properties) {
+  return function(d) {
+    if (d.properties) d = d.properties;
+    var id;
+    properties.some(function(p) {
+      id = /^\+/.test(p) ? +d[p.substring(1)] : d[p];
+      if (id == null) return;
+      else if (typeof id === "number") isNaN(id) && (id = null);
+      else if (typeof id !== "string") id = id + "";
+      return id;
+    });
+    return id;
+  };
+}
+
+function parsePropertyTransform(properties) {
+  var transforms = {};
+  properties.forEach(function(target) {
+    var i = target.indexOf("="),
+        source = target,
+        number;
+
+    if (i >= 0) {
+      source = target.substring(i + 1);
+      target = target.substring(0, i);
+    }
+
+    if (number = /^\+/.test(source)) {
+      source = source.substring(1);
+      if (i < 0) target = source;
+    }
+
+    transforms[source] = number
+        ? function(properties, value) { properties[target] = +value; }
+        : function(properties, value) { properties[target] = value; };
+  });
+  return function(properties, key, value) {
+    var transform = transforms[key];
+    return transform && value != null && (transform(properties, value), true);
+  };
+}
+
+function readExternalProperties(file) {
+
+  // Infer the file type from the name.
+  // If that doesn't work, look for a tab and hope for the best!
+  var type = /\.tsv$/i.test(file) ? dsv.tsv
+        : /\.csv$/i.test(file) ? dsv.csv
+        : text.indexOf("\t") ? dsv.tsv
+        : dsv.csv;
+
+  type.parse(fs.readFileSync(file, "utf-8")).forEach(function(row) {
+    var i = id(row), properties = externalProperties[i] || (externalProperties[i] = {});
+    for (var key in row) if (key != "id") propertyTransform(properties, key, row[key]);
+  });
+}

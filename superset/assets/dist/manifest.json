@@ -1,0 +1,124 @@
+{
+  "addSlice.css": "/static/assets/dist/addSlice.d1681d722585347b9c97.entry.css",
+  "addSlice.js": "/static/assets/dist/addSlice.d1681d722585347b9c97.entry.js",
+  "belgium.geojson": "/static/assets/dist/647f3b061407d2df992b141838c6a9fd.geojson",
+  "brazil.geojson": "/static/assets/dist/5f64d14062abb5f5fd6610972976ebe6.geojson",
+  "bulgaria.geojson": "/static/assets/dist/5ba53f6ca41eea9fcd804bb85b15b717.geojson",
+  "china.geojson": "/static/assets/dist/e2b4b67c1386e8a5955cd5adc8072937.geojson",
+  "dashboard.css": "/static/assets/dist/dashboard.154c237b25c215b56d14.entry.css",
+  "dashboard.js": "/static/assets/dist/dashboard.154c237b25c215b56d14.entry.js",
+  "egypt.geojson": "/static/assets/dist/a8835fa1f5787fe6c859bbf27451669c.geojson",
+  "entrypoints": {
+    "theme": {
+      "css": [
+        "/static/assets/dist/theme.44c37a872dc08acf08fd.entry.css"
+      ],
+      "js": [
+        "/static/assets/dist/theme.44c37a872dc08acf08fd.entry.js"
+      ]
+    },
+    "preamble": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/vendors-addSlice-preamble.c6881bcc873da498862f.chunk.js",
+        "/static/assets/dist/preamble.202c1b64bb0a7427ff0a.entry.js"
+      ]
+    },
+    "addSlice": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/vendors-addSlice-preamble.c6881bcc873da498862f.chunk.js",
+        "/static/assets/dist/addSlice.d1681d722585347b9c97.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/addSlice.d1681d722585347b9c97.entry.css"
+      ]
+    },
+    "explore": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/0.43499e41f098918a1f67.chunk.js",
+        "/static/assets/dist/explore.3a0e292a4f122640469d.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/explore.3a0e292a4f122640469d.entry.css"
+      ]
+    },
+    "dashboard": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/0.43499e41f098918a1f67.chunk.js",
+        "/static/assets/dist/dashboard.154c237b25c215b56d14.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/dashboard.154c237b25c215b56d14.entry.css"
+      ]
+    },
+    "sqllab": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/0.43499e41f098918a1f67.chunk.js",
+        "/static/assets/dist/sqllab.9cbe684338f093684a63.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/sqllab.9cbe684338f093684a63.entry.css"
+      ]
+    },
+    "welcome": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/0.43499e41f098918a1f67.chunk.js",
+        "/static/assets/dist/welcome.472383ab21e5b3af7109.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/welcome.472383ab21e5b3af7109.entry.css"
+      ]
+    },
+    "profile": {
+      "js": [
+        "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+        "/static/assets/dist/0.43499e41f098918a1f67.chunk.js",
+        "/static/assets/dist/profile.9172894162284ffea9b8.entry.js"
+      ],
+      "css": [
+        "/static/assets/dist/profile.9172894162284ffea9b8.entry.css"
+      ]
+    }
+  },
+  "explore.css": "/static/assets/dist/explore.3a0e292a4f122640469d.entry.css",
+  "explore.js": "/static/assets/dist/explore.3a0e292a4f122640469d.entry.js",
+  "france.geojson": "/static/assets/dist/e5a566e2a4a20c76b6ceb68898b4551c.geojson",
+  "germany.geojson": "/static/assets/dist/c4f01c1b263f64ebf76fd32988955ee5.geojson",
+  "glyphicons-halflings-regular.eot": "/static/assets/dist/f4769f9bdb7466be65088239c12046d1.eot",
+  "glyphicons-halflings-regular.svg": "/static/assets/dist/89889688147bd7575d6327160d64e760.svg",
+  "glyphicons-halflings-regular.ttf": "/static/assets/dist/e18bbf611f2a2e43afc071aa2f4e1512.ttf",
+  "glyphicons-halflings-regular.woff": "/static/assets/dist/fa2772327f55d8198301fdb8bcfc8158.woff",
+  "glyphicons-halflings-regular.woff2": "/static/assets/dist/448c34a56d699c29117adc64c43affeb.woff2",
+  "italy.geojson": "/static/assets/dist/f3c7f8f357bd44946bd2bd448859bda4.geojson",
+  "japan.geojson": "/static/assets/dist/33560d2fbb7709aa4678a7d6b3e58de2.geojson",
+  "morocco.geojson": "/static/assets/dist/bbf6ca5c90a4692792cb7fdfdad73104.geojson",
+  "myanmar.geojson": "/static/assets/dist/0135d056b222ed13c7c12cd018051192.geojson",
+  "netherlands.geojson": "/static/assets/dist/bb3889bfa65fcf72a4eca68e7ab91e64.geojson",
+  "portugal.geojson": "/static/assets/dist/a05665706019af9fc61b0dc71b4e706f.geojson",
+  "preamble.js": "/static/assets/dist/preamble.202c1b64bb0a7427ff0a.entry.js",
+  "profile.css": "/static/assets/dist/profile.9172894162284ffea9b8.entry.css",
+  "profile.js": "/static/assets/dist/profile.9172894162284ffea9b8.entry.js",
+  "russia.geojson": "/static/assets/dist/f643464ab125c1e94588d58ac77d2704.geojson",
+  "singapore.geojson": "/static/assets/dist/9f521e1094332bf3de8bbcc9ce2170a0.geojson",
+  "spain.geojson": "/static/assets/dist/f0de53f3380e55031f5ed7e0986c7b67.geojson",
+  "sqllab.css": "/static/assets/dist/sqllab.9cbe684338f093684a63.entry.css",
+  "sqllab.js": "/static/assets/dist/sqllab.9cbe684338f093684a63.entry.js",
+  "thailand.geojson": "/static/assets/dist/402430a4e9f8931d5362e650c9ab391f.geojson",
+  "theme.css": "/static/assets/dist/theme.44c37a872dc08acf08fd.entry.css",
+  "theme.js": "/static/assets/dist/theme.44c37a872dc08acf08fd.entry.js",
+  "thumbnail.png": "/static/assets/dist/thumbnail.431c76af.png",
+  "timorleste.geojson": "/static/assets/dist/fe50f1df71b69257315717808fb60e86.geojson",
+  "uk.geojson": "/static/assets/dist/420625849885a90999dd7f0eea575435.geojson",
+  "ukraine.geojson": "/static/assets/dist/d837f5941b13844653f61455735424f7.geojson",
+  "usa.geojson": "/static/assets/dist/1680a595633a783cd68d7f6509bc5326.geojson",
+  "vendors-addSlice-preamble.js": "/static/assets/dist/vendors-addSlice-preamble.c6881bcc873da498862f.chunk.js",
+  "vendors-major.js": "/static/assets/dist/vendors-major.199ce68a94d5a5e67c67.chunk.js",
+  "welcome.css": "/static/assets/dist/welcome.472383ab21e5b3af7109.entry.css",
+  "welcome.js": "/static/assets/dist/welcome.472383ab21e5b3af7109.entry.js",
+  "zambia.geojson": "/static/assets/dist/692564493e0a03962af1d1e73bf8b590.geojson"
+}

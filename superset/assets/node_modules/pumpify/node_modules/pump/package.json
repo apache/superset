@@ -1,0 +1,28 @@
+{
+  "name": "pump",
+  "version": "2.0.1",
+  "repository": "git://github.com/mafintosh/pump.git",
+  "license": "MIT",
+  "description": "pipe streams together and close all of them if one of them closes",
+  "browser": {
+    "fs": false
+  },
+  "keywords": [
+    "streams",
+    "pipe",
+    "destroy",
+    "callback"
+  ],
+  "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>",
+  "dependencies": {
+    "end-of-stream": "^1.1.0",
+    "once": "^1.3.1"
+  },
+  "scripts": {
+    "test": "node test-browser.js && node test-node.js"
+  }
+
+,"_resolved": "https://registry.npmjs.org/pump/-/pump-2.0.1.tgz"
+,"_integrity": "sha512-ruPMNRkN3MHP1cWJc9OWr+T/xDP0jhXYCLfJcBuX54hhfIBnaQmAUMfDcG4DM5UMWByBbJY69QSphm3jtDKIkA=="
+,"_from": "pump@2.0.1"
+}

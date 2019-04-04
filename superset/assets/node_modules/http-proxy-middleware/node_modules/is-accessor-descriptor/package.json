@@ -1,0 +1,77 @@
+{
+  "name": "is-accessor-descriptor",
+  "description": "Returns true if a value has the characteristics of a valid JavaScript accessor descriptor.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-accessor-descriptor",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Rouven Weßling (www.rouvenwessling.de)"
+  ],
+  "repository": "jonschlinkert/is-accessor-descriptor",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-accessor-descriptor/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^6.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.5.3"
+  },
+  "keywords": [
+    "accessor",
+    "check",
+    "data",
+    "descriptor",
+    "get",
+    "getter",
+    "is",
+    "keys",
+    "object",
+    "properties",
+    "property",
+    "set",
+    "setter",
+    "type",
+    "valid",
+    "value"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "is-accessor-descriptor",
+        "is-data-descriptor",
+        "is-descriptor",
+        "is-plain-object",
+        "isobject"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+
+,"_resolved": "https://registry.npmjs.org/is-accessor-descriptor/-/is-accessor-descriptor-1.0.0.tgz"
+,"_integrity": "sha512-m5hnHTkcVsPfqx3AKlyttIPb7J+XykHvJP2B9bZDjlhLIoEq4XoK64Vg7boZlVWYK6LUY94dYPEE7Lh0ZkZKcQ=="
+,"_from": "is-accessor-descriptor@1.0.0"
+}

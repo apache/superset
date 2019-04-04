@@ -1,0 +1,15 @@
+#ns {
+  .options() {
+    val1: 10px;
+  }
+}
+
+@ns: {
+  @options: {
+    val2: 20px;
+  }
+}
+
+.foo {
+  val: #ns.options[val1] + @ns[@options][val2] + 5px;
+}

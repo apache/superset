@@ -1,0 +1,24 @@
+{
+	"name": "os-browserify",
+	"version": "0.3.0",
+	"author": "CoderPuppy <coderpup@gmail.com>",
+	"license": "MIT",
+	"main": "main.js",
+	"browser": "browser.js",
+	"jspm": {
+		"map": {
+			"./main.js": {
+				"node": "@node/os",
+				"browser": "./browser.js"
+			}
+		}
+	},
+	"repository": {
+		"type": "git",
+		"url": "http://github.com/CoderPuppy/os-browserify.git"
+	}
+
+,"_resolved": "https://registry.npmjs.org/os-browserify/-/os-browserify-0.3.0.tgz"
+,"_integrity": "sha1-hUNzx/XCMVkU/Jv8a9gjj92h7Cc="
+,"_from": "os-browserify@0.3.0"
+}

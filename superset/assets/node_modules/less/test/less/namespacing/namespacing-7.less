@@ -1,0 +1,48 @@
+#ns {
+  .options() {
+    option: true;
+  }
+}
+
+@ns: {
+  @options: {
+    option: true;
+  };
+};
+
+& when (#ns.options[option]) {
+  .output {
+    a: b;
+  }
+}
+
+& when (#ns.options[option] = true) {
+  .output-2 {
+    c: d;
+  }
+}
+
+& when (#ns.options[option] = false) {
+  .no-reach {
+    c: d;
+  }
+}
+
+// DR access
+& when (@ns[@options][option]) {
+  .dr {
+    a: b;
+  }
+}
+
+& when (@ns[@options][option] = true) {
+  .dr-2 {
+    c: d;
+  }
+}
+
+& when (@ns[@options][option] = false) {
+  .dr-no-reach {
+    c: d;
+  }
+}

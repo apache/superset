@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    </head>
+    <body>
+        <div id="container1" style="width: 700px; height: 475px; position: relative;"></div>
+        <script src="/src/js/components/d3/d3.min.js"></script>
+        <script src="/src/js/components/topojson/topojson.js"></script>
+        <script src="/src/rel/datamaps.usa.js"></script>
+        <script>
+          var election = new Datamap({
+            scope: 'usa',
+            element: document.getElementById('container1'),
+            geographyConfig: {
+              popupOnHover: false,
+              highlightOnHover: false,
+              hideHawaiiAndAlaska: true,
+              borderColor: '#444',
+              borderWidth: 0.5
+            },
+            fills: {
+              defaultFill: '#ffffff'
+            }
+          });
+        </script>
+    </body>
+</html>
