@@ -50,7 +50,7 @@ export function getTimeOrNumberFormatter(format) {
 
 export function drawBarValues(svg, data, stacked, axisFormat) {
   const format = getNumberFormatter(axisFormat);
-  const countSeriesDisplayed = data.length;
+  const countSeriesDisplayed = data.filter(d => !d.disabled).length;
 
   const totalStackedValues =
     stacked && data.length !== 0

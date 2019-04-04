@@ -126,4 +126,44 @@ export default [
     storyName: 'Bar with positive and negative values',
     storyPath: 'legacy-|preset-chart-nvd3|BarChartPlugin',
   },
+  {
+    renderStory: () => (
+      <SuperChart
+        chartType="bar"
+        chartProps={{
+          datasource: {
+            verboseMap: {},
+          },
+          formData: {
+            barStacked: true,
+            bottomMargin: 'auto',
+            colorCcheme: 'd3Category10',
+            contribution: false,
+            groupby: ['region'],
+            lineInterpolation: 'linear',
+            metrics: ['sum__SP_POP_TOTL'],
+            richTooltip: true,
+            showBarValue: true,
+            showBrush: 'auto',
+            showControls: false,
+            showLegend: true,
+            stackedStyle: 'stack',
+            vizType: 'bar',
+            xAxisFormat: '%Y',
+            xAxisLabel: '',
+            xAxisShowminmax: false,
+            xTicksLayout: 'auto',
+            yAxisBounds: [null, null],
+            yAxisFormat: '.3s',
+            yLogScale: false,
+          },
+          height: 400,
+          payload: { data },
+          width: 400,
+        }}
+      />
+    ),
+    storyName: 'Stacked bar with values',
+    storyPath: 'legacy-|preset-chart-nvd3|BarChartPlugin',
+  },
 ];
