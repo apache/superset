@@ -58,7 +58,7 @@ with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
 
 
 setup(
-    name='apache-superset',
+    name='superset',
     description=(
         'A modern, enterprise-ready business intelligence web application'),
     long_description=long_description,
