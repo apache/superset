@@ -47,12 +47,13 @@ def etag_cache(max_age, check_perms=bool):
     """
     A decorator for caching views and handling etag conditional requests.
 
-    The decorator caches the response, returning headers for etag and last
-    modified. If the client makes a request that matches, the server will
-    return a "304 Not Mofified" status.
+    The decorator adds headers to GET requests that help with caching: Last-
+    Modified, Expires and ETag. It also handles conditional requests, when the
+    client send an If-Matches header.
 
-    If no cache is set, the decorator will still set the ETag header, and
-    handle conditional requests.
+    If a cache is set, the decorator will cache GET responses, bypassing the
+    dataframe serialization. POST requests will still benefit from the
+    dataframe cache for requests that produce the same SQL.
 
     """
     def decorator(f):
@@ -62,6 +63,9 @@ def etag_cache(max_age, check_perms=bool):
             check_perms(*args, **kwargs)
 
             response = None
+
+            # if this is a GET request and we have a cache, try to fetch a
+            # cached response object
             if cache and request.method == 'GET':
                 try:
                     # build the cache key from the function arguments and any
@@ -76,9 +80,13 @@ def etag_cache(max_age, check_perms=bool):
                         raise
                     logging.exception('Exception possibly due to cache backend.')
 
+            # if this is not a GET, or if no response was cached, compute the
+            # response using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
 
+                # if this was a GET request, add headers that help with
+                # caching: Last Modified, Expires and ETag
                 if request.method == 'GET':
                     response.cache_control.public = True
                     response.last_modified = datetime.utcnow()
@@ -86,11 +94,15 @@ def etag_cache(max_age, check_perms=bool):
                     response.expires = \
                         response.last_modified + timedelta(seconds=expiration)
                     response.add_etag()
-                    try:
-                        cache.set(cache_key, response, timeout=max_age)
-                    except Exception:  # pylint: disable=broad-except
-                        if app.debug:
-                            raise
+
+                    # if we have a cache, store the response from the GET
+                    # request
+                    if cache:
+                        try:
+                            cache.set(cache_key, response, timeout=max_age)
+                        except Exception:  # pylint: disable=broad-except
+                            if app.debug:
+                                raise
                         logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
