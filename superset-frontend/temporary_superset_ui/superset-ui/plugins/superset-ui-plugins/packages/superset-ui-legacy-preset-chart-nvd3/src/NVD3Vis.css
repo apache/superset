@@ -112,3 +112,12 @@
 .superset-legacy-chart-nvd3 g.time-shift-9 path, .superset-legacy-chart-nvd3 line.time-shift-9 {
   stroke-dasharray: 5, 5, 1, 5;
 }
+.superset-legacy-chart-nvd3-tr-highlight {
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  font-weight: bold;
+}
+
+.superset-legacy-chart-nvd3-tr-total {
+  font-weight: bold;
+}

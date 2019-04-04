@@ -133,7 +133,36 @@ export function generateRichLineTooltipContent(d, timeFormatter, valueFormatter)
   });
   tooltip += '</tbody></table>';
 
-  return tooltip;
+  return dompurify.sanitize(tooltip);
+}
+
+export function generateAreaChartTooltipContent(d, timeFormatter, valueFormatter) {
+  const total = d.series[d.series.length - 1].value;
+  let tooltip = '';
+  tooltip +=
+    "<table><thead><tr><td colspan='4'>" +
+    `<strong class='x-value'>${timeFormatter(d.value)}</strong>` +
+    '</td></tr></thead><tbody>' +
+    '<tr><td></td><td>Category</td><td>Value</td><td>% to total</td></tr>';
+  d.series.forEach(series => {
+    const key = getFormattedKey(series.key, true);
+    let trClass = '';
+    if (series.highlight) {
+      trClass = 'superset-legacy-chart-nvd3-tr-highlight';
+    } else if (series.key === 'TOTAL') {
+      trClass = 'superset-legacy-chart-nvd3-tr-total';
+    }
+    tooltip +=
+      `<tr class="${trClass}" style="border-color: ${series.color}">` +
+      `<td style="color: ${series.color}">${series.key === 'TOTAL' ? '' : '&#9724;'}</td>` +
+      `<td>${key}</td>` +
+      `<td>${valueFormatter(series.value)}</td>` +
+      `<td>${((100 * series.value) / total).toFixed(2)}%</td>` +
+      '</tr>';
+  });
+  tooltip += '</tbody></table>';
+
+  return dompurify.sanitize(tooltip);
 }
 
 export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
