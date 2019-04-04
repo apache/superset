@@ -41,6 +41,7 @@ import {
   generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   generateTimePivotTooltip,
+  generateAreaChartTooltipContent,
   getMaxLabelSize,
   getTimeOrNumberFormatter,
   hideTooltips,
@@ -557,6 +558,11 @@ function nvd3Vis(element, props) {
       if (vizType === 'line') {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
+        );
+      } else {
+        // area chart
+        chart.interactiveLayer.tooltip.contentGenerator(d =>
+          generateAreaChartTooltipContent(d, smartDateVerboseFormatter, yAxisFormatter),
         );
       }
     }
