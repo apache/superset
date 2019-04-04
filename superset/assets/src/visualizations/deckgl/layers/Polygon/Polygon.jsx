@@ -94,6 +94,9 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     }
     return baseColor;
   };
+  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0)
+    ? setTooltipContent(fd)
+    : undefined;
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
@@ -108,7 +111,7 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd), onSelect),
+    ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
   });
 }
 
