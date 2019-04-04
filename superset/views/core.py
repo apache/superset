@@ -2766,10 +2766,21 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/search_queries')
     @log_this
-    def search_queries(self):
-        """Search for queries."""
+    def search_queries(self) -> Response:
+        """
+        Search for previously run sqllab queries. Used for Sqllab Query Search
+        page /superset/sqllab#search.
+
+        Custom permission can_only_search_queries_owned restricts queries
+        to only queries run by current user.
+
+        :returns: Response with list of sql query dicts
+        """
         query = db.session.query(Query)
-        search_user_id = request.args.get('user_id')
+        if security_manager.can_only_access_owned_queries():
+            search_user_id = g.user.get_user_id()
+        else:
+            search_user_id = request.args.get('user_id')
         database_id = request.args.get('database_id')
         search_text = request.args.get('search_text')
         status = request.args.get('status')
@@ -2778,7 +2789,7 @@ class Superset(BaseSupersetView):
         to_time = request.args.get('to')
 
         if search_user_id:
-            # Filter on db Id
+            # Filter on user_id
             query = query.filter(Query.user_id == search_user_id)
 
         if database_id:

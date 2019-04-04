@@ -92,6 +92,7 @@ class SupersetSecurityManager(SecurityManager):
         'schema_access',
         'datasource_access',
         'metric_access',
+        'can_only_access_owned_queries',
     ])
 
     def get_schema_perm(self, database, schema):
@@ -104,6 +105,17 @@ class SupersetSecurityManager(SecurityManager):
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
+
+    def can_only_access_owned_queries(self) -> bool:
+        """
+        can_access check for custom can_only_access_owned_queries permissions.
+
+        :returns: True if current user can access custom permissions
+        """
+        return self.can_access(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
 
     def all_datasource_access(self):
         return self.can_access('all_datasource_access', 'all_datasource_access')
@@ -268,6 +280,7 @@ class SupersetSecurityManager(SecurityManager):
         # Global perms
         self.merge_perm('all_datasource_access', 'all_datasource_access')
         self.merge_perm('all_database_access', 'all_database_access')
+        self.merge_perm('can_only_access_owned_queries', 'can_only_access_owned_queries')
 
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
