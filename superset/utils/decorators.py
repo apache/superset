@@ -61,31 +61,37 @@ def etag_cache(max_age, check_perms=bool):
             # check if the user can access the resource
             check_perms(*args, **kwargs)
 
-            try:
-                # build the cache key from the function arguments and any other
-                # additional GET arguments (like `form_data`, eg).
-                key_args = list(args)
-                key_kwargs = kwargs.copy()
-                key_kwargs.update(request.args)
-                cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
-                response = cache.get(cache_key)
-            except Exception:  # pylint: disable=broad-except
-                if app.debug:
-                    raise
-                logging.exception('Exception possibly due to cache backend.')
-                response = None
-
-            if response is None or request.method == 'POST':
-                response = f(*args, **kwargs)
-                response.cache_control.public = True
-                response.last_modified = datetime.utcnow()
-                expiration = max_age if max_age != 0 else FAR_FUTURE
-                response.expires = response.last_modified + timedelta(seconds=expiration)
-                response.add_etag()
+            response = None
+            if cache and request.method == 'GET':
                 try:
-                    cache.set(cache_key, response, timeout=max_age)
+                    # build the cache key from the function arguments and any
+                    # other additional GET arguments (like `form_data`, eg).
+                    key_args = list(args)
+                    key_kwargs = kwargs.copy()
+                    key_kwargs.update(request.args)
+                    cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
+                    response = cache.get(cache_key)
                 except Exception:  # pylint: disable=broad-except
+                    if app.debug:
+                        raise
                     logging.exception('Exception possibly due to cache backend.')
+
+            if response is None:
+                response = f(*args, **kwargs)
+
+                if request.method == 'GET':
+                    response.cache_control.public = True
+                    response.last_modified = datetime.utcnow()
+                    expiration = max_age if max_age != 0 else FAR_FUTURE
+                    response.expires = \
+                        response.last_modified + timedelta(seconds=expiration)
+                    response.add_etag()
+                    try:
+                        cache.set(cache_key, response, timeout=max_age)
+                    except Exception:  # pylint: disable=broad-except
+                        if app.debug:
+                            raise
+                        logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
 
