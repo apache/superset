@@ -331,6 +331,7 @@ class SupersetSecurityManager(SecurityManager):
         # Creating default roles
         self.set_role('Admin', self.is_admin_pvm)
         self.set_role('Alpha', self.is_alpha_pvm)
+        self.set_role('Delivery Team', self.is_alpha_pvm)
         self.set_role('Gamma', self.is_gamma_pvm)
         self.set_role('granter', self.is_granter_pvm)
         self.set_role('sql_lab', self.is_sql_lab_pvm)
