@@ -46,19 +46,14 @@ superset init
 # Start superset worker for SQL Lab
 superset worker &
 
-# fetch SSL certificates
-for name in cert privkey ; do
-    aws ssm get-parameter \
-        --region "${AWS_REGION}" \
-        --with-decryption \
-        --output text --query "Parameter.Value" \
-        --name "/${ENVIRONMENT}/${STACK}/ssl/${name}" \
-        > "${APP_HOME}/${name}.pem"
-done
-
-gunicorn -k gevent \
-  -b  0.0.0.0:8088 \
-  --timeout 1200 \
-  --limit-request-line 0 \
-  --limit-request-field_size 0 \
-  superset:app
+if [ "$FETCH_CERTS" = "yes" ]; then
+    # fetch SSL certificates
+    for name in cert privkey ; do
+        aws ssm get-parameter \
+            --region "${AWS_REGION}" \
+            --with-decryption \
+            --output text --query "Parameter.Value" \
+            --name "/${ENVIRONMENT}/${STACK}/ssl/${name}" \
+            > "${APP_HOME}/${name}.pem"
+    done
+fi

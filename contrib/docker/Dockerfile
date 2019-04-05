@@ -58,7 +58,7 @@ RUN pip install --upgrade setuptools pip \
 
 COPY --chown=superset:superset superset superset
 
-ENV PATH=/home/superset/superset/bin:/home/superset/.local/bin:$PATH \
+ENV PATH=/home/superset/superset/bin:/home/superset/.local/bin:/home/superset/gecko:$PATH \
     PYTHONPATH=/home/superset/superset/:$PYTHONPATH
 
 USER superset
@@ -69,6 +69,10 @@ RUN cd superset/assets \
     && yarn run build \
     && rm -rf node_modules \
     && yarn cache clean
+
+RUN mkdir /home/superset/gecko \
+    && mkdir -p /home/superset/.local/bin \
+    && curl -s -L https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckodriver-v0.24.0-linux64.tar.gz | tar -xz -C /home/superset/gecko
 
 COPY contrib/docker/docker-init.sh .
 COPY contrib/docker/docker-entrypoint.sh /entrypoint.sh
