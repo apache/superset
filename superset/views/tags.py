@@ -219,7 +219,7 @@ class TagView(BaseSupersetView):
                     'id': obj.id,
                     'type': ObjectTypes.query.name,
                     'name': obj.label,
-                    'url': obj.url,
+                    'url': obj.url(),
                     'changed_on': obj.changed_on,
                     'created_by': obj.created_by_fk,
                     'creator': obj.creator(),
