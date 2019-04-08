@@ -17,6 +17,11 @@ export type ReactifyProps = {
   className?: string;
 };
 
+// TODO: add more React lifecycle callbacks as needed
+export type LifeCycleCallbacks = {
+  componentWillUnmount?: () => void;
+};
+
 export interface RenderFuncType<Props> {
   (container: HTMLDivElement, props: Readonly<Props & ReactifyProps>): void;
   displayName?: string;
@@ -26,6 +31,7 @@ export interface RenderFuncType<Props> {
 
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
+  callbacks?: LifeCycleCallbacks,
 ): React.ComponentClass<Props & ReactifyProps> {
   class ReactifiedComponent extends React.Component<Props & ReactifyProps> {
     // eslint-disable-next-line react/sort-comp
@@ -46,6 +52,9 @@ export default function reactify<Props extends object>(
 
     componentWillUnmount() {
       this.container = undefined;
+      if (callbacks && callbacks.componentWillUnmount) {
+        callbacks.componentWillUnmount();
+      }
     }
 
     setContainerRef(ref: HTMLDivElement) {
