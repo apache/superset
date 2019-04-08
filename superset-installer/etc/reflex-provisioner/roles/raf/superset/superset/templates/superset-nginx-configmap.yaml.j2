@@ -16,7 +16,7 @@ data:
        access_log /dev/stdout;
        error_log /dev/stdout info;
        location / {
-          proxy_pass http://127.0.0.1:8088;
+          proxy_pass http://127.0.0.1:{{ SUPERSET_CONTAINER_PORT }};
           proxy_http_version 1.1;
           proxy_set_header Connection "";
           proxy_send_timeout 86400s;

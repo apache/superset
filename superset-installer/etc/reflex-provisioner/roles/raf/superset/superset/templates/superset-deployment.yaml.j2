@@ -46,12 +46,13 @@ spec:
           value: local
         - name: IS_KERBEROS_ENABLED
           value: "{{ superset_kerberos_enabled }}"
+        - name: AUTH_TYPE
+          value: "{{ SUPERSET_AUTH_TYPE }}"
+{% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}   
         - name: AUTH_ROLE_ADMIN
           value: "{{ SUPERSET_AUTH_ROLE_ADMIN }}"
         - name: AUTH_ROLE_PUBLIC
           value: "{{ SUPERSET_AUTH_ROLE_PUBLIC }}"
-        - name: AUTH_TYPE
-          value: "{{ SUPERSET_AUTH_TYPE }}"
         - name: AUTH_USER_REGISTRATION
           value: "{{ SUPERSET_AUTH_USER_REGISTRATION }}"
         - name: AUTH_USER_REGISTRATION_ROLE
@@ -100,6 +101,7 @@ spec:
           value: "{{ SUPERSET_AUTH_LDAP_USERNAME_FORMAT }}"
         - name: AUTH_ADMIN_USER_LIST
           value: "{{ SUPERSET_ADMIN_USER_LIST }}"
+{% endif %}          
         - name: APP_NAME
           value: "{{ RVF_APP_NAME }}"
         - name: HELP_ENABLED
@@ -111,18 +113,25 @@ spec:
         image: {{ superset_docker_image_name }}:{{ superset_image_tag }}
         name: superset
         ports:
-        - containerPort: 8088
+        - containerPort: {{ SUPERSET_CONTAINER_PORT }}
         resources: {}
         volumeMounts:
          - name: superset-configmap-volume
            mountPath: /usr/local/bin/auth-kerberized.sh
            subPath: auth-kerberized.sh
+         - name: superset-configmap-volume
+           mountPath: /usr/local/bin/docker-init.sh
+           subPath: docker-init.sh  
+{% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}            
          - name: superset-cert-configmap-volume
            mountPath: {{ SUPERSET_AUTH_LDAP_TLS_CACERTDIR }}
+{% endif %}            
+{% if superset_kerberos_enabled == 'true' %}           
          - name: krb5-keytab-config-path
            mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
          - name: krb5-config-path
            mountPath: /etc/{{ superset_krb5_conf_name }}
+{% endif %}           
       - name: nginx
         image: {{ nginx_docker_image_name }}:{{ nginx_image_tag }}
         volumeMounts:
@@ -140,20 +149,24 @@ spec:
           configMap:
             name: superset-configmap
             defaultMode: 0755
+{% if SUPERSET_AUTH_TYPE == 'AUTH_LDAP' %}             
         - name: superset-cert-configmap-volume
           configMap:
             name: superset-cert-configmap
             defaultMode: 0755
+{% endif %}            
         - name: superset-nginx-configmap-volume
           configMap:
             name: superset-nginx-configmap
             defaultMode: 0755
+{% if superset_kerberos_enabled == 'true' %}              
         - name: krb5-keytab-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
         - name: krb5-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_krb5_conf_name }}
+{% endif %}             
         - name: secret-tls-volume
           secret:
             secretName: superset-tls

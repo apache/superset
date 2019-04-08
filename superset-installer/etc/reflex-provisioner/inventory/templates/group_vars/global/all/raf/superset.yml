@@ -69,6 +69,10 @@ superset_docker_restart_policy: "Always"
 superset_service_port: "32443"
 superset_nginx_port: "32443"
 
+SUPERSET_NPROCESSORS: 1
+SUPERSET_SERVER_WORKER_TIMEOUT: 300 #in secs
+SUPERSET_CONTAINER_PORT: 8088
+
 #Path on hosts
 superset_host_base_dir: "/opt/guavus/superset"
 superset_host_k8s_dir: "{{ superset_host_base_dir }}/deployment/k8s"
@@ -85,7 +89,6 @@ superset_kerberos_config_dir: "{{ superset_host_base_dir }}/krb5-config"
 # Config Diretory
 superset_config_dir: "{{ role_path }}/../kerberos/files/config"
 superset_kerberos_enabled: false
-
 
 #LDAP configuration
 superset_certificate_files: []
