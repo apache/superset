@@ -619,7 +619,13 @@ function nvd3Vis(element, props) {
         yMin = min;
         yMax = max;
       } else {
-        const [trueMin, trueMax] = computeYDomain(data);
+        let [trueMin, trueMax] = [0, 1];
+        // These viz types can be stacked
+        if (isVizTypes(['area', 'bar', 'dist_bar'])) {
+          [trueMin, trueMax] = chart.yAxis.scale().domain();
+        } else {
+          [trueMin, trueMax] = computeYDomain(data);
+        }
         yMin = hasCustomMin ? min : trueMin;
         yMax = hasCustomMax ? max : trueMax;
       }
