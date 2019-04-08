@@ -20,8 +20,8 @@ import { reactify } from '@superset-ui/chart';
 import Component from './NVD3Vis';
 import { hideTooltips } from './utils';
 
-function willUnmount() {
+function componentWillUnmount() {
   hideTooltips(true);
 }
 
-export default reactify(Component, { willUnmount });
+export default reactify(Component, { componentWillUnmount });
