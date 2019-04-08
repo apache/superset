@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 
+import { initFeatureFlags } from 'src/featureFlags';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
@@ -31,6 +32,7 @@ setupApp();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
+initFeatureFlags(bootstrap.common.feature_flags);
 const user = { ...bootstrap.user };
 
 const store = createStore(

@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { Panel, Row, Col, Tabs, Tab, FormControl } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
 import URI from 'urijs';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
@@ -37,8 +38,11 @@ export default class Welcome extends React.PureComponent {
   constructor(props) {
     super(props);
 
+    const defaultTab = isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)
+      ? 'tags'
+      : 'favorites';
     const parsedUrl = new URI(window.location);
-    const key = parsedUrl.fragment() || 'tags';
+    const key = parsedUrl.fragment() || defaultTab;
     const searchParams = parsedUrl.search(true);
     const dashboardSearch = searchParams.search || '';
     const tagSearch = searchParams.tags || 'owner:{{ current_user_id() }}';
@@ -89,26 +93,28 @@ export default class Welcome extends React.PureComponent {
           onSelect={this.handleSelect}
           id="controlled-tab-example"
         >
-          <Tab eventKey="tags" title={t('Tags')}>
-            <Panel>
-              <Row>
-                <Col md={8}><h2>{t('Tags')}</h2></Col>
-              </Row>
-              <Row>
-                <Col md={12}>
-                  <SelectControl
-                    name="tags"
-                    value={this.state.tagSearch.split(',')}
-                    multi
-                    onChange={this.onTagSearchChange}
-                    choices={this.state.tagSuggestions}
-                  />
-                </Col>
-              </Row>
-              <hr />
-              <TagsTable search={this.state.tagSearch} />
-            </Panel>
-          </Tab>
+          {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+            <Tab eventKey="tags" title={t('Tags')}>
+              <Panel>
+                <Row>
+                  <Col md={8}><h2>{t('Tags')}</h2></Col>
+                </Row>
+                <Row>
+                  <Col md={12}>
+                    <SelectControl
+                      name="tags"
+                      value={this.state.tagSearch.split(',')}
+                      multi
+                      onChange={this.onTagSearchChange}
+                      choices={this.state.tagSuggestions}
+                    />
+                  </Col>
+                </Row>
+                <hr />
+                <TagsTable search={this.state.tagSearch} />
+              </Panel>
+            </Tab>
+          }
           <Tab eventKey="favorites" title={t('Favorites')}>
             <Panel>
               <Row>

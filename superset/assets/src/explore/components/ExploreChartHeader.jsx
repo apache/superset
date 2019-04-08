@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/translation';
 
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -123,7 +124,6 @@ class ExploreChartHeader extends React.PureComponent {
       latestQueryFormData,
       queryResponse } = this.props.chart;
     const chartSucceeded = ['success', 'rendered'].indexOf(this.props.chart.chartStatus) > 0;
-    console.log('HERE');
     return (
       <div
         id="slice-header"
@@ -163,13 +163,15 @@ class ExploreChartHeader extends React.PureComponent {
             currentFormData={formData}
           />
         }
-        <ObjectTags
-          fetchTags={this.fetchTags}
-          fetchSuggestions={this.fetchSuggestions}
-          deleteTag={this.deleteTag}
-          addTag={this.addTag}
-          editable={this.props.can_overwrite}
-        />
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+          <ObjectTags
+            fetchTags={this.fetchTags}
+            fetchSuggestions={this.fetchSuggestions}
+            deleteTag={this.deleteTag}
+            addTag={this.addTag}
+            editable={this.props.can_overwrite}
+          />
+        }
         <div className="pull-right">
           {chartSucceeded && queryResponse &&
             <RowCountLabel

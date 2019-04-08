@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
 
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
@@ -319,13 +320,15 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
           </span>
-          <ObjectTags
-            fetchTags={this.fetchTags}
-            fetchSuggestions={this.fetchSuggestions}
-            deleteTag={this.deleteTag}
-            addTag={this.addTag}
-            editable={dashboardInfo.dash_edit_perm}
-          />
+          {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) &&
+            <ObjectTags
+              fetchTags={this.fetchTags}
+              fetchSuggestions={this.fetchSuggestions}
+              deleteTag={this.deleteTag}
+              addTag={this.addTag}
+              editable={dashboardInfo.dash_edit_perm}
+            />
+          }
         </div>
 
         <div className="button-container">
