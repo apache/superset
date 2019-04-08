@@ -22,7 +22,10 @@ describe('reactify(renderFn)', () => {
     content: 'ghi',
   };
 
+  const willUnmountCb = jest.fn();
+
   const TheChart = reactify(renderFn);
+  const TheChartWithWillUnmountHook = reactify(renderFn, { componentWillUnmount: willUnmountCb });
 
   class TestComponent extends React.PureComponent<{}, { content: string }, any> {
     constructor(props = {}) {
@@ -40,6 +43,12 @@ describe('reactify(renderFn)', () => {
       const { content } = this.state;
 
       return <TheChart id="test" content={content} />;
+    }
+  }
+  /* eslint-disable-next-line react/no-multi-comp */
+  class AnotherTestComponent extends React.PureComponent<{}, {}, any> {
+    render() {
+      return <TheChartWithWillUnmountHook id="another_test" />;
     }
   }
 
@@ -91,5 +100,13 @@ describe('reactify(renderFn)', () => {
     const AnotherChart = reactify(anotherRenderFn) as any; // enables valid new AnotherChart() call
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
+  });
+  it('calls willUnmount hook when it is provided', done => {
+    const wrapper = mount(<AnotherTestComponent />);
+    setTimeout(() => {
+      wrapper.unmount();
+      expect(willUnmountCb).toHaveBeenCalledTimes(1);
+      done();
+    }, 20);
   });
 });
