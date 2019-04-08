@@ -18,5 +18,10 @@
  */
 import { reactify } from '@superset-ui/chart';
 import Component from './NVD3Vis';
+import { hideTooltips } from './utils';
 
-export default reactify(Component);
+function willUnmount() {
+  hideTooltips(true);
+}
+
+export default reactify(Component, { willUnmount });
