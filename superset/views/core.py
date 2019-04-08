@@ -22,6 +22,7 @@ import os
 import re
 import time
 import traceback
+from typing import List  # noqa: F401
 from urllib import parse
 
 from flask import (
@@ -82,7 +83,7 @@ ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
 
-FORM_DATA_KEY_BLACKLIST = []
+FORM_DATA_KEY_BLACKLIST = []  # type: List[str]
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
     FORM_DATA_KEY_BLACKLIST = [
         'js_tooltip',
