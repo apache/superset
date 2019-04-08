@@ -62,11 +62,14 @@ def etag_cache(max_age, check_perms=bool):
             # check if the user can access the resource
             check_perms(*args, **kwargs)
 
-            response = None
+            # for POST requests we can't set headers, use the response cache
+            # nor use conditional requests; this will still use the dataframe
+            # cache in `superset/viz.py`, though.
+            if request.method == 'POST':
+                return f(*args, **kwargs)
 
-            # if this is a GET request and we have a cache, try to fetch a
-            # cached response object
-            if cache and request.method == 'GET':
+            response = None
+            if cache:
                 try:
                     # build the cache key from the function arguments and any
                     # other additional GET arguments (like `form_data`, eg).
@@ -85,25 +88,22 @@ def etag_cache(max_age, check_perms=bool):
             if response is None:
                 response = f(*args, **kwargs)
 
-                # if this was a GET request, add headers that help with
-                # caching: Last Modified, Expires and ETag
-                if request.method == 'GET':
-                    response.cache_control.public = True
-                    response.last_modified = datetime.utcnow()
-                    expiration = max_age if max_age != 0 else FAR_FUTURE
-                    response.expires = \
-                        response.last_modified + timedelta(seconds=expiration)
-                    response.add_etag()
+                # add headers for caching: Last Modified, Expires and ETag
+                response.cache_control.public = True
+                response.last_modified = datetime.utcnow()
+                expiration = max_age if max_age != 0 else FAR_FUTURE
+                response.expires = \
+                    response.last_modified + timedelta(seconds=expiration)
+                response.add_etag()
 
-                    # if we have a cache, store the response from the GET
-                    # request
-                    if cache:
-                        try:
-                            cache.set(cache_key, response, timeout=max_age)
-                        except Exception:  # pylint: disable=broad-except
-                            if app.debug:
-                                raise
-                        logging.exception('Exception possibly due to cache backend.')
+                # if we have a cache, store the response from the GET request
+                if cache:
+                    try:
+                        cache.set(cache_key, response, timeout=max_age)
+                    except Exception:  # pylint: disable=broad-except
+                        if app.debug:
+                            raise
+                    logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
 
