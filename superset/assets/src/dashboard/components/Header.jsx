@@ -215,6 +215,7 @@ class Header extends React.PureComponent {
       colorScheme,
       filters,
       dashboardInfo,
+      refreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
@@ -231,6 +232,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
+      refresh_frequency: refreshFrequency,
     };
 
     // make sure positions data less than DB storage limitation:

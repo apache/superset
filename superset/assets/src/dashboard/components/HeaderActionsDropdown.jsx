@@ -177,11 +177,13 @@ class HeaderActionsDropdown extends React.PureComponent {
         <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
           {t('Force refresh dashboard')}
         </MenuItem>
-        <RefreshIntervalModal
-          refreshFrequency={refreshFrequency}
-          onChange={this.changeRefreshInterval}
-          triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-        />
+        {editMode && (
+          <RefreshIntervalModal
+            refreshFrequency={refreshFrequency}
+            onChange={this.changeRefreshInterval}
+            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+          />
+        )}
         {editMode && (
           <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
             {t('Edit dashboard metadata')}
