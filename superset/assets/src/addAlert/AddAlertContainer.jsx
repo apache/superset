@@ -406,48 +406,6 @@ export default class AddAlertContainer extends React.Component {
               />
               <p className="text-muted">JSON field</p>
             </div>
-            <hr />
-            <div>
-              <p>Tags</p>
-              <label style={{ marginBottom: 10 }}>
-                <input
-                  type="text"
-                  placeholder="New tag"
-                  style={{
-                    marginRight: 20,
-                    width: 300,
-                    height: 30,
-                    borderRadius: 4,
-                    borderStyle: "solid",
-                    borderColor: "#d2d2d2",
-                    borderWidth: "1",
-                    padding: 10
-                  }}
-                  value={this.state.newTag}
-                  onChange={this.handleTagNameChange.bind(this)}
-                />
-              </label>
-              <Button
-                bsStyle="primary"
-                style={{ padding: 4 }}
-                className="save-modal-selector"
-                disabled={this.isTagBtnDisabled()}
-                onClick={this.addTag.bind(this)}
-                >
-                Add tag
-              </Button>
-            </div>
-            <div style={{ width: "80%" }}>
-              <MultiSelect
-                items={items}
-                selectedItems={selectedItems}
-                onChange={this.handleTagChange}
-                showSearch={false}
-                height={250}
-                selectAllHeight={45}
-              />
-            </div>
-            <br /><br />
             <Button
               bsStyle="primary"
               disabled={this.isBtnDisabled()}
