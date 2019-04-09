@@ -1,7 +1,5 @@
-module.exports = (baseConfig, env, config) => {
-  const customConfig = config;
-
-  customConfig.module.rules.push({
+module.exports = async ({ config }) => {
+  config.module.rules.push({
     loader: require.resolve('babel-loader'),
     options: {
       presets: [
@@ -13,7 +11,7 @@ module.exports = (baseConfig, env, config) => {
     test: /\.tsx?$/,
   });
 
-  customConfig.resolve.extensions.push('.ts', '.tsx');
+  config.resolve.extensions.push('.ts', '.tsx');
 
-  return customConfig;
+  return config;
 };
