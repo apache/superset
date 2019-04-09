@@ -33,6 +33,7 @@ function LeafletMap(element, props) {
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
     const LEAFLET_VIS_ID = 'leafllet-chart-id';
+    const MAP_CONTAINER = '<div id = ' + LEAFLET_VIS_ID + ' style="width: 100%; height: 100%;"></div>';
     var colorCols;
     var geoJson;
     var mapInstance;
@@ -64,16 +65,10 @@ function LeafletMap(element, props) {
     }
 
     function setLayout() {
-        const container = element;
-        // fix of leaflet js :: error 
-        //An error occurred while rendering the visualization: Error: Map container is already initialized.
-        var el = container;
-        if (el && el._leaflet_id) {
-            el._leaflet_id = null;
-        }
-        container.id = LEAFLET_VIS_ID
-        container.style.height =  height;
-        container.style.overflow =  'auto';
+        // set innerHtML to hold map vis
+        element.innerHTML = MAP_CONTAINER;
+        element.style.height =  height;
+        element.style.overflow =  'auto';
     }
 
     function createColorColumns() {
