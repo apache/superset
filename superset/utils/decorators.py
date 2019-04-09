@@ -47,12 +47,13 @@ def etag_cache(max_age, check_perms=bool):
     """
     A decorator for caching views and handling etag conditional requests.
 
-    The decorator caches the response, returning headers for etag and last
-    modified. If the client makes a request that matches, the server will
-    return a "304 Not Mofified" status.
+    The decorator adds headers to GET requests that help with caching: Last-
+    Modified, Expires and ETag. It also handles conditional requests, when the
+    client send an If-Matches header.
 
-    If no cache is set, the decorator will still set the ETag header, and
-    handle conditional requests.
+    If a cache is set, the decorator will cache GET responses, bypassing the
+    dataframe serialization. POST requests will still benefit from the
+    dataframe cache for requests that produce the same SQL.
 
     """
     def decorator(f):
@@ -61,30 +62,46 @@ def etag_cache(max_age, check_perms=bool):
             # check if the user can access the resource
             check_perms(*args, **kwargs)
 
-            try:
-                # build the cache key from the function arguments and any other
-                # additional GET arguments (like `form_data`, eg).
-                key_args = list(args)
-                key_kwargs = kwargs.copy()
-                key_kwargs.update(request.args)
-                cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
-                response = cache.get(cache_key)
-            except Exception:  # pylint: disable=broad-except
-                if app.debug:
-                    raise
-                logging.exception('Exception possibly due to cache backend.')
-                response = None
+            # for POST requests we can't set cache headers, use the response
+            # cache nor use conditional requests; this will still use the
+            # dataframe cache in `superset/viz.py`, though.
+            if request.method == 'POST':
+                return f(*args, **kwargs)
 
-            if response is None or request.method == 'POST':
+            response = None
+            if cache:
+                try:
+                    # build the cache key from the function arguments and any
+                    # other additional GET arguments (like `form_data`, eg).
+                    key_args = list(args)
+                    key_kwargs = kwargs.copy()
+                    key_kwargs.update(request.args)
+                    cache_key = wrapper.make_cache_key(f, *key_args, **key_kwargs)
+                    response = cache.get(cache_key)
+                except Exception:  # pylint: disable=broad-except
+                    if app.debug:
+                        raise
+                    logging.exception('Exception possibly due to cache backend.')
+
+            # if no response was cached, compute it using the wrapped function
+            if response is None:
                 response = f(*args, **kwargs)
+
+                # add headers for caching: Last Modified, Expires and ETag
                 response.cache_control.public = True
                 response.last_modified = datetime.utcnow()
                 expiration = max_age if max_age != 0 else FAR_FUTURE
-                response.expires = response.last_modified + timedelta(seconds=expiration)
+                response.expires = \
+                    response.last_modified + timedelta(seconds=expiration)
                 response.add_etag()
-                try:
-                    cache.set(cache_key, response, timeout=max_age)
-                except Exception:  # pylint: disable=broad-except
+
+                # if we have a cache, store the response from the request
+                if cache:
+                    try:
+                        cache.set(cache_key, response, timeout=max_age)
+                    except Exception:  # pylint: disable=broad-except
+                        if app.debug:
+                            raise
                     logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
