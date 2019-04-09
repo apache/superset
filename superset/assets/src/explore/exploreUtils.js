@@ -121,8 +121,9 @@ export function getExploreUrlAndPayload({
   const search = uri.search(true);
   const { slice_id, extra_filters, adhoc_filters, viz_type } = formData;
   if (slice_id) {
-    const form_data = { slice_id, viz_type };
+    const form_data = { slice_id };
     if (method === 'GET') {
+      form_data.viz_type = viz_type;
       if (extra_filters && extra_filters.length) {
         form_data.extra_filters = extra_filters;
       }
