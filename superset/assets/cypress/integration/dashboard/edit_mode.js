@@ -28,7 +28,8 @@ export default () => describe('edit mode', () => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       const boxplotChartId = dashboard.slices.find(slice => (slice.form_data.viz_type === 'box_plot')).slice_id;
-      const boxplotRequest = `/superset/explore_json/?form_data={"slice_id":${boxplotChartId}}`;
+      const formData = `{"slice_id":${boxplotChartId},"viz_type":"box_plot"}`;
+      const boxplotRequest = `/superset/explore_json/?form_data=${formData}`;
       cy.route('GET', boxplotRequest).as('boxplotRequest');
     });
 
