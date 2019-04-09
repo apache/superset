@@ -24,6 +24,7 @@ import {
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
 import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -32,6 +33,7 @@ import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
+  UPDATE_COMPONENTS_PARENTS_LIST,
   DELETE_COMPONENT,
   CREATE_COMPONENT,
   MOVE_COMPONENT,
@@ -254,6 +256,21 @@ const actionHandlers = {
     };
 
     return nextEntities;
+  },
+
+  [UPDATE_COMPONENTS_PARENTS_LIST](state) {
+    const nextState = {
+      ...state,
+    };
+
+    updateComponentParentsList({
+      currentComponent: nextState[DASHBOARD_ROOT_ID],
+      layout: nextState,
+    });
+
+    return {
+      ...nextState,
+    };
   },
 };
 

@@ -33,6 +33,7 @@ import {
 
 const propTypes = {
   id: PropTypes.number.isRequired,
+  componentId: PropTypes.string.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
@@ -55,6 +56,7 @@ const propTypes = {
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -184,6 +186,7 @@ class Chart extends React.Component {
   render() {
     const {
       id,
+      componentId,
       chart,
       slice,
       datasource,
@@ -198,6 +201,7 @@ class Chart extends React.Component {
       supersetCanExplore,
       supersetCanCSV,
       sliceCanEdit,
+      addDangerToast,
     } = this.props;
 
     const { width } = this.state;
@@ -233,6 +237,9 @@ class Chart extends React.Component {
           supersetCanExplore={supersetCanExplore}
           supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
+          componentId={componentId}
+          filters={filters}
+          addDangerToast={addDangerToast}
         />
 
         {/*

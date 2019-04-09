@@ -108,12 +108,14 @@ export const dashboardLayoutWithTabs = {
       id: 'TABS_ID',
       type: TABS_TYPE,
       children: ['TAB_ID', 'TAB_ID2'],
+      parents: ['ROOT_ID'],
     },
 
     TAB_ID: {
       id: 'TAB_ID',
       type: TAB_TYPE,
       children: ['ROW_ID'],
+      parents: ['ROOT_ID', 'TABS_ID'],
       meta: {
         text: 'tab1',
       },
@@ -122,7 +124,8 @@ export const dashboardLayoutWithTabs = {
     TAB_ID2: {
       id: 'TAB_ID2',
       type: TAB_TYPE,
-      children: [],
+      children: ['ROW_ID2'],
+      parents: ['ROOT_ID', 'TABS_ID'],
       meta: {
         text: 'tab2',
       },
@@ -131,6 +134,7 @@ export const dashboardLayoutWithTabs = {
     CHART_ID: {
       ...newComponentFactory(CHART_TYPE),
       id: 'CHART_ID',
+      parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID', 'ROW_ID'],
       meta: {
         chartId,
         width: 3,
@@ -143,12 +147,33 @@ export const dashboardLayoutWithTabs = {
       ...newComponentFactory(ROW_TYPE),
       id: 'ROW_ID',
       children: ['CHART_ID'],
+      parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID'],
+    },
+
+    CHART_ID2: {
+      ...newComponentFactory(CHART_TYPE),
+      id: 'CHART_ID2',
+      parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID2', 'ROW_ID2'],
+      meta: {
+        chartId,
+        width: 3,
+        height: 10,
+        chartName: 'Mock chart name 2',
+      },
+    },
+
+    ROW_ID2: {
+      ...newComponentFactory(ROW_TYPE),
+      id: 'ROW_ID2',
+      children: ['CHART_ID2'],
+      parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID2'],
     },
 
     [DASHBOARD_GRID_ID]: {
       type: DASHBOARD_GRID_TYPE,
       id: DASHBOARD_GRID_ID,
       children: [],
+      parents: ['ROOT_ID'],
       meta: {},
     },
 

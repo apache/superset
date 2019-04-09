@@ -25,6 +25,7 @@ import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
+import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
@@ -45,6 +46,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   logEvent: PropTypes.func.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -67,6 +69,7 @@ const defaultProps = {
   renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
+  directPathToChild: [],
   onChangeTab() {},
   onResizeStart() {},
   onResize() {},
@@ -76,8 +79,13 @@ const defaultProps = {
 class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
+    const tabIndex = findTabIndexByComponentId({
+      currentComponent: props.component,
+      directPathToChild: props.directPathToChild,
+    });
+
     this.state = {
-      tabIndex: 0,
+      tabIndex,
     };
     this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
