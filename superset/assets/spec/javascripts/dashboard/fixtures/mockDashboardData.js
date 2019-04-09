@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import { dashboardLayout } from './mockDashboardLayout';
 
-export default function getDashboardUrl(pathname, filters = {}, hash = '') {
-  const preselect_filters = encodeURIComponent(JSON.stringify(filters));
-  const hashSection = hash ? `#${hash}` : '';
-  return `${pathname}?preselect_filters=${preselect_filters}${hashSection}`;
-}
+// mock the object to be posted to save_dash or copy_dash API
+export default {
+  css: '',
+  dashboard_title: 'Test 1',
+  default_filters: {},
+  expanded_slices: {},
+  positions: dashboardLayout.present,
+};

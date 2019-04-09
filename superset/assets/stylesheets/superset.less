@@ -291,6 +291,51 @@ table.table-no-hover tr:hover {
   cursor: text;
 }
 
+.anchor-link-container {
+  position: absolute;
+  z-index: 5;
+
+  .btn.btn-sm, .btn.btn-sm:active {
+    border: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .fa.fa-link {
+    position: relative;
+    top: 2px;
+    right: 0;
+    visibility: hidden;
+    font-size: 11px;
+    text-align: center;
+    vertical-align: middle;
+  }
+}
+
+.nav.nav-tabs li .anchor-link-container {
+  top: 0;
+  right: -32px;
+}
+
+.dashboard-component.dashboard-component-header .anchor-link-container {
+  .fa.fa-link {
+    font-size: 16px;
+  }
+}
+
+.nav.nav-tabs li:hover,
+.dashboard-component.dashboard-component-header:hover {
+  .anchor-link-container {
+    cursor: pointer;
+
+    .fa.fa-link {
+      visibility: visible;
+    }
+  }
+}
+
 .m-r-5 {
   margin-right: 5px;
 }

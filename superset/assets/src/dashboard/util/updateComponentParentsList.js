@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+export default function updateComponentParentsList({
+  currentComponent,
+  layout = {},
+}) {
+  if (currentComponent && layout[currentComponent.id]) {
+    const parentsList = (currentComponent.parents || []).slice();
+    parentsList.push(currentComponent.id);
 
-export default function getDashboardUrl(pathname, filters = {}, hash = '') {
-  const preselect_filters = encodeURIComponent(JSON.stringify(filters));
-  const hashSection = hash ? `#${hash}` : '';
-  return `${pathname}?preselect_filters=${preselect_filters}${hashSection}`;
+    currentComponent.children.forEach(childId => {
+      layout[childId].parents = parentsList; // eslint-disable-line no-param-reassign
+      updateComponentParentsList({
+        currentComponent: layout[childId],
+        layout,
+      });
+    });
+  }
 }
