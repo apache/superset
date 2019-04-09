@@ -22,6 +22,7 @@ import PropTypes from 'prop-types';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
+import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentModal from '../DeleteComponentModal';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
@@ -41,6 +42,7 @@ const propTypes = {
   onDropOnTab: PropTypes.func,
   onDeleteTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  filters: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -195,7 +197,14 @@ export default class Tab extends React.PureComponent {
 
   renderTab() {
     const { isFocused } = this.state;
-    const { component, parentComponent, index, depth, editMode } = this.props;
+    const {
+      component,
+      parentComponent,
+      index,
+      depth,
+      editMode,
+      filters,
+    } = this.props;
     const deleteTabIcon = (
       <div className="icon-button">
         <span className="fa fa-trash" />
@@ -238,6 +247,14 @@ export default class Tab extends React.PureComponent {
                 onSaveTitle={this.handleChangeText}
                 showTooltip={false}
               />
+              {!editMode && (
+                <AnchorLink
+                  anchorLinkId={component.id}
+                  filters={filters}
+                  showShortLinkButton
+                  placement={index >= 5 ? 'left' : 'right'}
+                />
+              )}
             </WithPopoverMenu>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}

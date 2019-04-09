@@ -36,6 +36,7 @@ import ToastPresenter from '../../messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';
+import findTabIndexByComponentId from '../util/findTabIndexByComponentId';
 
 import {
   DASHBOARD_GRID_ID,
@@ -54,10 +55,12 @@ const propTypes = {
   showBuilderPane: PropTypes.bool,
   handleComponentDrop: PropTypes.func.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
+  directPathToChild: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
   showBuilderPane: false,
+  directPathToChild: [],
 };
 
 class DashboardBuilder extends React.Component {
@@ -72,8 +75,19 @@ class DashboardBuilder extends React.Component {
 
   constructor(props) {
     super(props);
+
+    const { dashboardLayout, directPathToChild } = props;
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    const rootChildId = dashboardRoot.children[0];
+    const topLevelTabs =
+      rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
+    const tabIndex = findTabIndexByComponentId({
+      currentComponent: topLevelTabs || dashboardLayout[DASHBOARD_ROOT_ID],
+      directPathToChild,
+    });
+
     this.state = {
-      tabIndex: 0, // top-level tabs
+      tabIndex,
     };
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
