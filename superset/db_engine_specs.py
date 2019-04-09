@@ -953,7 +953,6 @@ class PrestoEngineSpec(BaseEngineSpec):
             that determines if that field should be sorted in descending
             order
         :type order_by: list of (str, bool) tuples
-        :param filters: a list of filters to apply
         :param filters: dict of field name and filter value combinations
         """
         limit_clause = 'LIMIT {}'.format(limit) if limit else ''
@@ -972,7 +971,8 @@ class PrestoEngineSpec(BaseEngineSpec):
             where_clause = 'WHERE ' + ' AND '.join(l)
 
         sql = textwrap.dedent(f"""\
-            SHOW PARTITIONS FROM {table_name}
+            SELECT * FROM "{table_name}$partitions"
+
             {where_clause}
             {order_by_clause}
             {limit_clause}
