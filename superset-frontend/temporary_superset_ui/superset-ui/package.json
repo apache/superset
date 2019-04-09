@@ -16,7 +16,7 @@
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "beemo create-config prettier && beemo eslint --fix \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
     "jest": "beemo jest --color --coverage --react",
-    "postrelease": "lerna run gh-pages",
+    "postrelease": "lerna run deploy-demo",
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn install && yarn run test",
     "prerelease": "yarn run build",
     "pretest": "yarn run lint",
