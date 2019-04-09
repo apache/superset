@@ -29,8 +29,8 @@ const GEO_BOUNDS = {
 };
 
 /**
- * Get the latitude bounds if latitiude is a single coordinate
- * @param latExt Latitiude range
+ * Get the latitude bounds if latitude is a single coordinate
+ * @param latExt Latitude range
  */
 function getLatBoundsForSingleCoordinate(latExt) {
   const latMin = latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN
