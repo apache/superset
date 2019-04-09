@@ -62,9 +62,9 @@ def etag_cache(max_age, check_perms=bool):
             # check if the user can access the resource
             check_perms(*args, **kwargs)
 
-            # for POST requests we can't set headers, use the response cache
-            # nor use conditional requests; this will still use the dataframe
-            # cache in `superset/viz.py`, though.
+            # for POST requests we can't set cache headers, use the response
+            # cache nor use conditional requests; this will still use the
+            # dataframe cache in `superset/viz.py`, though.
             if request.method == 'POST':
                 return f(*args, **kwargs)
 
@@ -83,8 +83,7 @@ def etag_cache(max_age, check_perms=bool):
                         raise
                     logging.exception('Exception possibly due to cache backend.')
 
-            # if this is not a GET, or if no response was cached, compute the
-            # response using the wrapped function
+            # if no response was cached, compute it using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
 
@@ -96,7 +95,7 @@ def etag_cache(max_age, check_perms=bool):
                     response.last_modified + timedelta(seconds=expiration)
                 response.add_etag()
 
-                # if we have a cache, store the response from the GET request
+                # if we have a cache, store the response from the request
                 if cache:
                     try:
                         cache.set(cache_key, response, timeout=max_age)
