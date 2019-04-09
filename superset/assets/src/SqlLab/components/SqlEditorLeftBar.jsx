@@ -25,7 +25,7 @@ import TableSelector from '../../components/TableSelector';
 
 const propTypes = {
   queryEditor: PropTypes.object.isRequired,
-  height: PropTypes.number.isRequired,
+  height: PropTypes.number,
   tables: PropTypes.array,
   actions: PropTypes.object,
   database: PropTypes.object,
