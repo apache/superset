@@ -45,9 +45,6 @@ CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
 
-with open(APP_DIR + '/static/assets/backendSync.json', 'r', encoding='utf-8') as f:
-    frontend_config = json.load(f)
-
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
