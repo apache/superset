@@ -5,7 +5,7 @@ Superset on Docker:
 
 With examples:
 
-* `SUPERSET_LOAD_EXAMPLES=yes docker-compose run --rm superset ./docker-init.sh`
+* `docker-compose run -e SUPERSET_LOAD_EXAMPLES=yes --rm superset  ./docker-init.sh`
 
 Or without examples:
 
