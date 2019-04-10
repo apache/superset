@@ -1,3 +1,4 @@
+import '@babel/polyfill';
 import { setAddon, storiesOf } from '@storybook/react';
 import { withKnobs } from '@storybook/addon-knobs';
 import JSXAddon from 'storybook-addon-jsx';
