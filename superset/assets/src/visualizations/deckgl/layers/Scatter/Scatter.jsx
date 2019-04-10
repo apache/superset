@@ -43,6 +43,8 @@ export function getLayer(fd, payload, onAddFilter, setTooltip) {
     id: `scatter-layer-${fd.sliceId}`,
     data: dataWithRadius,
     fp64: true,
+    getColor: d => d.color,
+    getRadius: d=> d.radius,
     radiusMinPixels: fd.minRadius || null,
     radiusMaxPixels: fd.maxRadius || null,
     outline: false,

@@ -42,6 +42,9 @@ export function getLayer(formData, payload, onAddFilter, setTooltip) {
     data,
     rounded: true,
     widthScale: 1,
+    getColor: d => d.color,
+    getPath: d => d.path,
+    getWidth: d => d.width,
     ...commonLayerProps(fd, setTooltip),
   });
 }
