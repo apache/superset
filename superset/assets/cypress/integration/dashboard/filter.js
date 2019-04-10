@@ -39,8 +39,7 @@ export default () => describe('dashboard filter', () => {
   it('should apply filter', () => {
     const aliases = [];
 
-    const formData = `{"slice_id":${filterId},"viz_type":"filter_box"}`;
-    const filterRoute = `/superset/explore_json/?form_data=${formData}`;
+    const filterRoute = `/superset/explore_json/?form_data={"slice_id":${filterId}}`;
     cy.route('GET', filterRoute).as('fetchFilter');
     cy.wait('@fetchFilter');
     sliceIds
