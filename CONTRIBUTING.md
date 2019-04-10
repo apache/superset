@@ -385,9 +385,6 @@ npm run dev
 
 # Compile the Javascript and CSS in production/optimized mode for official releases
 npm run prod
-
-# Copy a conf file from the frontend to the backend
-npm run sync-backend
 ```
 
 #### Updating NPM packages

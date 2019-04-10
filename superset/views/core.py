@@ -51,7 +51,7 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
-from superset.legacy import cast_form_data, update_time_range
+from superset.legacy import update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
@@ -1057,10 +1057,6 @@ class Superset(BaseSupersetView):
                 # allow form_date in request override saved url
                 url_form_data.update(form_data)
                 form_data = url_form_data
-
-        if request.args.get('viz_type'):
-            # Converting old URLs
-            form_data = cast_form_data(form_data)
 
         form_data = {
             k: v
