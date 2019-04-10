@@ -23,7 +23,7 @@ fabmanager create-admin --app superset
 # Initialize the database
 superset db upgrade
 
-if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
+if [ "$SUPERSET_LOAD_EXAMPLES" == "yes" ]; then
     # Load some data to play with
     superset load_examples
 fi
