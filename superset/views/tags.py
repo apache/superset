@@ -77,6 +77,9 @@ class TagView(BaseSupersetView):
     @expose('/tags/<object_type:object_type>/<int:object_id>/', methods=['GET'])
     def get(self, object_type, object_id):
         """List all tags a given object has."""
+        if object_id == 0:
+            return json_success(json.dumps([]))
+
         query = db.session.query(TaggedObject).filter(and_(
             TaggedObject.object_type == object_type,
             TaggedObject.object_id == object_id))
@@ -87,6 +90,9 @@ class TagView(BaseSupersetView):
     @expose('/tags/<object_type:object_type>/<int:object_id>/', methods=['POST'])
     def post(self, object_type, object_id):
         """Add new tags to an object."""
+        if object_id == 0:
+            return Response(status=404)
+
         tagged_objects = []
         for name in request.get_json(force=True):
             if ':' in name:
