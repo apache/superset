@@ -63,7 +63,7 @@ export default function transformProps(chartProps) {
         const compareValue = sortedData[compareIndex][metricName];
         percentChange =
           compareValue === 0 ? 0 : (bigNumber - compareValue) / Math.abs(compareValue);
-        const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_CHANGE_1_POINT);
+        const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
         formattedSubheader = `${formatPercentChange(percentChange)} ${compareSuffix}`;
       }
     }
