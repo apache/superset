@@ -141,14 +141,6 @@ def check_slice_perms(self, slice_id):
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
-class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):  # noqa
-        if security_manager.all_database_access():
-            return query
-        database_perms = self.get_view_menus('database_access')
-        return query.filter(self.model.perm.in_(database_perms))
-
-
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -311,7 +303,6 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_multi_schema_metadata_fetch': _('Allow Multi Schema Metadata Fetch'),
         'backend': _('Backend'),
     }
-    base_filters = [['id', DatabaseFilter, lambda: []]]
 
     def pre_add(self, db):
         self.check_extra(db)
