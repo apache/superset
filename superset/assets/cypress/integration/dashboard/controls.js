@@ -41,7 +41,7 @@ export default () => describe('top-level controls', () => {
           sliceRequests.push(`@${sliceRequest}`);
           cy.route('GET', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(sliceRequest);
 
-          const forceRefresh = `getJson_${id}_force`;
+          const forceRefresh = `postJson_${id}_force`;
           forceRefreshRequests.push(`@${forceRefresh}`);
           cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}&force=true`).as(forceRefresh);
         });
@@ -69,7 +69,7 @@ export default () => describe('top-level controls', () => {
       .parent()
       .should('have.class', 'disabled');
 
-    cy.wait(`@getJson_${mapId}_force`);
+    cy.wait(`@postJson_${mapId}_force`);
     cy.get('#save-dash-split-button').trigger('click');
     cy.contains('Force refresh dashboard').parent().not('have.class', 'disabled');
   });
