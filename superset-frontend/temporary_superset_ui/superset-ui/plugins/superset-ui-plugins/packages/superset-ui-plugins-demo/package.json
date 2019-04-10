@@ -5,11 +5,11 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "gh-pages:clean": "rm -rf _gh-pages",
-    "gh-pages:build": "build-storybook -o _gh-pages -c storybook-config",
-    "gh-pages:publish": "git-directory-deploy --directory _gh-pages",
-    "gh-pages": "npm run gh-pages:clean && npm run gh-pages:build && npm run gh-pages:publish && npm run gh-pages:clean",
-    "storybook": "start-storybook -p 9001 -c storybook-config"
+    "demo:clean": "rm -rf _gh-pages",
+    "demo:build": "build-storybook -o _gh-pages",
+    "demo:publish": "gh-pages -d _gh-pages",
+    "deploy-demo": "npm run demo:clean && npm run demo:build && npm run demo:publish && npm run demo:clean",
+    "storybook": "start-storybook -p 9001"
   },
   "repository": {
     "type": "git",
@@ -29,26 +29,29 @@
   },
   "homepage": "https://github.com/apache-superset/superset-ui-plugins#readme",
   "dependencies": {
-    "@babel/core": "^7.1.2",
-    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/polyfill": "^7.4.3",
     "@data-ui/event-flow": "^0.0.54",
-    "@storybook/addon-knobs": "^4.0.2",
-    "@storybook/addon-options": "^4.0.3",
-    "@storybook/react": "^4.1.11",
+    "@storybook/addon-actions": "^5.0.6",
+    "@storybook/addon-knobs": "^5.0.6",
+    "@storybook/addon-links": "^5.0.6",
+    "@storybook/addons": "^5.0.6",
+    "@storybook/react": "^5.0.6",
+    "@types/react": "^16.8.8",
+    "@types/storybook__addon-knobs": "^4.0.4",
+    "bootstrap": "^4.3.1",
+    "react": "^16.6.0",
+    "storybook-addon-jsx": "^7.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "babel-loader": "^8.0.5",
+    "gh-pages": "^2.0.1"
+  },
+  "peerDependencies": {
     "@superset-ui/chart": "^0.11.0",
     "@superset-ui/color": "^0.11.0",
     "@superset-ui/time-format": "^0.11.0",
-    "@superset-ui/translation": "^0.11.0",
-    "@types/react": "^16.8.8",
-    "babel-loader": "^8.0.4",
-    "bootstrap": "^3.3.6",
-    "cache-loader": "^1.2.2",
-    "fork-ts-checker-webpack-plugin": "^0.4.9",
-    "git-directory-deploy": "^1.5.1",
-    "react": "^16.6.0",
-    "react-dom": "^16.6.0",
-    "storybook-addon-jsx": "^5.4.0",
-    "thread-loader": "^1.2.0",
-    "ts-loader": "^5.2.0"
+    "@superset-ui/translation": "^0.11.0"
   }
 }
