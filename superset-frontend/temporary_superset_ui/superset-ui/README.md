@@ -1,12 +1,19 @@
 # @superset-ui
 
-[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui/master.svg?style=flat-square)](http://codecov.io/github/apache-superset/superset-ui/coverage.svg?branch=master)
+[![Codecov branch](https://img.shields.io/codecov/c/github/apache-superset/superset-ui/master.svg?style=flat-square)](https://codecov.io/gh/apache-superset/superset-ui/branch/master)
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui?type=dev)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/fcbfa1cb-ae3e-48a4-b86a-e803c8e6c79c/deploy-status)](https://app.netlify.com/sites/superset-ui/deploys)
 
 Collection of packages that power the [Apache Superset](https://github.com/apache/incubator-superset) UI, and can be used to craft custom data
 applications that leverage a Superset backend :chart_with_upwards_trend:
+
+## Demo
+
+Most recent release: https://apache-superset.github.io/superset-ui/
+
+Current master: https://superset-ui.netlify.com
 
 ## Packages
 
@@ -22,10 +29,6 @@ applications that leverage a Superset backend :chart_with_upwards_trend:
 | [@superset-ui/time-format](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-time-format) | [![Version](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/time-format.svg?style=flat-square) |
 | [@superset-ui/translation](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-translation) | [![Version](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/translation.svg?style=flat-square) |
 
-#### Coming :soon:
-
-- Data providers
-- Chart plugins
 
 ### Development
 
@@ -53,7 +56,7 @@ superset-ui/
 ### Installation
 
 1. clone this repo
-2. have yarn install package dependencies and manage the symlinking between packages for you
+2. have `yarn` install package dependencies and manage the symlinking between packages for you
 
 ```sh
 git clone ...superset-ui && cd superset-ui
