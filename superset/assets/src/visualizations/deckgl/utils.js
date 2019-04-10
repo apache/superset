@@ -38,7 +38,8 @@ export function getBreakPoints({
     const precision = delta === 0
       ? 0
       : Math.max(0, Math.ceil(Math.log10(1 / delta)));
-    return Array(numBuckets + 1)
+    const extraBucket = maxValue > maxValue.toFixed(precision) ? 1 : 0;
+    return Array(numBuckets + 1 + extraBucket)
       .fill()
       .map((_, i) => (minValue + i * delta).toFixed(precision));
   }
