@@ -23,6 +23,7 @@ assists people when migrating to a new version.
 
 ## Superset 0.32.0
 
+* `npm run backend-sync` is deprecated and no longer needed, will fail if called
 * [5445](https://github.com/apache/incubator-superset/pull/5445) : a change 
 which prevents encoding of empty string from form data in the datanbase. 
 This involves a non-schema changing migration which does potentially impact
