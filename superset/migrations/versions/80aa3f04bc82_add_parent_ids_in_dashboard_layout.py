@@ -16,9 +16,9 @@
 # under the License.
 """Add Parent ids in dashboard layout metadata
 
-Revision ID: 80669c0097a6
-Revises: c82ee8a39623
-Create Date: 2019-02-25 15:43:02.488328
+Revision ID: 80aa3f04bc82
+Revises: 45e7da7cfeba
+Create Date: 2019-04-09 16:27:03.392872
 
 """
 import json
@@ -38,8 +38,8 @@ import sqlalchemy as sa
 from superset import db
 
 # revision identifiers, used by Alembic.
-revision = '80669c0097a6'
-down_revision = 'c82ee8a39623'
+revision = '80aa3f04bc82'
+down_revision = '45e7da7cfeba'
 
 Base = declarative_base()
 
