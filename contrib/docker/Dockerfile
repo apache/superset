@@ -59,7 +59,6 @@ USER superset
 
 RUN cd superset/assets \
     && npm ci \
-    && npm run sync-backend \
     && npm run build \
     && rm -rf node_modules
 
