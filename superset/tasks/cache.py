@@ -27,7 +27,7 @@ from requests.exceptions import RequestException
 from sqlalchemy import and_, func
 
 from superset import app, db
-from superset.models.core import Dashboard, Log, Slice
+from superset.models.core import Dashboard, Database, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
 from superset.utils.core import parse_human_datetime
@@ -314,3 +314,17 @@ def cache_warmup(strategy_name, *args, **kwargs):
             results['errors'].append(url)
 
     return results
+
+
+@celery_app.task(name='datasources-cache')
+def update_datasources_cache(cache_timeout=24 * 60 * 60):
+    for database in db.session.query(Database).all():
+        if database.allow_multi_schema_metadata_fetch:
+            logger.info('Fetching {} datasources ...'.format(database.name))
+            try:
+                database.all_table_names_in_database(
+                    force=True, cache=True, cache_timeout=cache_timeout)
+                database.all_view_names_in_database(
+                    force=True, cache=True, cache_timeout=cache_timeout)
+            except Exception as e:
+                logger.exception('An error occurred!')
