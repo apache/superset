@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { CategoricalColorNamespace } from '@superset-ui/color';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
@@ -29,6 +30,7 @@ export default function getFormDataWithExtraFilters({
   dashboardMetadata,
   filters,
   colorScheme,
+  colorNamespace,
   sliceId,
 }) {
   // if dashboard metadata + filters have not changed, use cache if possible
@@ -42,9 +44,14 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
+  // Propagate color mapping to chart
+  const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
+  const labelColors = scale.getColorMap();
+
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
+    label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters({
       dashboardMetadata,
       filters,

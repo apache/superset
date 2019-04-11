@@ -2090,6 +2090,16 @@ export const controls = {
     schemes: () => categoricalSchemeRegistry.getMap(),
   },
 
+  label_colors: {
+    type: 'ColorMapControl',
+    label: t('Color Map'),
+    default: {},
+    mapStateToProps: state => ({
+      colorNamespace: state.form_data.color_namespace,
+      colorScheme: state.form_data.color_scheme,
+    }),
+  },
+
   significance_level: {
     type: 'TextControl',
     label: t('Significance Level'),
