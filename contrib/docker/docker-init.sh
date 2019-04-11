@@ -43,9 +43,6 @@ fi
 # Create default roles and permissions
 superset init
 
-# Start superset worker for SQL Lab
-superset worker &
-
 if [ "$FETCH_CERTS" = "yes" ]; then
     # fetch SSL certificates
     for name in cert privkey ; do
