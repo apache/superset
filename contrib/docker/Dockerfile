@@ -25,7 +25,7 @@ ENV LANG=C.UTF-8 \
 RUN apt-get update -y
 
 # Install dependencies to fix `curl https support error` and `elaying package configuration warning`
-RUN apt-get install -y apt-transport-https apt-utils
+RUN apt-get install -y apt-transport-https apt-utils firefox-esr
 
 # Install superset dependencies
 # https://superset.incubator.apache.org/installation.html#os-dependencies
