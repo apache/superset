@@ -2320,6 +2320,7 @@ export const controls = {
     description: t('Filter configuration for the filter box'),
     validators: [v.nonEmpty],
     controlName: 'FilterBoxItemControl',
+    passthroughProps: ['datasource'],
     mapStateToProps: ({ datasource }) => ({ datasource }),
   },
 
