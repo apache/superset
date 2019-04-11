@@ -18,7 +18,7 @@
 set -ex
 
 export APP_NAME=superset
-export APP_HOME=/home/work
+export APP_HOME=/home/superset
 
 if [ "${ENVIRONMENT}" = "" ] || [ "${STACK}" = "" ]; then
     echo "ENVIRONMENT and STACK environment variables must be set" >&2
