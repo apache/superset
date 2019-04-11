@@ -326,5 +326,5 @@ def update_datasources_cache(cache_timeout=24 * 60 * 60):
                     force=True, cache=True, cache_timeout=cache_timeout)
                 database.all_view_names_in_database(
                     force=True, cache=True, cache_timeout=cache_timeout)
-            except Exception as e:
+            except Exception:
                 logger.exception('An error occurred!')
