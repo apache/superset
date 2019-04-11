@@ -29,6 +29,8 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
 
+const CACHE_KEY = '@SUPERSET-UI/CONNECTION';
+
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
   return { type: CHART_UPDATE_STARTED, queryController, latestQueryFormData, key };
@@ -238,6 +240,25 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
       });
 
     const annotationLayers = formData.annotation_layers || [];
+
+    // clear cache on POST; this happens in Explore view when "Run Query" is
+    // clicked, or in the dashboard when force refresh is clicked
+    if (method === 'POST' && 'caches' in self) {
+      caches.open(CACHE_KEY).then(supersetCache =>
+        supersetCache
+          .keys()
+          .then((keys) => {
+            keys.forEach((request) => {
+              const requestUrl = new URL(request.url || request);
+              const urlFormData = requestUrl.searchParams.get('form_data');
+              if (formData && JSON.parse(urlFormData).slice_id === key) {
+                console.log(`Invalidating ${request} since it uses chart ${key}.`);
+                supersetCache.delete(request);
+              }
+            });
+          }),
+      );
+    }
 
     return Promise.all([
       queryPromise,
