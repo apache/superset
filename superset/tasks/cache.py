@@ -320,7 +320,7 @@ def cache_warmup(strategy_name, *args, **kwargs):
 def update_datasources_cache(cache_timeout=24 * 60 * 60):
     for database in db.session.query(Database).all():
         if database.allow_multi_schema_metadata_fetch:
-            logger.info('Fetching {} datasources ...'.format(database.name))
+            logger.info(f'Fetching {database.name} datasources')
             try:
                 database.all_table_names_in_database(
                     force=True, cache=True, cache_timeout=cache_timeout)
