@@ -8,8 +8,6 @@ setupApp();
 setupPlugins();
 
 
-appSetup();
-
 const addAlertContainer = document.getElementById('js-add-alert-container');
 const bootstrapData = JSON.parse(addAlertContainer.getAttribute('data-bootstrap'));
 

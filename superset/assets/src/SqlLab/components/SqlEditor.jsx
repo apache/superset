@@ -348,7 +348,7 @@ class SqlEditor extends React.PureComponent {
           {limitWarning}
           {this.props.latestQuery &&
             <Timer
-              startTime={this.props.latestQuery.startDttm}
+              startTime={parseFloat(this.props.latestQuery.startDttm)}
               endTime={this.props.latestQuery.endDttm}
               state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
               isRunning={this.props.latestQuery.state === 'running'}
@@ -369,6 +369,7 @@ class SqlEditor extends React.PureComponent {
           <div className="schemaPane">
             <SqlEditorLeftBar
               database={this.props.database}
+              height={this.getSqlEditorHeight()}
               queryEditor={this.props.queryEditor}
               tables={this.props.tables}
               actions={this.props.actions}

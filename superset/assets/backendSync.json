@@ -2755,6 +2755,12 @@
       "default": false,
       "description": "Compute the contribution to the total"
     },
+    "params": {
+      "type": "TextControl",
+      "label": "Params",
+      "default": "{}",
+      "description": "Edit template parameters as JSON"
+    },
     "time_compare": {
       "type": "SelectControl",
       "multi": true,
@@ -3716,6 +3722,15 @@
       "renderTrigger": true,
       "description": "Whether to fill the objects",
       "default": true
+    },
+    "filter_configs": {
+      "type": "CollectionControl",
+      "label": "Filters",
+      "description": "Filter configuration for the filter box",
+      "validators": [
+        null
+      ],
+      "controlName": "FilterBoxItemControl"
     },
     "normalized": {
       "type": "CheckboxControl",
