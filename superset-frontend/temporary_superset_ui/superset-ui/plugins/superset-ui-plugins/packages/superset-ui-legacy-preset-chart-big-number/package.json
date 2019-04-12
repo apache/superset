@@ -2,7 +2,8 @@
   "name": "@superset-ui/legacy-preset-chart-big-number",
   "version": "0.10.10",
   "description": "Superset Legacy Chart - Big Number",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
+
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
