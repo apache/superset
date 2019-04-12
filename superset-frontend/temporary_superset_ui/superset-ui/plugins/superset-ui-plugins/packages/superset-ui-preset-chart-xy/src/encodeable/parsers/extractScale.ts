@@ -77,9 +77,13 @@ export function deriveScaleTypeFromDataTypeAndChannelType(
     return undefined;
   } else if (dataType === 'nominal' || dataType === 'ordinal') {
     switch (channelType) {
+      // For positional (x and y) ordinal and ordinal fields,
+      // "point" is the default scale type for all marks
+      // except bar and rect marks, which use "band" scales.
+      // https://vega.github.io/vega-lite/docs/scale.html
       case 'XBand':
       case 'YBand':
-        return ScaleType.POINT;
+        return ScaleType.BAND;
       case 'X':
       case 'Y':
       case 'Numeric':
