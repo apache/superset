@@ -2,7 +2,8 @@
   "name": "@superset-ui/legacy-preset-chart-nvd3",
   "version": "0.10.9",
   "description": "Superset Legacy Chart - NVD3",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
+
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
