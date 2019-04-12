@@ -2,7 +2,8 @@
   "name": "@superset-ui/plugin-chart-word-cloud",
   "version": "0.10.5",
   "description": "Superset Chart Plugin - Word Cloud",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
+
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
