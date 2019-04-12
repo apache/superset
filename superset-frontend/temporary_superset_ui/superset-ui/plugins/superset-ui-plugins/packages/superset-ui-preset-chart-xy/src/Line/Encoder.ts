@@ -13,13 +13,13 @@ import { EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
 // See more details from
 // https://github.com/Microsoft/TypeScript/issues/20195
 // https://github.com/Microsoft/TypeScript/pull/29510
-const channelTypes = new class Channels {
+const channelTypes = new (class Channels {
   readonly x = 'X';
   readonly y = 'Y';
   readonly color = 'Color';
   readonly fill = 'Category';
   readonly strokeDasharray = 'Category';
-}();
+})();
 
 export type ChannelTypes = typeof channelTypes;
 
