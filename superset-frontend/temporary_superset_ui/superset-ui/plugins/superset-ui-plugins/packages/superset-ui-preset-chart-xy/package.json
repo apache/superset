@@ -3,7 +3,6 @@
   "version": "0.10.5",
   "description": "Superset Chart - XY",
   "sideEffects": ["*.css"],
-
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
@@ -26,7 +25,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "private": true,
   "dependencies": {
     "@data-ui/theme": "^0.0.75",
     "@data-ui/xy-chart": "^0.0.76",

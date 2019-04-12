@@ -3,7 +3,6 @@
   "version": "0.10.10",
   "description": "Superset Legacy Chart - Big Number",
   "sideEffects": ["*.css"],
-
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
