@@ -32,6 +32,7 @@ from superset import (
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
+from superset.tasks.cache import update_datasources
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -369,19 +370,10 @@ def export_datasource_schema(back_references):
 
 
 @app.cli.command()
-def update_datasources_cache():
+@click.argument('cache_timeout', default=24 * 60 * 60)
+def update_datasources_cache(cache_timeout):
     """Refresh sqllab datasources cache"""
-    from superset.models.core import Database
-    for database in db.session.query(Database).all():
-        if database.allow_multi_schema_metadata_fetch:
-            print('Fetching {} datasources ...'.format(database.name))
-            try:
-                database.all_table_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60)
-                database.all_view_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60)
-            except Exception as e:
-                print('{}'.format(str(e)))
+    update_datasources(cache_timeout)
 
 
 @app.cli.command()
