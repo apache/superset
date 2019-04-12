@@ -50,6 +50,9 @@ export default function getClientErrorObject(response) {
           resolve({ ...response, error: errorText });
         });
       });
+    } else if (typeof (response) === 'object' && Object.keys(response).length === 0) {
+      // Weird empty object that can get converted to string
+      resolve({ ...response, error: String(response) });
     } else {
       // fall back to Response.statusText or generic error of we cannot read the response
       resolve({ ...response, error: response.statusText || t('An error occurred') });
