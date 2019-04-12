@@ -66,6 +66,9 @@ def etag_cache(max_age, check_perms=bool):
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.
             if request.method == 'POST':
+                # TODO
+                if cache:
+                    cache.clear()
                 return f(*args, **kwargs)
 
             response = None

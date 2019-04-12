@@ -20,7 +20,7 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { CACHE_KEY, SupersetClient } from '@superset-ui/connection';
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { addDangerToast } from '../messageToasts/actions';
@@ -28,8 +28,6 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import { allowCrossDomain } from '../utils/hostNamesConfig';
-
-const CACHE_KEY = '@SUPERSET-UI/CONNECTION';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -251,8 +249,9 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
             keys.forEach((request) => {
               const requestUrl = new URL(request.url || request);
               const urlFormData = requestUrl.searchParams.get('form_data');
+              // clear all cached responses that reference this chart
               if (formData && JSON.parse(urlFormData).slice_id === key) {
-                console.log(`Invalidating ${request} since it uses chart ${key}.`);
+                console.log(`Invalidating ${request.url} since it uses chart ${key}.`);
                 supersetCache.delete(request);
               }
             });
