@@ -2,7 +2,8 @@
   "name": "@superset-ui/legacy-plugin-chart-force-directed",
   "version": "0.10.5",
   "description": "Superset Legacy Chart - Force-directed Graph",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
+
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
