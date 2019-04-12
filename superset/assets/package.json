@@ -75,7 +75,7 @@
     "@superset-ui/legacy-plugin-chart-word-cloud": "^0.10.0",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.10.0",
     "@superset-ui/legacy-preset-chart-big-number": "^0.10.1",
-    "@superset-ui/legacy-preset-chart-nvd3": "^0.10.2",
+    "@superset-ui/legacy-preset-chart-nvd3": "^0.10.6",
     "@superset-ui/number-format": "^0.10.1",
     "@superset-ui/time-format": "^0.10.1",
     "@superset-ui/translation": "^0.10.0",
