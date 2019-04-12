@@ -52,8 +52,6 @@ export default function getClientErrorObject(response) {
       });
     } else if (typeof (response) === 'object' && Object.keys(response).length === 0) {
       // Weird empty object that can get converted to string
-      /* eslint no-console: 0 */
-      console.error(response);
       resolve({ ...response, error: String(response) });
     } else {
       // fall back to Response.statusText or generic error of we cannot read the response
