@@ -1,8 +1,10 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-histogram",
-  "version": "0.10.5",
+  "version": "0.10.11",
   "description": "Superset Legacy Chart - Histogram",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
