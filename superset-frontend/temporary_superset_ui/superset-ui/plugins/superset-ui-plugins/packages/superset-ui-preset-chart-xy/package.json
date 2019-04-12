@@ -1,8 +1,10 @@
 {
   "name": "@superset-ui/preset-chart-xy",
-  "version": "0.10.5",
+  "version": "0.10.11",
   "description": "Superset Chart - XY",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
