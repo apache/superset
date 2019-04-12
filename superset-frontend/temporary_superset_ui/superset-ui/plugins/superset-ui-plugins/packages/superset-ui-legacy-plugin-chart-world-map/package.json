@@ -3,7 +3,6 @@
   "version": "0.10.5",
   "description": "Superset Legacy Chart - World Map",
   "sideEffects": ["*.css"],
-
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
