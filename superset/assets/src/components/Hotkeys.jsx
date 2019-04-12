@@ -25,7 +25,7 @@ const propTypes = {
   hotkeys: PropTypes.arrayOf(PropTypes.shape({
     key: PropTypes.string.isRequired,
     descr: PropTypes.string.isRequired,
-    func: PropTypes.func.isRequired,
+    func: PropTypes.func,
   })).isRequired,
   header: PropTypes.string,
   placement: PropTypes.string,
@@ -38,7 +38,9 @@ const defaultProps = {
 export default class Hotkeys extends React.PureComponent {
   componentDidMount() {
     this.props.hotkeys.forEach((keyConfig) => {
-      Mousetrap.bind([keyConfig.key], keyConfig.func);
+      if (keyConfig.func) {
+        Mousetrap.bind([keyConfig.key], keyConfig.func);
+      }
     });
   }
   renderPopover() {
