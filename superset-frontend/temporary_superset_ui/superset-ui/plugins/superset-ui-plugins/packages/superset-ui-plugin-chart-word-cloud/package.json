@@ -3,7 +3,6 @@
   "version": "0.10.5",
   "description": "Superset Chart Plugin - Word Cloud",
   "sideEffects": ["*.css"],
-
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
