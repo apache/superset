@@ -4,6 +4,7 @@
 [![Build Status](https://img.shields.io/travis/com/apache-superset/superset-ui-plugins/master.svg?style=flat-square
 )](https://travis-ci.com/apache-superset/superset-ui-plugins)
 [![David](https://img.shields.io/david/dev/apache-superset/superset-ui-plugins.svg?style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?type=dev)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/d2c78390-752e-4fc2-abf0-7e6df362b9ff/deploy-status)](https://app.netlify.com/sites/superset-ui-plugins/deploys)
 
 `@superset-ui/legacy-*` packages are extracted from the classic [Apache Superset](https://github.com/apache/incubator-superset) and converted into plugins.
 These packages are extracted with minimal changes (almost as-is). They also depend on legacy API (`viz.py`) to function.
@@ -16,7 +17,12 @@ Bug fixes are welcome.
 
 In the future, we plan to have a template for new repository or generator for everybody to setup a single plugin repository easily on his/her own.
 This way anybody can create and publish a Superset plugin.
-If a third-party plugin becomes really good, we can consider merging into this repo later.
+
+## Demo (Storybook)
+
+Most recent release: https://apache-superset.github.io/superset-ui-plugins/
+
+Current master: https://superset-ui-plugins.netlify.com
 
 ## Packages
 
