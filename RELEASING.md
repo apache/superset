@@ -59,7 +59,10 @@ need to be done at every release.
     gpg --gen-key
      
     # Checkout ASF dist repo
-    svn checkout https://dist.apache.org/repos/dist/dev/incubator/superset/ ~/svn/superset
+
+    svn checkout https://dist.apache.org/repos/dist/dev/incubator/superset/ ~/svn/superset_dev
+
+    svn checkout https://dist.apache.org/repos/dist/incubator/superset/ ~/svn/superset
     cd ~/svn/superset
  
   
@@ -95,15 +98,27 @@ Now let's craft a source release
     scripts/sign.sh apache-superset-${VERSION}-source.tar.gz
 ```
 
-Now let's ship this into svn
+Now let's ship this RC into svn's dev folder
 
 ```bash
     # cp or mv the files over to the svn repo
-    mkdir ~/svn/superset/${VERSION}/
+    mkdir ~/svn/superset_dev/${VERSION}/
     cp apache-superset-${VERSION}* ~/svn/superset/${VERSION}/
     cd ~/svn/superset/
     svn add ${VERSION}
     svn commit
 ```
 
-Now you're ready to announce the release on the mailing list
+Now you're ready to start the VOTE thread.
+
+Upon a successful vote, you'll have to copy the folder into the non-"dev/"
+folder.
+```bash
+    cp -r ~/svn/superset_dev/${VERSION}/ ~/svn/superset/${VERSION}/
+    cd ~/svn/superset/
+    svn add ${VERSION}
+    svn commit
+```
+
+Now you can announce the release on the mailing list, make sure to use the
+proper template
