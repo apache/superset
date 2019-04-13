@@ -32,6 +32,6 @@
     "d3-time-format": "^2.1.3"
   },
   "peerDependencies": {
-    "@superset-ui/core": "^0.10.0"
+    "@superset-ui/core": "^0.11.0"
   }
 }
