@@ -1565,7 +1565,6 @@ class Superset(BaseSupersetView):
         """Endpoint to fetch the list of tables for given database"""
         db_id = int(db_id)
         force_refresh = force_refresh.lower() == 'true'
-        print(substr)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         substr = utils.parse_js_uri_path_item(substr, eval_undefined=True)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
@@ -2353,9 +2352,6 @@ class Superset(BaseSupersetView):
     @expose('/table/<database_id>/<table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
-        print(request.url)
-        print(schema)
-        print(table_name)
         schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
