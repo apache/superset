@@ -101,9 +101,8 @@ export default class TableSelector extends React.PureComponent {
       return Promise.resolve({ options });
     }
     return SupersetClient.get({
-      endpoint: (
-        `/superset/tables/${this.props.dbId}/` +
-        `${this.props.schema}/${input}`),
+      endpoint: (encodeURI(`/superset/tables/${this.props.dbId}/` +
+        `${encodeURIComponent(this.props.schema)}/${encodeURIComponent(input)}`)),
     }).then(({ json }) => ({ options: this.addOptionIfMissing(json.options, tableName) }));
   }
   dbMutator(data) {
