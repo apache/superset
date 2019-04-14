@@ -37,6 +37,7 @@ import re
 import textwrap
 import time
 from typing import List, Tuple
+from urllib import parse
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -1081,6 +1082,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
+            selected_schema = parse.quote(selected_schema, safe='')
             if '/' in database:
                 database = database.split('/')[0] + '/' + selected_schema
             else:
