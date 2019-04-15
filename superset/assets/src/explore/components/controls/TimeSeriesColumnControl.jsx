@@ -28,6 +28,7 @@ import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 
 const propTypes = {
+  label: PropTypes.string,
   onChange: PropTypes.func,
 };
 
@@ -52,7 +53,21 @@ const colTypeOptions = [
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
     super(props);
-    const state = { ...props };
+    const state = {
+      label: this.props.label,
+      tooltip: '',
+      colType: '',
+      width: '',
+      height: '',
+      timeLag: '',
+      timeRatio: '',
+      comparisonType: '',
+      showYAxis: false,
+      yAxisBounds: [null, null],
+      bounds: [null, null],
+      d3format: '',
+      dateFormat: '',
+    };
     delete state.onChange;
     this.state = state;
     this.onChange = this.onChange.bind(this);
