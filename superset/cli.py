@@ -32,7 +32,7 @@ from superset import (
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
-from superset.tasks.cache import update_datasources
+from superset.utils.cache import update_datasources
 
 config = app.config
 celery_app = utils.get_celery_app(config)

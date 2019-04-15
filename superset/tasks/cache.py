@@ -30,6 +30,7 @@ from superset import app, db
 from superset.models.core import Dashboard, Database, Log, Slice
 from superset.models.tags import Tag, TaggedObject
 from superset.tasks.celery_app import app as celery_app
+from superset.utils.cache import update_datasources
 from superset.utils.core import parse_human_datetime
 
 
@@ -316,22 +317,5 @@ def cache_warmup(strategy_name, *args, **kwargs):
     return results
 
 
-def update_datasources(cache_timeout=24 * 60 * 60):
-    """
-    This function refreshes cached table/view names for fast lookup in SQL Lab.
-
-    """
-    for database in db.session.query(Database).all():
-        if database.allow_multi_schema_metadata_fetch:
-            logger.info(f'Fetching {database.name} datasources')
-            try:
-                database.all_table_names_in_database(
-                    force=True, cache=True, cache_timeout=cache_timeout)
-                database.all_view_names_in_database(
-                    force=True, cache=True, cache_timeout=cache_timeout)
-            except Exception:  # pylint: disable=broad-except
-                logger.exception('An error occurred!')
-
-# register `update_datasources` as a Celery task; we don't use a decorator in
-# the function because it can be called directly by `superset/cli.py`
+# register `update_datasources` as a Celery task
 celery_app.task(name='datasources-cache')(update_datasources)

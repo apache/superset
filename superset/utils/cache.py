@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=C,R,W
+import logging
+
 from flask import request
 
-from superset import tables_cache
+from superset import db, tables_cache
 
 
 def view_cache_key(*unused_args, **unused_kwargs):
@@ -65,3 +67,21 @@ def memoized_func(key=view_cache_key, attribute_in_key=None):
                 return f(self, *args, **kwargs)
         return wrapped_f
     return wrap
+
+
+def update_datasources(cache_timeout=24 * 60 * 60):
+    """
+    This function refreshes cached table/view names for fast lookup in SQL Lab.
+
+    """
+    from superset.models.core import Database
+    for database in db.session.query(Database).all():
+        if database.allow_multi_schema_metadata_fetch:
+            logging.info(f'Fetching {database.name} datasources')
+            try:
+                database.all_table_names_in_database(
+                    force=True, cache=True, cache_timeout=cache_timeout)
+                database.all_view_names_in_database(
+                    force=True, cache=True, cache_timeout=cache_timeout)
+            except Exception:  # pylint: disable=broad-except
+                logging.exception('An error occurred!')
