@@ -68,7 +68,7 @@ def etag_cache(max_age, check_perms=None, invalidate_cache=None):
             # dataframe cache in `superset/viz.py`, though.
             if request.method == 'POST':
                 if cache and invalidate_cache:
-                    invalidate_cache(wrapper.make_cache_key, f, *args, **kwargs)
+                    invalidate_cache(f, wrapper.make_cache_key, *args, **kwargs)
                 return f(*args, **kwargs)
 
             response = None
@@ -84,7 +84,7 @@ def etag_cache(max_age, check_perms=None, invalidate_cache=None):
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
-                    logging.exception('Exception 2 possibly due to cache backend.')
+                    logging.exception('Exception possibly due to cache backend.')
 
             # if no response was cached, compute it using the wrapped function
             if response is None:
@@ -101,12 +101,12 @@ def etag_cache(max_age, check_perms=None, invalidate_cache=None):
                 # if we have a cache, store the response from the request
                 if cache:
                     try:
-                        print(f'\n\nSetting {cache_key}\n\n')
+                        logging.info(f'Setting {cache_key}')
                         cache.set(cache_key, response, timeout=max_age)
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logging.exception('Exception 1 possibly due to cache backend.')
+                    logging.exception('Exception possibly due to cache backend.')
 
             return response.make_conditional(request)
 

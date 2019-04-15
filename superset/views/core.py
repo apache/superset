@@ -141,18 +141,21 @@ def check_slice_perms(self, slice_id):
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
-def invalidate_cache(self, make_cache_key, *args, **kwargs):
+def invalidate_cache(f, make_cache_key, *args, **kwargs):
     original_form_data = get_form_data()[0]
     cached_form_data = {
         k: v for k, v in original_form_data.items()
         if k in ('slice_id', 'extra_filters', 'adhoc_filters', 'viz_type')
+        if original_form_data.get(k)
     }
+    cached_form_data = json.dumps(
+        cached_form_data, sort_keys=True, indent=None, separators=(',', ':'))
     key_args = list(args)
     key_kwargs = kwargs.copy()
     key_kwargs.update({'form_data': cached_form_data})
     try:
-        cache_key = make_cache_key(*key_args, **key_kwargs)
-        print(f'\n\nDeleting {cache_key}\n\n')
+        cache_key = make_cache_key(f, *key_args, **key_kwargs)
+        logging.info(f'Deleting {cache_key}')
         cache.delete(cache_key)
     except Exception:  # pylint: disable=broad-except
         if app.debug:
