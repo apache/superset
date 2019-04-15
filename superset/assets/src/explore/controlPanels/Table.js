@@ -62,7 +62,7 @@ export default {
   ],
   controlOverrides: {
     metrics: {
-      // validators: [],
+       validators: [],
     },
   },
 };
