@@ -86,6 +86,9 @@ class ParsedQuery(object):
         return isinstance(token, (IdentifierList, Identifier))
 
     def __process_identifier(self, identifier):
+        if not self.__is_identifier(identifier):
+            identifier = Identifier([identifier])
+
         # exclude subselects
         if '(' not in str(identifier):
             table_name = self.__get_full_name(identifier)

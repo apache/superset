@@ -462,3 +462,28 @@ class SupersetTestCase(unittest.TestCase):
             'SELECT * FROM ab_user LIMIT 1',
         ]
         self.assertEquals(statements, expected)
+
+    def test_extract_from_statement(self):
+        query = 'SELECT a, b FROM c WHERE d'
+        result = sql_parse.ParsedQuery(query)._table_names
+        expected = {'c'}
+        self.assertEquals(result, expected)
+
+    def test_extract_from_statement_with_reserved(self):
+        query = """
+	WITH
+            columns AS (SELECT metric FROM a),
+            rows AS (SELECT metric FROM b)
+	SELECT
+	    c.metric AS m1,
+	    r.metric AS m2
+	FROM columns c
+	JOIN rows r
+        """
+        result = sql_parse.ParsedQuery(query)._table_names
+        expected = {'a', 'b'}
+        self.assertEquals(result, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
