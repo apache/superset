@@ -251,7 +251,6 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
               const urlFormData = requestUrl.searchParams.get('form_data');
               // clear all cached responses that reference this chart
               if (formData && JSON.parse(urlFormData).slice_id === key) {
-                console.log(`Invalidating ${request.url} since it uses chart ${key}.`);
                 supersetCache.delete(request);
               }
             });
