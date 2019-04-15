@@ -68,7 +68,6 @@ class SupersetSecurityManager(SecurityManager):
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        'all_database_access',
         'can_sql_json',  # TODO: move can_sql_json to sql_lab role
         'can_override_role_permissions',
         'can_sync_druid_source',
@@ -84,6 +83,7 @@ class SupersetSecurityManager(SecurityManager):
 
     ALPHA_ONLY_PERMISSIONS = set([
         'muldelete',
+        'all_database_access',
         'all_datasource_access',
     ])
 

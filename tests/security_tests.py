@@ -129,9 +129,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_admin_only(
             security_manager.find_permission_view_menu(
                 'can_approve', 'Superset')))
-        self.assertTrue(security_manager.is_admin_only(
-            security_manager.find_permission_view_menu(
-                'all_database_access', 'all_database_access')))
 
     def test_is_alpha_only(self):
         self.assertFalse(security_manager.is_alpha_only(
@@ -148,6 +145,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_alpha_only(
             security_manager.find_permission_view_menu(
                 'can_delete', 'DruidMetricInlineView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
+                'all_database_access', 'all_database_access')))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(security_manager.is_gamma_pvm(
