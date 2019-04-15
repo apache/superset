@@ -22,6 +22,7 @@ import {
   Row, Col, FormControl, OverlayTrigger, Popover,
 } from 'react-bootstrap';
 import Select from 'react-select';
+import { t } from '@superset-ui/translation';
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import BoundsControl from './BoundsControl';
@@ -33,6 +34,7 @@ const propTypes = {
 };
 
 const defaultProps = {
+  label: t('Time Series Columns'),
   onChange: () => {},
 };
 
