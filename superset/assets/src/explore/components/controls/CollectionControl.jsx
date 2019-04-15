@@ -101,8 +101,8 @@ export default class CollectionControl extends React.Component {
             </div>
             <div className="pull-left">
               <Control
-                {...this.props}
-                {...o}
+                label={this.props.label}
+                value={o}
                 onChange={this.onChange.bind(this, i)}
               />
             </div>

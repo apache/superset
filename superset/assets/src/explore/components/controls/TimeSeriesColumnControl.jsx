@@ -30,11 +30,13 @@ import CheckboxControl from './CheckboxControl';
 
 const propTypes = {
   label: PropTypes.string,
+  value: PropTypes.object,
   onChange: PropTypes.func,
 };
 
 const defaultProps = {
   label: t('Time Series Columns'),
+  value: {},
   onChange: () => {},
 };
 
@@ -57,18 +59,18 @@ export default class TimeSeriesColumnControl extends React.Component {
     super(props);
     const state = {
       label: this.props.label,
-      tooltip: '',
-      colType: '',
-      width: '',
-      height: '',
-      timeLag: '',
-      timeRatio: '',
-      comparisonType: '',
-      showYAxis: false,
-      yAxisBounds: [null, null],
-      bounds: [null, null],
-      d3format: '',
-      dateFormat: '',
+      tooltip: this.props.value.tooltip || '',
+      colType: this.props.value.colType || '',
+      width: this.props.value.width || '',
+      height: this.props.value.height || '',
+      timeLag: this.props.value.timeLag || '',
+      timeRatio: this.props.value.timeRatio || '',
+      comparisonType: this.props.value.comparisonType || '',
+      showYAxis: this.props.value.showYAxis || false,
+      yAxisBounds: this.props.value.yAxisBounds || [null, null],
+      bounds: this.props.value.bounds || [null, null],
+      d3format: this.props.value.d3format || '',
+      dateFormat: this.props.value.dateFormat || '',
     };
     delete state.onChange;
     this.state = state;
