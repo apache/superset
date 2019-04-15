@@ -33,7 +33,7 @@ function LeafletMap(element, props) {
     const MARKER_WEIGHT = 1;
     const MARKER_OPACITY = 1;
     const LEAFLET_VIS_ID = 'leafllet-chart-id';
-    const MAP_CONTAINER = '<div id = ' + LEAFLET_VIS_ID + ' style="width: 100%; height: 100%;"></div>';
+    const MAP_CONTAINER = '<div id = ' + LEAFLET_VIS_ID + ' style="width: 100%; height: 100%;z-index:0;"></div>';
     var colorCols;
     var geoJson;
     var mapInstance;
