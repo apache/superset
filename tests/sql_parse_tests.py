@@ -471,14 +471,14 @@ class SupersetTestCase(unittest.TestCase):
 
     def test_extract_from_statement_with_reserved(self):
         query = """
-	WITH
+        WITH
             columns AS (SELECT metric FROM a),
             rows AS (SELECT metric FROM b)
-	SELECT
-	    c.metric AS m1,
-	    r.metric AS m2
-	FROM columns c
-	JOIN rows r
+        SELECT
+            c.metric AS m1,
+            r.metric AS m2
+        FROM columns c
+        JOIN rows r
         """
         result = sql_parse.ParsedQuery(query)._table_names
         expected = {'a', 'b'}
