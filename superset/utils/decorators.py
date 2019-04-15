@@ -43,7 +43,7 @@ def stats_timing(stats_key, stats_logger):
         stats_logger.timing(stats_key, now_as_float() - start_ts)
 
 
-def etag_cache(max_age, check_perms=bool):
+def etag_cache(max_age, check_perms=None, invalidate_cache=None):
     """
     A decorator for caching views and handling etag conditional requests.
 
@@ -60,15 +60,15 @@ def etag_cache(max_age, check_perms=bool):
         @wraps(f)
         def wrapper(*args, **kwargs):
             # check if the user can access the resource
-            check_perms(*args, **kwargs)
+            if check_perms:
+                check_perms(*args, **kwargs)
 
             # for POST requests we can't set cache headers, use the response
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.
             if request.method == 'POST':
-                # TODO
-                if cache:
-                    cache.clear()
+                if cache and invalidate_cache:
+                    invalidate_cache(wrapper.make_cache_key, f, *args, **kwargs)
                 return f(*args, **kwargs)
 
             response = None
@@ -84,7 +84,7 @@ def etag_cache(max_age, check_perms=bool):
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
-                    logging.exception('Exception possibly due to cache backend.')
+                    logging.exception('Exception 2 possibly due to cache backend.')
 
             # if no response was cached, compute it using the wrapped function
             if response is None:
@@ -101,11 +101,12 @@ def etag_cache(max_age, check_perms=bool):
                 # if we have a cache, store the response from the request
                 if cache:
                     try:
+                        print(f'\n\nSetting {cache_key}\n\n')
                         cache.set(cache_key, response, timeout=max_age)
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:
                             raise
-                    logging.exception('Exception possibly due to cache backend.')
+                    logging.exception('Exception 1 possibly due to cache backend.')
 
             return response.make_conditional(request)
 

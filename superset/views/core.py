@@ -141,6 +141,25 @@ def check_slice_perms(self, slice_id):
     security_manager.assert_datasource_permission(viz_obj.datasource)
 
 
+def invalidate_cache(self, make_cache_key, *args, **kwargs):
+    original_form_data = get_form_data()[0]
+    cached_form_data = {
+        k: v for k, v in original_form_data.items()
+        if k in ('slice_id', 'extra_filters', 'adhoc_filters', 'viz_type')
+    }
+    key_args = list(args)
+    key_kwargs = kwargs.copy()
+    key_kwargs.update({'form_data': cached_form_data})
+    try:
+        cache_key = make_cache_key(*key_args, **key_kwargs)
+        print(f'\n\nDeleting {cache_key}\n\n')
+        cache.delete(cache_key)
+    except Exception:  # pylint: disable=broad-except
+        if app.debug:
+            raise
+        logging.exception('Exception possibly due to cache backend.')
+
+
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if security_manager.all_datasource_access():
@@ -1115,7 +1134,11 @@ class Superset(BaseSupersetView):
     @api
     @has_access_api
     @expose('/slice_json/<slice_id>')
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_slice_perms)
+    @etag_cache(
+        CACHE_DEFAULT_TIMEOUT,
+        check_perms=check_slice_perms,
+        invalidate_cache=invalidate_cache,
+    )
     def slice_json(self, slice_id):
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         datasource_type = slc.datasource.type
@@ -1153,7 +1176,11 @@ class Superset(BaseSupersetView):
     @handle_api_exception
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore_json/', methods=['GET', 'POST'])
-    @etag_cache(CACHE_DEFAULT_TIMEOUT, check_perms=check_datasource_perms)
+    @etag_cache(
+        CACHE_DEFAULT_TIMEOUT,
+        check_perms=check_datasource_perms,
+        invalidate_cache=invalidate_cache,
+    )
     def explore_json(self, datasource_type=None, datasource_id=None):
         """Serves all request that GET or POST form_data
 
