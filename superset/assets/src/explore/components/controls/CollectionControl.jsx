@@ -44,7 +44,6 @@ const propTypes = {
   isFloat: PropTypes.bool,
   isInt: PropTypes.bool,
   controlName: PropTypes.string.isRequired,
-  passthroughProps: PropTypes.arrayOf(PropTypes.string),
 };
 
 const defaultProps = {
@@ -56,7 +55,6 @@ const defaultProps = {
   keyAccessor: o => o.key,
   value: [],
   addTooltip: 'Add an item',
-  passthroughProps: [],
 };
 const SortableListGroupItem = SortableElement(ListGroupItem);
 const SortableListGroup = SortableContainer(ListGroup);
@@ -86,13 +84,6 @@ export default class CollectionControl extends React.Component {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
     const Control = controlMap[this.props.controlName];
-
-    // Creating an object to pass the selected props to the children
-    const passthroughPropsObj = {};
-    this.props.passthroughProps.forEach((k) => {
-      passthroughPropsObj[k] = this.props[k];
-    });
-
     return (
       <SortableListGroup
         useDragHandle
@@ -110,7 +101,7 @@ export default class CollectionControl extends React.Component {
             </div>
             <div className="pull-left">
               <Control
-                {...passthroughPropsObj}
+                {...this.props}
                 {...o}
                 onChange={this.onChange.bind(this, i)}
               />
