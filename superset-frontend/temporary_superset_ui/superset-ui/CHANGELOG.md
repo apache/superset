@@ -1,3 +1,27 @@
+## [0.11.3](https://github.com/apache-superset/superset-ui/compare/v0.11.2...v0.11.3) (2019-04-16)
+
+
+### 🐞 Bug Fixes
+
+* bump peer dependencies ([#136](https://github.com/apache-superset/superset-ui/issues/136)) ([ca3000d](https://github.com/apache-superset/superset-ui/commit/ca3000d))
+
+
+## [0.11.2](https://github.com/apache-superset/superset-ui/compare/v0.11.1...v0.11.2) (2019-04-08)
+
+
+### 🐞 Bug Fixes
+
+* smartDateVerbose at seconds ([#132](https://github.com/apache-superset/superset-ui/issues/132)) ([d29bfd0](https://github.com/apache-superset/superset-ui/commit/d29bfd0))
+
+
+## [0.11.1](https://github.com/apache-superset/superset-ui/compare/v0.11.0...v0.11.1) (2019-04-08)
+
+
+### ✨ Features
+
+* callback hooks for Reactified components ([#131](https://github.com/apache-superset/superset-ui/issues/131)) ([7603520](https://github.com/apache-superset/superset-ui/commit/7603520))
+
+
 # [0.11.0](https://github.com/apache-superset/superset-ui/compare/v0.10.10...v0.11.0) (2019-04-02)
 
 
