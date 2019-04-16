@@ -41,7 +41,6 @@ export default {
       description: t(
         "Templated link, it's possible to include {{ metric }} " +
         'or other values coming from the controls.'),
-      default: '',
     },
   },
 };
