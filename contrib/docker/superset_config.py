@@ -38,7 +38,7 @@ MYSQL_PORT = get_env_variable('MYSQL_PORT')
 MYSQL_DB = get_env_variable('MYSQL_DB')
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'mysql://%s:%s@%s:%s/%s' % (MYSQL_USER,
+SQLALCHEMY_DATABASE_URI = 'mysql://%s:%s@%s:%s/%s?autocommit=1' % (MYSQL_USER,
                                                            MYSQL_PASSWORD,
                                                            MYSQL_HOST,
                                                            MYSQL_PORT,
@@ -125,3 +125,13 @@ EMAIL_REPORTS_SUBJECT_PREFIX = '[Report] '
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
 EMAIL_REPORTS_WEBDRIVER = 'firefox'
+# smtp server configuration
+EMAIL_NOTIFICATIONS = True # all the emails are sent using dryrun
+SMTP_HOST = 'smtp.sendgrid.net'
+#SMTP_STARTTLS = False
+SMTP_SSL = True
+SMTP_USER = 'analyticsmd'
+SMTP_PORT = 25
+#SMTP_PORT = 587 #465
+SMTP_PASSWORD = 'D0ndeMail'
+SMTP_MAIL_FROM = 'superset@superset.com'
