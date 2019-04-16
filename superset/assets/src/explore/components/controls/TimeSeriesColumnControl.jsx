@@ -30,13 +30,35 @@ import CheckboxControl from './CheckboxControl';
 
 const propTypes = {
   label: PropTypes.string,
-  value: PropTypes.object,
+  tooltip: PropTypes.string,
+  colType: PropTypes.string,
+  width: PropTypes.string,
+  height: PropTypes.string,
+  timeLag: PropTypes.string,
+  timeRatio: PropTypes.string,
+  comparisonType: PropTypes.string,
+  showYAxis: PropTypes.bool,
+  yAxisBounds: PropTypes.array,
+  bounds: PropTypes.array,
+  d3format: PropTypes.string,
+  dateFormat: PropTypes.string,
   onChange: PropTypes.func,
 };
 
 const defaultProps = {
   label: t('Time Series Columns'),
-  value: {},
+  tooltip: '',
+  colType: '',
+  width: '',
+  height: '',
+  timeLag: '',
+  timeRatio: '',
+  comparisonType: '',
+  showYAxis: false,
+  yAxisBounds: [null, null],
+  bounds: [null, null],
+  d3format: '',
+  dateFormat: '',
   onChange: () => {},
 };
 
@@ -59,18 +81,18 @@ export default class TimeSeriesColumnControl extends React.Component {
     super(props);
     const state = {
       label: this.props.label,
-      tooltip: this.props.value.tooltip || '',
-      colType: this.props.value.colType || '',
-      width: this.props.value.width || '',
-      height: this.props.value.height || '',
-      timeLag: this.props.value.timeLag || '',
-      timeRatio: this.props.value.timeRatio || '',
-      comparisonType: this.props.value.comparisonType || '',
-      showYAxis: this.props.value.showYAxis || false,
-      yAxisBounds: this.props.value.yAxisBounds || [null, null],
-      bounds: this.props.value.bounds || [null, null],
-      d3format: this.props.value.d3format || '',
-      dateFormat: this.props.value.dateFormat || '',
+      tooltip: this.props.tooltip,
+      colType: this.props.colType,
+      width: this.props.width,
+      height: this.props.height,
+      timeLag: this.props.timeLag,
+      timeRatio: this.props.timeRatio,
+      comparisonType: this.props.comparisonType,
+      showYAxis: this.props.showYAxis,
+      yAxisBounds: this.props.yAxisBounds,
+      bounds: this.props.bounds,
+      d3format: this.props.d3format,
+      dateFormat: this.props.dateFormat,
     };
     delete state.onChange;
     this.state = state;
