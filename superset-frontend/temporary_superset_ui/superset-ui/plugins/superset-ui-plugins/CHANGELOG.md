@@ -1,4 +1,60 @@
-# [0.10.5](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.4...v0.10.5) (2019-04-02)
+## [0.10.11](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.10...v0.10.11) (2019-04-12)
+
+
+### Bug Fixes
+
+* list css as side effects ([#57](https://github.com/apache-superset/superset-ui-plugins/issues/57)) ([e139bcb](https://github.com/apache-superset/superset-ui-plugins/commit/e139bcb))
+
+
+
+## [0.10.10](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.9...v0.10.10) (2019-04-10)
+
+
+### Bug Fixes
+
+* use correct number format ([#47](https://github.com/apache-superset/superset-ui-plugins/issues/47)) ([b0ae30b](https://github.com/apache-superset/superset-ui-plugins/commit/b0ae30b))
+
+
+### Features
+
+* increment the version number ([#44](https://github.com/apache-superset/superset-ui-plugins/issues/44)) ([355fc7d](https://github.com/apache-superset/superset-ui-plugins/commit/355fc7d))
+
+
+
+## [0.10.9](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.8...v0.10.9) (2019-04-08)
+
+
+### Bug Fixes
+
+* y-axis bounds for stacked viz types ([#45](https://github.com/apache-superset/superset-ui-plugins/issues/45)) ([0f8b504](https://github.com/apache-superset/superset-ui-plugins/commit/0f8b504))
+
+
+
+## [0.10.8](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.7...v0.10.8) (2019-04-08)
+
+
+### Bug Fixes
+
+* remove sticky tooltip when query returns no data in explore view ([#42](https://github.com/apache-superset/superset-ui-plugins/issues/42)) ([789596f](https://github.com/apache-superset/superset-ui-plugins/commit/789596f))
+
+
+
+## [0.10.7](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.6...v0.10.7) (2019-04-05)
+
+
+### Bug Fixes
+
+* **legacy-preset-chart-nvd3:** stacked bar charts labels ([#40](https://github.com/apache-superset/superset-ui-plugins/issues/40)) ([ec67d3d](https://github.com/apache-superset/superset-ui-plugins/commit/ec67d3d))
+
+
+
+## [0.10.6](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.5...v0.10.6) (2019-04-04)
+
+### Bug Fixes
+
+* add % to total to area chart tooltip ([#27](https://github.com/apache-superset/superset-ui-plugins/issues/27))
+
+## [0.10.5](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.4...v0.10.5) (2019-04-02)
 
 
 ### Features
