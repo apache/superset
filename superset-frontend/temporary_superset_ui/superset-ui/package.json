@@ -10,7 +10,7 @@
     "build:esm": "NODE_ENV=production beemo babel --extensions=\".js,.jsx,.ts,.tsx\" ./src --out-dir esm/ --delete-dir-on-start --esm --minify --workspaces=\"@superset-ui/!(demo|generator-superset)\"",
     "build:assets": "node ./scripts/buildAssets.js",
     "commit": "superset-commit",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 1",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 5",
     "type": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(generator-superset)\" --noEmit",
     "type:dts": "NODE_ENV=production beemo typescript --workspaces=\"@superset-ui/!(demo|generator-superset)\" --emitDeclarationOnly",
     "lint": "beemo create-config prettier && beemo eslint \"./packages/*/{src,test,storybook}/**/*.{js,jsx,ts,tsx}\"",
