@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
-import gzip
-import os
 import random
 
 import geohash
@@ -26,7 +24,7 @@ from sqlalchemy import DateTime, Float, String
 from superset import db
 from superset.utils import core as utils
 from .helpers import (
-    DATA_FOLDER,
+    get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
@@ -37,8 +35,8 @@ from .helpers import (
 
 def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
-    with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
-        pdf = pd.read_csv(f, encoding='utf-8')
+    data = get_example_data('san_francisco.csv.gz', make_bytes=True)
+    pdf = pd.read_csv(data, encoding='utf-8')
     start = datetime.datetime.now().replace(
         hour=0, minute=0, second=0, microsecond=0)
     pdf['datetime'] = [
