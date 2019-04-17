@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import gzip
 import json
-import os
 
 import pandas as pd
 import polyline
@@ -24,7 +22,7 @@ from sqlalchemy import String, Text
 
 from superset import db
 from superset.utils.core import get_or_create_main_db
-from .helpers import DATA_FOLDER, TBL, get_example_data
+from .helpers import TBL, get_example_data
 
 
 def load_bart_lines():

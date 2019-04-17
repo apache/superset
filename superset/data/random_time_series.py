@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import gzip
-import os
 
 import pandas as pd
 from sqlalchemy import DateTime
@@ -24,7 +22,6 @@ from superset import db
 from superset.utils import core as utils
 from .helpers import (
     config,
-    DATA_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,

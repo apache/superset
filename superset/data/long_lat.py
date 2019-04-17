@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
-import gzip
-import os
 import random
 
 import geohash
@@ -26,7 +24,6 @@ from sqlalchemy import DateTime, Float, String
 from superset import db
 from superset.utils import core as utils
 from .helpers import (
-    DATA_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,

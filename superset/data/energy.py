@@ -16,8 +16,6 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
-import gzip
-import os
 import textwrap
 
 import pandas as pd

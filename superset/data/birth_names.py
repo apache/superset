@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import gzip
 import json
-import os
 import textwrap
 
 import pandas as pd
@@ -28,7 +26,6 @@ from superset.utils.core import get_or_create_main_db
 from .helpers import (
     config,
     Dash,
-    DATA_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,

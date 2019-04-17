@@ -16,7 +16,6 @@
 # under the License.
 import datetime
 import json
-import os
 import random
 
 import pandas as pd
@@ -27,7 +26,6 @@ from superset.utils import core as utils
 from .helpers import (
     config,
     Dash,
-    DATA_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,

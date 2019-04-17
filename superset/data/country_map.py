@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
-import os
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, String
@@ -24,7 +23,6 @@ from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
 from .helpers import (
-    DATA_FOLDER,
     get_example_data,
     get_slice_json,
     merge_slice,
