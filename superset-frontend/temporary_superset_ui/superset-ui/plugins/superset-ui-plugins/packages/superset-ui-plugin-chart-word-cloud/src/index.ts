@@ -16,7 +16,7 @@ export default class WordCloudChartPlugin extends ChartPlugin<WordCloudFormData>
   constructor() {
     super({
       buildQuery,
-      loadChart: () => import('./ReactWordCloud.js'),
+      loadChart: () => import('./ReactWordCloud'),
       metadata,
       transformProps,
     });
