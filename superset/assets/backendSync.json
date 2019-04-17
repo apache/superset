@@ -3278,6 +3278,11 @@
       "renderTrigger": true,
       "description": "The color scheme for rendering chart"
     },
+    "label_colors": {
+      "type": "ColorMapControl",
+      "label": "Color Map",
+      "default": {}
+    },
     "significance_level": {
       "type": "TextControl",
       "label": "Significance Level",

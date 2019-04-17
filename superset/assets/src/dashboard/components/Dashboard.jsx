@@ -153,6 +153,8 @@ class Dashboard extends React.PureComponent {
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
           filters: this.props.dashboardState.filters,
+          colorScheme: this.props.dashboardState.colorScheme,
+          colorNamespace: this.props.dashboardState.colorNamespace,
           sliceId: chart.id,
         });
 
