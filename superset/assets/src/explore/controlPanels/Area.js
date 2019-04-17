@@ -30,7 +30,7 @@ export default {
       controlSetRows: [
         ['show_brush', 'show_legend'],
         ['line_interpolation', 'stacked_style'],
-        ['color_scheme'],
+        ['color_scheme', 'label_colors'],
         ['rich_tooltip', 'show_controls'],
       ],
     },

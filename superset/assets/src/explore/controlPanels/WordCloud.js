@@ -35,7 +35,7 @@ export default {
       controlSetRows: [
         ['size_from', 'size_to'],
         ['rotation'],
-        ['color_scheme'],
+        ['color_scheme', 'label_colors'],
       ],
     },
   ],
