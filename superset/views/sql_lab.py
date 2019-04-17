@@ -23,7 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-import flask_sqlalchemy
+from flask_sqlalchemy import BaseQuery
 
 from superset import appbuilder, security_manager
 from superset.models.sql_lab import Query, SavedQuery
@@ -33,8 +33,8 @@ from .base import BaseSupersetView, DeleteMixin, SupersetFilter, SupersetModelVi
 class QueryFilter(SupersetFilter):
     def apply(
             self,
-            query: flask_sqlalchemy.BaseQuery,
-            func: Callable) -> flask_sqlalchemy.BaseQuery:
+            query: BaseQuery,
+            func: Callable) -> BaseQuery:
         """
         Filter queries to only those owned by current user if
         can_only_access_owned_queries permission is set.
