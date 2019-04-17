@@ -23,15 +23,15 @@ from sqlalchemy import String, Text
 
 from superset import db
 from superset.utils import core as utils
-from .helpers import DATA_FOLDER, TBL
+from .helpers import DATA_FOLDER, get_example_data, TBL
 
 
 def load_paris_iris_geojson():
     tbl_name = 'paris_iris_mapping'
 
-    with gzip.open(os.path.join(DATA_FOLDER, 'paris_iris.json.gz')) as f:
-        df = pd.read_json(f)
-        df['features'] = df.features.map(json.dumps)
+    data = get_example_data('paris_iris.json.gz')
+    df = pd.read_json(data)
+    df['features'] = df.features.map(json.dumps)
 
     df.to_sql(
         tbl_name,

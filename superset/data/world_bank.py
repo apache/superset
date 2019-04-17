@@ -31,6 +31,7 @@ from .helpers import (
     config,
     Dash,
     DATA_FOLDER,
+    get_example_data,
     get_slice_json,
     merge_slice,
     misc_dash_slices,
@@ -43,8 +44,8 @@ from .helpers import (
 def load_world_bank_health_n_pop():
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = 'wb_health_population'
-    with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
-        pdf = pd.read_json(f)
+    data = get_example_data('countries.json.gz')
+    pdf = pd.read_json(data)
     pdf.columns = [col.replace('.', '_') for col in pdf.columns]
     pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
