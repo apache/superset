@@ -30,6 +30,8 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   value: {},
+  colorScheme: undefined,
+  colorNamespace: undefined,
 };
 
 export default class ColorMapControl extends React.PureComponent {
