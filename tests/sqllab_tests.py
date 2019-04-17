@@ -53,9 +53,10 @@ class SqlLabTests(SupersetTestCase):
         self.logout()
 
     def tearDown(self):
+        self.logout()
         db.session.query(Query).delete()
         db.session.commit()
-        self.logout()
+        db.session.close()
 
     def test_sql_json(self):
         self.login('admin')
@@ -223,6 +224,46 @@ class SqlLabTests(SupersetTestCase):
         data = json.loads(resp)
         self.assertEquals(2, len(data))
 
+    def test_search_query_with_owner_only_perms(self) -> None:
+        """
+        Test a search query with can_only_access_owned_queries perm added to
+        Admin and make sure only Admin queries show up.
+        """
+        session = db.session
+
+        # Add can_only_access_owned_queries perm to Admin user
+        owned_queries_view = security_manager.find_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
+        security_manager.add_permission_role(
+            security_manager.find_role('Admin'),
+            owned_queries_view,
+        )
+        session.commit()
+
+        # Test search_queries for Admin user
+        self.run_some_queries()
+        self.login('admin')
+
+        user_id = security_manager.find_user('admin').id
+        data = self.get_json_resp('/superset/search_queries')
+        self.assertEquals(2, len(data))
+        user_ids = {k['userId'] for k in data}
+        self.assertEquals(set([user_id]), user_ids)
+
+        # Remove can_only_access_owned_queries from Admin
+        owned_queries_view = security_manager.find_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
+        security_manager.del_permission_role(
+            security_manager.find_role('Admin'),
+            owned_queries_view,
+        )
+
+        session.commit()
+
     def test_alias_duplicate(self):
         self.run_sql(
             'SELECT username as col, id as col, username FROM ab_user',
@@ -308,6 +349,68 @@ class SqlLabTests(SupersetTestCase):
             client_id='sql_limit_4',
             query_limit=test_limit)
         self.assertEquals(len(data['data']), test_limit)
+
+    def test_queryview_filter(self) -> None:
+        """
+        Test queryview api without can_only_access_owned_queries perm added to
+        Admin and make sure all queries show up.
+        """
+        self.run_some_queries()
+        self.login(username='admin')
+
+        url = '/queryview/api/read'
+        data = self.get_json_resp(url)
+        admin = security_manager.find_user('admin')
+        gamma_sqllab = security_manager.find_user('gamma_sqllab')
+        self.assertEquals(3, len(data['result']))
+        user_queries = [
+            result.get('username') for result in data['result']
+        ]
+        assert admin.username in user_queries
+        assert gamma_sqllab.username in user_queries
+
+    def test_queryview_filter_owner_only(self) -> None:
+        """
+        Test queryview api with can_only_access_owned_queries perm added to
+        Admin and make sure only Admin queries show up.
+        """
+        session = db.session
+
+        # Add can_only_access_owned_queries perm to Admin user
+        owned_queries_view = security_manager.find_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
+        security_manager.add_permission_role(
+            security_manager.find_role('Admin'),
+            owned_queries_view,
+        )
+        session.commit()
+
+        # Test search_queries for Admin user
+        self.run_some_queries()
+        self.login('admin')
+
+        url = '/queryview/api/read'
+        data = self.get_json_resp(url)
+        admin = security_manager.find_user('admin')
+        self.assertEquals(2, len(data['result']))
+        all_admin_user_queries = all([
+            result.get('username') == admin.username for result in data['result']
+        ])
+        assert all_admin_user_queries is True
+
+        # Remove can_only_access_owned_queries from Admin
+        owned_queries_view = security_manager.find_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
+        security_manager.del_permission_role(
+            security_manager.find_role('Admin'),
+            owned_queries_view,
+        )
+
+        session.commit()
 
 
 if __name__ == '__main__':
