@@ -2,6 +2,7 @@
 import belgium from 'file-loader!./countries/belgium.geojson';
 import brazil from 'file-loader!./countries/brazil.geojson';
 import bulgaria from 'file-loader!./countries/bulgaria.geojson';
+import canada from 'file-loader!./countries/canada.geojson';
 import china from 'file-loader!./countries/china.geojson';
 import egypt from 'file-loader!./countries/egypt.geojson';
 import france from 'file-loader!./countries/france.geojson';
@@ -26,6 +27,7 @@ const countries = {
   belgium,
   brazil,
   bulgaria,
+  canada,
   china,
   egypt,
   france,
