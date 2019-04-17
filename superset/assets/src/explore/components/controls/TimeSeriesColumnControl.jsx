@@ -22,16 +22,43 @@ import {
   Row, Col, FormControl, OverlayTrigger, Popover,
 } from 'react-bootstrap';
 import Select from 'react-select';
+import { t } from '@superset-ui/translation';
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 
 const propTypes = {
+  label: PropTypes.string,
+  tooltip: PropTypes.string,
+  colType: PropTypes.string,
+  width: PropTypes.string,
+  height: PropTypes.string,
+  timeLag: PropTypes.string,
+  timeRatio: PropTypes.string,
+  comparisonType: PropTypes.string,
+  showYAxis: PropTypes.bool,
+  yAxisBounds: PropTypes.array,
+  bounds: PropTypes.array,
+  d3format: PropTypes.string,
+  dateFormat: PropTypes.string,
   onChange: PropTypes.func,
 };
 
 const defaultProps = {
+  label: t('Time Series Columns'),
+  tooltip: '',
+  colType: '',
+  width: '',
+  height: '',
+  timeLag: '',
+  timeRatio: '',
+  comparisonType: '',
+  showYAxis: false,
+  yAxisBounds: [null, null],
+  bounds: [null, null],
+  d3format: '',
+  dateFormat: '',
   onChange: () => {},
 };
 
@@ -52,7 +79,21 @@ const colTypeOptions = [
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
     super(props);
-    const state = { ...props };
+    const state = {
+      label: this.props.label,
+      tooltip: this.props.tooltip,
+      colType: this.props.colType,
+      width: this.props.width,
+      height: this.props.height,
+      timeLag: this.props.timeLag,
+      timeRatio: this.props.timeRatio,
+      comparisonType: this.props.comparisonType,
+      showYAxis: this.props.showYAxis,
+      yAxisBounds: this.props.yAxisBounds,
+      bounds: this.props.bounds,
+      d3format: this.props.d3format,
+      dateFormat: this.props.dateFormat,
+    };
     delete state.onChange;
     this.state = state;
     this.onChange = this.onChange.bind(this);
