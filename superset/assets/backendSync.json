@@ -3727,9 +3727,7 @@
       "type": "CollectionControl",
       "label": "Filters",
       "description": "Filter configuration for the filter box",
-      "validators": [
-        null
-      ],
+      "validators": [],
       "controlName": "FilterBoxItemControl"
     },
     "normalized": {
