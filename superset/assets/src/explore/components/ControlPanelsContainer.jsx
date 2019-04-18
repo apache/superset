@@ -46,10 +46,12 @@ class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
 
+    this.getControlData = this.getControlData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
+
   getControlData(controlName) {
     if (React.isValidElement(controlName)) {
       return controlName;
@@ -71,12 +73,15 @@ class ControlPanelsContainer extends React.Component {
     }
     return control;
   }
+
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
   }
+
   removeAlert() {
     this.props.actions.removeControlPanelAlert();
   }
+
   renderControl(name, config) {
     const { actions, controls, exploreState, form_data: formData } = this.props;
 
@@ -110,6 +115,7 @@ class ControlPanelsContainer extends React.Component {
       />
     );
   }
+
   renderControlPanelSection(section) {
     const { controls } = this.props;
 
@@ -160,6 +166,7 @@ class ControlPanelsContainer extends React.Component {
       </ControlPanelSection>
     );
   }
+
   render() {
     const allSectionsToRender = this.sectionsToRender();
     const querySectionsToRender = [];
