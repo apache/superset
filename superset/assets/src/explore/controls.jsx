@@ -471,6 +471,13 @@ export const controls = {
     description: t('Display total row/column'),
   },
 
+  transpose_pivot: {
+    type: 'CheckboxControl',
+    label: t('Transpose Pivot'),
+    default: false,
+    description: t('Swap Groups and Columns'),
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: t('Show Markers'),
