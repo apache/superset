@@ -18,6 +18,8 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { Alert } from 'react-bootstrap';
+
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
@@ -133,7 +135,9 @@ class Chart extends React.PureComponent {
     if (chartStatus === 'failed') {
       return this.renderStackTraceMessage();
     }
-
+    if (errorMessage) {
+      return <Alert bsStyle="warning">{errorMessage}</Alert>;
+    }
     return (
       <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
         <div
