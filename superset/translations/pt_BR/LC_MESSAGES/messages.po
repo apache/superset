@@ -497,7 +497,7 @@ msgstr "Consulta sem título"
 #: superset/assets/javascripts/SqlLab/reducers.js:44
 #, python-format
 msgid "Copy of %s"
-msgstr "Cópia de% s"
+msgstr "Cópia de %s"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
@@ -937,7 +937,7 @@ msgstr "Erro"
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:359
 #, python-format
 msgid "Sorry, there was an error adding slices to this dashboard: %s"
-msgstr "Desculpe, houve um erro ao adicionar fatias a este painel:% s"
+msgstr "Desculpe, houve um erro ao adicionar fatias a este painel: %s"
 
 #: superset/assets/javascripts/dashboard/components/CodeModal.jsx:35
 msgid "Active Dashboard Filters"
@@ -1101,7 +1101,7 @@ msgstr "não pode estar vazio"
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:180
 #, python-format
 msgid "%s - untitled"
-msgstr "% s - sem título"
+msgstr "%s - sem título"
 
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:287
 msgid "Edit slice properties"
@@ -1283,7 +1283,7 @@ msgstr "Erro ao buscar dados"
 #: superset/assets/javascripts/explore/components/controls/SelectControl.jsx:155
 #, python-format
 msgid "Select %s"
-msgstr "Selecione% s"
+msgstr "Selecione %s"
 
 #: superset/assets/javascripts/explore/components/controls/TextAreaControl.jsx:63
 msgid "textarea"
@@ -1309,7 +1309,7 @@ msgstr "O mapa de atualização foi interrompido"
 #: superset/assets/javascripts/modules/superset.js:226
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
-msgstr "Ocorreu um erro ao renderizar a visualização:% s"
+msgstr "Ocorreu um erro ao renderizar a visualização: %s"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:47
 msgid ""
@@ -3071,7 +3071,7 @@ msgstr ""
 #: superset/assets/javascripts/modules/superset.js:135
 #, python-format
 msgid "An unknown error occurred. (Status: %s )"
-msgstr "Ocorreu um erro desconhecido. (Status:% s)"
+msgstr "Ocorreu um erro desconhecido. (Status: %s)"
 
 #: superset/assets/javascripts/profile/components/App.jsx:24
 msgid "Favorites"
@@ -3150,7 +3150,7 @@ msgstr ""
 #: superset/assets/visualizations/filter_box.jsx:181
 #, python-format
 msgid "Select [%s]"
-msgstr "Selecione [% s]"
+msgstr "Selecione [%s]"
 
 #: superset/connectors/druid/models.py:1073
 msgid "No data was returned."
