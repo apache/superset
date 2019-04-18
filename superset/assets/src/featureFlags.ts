@@ -21,6 +21,7 @@
 export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
   OMNIBAR = 'OMNIBAR',
+  SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
 }
 
 export type FeatureFlagMap = {

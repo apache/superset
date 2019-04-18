@@ -120,6 +120,7 @@
     "react-gravatar": "^2.6.1",
     "react-hot-loader": "^4.3.6",
     "react-map-gl": "^4.0.10",
+    "react-jsonschema-form": "^1.3.0",
     "react-markdown": "^3.3.0",
     "react-redux": "^5.0.2",
     "react-search-input": "^0.11.3",
