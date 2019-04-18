@@ -23,29 +23,35 @@
  * and an error message if not valid.
  * */
 import { t } from '@superset-ui/translation';
+import validate from 'validate.js';
+
+// Declare formatting
+validate.formatters.joined = errors => errors.map(error =>  error.validator).join(', ');
 
 export function numeric(v) {
-  if (v && isNaN(v)) {
-    return t('is expected to be a number');
-  }
-  return false;
+  return validate.single(v, {
+    presence: true,
+    numericality: {
+      message: t('is expected to be a number'),
+    },
+  }, { format: 'joined' }) || false;
 }
 
 export function integer(v) {
-  if (v && (isNaN(v) || parseInt(v, 10) !== +(v))) {
-    return t('is expected to be an integer');
-  }
-  return false;
+  return validate.single(v, {
+    presence: true,
+    numericality: {
+      onlyInteger: true,
+      message: t('is expected to be an integer'),
+    },
+  }, { format: 'joined' }) || false;
 }
 
 export function nonEmpty(v) {
-  if (
-      v === null ||
-      v === undefined ||
-      v === '' ||
-      (Array.isArray(v) && v.length === 0)
-  ) {
-    return t('cannot be empty');
-  }
-  return false;
+  return validate.single(v, {
+    presence: {
+      allowEmpty: false,
+      message: t('cannot be empty'),
+    },
+  }, { format: 'joined' }) || false;
 }
