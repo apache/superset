@@ -1356,6 +1356,18 @@ class HiveEngineSpec(PrestoEngineSpec):
             configuration['hive.server2.proxy.user'] = username
         return configuration
 
+
+    @classmethod
+    def mutate_df_columns(cls, df, sql, labels_expected):
+        if df is not None and \
+                not df.empty and \
+                labels_expected is not None:
+            if len(df.columns) != len(labels_expected):
+                raise Exception(f'For {sql}, df.columns: {df.columns}'
+                                f' differs from {labels_expected}')
+            else:
+                df.columns = labels_expected
+                
     @staticmethod
     def execute(cursor, query, async_=False):
         kwargs = {'async': async_}
