@@ -24,8 +24,12 @@ export default [
                     type: 'time',
                   },
                   axis: {
-                    orient: radios('x.axis.orient', ['top', 'bottom'], 'bottom'),
-                    title: 'Time',
+                    orient: radios('x.axis.orient', { top: 'top', bottom: 'bottom' }, 'bottom'),
+                    title: radios(
+                      'x.axis.title',
+                      { enable: 'Time', disable: '', '': undefined },
+                      'Time',
+                    ),
                   },
                 },
                 y: {
@@ -35,8 +39,16 @@ export default [
                     type: 'linear',
                   },
                   axis: {
-                    orient: radios('y.axis.orient', ['left', 'right'], 'left'),
-                    title: 'Score',
+                    orient: radios(
+                      'y.axis.orient',
+                      { left: 'left', right: 'right', '': undefined },
+                      'left',
+                    ),
+                    title: radios(
+                      'y.axis.title',
+                      { enable: 'Score', disable: '', '': undefined },
+                      'Score',
+                    ),
                   },
                 },
                 color: {

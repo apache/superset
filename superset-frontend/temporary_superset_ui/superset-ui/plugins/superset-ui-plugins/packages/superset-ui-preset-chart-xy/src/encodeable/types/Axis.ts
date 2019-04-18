@@ -11,7 +11,7 @@ export interface CoreAxis {
   labelPadding: number;
   orient: AxisOrient;
   tickCount: number;
-  title?: string;
+  title?: string | boolean;
   /** Explicitly set the visible axis tick values. */
   values?: string[] | number[] | boolean[] | DateTime[];
 }
