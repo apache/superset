@@ -248,7 +248,7 @@ class RolePermissionTests(SupersetTestCase):
             ['Superset', 'theme'],
             ['Superset', 'welcome'],
             ['SecurityApi', 'login'],
-            ['SecurityApi', 'refresh']
+            ['SecurityApi', 'refresh'],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
