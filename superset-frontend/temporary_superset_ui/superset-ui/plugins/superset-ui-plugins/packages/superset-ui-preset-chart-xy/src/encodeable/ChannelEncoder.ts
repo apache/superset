@@ -93,7 +93,7 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
       return this.definition.title || this.definition.field;
     }
 
-    return undefined;
+    return '';
   }
 
   hasLegend() {

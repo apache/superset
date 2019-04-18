@@ -22,9 +22,11 @@ import ChartLegend from '../components/ChartLegend';
 
 chartTheme.gridStyles.stroke = '#f1f3f5';
 
+const DEFAULT_MARGIN = { top: 20, right: 20, left: 20, bottom: 20 };
+
 const defaultProps = {
   className: '',
-  margin: { top: 20, right: 20, left: 20, bottom: 20 },
+  margin: DEFAULT_MARGIN,
   theme: chartTheme,
 };
 
@@ -153,7 +155,7 @@ class LineChart extends PureComponent<Props> {
     const layout = new XYChartLayout({
       width,
       height,
-      margin,
+      margin: { ...DEFAULT_MARGIN, ...margin },
       theme,
       xEncoder: this.encoder.channels.x,
       yEncoder: this.encoder.channels.y,
