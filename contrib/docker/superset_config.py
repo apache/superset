@@ -128,10 +128,9 @@ EMAIL_REPORTS_WEBDRIVER = 'firefox'
 # smtp server configuration
 EMAIL_NOTIFICATIONS = True # all the emails are sent using dryrun
 SMTP_HOST = 'smtp.sendgrid.net'
-#SMTP_STARTTLS = False
+SMTP_STARTTLS = False
 SMTP_SSL = True
 SMTP_USER = 'analyticsmd'
-SMTP_PORT = 25
-#SMTP_PORT = 587 #465
+SMTP_PORT = 465 #465 , 587
 SMTP_PASSWORD = 'D0ndeMail'
 SMTP_MAIL_FROM = 'superset@superset.com'
