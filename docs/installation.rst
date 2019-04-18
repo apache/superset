@@ -171,7 +171,8 @@ Follow these few simple steps to install Superset.::
     pip install superset
 
     # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
-    fabmanager create-admin --app superset
+    $ export FLASK_APP=superset
+    flask fab create-admin
 
     # Initialize the database
     superset db upgrade
