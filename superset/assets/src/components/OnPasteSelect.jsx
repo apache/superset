@@ -102,4 +102,5 @@ OnPasteSelect.defaultProps = {
   labelKey: 'label',
   options: [],
   multi: false,
+  optionHeight: 50
 };
