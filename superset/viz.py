@@ -1225,10 +1225,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = self.process_data(df)
         if comparison_type == 'values':
             # Filter out series with all NaN
-            chart_data = list(filter(
-                lambda row: len([item for item in row['values'] if not np.isnan(item['y'])]) > 0,
-                self.to_series(df),
-            ))
+            chart_data = self.to_series(df.dropna(axis=1, how='all'))
 
             for i, (label, df2) in enumerate(self._extra_chart_data):
                 chart_data.extend(
