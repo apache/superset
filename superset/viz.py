@@ -1112,15 +1112,21 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     series_title = series_title + (title_suffix,)
 
             values = []
+            non_nan_cnt = 0
             for ds in df.index:
                 if ds in ys:
                     d = {
                         'x': ds,
                         'y': ys[ds],
                     }
+                    if not np.isnan(ys[ds]):
+                        non_nan_cnt += 1
                 else:
                     d = {}
                 values.append(d)
+
+            if non_nan_cnt == 0:
+                continue
 
             d = {
                 'key': series_title,
