@@ -846,11 +846,6 @@ def merge_request_params(form_data, params):
     form_data['url_params'] = url_params
 
 
-def get_update_perms_flag():
-    val = os.environ.get('SUPERSET_UPDATE_PERMS')
-    return val.lower() not in ('0', 'false', 'no') if val else True
-
-
 def user_label(user):
     """Given a user ORM FAB object, returns a label"""
     if user:
