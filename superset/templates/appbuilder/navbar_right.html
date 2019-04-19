@@ -18,6 +18,7 @@
 #}
 
 {% set bug_report_url = appbuilder.app.config.get('BUG_REPORT_URL') %}
+{% set documentation_url = appbuilder.app.config.get('DOCUMENTATION_URL') %}
 {% set locale = session['locale'] %}
 {% if not locale %}
     {% set locale = 'en' %}
@@ -34,6 +35,17 @@
             <li><a href="/dashboard/new/"><span class="fa fa-fw fa-dashboard"></span> {{_("Dashboard")}}</a></li>
         </ul>
     </li>
+{% endif %}
+{% if documentation_url %}
+<li>
+  <a
+    tabindex="-1"
+    href="{{ documentation_url }}"
+    title="Documentation"
+  >
+    <i class="fa fa-question"></i>&nbsp;
+  </a>
+</li>
 {% endif %}
 {% if bug_report_url %}
 <li>

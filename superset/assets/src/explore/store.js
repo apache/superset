@@ -29,6 +29,24 @@ export function getFormDataFromControls(controlsState) {
   return formData;
 }
 
+export function validateControl(control) {
+  const validators = control.validators;
+  const validationErrors = [];
+  if (validators && validators.length > 0) {
+    validators.forEach((f) => {
+      const v = f(control.value);
+      if (v) {
+        validationErrors.push(v);
+      }
+    });
+  }
+  if (validationErrors.length > 0) {
+    return { ...control, validationErrors };
+  }
+  return control;
+}
+
+
 export function getControlNames(vizType, datasourceType) {
   const controlNames = [];
   sectionsToRender(vizType, datasourceType).forEach(
@@ -109,7 +127,7 @@ export function getControlsState(state, form_data) {
     ) {
       control.value = formData[k];
     }
-    controlsState[k] = control;
+    controlsState[k] = validateControl(control);
   });
   if (viz.onInit) {
     return viz.onInit(controlsState);

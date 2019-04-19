@@ -39,7 +39,7 @@ describe('Dashboard', () => {
     actions: {
       addSliceToDashboard() {},
       removeSliceFromDashboard() {},
-      runQuery() {},
+      postChartFormData() {},
       logEvent() {},
     },
     initMessages: [],
@@ -82,15 +82,15 @@ describe('Dashboard', () => {
       },
     };
 
-    it('should call runQuery for all non-exempt slices', () => {
+    it('should call postChartFormData for all non-exempt slices', () => {
       const wrapper = setup({ charts: overrideCharts, slices: overrideSlices });
-      const spy = sinon.spy(props.actions, 'runQuery');
+      const spy = sinon.spy(props.actions, 'postChartFormData');
       wrapper.instance().refreshExcept('1001');
       spy.restore();
       expect(spy.callCount).toBe(Object.keys(overrideCharts).length - 1);
     });
 
-    it('should not call runQuery for filter_immune_slices', () => {
+    it('should not call postChartFormData for filter_immune_slices', () => {
       const wrapper = setup({
         charts: overrideCharts,
         dashboardInfo: {
@@ -103,7 +103,7 @@ describe('Dashboard', () => {
           },
         },
       });
-      const spy = sinon.spy(props.actions, 'runQuery');
+      const spy = sinon.spy(props.actions, 'postChartFormData');
       wrapper.instance().refreshExcept();
       spy.restore();
       expect(spy.callCount).toBe(0);

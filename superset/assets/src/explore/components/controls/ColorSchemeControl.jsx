@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
+import TooltipWrapper from '../../../components/TooltipWrapper';
 
 const propTypes = {
   description: PropTypes.string,
@@ -77,17 +78,22 @@ export default class ColorSchemeControl extends React.PureComponent {
     }
 
     return (
-      <ul className="color-scheme-container">
-        {colors.map((color, i) => (
-          <li
-            key={`${currentScheme.name}-${i}`}
-            style={{
-              backgroundColor: color,
-              border: `1px solid ${color === 'white' ? 'black' : color}`,
-            }}
-          >&nbsp;</li>
-        ))}
-      </ul>
+      <TooltipWrapper
+        label={`${currentScheme.id}-tooltip`}
+        tooltip={currentScheme.label}
+      >
+        <ul className="color-scheme-container">
+          {colors.map((color, i) => (
+            <li
+              key={`${currentScheme.id}-${i}`}
+              style={{
+                backgroundColor: color,
+                border: `1px solid ${color === 'white' ? 'black' : color}`,
+              }}
+            >&nbsp;</li>
+          ))}
+        </ul>
+      </TooltipWrapper>
     );
   }
 
