@@ -23,15 +23,17 @@ import {
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
+  SET_COLOR_SCHEME,
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
-  TOGGLE_BUILDER_PANE,
+  SHOW_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
 } from '../actions/dashboardState';
+import { BUILDER_PANE_TYPE } from '../util/constants';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
@@ -73,15 +75,24 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         editMode: action.editMode,
-        showBuilderPane: !!action.editMode,
+        builderPaneType: action.editMode
+          ? BUILDER_PANE_TYPE.ADD_COMPONENTS
+          : BUILDER_PANE_TYPE.NONE,
       };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED]() {
       const { maxUndoHistoryExceeded = true } = action.payload;
       return { ...state, maxUndoHistoryExceeded };
     },
-    [TOGGLE_BUILDER_PANE]() {
-      return { ...state, showBuilderPane: !state.showBuilderPane };
+    [SHOW_BUILDER_PANE]() {
+      return { ...state, builderPaneType: action.builderPaneType };
+    },
+    [SET_COLOR_SCHEME]() {
+      return {
+        ...state,
+        colorScheme: action.colorScheme,
+        updatedColorScheme: true,
+      };
     },
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
@@ -102,6 +113,8 @@ export default function dashboardStateReducer(state = {}, action) {
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         editMode: false,
+        builderPaneType: BUILDER_PANE_TYPE.NONE,
+        updatedColorScheme: false,
       };
     },
 
@@ -149,7 +162,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, hasUnsavedChanges };
     },
     [SET_REFRESH_FREQUENCY]() {
-      return { ...state, refreshFrequency: action.refreshFrequency };
+      return {
+        ...state,
+        refreshFrequency: action.refreshFrequency,
+        hasUnsavedChanges: true,
+      };
     },
   };
 

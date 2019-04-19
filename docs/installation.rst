@@ -479,6 +479,26 @@ into your global default defined in ``CACHE_CONFIG``.
         'CACHE_REDIS_URL': 'redis://localhost:6379/0',
     }
 
+Superset has a Celery task that will periodically warm up the cache based on
+different strategies. To use it, add the following to the `CELERYBEAT_SCHEDULE`
+section in `config.py`:
+
+.. code-block:: python
+
+    CELERYBEAT_SCHEDULE = {
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
+        },
+    }
+
+This will cache all the charts in the top 5 most popular dashboards every hour.
+For other strategies, check the `superset/tasks/cache.py` file.
 
 
 Deeper SQLAlchemy integration

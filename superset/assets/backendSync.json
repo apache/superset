@@ -1635,7 +1635,7 @@
       "freeForm": true,
       "label": "Number format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "SMART_NUMBER",
       "choices": [
         [
           ".1s",
@@ -2085,7 +2085,7 @@
       "freeForm": true,
       "label": "X Axis Format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "SMART_NUMBER",
       "choices": [
         [
           ".1s",
@@ -2165,7 +2165,7 @@
       "freeForm": true,
       "label": "Y Axis Format",
       "renderTrigger": true,
-      "default": ".3s",
+      "default": "SMART_NUMBER",
       "choices": [
         [
           ".1s",
@@ -2206,7 +2206,7 @@
       "type": "SelectControl",
       "freeForm": true,
       "label": "Right Axis Format",
-      "default": ".3s",
+      "default": "SMART_NUMBER",
       "choices": [
         [
           ".1s",
@@ -2496,6 +2496,64 @@
       "renderTrigger": true,
       "default": "150",
       "description": "Font size for the biggest value in the list"
+    },
+    "header_font_size": {
+      "type": "SelectControl",
+      "label": "Header Font Size",
+      "renderTrigger": true,
+      "clearable": false,
+      "default": 0.3,
+      "options": [
+        {
+          "label": "Tiny",
+          "value": 0.125
+        },
+        {
+          "label": "Small",
+          "value": 0.2
+        },
+        {
+          "label": "Normal",
+          "value": 0.3
+        },
+        {
+          "label": "Large",
+          "value": 0.4
+        },
+        {
+          "label": "Huge",
+          "value": 0.5
+        }
+      ]
+    },
+    "subheader_font_size": {
+      "type": "SelectControl",
+      "label": "Subheader Font Size",
+      "renderTrigger": true,
+      "clearable": false,
+      "default": 0.125,
+      "options": [
+        {
+          "label": "Tiny",
+          "value": 0.125
+        },
+        {
+          "label": "Small",
+          "value": 0.2
+        },
+        {
+          "label": "Normal",
+          "value": 0.3
+        },
+        {
+          "label": "Large",
+          "value": 0.4
+        },
+        {
+          "label": "Huge",
+          "value": 0.5
+        }
+      ]
     },
     "instant_filtering": {
       "type": "CheckboxControl",
@@ -3219,6 +3277,11 @@
       "default": "bnbColors",
       "renderTrigger": true,
       "description": "The color scheme for rendering chart"
+    },
+    "label_colors": {
+      "type": "ColorMapControl",
+      "label": "Color Map",
+      "default": {}
     },
     "significance_level": {
       "type": "TextControl",

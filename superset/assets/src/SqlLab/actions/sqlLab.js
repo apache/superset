@@ -17,6 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
+import JSONbig from 'json-bigint';
 import { t } from '@superset-ui/translation';
 import { SupersetClient } from '@superset-ui/connection';
 
@@ -128,9 +129,11 @@ export function fetchQueryResults(query) {
 
     return SupersetClient.get({
       endpoint: `/superset/results/${query.resultsKey}/`,
+      parseMethod: 'text',
     })
-      .then(({ json = {} }) => {
-        dispatch(querySuccess(query, json));
+      .then(({ text = '{}' }) => {
+        const bigIntJson = JSONbig.parse(text);
+        dispatch(querySuccess(query, bigIntJson));
       })
       .catch(response =>
         getClientErrorObject(response).then((error) => {
@@ -164,10 +167,12 @@ export function runQuery(query) {
       endpoint: `/superset/sql_json/${window.location.search}`,
       postPayload,
       stringify: false,
+      parseMethod: 'text',
     })
-      .then(({ json }) => {
+      .then(({ text = '{}' }) => {
         if (!query.runAsync) {
-          dispatch(querySuccess(query, json));
+          const bigIntJson = JSONbig.parse(text);
+          dispatch(querySuccess(query, bigIntJson));
         }
       })
       .catch(response =>

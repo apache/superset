@@ -71,9 +71,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(MenuItem)).toHaveLength(1);
     });
 
-    it('should render the RefreshIntervalModal', () => {
+    it('should not render the RefreshIntervalModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(1);
+      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(0);
     });
 
     it('should render the URLShortLinkModal', () => {
@@ -105,9 +105,9 @@ describe('HeaderActionsDropdown', () => {
       expect(wrapper.find(MenuItem)).toHaveLength(2);
     });
 
-    it('should render the RefreshIntervalModal', () => {
+    it('should not render the RefreshIntervalModal', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(1);
+      expect(wrapper.find(RefreshIntervalModal)).toHaveLength(0);
     });
 
     it('should render the URLShortLinkModal', () => {

@@ -118,10 +118,8 @@ class SupersetSecurityManager(SecurityManager):
         )
 
     def all_datasource_access(self):
-        return self.can_access('all_datasource_access', 'all_datasource_access')
-
-    def all_database_access(self):
-        return self.can_access('all_database_access', 'all_database_access')
+        return self.can_access(
+            'all_datasource_access', 'all_datasource_access')
 
     def database_access(self, database):
         return (
@@ -424,12 +422,8 @@ class SupersetSecurityManager(SecurityManager):
                 .values(perm=target.get_perm()),
             )
 
-        permission_name = 'datasource_access'
-        from superset.models.core import Database
-        if mapper.class_ == Database:
-            permission_name = 'database_access'
-
         # add to view menu if not already exists
+        permission_name = 'datasource_access'
         view_menu_name = target.get_perm()
         permission = self.find_permission(permission_name)
         view_menu = self.find_view_menu(view_menu_name)
