@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { NVD3TimeSeries } from './sections';
+import React from 'react';
+import PropTypes from 'prop-types';
 
-export default {
-  requiresTime: true,
-  controlPanelSections: [
-    NVD3TimeSeries[0],
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      controlSetRows: [
-        ['color_scheme', 'label_colors'],
-        ['number_format', 'date_time_format'],
-        ['rich_tooltip', 'rose_area_proportion'],
-      ],
-    },
-    NVD3TimeSeries[1],
-  ],
+const propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
 };
+
+
+export default class TooltipRow extends React.PureComponent {
+  render() {
+    return (
+      <div>{this.props.label}<strong>{this.props.value}</strong></div>
+    );
+  }
+}
+
+TooltipRow.propTypes = propTypes;

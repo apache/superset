@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { getControlsState, getFormDataFromControls } from '../store';
+import { validateControl, getControlsState, getFormDataFromControls } from '../store';
+import controls from '../controls';
 import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
@@ -75,24 +76,28 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_FIELD_VALUE]() {
-      const controls = Object.assign({}, state.controls);
-      const control = Object.assign({}, controls[action.controlName]);
-      control.value = action.value;
-      control.validationErrors = action.validationErrors;
-      controls[action.controlName] = control;
-      const changes = {
-        controls,
+      // These errors are reported from the Control components
+      let errors = action.validationErrors || [];
+      let control = {
+        ...controls[action.controlName],
+        value: action.value,
       };
-      if (control.renderTrigger) {
-        changes.triggerRender = true;
-      } else {
-        changes.triggerRender = false;
-      }
-      const newState = {
+      control = validateControl(control);
+
+      // These errors are based on control config `validators`
+      errors = errors.concat(control.validationErrors || []);
+      const hasErrors = errors && errors.length > 0;
+      return {
         ...state,
-        ...changes,
+        triggerRender: control.renderTrigger && !hasErrors,
+        controls: {
+          ...state.controls,
+          [action.controlName]: {
+            ...control,
+            validationErrors: errors,
+          },
+        },
       };
-      return newState;
     },
     [actions.SET_EXPLORE_CONTROLS]() {
       return {
