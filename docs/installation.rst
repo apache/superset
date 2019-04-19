@@ -170,12 +170,12 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
+    # Initialize the database
+    superset db upgrade
+
     # Create an admin user (you will be prompted to set a username, first and last name before setting a password)
     $ export FLASK_APP=superset
     flask fab create-admin
-
-    # Initialize the database
-    superset db upgrade
 
     # Load some data to play with
     superset load_examples
@@ -184,7 +184,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset runserver -d
+    flask run -p 8080 --with-threads --reload --debugger
 
 
 After installation, you should be able to point your browser to the right
