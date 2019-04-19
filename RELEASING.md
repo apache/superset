@@ -94,11 +94,14 @@ Now let's craft a source release
     # Alternatively you could clone the repo into another location as in
     # git clone git@github.com:apache/incubator-superset.git superset-releases
     git clean -fxd
+    # Create the target folder
+    mkdir -p ~/svn/superset_dev/${VERSION}/
     git archive \
         --format=tar.gz ${VERSION} \
         --prefix=apache-superset-${VERSION}/ \
-        -o apache-superset-${VERSION}-source.tar.gz
+        -o ~/svn/superset_dev/${VERSION}/apache-superset-${VERSION}-source.tar.gz
 
+    cd ~/svn/superset_dev/
     scripts/sign.sh apache-superset-${VERSION}-source.tar.gz
 ```
 
