@@ -25,6 +25,7 @@ import { PolygonLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../../AnimatableDeckGLContainer';
 import Legend from '../../../Legend';
+import TooltipRow from '../../TooltipRow';
 import { getBuckets, getBreakPointColorScaler } from '../../utils';
 
 import { commonLayerProps, fitViewport } from '../common';
@@ -48,10 +49,22 @@ function getElevation(d, colorScaler) {
     : d.elevation;
 }
 
+function setTooltipContent(formData) {
+  return (o) => {
+    const metricLabel = formData.metric.label || formData.metric;
+    return (
+      <div className="deckgl-tooltip">
+        <TooltipRow label={`${formData.line_column}: `} value={`${o.object[formData.line_column]}`} />
+        {formData.metric && <TooltipRow label={`${metricLabel}: `} value={`${o.object[metricLabel]}`} />}
+      </div>
+    );
+  };
+}
+
 export function getLayer(formData, payload, setTooltip, selected, onSelect, filters) {
   const fd = formData;
-  const fc = fd.fillColorPicker;
-  const sc = fd.strokeColorPicker;
+  const fc = fd.fill_color_picker;
+  const sc = fd.stroke_color_picker;
   let data = [...payload.data.features];
 
   if (filters != null) {
@@ -60,9 +73,9 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     });
   }
 
-  if (fd.jsDataMutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.jsDataMutator);
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
 
@@ -76,13 +89,16 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d) => {
     const baseColor = baseColorScaler(d);
-    if (selected.length > 0 && selected.indexOf(d[fd.lineColumn]) === -1) {
+    if (selected.length > 0 && selected.indexOf(d[fd.line_column]) === -1) {
       baseColor[3] /= 2;
     }
     return baseColor;
   };
+  const tooltipContentGenerator = (fd.line_column && fd.metric && ['geohash', 'zipcode'].indexOf(fd.line_type) >= 0)
+    ? setTooltipContent(fd)
+    : undefined;
   return new PolygonLayer({
-    id: `path-layer-${fd.sliceId}`,
+    id: `path-layer-${fd.slice_id}`,
     data,
     pickable: true,
     filled: fd.filled,
@@ -90,12 +106,12 @@ export function getLayer(formData, payload, setTooltip, selected, onSelect, filt
     getPolygon: d => d.polygon,
     getFillColor: colorScaler,
     getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
-    getLineWidth: fd.lineWidth,
+    getLineWidth: fd.line_width,
     extruded: fd.extruded,
     getElevation: d => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
-    ...commonLayerProps(fd, setTooltip, onSelect),
+    ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
   });
 }
 
@@ -138,7 +154,7 @@ class DeckGLPolygon extends React.Component {
     // the granularity has to be read from the payload form_data, not the
     // props formData which comes from the instantaneous controls state
     const granularity = (
-      props.payload.form_data.timeGrainSqla ||
+      props.payload.form_data.time_grain_sqla ||
       props.payload.form_data.granularity ||
       'P1D'
     );
@@ -177,7 +193,7 @@ class DeckGLPolygon extends React.Component {
     const selected = [...this.state.selected];
     if (doubleClick) {
       selected.splice(0, selected.length, polygon);
-    } else if (formData.togglePolygons) {
+    } else if (formData.toggle_polygons) {
       const i = selected.indexOf(polygon);
       if (i === -1) {
         selected.push(polygon);
@@ -189,8 +205,8 @@ class DeckGLPolygon extends React.Component {
     }
 
     this.setState({ selected, lastClick: now });
-    if (formData.tableFilter) {
-      onAddFilter(formData.lineColumn, selected, false, true);
+    if (formData.table_filter) {
+      onAddFilter(formData.line_column, selected, false, true);
     }
   }
   onValuesChange(values) {
@@ -249,14 +265,14 @@ class DeckGLPolygon extends React.Component {
           viewport={viewport}
           onViewportChange={this.onViewportChange}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
-          mapStyle={formData.mapboxStyle}
+          mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
           aggregation
         >
           {formData.metric !== null &&
           <Legend
             categories={buckets}
-            position={formData.legendPosition}
+            position={formData.legend_position}
           />}
         </AnimatableDeckGLContainer>
       </div>

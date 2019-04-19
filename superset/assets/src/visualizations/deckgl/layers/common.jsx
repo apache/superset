@@ -16,18 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
 import { fitBounds } from 'viewport-mercator-project';
 import * as d3array from 'd3-array';
 import sandboxedEval from '../../../modules/sandbox';
 
+const PADDING = 0.25;
+const GEO_BOUNDS = {
+  LAT_MIN: -90,
+  LAT_MAX: 90,
+  LNG_MIN: -180,
+  LNG_MAX: 180,
+};
+
+/**
+ * Get the latitude bounds if latitude is a single coordinate
+ * @param latExt Latitude range
+ */
+function getLatBoundsForSingleCoordinate(latExt) {
+  const latMin = latExt[0] - PADDING < GEO_BOUNDS.LAT_MIN
+    ? GEO_BOUNDS.LAT_MIN
+    : latExt[0] - PADDING;
+  const latMax = latExt[1] + PADDING > GEO_BOUNDS.LAT_MAX
+    ? GEO_BOUNDS.LAT_MAX
+    : latExt[1] + PADDING;
+  return [latMin, latMax];
+}
+
+/**
+ * Get the longitude bounds if longitude is a single coordinate
+ * @param lngExt Longitude range
+ */
+function getLngBoundsForSingleCoordinate(lngExt) {
+  const lngMin = lngExt[0] - PADDING < GEO_BOUNDS.LNG_MIN
+    ? GEO_BOUNDS.LNG_MIN
+    : lngExt[0] - PADDING;
+  const lngMax = lngExt[1] + PADDING > GEO_BOUNDS.LNG_MAX
+    ? GEO_BOUNDS.LNG_MAX
+    : lngExt[1] + PADDING;
+  return [lngMin, lngMax];
+}
+
 export function getBounds(points) {
   const latExt = d3array.extent(points, d => d[1]);
   const lngExt = d3array.extent(points, d => d[0]);
+  const latBounds = latExt[0] === latExt[1] ? getLatBoundsForSingleCoordinate(latExt) : latExt;
+  const lngBounds = lngExt[0] === lngExt[1] ? getLngBoundsForSingleCoordinate(lngExt) : lngExt;
   return [
-    [lngExt[0], latExt[0]],
-    [lngExt[1], latExt[1]],
+    [lngBounds[0], latBounds[0]],
+    [lngBounds[1], latBounds[1]],
   ];
 }
 
@@ -50,20 +86,12 @@ export function fitViewport(viewport, points, padding = 10) {
   }
 }
 
-export function commonLayerProps(formData, setTooltip, onSelect) {
+export function commonLayerProps(formData, setTooltip, setTooltipContent, onSelect) {
   const fd = formData;
   let onHover;
-  let tooltipContentGenerator;
-  if (fd.jsTooltip) {
-    tooltipContentGenerator = sandboxedEval(fd.jsTooltip);
-  } else if (fd.lineColumn && fd.metric && ['geohash', 'zipcode'].indexOf(fd.lineType) >= 0) {
-    const metricLabel = fd.metric.label || fd.metric;
-    tooltipContentGenerator = o => (
-      <div>
-        <div>{fd.lineColumn}: <strong>{o.object[fd.lineColumn]}</strong></div>
-        {fd.metric &&
-          <div>{metricLabel}: <strong>{o.object[metricLabel]}</strong></div>}
-      </div>);
+  let tooltipContentGenerator = setTooltipContent;
+  if (fd.js_tooltip) {
+    tooltipContentGenerator = sandboxedEval(fd.js_tooltip);
   }
   if (tooltipContentGenerator) {
     onHover = (o) => {
@@ -79,13 +107,13 @@ export function commonLayerProps(formData, setTooltip, onSelect) {
     };
   }
   let onClick;
-  if (fd.jsOnclickHref) {
+  if (fd.js_onclick_href) {
     onClick = (o) => {
-      const href = sandboxedEval(fd.jsOnclickHref)(o);
+      const href = sandboxedEval(fd.js_onclick_href)(o);
       window.open(href);
     };
-  } else if (fd.tableFilter && onSelect !== undefined) {
-    onClick = o => onSelect(o.object[fd.lineColumn]);
+  } else if (fd.table_filter && onSelect !== undefined) {
+    onClick = o => onSelect(o.object[fd.line_column]);
   }
   return {
     onClick,
