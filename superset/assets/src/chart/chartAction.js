@@ -251,7 +251,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
               const requestUrl = new URL(request.url || request);
               const urlFormData = requestUrl.searchParams.get('form_data');
               // clear all cached responses that reference this chart
-              if (formData && JSON.parse(urlFormData).slice_id === key) {
+              if (urlFormData && JSON.parse(urlFormData).slice_id === key) {
                 supersetCache.delete(request);
               }
             });
