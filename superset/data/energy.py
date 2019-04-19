@@ -20,6 +20,7 @@ import textwrap
 
 import pandas as pd
 from sqlalchemy import Float, String
+from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
@@ -54,9 +55,10 @@ def load_energy():
     tbl.database = utils.get_or_create_main_db()
 
     if not any(col.metric_name == 'sum__value' for col in tbl.metrics):
+        col = str(column('value').compile(db.engine))
         tbl.metrics.append(SqlMetric(
             metric_name='sum__value',
-            expression='SUM(value)',
+            expression=f'SUM({col})',
         ))
 
     db.session.merge(tbl)

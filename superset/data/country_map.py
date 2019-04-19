@@ -18,6 +18,7 @@ import datetime
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, String
+from sqlalchemy.sql import column
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
@@ -69,9 +70,10 @@ def load_country_map_data():
     obj.main_dttm_col = 'dttm'
     obj.database = utils.get_or_create_main_db()
     if not any(col.metric_name == 'avg__2004' for col in obj.metrics):
+        col = str(column('2004').compile(db.engine))
         obj.metrics.append(SqlMetric(
             metric_name='avg__2004',
-            expression='AVG(2004)',
+            expression=f'AVG({col})',
         ))
     db.session.merge(obj)
     db.session.commit()
