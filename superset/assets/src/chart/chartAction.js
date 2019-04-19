@@ -185,6 +185,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
       postPayload: { form_data: payload },
       signal,
       timeout: timeout * 1000,
+      cache: 'no-cache',
     };
     if (allowCrossDomain) {
       querySettings = {
