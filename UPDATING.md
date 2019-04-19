@@ -21,6 +21,11 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.33.0
+
+* `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
+the new `flask fab <command>` integrated with *Flask cli*.
+
 ## Superset 0.32.0
 
 * `npm run backend-sync` is deprecated and no longer needed, will fail if called

@@ -237,17 +237,11 @@ workers this creates a lot of contention and race conditions when defining
 permissions and views.
 
 To alleviate this issue, the automatic updating of permissions can be disabled
-by setting the environment variable
-`SUPERSET_UPDATE_PERMS` environment variable to `0`.
-The value `1` enables it, `0` disables it. Note if undefined the functionality
-is enabled to maintain backwards compatibility.
+by setting `FAB_UPDATE_PERMS = False` (defaults to True).
 
 In a production environment initialization could take on the following form:
 
-  export SUPERSET_UPDATE_PERMS=1
   superset init
-
-  export SUPERSET_UPDATE_PERMS=0
   gunicorn -w 10 ... superset:app
 
 Configuration behind a load balancer
