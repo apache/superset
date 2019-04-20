@@ -54,7 +54,7 @@ def load_flights():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'Random set of flights in the US'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = utils.get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

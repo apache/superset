@@ -64,7 +64,7 @@ def load_unicode_test_data():
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'dttm'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = utils.get_sample_data_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

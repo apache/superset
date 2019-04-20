@@ -21,7 +21,7 @@ import polyline
 from sqlalchemy import String, Text
 
 from superset import db
-from superset.utils.core import get_or_create_main_db
+from superset.utils.core import get_sample_data_db
 from .helpers import TBL, get_example_data
 
 
@@ -50,7 +50,7 @@ def load_bart_lines():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'BART lines'
-    tbl.database = get_or_create_main_db()
+    tbl.database = get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

@@ -67,7 +67,7 @@ def load_world_bank_health_n_pop():
         tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = utils.get_sample_data_db()
     tbl.filter_select_enabled = True
 
     metrics = [

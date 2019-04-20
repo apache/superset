@@ -52,7 +52,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = utils.get_sample_data_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

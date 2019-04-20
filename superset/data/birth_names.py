@@ -23,7 +23,7 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
-from superset.utils.core import get_or_create_main_db
+from superset.utils.core import get_sample_data_db
 from .helpers import (
     config,
     Dash,
@@ -61,7 +61,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = get_sample_data_db()
     obj.filter_select_enabled = True
 
     if not any(col.column_name == 'num_california' for col in obj.columns):

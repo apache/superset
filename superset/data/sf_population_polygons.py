@@ -48,7 +48,7 @@ def load_sf_population_polygons():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = 'Population density of San Francisco'
-    tbl.database = utils.get_or_create_main_db()
+    tbl.database = utils.get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

@@ -868,6 +868,21 @@ def user_label(user: User) -> Optional[str]:
     return None
 
 
+def get_sample_data_db():
+    from superset import conf, db
+    from superset.models import core as models
+
+    db_name = conf.get('SAMPLE_DATA_DB_DATASOURCE_NAME')
+    if db_name:
+        return (
+            db.session.query(models.Database)
+            .filter_by(database_name=db_name)
+            .first()
+        )
+    else:
+        return get_or_create_main_db()
+
+
 def get_or_create_main_db():
     from superset import conf, db
     from superset.models import core as models

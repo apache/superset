@@ -68,7 +68,7 @@ def load_country_map_data():
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
     obj.main_dttm_col = 'dttm'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = utils.get_sample_data_db()
     if not any(col.metric_name == 'avg__2004' for col in obj.metrics):
         col = str(column('2004').compile(db.engine))
         obj.metrics.append(SqlMetric(

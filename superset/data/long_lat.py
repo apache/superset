@@ -79,7 +79,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'datetime'
-    obj.database = utils.get_or_create_main_db()
+    obj.database = utils.get_sample_data_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
