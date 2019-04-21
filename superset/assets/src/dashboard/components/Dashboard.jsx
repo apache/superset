@@ -40,7 +40,7 @@ const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
-    postChartFormData: PropTypes.func.isRequired,
+    getSavedChart: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
@@ -158,7 +158,7 @@ class Dashboard extends React.PureComponent {
           sliceId: chart.id,
         });
 
-        this.props.actions.postChartFormData(
+        this.props.actions.getSavedChart(
           updatedFormData,
           false,
           this.props.timeout,
