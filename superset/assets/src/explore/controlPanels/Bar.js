@@ -28,7 +28,7 @@ export default {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme'],
+        ['color_scheme', 'label_colors'],
         ['show_brush', 'show_legend', 'show_bar_value'],
         ['rich_tooltip', 'bar_stacked'],
         ['line_interpolation', 'show_controls'],

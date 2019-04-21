@@ -40,7 +40,7 @@ const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
-    runQuery: PropTypes.func.isRequired,
+    postChartFormData: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
@@ -153,10 +153,12 @@ class Dashboard extends React.PureComponent {
           chart,
           dashboardMetadata: this.props.dashboardInfo.metadata,
           filters: this.props.dashboardState.filters,
+          colorScheme: this.props.dashboardState.colorScheme,
+          colorNamespace: this.props.dashboardState.colorNamespace,
           sliceId: chart.id,
         });
 
-        this.props.actions.runQuery(
+        this.props.actions.postChartFormData(
           updatedFormData,
           false,
           this.props.timeout,

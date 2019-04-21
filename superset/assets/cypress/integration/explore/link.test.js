@@ -26,16 +26,17 @@ describe('Test explore links', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/superset/explore_json/**').as('getJson');
+    cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Open and close view query modal', () => {
     cy.visitChartByName('Growth Rate');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('button#query').click();
     cy.get('span').contains('View query').parent().click();
-    cy.wait('@getJson').then(() => {
+    cy.wait('@postJson').then(() => {
       cy.get('code');
     });
     cy.get('.modal-header').within(() => {
@@ -47,7 +48,7 @@ describe('Test explore links', () => {
     cy.route('POST', 'r/shortner/').as('getShortUrl');
 
     cy.visitChartByName('Growth Rate');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=short-link-button]').click();
 
@@ -60,12 +61,12 @@ describe('Test explore links', () => {
       .then((text) => {
         cy.visit(text);
       });
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
 
   it('Test iframe link', () => {
     cy.visitChartByName('Growth Rate');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=embed-code-button]').click();
     cy.get('#embed-code-popover').within(() => {
@@ -83,7 +84,7 @@ describe('Test explore links', () => {
     const newChartName = 'Test chart';
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.url().then((url) => {
       cy.get('button[data-target="#save_modal"]').click();
       cy.get('.modal-content').within(() => {
@@ -93,14 +94,14 @@ describe('Test explore links', () => {
       cy.url().should('eq', url);
 
       cy.visitChartByName(newChartName);
-      cy.verifySliceSuccess({ waitAlias: '@getJson' });
+      cy.verifySliceSuccess({ waitAlias: '@postJson' });
     });
   });
 
   xit('Test chart save', () => {
     const chartName = 'Test chart';
     cy.visitChartByName(chartName);
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     cy.get('[data-test=groupby]').within(() => {
       cy.get('span.select-clear-zone').click();
@@ -109,7 +110,7 @@ describe('Test explore links', () => {
     cy.get('.modal-content').within(() => {
       cy.get('button#btn_modal_save').click();
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then((response) => {
       cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
     });
@@ -117,7 +118,7 @@ describe('Test explore links', () => {
 
   it('Test chart save as and add to new dashboard', () => {
     cy.visitChartByName('Growth Rate');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
     const dashboardTitle = 'Test dashboard';
     cy.get('button[data-target="#save_modal"]').click();
@@ -127,7 +128,7 @@ describe('Test explore links', () => {
       cy.get('input[placeholder="[dashboard name]"]').type(dashboardTitle);
       cy.get('button#btn_modal_save').click();
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.request(`/dashboard/api/read?_flt_3_dashboard_title=${dashboardTitle}`).then((response) => {
       expect(response.body.pks[0]).not.equals(null);
     });
@@ -135,7 +136,7 @@ describe('Test explore links', () => {
 
   it('Test chart save as and add to existing dashboard', () => {
     cy.visitChartByName('Most Populated Countries');
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     const chartName = 'New Most Populated Countries';
     const dashboardTitle = 'Test dashboard';
 
@@ -150,7 +151,7 @@ describe('Test explore links', () => {
       });
       cy.get('button#btn_modal_save').click();
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.request(`/chart/api/read?_flt_3_slice_name=${chartName}`).then((response) => {
       cy.request('DELETE', `/chart/api/delete/${response.body.pks[0]}`);
     });

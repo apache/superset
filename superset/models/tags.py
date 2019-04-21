@@ -123,7 +123,7 @@ class ObjectUpdater(object):
             tagged_object = TaggedObject(
                 tag_id=tag.id,
                 object_id=target.id,
-                object_type=ObjectTypes.chart,
+                object_type=cls.object_type,
             )
             session.add(tagged_object)
 
@@ -141,7 +141,7 @@ class ObjectUpdater(object):
         tagged_object = TaggedObject(
             tag_id=tag.id,
             object_id=target.id,
-            object_type=ObjectTypes.query,
+            object_type=cls.object_type,
         )
         session.add(tagged_object)
 

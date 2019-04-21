@@ -25,12 +25,12 @@ import {
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
-  TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
 } from '../../../../src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from '../../../../src/dashboard/reducers/dashboardState';
+import { BUILDER_PANE_TYPE } from '../../../../src/dashboard/util/constants';
 
 describe('dashboardState reducer', () => {
   it('should return initial state', () => {
@@ -79,23 +79,10 @@ describe('dashboardState reducer', () => {
         { editMode: false },
         { type: SET_EDIT_MODE, editMode: true },
       ),
-    ).toEqual({ editMode: true, showBuilderPane: true });
-  });
-
-  it('should toggle builder pane', () => {
-    expect(
-      dashboardStateReducer(
-        { showBuilderPane: false },
-        { type: TOGGLE_BUILDER_PANE },
-      ),
-    ).toEqual({ showBuilderPane: true });
-
-    expect(
-      dashboardStateReducer(
-        { showBuilderPane: true },
-        { type: TOGGLE_BUILDER_PANE },
-      ),
-    ).toEqual({ showBuilderPane: false });
+    ).toEqual({
+      editMode: true,
+      builderPaneType: BUILDER_PANE_TYPE.ADD_COMPONENTS,
+    });
   });
 
   it('should toggle expanded slices', () => {
@@ -150,6 +137,8 @@ describe('dashboardState reducer', () => {
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       editMode: false,
+      builderPaneType: BUILDER_PANE_TYPE.NONE,
+      updatedColorScheme: false,
     });
   });
 

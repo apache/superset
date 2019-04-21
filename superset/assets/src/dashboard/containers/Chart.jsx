@@ -44,7 +44,7 @@ function mapStateToProps(
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
-  const { filters } = dashboardState;
+  const { filters, colorScheme, colorNamespace } = dashboardState;
 
   return {
     chart,
@@ -59,6 +59,8 @@ function mapStateToProps(
       chart,
       dashboardMetadata: dashboardInfo.metadata,
       filters,
+      colorScheme,
+      colorNamespace,
       sliceId: id,
     }),
     editMode: dashboardState.editMode,

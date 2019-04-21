@@ -18,6 +18,8 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { Alert } from 'react-bootstrap';
+
 import { Logger, LOG_ACTIONS_RENDER_CHART_CONTAINER } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
@@ -68,12 +70,23 @@ class Chart extends React.PureComponent {
   }
   componentDidMount() {
     if (this.props.triggerQuery) {
-      this.props.actions.runQuery(
-        this.props.formData,
-        false,
-        this.props.timeout,
-        this.props.chartId,
-      );
+      if (this.props.chartId > 0) {
+        // Load saved chart with a GET request
+        this.props.actions.getSavedChart(
+          this.props.formData,
+          false,
+          this.props.timeout,
+          this.props.chartId,
+        );
+      } else {
+        // Create chart with POST request
+        this.props.actions.postChartFormData(
+          this.props.formData,
+          false,
+          this.props.timeout,
+          this.props.chartId,
+        );
+      }
     }
   }
 
@@ -122,7 +135,9 @@ class Chart extends React.PureComponent {
     if (chartStatus === 'failed') {
       return this.renderStackTraceMessage();
     }
-
+    if (errorMessage) {
+      return <Alert bsStyle="warning">{errorMessage}</Alert>;
+    }
     return (
       <ErrorBoundary onError={this.handleRenderContainerFailure} showMessage={false}>
         <div

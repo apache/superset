@@ -517,6 +517,12 @@ Run Cypress tests:
 cd /superset/superset/assets
 npm run build
 npm run cypress run
+
+# run tests from a specific file
+npm run cypress run -- --spec cypress/integration/explore/link.test.js
+
+# run specific file with video capture
+npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
 ```
 
 ## Translating
