@@ -19,7 +19,7 @@
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 export default () => describe('dashboard filter', () => {
-  let sliceIds = [];
+  let slices = [];
   let filterId;
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ export default () => describe('dashboard filter', () => {
     cy.get('#app').then((data) => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
-      sliceIds = dashboard.slices.map(slice => (slice.slice_id));
+      slices = [...dashboard.slices];
       filterId = dashboard.slices.find(slice => (slice.form_data.viz_type === 'filter_box')).slice_id;
     });
   });
@@ -43,13 +43,13 @@ export default () => describe('dashboard filter', () => {
     const filterRoute = `/superset/explore_json/?form_data=${formData}`;
     cy.route('GET', filterRoute).as('fetchFilter');
     cy.wait('@fetchFilter');
-    sliceIds
-      .filter(id => (parseInt(id, 10) !== filterId))
-      .forEach((id) => {
-        const alias = `getJson_${id}`;
+    slices
+      .filter(slice => (parseInt(slice.slice_id, 10) !== filterId))
+      .forEach((slice) => {
+        const alias = `getJson_${slice.slice_id}`;
         aliases.push(`@${alias}`);
-
-        cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(alias);
+        const chartFormData = `{"slice_id":${slice.slice_id},"viz_type":"${slice.form_data.viz_type}"}`;
+        cy.route('POST', `/superset/explore_json/?form_data=${chartFormData}`).as(alias);
       });
 
     // select filter_box and apply
