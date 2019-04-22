@@ -102,6 +102,7 @@ def etag_cache(max_age, check_perms=None, invalidate_cache=None):
                 if cache:
                     try:
                         logging.info(f'Setting {cache_key}')
+                        response.headers.extend({'X-Cache-Key': cache_key})
                         cache.set(cache_key, response, timeout=max_age)
                     except Exception:  # pylint: disable=broad-except
                         if app.debug:

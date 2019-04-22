@@ -50,3 +50,58 @@ class CacheTests(SupersetTestCase):
         self.assertEqual(resp_from_cache['status'], QueryStatus.SUCCESS)
         self.assertEqual(resp['data'], resp_from_cache['data'])
         self.assertEqual(resp['query'], resp_from_cache['query'])
+
+    def test_response_cache(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        url = (
+            f'/superset/explore_json/'
+            f'?form_data={{"slice_id":{slc.id},"viz_type":"table"}}'
+        )
+
+        # do a GET request, response will be cached
+        resp = self.client.get(url)
+        cache_key = resp.headers.get('X-Cache-Key')
+        date = resp.headers.get('Date')
+        self.assertIsNotNone(cache_key)
+        self.assertEquals(cache.get(cache_key).data, resp.data)
+
+        # do second GET request, cache will be reused
+        resp = self.client.get(url)
+        cache_key = resp.headers.get('X-Cache-Key')
+        self.assertIsNotNone(cache_key)
+        self.assertEquals(cache.get(cache_key).data, resp.data)
+
+        # do a POST request, cache should be invalidated
+        slc.viz.form_data['datasource'] = '1__table'
+        data = {'form_data': json.dumps(slc.viz.form_data)}
+        resp = self.client.post(url, data=data)
+        self.assertIsNone(cache.get(cache_key))
+
+        # do third GET request, new response will be cached
+        resp = self.client.get(url)
+        cache_key = resp.headers.get('X-Cache-Key')
+        self.assertIsNotNone(cache_key)
+        self.assertEquals(cache.get(cache_key).data, resp.data)
+
+    def test_check_datasource_perms(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        url = (
+            f'/superset/explore_json/'
+            f'?form_data={{"slice_id":{slc.id},"viz_type":"table"}}'
+        )
+
+        # do a GET request, response will be cached
+        resp = self.client.get(url)
+        cache_key = resp.headers.get('X-Cache-Key')
+        self.assertIsNotNone(cache_key)
+        self.assertEquals(cache.get(cache_key).data, resp.data)
+
+        # ensure users can't see cached data if they don't have access
+        self.logout()
+        self.login('gamma')
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 401)
