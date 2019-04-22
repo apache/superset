@@ -49,7 +49,7 @@ export default () => describe('dashboard filter', () => {
         const alias = `getJson_${id}`;
         aliases.push(`@${alias}`);
 
-        cy.route('GET', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(alias);
+        cy.route('POST', `/superset/explore_json/?form_data={"slice_id":${id}}`).as(alias);
       });
 
     // select filter_box and apply
