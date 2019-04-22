@@ -28,6 +28,7 @@ from .helpers import (
     get_expression,
     get_sample_data_db,
     get_sample_data_schema,
+    get_slice_json,
     make_df_columns_compatible,
     make_dtype_columns_compatible,
     merge_slice,
@@ -78,79 +79,77 @@ def load_energy():
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
+    
+    slice_data = {
+        'collapsed_fieldsets': '',
+        'groupby': [
+            c('source'),
+            c('target'),
+        ],
+        'having': '',
+        'metric': 'sum__value',
+        'row_limit': '5000',
+        'slice_name': 'Energy Sankey',
+        'viz_type': 'sankey',
+        'where': ''
+    }
 
     slc = Slice(
         slice_name='Energy Sankey',
         viz_type='sankey',
         datasource_type='table',
         datasource_id=tbl.id,
-        params=textwrap.dedent(f"""\
-        {{
-            "collapsed_fieldsets": "",
-            "groupby": [
-                "{c('source')}",
-                "{c('target')}"
-            ],
-            "having": "",
-            "metric": "sum__value",
-            "row_limit": "5000",
-            "slice_name": "Energy Sankey",
-            "viz_type": "sankey",
-            "where": ""
-        }}
-        """),
+        params=get_slice_json(slice_data)
     )
     misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
+    slice_data = {
+        'charge': '-500',
+        'collapsed_fieldsets': '',
+        'groupby': [
+            c('source'),
+            c('target'),
+        ],
+        'having': '',
+        'link_length': '200',
+        'metric': 'sum__value',
+        'row_limit': '5000',
+        'slice_name': 'Force',
+        'viz_type': 'directed_force',
+        'where': ''
+    }
     slc = Slice(
         slice_name='Energy Force Layout',
         viz_type='directed_force',
         datasource_type='table',
         datasource_id=tbl.id,
-        params=textwrap.dedent(f"""\
-        {{
-            "charge": "-500",
-            "collapsed_fieldsets": "",
-            "groupby": [
-                "{c('source')}",
-                "{c('target')}"
-            ],
-            "having": "",
-            "link_length": "200",
-            "metric": "sum__value",
-            "row_limit": "5000",
-            "slice_name": "Force",
-            "viz_type": "directed_force",
-            "where": ""
-        }}
-        """),
+        params=get_slice_json(slice_data),
     )
     misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)
 
+    slice_data = {
+        'all_columns_x': c('source'),
+        'all_columns_y': c('target'),
+        'canvas_image_rendering': 'pixelated',
+        'collapsed_fieldsets': '',
+        'having': '',
+        'linear_color_scheme': 'blue_white_yellow',
+        'metric': 'sum__value',
+        'normalize_across': 'heatmap',
+        'slice_name': 'Heatmap',
+        'viz_type': 'heatmap',
+        'where': '',
+        'xscale_interval': '1',
+        'yscale_interval': '1'
+    }
     slc = Slice(
         slice_name='Heatmap',
         viz_type='heatmap',
         datasource_type='table',
         datasource_id=tbl.id,
-        params=textwrap.dedent(f"""\
-        {{
-            "all_columns_x": "{c('source')}",
-            "all_columns_y": "{c('target')}",
-            "canvas_image_rendering": "pixelated",
-            "collapsed_fieldsets": "",
-            "having": "",
-            "linear_color_scheme": "blue_white_yellow",
-            "metric": "sum__value",
-            "normalize_across": "heatmap",
-            "slice_name": "Heatmap",
-            "viz_type": "heatmap",
-            "where": "",
-            "xscale_interval": "1",
-            "yscale_interval": "1"
-        }}
-        """),
+        params=get_slice_json(slice_data),
     )
     misc_dash_slices.add(slc.slice_name)
     merge_slice(slc)

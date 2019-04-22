@@ -42,11 +42,11 @@ def load_bart_lines():
     del df['path']
     df = make_df_columns_compatible(df, sample_db.db_engine_spec)
     dtypes = make_dtype_columns_compatible({
-            'color': String(255),
-            'name': String(255),
-            'polyline': Text,
-            'path_json': Text,
-        }, sample_db.db_engine_spec)
+        'color': String(255),
+        'name': String(255),
+        'polyline': Text(),
+        'path_json': Text(),
+    }, sample_db.db_engine_spec)
 
     df.to_sql(
         name=tbl_name,
