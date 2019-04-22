@@ -63,7 +63,6 @@ class CacheTests(SupersetTestCase):
         # do a GET request, response will be cached
         resp = self.client.get(url)
         cache_key = resp.headers.get('X-Cache-Key')
-        date = resp.headers.get('Date')
         self.assertIsNotNone(cache_key)
         self.assertEquals(cache.get(cache_key).data, resp.data)
 
