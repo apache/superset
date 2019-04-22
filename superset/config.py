@@ -27,7 +27,7 @@ import json
 import os
 import sys
 
-from superset.hive_query import defaultHiveQueryGenerator
+from superset.hive_query import default_hive_query_generator
 from celery.schedules import crontab
 from dateutil import tz
 from datetime import datetime
@@ -589,10 +589,10 @@ IS_EPOCH_S_TRULY_UTC = False
 
 # A function that intercepts the SQL to be executed and can alter it.
 #
-#    def HIVE_QUERY_GENERATOR(sql, query_obj):
+#    def HIVE_QUERY_GENERATOR(sql, query_obj,database,datasource_name):
 #        dttm = datetime.now().isoformat()
 #        return sql +" WHERE XYZ > 0 "
-HIVE_QUERY_GENERATOR  = defaultHiveQueryGenerator
+HIVE_QUERY_GENERATOR  = default_hive_query_generator
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

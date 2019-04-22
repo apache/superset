@@ -1,110 +1,157 @@
-"""The file  Generate Hive DB partition based SQL query for any selected time range  and defined gran from superset UI,
-   
-    Use  below  data structure for extra_params in db metadata Extra section to enable partitions for hive
-     "extra_params":{
-        "partitions":{
-         "year":"year",
-         "month":"month",
-         "day":"day",
-         "hour":"hour",
-         "minute":"minute"
-         }
-    }
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# pylint: disable=C,R,W
 
-"""
 import json
 import re
 from datetime import timedelta
-
-#gran valaue map
-GRAN_VALUE_MAP =  {
+import logging
+from datetime import datetime
+#gran valaue map,supported grain by hive db engine
+GRAIN_VALUE_MAP = {
     'PT1S' : 1,
-    'PT5S' : 5,
-    'PT10S' :10,
-    'PT15S' :15,
-    'PT30S': 30,
     'PT1M' : 60,
-    'PT5M' : 300,
-    'PT10M': 600,
-    'PT15M': 900,
-    'PT30M': 1800,
-    'PT0.5H':1800,
     'PT1H' : 3600,
-    'PT6H' : 21600,
     'P1D'  : 86400,
-    'P1W'  : 604800,
-    'P1M'  : 2629743,
-    'P3M'  : 7889229,
-    'P0.25Y': 7889229,
-    'P1Y'  : 31556926
+    'P1W'  : 604800,   # 7 days
+    'P1M'  : 2592000,  # 30 days
+    'P3M'  : 7776000,  # 3*30 days
+    'P0.25Y': 7776000, # 3*30 days
+    'P1Y'  : 31536000  # 365 days
 }
 
-# return seconds from gran valaue map
-def getGranValueInSeconds(value):
-    if  value in GRAN_VALUE_MAP:
-        return GRAN_VALUE_MAP[value]
+# return seconds from gran valaue map default is 86400
+def get_gran_value_in_seconds(value,time_partitions):
+    partition_min_grain = get_partitions_min_grain(time_partitions)
+    if partition_min_grain and value in GRAIN_VALUE_MAP and  GRAIN_VALUE_MAP[value] >= partition_min_grain:
+        return GRAIN_VALUE_MAP[value]
+    return partition_min_grain
 
-    return None 
+def get_partitions_min_grain(time_partitions):
+    partition_grains = list()
+    if 'year' in time_partitions:
+        partition_grains.append(GRAIN_VALUE_MAP['P1Y'])
+    if 'month' in time_partitions:
+        partition_grains.append(GRAIN_VALUE_MAP['P1M'])
+    if 'day' in time_partitions:
+        partition_grains.append(GRAIN_VALUE_MAP['P1D'])
+    if 'hour' in time_partitions:
+        partition_grains.append(GRAIN_VALUE_MAP['PT1H'])
+    if 'minute' in time_partitions:
+        partition_grains.append(GRAIN_VALUE_MAP['PT1M'])
 
-# return update sql for hive partitions db ,
-# Here we replace simply default time range based where clause from sql to specific partition based  where clause
-def defaultHiveQueryGenerator(sql, query_obj,database):
+    if partition_grains:
+        return partition_grains[-1]
 
-    # sample data structure for extra_params in db metadata to enable partitions for hive
-    # "extra_params":{
-    #     "partitions":{
-    #     "year":"year",
-    #     "month":"month",
-    #     "day":"day",
-    #     "hour":"hour",
-    #     "minute":"minute"
-    #     }
-    # }
+    return None
 
-    print('-- DEFAULT_HIVE_QUERY_GENERATOR --')
-    db_extra_metadata = json.loads(database.extra)
-    print("db extra metadata ::",db_extra_metadata)
-    if "extra_params" in  db_extra_metadata  and (database.backend == 'hive'):
-        extra_params = db_extra_metadata["extra_params"]
-        print("db extra_params:::",extra_params)
-        if( "partitions" in extra_params ) :
-            partitions = extra_params["partitions"]
-            print("db partitions:::",partitions)
-            st = query_obj['from_dttm']
-            print('startdate--',st)
-            en = query_obj['to_dttm']
-            print('enddate--',en)
-            gran_seconds = getGranValueInSeconds(query_obj['extras']['time_grain_sqla']) 
-            print('gran_seconds--',gran_seconds)
-            if st and en and gran_seconds :
-                timeSeq = list()
-                while st <= en:
-                    timeSeq.append(st.strftime("( "+partitions['year']+" = %Y AND "+partitions['month']+" = %m AND "+partitions['day']+" = %d AND "+partitions['hour']+" = %H AND "+partitions['minute']+" = %M )"))
-                    st = st + timedelta(seconds = gran_seconds)
 
-                whereClause = " OR ".join(timeSeq) 
 
-                # all time based  condition  should be in AND with other filters
-                if timeSeq and len(timeSeq) > 1 :
-                   whereClause = " ( " + whereClause + " ) "
-            
-                # regex for  `columname` >= 1549497600 type of string
-                regex_st = "(`)((?:[a-z][a-z]+))(`)(\\s+)(>)(=)(\\s+)(\\d+)"
-                # regex for `columname` <= 1549497600
-                regex_et = "(AND)(\\s+)(`)((?:[a-z][a-z]+))(`)(\\s+)(<)(=)(\\s+)(\\d+)"
-            
-                sql_updated = re.sub(regex_st, whereClause, sql)
-                sql_updated = re.sub(regex_et, '\n', sql_updated)
-            
-                print('sql_updated ---->',sql_updated)
-            
-                return sql_updated 
+def get_partitioned_query_format(time_partitions):
+    partition_seq = list()
+    if 'year' in time_partitions:
+        partition_seq.append(time_partitions['year']+" = %Y ")
+    if 'month' in time_partitions:
+        partition_seq.append(time_partitions['month']+" = %m ")
+    if 'day' in time_partitions:
+        partition_seq.append(time_partitions['day']+" = %d ")
+    if 'hour' in time_partitions:
+        partition_seq.append(time_partitions['hour']+" = %H ")
+    if 'minute' in time_partitions:
+        partition_seq.append(time_partitions['minute']+" = %M ")
+   
+    partition_seq_str = "AND ".join(partition_seq)
+    query_str  = "( "+ partition_seq_str+ ")"
+    return query_str
 
-            else:
-                return   sql    
+def get_partitioned_whereclause(_st, _en, gran_seconds, time_partitions):
+    time_seq = list()
+    # consider here only till < condition because hive store data like that
+    # ie 10-11 hr data will exist in 10th hr partition
 
-        else:
-                return   sql  
+    # handle same st and ed selection case,single point selection
+    if _st == _en:
+        time_seq.append(_st.strftime(get_partitioned_query_format(time_partitions)))
 
+    while _st < _en:
+        time_seq.append(_st.strftime(get_partitioned_query_format(time_partitions)))
+        _st = _st + timedelta(seconds=gran_seconds)
+
+    where_clause = " OR ".join(time_seq)
+
+    # all time based  condition  should be in AND with other filters
+    if time_seq and len(time_seq) > 1:
+        where_clause = " ( " + where_clause + " ) "
+
+    return where_clause
+
+def replace_whereclause_in_org_sql(granularity, sql, where_clause, granularity_in_partitions):
+    sql_updated = sql
+    if granularity_in_partitions:
+        # regex for  `granularity` >= 1549497600 type of string
+        # any word regex (?:[a-z][a-z]+)
+        regex_st = "(`)("+granularity+")(`)(\\s+)(>)(=)(\\s+)(\\d+)"
+        # regex for `granularity` <= 1549497600
+        regex_et = "(AND)(\\s+)(`)("+granularity+")(`)(\\s+)(<)(=)(\\s+)(\\d+)"
+
+        sql_updated = re.sub(regex_st, where_clause, sql)
+        sql_updated = re.sub(regex_et, '\n', sql_updated)
     else:
-        return   sql  
+        sql_updated = sql.replace("WHERE", " WHERE "+ where_clause +" AND ")
+    return sql_updated
+
+def get_hive_partitions(database, datasource_name):
+    tables = list(filter(lambda tname: (tname.datasource_name == datasource_name), database.tables))
+    table = tables[0]
+    return table.hive_partitions
+
+def default_hive_query_generator(sql, query_obj, database, datasource_name):
+    st_seconds = datetime.now()
+    """ schema for time based partition in table
+    {
+      "time":{
+                "year":"year",
+                "month":"month",
+                "day":"day",
+                "hour":"hour",
+                "minute":"minute"
+         }
+    }
+
+     Here we replace simply default time range based
+     where clause from sql to specific partition based  where clause
+     and returning update sql
+    """
+    if database.backend == 'hive':
+        hive_partitions = get_hive_partitions(database, datasource_name)
+        if hive_partitions:
+            hive_partitions_obj = json.loads(hive_partitions)
+            if 'time' in hive_partitions_obj:
+                time_partitions = (hive_partitions_obj['time'])
+                st = query_obj['from_dttm']
+                en = query_obj['to_dttm']
+                time_grain = query_obj['extras']['time_grain_sqla']
+                gran_seconds = get_gran_value_in_seconds(time_grain,time_partitions)
+                granularity = query_obj['granularity']
+                granularity_in_partitions = (granularity in time_partitions)
+                if st and en and gran_seconds:
+                    where_clause = get_partitioned_whereclause(st, en, gran_seconds, time_partitions)
+                    sql_updated = replace_whereclause_in_org_sql(granularity, sql, where_clause, granularity_in_partitions)
+                    logging.info('[PERFORMANCE CHECK] Hive Partition Query formation time {0} '.format(datetime.now() - st_seconds))
+                    return sql_updated
+    logging.info('[PERFORMANCE CHECK] Hive Partition Query formation time {0} '.format(datetime.now() - st_seconds))
+    return sql

@@ -851,6 +851,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
+                st_seconds = datetime.now()
                 for sql in sqls[:-1]:
                     _log_query(sql)
                     self.db_engine_spec.execute(cursor, sql)
@@ -858,7 +859,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
                 _log_query(sqls[-1])
                 self.db_engine_spec.execute(cursor, sqls[-1])
-
+                
+                logging.info('[PERFORMANCE CHECK] query response time from db {0} '.format(datetime.now()-st_seconds))
+               
+                st_seconds = datetime.now()
                 if cursor.description is not None:
                     columns = [col_desc[0] for col_desc in cursor.description]
                 else:
@@ -873,6 +877,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
                         df[k] = df[k].apply(utils.json_dumps_w_dates)
+
+                logging.info('[PERFORMANCE CHECK] pandas data frame formation time after response {0} '.format(datetime.now()-st_seconds))        
                 return df
 
     def compile_sqla_query(self, qry, schema=None):

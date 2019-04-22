@@ -183,7 +183,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owners',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
-        'is_sqllab_view', 'template_params',
+        'is_sqllab_view', 'template_params','hive_partitions',
     ]
     base_filters = [['id', DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ['perm', 'slices']
@@ -237,6 +237,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Duration (in seconds) of the caching timeout for this table. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the database timeout if undefined.'),
+        'hive_partitions': _(
+            'Define Hive Partitions as per schema .'
+            ' {"time":{"year":"_hive_year_col","month":"_hive_month_col","day":"_hive_day_col",'
+            '"hour":"_hive_hour_col","minute":"_hive_minute_col"}} '
+            'It is TIME based partitions schema sample( here time is used as key ) and mapped hive '
+            'column name with respective properties .' ),
+           
     }
     label_columns = {
         'slices': _('Associated Charts'),
@@ -258,6 +265,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'is_sqllab_view': _('SQL Lab View'),
         'template_params': _('Template parameters'),
         'modified': _('Modified'),
+        'hive_partitions': _('Hive Partitions')
     }
 
     def pre_add(self, table):

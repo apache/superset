@@ -276,7 +276,7 @@ class BaseViz(object):
         """Building a query object"""
 
         has_kerberos_ticket()
-        
+        st_seconds = datetime.now()
         form_data = self.form_data
         self.process_query_filters()
         gb = form_data.get('groupby') or []
@@ -343,6 +343,7 @@ class BaseViz(object):
             'prequeries': [],
             'is_prequery': False,
         }
+        logging.info('[PERFORMANCE CHECK] Query Obj formation time {0} '.format(datetime.now() - st_seconds))    
         return d
 
     @property
@@ -388,17 +389,23 @@ class BaseViz(object):
 
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
+        st_seconds = datetime.now()
         self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
+        st_seconds_1 = datetime.now()
         if self.status != utils.QueryStatus.FAILED:
             if df is not None and df.empty:
                 payload['error'] = 'No data'
             else:
                 payload['data'] = self.get_data(df)
+       
+        logging.info('[PERFORMANCE CHECK] df to  for  vis data convertion time {0} '.format(datetime.now() - st_seconds_1))  
+
         if 'df' in payload:
             del payload['df']
+        logging.info('[PERFORMANCE CHECK] Total Time in execute request  and transform  to vis data  {0} '.format(datetime.now()-st_seconds))    
         return payload
 
     def get_df_payload(self, query_obj=None, **kwargs):
