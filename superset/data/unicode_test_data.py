@@ -22,12 +22,17 @@ import pandas as pd
 from sqlalchemy import Date, Float, String
 
 from superset import db
-from superset.utils import core as utils
+from superset.connectors.sqla.models import SqlMetric
 from .helpers import (
     config,
     Dash,
     get_example_data,
+    get_expression,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
     merge_slice,
     Slice,
     TBL,
@@ -37,41 +42,57 @@ from .helpers import (
 
 def load_unicode_test_data():
     """Loading unicode test dataset from a csv file in the repo"""
+    tbl_name = 'unicode_test'
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
     data = get_example_data(
         'unicode_utf8_unixnl_test.csv', is_gzip=False, make_bytes=True)
     df = pd.read_csv(data, encoding='utf-8')
     # generate date/numeric data
     df['dttm'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
+    df = make_df_columns_compatible(df, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'phrase': String(500),
+        'short_phrase': String(10),
+        'with_missing': String(100),
+        'dttm': Date(),
+        'value': Float(),
+    }, sample_db.db_engine_spec)
     df.to_sql(  # pylint: disable=no-member
-        'unicode_test',
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'phrase': String(500),
-            'short_phrase': String(10),
-            'with_missing': String(100),
-            'dttm': Date(),
-            'value': Float(),
-        },
+        dtype=dtypes,
         index=False)
     print('Done loading table!')
     print('-' * 80)
 
     print('Creating table [unicode_test] reference')
-    obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not obj:
-        obj = TBL(table_name='unicode_test')
-    obj.main_dttm_col = 'dttm'
-    obj.database = utils.get_sample_data_db()
+        obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
+    obj.main_dttm_col = c('dttm')
+
+    if not any(col.metric_name == 'sum__value' for col in obj.metrics):
+        metric_name = 'sum__value'
+        expression = get_expression(metric_name, sample_db)
+        obj.metrics.append(SqlMetric(
+            metric_name=metric_name,
+            expression=expression,
+        ))
+
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        'granularity_sqla': 'dttm',
+        'granularity_sqla': c('dttm'),
         'groupby': [],
         'metric': 'sum__value',
         'row_limit': config.get('ROW_LIMIT'),
@@ -80,7 +101,7 @@ def load_unicode_test_data():
         'where': '',
         'viz_type': 'word_cloud',
         'size_from': '10',
-        'series': 'short_phrase',
+        'series': c('short_phrase'),
         'size_to': '70',
         'rotation': 'square',
         'limit': '100',

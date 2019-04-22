@@ -23,9 +23,19 @@ import zlib
 
 import requests
 
-from superset import app, db
+import pandas as pd
+
+from sqlalchemy import func
+from sqlalchemy.sql.type_api import TypeEngine
+from sqlalchemy.sql import column
+
+from typing import Dict
+
+from superset import app, conf, db
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
+from superset.utils import core as utils
 
 BASE_URL = 'https://github.com/apache-superset/examples-data/blob/master/'
 
@@ -42,6 +52,11 @@ DATA_FOLDER = os.path.join(config.get('BASE_DIR'), 'data')
 
 misc_dash_slices = set()  # slices assembled in a 'Misc Chart' dashboard
 
+SQLA_FUNCS = {
+    'avg': func.AVG,
+    'max': func.MAX,
+    'sum': func.SUM,
+}
 
 def update_slice_ids(layout_dict, slices):
     charts = [
@@ -75,3 +90,47 @@ def get_example_data(filepath, is_gzip=True, make_bytes=False):
     if make_bytes:
         content = BytesIO(content)
     return content
+
+
+def make_dtype_columns_compatible(dtypes: Dict[str, TypeEngine],
+                                  db_engine_spec: BaseEngineSpec) \
+        -> Dict[str, TypeEngine]:
+    return {str(db_engine_spec.make_label_compatible(col)): dtype
+            for col, dtype in dtypes.items()}
+
+
+def make_df_columns_compatible(df: pd.DataFrame,
+                               db_engine_spec: BaseEngineSpec) -> pd.DataFrame:
+    cols = {col: str(db_engine_spec.make_label_compatible(col)) for col in df.columns}
+    return df.rename(columns=cols)
+
+
+def get_compiled_column_name(colname: str, db: models.Database) -> str:
+    col = column(db.db_engine_spec.make_label_compatible(colname))
+    return str(col.compile(db.get_sqla_engine()))
+
+
+def get_expression(metric_name: str, db: models.Database) -> str:
+    aggregate_func = metric_name[:3]
+    col = db.db_engine_spec.make_label_compatible(metric_name[5:])
+    sqla_expr = SQLA_FUNCS[aggregate_func.lower()](column(col))
+    return str(sqla_expr.compile(db.get_sqla_engine()))
+
+
+def get_sample_data_db():
+    db_name = conf.get('SAMPLE_DATA_DB_DATASOURCE_NAME')
+    if db_name:
+        return (
+            db.session.query(models.Database)
+            .filter_by(database_name=db_name)
+            .first()
+        )
+    else:
+        return utils.get_or_create_main_db()
+
+
+def get_sample_data_schema():
+    from superset import conf
+    return conf.get('SAMPLE_DATA_DB_SCHEMA_NAME')
+
+

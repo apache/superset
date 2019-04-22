@@ -19,11 +19,14 @@ import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, String
 
 from superset import db
-from superset.utils import core as utils
 from .helpers import (
     config,
     get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
     merge_slice,
     misc_dash_slices,
     Slice,
@@ -33,44 +36,51 @@ from .helpers import (
 
 def load_multiformat_time_series():
     """Loading time series data from a zip file in the repo"""
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
+    tbl_name = 'multiformat_time_series'
     data = get_example_data('multiformat_time_series.json.gz')
     pdf = pd.read_json(data)
 
     pdf.ds = pd.to_datetime(pdf.ds, unit='s')
     pdf.ds2 = pd.to_datetime(pdf.ds2, unit='s')
-    pdf.to_sql(
-        'multiformat_time_series',
-        db.engine,
-        if_exists='replace',
-        chunksize=500,
-        dtype={
-            'ds': Date,
-            'ds2': DateTime,
-            'epoch_s': BigInteger,
-            'epoch_ms': BigInteger,
+    pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+            'ds': Date(),
+            'ds2': DateTime(),
+            'epoch_s': BigInteger(),
+            'epoch_ms': BigInteger(),
             'string0': String(100),
             'string1': String(100),
             'string2': String(100),
             'string3': String(100),
-        },
+        }, sample_db.db_engine_spec)
+    pdf.to_sql(
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
+        if_exists='replace',
+        chunksize=500,
+        dtype=dtypes,
         index=False)
     print('Done loading table!')
     print('-' * 80)
     print('Creating table [multiformat_time_series] reference')
-    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series').first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not obj:
-        obj = TBL(table_name='multiformat_time_series')
-    obj.main_dttm_col = 'ds'
-    obj.database = utils.get_sample_data_db()
+        obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
+    obj.main_dttm_col = c('ds')
     dttm_and_expr_dict = {
-        'ds': [None, None],
-        'ds2': [None, None],
-        'epoch_s': ['epoch_s', None],
-        'epoch_ms': ['epoch_ms', None],
-        'string2': ['%Y%m%d-%H%M%S', None],
-        'string1': ['%Y-%m-%d^%H:%M:%S', None],
-        'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
-        'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
+        c('ds'): [None, None],
+        c('ds2'): [None, None],
+        c('epoch_s'): ['epoch_s', None],
+        c('epoch_ms'): ['epoch_ms', None],
+        c('string2'): ['%Y%m%d-%H%M%S', None],
+        c('string1'): ['%Y-%m-%d^%H:%M:%S', None],
+        c('string0'): ['%Y-%m-%d %H:%M:%S.%f', None],
+        c('string3'): ['%Y/%m/%d%H:%M:%S.%f', None],
     }
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]

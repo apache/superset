@@ -20,6 +20,8 @@ import json
 from superset import db
 from .helpers import (
     Dash,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
     merge_slice,
     Slice,
@@ -178,13 +180,17 @@ POSITION_JSON = """\
 
 def load_deck_dash():
     print('Loading deck.gl dashboard')
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
     slices = []
-    tbl = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    tbl = db.session.query(TBL).filter_by(table_name='long_lat', database=sample_db,
+                                          schema=schema).first()
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': 'LON',
-            'latCol': 'LAT',
+            'lonCol': c('LON'),
+            'latCol': c('LAT'),
         },
         'color_picker': COLOR_RED,
         'datasource': '5__table',
@@ -229,8 +235,8 @@ def load_deck_dash():
         'row_limit': 5000,
         'spatial': {
             'type': 'latlong',
-            'lonCol': 'LON',
-            'latCol': 'LAT',
+            'lonCol': c('LON'),
+            'latCol': c('LAT'),
         },
         'mapbox_style': 'mapbox://styles/mapbox/dark-v9',
         'granularity_sqla': None,
@@ -273,8 +279,8 @@ def load_deck_dash():
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': 'LON',
-            'latCol': 'LAT',
+            'lonCol': c('LON'),
+            'latCol': c('LAT'),
         },
         'filters': [],
         'row_limit': 5000,
@@ -321,8 +327,8 @@ def load_deck_dash():
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': 'LON',
-            'latCol': 'LAT',
+            'lonCol': c('LON'),
+            'latCol': c('LAT'),
         },
         'filters': [],
         'row_limit': 5000,
@@ -375,7 +381,7 @@ def load_deck_dash():
         'granularity_sqla': None,
         'time_grain_sqla': None,
         'time_range': ' : ',
-        'line_column': 'contour',
+        'line_column': c('contour'),
         'metric': None,
         'line_type': 'json',
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -413,8 +419,8 @@ def load_deck_dash():
         'extruded': True,
         'point_radius_scale': 100,
         'js_columns': [
-            'population',
-            'area',
+            c('population'),
+            c('area'),
         ],
         'js_datapoint_mutator':
             '(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
@@ -447,13 +453,13 @@ def load_deck_dash():
         'time_range': ' : ',
         'start_spatial': {
             'type': 'latlong',
-            'latCol': 'LATITUDE',
-            'lonCol': 'LONGITUDE',
+            'latCol': c('LATITUDE'),
+            'lonCol': c('LONGITUDE'),
         },
         'end_spatial': {
             'type': 'latlong',
-            'latCol': 'LATITUDE_DEST',
-            'lonCol': 'LONGITUDE_DEST',
+            'latCol': c('LATITUDE_DEST'),
+            'lonCol': c('LONGITUDE_DEST'),
         },
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',

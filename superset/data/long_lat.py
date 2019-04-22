@@ -22,10 +22,14 @@ import pandas as pd
 from sqlalchemy import DateTime, Float, String
 
 from superset import db
-from superset.utils import core as utils
 from .helpers import (
     get_example_data,
+    get_expression,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
     merge_slice,
     misc_dash_slices,
     Slice,
@@ -35,6 +39,10 @@ from .helpers import (
 
 def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
+    tbl_name = 'long_lat'
     data = get_example_data('san_francisco.csv.gz', make_bytes=True)
     pdf = pd.read_csv(data, encoding='utf-8')
     start = datetime.datetime.now().replace(
@@ -48,38 +56,41 @@ def load_long_lat_data():
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
         lambda x: geohash.encode(*x), axis=1)
     pdf['delimited'] = pdf['LAT'].map(str).str.cat(pdf['LON'].map(str), sep=',')
+    pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'longitude': Float(),
+        'latitude': Float(),
+        'number': Float(),
+        'street': String(100),
+        'unit': String(10),
+        'city': String(50),
+        'district': String(50),
+        'region': String(50),
+        'postcode': Float(),
+        'id': String(100),
+        'datetime': DateTime(),
+        'occupancy': Float(),
+        'radius_miles': Float(),
+        'geohash': String(12),
+        'delimited': String(60),
+    }, sample_db.db_engine_spec)
     pdf.to_sql(  # pylint: disable=no-member
-        'long_lat',
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'longitude': Float(),
-            'latitude': Float(),
-            'number': Float(),
-            'street': String(100),
-            'unit': String(10),
-            'city': String(50),
-            'district': String(50),
-            'region': String(50),
-            'postcode': Float(),
-            'id': String(100),
-            'datetime': DateTime(),
-            'occupancy': Float(),
-            'radius_miles': Float(),
-            'geohash': String(12),
-            'delimited': String(60),
-        },
+        dtype=dtypes,
         index=False)
     print('Done loading table!')
     print('-' * 80)
 
     print('Creating table reference')
-    obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not obj:
-        obj = TBL(table_name='long_lat')
-    obj.main_dttm_col = 'datetime'
-    obj.database = utils.get_sample_data_db()
+        obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
+    obj.main_dttm_col = c('datetime')
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -91,10 +102,10 @@ def load_long_lat_data():
         'until': 'now',
         'where': '',
         'viz_type': 'mapbox',
-        'all_columns_x': 'LON',
-        'all_columns_y': 'LAT',
+        'all_columns_x': c('LON'),
+        'all_columns_y': c('LAT'),
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
-        'all_columns': ['occupancy'],
+        'all_columns': [c('occupancy')],
         'row_limit': 500000,
     }
 

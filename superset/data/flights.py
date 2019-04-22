@@ -18,12 +18,19 @@ import pandas as pd
 from sqlalchemy import DateTime
 
 from superset import db
-from superset.utils import core as utils
-from .helpers import get_example_data, TBL
-
+from .helpers import (
+    get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
+    TBL,
+)
 
 def load_flights():
     """Loading random time series data from a zip file in the repo"""
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
     tbl_name = 'flights'
     data = get_example_data('flight_data.csv.gz', make_bytes=True)
     pdf = pd.read_csv(data, encoding='latin-1')
@@ -41,20 +48,23 @@ def load_flights():
 
     pdf = pdf.join(airports, on='ORIGIN_AIRPORT', rsuffix='_ORIG')
     pdf = pdf.join(airports, on='DESTINATION_AIRPORT', rsuffix='_DEST')
+    pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'ds': DateTime(),
+    }, sample_db.db_engine_spec)
     pdf.to_sql(
-        tbl_name,
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'ds': DateTime,
-        },
+        dtype=dtypes,
         index=False)
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = TBL(table_name=tbl_name, database=sample_db, schema=schema)
     tbl.description = 'Random set of flights in the US'
-    tbl.database = utils.get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

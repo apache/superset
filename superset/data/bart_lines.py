@@ -21,36 +21,47 @@ import polyline
 from sqlalchemy import String, Text
 
 from superset import db
-from superset.utils.core import get_sample_data_db
-from .helpers import TBL, get_example_data
+from .helpers import (
+    TBL,
+    get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
+)
 
 
 def load_bart_lines():
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
     tbl_name = 'bart_lines'
     content = get_example_data('bart-lines.json.gz')
     df = pd.read_json(content, encoding='latin-1')
     df['path_json'] = df.path.map(json.dumps)
     df['polyline'] = df.path.map(polyline.encode)
     del df['path']
-
-    df.to_sql(
-        tbl_name,
-        db.engine,
-        if_exists='replace',
-        chunksize=500,
-        dtype={
+    df = make_df_columns_compatible(df, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
             'color': String(255),
             'name': String(255),
             'polyline': Text,
             'path_json': Text,
-        },
+        }, sample_db.db_engine_spec)
+
+    df.to_sql(
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
+        if_exists='replace',
+        chunksize=500,
+        dtype=dtypes,
         index=False)
     print('Creating table {} reference'.format(tbl_name))
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = TBL(table_name=tbl_name, database=sample_db, schema=schema)
     tbl.description = 'BART lines'
-    tbl.database = get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

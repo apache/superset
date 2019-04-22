@@ -19,11 +19,14 @@ import pandas as pd
 from sqlalchemy import DateTime
 
 from superset import db
-from superset.utils import core as utils
 from .helpers import (
     config,
     get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
     merge_slice,
     Slice,
     TBL,
@@ -32,27 +35,34 @@ from .helpers import (
 
 def load_random_time_series_data():
     """Loading random time series data from a zip file in the repo"""
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
+    tbl_name = 'random_time_series'
     data = get_example_data('random_time_series.json.gz')
     pdf = pd.read_json(data)
     pdf.ds = pd.to_datetime(pdf.ds, unit='s')
+    pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'ds': DateTime(),
+    }, sample_db.db_engine_spec)
     pdf.to_sql(
-        'random_time_series',
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'ds': DateTime,
-        },
+        dtype=dtypes,
         index=False)
     print('Done loading table!')
     print('-' * 80)
 
     print('Creating table [random_time_series] reference')
-    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not obj:
-        obj = TBL(table_name='random_time_series')
-    obj.main_dttm_col = 'ds'
-    obj.database = utils.get_sample_data_db()
+        obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
+    obj.main_dttm_col = c('ds')
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

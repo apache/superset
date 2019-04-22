@@ -20,35 +20,44 @@ import pandas as pd
 from sqlalchemy import BigInteger, Text
 
 from superset import db
-from superset.utils import core as utils
-from .helpers import TBL, get_example_data
+from .helpers import (
+    get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
+    TBL,
+)
 
 
 def load_sf_population_polygons():
     tbl_name = 'sf_population_polygons'
-
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
     data = get_example_data('sf_population.json.gz')
     df = pd.read_json(data)
     df['contour'] = df.contour.map(json.dumps)
-
+    df = make_df_columns_compatible(df, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'zipcode': BigInteger(),
+        'population': BigInteger(),
+        'contour': Text(),
+        'area': BigInteger(),
+    }, sample_db.db_engine_spec)
     df.to_sql(
-        tbl_name,
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'zipcode': BigInteger,
-            'population': BigInteger,
-            'contour': Text,
-            'area': BigInteger,
-        },
+        dtype=dtypes,
         index=False)
     print('Creating table {} reference'.format(tbl_name))
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = TBL(table_name=tbl_name, database=sample_db, schema=schema)
     tbl.description = 'Population density of San Francisco'
-    tbl.database = utils.get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

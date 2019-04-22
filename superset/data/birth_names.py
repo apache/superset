@@ -23,12 +23,16 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
-from superset.utils.core import get_sample_data_db
 from .helpers import (
     config,
     Dash,
     get_example_data,
+    get_expression,
+    get_sample_data_db,
+    get_sample_data_schema,
     get_slice_json,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
     merge_slice,
     Slice,
     TBL,
@@ -38,45 +42,52 @@ from .helpers import (
 
 def load_birth_names():
     """Loading birth name dataset from a zip file in the repo"""
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
+    c = sample_db.db_engine_spec.make_label_compatible
+    tbl_name='birth_names'
     data = get_example_data('birth_names.json.gz')
     pdf = pd.read_json(data)
     pdf.ds = pd.to_datetime(pdf.ds, unit='ms')
-    pdf.to_sql(
-        'birth_names',
-        db.engine,
-        if_exists='replace',
-        chunksize=500,
-        dtype={
+    pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
             'ds': DateTime,
             'gender': String(16),
             'state': String(10),
             'name': String(255),
-        },
+        }, sample_db.db_engine_spec)
+    pdf.to_sql(
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
+        if_exists='replace',
+        chunksize=500,
+        dtype=dtypes,
         index=False)
     print('Done loading table!')
     print('-' * 80)
 
     print('Creating table [birth_names] reference')
-    obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
+    obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not obj:
-        obj = TBL(table_name='birth_names')
-    obj.main_dttm_col = 'ds'
-    obj.database = get_sample_data_db()
+        obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
+    obj.main_dttm_col = c('ds')
     obj.filter_select_enabled = True
 
+    col_state = str(column(c('state')).compile(db.engine))
+    col_num = str(column(c('num')).compile(db.engine))
     if not any(col.column_name == 'num_california' for col in obj.columns):
-        col_state = str(column('state').compile(db.engine))
-        col_num = str(column('num').compile(db.engine))
         obj.columns.append(TableColumn(
             column_name='num_california',
             expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
         ))
 
     if not any(col.metric_name == 'sum__num' for col in obj.metrics):
-        col = str(column('num').compile(db.engine))
+        metric_name = 'sum__num'
         obj.metrics.append(SqlMetric(
-            metric_name='sum__num',
-            expression=f'SUM({col})',
+            metric_name=metric_name,
+            expression=get_expression(metric_name, sample_db),
         ))
 
     db.session.merge(obj)
@@ -88,7 +99,7 @@ def load_birth_names():
         'compare_lag': '10',
         'compare_suffix': 'o10Y',
         'limit': '25',
-        'granularity_sqla': 'ds',
+        'granularity_sqla': c('ds'),
         'groupby': [],
         'metric': 'sum__num',
         'metrics': ['sum__num'],
@@ -111,9 +122,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=['name'],
+                groupby=[c('name')],
                 filters=[{
-                    'col': 'gender',
+                    'col': c('gender'),
                     'op': 'in',
                     'val': ['girl'],
                 }],
@@ -126,9 +137,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=['name'],
+                groupby=[c('name')],
                 filters=[{
-                    'col': 'gender',
+                    'col': c('gender'),
                     'op': 'in',
                     'val': ['boy'],
                 }],
@@ -140,7 +151,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='big_number', granularity_sqla='ds',
+                viz_type='big_number', granularity_sqla=c('ds'),
                 compare_lag='5', compare_suffix='over 5Y')),
         Slice(
             slice_name='Genders',
@@ -149,7 +160,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='pie', groupby=['gender'])),
+                viz_type='pie', groupby=[c('gender')])),
         Slice(
             slice_name='Genders by State',
             viz_type='dist_bar',
@@ -164,7 +175,7 @@ def load_birth_names():
                         'filterOptionName': '2745eae5',
                         'comparator': ['other'],
                         'operator': 'not in',
-                        'subject': 'state',
+                        'subject': c('state'),
                     },
                 ],
                 viz_type='dist_bar',
@@ -172,7 +183,7 @@ def load_birth_names():
                     {
                         'expressionType': 'SIMPLE',
                         'column': {
-                            'column_name': 'sum_boys',
+                            'column_name': c('sum_boys'),
                             'type': 'BIGINT(20)',
                         },
                         'aggregate': 'SUM',
@@ -182,7 +193,7 @@ def load_birth_names():
                     {
                         'expressionType': 'SIMPLE',
                         'column': {
-                            'column_name': 'sum_girls',
+                            'column_name': c('sum_girls'),
                             'type': 'BIGINT(20)',
                         },
                         'aggregate': 'SUM',
@@ -190,7 +201,7 @@ def load_birth_names():
                         'optionName': 'metric_12',
                     },
                 ],
-                groupby=['state'])),
+                groupby=[c('state')])),
         Slice(
             slice_name='Trends',
             viz_type='line',
@@ -198,8 +209,8 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='line', groupby=['name'],
-                granularity_sqla='ds', rich_tooltip=True, show_legend=True)),
+                viz_type='line', groupby=[c('name')],
+                granularity_sqla=c('ds'), rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name='Average and Sum Trends',
             viz_type='dual_line',
@@ -211,7 +222,7 @@ def load_birth_names():
                 metric={
                     'expressionType': 'SIMPLE',
                     'column': {
-                        'column_name': 'num',
+                        'column_name': c('num'),
                         'type': 'BIGINT(20)',
                     },
                     'aggregate': 'AVG',
@@ -219,7 +230,7 @@ def load_birth_names():
                     'optionName': 'metric_vgops097wej_g8uff99zhk7',
                 },
                 metric_2='sum__num',
-                granularity_sqla='ds')),
+                granularity_sqla=c('ds'))),
         Slice(
             slice_name='Title',
             viz_type='markup',
@@ -246,7 +257,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type='word_cloud', size_from='10',
-                series='name', size_to='70', rotation='square',
+                series=c('name'), size_to='70', rotation='square',
                 limit='100')),
         Slice(
             slice_name='Pivot Table',
@@ -256,7 +267,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type='pivot_table', metrics=['sum__num'],
-                groupby=['name'], columns=['state'])),
+                groupby=[c('name')], columns=[c('state')])),
         Slice(
             slice_name='Number of Girls',
             viz_type='big_number_total',
@@ -264,9 +275,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='big_number_total', granularity_sqla='ds',
+                viz_type='big_number_total', granularity_sqla=c('ds'),
                 filters=[{
-                    'col': 'gender',
+                    'col': c('gender'),
                     'op': 'in',
                     'val': ['girl'],
                 }],
@@ -282,13 +293,13 @@ def load_birth_names():
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",  # noqa
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
                 },
                 viz_type='big_number_total',
-                granularity_sqla='ds')),
+                granularity_sqla=c('ds'))),
         Slice(
             slice_name='Top 10 California Names Timeseries',
             viz_type='line',
@@ -300,19 +311,19 @@ def load_birth_names():
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",  # noqa
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
                 }],
                 viz_type='line',
-                granularity_sqla='ds',
-                groupby=['name'],
+                granularity_sqla=c('ds'),
+                groupby=[c('name')],
                 timeseries_limit_metric={
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",  # noqa
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -325,13 +336,13 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=['name'],
+                groupby=[c('name')],
                 row_limit=50,
                 timeseries_limit_metric={
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",  # noqa
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -352,7 +363,7 @@ def load_birth_names():
             created_by=admin,
             params=get_slice_json(
                 defaults,
-                groupby=['ds'],
+                groupby=[c('ds')],
                 since='40 years ago',
                 until='now',
                 viz_type='table')),

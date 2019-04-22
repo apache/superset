@@ -20,35 +20,45 @@ import pandas as pd
 from sqlalchemy import String, Text
 
 from superset import db
-from superset.utils import core as utils
-from .helpers import TBL, get_example_data
-
+from .helpers import (
+    get_example_data,
+    get_sample_data_db,
+    get_sample_data_schema,
+    make_df_columns_compatible,
+    make_dtype_columns_compatible,
+    TBL,
+)
 
 def load_paris_iris_geojson():
+    sample_db = get_sample_data_db()
+    schema = get_sample_data_schema()
     tbl_name = 'paris_iris_mapping'
 
     data = get_example_data('paris_iris.json.gz')
     df = pd.read_json(data)
     df['features'] = df.features.map(json.dumps)
+    df = make_df_columns_compatible(df, sample_db.db_engine_spec)
+    dtypes = make_dtype_columns_compatible({
+        'color': String(255),
+        'name': String(255),
+        'features': Text,
+        'type': Text,
+    }, sample_db.db_engine_spec)
 
     df.to_sql(
-        tbl_name,
-        db.engine,
+        name=tbl_name,
+        con=sample_db.get_sqla_engine(),
+        schema=schema,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'color': String(255),
-            'name': String(255),
-            'features': Text,
-            'type': Text,
-        },
+        dtype=dtypes,
         index=False)
     print('Creating table {} reference'.format(tbl_name))
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
+                                          schema=schema).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = TBL(table_name=tbl_name, database=sample_db, schema=schema)
     tbl.description = 'Map of Paris'
-    tbl.database = utils.get_sample_data_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
