@@ -81,19 +81,23 @@ class SupersetSecurityManager(SecurityManager):
         'can_list',
     }
 
-    ALPHA_ONLY_PERMISSIONS = set([
+    ALPHA_ONLY_PERMISSIONS = {
         'muldelete',
         'all_database_access',
         'all_datasource_access',
-    ])
+    }
 
-    OBJECT_SPEC_PERMISSIONS = set([
+    OBJECT_SPEC_PERMISSIONS = {
         'database_access',
         'schema_access',
         'datasource_access',
         'metric_access',
         'can_only_access_owned_queries',
-    ])
+    }
+
+    ACCESSIBLE_PERMS = {
+        'can_userinfo',
+    }
 
     def get_schema_perm(self, database, schema):
         if schema:
@@ -386,15 +390,21 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
+    def is_accessible_to_all(self, pvm):
+        return pvm.permission.name in self.ACCESSIBLE_PERMS
+
     def is_admin_pvm(self, pvm):
         return not self.is_user_defined_permission(pvm)
 
     def is_alpha_pvm(self, pvm):
-        return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm))
+        return (
+            not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm)) or
+            self.is_accessible_to_all(pvm)
+        )
 
     def is_gamma_pvm(self, pvm):
         return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm) or
-                    self.is_alpha_only(pvm))
+                    self.is_alpha_only(pvm)) or self.is_accessible_to_all(pvm)
 
     def is_sql_lab_pvm(self, pvm):
         return (
