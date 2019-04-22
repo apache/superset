@@ -242,7 +242,7 @@ export function exploreJSON(formData, force = false, timeout = 60, key, method) 
 
     // clear cache on POST; this happens in Explore view when "Run Query" is
     // clicked, or in the dashboard when force refresh is clicked
-    if (method === 'POST' && 'caches' in self && force) {
+    if (method === 'POST' && 'caches' in self) {
       caches.open(CACHE_KEY).then(supersetCache =>
         supersetCache
           .keys()
