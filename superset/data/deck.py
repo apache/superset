@@ -537,7 +537,7 @@ def load_deck_dash():
         'line_width': 150,
         'reverse_long_lat': False,
         'js_columns': [
-            'color',
+            c('color'),
         ],
         'js_datapoint_mutator': 'd => {\n    return {\n        ...d,\n        color: \
             colors.hexToRGB(d.extraProps.color),\n    }\n}',
