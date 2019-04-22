@@ -76,6 +76,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_slice', 'Superset'), perm_set)
         self.assertIn(('can_explore', 'Superset'), perm_set)
         self.assertIn(('can_explore_json', 'Superset'), perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), perm_set)
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all('SqlMetricInlineView', perm_set)
@@ -231,6 +232,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
