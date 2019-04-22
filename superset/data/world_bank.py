@@ -49,7 +49,7 @@ def load_world_bank_health_n_pop():
     """Loads the world bank health dataset, slices and a dashboard"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    c = sample_db.db_engine_spec.make_label_compatible
+    cm = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'wb_health_population'
     data = get_example_data('countries.json.gz')
     pdf = pd.read_json(data)
@@ -77,7 +77,7 @@ def load_world_bank_health_n_pop():
     if not tbl:
         tbl = TBL(table_name=tbl_name, database=sample_db, schema=schema)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
-    tbl.main_dttm_col = c('year')
+    tbl.main_dttm_col = cm('year')
     tbl.filter_select_enabled = True
 
     metrics = [
@@ -99,7 +99,7 @@ def load_world_bank_health_n_pop():
         'compare_lag': '10',
         'compare_suffix': 'o10Y',
         'limit': '25',
-        'granularity_sqla': c('year'),
+        'granularity_sqla': cm('year'),
         'groupby': [],
         'metric': 'sum__SP_POP_TOTL',
         'metrics': ['sum__SP_POP_TOTL'],
@@ -111,7 +111,7 @@ def load_world_bank_health_n_pop():
         'markup_type': 'markdown',
         'country_fieldtype': 'cca3',
         'secondary_metric': 'sum__SP_POP_TOTL',
-        'entity': c('country_code'),
+        'entity': cm('country_code'),
         'show_bubbles': True,
     }
 
@@ -130,7 +130,7 @@ def load_world_bank_health_n_pop():
                     {
                         'asc': False,
                         'clearable': True,
-                        'column': c('region'),
+                        'column': cm('region'),
                         'key': '2s98dfu',
                         'metric': 'sum__SP_POP_TOTL',
                         'multiple': True,
@@ -138,7 +138,7 @@ def load_world_bank_health_n_pop():
                         'asc': False,
                         'clearable': True,
                         'key': 'li3j2lk',
-                        'column': c('country_name'),
+                        'column': cm('country_name'),
                         'metric': 'sum__SP_POP_TOTL',
                         'multiple': True,
                     },
@@ -164,7 +164,7 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type='table',
                 metrics=['sum__SP_POP_TOTL'],
-                groupby=[c('country_name')])),
+                groupby=[cm('country_name')])),
         Slice(
             slice_name='Growth Rate',
             viz_type='line',
@@ -176,7 +176,7 @@ def load_world_bank_health_n_pop():
                 since='1960-01-01',
                 metrics=['sum__SP_POP_TOTL'],
                 num_period_compare='10',
-                groupby=[c('country_name')])),
+                groupby=[cm('country_name')])),
         Slice(
             slice_name='% Rural',
             viz_type='world_map',
@@ -197,15 +197,15 @@ def load_world_bank_health_n_pop():
                 viz_type='bubble',
                 since='2011-01-01',
                 until='2011-01-02',
-                series=c('region'),
+                series=cm('region'),
                 limit=0,
-                entity=c('country_name'),
+                entity=cm('country_name'),
                 x='sum__SP_RUR_TOTL_ZS',
                 y='sum__SP_DYN_LE00_IN',
                 size='sum__SP_POP_TOTL',
                 max_bubble_size='50',
                 filters=[{
-                    'col': c('country_code'),
+                    'col': cm('country_code'),
                     'val': [
                         'TCA', 'MNP', 'DMA', 'MHL', 'MCO', 'SXM', 'CYM',
                         'TUV', 'IMY', 'KNA', 'ASM', 'ADO', 'AMA', 'PLW',
@@ -220,7 +220,7 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='sunburst',
-                groupby=[c('region'), c('country_name')],
+                groupby=[cm('region'), cm('country_name')],
                 secondary_metric='sum__SP_RUR_TOTL',
                 since='2011-01-01',
                 until='2011-01-01')),
@@ -234,7 +234,7 @@ def load_world_bank_health_n_pop():
                 since='1960-01-01',
                 until='now',
                 viz_type='area',
-                groupby=[c('region')])),
+                groupby=[cm('region')])),
         Slice(
             slice_name='Box plot',
             viz_type='box_plot',
@@ -247,7 +247,7 @@ def load_world_bank_health_n_pop():
                 whisker_options='Min/max (no outliers)',
                 x_ticks_layout='staggered',
                 viz_type='box_plot',
-                groupby=[c('region')])),
+                groupby=[cm('region')])),
         Slice(
             slice_name='Treemap',
             viz_type='treemap',
@@ -259,7 +259,7 @@ def load_world_bank_health_n_pop():
                 until='now',
                 viz_type='treemap',
                 metrics=['sum__SP_POP_TOTL'],
-                groupby=[c('region'), c('country_code')])),
+                groupby=[cm('region'), cm('country_code')])),
         Slice(
             slice_name='Parallel Coordinates',
             viz_type='para',
@@ -276,7 +276,7 @@ def load_world_bank_health_n_pop():
                     'sum__SP_RUR_TOTL_ZS',
                     'sum__SH_DYN_AIDS'],
                 secondary_metric='sum__SP_POP_TOTL',
-                series=c('country_name'))),
+                series=cm('country_name'))),
     ]
     misc_dash_slices.add(slices[-1].slice_name)
     for slc in slices:

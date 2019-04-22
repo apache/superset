@@ -37,7 +37,7 @@ def load_random_time_series_data():
     """Loading random time series data from a zip file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    c = sample_db.db_engine_spec.make_label_compatible
+    cm = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'random_time_series'
     data = get_example_data('random_time_series.json.gz')
     pdf = pd.read_json(data)
@@ -62,7 +62,7 @@ def load_random_time_series_data():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = c('ds')
+    obj.main_dttm_col = cm('ds')
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()

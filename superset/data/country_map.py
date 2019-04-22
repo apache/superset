@@ -40,7 +40,7 @@ def load_country_map_data():
     """Loading data for map with country map"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    c = sample_db.db_engine_spec.make_label_compatible
+    cm = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'birth_france_by_region'
     csv_bytes = get_example_data(
         'birth_france_data_for_country_map.csv', is_gzip=False, make_bytes=True)
@@ -48,21 +48,21 @@ def load_country_map_data():
     data['dttm'] = datetime.datetime.now().date()
     data = make_df_columns_compatible(data, sample_db.db_engine_spec)
     dtypes = make_dtype_columns_compatible({
-            'DEPT_ID': String(10),
-            '2003': BigInteger,
-            '2004': BigInteger,
-            '2005': BigInteger,
-            '2006': BigInteger,
-            '2007': BigInteger,
-            '2008': BigInteger,
-            '2009': BigInteger,
-            '2010': BigInteger,
-            '2011': BigInteger,
-            '2012': BigInteger,
-            '2013': BigInteger,
-            '2014': BigInteger,
-            'dttm': Date(),
-        }, sample_db.db_engine_spec)
+        'DEPT_ID': String(10),
+        '2003': BigInteger,
+        '2004': BigInteger,
+        '2005': BigInteger,
+        '2006': BigInteger,
+        '2007': BigInteger,
+        '2008': BigInteger,
+        '2009': BigInteger,
+        '2010': BigInteger,
+        '2011': BigInteger,
+        '2012': BigInteger,
+        '2013': BigInteger,
+        '2014': BigInteger,
+        'dttm': Date(),
+    }, sample_db.db_engine_spec)
     data.to_sql(  # pylint: disable=no-member
         name=tbl_name,
         con=sample_db.get_sqla_engine(),
@@ -78,7 +78,7 @@ def load_country_map_data():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = c('dttm')
+    obj.main_dttm_col = cm('dttm')
     if not any(col.metric_name == 'avg__2004' for col in obj.metrics):
         metric_name = 'avg__2004'
         obj.metrics.append(SqlMetric(
@@ -96,12 +96,12 @@ def load_country_map_data():
         'until': '',
         'where': '',
         'viz_type': 'country_map',
-        'entity': c('DEPT_ID'),
+        'entity': cm('DEPT_ID'),
         'metric': {
             'expressionType': 'SIMPLE',
             'column': {
                 'type': 'INT',
-                'column_name': c('2004'),
+                'column_name': cm('2004'),
             },
             'aggregate': 'AVG',
             'label': 'Boys',

@@ -42,7 +42,7 @@ def load_energy():
     """Loads an energy related dataset to use with sankey and graphs"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    c = sample_db.db_engine_spec.make_label_compatible
+    cm = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'energy_usage'
     data = get_example_data('energy.json.gz')
     pdf = pd.read_json(data)
@@ -83,8 +83,8 @@ def load_energy():
     slice_data = {
         'collapsed_fieldsets': '',
         'groupby': [
-            c('source'),
-            c('target'),
+            cm('source'),
+            cm('target'),
         ],
         'having': '',
         'metric': 'sum__value',
@@ -108,8 +108,8 @@ def load_energy():
         'charge': '-500',
         'collapsed_fieldsets': '',
         'groupby': [
-            c('source'),
-            c('target'),
+            cm('source'),
+            cm('target'),
         ],
         'having': '',
         'link_length': '200',
@@ -130,8 +130,8 @@ def load_energy():
     merge_slice(slc)
 
     slice_data = {
-        'all_columns_x': c('source'),
-        'all_columns_y': c('target'),
+        'all_columns_x': cm('source'),
+        'all_columns_y': cm('target'),
         'canvas_image_rendering': 'pixelated',
         'collapsed_fieldsets': '',
         'having': '',

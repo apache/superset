@@ -38,7 +38,7 @@ def load_multiformat_time_series():
     """Loading time series data from a zip file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    c = sample_db.db_engine_spec.make_label_compatible
+    cm = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'multiformat_time_series'
     data = get_example_data('multiformat_time_series.json.gz')
     pdf = pd.read_json(data)
@@ -47,15 +47,15 @@ def load_multiformat_time_series():
     pdf.ds2 = pd.to_datetime(pdf.ds2, unit='s')
     pdf = make_df_columns_compatible(pdf, sample_db.db_engine_spec)
     dtypes = make_dtype_columns_compatible({
-            'ds': Date(),
-            'ds2': DateTime(),
-            'epoch_s': BigInteger(),
-            'epoch_ms': BigInteger(),
-            'string0': String(100),
-            'string1': String(100),
-            'string2': String(100),
-            'string3': String(100),
-        }, sample_db.db_engine_spec)
+        'ds': Date(),
+        'ds2': DateTime(),
+        'epoch_s': BigInteger(),
+        'epoch_ms': BigInteger(),
+        'string0': String(100),
+        'string1': String(100),
+        'string2': String(100),
+        'string3': String(100),
+    }, sample_db.db_engine_spec)
     pdf.to_sql(
         name=tbl_name,
         con=sample_db.get_sqla_engine(),
@@ -71,16 +71,16 @@ def load_multiformat_time_series():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = c('ds')
+    obj.main_dttm_col = cm('ds')
     dttm_and_expr_dict = {
-        c('ds'): [None, None],
-        c('ds2'): [None, None],
-        c('epoch_s'): ['epoch_s', None],
-        c('epoch_ms'): ['epoch_ms', None],
-        c('string2'): ['%Y%m%d-%H%M%S', None],
-        c('string1'): ['%Y-%m-%d^%H:%M:%S', None],
-        c('string0'): ['%Y-%m-%d %H:%M:%S.%f', None],
-        c('string3'): ['%Y/%m/%d%H:%M:%S.%f', None],
+        cm('ds'): [None, None],
+        cm('ds2'): [None, None],
+        cm('epoch_s'): ['epoch_s', None],
+        cm('epoch_ms'): ['epoch_ms', None],
+        cm('string2'): ['%Y%m%d-%H%M%S', None],
+        cm('string1'): ['%Y-%m-%d^%H:%M:%S', None],
+        cm('string0'): ['%Y-%m-%d %H:%M:%S.%f', None],
+        cm('string3'): ['%Y/%m/%d%H:%M:%S.%f', None],
     }
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
