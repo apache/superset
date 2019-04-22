@@ -19,7 +19,7 @@ import json
 import random
 
 import pandas as pd
-from sqlalchemy import Date, Float, String
+from sqlalchemy import Date, Float, Unicode
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
@@ -54,9 +54,9 @@ def load_unicode_test_data():
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
     df = make_df_columns_compatible(df, sample_db.db_engine_spec)
     dtypes = make_dtype_columns_compatible({
-        'phrase': String(500),
-        'short_phrase': String(10),
-        'with_missing': String(100),
+        'phrase': Unicode(500),
+        'short_phrase': Unicode(10),
+        'with_missing': Unicode(100),
         'dttm': Date(),
         'value': Float(),
     }, sample_db.db_engine_spec)
