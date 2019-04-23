@@ -52,7 +52,14 @@ class DashboardTable extends React.PureComponent {
   }
 
   render() {
-    if (this.state.dashboards.length > 0) {
+    if(this.state.dashboards.length == 0) {
+      return (
+        <div className="panel">
+          <b>{t('No records found')}</b>
+        </div>
+      );
+    }
+    else if (this.state.dashboards.length > 0) {
       return (
         <Table
           className="table"
