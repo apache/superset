@@ -273,7 +273,7 @@ class RequestAccessTests(SupersetTestCase):
         # gamma gets granted database access
         database = session.query(models.Database).first()
 
-        security_manager.merge_perm('database_access', database.perm)
+        security_manager.add_permission_view_menu('database_access', database.perm)
         ds_perm_view = security_manager.find_permission_view_menu(
             'database_access', database.perm)
         security_manager.add_permission_role(
@@ -309,7 +309,7 @@ class RequestAccessTests(SupersetTestCase):
             table_name='wb_health_population').first()
 
         ds.schema = 'temp_schema'
-        security_manager.merge_perm('schema_access', ds.schema_perm)
+        security_manager.add_permission_view_menu('schema_access', ds.schema_perm)
         schema_perm_view = security_manager.find_permission_view_menu(
             'schema_access', ds.schema_perm)
         security_manager.add_permission_role(
