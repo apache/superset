@@ -1513,6 +1513,22 @@ class Superset(BaseSupersetView):
             table_names = [tn for tn in table_names if substr in tn]
             view_names = [vn for vn in view_names if substr in vn]
 
+        if not schema and database.default_schemas:
+            def tbl_view_name_in_schemas(tbl_view_name, schemas):
+                for schema in schemas:
+                    if tbl_view_name.startswith('{}.'.format(schema)):
+                        return True
+                return False
+
+            table_names = [
+                tn for tn in table_names
+                if tbl_view_name_in_schemas(tn, database.default_schemas)
+            ]
+            view_names = [
+                vn for vn in view_names
+                if tbl_view_name_in_schemas(vn, database.default_schemas)
+            ]
+
         max_items = config.get('MAX_TABLE_NAMES') or len(table_names)
         total_items = len(table_names) + len(view_names)
         max_tables = len(table_names)
