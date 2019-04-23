@@ -750,7 +750,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def default_schemas(self):
-        return self.get_extra().get('default_schemas', )
+        return self.get_extra().get('default_schemas', [])
 
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
