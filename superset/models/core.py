@@ -748,6 +748,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def table_cache_timeout(self):
         return self.metadata_cache_timeout.get('table_cache_timeout')
 
+    @property
+    def default_schemas(self):
+        return self.get_extra().get('default_schemas', [])
+
     @classmethod
     def get_password_masked_url_from_uri(cls, uri):
         url = make_url(uri)
