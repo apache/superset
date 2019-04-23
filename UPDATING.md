@@ -25,6 +25,9 @@ assists people when migrating to a new version.
 
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
 the new `flask fab <command>` integrated with *Flask cli*.
+* `SUPERSET_UPDATE_PERMS` environment variable was replaced by 
+`FAB_UPDATE_PERMS` config boolean key. To disable automatic
+creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 
 ## Superset 0.32.0
 
