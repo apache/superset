@@ -1788,7 +1788,6 @@ class WorldMapViz(BaseViz):
 
 
 class FilterBoxViz(BaseViz):
-
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
     viz_type = 'filter_box'
@@ -1811,7 +1810,14 @@ class FilterBoxViz(BaseViz):
             if not col:
                 raise Exception(_(
                     'Invalid filter configuration, please select a column'))
-            qry['groupby'] = [col, 'pipeline_name'] # @todo: when reading-in the label field, apply it here.
+
+            #  cond. process label from filter_configs
+            label = flt.get('option_label')
+            if not label or label == col:
+                qry['groupby'] = [col]
+            else:
+                qry['groupby'] = [col, label]
+
             metric = flt.get('metric')
             qry['metrics'] = [metric] if metric else []
             df = self.get_df_payload(query_obj=qry).get('df')
@@ -1823,23 +1829,27 @@ class FilterBoxViz(BaseViz):
         for flt in filters:
             col = flt.get('column')
             metric = flt.get('metric')
+            label = flt.get('option_label')
+            if not label or label == col:
+                label = None
+
+            # prepare df and sort params.
             df = self.dataframes.get(col)
+            sortcol = utils.get_metric_name(metric) if metric else col
+            df = df.sort_values(sortcol, ascending=flt.get('asc'))
+
+            # @todo: there's likely room to improve here. this just plain **looks** a little sloppy.
             if metric:
-                df = df.sort_values(
-                    utils.get_metric_name(metric),
-                    ascending=flt.get('asc'),
-                )
                 d[col] = [{
                     'id': row[0],
-                    'text': row[1],
-                    'metric': row[2]}
+                    'text': row[1] if label else row[0],
+                    'metric': row[2] if label else row[1]}
                     for row in df.itertuples(index=False)
                 ]
             else:
-                df = df.sort_values(col, ascending=flt.get('asc'))
                 d[col] = [{
                     'id': row[0],
-                    'text': row[1]}
+                    'text': row[1] if label else row[0]}
                     for row in df.itertuples(index=False)
                 ]
         return d
