@@ -424,8 +424,9 @@ class ImportExportTests(SupersetTestCase):
         imported_dash_id_2 = models.Dashboard.import_obj(
             dash_to_import_override, import_time=1992)
 
-        # override doesn't change the id
-        self.assertEquals(imported_dash_id_1, imported_dash_id_2)
+        # `override doesn't change the id` as per OSS
+        # override is new dash as per newer implmenation so should change id
+        self.assertNotEqual(imported_dash_id_1, imported_dash_id_2)
         expected_dash = self.create_dashboard(
             'override_dashboard_new', slcs=[e_slc, b_slc, c_slc], id=10004)
         make_transient(expected_dash)
