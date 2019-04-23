@@ -83,6 +83,8 @@ class LineChart extends PureComponent<Props> {
     const { width, height } = dim;
     const { data, encoding, margin, theme } = this.props;
 
+    const { channels } = this.encoder;
+
     const fieldNames = data.keys
       .filter(k => k !== encoding.x.field && k !== encoding.y.field)
       .sort((a, b) => a.localeCompare(b));
@@ -94,15 +96,15 @@ class LineChart extends PureComponent<Props> {
 
       const series: Series = {
         key: fieldNames.map(f => firstDatum[f]).join(','),
-        color: this.encoder.channels.color.encode(firstDatum),
-        fill: this.encoder.channels.fill.encode(firstDatum, false),
-        strokeDasharray: this.encoder.channels.strokeDasharray.encode(firstDatum),
+        color: channels.color.encode(firstDatum),
+        fill: channels.fill.encode(firstDatum, false),
+        strokeDasharray: channels.strokeDasharray.encode(firstDatum),
         values: [],
       };
 
       series.values = seriesData.map(v => ({
-        x: this.encoder.channels.x.encode(v),
-        y: this.encoder.channels.y.encode(v),
+        x: channels.x.get(v),
+        y: channels.y.get(v),
         data: v,
         parent: series,
       }));
@@ -157,8 +159,8 @@ class LineChart extends PureComponent<Props> {
       height,
       margin: { ...DEFAULT_MARGIN, ...margin },
       theme,
-      xEncoder: this.encoder.channels.x,
-      yEncoder: this.encoder.channels.y,
+      xEncoder: channels.x,
+      yEncoder: channels.y,
       children,
     });
 
@@ -186,8 +188,8 @@ class LineChart extends PureComponent<Props> {
             snapTooltipToDataX
             theme={theme}
             tooltipData={tooltipData}
-            xScale={this.encoder.channels.x.definition.scale}
-            yScale={this.encoder.channels.y.definition.scale}
+            xScale={channels.x.definition.scale}
+            yScale={channels.y.definition.scale}
           >
             {children}
             {layout.renderXAxis()}
