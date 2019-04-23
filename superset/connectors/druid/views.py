@@ -311,9 +311,15 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
 
     def post_add(self, datasource):
         datasource.refresh_metrics()
-        security_manager.add_permission_view_menu('datasource_access', datasource.get_perm())
+        security_manager.add_permission_view_menu(
+            'datasource_access',
+            datasource.get_perm(),
+        )
         if datasource.schema:
-            security_manager.add_permission_view_menu('schema_access', datasource.schema_perm)
+            security_manager.add_permission_view_menu(
+                'schema_access',
+                datasource.schema_perm,
+            )
 
     def post_update(self, datasource):
         self.post_add(datasource)

@@ -262,9 +262,6 @@ class SupersetSecurityManager(SecurityManager):
             full_names = {d.full_name for d in user_datasources}
             return [d for d in datasource_names if d in full_names]
 
-    #def _merge_perm(self, permission_name, view_menu_name):
-    #    self.add_permission_view_menu(permission_name, view_menu_name)
-
     def is_user_defined_permission(self, perm):
         return perm.permission.name in self.OBJECT_SPEC_PERMISSIONS
 
@@ -272,7 +269,10 @@ class SupersetSecurityManager(SecurityManager):
         # Global perms
         self.add_permission_view_menu('all_datasource_access', 'all_datasource_access')
         self.add_permission_view_menu('all_database_access', 'all_database_access')
-        self.add_permission_view_menu('can_only_access_owned_queries', 'can_only_access_owned_queries')
+        self.add_permission_view_menu(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
 
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
