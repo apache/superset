@@ -19,7 +19,7 @@ export default [
                 x: {
                   field: 'x',
                   type: 'temporal',
-                  format: '%Y',
+                  format: '%Y-%m',
                   scale: {
                     type: 'time',
                   },
