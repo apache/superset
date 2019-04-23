@@ -50,8 +50,8 @@ const STYLE_WIDTH = { width: 350 };
 export default class FilterBoxItemControl extends React.Component {
   constructor(props) {
     super(props);
-    const { column, metric, asc, clearable, multiple, defaultValue } = props;
-    const state = { column, metric, asc, clearable, multiple, defaultValue };
+    const { column, option_label, metric, asc, clearable, multiple, defaultValue } = props;
+    const state = { column, option_label, metric, asc, clearable, multiple, defaultValue };
     this.state = state;
     this.onChange = this.onChange.bind(this);
     this.onControlChange = this.onControlChange.bind(this);
@@ -82,6 +82,21 @@ export default class FilterBoxItemControl extends React.Component {
                 label: col.column_name,
               }))}
               onChange={v => this.onControlChange('column', v)}
+            />
+          }
+        />
+        <FormRow
+          label={t('Single Option Label')}
+          control={
+            <SelectControl
+              value={this.state.option_label}
+              name="option_label"
+              clearable={false}
+              options={this.props.datasource.columns.map(col => ({
+                value: col.column_name,
+                label: col.column_name,
+              }))}
+              onChange={v => this.onControlChange('option_label', v)}
             />
           }
         />

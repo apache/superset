@@ -1811,7 +1811,7 @@ class FilterBoxViz(BaseViz):
             if not col:
                 raise Exception(_(
                     'Invalid filter configuration, please select a column'))
-            qry['groupby'] = [col]
+            qry['groupby'] = [col, 'pipeline_name'] # @todo: when reading-in the label field, apply it here.
             metric = flt.get('metric')
             qry['metrics'] = [metric] if metric else []
             df = self.get_df_payload(query_obj=qry).get('df')
@@ -1831,15 +1831,15 @@ class FilterBoxViz(BaseViz):
                 )
                 d[col] = [{
                     'id': row[0],
-                    'text': row[0],
-                    'metric': row[1]}
+                    'text': row[1],
+                    'metric': row[2]}
                     for row in df.itertuples(index=False)
                 ]
             else:
                 df = df.sort_values(col, ascending=flt.get('asc'))
                 d[col] = [{
                     'id': row[0],
-                    'text': row[0]}
+                    'text': row[1]}
                     for row in df.itertuples(index=False)
                 ]
         return d
