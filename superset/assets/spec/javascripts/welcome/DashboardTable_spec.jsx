@@ -47,7 +47,7 @@ describe('DashboardTable', () => {
 
   it('renders a Loading initially', () => {
     const wrapper = setup();
-    expect(wrapper.find(Loading)).toHaveLength(1);
+    expect(wrapper.find('div')).toHaveLength(1);
   });
 
   it('fetches dashboards and renders a Table', (done) => {
