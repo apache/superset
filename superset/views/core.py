@@ -1515,9 +1515,10 @@ class Superset(BaseSupersetView):
 
         if not schema and database.default_schemas:
             def get_schema(tbl_or_view_name):
-                return tbl_or_view_name.split('.')[0]
+                return tbl_or_view_name.split('.')[0] if '.' in tbl_or_view_name else None
 
-            valid_schemas = set(database.default_schemas + [g.user.email.split('@')[0]])
+            user_schema = g.user.email.split('@')[0]
+            valid_schemas = set(database.default_schemas + [user_schema])
 
             table_names = [tn for tn in table_names if get_schema(tn) in valid_schemas]
             view_names = [vn for vn in view_names if get_schema(vn) in valid_schemas]
