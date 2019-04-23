@@ -28,7 +28,7 @@ import werkzeug.serving
 import yaml
 
 from superset import (
-    app, data, db, security_manager, appbuilder
+    app, appbuilder, data, db, security_manager,
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
