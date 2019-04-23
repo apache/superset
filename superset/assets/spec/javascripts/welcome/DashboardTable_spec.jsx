@@ -45,7 +45,7 @@ function setup() {
 describe('DashboardTable', () => {
   beforeEach(fetchMock.resetHistory);
 
-  it('renders a Loading initially', () => {
+  it('renders a div initially', () => {
     const wrapper = setup();
     expect(wrapper.find('div')).toHaveLength(1);
   });
