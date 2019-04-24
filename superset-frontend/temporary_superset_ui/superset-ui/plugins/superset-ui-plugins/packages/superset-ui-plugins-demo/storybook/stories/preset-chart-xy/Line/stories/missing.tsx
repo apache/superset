@@ -4,13 +4,10 @@ import { SuperChart, ChartProps } from '@superset-ui/chart';
 import data from '../data/data';
 import { LINE_PLUGIN_TYPE } from '../constants';
 
-const missingData = {
-  keys: data.keys,
-  values: data.values.map(({ y, ...rest }) => ({
-    ...rest,
-    y: Math.random() < 0.25 ? null : y,
-  })),
-};
+const missingData = data.map(({ y, ...rest }) => ({
+  ...rest,
+  y: Math.random() < 0.25 ? null : y,
+}));
 
 export default [
   {

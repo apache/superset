@@ -16,17 +16,14 @@ export default function transformProps(chartProps: ChartProps) {
   const data = payload.data as DataRow[];
 
   return {
-    data: {
-      keys: ['name', 'x', 'y'],
-      values: flatMap(
-        data.map((row: DataRow) =>
-          row.values.map(v => ({
-            ...v,
-            name: row.key[0],
-          })),
-        ),
+    data: flatMap(
+      data.map((row: DataRow) =>
+        row.values.map(v => ({
+          ...v,
+          name: row.key[0],
+        })),
       ),
-    },
+    ),
     width,
     height,
     encoding: {

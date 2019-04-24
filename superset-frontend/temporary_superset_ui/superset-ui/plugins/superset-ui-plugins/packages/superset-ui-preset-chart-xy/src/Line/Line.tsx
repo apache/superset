@@ -81,15 +81,12 @@ class LineChart extends PureComponent<Props> {
 
   renderChart(dim: Dimension) {
     const { width, height } = dim;
-    const { data, encoding, margin, theme } = this.props;
+    const { data, margin, theme } = this.props;
 
     const { channels } = this.encoder;
+    const fieldNames = this.encoder.getGroupBys();
 
-    const fieldNames = data.keys
-      .filter(k => k !== encoding.x.field && k !== encoding.y.field)
-      .sort((a, b) => a.localeCompare(b));
-
-    const groups = groupBy(data.values, row => fieldNames.map(f => `${f}=${row[f]}`).join(','));
+    const groups = groupBy(data, row => fieldNames.map(f => `${f}=${row[f]}`).join(','));
 
     const allSeries = values(groups).map(seriesData => {
       const firstDatum = seriesData[0];
