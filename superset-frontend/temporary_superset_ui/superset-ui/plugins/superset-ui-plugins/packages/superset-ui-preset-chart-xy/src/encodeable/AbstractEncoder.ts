@@ -99,6 +99,23 @@ export default abstract class AbstractEncoder<
     };
   }
 
+  getChannelNames() {
+    return Object.keys(this.channelTypes) as (keyof ChannelTypes)[];
+  }
+
+  getChannelsAsArray() {
+    return this.getChannelNames().map(name => this.channels[name]);
+  }
+
+  getGroupBys() {
+    const fields = this.getChannelsAsArray()
+      .filter(c => c.isGroupBy())
+      .map(c => (isFieldDef(c.definition) ? c.definition.field : ''))
+      .filter(field => field !== '');
+
+    return Array.from(new Set(fields));
+  }
+
   hasLegend() {
     return Object.keys(this.legends).length > 0;
   }
