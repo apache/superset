@@ -23,6 +23,7 @@ from sqlalchemy.sql import column
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.models.core import Database
 from .helpers import (
     config,
     Dash,
@@ -38,7 +39,6 @@ from .helpers import (
     TBL,
     update_slice_ids,
 )
-from superset.models.core import Database
 
 
 def load_birth_names():
@@ -79,12 +79,13 @@ def create_metadata(tbl_name: str, sample_db: Database, schema: str):
     obj.main_dttm_col = mlc('ds')
     obj.filter_select_enabled = True
 
-    col_state = str(column(mlc('state')).compile(db.engine))
-    col_num = str(column(mlc('num')).compile(db.engine))
+    cols = {}
+    cols['state'] = str(column(mlc('state')).compile(db.engine))
+    cols['num'] = str(column(mlc('num')).compile(db.engine))
     if not any(col.column_name == 'num_california' for col in obj.columns):
         obj.columns.append(TableColumn(
             column_name='num_california',
-            expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
+            expression=f"CASE WHEN {cols['state']} = 'CA' THEN {cols['num']} ELSE 0 END",
         ))
 
     if not any(col.metric_name == 'sum__num' for col in obj.metrics):
@@ -297,8 +298,8 @@ def create_metadata(tbl_name: str, sample_db: Database, schema: str):
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                                      'ELSE 0 END',
+                        'expression': f"CASE WHEN {cols['state']} = 'CA' THEN "
+                                      f"{cols['num']} ELSE 0 END",
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -316,8 +317,8 @@ def create_metadata(tbl_name: str, sample_db: Database, schema: str):
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                                      'ELSE 0 END',
+                        'expression': f"CASE WHEN {cols['state']} = 'CA' THEN "
+                                      f"{cols['num']} ELSE 0 END",
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -329,8 +330,8 @@ def create_metadata(tbl_name: str, sample_db: Database, schema: str):
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                                      'ELSE 0 END',
+                        'expression': f"CASE WHEN {cols['state']} = 'CA' THEN "
+                                      f"{cols['num']} ELSE 0 END",
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -349,8 +350,8 @@ def create_metadata(tbl_name: str, sample_db: Database, schema: str):
                     'expressionType': 'SIMPLE',
                     'column': {
                         'column_name': 'num_california',
-                        'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                                      'ELSE 0 END',
+                        'expression': f"CASE WHEN {cols['state']} = 'CA' THEN "
+                                      f"{cols['num']} ELSE 0 END",
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',

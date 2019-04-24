@@ -22,6 +22,7 @@ import pandas as pd
 from sqlalchemy import DateTime, Float, String
 
 from superset import db
+from superset.models.core import Database
 from .helpers import (
     get_example_data,
     get_sample_data_db,
@@ -34,7 +35,6 @@ from .helpers import (
     Slice,
     TBL,
 )
-from superset.models.core import Database
 
 
 def load_long_lat_data():
