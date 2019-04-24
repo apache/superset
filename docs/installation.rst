@@ -398,6 +398,15 @@ existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
 
+Google BigQuery
+---------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
 (AWS) Athena
 ------------
 
