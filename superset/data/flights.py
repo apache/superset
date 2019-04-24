@@ -52,14 +52,14 @@ def load_flights():
     dtypes = make_dtype_columns_compatible({
         'ds': DateTime(),
     }, sample_db.db_engine_spec)
-    pdf.to_sql(
-        name=tbl_name,
-        con=sample_db.get_sqla_engine(),
-        schema=schema,
-        if_exists='replace',
-        chunksize=500,
-        dtype=dtypes,
-        index=False)
+    sample_db.db_engine_spec.df_to_sql(pdf,
+                                       name=tbl_name,
+                                       con=sample_db.get_sqla_engine(),
+                                       schema=schema,
+                                       if_exists='replace',
+                                       chunksize=500,
+                                       dtype=dtypes,
+                                       index=False)
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()
     if not tbl:

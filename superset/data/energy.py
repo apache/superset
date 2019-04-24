@@ -16,8 +16,6 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
-import textwrap
-
 import pandas as pd
 from sqlalchemy import Float, String
 
@@ -52,14 +50,15 @@ def load_energy():
         'target': String(255),
         'value': Float(),
     }, sample_db.db_engine_spec)
-    pdf.to_sql(
-        name=tbl_name,
-        con=sample_db.get_sqla_engine(),
-        schema=schema,
-        if_exists='replace',
-        chunksize=500,
-        dtype=dtypes,
-        index=False)
+    sample_db.db_engine_spec.df_to_sql(pdf,
+                                       name=tbl_name,
+                                       con=sample_db.get_sqla_engine(),
+                                       schema=schema,
+                                       if_exists='replace',
+                                       chunksize=500,
+                                       dtype=dtypes,
+                                       index=False,
+                                       )
 
     print('Creating table [wb_health_population] reference')
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,

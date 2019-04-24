@@ -44,15 +44,14 @@ def load_paris_iris_geojson():
         'features': Text,
         'type': Text,
     }, sample_db.db_engine_spec)
-
-    df.to_sql(
-        name=tbl_name,
-        con=sample_db.get_sqla_engine(),
-        schema=schema,
-        if_exists='replace',
-        chunksize=500,
-        dtype=dtypes,
-        index=False)
+    sample_db.db_engine_spec.df_to_sql(df,
+                                       name=tbl_name,
+                                       con=sample_db.get_sqla_engine(),
+                                       schema=schema,
+                                       if_exists='replace',
+                                       chunksize=500,
+                                       dtype=dtypes,
+                                       index=False)
     print('Creating table {} reference'.format(tbl_name))
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()

@@ -62,14 +62,14 @@ def load_world_bank_health_n_pop():
         'country_name': String(255),
         'region': String(255),
     }, sample_db.db_engine_spec)
-    pdf.to_sql(
-        name=tbl_name,
-        con=sample_db.get_sqla_engine(),
-        schema=schema,
-        if_exists='replace',
-        chunksize=50,
-        dtype=dtypes,
-        index=False)
+    sample_db.db_engine_spec.df_to_sql(pdf,
+                                       name=tbl_name,
+                                       con=sample_db.get_sqla_engine(),
+                                       schema=schema,
+                                       if_exists='replace',
+                                       chunksize=50,
+                                       dtype=dtypes,
+                                       index=False)
 
     print('Creating table [wb_health_population] reference')
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,

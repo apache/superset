@@ -74,14 +74,15 @@ def load_long_lat_data():
         'geohash': String(12),
         'delimited': String(60),
     }, sample_db.db_engine_spec)
-    pdf.to_sql(  # pylint: disable=no-member
-        name=tbl_name,
-        con=sample_db.get_sqla_engine(),
-        schema=schema,
-        if_exists='replace',
-        chunksize=500,
-        dtype=dtypes,
-        index=False)
+    sample_db.db_engine_spec.df_to_sql(pdf,
+                                       name=tbl_name,
+                                       con=sample_db.get_sqla_engine(),
+                                       schema=schema,
+                                       if_exists='replace',
+                                       chunksize=500,
+                                       dtype=dtypes,
+                                       index=False,
+                                       )
     print('Done loading table!')
     print('-' * 80)
 

@@ -382,7 +382,7 @@ def load_deck_dash():
         'time_grain_sqla': None,
         'time_range': ' : ',
         'line_column': cm('contour'),
-        'metric': None,
+        'metric': 'count',
         'line_type': 'json',
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
         'viewport': {
@@ -422,10 +422,11 @@ def load_deck_dash():
             cm('population'),
             cm('area'),
         ],
-        'js_datapoint_mutator':
-            '(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
-         d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
-         return d;\n}',
+        'js_data_mutator':
+            'data => data.map(d => ({'
+            '    ...d,'
+            f'    elevation: d.extraProps.{cm("population")}/d.extraProps.{cm("area")}/10,'  # noqa
+            '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
         'where': '',
@@ -508,7 +509,7 @@ def load_deck_dash():
         'viz_type': 'deck_path',
         'time_grain_sqla': None,
         'time_range': ' : ',
-        'line_column': 'path_json',
+        'line_column': cm('path_json'),
         'line_type': 'json',
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -539,8 +540,10 @@ def load_deck_dash():
         'js_columns': [
             cm('color'),
         ],
-        'js_datapoint_mutator': 'd => {\n    return {\n        ...d,\n        color: \
-            colors.hexToRGB(d.extraProps.color),\n    }\n}',
+        'js_data_mutator': 'data => data.map(d => ({\n'
+                           '    ...d,\n'
+                           f'    color: colors.hexToRGB(d.extraProps.{cm("color")})\n'
+                           '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
         'where': '',
