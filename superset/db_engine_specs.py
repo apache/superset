@@ -52,7 +52,6 @@ import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
-from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetTemplateException
 from superset.utils import core as utils
 
@@ -221,7 +220,6 @@ class BaseEngineSpec(object):
         kwargs['encoding'] = 'utf-8'
         kwargs['iterator'] = True
         chunks = pd.read_csv(**kwargs)
-        df = pd.DataFrame()
         df = pd.concat(chunk for chunk in chunks)
         return df
 
@@ -237,8 +235,8 @@ class BaseEngineSpec(object):
         """
         df.to_sql(**kwargs)
 
-    @staticmethod
-    def create_table_from_csv(form: Dict[str, Any], table: SqlaTable):
+    @classmethod
+    def create_table_from_csv(cls, form: Dict[str, Any], table):
         """ Create table (including metadata in backend) from contents of a csv.
 
         :param form: Parameters defining how to process data
@@ -266,10 +264,9 @@ class BaseEngineSpec(object):
             'infer_datetime_format': form.infer_datetime_format.data,
             'chunksize': 10000,
         }
-        df = super().csv_to_df(**csv_to_df_kwargs)
+        df = cls.csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
-            'table': table,
             'df': df,
             'name': form.name.data,
             'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
@@ -279,7 +276,7 @@ class BaseEngineSpec(object):
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
-        super().df_to_sql(**df_to_sql_kwargs)
+        cls.df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
         table.schema = form.schema.data
@@ -1162,8 +1159,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         except pyhive.exc.ProgrammingError:
             return []
 
-    @staticmethod
-    def create_table_from_csv(form: Dict[str, Any], table: SqlaTable):
+    @classmethod
+    def create_table_from_csv(cls, form: Dict[str, Any], table):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def convert_to_hive_type(col_type):
             """maps tableschema's types to hive types"""
