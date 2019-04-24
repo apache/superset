@@ -398,15 +398,6 @@ existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
 
-Google BigQuery
----------------
-
-The connection string for BigQuery looks like this ::
-
-    bigquery://{project_id}
-
-To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
-
 (AWS) Athena
 ------------
 
@@ -423,6 +414,21 @@ You can also use `PyAthena` library(no java required) like this ::
     awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 
 See `PyAthena <https://github.com/laughingman7743/PyAthena#sqlalchemy>`_.
+
+(Google) BigQuery
+-----------------
+
+The connection string for BigQuery looks like this ::
+
+    bigquery://{project_id}
+
+To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
+
+MySQL
+-----
+
+By default Superset uses `utf8m4` charset on MySQL. To change this specify a custom
+charset in the connection string, e.g. `mysql://hostname?charset=latin1`.
 
 Snowflake
 ---------
