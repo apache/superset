@@ -51,6 +51,8 @@ git push origin master
 You'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
+## Release setup
+
 First you need to setup a few things. This is a one-off and doesn't
 need to be done at every release.
 
@@ -75,6 +77,8 @@ need to be done at every release.
     svn commit -m "Add PGP keys of new Superset committer"
 ```
 
+## Crafting tarball and signatures
+
 Now let's craft a source release
 ```bash
     # Assuming these commands are executed from the root of the repo
@@ -90,26 +94,37 @@ Now let's craft a source release
     # Alternatively you could clone the repo into another location as in
     # git clone git@github.com:apache/incubator-superset.git superset-releases
     git clean -fxd
+    # Create the target folder
+    mkdir -p ~/svn/superset_dev/${VERSION}/
     git archive \
         --format=tar.gz ${VERSION} \
         --prefix=apache-superset-${VERSION}/ \
-        -o apache-superset-${VERSION}-source.tar.gz
+        -o ~/svn/superset_dev/${VERSION}/apache-superset-${VERSION}-source.tar.gz
 
+    cd ~/svn/superset_dev/
     scripts/sign.sh apache-superset-${VERSION}-source.tar.gz
 ```
+
+## Shipping to SVN
 
 Now let's ship this RC into svn's dev folder
 
 ```bash
     # cp or mv the files over to the svn repo
     mkdir ~/svn/superset_dev/${VERSION}/
-    cp apache-superset-${VERSION}* ~/svn/superset/${VERSION}/
-    cd ~/svn/superset/
+    cp apache-superset-${VERSION}* ~/svn/superset_dev/${VERSION}/
+    cd ~/svn/superset_dev/
     svn add ${VERSION}
     svn commit
 ```
 
 Now you're ready to start the VOTE thread.
+
+## Validating a release
+
+https://www.apache.org/info/verification.html
+
+## Publishing a successful release
 
 Upon a successful vote, you'll have to copy the folder into the non-"dev/"
 folder.

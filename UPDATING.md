@@ -21,6 +21,17 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.34.0
+
+* [5451](https://github.com/apache/incubator-superset/pull/5451): a change
+which adds missing non-nullable fields to the `datasources` table. Depending on
+the integrity of the data, manual intervention may be required.
+
+* [5452](https://github.com/apache/incubator-superset/pull/5452): a change
+which adds missing non-nullable fields and uniqueness constraints to the
+`columns`and `table_columns` tables. Depending on the integrity of the data,
+manual intervention may be required.
+
 ## Superset 0.33.0
 
 * `fabmanager` command line is deprecated since Flask-AppBuilder 2.0.0, use
@@ -32,8 +43,8 @@ creation of permissions set `FAB_UPDATE_PERMS = False` on config.
 ## Superset 0.32.0
 
 * `npm run backend-sync` is deprecated and no longer needed, will fail if called
-* [5445](https://github.com/apache/incubator-superset/pull/5445) : a change 
-which prevents encoding of empty string from form data in the datanbase. 
+* [5445](https://github.com/apache/incubator-superset/pull/5445): a change
+which prevents encoding of empty string from form data in the database.
 This involves a non-schema changing migration which does potentially impact
 a large number of records. Scheduled downtime may be advised.
 

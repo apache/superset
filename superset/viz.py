@@ -2558,7 +2558,7 @@ class PairedTTestViz(BaseViz):
         """
         fd = self.form_data
         groups = fd.get('groupby')
-        metrics = fd.get('metrics')
+        metrics = self.metric_labels
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns=groups,
