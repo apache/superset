@@ -47,7 +47,7 @@ export default class ChartLegend<
     const legends = Object.keys(encoder.legends).map((field: string) => {
       const channelNames = encoder.legends[field];
       const channelEncoder = encoder.channels[channelNames[0]];
-      const domain = Array.from(new Set(data.values.map(channelEncoder.get)));
+      const domain = Array.from(new Set(data.map(channelEncoder.get)));
       const scale = scaleOrdinal({
         domain,
         range: domain.map((key: string) => channelEncoder.encodeValue(key)),
