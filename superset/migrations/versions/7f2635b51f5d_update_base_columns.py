@@ -30,7 +30,7 @@ revision = '7f2635b51f5d'
 down_revision = '937d04c16b64'
 
 from alembic import op
-from sqlalchemy import Column, engine, ForeignKey, Integer, String
+from sqlalchemy import Column, engine, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -43,20 +43,20 @@ conv = {
 }
 
 
-class BaseColumnMixin(object):
+class BaseColumnMixin:
     id = Column(Integer, primary_key=True)
 
 
 class DruidColumn(BaseColumnMixin, Base):
     __tablename__ = 'columns'
 
-    datasource_id = Column(Integer, ForeignKey('datasources.id'))
+    datasource_id = Column(Integer)
 
 
 class TableColumn(BaseColumnMixin, Base):
     __tablename__ = 'table_columns'
 
-    table_id = Column(Integer, ForeignKey('tables.id'))
+    table_id = Column(Integer)
 
 
 def upgrade():
@@ -68,7 +68,9 @@ def upgrade():
         if record.datasource_id is None:
             session.delete(record)
 
-    # Enforce that the columns.column_name be non-nullable.
+    session.commit()
+
+    # Enforce that the columns.column_name column be non-nullable.
     with op.batch_alter_table('columns') as batch_op:
         batch_op.alter_column(
             'column_name',
@@ -80,6 +82,8 @@ def upgrade():
     for record in session.query(TableColumn).all():
         if record.table_id is None:
             session.delete(record)
+
+    session.commit()
 
     # Reduce the size of the table_columns.column_name column for constraint
     # viability and enforce that it be non-nullable.
