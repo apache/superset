@@ -38,7 +38,7 @@ export default () => describe('top-level controls', () => {
         .forEach((slice) => {
           const sliceRequest = `getJson_${slice.slice_id}`;
           sliceRequests.push(`@${sliceRequest}`);
-          const formData = `{"slice_id":${slice.slice_id},"viz_type":"${slice.form_data.viz_type}"}`;
+          const formData = `{"slice_id":${slice.slice_id}}`;
           cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(sliceRequest);
 
           const forceRefresh = `postJson_${slice.slice_id}_force`;
