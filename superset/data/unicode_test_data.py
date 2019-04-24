@@ -23,6 +23,7 @@ from sqlalchemy import Date, Float, Unicode
 
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
+from superset.models.core import Database
 from .helpers import (
     config,
     Dash,
@@ -45,7 +46,6 @@ def load_unicode_test_data():
     tbl_name = 'unicode_test'
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    mlc = sample_db.db_engine_spec.make_label_compatible
     data = get_example_data(
         'unicode_utf8_unixnl_test.csv', is_gzip=False, make_bytes=True)
     df = pd.read_csv(data, encoding='utf-8')
@@ -75,6 +75,7 @@ def load_unicode_test_data():
 
 def create_metadata(tbl_name: str, sample_db: Database, schema: str):
     print('Creating table [unicode_test] reference')
+    mlc = sample_db.db_engine_spec.make_label_compatible
     obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()
     if not obj:
