@@ -100,7 +100,7 @@ class TableColumn(Model, BaseColumn):
         backref=backref('columns', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
     is_dttm = Column(Boolean, default=False)
-    expression = Column(Text, default='')
+    expression = Column(Text)
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 

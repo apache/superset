@@ -269,9 +269,7 @@ class DruidColumn(Model, BaseColumn):
     __tablename__ = 'columns'
     __table_args__ = (UniqueConstraint('column_name', 'datasource_id'),)
 
-    datasource_id = Column(
-        Integer,
-        ForeignKey('datasources.id'))
+    datasource_id = Column(Integer, ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
@@ -417,7 +415,7 @@ class DruidDatasource(Model, BaseDatasource):
     baselink = 'druiddatasourcemodelview'
 
     # Columns
-    datasource_name = Column(String(255))
+    datasource_name = Column(String(255), nullable=False)
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
@@ -427,7 +425,6 @@ class DruidDatasource(Model, BaseDatasource):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     owners = relationship(owner_class, secondary=druiddatasource_user,
                           backref='druiddatasources')
-    UniqueConstraint('cluster_name', 'datasource_name')
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
