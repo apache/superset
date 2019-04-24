@@ -39,7 +39,7 @@ import time
 
 from flask import g
 from flask_babel import lazy_gettext as _
-import pandas
+import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import Column, select
 from sqlalchemy.engine import create_engine
@@ -207,29 +207,42 @@ class BaseEngineSpec(object):
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
-    @staticmethod
-    def csv_to_df(**kwargs):
+    @classmethod
+    def csv_to_df(cls, **kwargs) -> pd.DataFrame:
+        """ Read csv into Pandas DataFrame
+
+        :param kwargs: params to be passed to DataFrame.read_csv
+        :return: Pandas DataFrame containing data from csv
+        """
         kwargs['filepath_or_buffer'] = \
             config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
         kwargs['encoding'] = 'utf-8'
         kwargs['iterator'] = True
-        chunks = pandas.read_csv(**kwargs)
-        df = pandas.DataFrame()
-        df = pandas.concat(chunk for chunk in chunks)
+        chunks = pd.read_csv(**kwargs)
+        df = pd.DataFrame()
+        df = pd.concat(chunk for chunk in chunks)
         return df
 
-    @staticmethod
-    def df_to_db(df, table, **kwargs):
-        df.to_sql(**kwargs)
-        table.user_id = g.user.id
-        table.schema = kwargs['schema']
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+        """ Upload data from a Pandas DataFrame to a database. For
+        regular engines this calls the DataFrame.to_sql() method. Can be
+        overridden for engines that don't work well with to_sql(), e.g.
+        BigQuery.
 
-    @staticmethod
-    def create_table_from_csv(form, table):
-        def _allowed_file(filename):
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_sql() method
+        """
+        df.to_sql(**kwargs)
+
+    @classmethod
+    def create_table_from_csv(cls, form, table: str):
+        """ Create table (including metadata in backend) from contents of a csv.
+
+        :param form: Parameters defining how to process data
+        :param table: Name of table to be created
+        """
+        def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
             return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
@@ -237,7 +250,7 @@ class BaseEngineSpec(object):
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
             raise Exception('Invalid file type selected')
-        kwargs = {
+        csv_to_df_kwargs = {
             'filepath_or_buffer': filename,
             'sep': form.sep.data,
             'header': form.header.data if form.header.data else 0,
@@ -251,9 +264,9 @@ class BaseEngineSpec(object):
             'infer_datetime_format': form.infer_datetime_format.data,
             'chunksize': 10000,
         }
-        df = BaseEngineSpec.csv_to_df(**kwargs)
+        df = cls.csv_to_df(**csv_to_df_kwargs)
 
-        df_to_db_kwargs = {
+        df_to_sql_kwargs = {
             'table': table,
             'df': df,
             'name': form.name.data,
@@ -264,8 +277,13 @@ class BaseEngineSpec(object):
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
+        cls.df_to_sql(**df_to_sql_kwargs)
 
-        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+        table.user_id = g.user.id
+        table.schema = form.schema.data
+        table.fetch_metadata()
+        db.session.add(table)
+        db.session.commit()
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -1673,6 +1691,30 @@ class BQEngineSpec(BaseEngineSpec):
         """
         return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
                 for c in cols]
+
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+        """ Upload data from a Pandas DataFrame to a BigQuery. Calls
+        `DataFrame.to_gbq()`.
+
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_gbq() method. Requires both `schema
+        and ``name` to be present in kwargs, which are combined and passed to
+        `to_gbq()` as `destination_table`.
+        """
+        import pandas_gbq as pd_gbq
+
+        if not ('name' in kwargs and 'schema' in kwargs):
+            raise Exception('name and schema need to be defined in kwargs')
+        gbq_kwargs = {}
+        gbq_kwargs['project_id'] = kwargs['con'].engine.url.host
+        gbq_kwargs['destination_table'] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+
+        # Remove unsupported kwargs
+        for key, value in kwargs.items():
+            if key in ('project_id', 'if_exists', 'name', 'schema'):
+                gbq_kwargs[key] = value
+        df.to_gbq(**gbq_kwargs)
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
