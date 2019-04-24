@@ -36,7 +36,7 @@ import os
 import re
 import textwrap
 import time
-from typing import Any, Dict
+from typing import Dict, Optional
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -106,7 +106,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions = {}
+    time_grain_functions: Dict[Optional[str], str] = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -114,8 +114,8 @@ class BaseEngineSpec(object):
     allows_subquery = True
     supports_column_aliases = True
     force_column_alias_quotes = False
-    arraysize = None
-    max_column_name_length = None
+    arraysize: Optional[int] = None
+    max_column_name_length: Optional[int] = None
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -236,7 +236,7 @@ class BaseEngineSpec(object):
         df.to_sql(**kwargs)
 
     @classmethod
-    def create_table_from_csv(cls, form: Dict[str, Any], table):
+    def create_table_from_csv(cls, form, table):
         """ Create table (including metadata in backend) from contents of a csv.
 
         :param form: Parameters defining how to process data
@@ -245,7 +245,7 @@ class BaseEngineSpec(object):
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
+            return extension is not None and extension[1:] in config['ALLOWED_EXTENSIONS']
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
@@ -752,7 +752,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
     }
 
-    type_code_map = {}  # loaded from get_datatype only if needed
+    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -1160,7 +1160,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def create_table_from_csv(cls, form: Dict[str, Any], table):
+    def create_table_from_csv(cls, form, table):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def convert_to_hive_type(col_type):
             """maps tableschema's types to hive types"""
@@ -1521,7 +1521,7 @@ class PinotEngineSpec(BaseEngineSpec):
     }
 
     # Pinot does its own conversion below
-    time_grain_functions = {k: None for k in _time_grain_to_datetimeconvert.keys()}
+    time_grain_functions = {k: '{col}' for k in _time_grain_to_datetimeconvert.keys()}
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
