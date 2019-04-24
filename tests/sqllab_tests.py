@@ -307,7 +307,7 @@ class SqlLabTests(SupersetTestCase):
             'columns': [{
                 'is_date': False,
                 'type': 'STRING',
-                'nam:qe': 'viz_type',
+                'name': 'viz_type',
                 'is_dim': True,
             }, {
                 'is_date': False,

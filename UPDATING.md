@@ -27,6 +27,11 @@ assists people when migrating to a new version.
 which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
 
+* [5452](https://github.com/apache/incubator-superset/pull/5452): a change
+which adds missing non-nullable fields and uniqueness constraints to the
+`columns`and `table_columns` tables. Depending on the integrity of the data,
+manual intervention may be required.
+
 ## Superset 0.32.0
 
 * `npm run backend-sync` is deprecated and no longer needed, will fail if called
