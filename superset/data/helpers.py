@@ -158,5 +158,3 @@ def get_sample_data_schema() -> Optional[str]:
     """
     from superset import conf
     return conf.get('SAMPLE_DATA_DB_SCHEMA_NAME')
-
-
