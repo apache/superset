@@ -24,7 +24,6 @@ from sqlalchemy import DateTime, Float, String
 from superset import db
 from .helpers import (
     get_example_data,
-    get_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,

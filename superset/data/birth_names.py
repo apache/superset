@@ -294,7 +294,7 @@ def load_birth_names():
                     'column': {
                         'column_name': 'num_california',
                         'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                        f"ELSE 0 END",
+                                      'ELSE 0 END',
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -313,7 +313,7 @@ def load_birth_names():
                     'column': {
                         'column_name': 'num_california',
                         'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                        f"ELSE 0 END",
+                                      'ELSE 0 END',
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -326,7 +326,7 @@ def load_birth_names():
                     'column': {
                         'column_name': 'num_california',
                         'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                        f"ELSE 0 END",
+                                      'ELSE 0 END',
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
@@ -346,7 +346,7 @@ def load_birth_names():
                     'column': {
                         'column_name': 'num_california',
                         'expression': f"CASE WHEN {col_state} = 'CA' THEN {col_num} "
-                        f"ELSE 0 END",
+                                      'ELSE 0 END',
                     },
                     'aggregate': 'SUM',
                     'label': 'SUM(num_california)',
