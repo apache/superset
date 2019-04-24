@@ -70,7 +70,10 @@ def load_unicode_test_data():
                                        index=False)
     print('Done loading table!')
     print('-' * 80)
+    create_metadata(tbl_name, sample_db, schema)
 
+
+def create_metadata(tbl_name: str, sample_db: Database, schema: str):
     print('Creating table [unicode_test] reference')
     obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()
