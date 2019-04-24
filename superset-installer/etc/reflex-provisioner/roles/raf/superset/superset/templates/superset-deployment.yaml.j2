@@ -126,7 +126,7 @@ spec:
          - name: superset-cert-configmap-volume
            mountPath: {{ SUPERSET_AUTH_LDAP_TLS_CACERTDIR }}
 {% endif %}            
-{% if superset_kerberos_enabled == 'true' %}           
+{% if superset_kerberos_enabled  %}           
          - name: krb5-keytab-config-path
            mountPath: /etc/security/keytabs/{{ superset_hive_keytab_name }}
          - name: krb5-config-path
@@ -159,7 +159,7 @@ spec:
           configMap:
             name: superset-nginx-configmap
             defaultMode: 0755
-{% if superset_kerberos_enabled == 'true' %}              
+{% if superset_kerberos_enabled %}              
         - name: krb5-keytab-config-path
           hostPath:
             path: {{ superset_kerberos_config_dir }}/{{ superset_hive_keytab_name }}
