@@ -77,6 +77,7 @@ export function fetchAllSlices(userId) {
                 description_markdown: slice.description_markeddown,
                 viz_type: slice.viz_type,
                 modified: slice.modified,
+                changed_on_humanized: slice.changed_on_humanized,
               };
             }
           });

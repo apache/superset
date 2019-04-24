@@ -576,7 +576,8 @@ class SliceAsync(SliceModelView):  # noqa
     route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
-        'creator', 'modified', 'icons']
+        'creator', 'modified', 'icons', 'changed_on_humanized',
+    ]
     label_columns = {
         'icons': ' ',
         'slice_link': _('Chart'),
@@ -592,7 +593,8 @@ class SliceAddView(SliceModelView):  # noqa
         'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
         'description', 'description_markeddown', 'datasource_id', 'datasource_type',
         'datasource_name_text', 'datasource_link',
-        'owners', 'modified', 'changed_on']
+        'owners', 'modified', 'changed_on', 'changed_on_humanized',
+    ]
 
 
 appbuilder.add_view_no_menu(SliceAddView)
