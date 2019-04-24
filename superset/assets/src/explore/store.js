@@ -20,7 +20,9 @@
 import {
   getControlState,
   getControlKeys,
+  getFormDataFromControls,
 } from './controlUtils';
+import controls from './controls';
 import controlPanelConfigs from './controlPanels';
 
 function handleDeprecatedControls(formData) {
@@ -78,6 +80,18 @@ export function applyDefaultFormData(inputFormData) {
       formData[k] = inputFormData[k];
     }
   });
-  console.log(formData);
   return formData;
 }
+
+
+const defaultControls = Object.assign({}, controls);
+Object.keys(controls).forEach((f) => {
+  defaultControls[f].value = controls[f].default;
+});
+
+const defaultState = {
+  controls: defaultControls,
+  form_data: getFormDataFromControls(defaultControls),
+};
+
+export { defaultControls, defaultState };
