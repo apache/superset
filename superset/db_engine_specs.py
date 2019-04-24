@@ -36,6 +36,7 @@ import os
 import re
 import textwrap
 import time
+from typing import Any, Dict
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -51,6 +52,7 @@ import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetTemplateException
 from superset.utils import core as utils
 
@@ -207,8 +209,8 @@ class BaseEngineSpec(object):
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.get_query_with_new_limit(limit)
 
-    @classmethod
-    def csv_to_df(cls, **kwargs) -> pd.DataFrame:
+    @staticmethod
+    def csv_to_df(**kwargs) -> pd.DataFrame:
         """ Read csv into Pandas DataFrame
 
         :param kwargs: params to be passed to DataFrame.read_csv
@@ -235,12 +237,12 @@ class BaseEngineSpec(object):
         """
         df.to_sql(**kwargs)
 
-    @classmethod
-    def create_table_from_csv(cls, form, table: str):
+    @staticmethod
+    def create_table_from_csv(form: Dict[str, Any], table: SqlaTable):
         """ Create table (including metadata in backend) from contents of a csv.
 
         :param form: Parameters defining how to process data
-        :param table: Name of table to be created
+        :param table: Metadata of new table to be created
         """
         def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
@@ -264,7 +266,7 @@ class BaseEngineSpec(object):
             'infer_datetime_format': form.infer_datetime_format.data,
             'chunksize': 10000,
         }
-        df = cls.csv_to_df(**csv_to_df_kwargs)
+        df = super().csv_to_df(**csv_to_df_kwargs)
 
         df_to_sql_kwargs = {
             'table': table,
@@ -277,7 +279,7 @@ class BaseEngineSpec(object):
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
-        cls.df_to_sql(**df_to_sql_kwargs)
+        super().df_to_sql(**df_to_sql_kwargs)
 
         table.user_id = g.user.id
         table.schema = form.schema.data
@@ -766,6 +768,13 @@ class MySQLEngineSpec(BaseEngineSpec):
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
             uri.database = selected_schema
+
+        # Default to utf8m4 as instructed in
+        # https://docs.sqlalchemy.org/en/13/dialects/mysql.html#unicode
+        uri.query = uri.query or {}
+        if 'charset' not in uri.query:
+            uri.query['charset'] = 'utf8mb4'
+
         return uri
 
     @classmethod
@@ -1154,7 +1163,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @staticmethod
-    def create_table_from_csv(form, table):
+    def create_table_from_csv(form: Dict[str, Any], table: SqlaTable):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def convert_to_hive_type(col_type):
             """maps tableschema's types to hive types"""
@@ -1692,18 +1701,16 @@ class BQEngineSpec(BaseEngineSpec):
         return [sqla.literal_column(c.get('name')).label(c.get('name').replace('.', '__'))
                 for c in cols]
 
-    @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs):
+    @staticmethod
+    def df_to_sql(df: pd.DataFrame, **kwargs):
         """ Upload data from a Pandas DataFrame to a BigQuery. Calls
-        `DataFrame.to_gbq()`.
+        `DataFrame.to_gbq()` which requires `pandas_gbq` to be installed.
 
         :param df: Dataframe with data to be uploaded
         :param kwargs: kwargs to be passed to to_gbq() method. Requires both `schema
         and ``name` to be present in kwargs, which are combined and passed to
         `to_gbq()` as `destination_table`.
         """
-        import pandas_gbq as pd_gbq
-
         if not ('name' in kwargs and 'schema' in kwargs):
             raise Exception('name and schema need to be defined in kwargs')
         gbq_kwargs = {}
