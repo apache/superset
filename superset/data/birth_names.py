@@ -44,7 +44,7 @@ def load_birth_names():
     """Loading birth name dataset from a zip file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'birth_names'
     data = get_example_data('birth_names.json.gz')
     pdf = pd.read_json(data)
@@ -72,11 +72,11 @@ def load_birth_names():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = cm('ds')
+    obj.main_dttm_col = mlc('ds')
     obj.filter_select_enabled = True
 
-    col_state = str(column(cm('state')).compile(db.engine))
-    col_num = str(column(cm('num')).compile(db.engine))
+    col_state = str(column(mlc('state')).compile(db.engine))
+    col_num = str(column(mlc('num')).compile(db.engine))
     if not any(col.column_name == 'num_california' for col in obj.columns):
         obj.columns.append(TableColumn(
             column_name='num_california',
@@ -99,7 +99,7 @@ def load_birth_names():
         'compare_lag': '10',
         'compare_suffix': 'o10Y',
         'limit': '25',
-        'granularity_sqla': cm('ds'),
+        'granularity_sqla': mlc('ds'),
         'groupby': [],
         'metric': 'sum__num',
         'metrics': ['sum__num'],
@@ -122,9 +122,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=[cm('name')],
+                groupby=[mlc('name')],
                 filters=[{
-                    'col': cm('gender'),
+                    'col': mlc('gender'),
                     'op': 'in',
                     'val': ['girl'],
                 }],
@@ -137,9 +137,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=[cm('name')],
+                groupby=[mlc('name')],
                 filters=[{
-                    'col': cm('gender'),
+                    'col': mlc('gender'),
                     'op': 'in',
                     'val': ['boy'],
                 }],
@@ -151,7 +151,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='big_number', granularity_sqla=cm('ds'),
+                viz_type='big_number', granularity_sqla=mlc('ds'),
                 compare_lag='5', compare_suffix='over 5Y')),
         Slice(
             slice_name='Genders',
@@ -160,7 +160,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='pie', groupby=[cm('gender')])),
+                viz_type='pie', groupby=[mlc('gender')])),
         Slice(
             slice_name='Genders by State',
             viz_type='dist_bar',
@@ -175,7 +175,7 @@ def load_birth_names():
                         'filterOptionName': '2745eae5',
                         'comparator': ['other'],
                         'operator': 'not in',
-                        'subject': cm('state'),
+                        'subject': mlc('state'),
                     },
                 ],
                 viz_type='dist_bar',
@@ -183,7 +183,7 @@ def load_birth_names():
                     {
                         'expressionType': 'SIMPLE',
                         'column': {
-                            'column_name': cm('sum_boys'),
+                            'column_name': mlc('sum_boys'),
                             'type': 'BIGINT(20)',
                         },
                         'aggregate': 'SUM',
@@ -193,7 +193,7 @@ def load_birth_names():
                     {
                         'expressionType': 'SIMPLE',
                         'column': {
-                            'column_name': cm('sum_girls'),
+                            'column_name': mlc('sum_girls'),
                             'type': 'BIGINT(20)',
                         },
                         'aggregate': 'SUM',
@@ -201,7 +201,7 @@ def load_birth_names():
                         'optionName': 'metric_12',
                     },
                 ],
-                groupby=[cm('state')])),
+                groupby=[mlc('state')])),
         Slice(
             slice_name='Trends',
             viz_type='line',
@@ -209,8 +209,8 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='line', groupby=[cm('name')],
-                granularity_sqla=cm('ds'), rich_tooltip=True, show_legend=True)),
+                viz_type='line', groupby=[mlc('name')],
+                granularity_sqla=mlc('ds'), rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name='Average and Sum Trends',
             viz_type='dual_line',
@@ -222,7 +222,7 @@ def load_birth_names():
                 metric={
                     'expressionType': 'SIMPLE',
                     'column': {
-                        'column_name': cm('num'),
+                        'column_name': mlc('num'),
                         'type': 'BIGINT(20)',
                     },
                     'aggregate': 'AVG',
@@ -230,7 +230,7 @@ def load_birth_names():
                     'optionName': 'metric_vgops097wej_g8uff99zhk7',
                 },
                 metric_2='sum__num',
-                granularity_sqla=cm('ds'))),
+                granularity_sqla=mlc('ds'))),
         Slice(
             slice_name='Title',
             viz_type='markup',
@@ -257,7 +257,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type='word_cloud', size_from='10',
-                series=cm('name'), size_to='70', rotation='square',
+                series=mlc('name'), size_to='70', rotation='square',
                 limit='100')),
         Slice(
             slice_name='Pivot Table',
@@ -267,7 +267,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type='pivot_table', metrics=['sum__num'],
-                groupby=[cm('name')], columns=[cm('state')])),
+                groupby=[mlc('name')], columns=[mlc('state')])),
         Slice(
             slice_name='Number of Girls',
             viz_type='big_number_total',
@@ -275,9 +275,9 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type='big_number_total', granularity_sqla=cm('ds'),
+                viz_type='big_number_total', granularity_sqla=mlc('ds'),
                 filters=[{
-                    'col': cm('gender'),
+                    'col': mlc('gender'),
                     'op': 'in',
                     'val': ['girl'],
                 }],
@@ -300,7 +300,7 @@ def load_birth_names():
                     'label': 'SUM(num_california)',
                 },
                 viz_type='big_number_total',
-                granularity_sqla=cm('ds'))),
+                granularity_sqla=mlc('ds'))),
         Slice(
             slice_name='Top 10 California Names Timeseries',
             viz_type='line',
@@ -319,8 +319,8 @@ def load_birth_names():
                     'label': 'SUM(num_california)',
                 }],
                 viz_type='line',
-                granularity_sqla=cm('ds'),
-                groupby=[cm('name')],
+                granularity_sqla=mlc('ds'),
+                groupby=[mlc('name')],
                 timeseries_limit_metric={
                     'expressionType': 'SIMPLE',
                     'column': {
@@ -339,7 +339,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                groupby=[cm('name')],
+                groupby=[mlc('name')],
                 row_limit=50,
                 timeseries_limit_metric={
                     'expressionType': 'SIMPLE',
@@ -367,7 +367,7 @@ def load_birth_names():
             created_by=admin,
             params=get_slice_json(
                 defaults,
-                groupby=[cm('ds')],
+                groupby=[mlc('ds')],
                 since='40 years ago',
                 until='now',
                 viz_type='table')),

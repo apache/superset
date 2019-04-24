@@ -41,7 +41,7 @@ def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'long_lat'
     data = get_example_data('san_francisco.csv.gz', make_bytes=True)
     pdf = pd.read_csv(data, encoding='utf-8')
@@ -91,7 +91,7 @@ def load_long_lat_data():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = cm('datetime')
+    obj.main_dttm_col = mlc('datetime')
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -103,10 +103,10 @@ def load_long_lat_data():
         'until': 'now',
         'where': '',
         'viz_type': 'mapbox',
-        'all_columns_x': cm('LON'),
-        'all_columns_y': cm('LAT'),
+        'all_columns_x': mlc('LON'),
+        'all_columns_y': mlc('LAT'),
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
-        'all_columns': [cm('occupancy')],
+        'all_columns': [mlc('occupancy')],
         'row_limit': 500000,
     }
 

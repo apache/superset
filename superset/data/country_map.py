@@ -40,7 +40,7 @@ def load_country_map_data():
     """Loading data for map with country map"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'birth_france_by_region'
     csv_bytes = get_example_data(
         'birth_france_data_for_country_map.csv', is_gzip=False, make_bytes=True)
@@ -78,7 +78,7 @@ def load_country_map_data():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = cm('dttm')
+    obj.main_dttm_col = mlc('dttm')
     if not any(col.metric_name == 'avg__2004' for col in obj.metrics):
         metric_name = 'avg__2004'
         obj.metrics.append(SqlMetric(
@@ -96,12 +96,12 @@ def load_country_map_data():
         'until': '',
         'where': '',
         'viz_type': 'country_map',
-        'entity': cm('DEPT_ID'),
+        'entity': mlc('DEPT_ID'),
         'metric': {
             'expressionType': 'SIMPLE',
             'column': {
                 'type': 'INT',
-                'column_name': cm('2004'),
+                'column_name': mlc('2004'),
             },
             'aggregate': 'AVG',
             'label': 'Boys',

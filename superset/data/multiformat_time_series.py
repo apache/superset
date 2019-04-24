@@ -38,7 +38,7 @@ def load_multiformat_time_series():
     """Loading time series data from a zip file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'multiformat_time_series'
     data = get_example_data('multiformat_time_series.json.gz')
     pdf = pd.read_json(data)
@@ -71,16 +71,16 @@ def load_multiformat_time_series():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = cm('ds')
+    obj.main_dttm_col = mlc('ds')
     dttm_and_expr_dict = {
-        cm('ds'): [None, None],
-        cm('ds2'): [None, None],
-        cm('epoch_s'): ['epoch_s', None],
-        cm('epoch_ms'): ['epoch_ms', None],
-        cm('string2'): ['%Y%m%d-%H%M%S', None],
-        cm('string1'): ['%Y-%m-%d^%H:%M:%S', None],
-        cm('string0'): ['%Y-%m-%d %H:%M:%S.%f', None],
-        cm('string3'): ['%Y/%m/%d%H:%M:%S.%f', None],
+        mlc('ds'): [None, None],
+        mlc('ds2'): [None, None],
+        mlc('epoch_s'): ['epoch_s', None],
+        mlc('epoch_ms'): ['epoch_ms', None],
+        mlc('string2'): ['%Y%m%d-%H%M%S', None],
+        mlc('string1'): ['%Y-%m-%d^%H:%M:%S', None],
+        mlc('string0'): ['%Y-%m-%d %H:%M:%S.%f', None],
+        mlc('string3'): ['%Y/%m/%d%H:%M:%S.%f', None],
     }
     for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]

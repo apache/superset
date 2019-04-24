@@ -45,7 +45,7 @@ def load_unicode_test_data():
     tbl_name = 'unicode_test'
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     data = get_example_data(
         'unicode_utf8_unixnl_test.csv', is_gzip=False, make_bytes=True)
     df = pd.read_csv(data, encoding='utf-8')
@@ -76,7 +76,7 @@ def load_unicode_test_data():
                                           schema=schema).first()
     if not obj:
         obj = TBL(table_name=tbl_name, database=sample_db, schema=schema)
-    obj.main_dttm_col = cm('dttm')
+    obj.main_dttm_col = mlc('dttm')
 
     if not any(col.metric_name == 'sum__value' for col in obj.metrics):
         metric_name = 'sum__value'
@@ -92,7 +92,7 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        'granularity_sqla': cm('dttm'),
+        'granularity_sqla': mlc('dttm'),
         'groupby': [],
         'metric': 'sum__value',
         'row_limit': config.get('ROW_LIMIT'),
@@ -101,7 +101,7 @@ def load_unicode_test_data():
         'where': '',
         'viz_type': 'word_cloud',
         'size_from': '10',
-        'series': cm('short_phrase'),
+        'series': mlc('short_phrase'),
         'size_to': '70',
         'rotation': 'square',
         'limit': '100',

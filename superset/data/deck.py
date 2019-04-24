@@ -182,15 +182,15 @@ def load_deck_dash():
     print('Loading deck.gl dashboard')
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    cm = sample_db.db_engine_spec.make_label_compatible
+    mlc = sample_db.db_engine_spec.make_label_compatible
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name='long_lat', database=sample_db,
                                           schema=schema).first()
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': cm('LON'),
-            'latCol': cm('LAT'),
+            'lonCol': mlc('LON'),
+            'latCol': mlc('LAT'),
         },
         'color_picker': COLOR_RED,
         'datasource': '5__table',
@@ -235,8 +235,8 @@ def load_deck_dash():
         'row_limit': 5000,
         'spatial': {
             'type': 'latlong',
-            'lonCol': cm('LON'),
-            'latCol': cm('LAT'),
+            'lonCol': mlc('LON'),
+            'latCol': mlc('LAT'),
         },
         'mapbox_style': 'mapbox://styles/mapbox/dark-v9',
         'granularity_sqla': None,
@@ -279,8 +279,8 @@ def load_deck_dash():
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': cm('LON'),
-            'latCol': cm('LAT'),
+            'lonCol': mlc('LON'),
+            'latCol': mlc('LAT'),
         },
         'filters': [],
         'row_limit': 5000,
@@ -327,8 +327,8 @@ def load_deck_dash():
     slice_data = {
         'spatial': {
             'type': 'latlong',
-            'lonCol': cm('LON'),
-            'latCol': cm('LAT'),
+            'lonCol': mlc('LON'),
+            'latCol': mlc('LAT'),
         },
         'filters': [],
         'row_limit': 5000,
@@ -381,7 +381,7 @@ def load_deck_dash():
         'granularity_sqla': None,
         'time_grain_sqla': None,
         'time_range': ' : ',
-        'line_column': cm('contour'),
+        'line_column': mlc('contour'),
         'metric': 'count',
         'line_type': 'json',
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -419,13 +419,13 @@ def load_deck_dash():
         'extruded': True,
         'point_radius_scale': 100,
         'js_columns': [
-            cm('population'),
-            cm('area'),
+            mlc('population'),
+            mlc('area'),
         ],
         'js_data_mutator':
             'data => data.map(d => ({'
             '    ...d,'
-            f'    elevation: d.extraProps.{cm("population")}/d.extraProps.{cm("area")}/10,'  # noqa
+            f'    elevation: d.extraProps.{mlc("population")}/d.extraProps.{mlc("area")}/10,'  # noqa
             '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
@@ -454,13 +454,13 @@ def load_deck_dash():
         'time_range': ' : ',
         'start_spatial': {
             'type': 'latlong',
-            'latCol': cm('LATITUDE'),
-            'lonCol': cm('LONGITUDE'),
+            'latCol': mlc('LATITUDE'),
+            'lonCol': mlc('LONGITUDE'),
         },
         'end_spatial': {
             'type': 'latlong',
-            'latCol': cm('LATITUDE_DEST'),
-            'lonCol': cm('LONGITUDE_DEST'),
+            'latCol': mlc('LATITUDE_DEST'),
+            'lonCol': mlc('LONGITUDE_DEST'),
         },
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -509,7 +509,7 @@ def load_deck_dash():
         'viz_type': 'deck_path',
         'time_grain_sqla': None,
         'time_range': ' : ',
-        'line_column': cm('path_json'),
+        'line_column': mlc('path_json'),
         'line_type': 'json',
         'row_limit': 5000,
         'mapbox_style': 'mapbox://styles/mapbox/light-v9',
@@ -538,11 +538,11 @@ def load_deck_dash():
         'line_width': 150,
         'reverse_long_lat': False,
         'js_columns': [
-            cm('color'),
+            mlc('color'),
         ],
         'js_data_mutator': 'data => data.map(d => ({\n'
                            '    ...d,\n'
-                           f'    color: colors.hexToRGB(d.extraProps.{cm("color")})\n'
+                           f'    color: colors.hexToRGB(d.extraProps.{mlc("color")})\n'
                            '}));',
         'js_tooltip': '',
         'js_onclick_href': '',
