@@ -34,13 +34,13 @@ from .helpers import (
     Slice,
     TBL,
 )
+from superset.models.core import Database
 
 
 def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'long_lat'
     data = get_example_data('san_francisco.csv.gz', make_bytes=True)
     pdf = pd.read_csv(data, encoding='utf-8')
@@ -80,12 +80,15 @@ def load_long_lat_data():
                                        if_exists='replace',
                                        chunksize=500,
                                        dtype=dtypes,
-                                       index=False,
-                                       )
+                                       index=False)
     print('Done loading table!')
     print('-' * 80)
+    create_metadata(tbl_name, sample_db, schema)
 
+
+def create_metadata(tbl_name: str, sample_db: Database, schema: str):
     print('Creating table reference')
+    mlc = sample_db.db_engine_spec.make_label_compatible
     obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()
     if not obj:

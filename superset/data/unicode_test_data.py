@@ -27,7 +27,7 @@ from .helpers import (
     config,
     Dash,
     get_example_data,
-    get_expression,
+    get_aggr_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,
@@ -80,7 +80,7 @@ def load_unicode_test_data():
 
     if not any(col.metric_name == 'sum__value' for col in obj.metrics):
         metric_name = 'sum__value'
-        expression = get_expression(metric_name, sample_db)
+        expression = get_aggr_expression(metric_name, sample_db)
         obj.metrics.append(SqlMetric(
             metric_name=metric_name,
             expression=expression,

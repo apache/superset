@@ -31,7 +31,7 @@ from .helpers import (
     Dash,
     DATA_FOLDER,
     get_example_data,
-    get_expression,
+    get_aggr_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,
@@ -88,7 +88,7 @@ def load_world_bank_health_n_pop():
         if not any(col.metric_name == metric_name for col in tbl.metrics):
             tbl.metrics.append(SqlMetric(
                 metric_name=metric_name,
-                expression=get_expression(metric_name, sample_db),
+                expression=get_aggr_expression(metric_name, sample_db),
             ))
 
     db.session.merge(tbl)

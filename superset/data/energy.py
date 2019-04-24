@@ -23,7 +23,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from .helpers import (
     get_example_data,
-    get_expression,
+    get_aggr_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,
@@ -69,7 +69,7 @@ def load_energy():
 
     if not any(col.metric_name == 'sum__value' for col in tbl.metrics):
         metric_name = 'sum__value'
-        expression = get_expression(metric_name, sample_db)
+        expression = get_aggr_expression(metric_name, sample_db)
         tbl.metrics.append(SqlMetric(
             metric_name=metric_name,
             expression=expression,

@@ -23,7 +23,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from .helpers import (
     get_example_data,
-    get_expression,
+    get_aggr_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,
@@ -83,7 +83,7 @@ def load_country_map_data():
         metric_name = 'avg__2004'
         obj.metrics.append(SqlMetric(
             metric_name=metric_name,
-            expression=get_expression(metric_name, sample_db),
+            expression=get_aggr_expression(metric_name, sample_db),
         ))
     db.session.merge(obj)
     db.session.commit()

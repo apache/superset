@@ -27,7 +27,7 @@ from .helpers import (
     config,
     Dash,
     get_example_data,
-    get_expression,
+    get_aggr_expression,
     get_sample_data_db,
     get_sample_data_schema,
     get_slice_json,
@@ -38,13 +38,13 @@ from .helpers import (
     TBL,
     update_slice_ids,
 )
+from superset.models.core import Database
 
 
 def load_birth_names():
     """Loading birth name dataset from a zip file in the repo"""
     sample_db = get_sample_data_db()
     schema = get_sample_data_schema()
-    mlc = sample_db.db_engine_spec.make_label_compatible
     tbl_name = 'birth_names'
     data = get_example_data('birth_names.json.gz')
     pdf = pd.read_json(data)
@@ -66,8 +66,12 @@ def load_birth_names():
                                        index=False)
     print('Done loading table!')
     print('-' * 80)
+    create_metadata(tbl_name, sample_db, schema)
 
+
+def create_metadata(tbl_name: str, sample_db: Database, schema: str):
     print('Creating table [birth_names] reference')
+    mlc = sample_db.db_engine_spec.make_label_compatible
     obj = db.session.query(TBL).filter_by(table_name=tbl_name, database=sample_db,
                                           schema=schema).first()
     if not obj:
@@ -87,7 +91,7 @@ def load_birth_names():
         metric_name = 'sum__num'
         obj.metrics.append(SqlMetric(
             metric_name=metric_name,
-            expression=get_expression(metric_name, sample_db),
+            expression=get_aggr_expression(metric_name, sample_db),
         ))
 
     db.session.merge(obj)
