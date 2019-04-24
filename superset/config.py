@@ -80,7 +80,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
-# Name of database and schema for sample data
+# Name of database and schema for sample data. If none defaults to `main` database
 SAMPLE_DATA_DB_DATASOURCE_NAME = None
 SAMPLE_DATA_DB_SCHEMA_NAME = None
 
