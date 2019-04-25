@@ -39,7 +39,7 @@ from superset.models.schedules import (
     SliceEmailReportFormat,
 )
 from superset.tasks.celery_app import app as celery_app
-from superset.utils.email import get_email_address_list, send_email_smtp
+from superset.utils import core as utils
 from superset.utils.selenium import (
     DashboardScreenshot,
     get_auth_cookies,
@@ -59,7 +59,7 @@ def _get_recipients(schedule):
         to = schedule.recipients
         yield (to, bcc)
     else:
-        for to in get_email_address_list(schedule.recipients):
+        for to in utils.get_email_address_list(schedule.recipients):
             yield (to, bcc)
 
 
@@ -67,7 +67,7 @@ def _deliver_email(recipients, subject, email):
     config = app.config
     dryrun = config.get('SCHEDULED_EMAIL_DEBUG_MODE')
     for (to, bcc) in recipients:
-        send_email_smtp(
+        utils.send_email_smtp(
             to, subject, email.body,
             config,
             data=email.data,

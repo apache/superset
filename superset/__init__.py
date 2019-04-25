@@ -115,7 +115,9 @@ for bp in conf.get('BLUEPRINTS'):
 if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
+logging.getLogger('urllib3').setLevel(logging.ERROR)
 logging.getLogger('selenium').setLevel(logging.ERROR)
+logging.getLogger('PIL').setLevel(logging.ERROR)
 
 if app.debug:
     app.logger.setLevel(logging.DEBUG)  # pylint: disable=no-member

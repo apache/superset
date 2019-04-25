@@ -34,7 +34,7 @@ const propTypes = {
 };
 const defaultProps = {
   onTitleClick: () => {},
-  imageAspectRatio: 3/2,
+  imageAspectRatio: 4/3,
 };
 
 export default class Card extends React.PureComponent {

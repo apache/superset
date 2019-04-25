@@ -55,7 +55,6 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
-from superset.utils.json import json_int_dttm_ser, json_iso_dttm_ser
 
 
 config = app.config
@@ -334,7 +333,7 @@ class BaseViz(object):
     def get_json(self):
         return json.dumps(
             self.get_payload(),
-            default=json_int_dttm_ser, ignore_nan=True)
+            default=utils.json_int_dttm_ser, ignore_nan=True)
 
     def cache_key(self, query_obj, **extra):
         """
@@ -461,7 +460,7 @@ class BaseViz(object):
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
             obj,
-            default=json_int_dttm_ser,
+            default=utils.json_int_dttm_ser,
             ignore_nan=True,
             sort_keys=sort_keys,
         )
@@ -596,7 +595,7 @@ class TableViz(BaseViz):
     def json_dumps(self, obj, sort_keys=False):
         return json.dumps(
             obj,
-            default=json_iso_dttm_ser,
+            default=utils.json_iso_dttm_ser,
             sort_keys=sort_keys,
             ignore_nan=True)
 

@@ -29,9 +29,9 @@ const propTypes = {
 export default function MissingChart({ height }) {
   return (
     <div className="missing-chart-container" style={{ height: height + 20 }}>
-      <div className="loading-container">
-        <Loading />
-      </div>
+      <br />
+      <i className="fa fa-exclamation-triangle text-danger fa-2x" />
+      <br />
       <div className="missing-chart-body">
         {t(
           'There is no chart definition associated with this component, could it have been deleted?',

@@ -396,10 +396,14 @@ def load_test_users():
 @click.option(
     '--force', '-f', is_flag=True, default=False,
     help='Force refresh, even if previously cached')
-def compute_thumbnails(asynchronous, dashboards_only, charts_only, force):
+@click.option('--id', '-i', multiple=True)
+def compute_thumbnails(asynchronous, dashboards_only, charts_only, force, id):
     """Compute thumbnails"""
     if not charts_only:
-        dashboards = db.session.query(models.Dashboard).all()
+        query = db.session.query(models.Dashboard)
+        if id:
+            query = query.filter(models.Dashboard.id.in_(id))
+        dashboards = query.all()
         count = len(dashboards)
         for i, dash in enumerate(dashboards):
             if asynchronous:
@@ -413,7 +417,10 @@ def compute_thumbnails(asynchronous, dashboards_only, charts_only, force):
             func(dash.id, force=force)
 
     if not dashboards_only:
-        slices = db.session.query(models.Slice).all()
+        query = db.session.query(models.Slice)
+        if id:
+            query = query.filter(models.Slice.id.in_(id))
+        slices = query.all()
         count = len(slices)
         for i, slc in enumerate(slices):
             if asynchronous:

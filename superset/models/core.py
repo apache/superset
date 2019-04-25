@@ -56,7 +56,6 @@ from superset.utils import (
     cache as cache_util,
     core as utils,
 )
-from superset.utils.json import json_dumps_w_dates
 from superset.viz import viz_types
 from urllib import parse  # noqa
 
@@ -946,7 +945,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
                 for k, v in df.dtypes.items():
                     if v.type == numpy.object_ and needs_conversion(df[k]):
-                        df[k] = df[k].apply(json_dumps_w_dates)
+                        df[k] = df[k].apply(utils.json_dumps_w_dates)
                 return df
 
     def compile_sqla_query(self, qry, schema=None):

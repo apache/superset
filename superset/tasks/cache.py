@@ -134,6 +134,7 @@ class DummyStrategy(Strategy):
 
     def get_urls(self):
         session = db.create_scoped_session()
+        from superset.models.core import Slice
         charts = session.query(Slice).all()
 
         return [get_url({'form_data': get_form_data(chart.id)}) for chart in charts]
@@ -182,7 +183,6 @@ class TopNDashboardsStrategy(Strategy):
             .all()
         )
         dash_ids = [record.dashboard_id for record in records]
-        from superset.models.core import Dashboard
         dashboards = (
             session
             .query(Dashboard)
@@ -241,6 +241,7 @@ class DashboardTagsStrategy(Strategy):
             ))
             .all()
         )
+        from superset.models.core import Dashboard
         dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_dashboards = (
             session

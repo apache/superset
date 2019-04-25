@@ -24,7 +24,7 @@ from flask import current_app, request, Response, session, url_for
 from flask_login import login_user
 from PIL import Image
 from retry.api import retry_call
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -139,7 +139,7 @@ class BaseScreenshot:
         size = size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
         logging.debug(f'Selenium image size: {img.size}')
-        if crop and img.size[1] > cls.window_size[1]:
+        if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
             logging.debug(f'Cropping to: {img.size[0]}*{desired_width}')
@@ -285,6 +285,8 @@ def get_png_from_url(
         )
         logging.info('Taking a PNG screenshot')
         img = element.screenshot_as_png
+    except TimeoutException:
+        logging.error('Selenium timed out')
     except WebDriverException as e:
         logging.exception(e)
         # Some webdrivers do not support screenshots for elements.

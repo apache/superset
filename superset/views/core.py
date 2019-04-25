@@ -60,7 +60,6 @@ from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import EPOCH, now_as_float
 from superset.utils.decorators import etag_cache
-
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -715,7 +714,7 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = [
         'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
         'changed_on', 'url', 'changed_by_name', 'created_by_name',
-        'thumbnail_url', 'changed_on_humanized'
+        'thumbnail_url', 'changed_on_humanized',
     ]
     label_columns = {
         'dashboard_link': _('Dashboard'),
@@ -1982,7 +1981,7 @@ class Superset(BaseSupersetView):
             'dttm': o.changed_on,
         } for o in qry.all()]
         return json_success(
-            json.dumps(payload, default=json_int_dttm_ser))
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2021,7 +2020,7 @@ class Superset(BaseSupersetView):
             'viz_type': o.Slice.viz_type,
         } for o in qry.all()]
         return json_success(
-            json.dumps(payload, default=json_int_dttm_ser))
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api

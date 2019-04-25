@@ -39,7 +39,6 @@ from superset import conf, db, get_feature_flags, security_manager
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
-from superset.utils.json import json_int_dttm_ser, json_iso_dttm_ser
 
 FRONTEND_CONF_KEYS = (
     'SUPERSET_WEBSERVER_TIMEOUT',
@@ -72,7 +71,7 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None, lin
         payload['link'] = link
 
     return Response(
-        json.dumps(payload, default=json_iso_dttm_ser, ignore_nan=True),
+        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
         status=status, mimetype='application/json')
 
 
@@ -150,7 +149,7 @@ class BaseSupersetView(BaseView):
 
     def json_response(self, obj, status=200):
         return Response(
-            json.dumps(obj, default=json_int_dttm_ser, ignore_nan=True),
+            json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype='application/json')
 

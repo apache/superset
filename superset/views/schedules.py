@@ -37,8 +37,7 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.tasks.schedules import schedule_email_report
-from superset.utils.email import get_email_address_list
-from superset.utils.json import json_iso_dttm_ser
+from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 
