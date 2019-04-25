@@ -1788,6 +1788,7 @@ class WorldMapViz(BaseViz):
 
 
 class FilterBoxViz(BaseViz):
+
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
     viz_type = 'filter_box'
