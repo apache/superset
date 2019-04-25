@@ -213,7 +213,7 @@ class BaseViz(object):
                     try:
                         int(one_ts_val)
                         is_integral = True
-                    except ValueError:
+                    except (ValueError, TypeError):
                         is_integral = False
                     if is_integral:
                         unit = 's' if timestamp_format == 'epoch_s' else 'ms'
