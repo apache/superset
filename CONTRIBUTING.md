@@ -574,15 +574,14 @@ For the translations to take effect:
 npm install -g po2json
 fabmanager babel-compile --target superset/translations
 # Convert the en PO file into a JSON file
-po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json -f mf
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
 name, rather than the NodeJS package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
-If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
-For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+If you get a lot of `[null,***]` in `messages.json`, just add the rule `-f mf`.Beacuse the default rule for po2json is `raw`.It can add null as the first entry in the translations.[Why is null added as the first entry in the translations?](https://github.com/mikeedwards/po2json/issues/71).
 
 ### Creating a new language dictionary
 
