@@ -90,9 +90,12 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     edit_form_extra_fields = add_form_extra_fields
 
     def process_form(self, form, is_created):
-        recipients = form.test_email_recipients.data.strip() or None
+        if form.test_email_recipients.data:
+            test_email_recipients = form.test_email_recipients.data.strip()
+        else:
+            test_email_recipients = None
         self._extra_data['test_email'] = form.test_email.data
-        self._extra_data['test_email_recipients'] = recipients
+        self._extra_data['test_email_recipients'] = test_email_recipients
 
     def pre_add(self, obj):
         try:
@@ -111,7 +114,7 @@ class EmailScheduleView(SupersetModelView, DeleteMixin):
     def post_add(self, obj):
         # Schedule a test mail if the user requested for it.
         if self._extra_data['test_email']:
-            recipients = self._extra_data['test_email_recipients']
+            recipients = self._extra_data['test_email_recipients'] or obj.recipients
             args = (self.schedule_type, obj.id)
             kwargs = dict(recipients=recipients)
             schedule_email_report.apply_async(args=args, kwargs=kwargs)
