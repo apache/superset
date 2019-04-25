@@ -576,7 +576,8 @@ class SliceAsync(SliceModelView):  # noqa
     route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
-        'creator', 'modified', 'icons']
+        'creator', 'modified', 'icons', 'changed_on_humanized',
+    ]
     label_columns = {
         'icons': ' ',
         'slice_link': _('Chart'),
@@ -592,7 +593,8 @@ class SliceAddView(SliceModelView):  # noqa
         'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
         'description', 'description_markeddown', 'datasource_id', 'datasource_type',
         'datasource_name_text', 'datasource_link',
-        'owners', 'modified', 'changed_on']
+        'owners', 'modified', 'changed_on', 'changed_on_humanized',
+    ]
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -1487,6 +1489,7 @@ class Superset(BaseSupersetView):
             'can_overwrite': is_owner(slc, g.user),
             'form_data': slc.form_data,
             'slice': slc.data,
+            'dashboard_id': dash.id if dash else None,
         }
 
         if request.args.get('goto_dash') == 'true':
@@ -1586,6 +1589,16 @@ class Superset(BaseSupersetView):
         if substr:
             table_names = [tn for tn in table_names if substr in tn]
             view_names = [vn for vn in view_names if substr in vn]
+
+        if not schema and database.default_schemas:
+            def get_schema(tbl_or_view_name):
+                return tbl_or_view_name.split('.')[0] if '.' in tbl_or_view_name else None
+
+            user_schema = g.user.email.split('@')[0]
+            valid_schemas = set(database.default_schemas + [user_schema])
+
+            table_names = [tn for tn in table_names if get_schema(tn) in valid_schemas]
+            view_names = [vn for vn in view_names if get_schema(vn) in valid_schemas]
 
         max_items = config.get('MAX_TABLE_NAMES') or len(table_names)
         total_items = len(table_names) + len(view_names)

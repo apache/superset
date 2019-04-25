@@ -954,11 +954,11 @@ class BubbleViz(NVD3Viz):
         self.series = form_data.get('series') or self.entity
         d['row_limit'] = form_data.get('limit')
 
-        d['metrics'] = [
+        d['metrics'] = list(set([
             self.z_metric,
             self.x_metric,
             self.y_metric,
-        ]
+        ]))
         if not all(d['metrics'] + [self.entity]):
             raise Exception(_('Pick a metric for x, y and size'))
         return d
@@ -1112,15 +1112,21 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     series_title = series_title + (title_suffix,)
 
             values = []
+            non_nan_cnt = 0
             for ds in df.index:
                 if ds in ys:
                     d = {
                         'x': ds,
                         'y': ys[ds],
                     }
+                    if not np.isnan(ys[ds]):
+                        non_nan_cnt += 1
                 else:
                     d = {}
                 values.append(d)
+
+            if non_nan_cnt == 0:
+                continue
 
             d = {
                 'key': series_title,
@@ -1224,7 +1230,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
         comparison_type = fd.get('comparison_type') or 'values'
         df = self.process_data(df)
         if comparison_type == 'values':
-            chart_data = self.to_series(df)
+            # Filter out series with all NaN
+            chart_data = self.to_series(df.dropna(axis=1, how='all'))
+
             for i, (label, df2) in enumerate(self._extra_chart_data):
                 chart_data.extend(
                     self.to_series(
