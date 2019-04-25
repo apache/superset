@@ -341,15 +341,14 @@ class DruidMetric(Model, BaseMetric):
 
     __tablename__ = 'metrics'
     __table_args__ = (UniqueConstraint('metric_name', 'datasource_id'),)
-    datasource_id = Column(
-        Integer,
-        ForeignKey('datasources.id'))
+    datasource_id = Column(Integer, ForeignKey('datasources.id'))
+
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
-    json = Column(Text)
+    json = Column(Text, nullable=False)
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
