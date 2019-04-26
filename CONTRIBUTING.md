@@ -314,15 +314,24 @@ echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
-Developers should use a virtualenv. Anaconda Python users should make sure that conda installs the virtualenv package, otherwise conda packages won't play well with packages installed by pip.
+Developers should use a virtualenv. Anaconda Python users should make sure that conda installs the virtualenv package, otherwise conda packages won't play well with packages installed by pip. In addition, Anaconda Python installs its own version of certifi that must be removed minus dependencies for requirements.txt's certifi to install.
 
 ```bash
 # Conda modified virtualenv on conda-forge to work with pip
 conda install --force-reinstall -y virtualenv
 
+# Remove certifi that came with the conda env, install of requirements.txt will restore
+conda remove certifi --force
+```
+
+For other Python's:
+
+```
 # Otherwise pip is fine
 pip install virtualenv
 ```
+
+Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
