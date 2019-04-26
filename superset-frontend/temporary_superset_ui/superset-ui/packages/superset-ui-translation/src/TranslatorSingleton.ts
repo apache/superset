@@ -3,7 +3,7 @@
 import Translator from './Translator';
 import { TranslatorConfig } from './types';
 
-let singleton: Translator;
+let singleton: Translator | undefined;
 let isConfigured = false;
 
 function configure(config?: TranslatorConfig) {
@@ -15,10 +15,11 @@ function configure(config?: TranslatorConfig) {
 
 function getInstance() {
   if (!isConfigured) {
-    console.warn('You must call configure(...) before calling other methods');
-    if (!singleton) {
-      singleton = new Translator();
-    }
+    console.warn('You should call configure(...) before calling other methods');
+  }
+
+  if (typeof singleton === 'undefined') {
+    singleton = new Translator();
   }
 
   return singleton;
