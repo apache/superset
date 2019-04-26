@@ -21,7 +21,7 @@ nginx_image_tag: "v1.14.2-guavus_4"
 #                      Docker Path                                 #
 #------------------------------------------------------------------#
 
-security_docker_images_root_path: "/opt/repos/security/docker"
+security_docker_images_root_path: "/opt/repos/raf/docker"
 
 #------------------------------------------------------------------#
 #                      Docker Images                               #
@@ -34,6 +34,10 @@ nginx_docker_image_name: "{{ superset_docker_registry }}/nginx-gvs"
 superset_docker_images:
   - name: guavus-superset
     tag: "{{ superset_image_tag }}"
+
+nginx_docker_images:
+  - name: {{ nginx_docker_image_name }}
+    tag: "{{ nginx_image_tag }}"
 
 superset_kube_namespace: default
 
