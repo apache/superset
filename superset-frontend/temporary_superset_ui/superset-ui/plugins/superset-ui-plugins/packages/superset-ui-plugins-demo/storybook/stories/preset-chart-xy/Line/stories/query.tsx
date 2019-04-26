@@ -26,15 +26,40 @@ export default [
         formData: {
           viz_type: LINE_PLUGIN_TYPE,
           datasource: '3__table',
-          url_params: {},
           granularity_sqla: 'ds',
           time_grain_sqla: 'P1D',
           time_range: '100 years ago : now',
           metrics: ['sum__num'],
-          adhoc_filters: [],
-          groupby: [],
           limit: 25,
           row_limit: 50000,
+          encoding: {
+            x: {
+              field: '__timestamp',
+              type: 'temporal',
+              format: '%Y',
+              scale: {
+                type: 'time',
+              },
+              axis: {
+                title: 'Time',
+              },
+            },
+            y: {
+              field: 'sum__num',
+              type: 'quantitative',
+              scale: {
+                type: 'linear',
+              },
+              axis: {
+                title: 'Number of Babies',
+              },
+            },
+            color: {
+              field: 'gender',
+              type: 'nominal',
+              legend: true,
+            },
+          },
         },
       },
     },
