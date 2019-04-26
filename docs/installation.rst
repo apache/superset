@@ -121,7 +121,13 @@ that the required dependencies are installed: ::
     sudo yum upgrade python-setuptools
     sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
-**OSX**, system python is not recommended. brew's python also ships with pip  ::
+**Mac OS X** If possible, you should upgrade to the latest version of OS X as issues are more likely to be resolved for that version. 
+You *will likely need* the latest version of XCode available for your installed version of OS X. You should also install
+the XCode command line tools: ::
+
+    xcode-select --install
+
+System python is not recommended. Homebrew's python also ships with pip: ::
 
     brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
@@ -155,6 +161,15 @@ On windows the syntax for activating it is a bit different: ::
 
 Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
 To exit a virtualenv just type ``deactivate``.
+
+Anaconda Python's conda
+-----------------------
+
+conda environments do not work well with superset because not all required packages are available on conda-forge. This may
+change in the future. To use a virtualenv from conda, you must have installed conda's version of virtualenv which is
+patched to work with conda.
+
+    conda install --force-reinstall -y virtualenv
 
 Python's setup tools and pip
 ----------------------------

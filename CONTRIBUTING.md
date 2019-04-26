@@ -294,7 +294,35 @@ python setup.py build_sphinx
 
 ### Flask server
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+#### OS Dependencies
+
+Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
+
+In addition you will need to install the mysql client to get mysql_config, which is required by mysqlclient in requirements-dev.txt.
+
+For Debian/Ubuntu:
+
+```bash
+sudo apt-get install -y libmysqlclient-dev
+```
+
+For OS X via brew:
+
+```bash
+brew install mysql-client
+echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+Developers should use a virtualenv. Anaconda Python users should make sure that conda installs the virtualenv package, otherwise conda packages won't play well with packages installed by pip.
+
+```bash
+# Conda modified virtualenv on conda-forge to work with pip
+conda install --force-reinstall -y virtualenv
+
+# Otherwise pip is fine
+pip install virtualenv
+```
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
@@ -304,10 +332,11 @@ source venv/bin/activate
 # Install external dependencies
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
+
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user
+# Create an admin user in the app sqlite DB at ~/.superset/superset.db
 fabmanager create-admin --app superset
 
 # Initialize the database
@@ -319,14 +348,13 @@ superset init
 # Load some data to play with
 superset load_examples
 
-# Start the Flask dev web server from inside the `superset` dir at port 8088
+# Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
-cd superset
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger
+FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
 
-#### Logging to the browser console
+#### Logging to the browser console (not working)
 
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
 
@@ -346,7 +374,14 @@ app.logger.info(form_data)
 
 Frontend assets (JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset/assets` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
 
-First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended.
+#### nvm and node
+
+First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended. Check the docs at the link to be sure, but at the time of writing the following would install nvm and node:
+
+```bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
+nvm install node
+```
 
 #### Prerequisite
 
@@ -385,6 +420,12 @@ npm run dev
 
 # Compile the Javascript and CSS in production/optimized mode for official releases
 npm run prod
+```
+
+If you run this service from somewhere other than your local machine, you may need to add hostname value to webpack.config.js at .devServer.public specifying the endpoint at which you will access the app. For example: myhost:9001. For convenience you may want to install webpack, webpack-cli and webpack-dev-server globally so that you can run them directly:
+
+```bash
+npm install --global webpack webpack-cli webpack-dev-server
 ```
 
 #### Updating NPM packages
