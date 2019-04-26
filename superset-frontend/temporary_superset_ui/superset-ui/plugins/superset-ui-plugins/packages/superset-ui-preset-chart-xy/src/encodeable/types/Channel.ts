@@ -2,6 +2,8 @@ import { Value } from 'vega-lite/build/src/channeldef';
 import { XFieldDef, YFieldDef, ChannelDef, MarkPropChannelDef, TextChannelDef } from './ChannelDef';
 import { ObjectWithKeysFromAndValueType } from './Base';
 
+export type ChannelInput = number | string | boolean | null | Date | undefined;
+
 // eslint-disable-next-line import/prefer-default-export
 export interface ChannelOptions {
   namespace?: string;
