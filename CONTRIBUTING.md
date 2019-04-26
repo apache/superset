@@ -581,7 +581,7 @@ If you get errors running `po2json`, you might be running the Ubuntu package wit
 name, rather than the NodeJS package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
-If you get a lot of `[null,***]` in `messages.json`, just add the rule `-f mf`.Beacuse the default rule for po2json is `raw`.It can add null as the first entry in the translations.[Why is null added as the first entry in the translations?](https://github.com/mikeedwards/po2json/issues/71).
+If you get a lot of `[null,***]` in `messages.json`, just add the rule `-f mf`. Beacuse the default rule for po2json is `raw`.It can add null as the first entry in the translations.[Why is null added as the first entry in the translations?](https://github.com/mikeedwards/po2json/issues/71).
 
 ### Creating a new language dictionary
 
