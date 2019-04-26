@@ -4,8 +4,9 @@
   set_fact:
     superset_docker_registry: '{{ docker_default_registry }}'
   when:
-    - site_connectivity == "offline" 
- 
+    - site_connectivity == "offline"
+
+
 
 - name: Populate offline docker registry with superset images
   docker_image:
@@ -18,10 +19,10 @@
     load_path: "{{ security_docker_images_root_path }}/{{ item.name }}.tar"
   with_items:
     - '{{ superset_docker_images }}'
+    - '{{ nginx_docker_images }}'
   when:
     - site_connectivity == "offline"
     - inventory_hostname == groups['management-nodes'][0]
-
 
 - name: Create base directories
   file:
@@ -50,7 +51,7 @@
       type: configmap
     - name: superset-nginx-configmap
       file: superset-nginx-configmap.yaml
-      type: configmap  
+      type: configmap
     - name: superset-deployment
       file: superset-deployment.yaml
       type: Deployment
@@ -74,7 +75,7 @@
   with_items: "{{ superset_deploy_files.results }}"
   when:
     - superset_deploy
-    - superset_reload_pods 
+    - superset_reload_pods
 
 
 - name: Deploy superset
