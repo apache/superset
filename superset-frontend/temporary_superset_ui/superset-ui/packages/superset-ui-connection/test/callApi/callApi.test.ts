@@ -314,27 +314,24 @@ describe('callApi()', () => {
       );
     }));
 
-  it('works when the Cache API is disabled', () => {
+  it('works when the Cache API is disabled', async () => {
     Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
 
-    return callApi({ url: mockCacheUrl, method: 'GET' }).then(firstResponse => {
-      const calls = fetchMock.calls(mockCacheUrl);
-      expect(calls).toHaveLength(1);
-      expect(firstResponse.body).toEqual('BODY');
+    const firstResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
+    const calls = fetchMock.calls(mockCacheUrl);
+    expect(calls).toHaveLength(1);
+    const firstBody = await firstResponse.text();
+    expect(firstBody).toEqual('BODY');
 
-      return callApi({ url: mockCacheUrl, method: 'GET' }).then(secondResponse => {
-        const fetchParams = calls[1][1];
-        expect(calls).toHaveLength(2);
+    const secondResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
+    const fetchParams = calls[1][1];
+    expect(calls).toHaveLength(2);
+    // second call should not have If-None-Match header
+    expect(fetchParams.headers).toBeUndefined();
+    const secondBody = await secondResponse.text();
+    expect(secondBody).toEqual('BODY');
 
-        // second call should not have If-None-Match header
-        expect(fetchParams.headers).toBeUndefined();
-        expect(secondResponse.body).toEqual('BODY');
-
-        Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
-
-        return Promise.resolve();
-      });
-    });
+    Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
   });
 
   it('sends known ETags in the If-None-Match header', () =>
@@ -354,23 +351,20 @@ describe('callApi()', () => {
       });
     }));
 
-  it('reuses cached responses on 304 status', () =>
+  it('reuses cached responses on 304 status', async () => {
     // first call sets the cache
-    callApi({ url: mockCacheUrl, method: 'GET' }).then(() => {
-      const calls = fetchMock.calls(mockCacheUrl);
-      expect(calls).toHaveLength(1);
+    await callApi({ url: mockCacheUrl, method: 'GET' });
+    const calls = fetchMock.calls(mockCacheUrl);
+    expect(calls).toHaveLength(1);
+    // second call reuses the cached payload on a 304
+    const mockCachedPayload = { status: 304 };
+    fetchMock.get(mockCacheUrl, mockCachedPayload, { overwriteRoutes: true });
 
-      // second call reuses the cached payload on a 304
-      const mockCachedPayload = { status: 304 };
-      fetchMock.get(mockCacheUrl, mockCachedPayload, { overwriteRoutes: true });
-
-      return callApi({ url: mockCacheUrl, method: 'GET' }).then(response => {
-        expect(calls).toHaveLength(2);
-        expect(response.body).toEqual('BODY');
-
-        return Promise.resolve();
-      });
-    }));
+    const secondResponse = await callApi({ url: mockCacheUrl, method: 'GET' });
+    expect(calls).toHaveLength(2);
+    const secondBody = await secondResponse.text();
+    expect(secondBody).toEqual('BODY');
+  });
 
   it('throws error when cache fails on 304', () => {
     // this should never happen, since a 304 is only returned if we have
