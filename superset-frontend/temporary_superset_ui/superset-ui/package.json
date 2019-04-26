@@ -40,7 +40,7 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
-    "@superset-ui/build-config": "^0.0.8",
+    "@superset-ui/build-config": "^0.0.9",
     "@superset-ui/commit-config": "^0.0.9",
     "fast-glob": "^2.2.6",
     "fs-extra": "^7.0.1",
