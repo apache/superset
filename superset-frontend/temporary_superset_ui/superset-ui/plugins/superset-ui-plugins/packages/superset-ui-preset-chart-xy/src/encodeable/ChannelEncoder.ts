@@ -2,7 +2,7 @@ import { Value } from 'vega-lite/build/src/channeldef';
 import { extractFormatFromChannelDef } from './parsers/extractFormat';
 import extractScale, { ScaleAgent } from './parsers/extractScale';
 import extractGetter from './parsers/extractGetter';
-import { ChannelOptions, ChannelType } from './types/Channel';
+import { ChannelOptions, ChannelType, ChannelInput } from './types/Channel';
 import { PlainObject } from './types/Data';
 import {
   ChannelDef,
@@ -24,9 +24,9 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
   readonly definition: Def;
   readonly options: ChannelOptions;
 
-  protected readonly getValue: (datum: PlainObject) => Value | undefined;
-  readonly encodeValue: (value: any) => Output | null | undefined;
-  readonly formatValue: (value: any) => string;
+  protected readonly getValue: (datum: PlainObject) => ChannelInput;
+  readonly encodeValue: (value: ChannelInput) => Output | null | undefined;
+  readonly formatValue: (value: ChannelInput | { toString(): string }) => string;
   readonly scale?: ScaleAgent<Output>;
   readonly axis?: AxisAgent<Def, Output>;
 
@@ -66,10 +66,14 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     this.get = this.get.bind(this);
   }
 
+  encode(datum: PlainObject): Output | null | undefined;
+  // eslint-disable-next-line no-dupe-class-members
+  encode(datum: PlainObject, otherwise: Output): Output;
+  // eslint-disable-next-line no-dupe-class-members
   encode(datum: PlainObject, otherwise?: Output) {
     const value = this.get(datum);
     if (value === null || value === undefined) {
-      return value;
+      return otherwise;
     }
 
     const output = this.encodeValue(value);
@@ -83,10 +87,12 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
     return this.formatValue(this.get(datum));
   }
 
-  get(datum: PlainObject, otherwise?: any) {
+  get<T extends ChannelInput>(datum: PlainObject, otherwise?: T) {
     const value = this.getValue(datum);
 
-    return otherwise !== undefined && (value === null || value === undefined) ? otherwise : value;
+    return otherwise !== undefined && (value === null || value === undefined)
+      ? otherwise
+      : (value as T);
   }
 
   getTitle() {
@@ -110,12 +116,13 @@ export default class ChannelEncoder<Def extends ChannelDef<Output>, Output exten
 
   isGroupBy() {
     if (isTypedFieldDef(this.definition)) {
+      const { type: dataType } = this.definition;
+
       return (
-        this.type === 'XBand' ||
-        this.type === 'YBand' ||
         this.type === 'Category' ||
         this.type === 'Text' ||
-        (this.type === 'Color' && this.definition.type === 'nominal')
+        (this.type === 'Color' && (dataType === 'nominal' || dataType === 'ordinal')) ||
+        (this.isXY() && (dataType === 'nominal' || dataType === 'ordinal'))
       );
     }
 
