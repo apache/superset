@@ -10,11 +10,14 @@ Storybook of `@superset-ui` packages. See it live at
 
 #### Run storybook
 
-To view the storybook locally, you should first run `yarn install && yarn run bootstrap` in the
-`@superset-ui` monorepo root directory, which will install all dependencies for this package and
-sym-link any `@superset-ui` packages to your local system.
+To view the storybook locally, you should:
 
-After that run `yarn run storybook` which will open up a dev server at http://localhost:9001.
+1. Clone the [superset-ui](https://github.com/apache-superset/superset-ui) monorepo.
+2. Run `yarn install && yarn run bootstrap` in the `superset-ui` root directory.  This will install all dependencies for this package and sym-link any `@superset-ui` packages to your local system.
+3. Clone [superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins) repo.
+4. Run `yarn install && yarn build` in the `superset-ui-plugins` root directory.
+5. Change to the demo directory `cd packages/superset-ui-plugins-demo`.
+6. Run `yarn run storybook`.  This will open up a dev server at http://localhost:9001.
 
 #### Adding new stories
 
