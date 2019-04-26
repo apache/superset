@@ -41,7 +41,8 @@ from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
 import sqlalchemy as sqla
-from sqlalchemy import Column, select
+from sqlalchemy import Column, select, types
+from sqlalchemy.databases import mysql
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
@@ -350,6 +351,10 @@ class BaseEngineSpec(object):
     @classmethod
     def get_view_names(cls, inspector, schema):
         return sorted(inspector.get_view_names(schema))
+
+    @classmethod
+    def get_columns(cls, inspector, table_name, schema):
+        return inspector.get_columns(table_name, schema)
 
     @classmethod
     def where_latest_partition(
@@ -804,6 +809,21 @@ class PrestoEngineSpec(BaseEngineSpec):
             date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
+    type_map = {
+        'boolean': types.Boolean,
+        'tinyint': mysql.MSTinyInteger,
+        'smallint': types.SmallInteger,
+        'integer': types.Integer,
+        'bigint': types.BigInteger,
+        'real': types.Float,
+        'double': types.Float,
+        'varchar': types.String,
+        'timestamp': types.TIMESTAMP,
+        'date': types.DATE,
+        'varbinary': types.VARBINARY,
+        'JSON': types.JSON,
+    }
+
     @classmethod
     def get_view_names(cls, inspector, schema):
         """Returns an empty list
@@ -813,6 +833,164 @@ class PrestoEngineSpec(BaseEngineSpec):
         https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
         return []
+
+    @classmethod
+    def _create_column_info(cls, column, name, data_type):
+        """
+        Create column info object
+        :param column: column object
+        :param name: column name
+        :param data_type: column data type
+        :return: column info object
+        """
+        return {
+            'name': name,
+            'type': data_type,
+            # newer Presto no longer includes this column
+            'nullable': getattr(column, 'Null', True),
+            'default': None,
+        }
+
+    @classmethod
+    def _get_full_name(cls, names):
+        """
+        Get the full column name
+        :param names: list of all individual column names
+        :return: full column name
+        """
+        return '.'.join(row_type[0] for row_type in names if row_type[0] is not None)
+
+    @classmethod
+    def _has_nested_data_types(cls, component_type):
+        """
+        Check if string contains a data type. We determine if there is a data type by
+        whitespace or multiple data types by commas
+        :param component_type: data type
+        :return: boolean
+        """
+        return re.search(r',(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)', component_type) \
+            or re.search(r'\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)', component_type)
+
+    @classmethod
+    def _split_data_type(cls, data_type, delimiter):
+        """
+        Split data type based on given delimiter. Do not split the string if the
+        delimiter is enclosed in quotes
+        :param data_type: data type
+        :param delimiter: string separator (i.e. open parenthesis, closed parenthesis,
+               comma, whitespace)
+        :return:list of strings after breaking it by the delimiter
+        """
+        return re.split(
+            r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
+
+    @classmethod
+    def _parse_structural_column(cls, column, result):
+        """
+        Parse a row or array column
+        :param column: column
+        :param result: list tracking the results
+        """
+        full_data_type = '{} {}'.format(column.Column, column.Type)
+        # split on open parenthesis ( to get the structural
+        # data type and its component types
+        data_types = cls._split_data_type(full_data_type, r'\(')
+        stack = []
+        for data_type in data_types:
+            # split on closed parenthesis ) to track which component
+            # types belong to what structural data type
+            inner_types = cls._split_data_type(data_type, r'\)')
+            for inner_type in inner_types:
+                # We have finished parsing multiple structural data types
+                if not inner_type and len(stack) > 0:
+                    stack.pop()
+                elif cls._has_nested_data_types(inner_type):
+                    # split on comma , to get individual data types
+                    single_fields = cls._split_data_type(inner_type, ', ')
+                    for single_field in single_fields:
+                        # If component type starts with a comma, the first single field
+                        # will be an empty string. Disregard this empty string.
+                        if not single_field:
+                            continue
+                        # split on whitespace to get field name and data type
+                        field_info = cls._split_data_type(single_field, r'\s')
+                        # check if there is a structural data type within
+                        # overall structural data type
+                        if field_info[1] == 'array' or field_info[1] == 'row':
+                            stack.append((field_info[0], field_info[1]))
+                            full_parent_path = cls._get_full_name(stack)
+                            result.append(cls._create_column_info(
+                                column, full_parent_path, field_info[1].upper()))
+                        else:  # otherwise this field is a basic data type
+                            full_parent_path = cls._get_full_name(stack)
+                            column_name = '{}.{}'.format(full_parent_path, field_info[0])
+                            result.append(cls._create_column_info(
+                                column, column_name, cls.type_map[field_info[1]]()))
+                    # If the component type ends with a structural data type, do not pop
+                    # the stack. We have run across a structural data type within the
+                    # overall structural data type. Otherwise, we have completely parsed
+                    # through the entire structural data type and can move on.
+                    if not (inner_type.endswith('array') or inner_type.endswith('row')):
+                        stack.pop()
+                # We have an array of row objects (i.e. array(row(...)))
+                elif 'array' == inner_type or 'row' == inner_type:
+                    # Push a dummy object to represent the structural data type
+                    stack.append((None, inner_type))
+                # We have an array of a basic data types(i.e. array(varchar)).
+                elif len(stack) > 0:
+                    # Because it is an array of a basic data type. We have finished
+                    # parsing the structural data type and can move on.
+                    stack.pop()
+
+    @classmethod
+    def get_columns(cls, inspector, table_name, schema):
+        """
+        Get columns from a Presto data source. This includes handling row and
+        array data types
+        :param inspector: object that performs database schema inspection
+        :param table_name: table name
+        :param schema: schema name
+        :return: a list of results that contain column info
+                (i.e. column name and data type)
+        """
+        quote = inspector.engine.dialect.identifier_preparer.quote_identifier
+        full_table = quote(table_name)
+        if schema:
+            full_table = '{}.{}'.format(quote(schema), full_table)
+        columns = inspector.bind.execute('SHOW COLUMNS FROM {}'.format(full_table))
+        result = []
+        for column in columns:
+            try:
+                # parse column if it is a row or array
+                if 'array' in column.Type or 'row' in column.Type:
+                    cls._parse_structural_column(column, result)
+                    continue
+                elif 'map' in column.Type or 'row' in column.Type:
+                    column_type = cls.type_map[column.Type]()
+                else:  # otherwise column is a basic data type
+                    column_type = cls.type_map[column.Type]()
+            except KeyError:
+                print('Did not recognize type {} of column {}'.format(
+                    column.Type, column.Column))
+                column_type = types.NullType
+            result.append(cls._create_column_info(
+                column, column.Column, column_type))
+        return result
+
+    @classmethod
+    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
+                    show_cols=False, indent=True, latest_partition=True,
+                    cols=None):
+        """
+        Temporary method until we have a function that can handle row and array columns
+        """
+        presto_cols = cols
+        if show_cols:
+            presto_cols = list(filter(lambda col: '.' not in col['name'], presto_cols))
+        return super(PrestoEngineSpec, cls).select_star(
+            my_db, table_name, engine, schema, limit,
+            show_cols, indent, latest_partition, presto_cols,
+        )
 
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
