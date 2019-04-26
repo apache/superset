@@ -362,7 +362,7 @@ superset load_examples
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 ```
 
-#### Logging to the browser console (not working)
+#### Logging to the browser console
 
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
 
