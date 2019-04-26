@@ -5,7 +5,11 @@ import { Value } from 'vega-lite/build/src/channeldef';
 import AbstractEncoder from '../encodeable/AbstractEncoder';
 import { Dataset } from '../encodeable/types/Data';
 import { ObjectWithKeysFromAndValueType } from '../encodeable/types/Base';
-import { ChannelType, EncodingFromChannelsAndOutputs } from '../encodeable/types/Channel';
+import {
+  ChannelType,
+  EncodingFromChannelsAndOutputs,
+  ChannelInput,
+} from '../encodeable/types/Channel';
 import { BaseOptions } from '../encodeable/types/Specification';
 
 type Props<Encoder> = {
@@ -50,7 +54,7 @@ export default class ChartLegend<
       const domain = Array.from(new Set(data.map(channelEncoder.get)));
       const scale = scaleOrdinal({
         domain,
-        range: domain.map((key: string) => channelEncoder.encodeValue(key)),
+        range: domain.map((key: ChannelInput) => channelEncoder.encodeValue(key)),
       });
 
       return (
