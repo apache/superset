@@ -23,7 +23,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "private": true,
   "dependencies": {
     "@vx/responsive": "^0.0.184",
     "@types/react": "^16.7.17",
