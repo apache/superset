@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart-composition",
-  "version": "0.0.0",
+  "version": "0.11.5",
   "description": "Superset UI chart-composition",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -13,7 +13,9 @@
     "type": "git",
     "url": "git+https://github.com/apache-superset/superset-ui.git"
   },
-  "keywords": ["superset"],
+  "keywords": [
+    "superset"
+  ],
   "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
@@ -24,8 +26,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@vx/responsive": "^0.0.184",
     "@types/react": "^16.7.17",
+    "@vx/responsive": "^0.0.184",
     "csstype": "^2.6.4"
   },
   "peerDependencies": {
