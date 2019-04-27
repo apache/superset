@@ -1,3 +1,58 @@
+## [0.10.15](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.14...v0.10.15) (2019-04-27)
+
+
+### Bug Fixes
+
+* rename file from js to ts ([#75](https://github.com/apache-superset/superset-ui-plugins/issues/75)) ([c4c7b6d](https://github.com/apache-superset/superset-ui-plugins/commit/c4c7b6d))
+
+
+
+## [0.10.14](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.13...v0.10.14) (2019-04-26)
+
+
+### Bug Fixes
+
+* lazily create metadata ([#74](https://github.com/apache-superset/superset-ui-plugins/issues/74)) ([2fef425](https://github.com/apache-superset/superset-ui-plugins/commit/2fef425))
+
+
+### Features
+
+* bump dependencies ([3f34865](https://github.com/apache-superset/superset-ui-plugins/commit/3f34865))
+
+
+
+## [0.10.13](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.12...v0.10.13) (2019-04-26)
+
+
+### Bug Fixes
+
+* make line chart query operate in time series mode ([#71](https://github.com/apache-superset/superset-ui-plugins/issues/71)) ([4d9a479](https://github.com/apache-superset/superset-ui-plugins/commit/4d9a479))
+
+
+### Features
+
+* integrate line chart with build query and update typings ([#73](https://github.com/apache-superset/superset-ui-plugins/issues/73)) ([311d607](https://github.com/apache-superset/superset-ui-plugins/commit/311d607))
+* update data format returned from query api and add getGroupBys ([#72](https://github.com/apache-superset/superset-ui-plugins/issues/72)) ([3bbedb2](https://github.com/apache-superset/superset-ui-plugins/commit/3bbedb2))
+
+
+
+## [0.10.12](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.11...v0.10.12) (2019-04-24)
+
+
+### Bug Fixes
+
+* line chart does not handle temporal field correctly ([#68](https://github.com/apache-superset/superset-ui-plugins/issues/68)) ([79ff3e1](https://github.com/apache-superset/superset-ui-plugins/commit/79ff3e1))
+* word cloud import bug ([#65](https://github.com/apache-superset/superset-ui-plugins/issues/65)) ([dafdc0b](https://github.com/apache-superset/superset-ui-plugins/commit/dafdc0b))
+
+
+### Features
+
+* adding Canada into the list of country map choices ([#48](https://github.com/apache-superset/superset-ui-plugins/issues/48)) ([eb9ffb5](https://github.com/apache-superset/superset-ui-plugins/commit/eb9ffb5))
+* improve line chart margin/axis and add buildquery ([#66](https://github.com/apache-superset/superset-ui-plugins/issues/66)) ([9c9dd9d](https://github.com/apache-superset/superset-ui-plugins/commit/9c9dd9d))
+* update line chart thumbnail and scale extraction ([#61](https://github.com/apache-superset/superset-ui-plugins/issues/61)) ([69a405c](https://github.com/apache-superset/superset-ui-plugins/commit/69a405c))
+
+
+
 ## [0.10.11](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.10...v0.10.11) (2019-04-12)
 
 
@@ -50,9 +105,7 @@
 
 ## [0.10.6](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.5...v0.10.6) (2019-04-04)
 
-### Bug Fixes
 
-* add % to total to area chart tooltip ([#27](https://github.com/apache-superset/superset-ui-plugins/issues/27))
 
 ## [0.10.5](https://github.com/apache-superset/superset-ui-plugins/compare/v0.10.4...v0.10.5) (2019-04-02)
 
