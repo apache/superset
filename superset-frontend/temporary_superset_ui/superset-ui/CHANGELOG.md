@@ -1,3 +1,25 @@
+## [0.11.5](https://github.com/apache-superset/superset-ui/compare/v0.11.4...v0.11.5) (2019-04-27)
+
+
+### Bug Fixes
+
+* broken build due to failing unit tests ([#141](https://github.com/apache-superset/superset-ui/issues/141)) ([58d56d5](https://github.com/apache-superset/superset-ui/commit/58d56d5))
+
+
+### Features
+
+* add chart companion components ([#139](https://github.com/apache-superset/superset-ui/issues/139)) ([a82faec](https://github.com/apache-superset/superset-ui/commit/a82faec))
+
+
+
+## [0.11.4](https://github.com/apache-superset/superset-ui/compare/v0.11.3...v0.11.4) (2019-04-26)
+
+
+### Bug Fixes
+
+* make translation module type check correctly ([#140](https://github.com/apache-superset/superset-ui/issues/140)) ([c05fe3a](https://github.com/apache-superset/superset-ui/commit/c05fe3a))
+
+
 ## [0.11.3](https://github.com/apache-superset/superset-ui/compare/v0.11.2...v0.11.3) (2019-04-16)
 
 
