@@ -36,6 +36,7 @@ _static/*
 searchindex.js
 # auto generated
 requirements.txt
+requirements/requirements-*.txt
 # vendorized
 vendor/*
 # github configuration

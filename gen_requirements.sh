@@ -16,7 +16,7 @@
 #
 # first bump up package.json manually, commit and tag
 #!/usr/bin/env bash
-pip-compile --output-file requirements/requirements-gsheets.txt requirements-gsheets.in setup.py
-pip-compile --output-file requirements/requirements-hive.txt requirements-hive.in setup.py
-pip-compile --output-file requirements/requirements-presto.txt requirements-presto.in setup.py
+pip-compile --output-file requirements/requirements-gsheets.txt requirements/requirements-gsheets.in setup.py
+pip-compile --output-file requirements/requirements-hive.txt requirements/requirements-hive.in setup.py
+pip-compile --output-file requirements/requirements-presto.txt requirements/requirements-presto.in setup.py
 
