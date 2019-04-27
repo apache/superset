@@ -20,6 +20,7 @@ Current master: https://superset-ui.netlify.com
 | Package | Version |
 |--|--|
 | [@superset-ui/chart](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart) | [![Version](https://img.shields.io/npm/v/@superset-ui/chart.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/chart.svg?style=flat-square) |
+| [@superset-ui/chart-composition](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart-composition) | [![Version](https://img.shields.io/npm/v/@superset-ui/chart-composition.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/chart-composition.svg?style=flat-square) |
 | [@superset-ui/color](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-color) | [![Version](https://img.shields.io/npm/v/@superset-ui/color.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/color.svg?style=flat-square) |
 | [@superset-ui/connection](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-connection) | [![Version](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/connection.svg?style=flat-square) |
 | [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square) |
