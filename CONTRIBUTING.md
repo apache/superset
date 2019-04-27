@@ -335,7 +335,7 @@ Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv -p python3 venv # setup a python3.6 virtualenv
+virtualenv -p python3 venv # setup a python3.6 virtualenv (a precise path to Python is best for Anaconda)
 source venv/bin/activate
 
 # Install external dependencies
