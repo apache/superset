@@ -1,0 +1,36 @@
+{
+  "name": "@superset-ui/chart-composition",
+  "version": "0.0.0",
+  "description": "Superset UI chart-composition",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": ["superset"],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "private": true,
+  "dependencies": {
+    "@vx/responsive": "^0.0.184",
+    "@types/react": "^16.7.17",
+    "csstype": "^2.6.4"
+  },
+  "peerDependencies": {
+    "@superset-ui/core": "^0.11.0",
+    "react": "^15 || ^16"
+  }
+}
