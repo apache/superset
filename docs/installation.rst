@@ -84,6 +84,8 @@ OSX instructions: https://docs.docker.com/docker-for-mac/#advanced (Search for m
 
 Or if you're curious and want to install superset from bottom up, then go ahead.
 
+See also `contrib/docker/README.md <https://github.com/apache/incubator-superset/blob/master/contrib/docker/README.md>`_
+
 OS dependencies
 ---------------
 
