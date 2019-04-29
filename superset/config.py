@@ -200,7 +200,10 @@ LANGUAGES = {
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
-DEFAULT_FEATURE_FLAGS = {}
+DEFAULT_FEATURE_FLAGS = {
+    # Experimental feature introducing a client (browser) cache
+    'CLIENT_CACHE': False,
+}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)

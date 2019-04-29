@@ -31,7 +31,8 @@ import os
 import signal
 import smtplib
 import sys
-from typing import Optional, Tuple
+from time import struct_time
+from typing import List, Optional, Tuple
 import uuid
 import zlib
 
@@ -39,7 +40,8 @@ import bleach
 import celery
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import flash, g, Markup, render_template
+from flask import flash, Flask, g, Markup, render_template
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_caching import Cache
@@ -51,6 +53,7 @@ from pydruid.utils.having import Having
 import sqlalchemy as sa
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
 from superset.exceptions import SupersetException, SupersetTimeoutException
@@ -138,11 +141,11 @@ def memoized(func=None, watch=None):
         return wrapper
 
 
-def js_string_to_python(item):
+def js_string_to_python(item: str) -> Optional[str]:
     return None if item in ('null', 'undefined') else item
 
 
-def string_to_num(s):
+def string_to_num(s: str):
     """Converts a string to an int/float
 
     Returns ``None`` if it can't be converted
@@ -182,7 +185,7 @@ class DimSelector(Having):
         }
 
 
-def list_minus(l, minus):
+def list_minus(l: List, minus: List) -> List:
     """Returns l without what is in minus
 
     >>> list_minus([1, 2, 3], [2])
@@ -230,7 +233,7 @@ def parse_human_datetime(s):
     return dttm
 
 
-def dttm_from_timtuple(d):
+def dttm_from_timtuple(d: struct_time) -> datetime:
     return datetime(
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
@@ -284,7 +287,7 @@ class DashboardEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, o)
 
 
-def parse_human_timedelta(s):
+def parse_human_timedelta(s: str):
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
@@ -349,7 +352,7 @@ def base_json_conv(obj):
             return '[bytes]'
 
 
-def json_iso_dttm_ser(obj, pessimistic=False):
+def json_iso_dttm_ser(obj, pessimistic: Optional[bool] = False):
     """
     json serializer that deals with dates
 
@@ -420,7 +423,7 @@ def error_msg_from_exception(e):
     return msg or '{}'.format(e)
 
 
-def markdown(s, markup_wrap=False):
+def markdown(s: str, markup_wrap: Optional[bool] = False) -> str:
     safe_markdown_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'b', 'i',
                           'strong', 'em', 'tt', 'p', 'br', 'span',
                           'div', 'blockquote', 'code', 'hr', 'ul', 'ol',
@@ -438,7 +441,7 @@ def markdown(s, markup_wrap=False):
     return s
 
 
-def readfile(file_path):
+def readfile(file_path: str) -> Optional[str]:
     with open(file_path) as f:
         content = f.read()
     return content
@@ -677,17 +680,18 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
         logging.info(mime_msg.as_string())
 
 
-def get_email_address_list(address_string):
+def get_email_address_list(address_string: str) -> List[str]:
+    address_string_list: List[str] = []
     if isinstance(address_string, str):
         if ',' in address_string:
-            address_string = address_string.split(',')
+            address_string_list = address_string.split(',')
         elif '\n' in address_string:
-            address_string = address_string.split('\n')
+            address_string_list = address_string.split('\n')
         elif ';' in address_string:
-            address_string = address_string.split(';')
+            address_string_list = address_string.split(';')
         else:
-            address_string = [address_string]
-    return [x.strip() for x in address_string if x.strip()]
+            address_string_list = [address_string]
+    return [x.strip() for x in address_string_list if x.strip()]
 
 
 def choicify(values):
@@ -695,10 +699,12 @@ def choicify(values):
     return [(v, v) for v in values]
 
 
-def setup_cache(app, cache_config):
+def setup_cache(app: Flask, cache_config) -> Optional[Cache]:
     """Setup the flask-cache on a flask app"""
     if cache_config and cache_config.get('CACHE_TYPE') != 'null':
         return Cache(app, config=cache_config)
+
+    return None
 
 
 def zlib_compress(data):
@@ -766,7 +772,7 @@ def to_adhoc(filt, expressionType='SIMPLE', clause='where'):
     return result
 
 
-def merge_extra_filters(form_data):
+def merge_extra_filters(form_data: dict):
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
@@ -837,7 +843,7 @@ def merge_extra_filters(form_data):
         del form_data['extra_filters']
 
 
-def merge_request_params(form_data, params):
+def merge_request_params(form_data: dict, params: dict):
     url_params = {}
     for key, value in params.items():
         if key in ('form_data', 'r'):
@@ -846,18 +852,20 @@ def merge_request_params(form_data, params):
     form_data['url_params'] = url_params
 
 
-def get_update_perms_flag():
+def get_update_perms_flag() -> bool:
     val = os.environ.get('SUPERSET_UPDATE_PERMS')
     return val.lower() not in ('0', 'false', 'no') if val else True
 
 
-def user_label(user):
+def user_label(user: User) -> Optional[str]:
     """Given a user ORM FAB object, returns a label"""
     if user:
         if user.first_name and user.last_name:
             return user.first_name + ' ' + user.last_name
         else:
             return user.username
+
+    return None
 
 
 def get_or_create_main_db():
@@ -887,7 +895,7 @@ def get_main_database(session):
     )
 
 
-def is_adhoc_metric(metric):
+def is_adhoc_metric(metric) -> bool:
     return (
         isinstance(metric, dict) and
         (
@@ -913,7 +921,7 @@ def get_metric_names(metrics):
     return [get_metric_name(metric) for metric in metrics]
 
 
-def ensure_path_exists(path):
+def ensure_path_exists(path: str):
     try:
         os.makedirs(path)
     except OSError as exc:
@@ -997,7 +1005,7 @@ def get_since_until(time_range: Optional[str] = None,
     return since, until  # noqa: T400
 
 
-def add_ago_to_since(since):
+def add_ago_to_since(since: str) -> str:
     """
     Backwards compatibility hack. Without this slices with since: 7 days will
     be treated as 7 days in the future.
@@ -1072,17 +1080,17 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['filters'] = simple_where_filters
 
 
-def get_username():
+def get_username() -> Optional[str]:
     """Get username if within the flask context, otherwise return noffin'"""
     try:
         return g.user.username
     except Exception:
-        pass
+        return None
 
 
-def MediumText():
+def MediumText() -> Variant:
     return Text().with_variant(MEDIUMTEXT(), 'mysql')
 
 
-def shortid():
+def shortid() -> str:
     return '{}'.format(uuid.uuid4())[-12:]
