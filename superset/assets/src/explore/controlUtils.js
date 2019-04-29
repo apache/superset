@@ -48,10 +48,10 @@ export function getControlKeys(vizType, datasourceType) {
   const controlKeys = [];
   sectionsToRender(vizType, datasourceType).forEach(
     section => section.controlSetRows.forEach(
-      fsr => fsr.forEach(
-        (f) => {
-          if (typeof f === 'string') {
-            controlKeys.push(f);
+      fieldsetRow => fieldsetRow.forEach(
+        (field) => {
+          if (typeof field === 'string') {
+            controlKeys.push(field);
           }
         })));
   return controlKeys;

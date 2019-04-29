@@ -154,10 +154,11 @@ describe('controlUtils', () => {
 
   describe('validateControl', () => {
 
-    it('applies the default function, prefers count if it exists', () => {
+    it('validates the control, returns an error if empty', () => {
       const control = getControlState('metric', 'table', state, null);
       expect(control.validationErrors).toEqual(['cannot be empty']);
     });
 
   });
+
 });
