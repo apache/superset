@@ -32,6 +32,9 @@ which deprecates the table_columns.database_expression column. Expressions
 should be handled by the DB engine spec conversion, Python date format, or
 custom column expression/type.
 
+* The repo no longer contains translation binaries (`.mo`) files. If you
+  want translations in your build, you now have to run the command
+  `babel-compile --target superset/translations` as part of your builds
 * [5451](https://github.com/apache/incubator-superset/pull/5451): a change
 which adds missing non-nullable fields to the `datasources` table. Depending on
 the integrity of the data, manual intervention may be required.
