@@ -123,7 +123,7 @@ class ExploreChartHeader extends React.PureComponent {
       chartUpdateStartTime,
       latestQueryFormData,
       queryResponse } = this.props.chart;
-    const chartSucceeded = ['success', 'rendered'].indexOf(this.props.chart.chartStatus) > 0;
+      const chartFinished = ['failed', 'rendered', 'success'].includes(this.props.chart.chartStatus);
     return (
       <div
         id="slice-header"
@@ -171,12 +171,12 @@ class ExploreChartHeader extends React.PureComponent {
           editable={this.props.can_overwrite}
         />
         <div className="pull-right">
-          {chartSucceeded && queryResponse &&
+          {chartFinished && queryResponse &&
             <RowCountLabel
               rowcount={queryResponse.rowcount}
               limit={formData.row_limit}
             />}
-          {chartSucceeded && queryResponse && queryResponse.is_cached &&
+          {chartFinished && queryResponse && queryResponse.is_cached &&
             <CachedLabel
               onClick={this.postChartFormData.bind(this)}
               cachedTimestamp={queryResponse.cached_dttm}

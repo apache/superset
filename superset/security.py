@@ -68,7 +68,6 @@ class SupersetSecurityManager(SecurityManager):
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        'all_database_access',
         'can_sql_json',  # TODO: move can_sql_json to sql_lab role
         'can_override_role_permissions',
         'can_sync_druid_source',
@@ -82,17 +81,23 @@ class SupersetSecurityManager(SecurityManager):
         'can_list',
     }
 
-    ALPHA_ONLY_PERMISSIONS = set([
+    ALPHA_ONLY_PERMISSIONS = {
         'muldelete',
+        'all_database_access',
         'all_datasource_access',
-    ])
+    }
 
-    OBJECT_SPEC_PERMISSIONS = set([
+    OBJECT_SPEC_PERMISSIONS = {
         'database_access',
         'schema_access',
         'datasource_access',
         'metric_access',
-    ])
+        'can_only_access_owned_queries',
+    }
+
+    ACCESSIBLE_PERMS = {
+        'can_userinfo',
+    }
 
     def get_schema_perm(self, database, schema):
         if schema:
@@ -104,6 +109,17 @@ class SupersetSecurityManager(SecurityManager):
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
+
+    def can_only_access_owned_queries(self) -> bool:
+        """
+        can_access check for custom can_only_access_owned_queries permissions.
+
+        :returns: True if current user can access custom permissions
+        """
+        return self.can_access(
+            'can_only_access_owned_queries',
+            'can_only_access_owned_queries',
+        )
 
     def all_datasource_access(self):
         return self.can_access(
@@ -266,6 +282,7 @@ class SupersetSecurityManager(SecurityManager):
         # Global perms
         self.merge_perm('all_datasource_access', 'all_datasource_access')
         self.merge_perm('all_database_access', 'all_database_access')
+        self.merge_perm('can_only_access_owned_queries', 'can_only_access_owned_queries')
 
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
@@ -373,15 +390,21 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
+    def is_accessible_to_all(self, pvm):
+        return pvm.permission.name in self.ACCESSIBLE_PERMS
+
     def is_admin_pvm(self, pvm):
         return not self.is_user_defined_permission(pvm)
 
     def is_alpha_pvm(self, pvm):
-        return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm))
+        return (
+            not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm)) or
+            self.is_accessible_to_all(pvm)
+        )
 
     def is_gamma_pvm(self, pvm):
         return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm) or
-                    self.is_alpha_only(pvm))
+                    self.is_alpha_only(pvm)) or self.is_accessible_to_all(pvm)
 
     def is_sql_lab_pvm(self, pvm):
         return (

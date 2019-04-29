@@ -48,17 +48,11 @@ const keymap = {
     SAVE: 'ctrl + s',
 };
 
-const getHotKeys = () => {
-  const d = [];
-  Object.keys(keymap).forEach((k) => {
-    d.push({
-      name: k,
-      descr: keymap[k],
-      key: k,
-    });
-  });
-  return d;
-};
+const getHotKeys = () => Object.keys(keymap).map(k => ({
+  name: k,
+  descr: keymap[k],
+  key: k,
+}));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -330,7 +324,7 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
               <QueryAndSaveBtns
                 canAdd="True"
                 onQuery={this.onQuery}
@@ -341,7 +335,7 @@ class ExploreViewContainer extends React.Component {
                 errorMessage={this.renderErrorMessage()}
                 datasourceType={this.props.datasource_type}
               />
-              <div>
+              <div className="m-l-5 text-muted">
                 <Hotkeys
                   header="Keyboard shortcuts"
                   hotkeys={getHotKeys()}

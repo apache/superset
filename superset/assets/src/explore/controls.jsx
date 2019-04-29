@@ -1309,10 +1309,11 @@ export const controls = {
 
   rotation: {
     type: 'SelectControl',
-    label: t('Rotation'),
+    label: t('Word Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
     renderTrigger: true,
-    default: 'flat',
+    default: 'square',
+    clearable: false,
     description: t('Rotation to apply to words in the cloud'),
   },
 
@@ -1402,7 +1403,7 @@ export const controls = {
   size_from: {
     type: 'TextControl',
     isInt: true,
-    label: t('Font Size From'),
+    label: t('Minimum Font Size'),
     renderTrigger: true,
     default: '20',
     description: t('Font size for the smallest value in the list'),
@@ -1411,7 +1412,7 @@ export const controls = {
   size_to: {
     type: 'TextControl',
     isInt: true,
-    label: t('Font Size To'),
+    label: t('Maximum Font Size'),
     renderTrigger: true,
     default: '150',
     description: t('Font size for the biggest value in the list'),

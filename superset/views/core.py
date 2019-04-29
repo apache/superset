@@ -22,6 +22,7 @@ import os
 import re
 import time
 import traceback
+from typing import List  # noqa: F401
 from urllib import parse
 
 from flask import (
@@ -50,6 +51,7 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
+from superset.legacy import update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
@@ -82,7 +84,7 @@ ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
 
-FORM_DATA_KEY_BLACKLIST = []
+FORM_DATA_KEY_BLACKLIST: List[str] = []
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
     FORM_DATA_KEY_BLACKLIST = [
         'js_tooltip',
@@ -498,9 +500,6 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     edit_title = _('Edit Chart')
 
     can_add = False
-    label_columns = {
-        'datasource_link': _('Datasource'),
-    }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
@@ -582,7 +581,8 @@ class SliceAsync(SliceModelView):  # noqa
     route_base = '/sliceasync'
     list_columns = [
         'id', 'slice_link', 'viz_type', 'slice_name',
-        'creator', 'modified', 'icons']
+        'creator', 'modified', 'icons', 'changed_on_humanized',
+    ]
     label_columns = {
         'icons': ' ',
         'slice_link': _('Chart'),
@@ -598,7 +598,8 @@ class SliceAddView(SliceModelView):  # noqa
         'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
         'description', 'description_markeddown', 'datasource_id', 'datasource_type',
         'datasource_name_text', 'datasource_link',
-        'owners', 'modified', 'changed_on']
+        'owners', 'modified', 'changed_on', 'changed_on_humanized',
+    ]
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -1049,6 +1050,81 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
+    def get_form_data(self, slice_id=None, use_slice_data=False):
+        form_data = {}
+        post_data = request.form.get('form_data')
+        request_args_data = request.args.get('form_data')
+        # Supporting POST
+        if post_data:
+            form_data.update(json.loads(post_data))
+        # request params can overwrite post body
+        if request_args_data:
+            form_data.update(json.loads(request_args_data))
+
+        url_id = request.args.get('r')
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
+                url_form_data = json.loads(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
+
+        form_data = {
+            k: v
+            for k, v in form_data.items()
+            if k not in FORM_DATA_KEY_BLACKLIST
+        }
+
+        # When a slice_id is present, load from DB and override
+        # the form_data from the DB with the other form_data provided
+        slice_id = form_data.get('slice_id') or slice_id
+        slc = None
+
+        # Check if form data only contains slice_id
+        contains_only_slc_id = not any(key != 'slice_id' for key in form_data)
+
+        # Include the slice_form_data if request from explore or slice calls
+        # or if form_data only contains slice_id
+        if slice_id and (use_slice_data or contains_only_slc_id):
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).one_or_none()
+            if slc:
+                slice_form_data = slc.form_data.copy()
+                slice_form_data.update(form_data)
+                form_data = slice_form_data
+
+        update_time_range(form_data)
+
+        return form_data, slc
+
+    def get_viz(
+            self,
+            slice_id=None,
+            form_data=None,
+            datasource_type=None,
+            datasource_id=None,
+            force=False,
+    ):
+        if slice_id:
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=slice_id)
+                .one()
+            )
+            return slc.get_viz()
+        else:
+            viz_type = form_data.get('viz_type', 'table')
+            datasource = ConnectorRegistry.get_datasource(
+                datasource_type, datasource_id, db.session)
+            viz_obj = viz.viz_types[viz_type](
+                datasource,
+                form_data=form_data,
+                force=force,
+            )
+            return viz_obj
+
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
@@ -1418,6 +1494,7 @@ class Superset(BaseSupersetView):
             'can_overwrite': is_owner(slc, g.user),
             'form_data': slc.form_data,
             'slice': slc.data,
+            'dashboard_id': dash.id if dash else None,
         }
 
         if request.args.get('goto_dash') == 'true':
@@ -2705,10 +2782,21 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/search_queries')
     @log_this
-    def search_queries(self):
-        """Search for queries."""
+    def search_queries(self) -> Response:
+        """
+        Search for previously run sqllab queries. Used for Sqllab Query Search
+        page /superset/sqllab#search.
+
+        Custom permission can_only_search_queries_owned restricts queries
+        to only queries run by current user.
+
+        :returns: Response with list of sql query dicts
+        """
         query = db.session.query(Query)
-        search_user_id = request.args.get('user_id')
+        if security_manager.can_only_access_owned_queries():
+            search_user_id = g.user.get_user_id()
+        else:
+            search_user_id = request.args.get('user_id')
         database_id = request.args.get('database_id')
         search_text = request.args.get('search_text')
         status = request.args.get('status')
@@ -2717,7 +2805,7 @@ class Superset(BaseSupersetView):
         to_time = request.args.get('to')
 
         if search_user_id:
-            # Filter on db Id
+            # Filter on user_id
             query = query.filter(Query.user_id == search_user_id)
 
         if database_id:

@@ -24,7 +24,7 @@ import simplejson as json
 
 from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.legacy import cast_form_data, update_time_range
+from superset.legacy import update_time_range
 import superset.models.core as models
 
 
@@ -137,10 +137,6 @@ def get_form_data(slice_id=None, use_slice_data=False):
             # allow form_date in request override saved url
             url_form_data.update(form_data)
             form_data = url_form_data
-
-    if request.args.get('viz_type'):
-        # Converting old URLs
-        form_data = cast_form_data(form_data)
 
     form_data = {
         k: v
