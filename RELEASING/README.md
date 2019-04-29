@@ -16,6 +16,27 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+# Apache Releases
+
+To make a fresh tarball of a git reference on apache/incubator-superset
+(push your tag first!)
+
+```bash
+docker build -f Dockerfile.make_tarball . --build-arg VERSION=0.32.0rc1
+```
+
+To make a working build given a tarball
+```bash
+# Building a docker from a tarball
+VERSION=0.32.0rc2 && \
+docker build -t apache-superset:$VERSION -f Dockerfile.from_tarball . --build-arg VERSION=$VERSION
+
+# testing the resulting docker
+docker run -p 5001:8088 apache-superset:0.32.0rc2
+# you should be able to access localhost:5001 on your browser
+# login using admin/admin
+```
+
 ## Refresh documentation website
 
 Every once in a while we want to compile the documentation and publish it.
@@ -80,6 +101,8 @@ Now let's craft a source release
     # Assuming these commands are executed from the root of the repo
     # Setting a VERSION var will be useful
     export VERSION=0.31.0rc18
+    export RELEASE=apache-superset-incubating-${VERSION}
+    export RELEASE_TARBAL=${RELEASE}-source.tar.gz
 
     # Let's create a git tag
     git tag -f ${VERSION}
@@ -92,10 +115,11 @@ Now let's craft a source release
     git clean -fxd
     git archive \
         --format=tar.gz ${VERSION} \
-        --prefix=apache-superset-${VERSION}/ \
-        -o apache-superset-${VERSION}-source.tar.gz
+        --prefix=${RELEASE}/ \
+        -o ~/svn/superset_dev/${VERSION}/${RELEASE_TARBALL}
 
-    scripts/sign.sh apache-superset-${VERSION}-source.tar.gz
+    cd ~/svn/superset_dev/
+    scripts/sign.sh ${RELEASE}-source.tar.gz
 ```
 
 Now let's ship this RC into svn's dev folder
@@ -103,8 +127,8 @@ Now let's ship this RC into svn's dev folder
 ```bash
     # cp or mv the files over to the svn repo
     mkdir ~/svn/superset_dev/${VERSION}/
-    cp apache-superset-${VERSION}* ~/svn/superset/${VERSION}/
-    cd ~/svn/superset/
+    cp ${RELEASE_TARBALL} ~/svn/superset_dev/${VERSION}/
+    cd ~/svn/superset_dev/
     svn add ${VERSION}
     svn commit
 ```
