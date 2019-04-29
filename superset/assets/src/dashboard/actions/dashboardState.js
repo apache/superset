@@ -32,6 +32,7 @@ import {
   addWarningToast,
   addDangerToast,
 } from '../../messageToasts/actions';
+import { UPDATE_COMPONENTS_PARENTS_LIST } from '../actions/dashboardLayout';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -139,19 +140,18 @@ export function saveDashboardRequestSuccess() {
 export function saveDashboardRequest(data, id, saveType) {
   const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
 
-  return dispatch =>
-    SupersetClient.post({
+  return dispatch => {
+    dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+
+    return SupersetClient.post({
       endpoint: `/superset/${path}/${id}/`,
       postPayload: { data },
     })
-      .then(response =>
-        Promise.all([
-          dispatch(saveDashboardRequestSuccess()),
-          dispatch(
-            addSuccessToast(t('This dashboard was saved successfully.')),
-          ),
-        ]).then(() => Promise.resolve(response)),
-      )
+      .then(response => {
+        dispatch(saveDashboardRequestSuccess());
+        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+        return response;
+      })
       .catch(response =>
         getClientErrorObject(response).then(({ error }) =>
           dispatch(
@@ -163,6 +163,7 @@ export function saveDashboardRequest(data, id, saveType) {
           ),
         ),
       );
+  };
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {

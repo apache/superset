@@ -76,6 +76,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_slice', 'Superset'), perm_set)
         self.assertIn(('can_explore', 'Superset'), perm_set)
         self.assertIn(('can_explore_json', 'Superset'), perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), perm_set)
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all('SqlMetricInlineView', perm_set)
@@ -129,9 +130,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_admin_only(
             security_manager.find_permission_view_menu(
                 'can_approve', 'Superset')))
-        self.assertTrue(security_manager.is_admin_only(
-            security_manager.find_permission_view_menu(
-                'all_database_access', 'all_database_access')))
 
     def test_is_alpha_only(self):
         self.assertFalse(security_manager.is_alpha_only(
@@ -148,6 +146,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertTrue(security_manager.is_alpha_only(
             security_manager.find_permission_view_menu(
                 'can_delete', 'DruidMetricInlineView')))
+        self.assertTrue(security_manager.is_alpha_only(
+            security_manager.find_permission_view_menu(
+                'all_database_access', 'all_database_access')))
 
     def test_is_gamma_pvm(self):
         self.assertTrue(security_manager.is_gamma_pvm(
@@ -231,6 +232,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_userinfo', 'UserDBModelView'), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""

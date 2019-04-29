@@ -30,6 +30,7 @@ const propTypes = {
   emailContent: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
+  title: PropTypes.string,
   triggerNode: PropTypes.node.isRequired,
 };
 
@@ -65,7 +66,7 @@ class URLShortLinkModal extends React.Component {
         isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
         beforeOpen={this.getCopyUrl}
-        modalTitle={t('Share Dashboard')}
+        modalTitle={this.props.title || t('Share Dashboard')}
         modalBody={
           <div>
             <CopyToClipboard

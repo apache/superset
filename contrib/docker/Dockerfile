@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.6
+FROM python:3.6-jessie
 
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 
@@ -59,7 +59,6 @@ USER superset
 
 RUN cd superset/assets \
     && npm ci \
-    && npm run sync-backend \
     && npm run build \
     && rm -rf node_modules
 
