@@ -20,52 +20,54 @@ from sqlalchemy.sql.sqltypes import Integer
 from sqlalchemy.sql.type_api import TypeEngine
 
 
-class TINYINT(Integer):
+# _compiler_dispatch is defined to help with type compilation
+
+class TinyInteger(Integer):
     """
     A type for tiny ``int`` integers.
     """
+    def _compiler_dispatch(self, visitor, **kw):
+        return 'TINYINT'
 
-    __visit_name__ = 'TINYINT'
 
-
-class INTERVAL(TypeEngine):
+class Interval(TypeEngine):
     """
     A type for intervals.
     """
+    def _compiler_dispatch(self, visitor, **kw):
+        return 'INTERVAL'
 
-    __visit_name__ = 'INTERVAL'
+
+class Array(TypeEngine):
+
+    """
+    A type for arrays.
+    """
+    def _compiler_dispatch(self, visitor, **kw):
+        return 'ARRAY'
 
 
-class ARRAY(TypeEngine):
+class Map(TypeEngine):
 
     """
     A type for maps.
     """
-
-    __visit_name__ = 'ARRAY'
-
-
-class MAP(TypeEngine):
-
-    """
-    A type for maps.
-    """
-
-    __visit_name__ = 'MAP'
+    def _compiler_dispatch(self, visitor, **kw):
+        return 'MAP'
 
 
-class ROW(TypeEngine):
+class Row(TypeEngine):
 
     """
     A type for rows.
     """
-
-    __visit_name__ = 'ROW'
+    def _compiler_dispatch(self, visitor, **kw):
+        return 'ROW'
 
 
 type_map = {
     'boolean': types.Boolean,
-    'tinyint': TINYINT,
+    'tinyint': TinyInteger,
     'smallint': types.SmallInteger,
     'integer': types.Integer,
     'bigint': types.BigInteger,
@@ -79,8 +81,8 @@ type_map = {
     'date': types.DATE,
     'time': types.Time,
     'timestamp': types.TIMESTAMP,
-    'interval': INTERVAL,
-    'array': ARRAY,
-    'map': MAP,
-    'row': ROW,
+    'interval': Interval,
+    'array': Array,
+    'map': Map,
+    'row': Row,
 }

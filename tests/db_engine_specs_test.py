@@ -337,27 +337,32 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             self.assertEqual(expected_result[0], result['name'])
             self.assertEqual(expected_result[1], str(result['type']))
 
+    def test_presto_get_column(self):
+        presto_column = ('column_name', 'boolean', '')
+        expected_results = [('column_name', 'BOOLEAN')]
+        self.verify_presto_column(presto_column, expected_results)
+
     def test_presto_get_simple_row_column(self):
-        column = ('column_name', 'row(nested_obj double)', '')
+        presto_column = ('column_name', 'row(nested_obj double)', '')
         expected_results = [
             ('column_name', 'ROW'),
             ('column_name.nested_obj', 'FLOAT')]
-        self.verify_presto_column(column, expected_results)
+        self.verify_presto_column(presto_column, expected_results)
 
     def test_presto_get_simple_row_column_with_tricky_name(self):
-        column = ('column_name', 'row("Field Name(Tricky, Name)" double)', '')
+        presto_column = ('column_name', 'row("Field Name(Tricky, Name)" double)', '')
         expected_results = [
             ('column_name', 'ROW'),
             ('column_name."Field Name(Tricky, Name)"', 'FLOAT')]
-        self.verify_presto_column(column, expected_results)
+        self.verify_presto_column(presto_column, expected_results)
 
     def test_presto_get_simple_array_column(self):
-        column = ('column_name', 'array(double)', '')
+        presto_column = ('column_name', 'array(double)', '')
         expected_results = [('column_name', 'ARRAY')]
-        self.verify_presto_column(column, expected_results)
+        self.verify_presto_column(presto_column, expected_results)
 
     def test_presto_get_row_within_array_within_row_column(self):
-        column = (
+        presto_column = (
             'column_name',
             'row(nested_array array(row(nested_row double)), nested_obj double)', '')
         expected_results = [
@@ -366,16 +371,17 @@ class DbEngineSpecsTestCase(SupersetTestCase):
             ('column_name.nested_array.nested_row', 'FLOAT'),
             ('column_name.nested_obj', 'FLOAT'),
         ]
-        self.verify_presto_column(column, expected_results)
+        self.verify_presto_column(presto_column, expected_results)
 
     def test_presto_get_array_within_row_within_array_column(self):
-        column = ('column_name',
-                  'array(row(nested_array array(double), nested_obj double))', '')
+        presto_column = (
+            'column_name',
+            'array(row(nested_array array(double), nested_obj double))', '')
         expected_results = [
             ('column_name', 'ARRAY'),
             ('column_name.nested_array', 'ARRAY'),
             ('column_name.nested_obj', 'FLOAT')]
-        self.verify_presto_column(column, expected_results)
+        self.verify_presto_column(presto_column, expected_results)
 
     def test_hive_get_view_names_return_empty_list(self):
         self.assertEquals([], HiveEngineSpec.get_view_names(mock.ANY, mock.ANY))

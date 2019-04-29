@@ -42,10 +42,7 @@ from flask_babel import lazy_gettext as _
 import pandas
 import sqlalchemy as sqla
 from sqlalchemy import Column, select, types
-from sqlalchemy.databases import mysql
 from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
@@ -54,8 +51,8 @@ import sqlparse
 from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
-from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.exceptions import SupersetTemplateException
+from superset.models.sql_types.presto_sql_types import type_map as presto_type_map
 from superset.utils import core as utils
 
 QueryStatus = utils.QueryStatus
@@ -356,7 +353,7 @@ class BaseEngineSpec(object):
         return sorted(inspector.get_view_names(schema))
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def get_columns(cls, inspector, table_name, schema):
         return inspector.get_columns(table_name, schema)
 
     @classmethod
@@ -823,7 +820,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return []
 
     @classmethod
-    def _create_column_info(cls, column: dict, name: str, data_type: str) -> dict:
+    def _create_column_info(cls, column, name, data_type):
         """
         Create column info object
         :param column: column object
@@ -840,7 +837,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def _get_full_name(cls, names: list) -> str:
+    def _get_full_name(cls, names):
         """
         Get the full column name
         :param names: list of all individual column names
@@ -849,7 +846,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return '.'.join(row_type[0] for row_type in names if row_type[0] is not None)
 
     @classmethod
-    def _has_nested_data_types(cls, component_type: str) -> bool:
+    def _has_nested_data_types(cls, component_type):
         """
         Check if string contains a data type. We determine if there is a data type by
         whitespace or multiple data types by commas
@@ -860,7 +857,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             or re.search(r'\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)', component_type)
 
     @classmethod
-    def _split_data_type(cls, data_type: str, delimiter: str) -> list:
+    def _split_data_type(cls, data_type, delimiter):
         """
         Split data type based on given delimiter. Do not split the string if the
         delimiter is enclosed in quotes
@@ -873,7 +870,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
 
     @classmethod
-    def _parse_structural_column(cls, column: dict, result: list):
+    def _parse_structural_column(cls, column, result):
         """
         Parse a row or array column
         :param column: column
@@ -908,7 +905,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                             stack.append((field_info[0], field_info[1]))
                             full_parent_path = cls._get_full_name(stack)
                             result.append(cls._create_column_info(
-                                column, full_parent_path, presto_type_map[field_info[1]]()))
+                                column, full_parent_path,
+                                presto_type_map[field_info[1]]()))
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
                             column_name = '{}.{}'.format(full_parent_path, field_info[0])
@@ -931,7 +929,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     stack.pop()
 
     @classmethod
-    def _show_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def _show_columns(cls, inspector, table_name, schema):
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
@@ -947,7 +945,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return columns
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def get_columns(cls, inspector, table_name, schema):
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
@@ -975,9 +973,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result
 
     @classmethod
-    def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
-                    limit: int = 100, show_cols: bool = False, indent: bool = True,
-                    latest_partition: bool = True, cols: list = None) -> str:
+    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
+                    show_cols=False, indent=True, latest_partition=True, cols=None):
         """
         Temporary method until we have a function that can handle row and array columns
         """
@@ -1499,7 +1496,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def get_columns(cls, inspector, table_name, schema):
         return inspector.get_columns(table_name, schema)
 
     @classmethod
