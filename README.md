@@ -222,3 +222,4 @@ the world know they are using Superset. Join our growing community!
  1. [Yahoo!](https://yahoo.com/)
  1. [Zaihang](http://www.zaih.com/)
  1. [Zalando](https://www.zalando.com)
+ 1. [Living Goods](https://www.livinggoods.org)
