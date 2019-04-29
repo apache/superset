@@ -1074,8 +1074,10 @@ class Superset(BaseSupersetView):
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
             dash = (
-                db.session.query(models.Dashboard).filter_by(id=int(dashboard_id)).one()
+                db.session.query(models.Dashboard).filter_by(id=int(dashboard_id)).one_or_none()
             )
+            if not dash:
+                abort(404)
             datasources |= dash.datasources
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")

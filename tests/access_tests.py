@@ -479,6 +479,14 @@ class RequestAccessTests(SupersetTestCase):
             session.delete(security_manager.find_role(TEST_ROLE_NAME))
             session.commit()
 
+    def test_dashboard_endpoint_malicious_redirect(self):
+        # todo(gianluca.ciccarelli@bolt.eu): I need a dashboard ID that will
+        #  never be used as a real ID in test.
+        resp = self.client.get(
+            '/superset/request_access?dashboard_id=1001&action=go&',
+            follow_redirects=True)
+        assert resp.status_code == 404
+
     def test_request_access(self):
         if app.config.get("ENABLE_ACCESS_REQUEST"):
             session = db.session
