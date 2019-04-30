@@ -43,6 +43,9 @@ import pandas
 import sqlalchemy as sqla
 from sqlalchemy import Column, select, types
 from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
@@ -106,7 +109,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    time_grain_functions = {}
+    time_grain_functions: dict = {}
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -114,8 +117,8 @@ class BaseEngineSpec(object):
     allows_subquery = True
     supports_column_aliases = True
     force_column_alias_quotes = False
-    arraysize = None
-    max_column_name_length = None
+    arraysize = 0
+    max_column_name_length = 0
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -353,7 +356,7 @@ class BaseEngineSpec(object):
         return sorted(inspector.get_view_names(schema))
 
     @classmethod
-    def get_columns(cls, inspector, table_name, schema):
+    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
@@ -740,7 +743,7 @@ class MySQLEngineSpec(BaseEngineSpec):
               'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
     }
 
-    type_code_map = {}  # loaded from get_datatype only if needed
+    type_code_map: dict = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -820,7 +823,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return []
 
     @classmethod
-    def _create_column_info(cls, column, name, data_type):
+    def _create_column_info(cls, column: RowProxy, name: str, data_type: str) -> dict:
         """
         Create column info object
         :param column: column object
@@ -837,7 +840,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def _get_full_name(cls, names):
+    def _get_full_name(cls, names: list) -> str:
         """
         Get the full column name
         :param names: list of all individual column names
@@ -846,18 +849,20 @@ class PrestoEngineSpec(BaseEngineSpec):
         return '.'.join(row_type[0] for row_type in names if row_type[0] is not None)
 
     @classmethod
-    def _has_nested_data_types(cls, component_type):
+    def _has_nested_data_types(cls, component_type: str) -> bool:
         """
         Check if string contains a data type. We determine if there is a data type by
         whitespace or multiple data types by commas
         :param component_type: data type
         :return: boolean
         """
-        return re.search(r',(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)', component_type) \
-            or re.search(r'\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)', component_type)
+        comma_regex = r',(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+        white_space_regex = r'\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+        return re.search(comma_regex, component_type) is not None \
+            or re.search(white_space_regex, component_type) is not None
 
     @classmethod
-    def _split_data_type(cls, data_type, delimiter):
+    def _split_data_type(cls, data_type: str, delimiter: str) -> list:
         """
         Split data type based on given delimiter. Do not split the string if the
         delimiter is enclosed in quotes
@@ -870,7 +875,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
 
     @classmethod
-    def _parse_structural_column(cls, column, result):
+    def _parse_structural_column(cls, column: RowProxy, result: list) -> None:
         """
         Parse a row or array column
         :param column: column
@@ -880,7 +885,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # split on open parenthesis ( to get the structural
         # data type and its component types
         data_types = cls._split_data_type(full_data_type, r'\(')
-        stack = []
+        stack: list = []
         for data_type in data_types:
             # split on closed parenthesis ) to track which component
             # types belong to what structural data type
@@ -929,7 +934,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     stack.pop()
 
     @classmethod
-    def _show_columns(cls, inspector, table_name, schema):
+    def _show_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
@@ -945,7 +950,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return columns
 
     @classmethod
-    def get_columns(cls, inspector, table_name, schema):
+    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
@@ -956,7 +961,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 (i.e. column name and data type)
         """
         columns = cls._show_columns(inspector, table_name, schema)
-        result = []
+        result: list = []
         for column in columns:
             try:
                 # parse column if it is a row or array
@@ -973,14 +978,17 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result
 
     @classmethod
-    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True, cols=None):
+    def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
+                    limit: int = 100, show_cols: bool = False, indent: bool = True,
+                    latest_partition: bool = True, cols: list = []) -> str:
         """
         Temporary method until we have a function that can handle row and array columns
         """
         presto_cols = cols
         if show_cols:
-            presto_cols = list(filter(lambda col: '.' not in col['name'], presto_cols))
+            dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
+            presto_cols = [
+                col for col in presto_cols if re.search(dot_regex, col['name']) is None]
         return super(PrestoEngineSpec, cls).select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, presto_cols,
@@ -1496,7 +1504,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def get_columns(cls, inspector, table_name, schema):
+    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
