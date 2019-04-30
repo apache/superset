@@ -841,13 +841,13 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def _get_full_name(cls, names: List[str]) -> str:
+    def _get_full_name(cls, names: List[Tuple[str, str]]) -> str:
         """
         Get the full column name
         :param names: list of all individual column names
         :return: full column name
         """
-        return '.'.join(row_type[0] for row_type in names if row_type[0] is not None)
+        return '.'.join(column[0] for column in names if column[0])
 
     @classmethod
     def _has_nested_data_types(cls, component_type: str) -> bool:
@@ -886,7 +886,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # split on open parenthesis ( to get the structural
         # data type and its component types
         data_types = cls._split_data_type(full_data_type, r'\(')
-        stack: List[Tuple[str,str]] = []
+        stack: List[Tuple[str, str]] = []
         for data_type in data_types:
             # split on closed parenthesis ) to track which component
             # types belong to what structural data type
@@ -927,7 +927,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 # We have an array of row objects (i.e. array(row(...)))
                 elif 'array' == inner_type or 'row' == inner_type:
                     # Push a dummy object to represent the structural data type
-                    stack.append((None, inner_type))
+                    stack.append(('', inner_type))
                 # We have an array of a basic data types(i.e. array(varchar)).
                 elif len(stack) > 0:
                     # Because it is an array of a basic data type. We have finished
@@ -935,7 +935,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                     stack.pop()
 
     @classmethod
-    def _show_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def _show_columns(
+            cls, inspector: Inspector, table_name: str, schema: str) -> List[RowProxy]:
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
@@ -951,7 +952,8 @@ class PrestoEngineSpec(BaseEngineSpec):
         return columns
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def get_columns(
+            cls, inspector: Inspector, table_name: str, schema: str) -> List[dict]:
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
@@ -1505,7 +1507,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> List[dict]:
+    def get_columns(
+            cls, inspector: Inspector, table_name: str, schema: str) -> List[dict]:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
@@ -1538,6 +1541,14 @@ class HiveEngineSpec(PrestoEngineSpec):
     def _partition_query(
             cls, table_name, limit=0, order_by=None, filters=None):
         return f'SHOW PARTITIONS {table_name}'
+
+    @classmethod
+    def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
+                    limit: int = 100, show_cols: bool = False, indent: bool = True,
+                    latest_partition: bool = True, cols: List[dict] = []) -> str:
+        return super(PrestoEngineSpec, cls).select_star(
+            my_db, table_name, engine, schema, limit,
+            show_cols, indent, latest_partition, cols)
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user, username):
