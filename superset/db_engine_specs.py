@@ -36,6 +36,7 @@ import os
 import re
 import textwrap
 import time
+from typing import List, Tuple
 
 from flask import g
 from flask_babel import lazy_gettext as _
@@ -840,7 +841,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def _get_full_name(cls, names: list) -> str:
+    def _get_full_name(cls, names: List[str]) -> str:
         """
         Get the full column name
         :param names: list of all individual column names
@@ -862,20 +863,20 @@ class PrestoEngineSpec(BaseEngineSpec):
             or re.search(white_space_regex, component_type) is not None
 
     @classmethod
-    def _split_data_type(cls, data_type: str, delimiter: str) -> list:
+    def _split_data_type(cls, data_type: str, delimiter: str) -> List[str]:
         """
         Split data type based on given delimiter. Do not split the string if the
         delimiter is enclosed in quotes
         :param data_type: data type
         :param delimiter: string separator (i.e. open parenthesis, closed parenthesis,
                comma, whitespace)
-        :return:list of strings after breaking it by the delimiter
+        :return: list of strings after breaking it by the delimiter
         """
         return re.split(
             r'{}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'.format(delimiter), data_type)
 
     @classmethod
-    def _parse_structural_column(cls, column: RowProxy, result: list) -> None:
+    def _parse_structural_column(cls, column: RowProxy, result: List[dict]) -> None:
         """
         Parse a row or array column
         :param column: column
@@ -885,7 +886,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         # split on open parenthesis ( to get the structural
         # data type and its component types
         data_types = cls._split_data_type(full_data_type, r'\(')
-        stack: list = []
+        stack: List[Tuple[str,str]] = []
         for data_type in data_types:
             # split on closed parenthesis ) to track which component
             # types belong to what structural data type
@@ -961,7 +962,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 (i.e. column name and data type)
         """
         columns = cls._show_columns(inspector, table_name, schema)
-        result: list = []
+        result: List[dict] = []
         for column in columns:
             try:
                 # parse column if it is a row or array
@@ -980,7 +981,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
                     limit: int = 100, show_cols: bool = False, indent: bool = True,
-                    latest_partition: bool = True, cols: list = []) -> str:
+                    latest_partition: bool = True, cols: List[dict] = []) -> str:
         """
         Temporary method until we have a function that can handle row and array columns
         """
@@ -1504,7 +1505,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             polled = cursor.poll()
 
     @classmethod
-    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> list:
+    def get_columns(cls, inspector: Inspector, table_name: str, schema: str) -> List[dict]:
         return inspector.get_columns(table_name, schema)
 
     @classmethod
