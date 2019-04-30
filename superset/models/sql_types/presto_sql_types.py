@@ -26,7 +26,7 @@ class TinyInteger(Integer):
     """
     A type for tiny ``int`` integers.
     """
-    def _compiler_dispatch(self, visitor, **kw):
+    def _compiler_dispatch(self, _visitor, **_kw):
         return 'TINYINT'
 
 
@@ -34,7 +34,7 @@ class Interval(TypeEngine):
     """
     A type for intervals.
     """
-    def _compiler_dispatch(self, visitor, **kw):
+    def _compiler_dispatch(self, _visitor, **_kw):
         return 'INTERVAL'
 
 
@@ -43,7 +43,7 @@ class Array(TypeEngine):
     """
     A type for arrays.
     """
-    def _compiler_dispatch(self, visitor, **kw):
+    def _compiler_dispatch(self, _visitor, **_kw):
         return 'ARRAY'
 
 
@@ -52,7 +52,7 @@ class Map(TypeEngine):
     """
     A type for maps.
     """
-    def _compiler_dispatch(self, visitor, **kw):
+    def _compiler_dispatch(self, _visitor, **_kw):
         return 'MAP'
 
 
@@ -61,7 +61,7 @@ class Row(TypeEngine):
     """
     A type for rows.
     """
-    def _compiler_dispatch(self, visitor, **kw):
+    def _compiler_dispatch(self, _visitor, **_kw):
         return 'ROW'
 
 
