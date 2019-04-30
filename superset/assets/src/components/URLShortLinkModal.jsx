@@ -26,6 +26,7 @@ import ModalTrigger from './ModalTrigger';
 
 const propTypes = {
   url: PropTypes.string,
+  origin: PropTypes.string,
   emailSubject: PropTypes.string,
   emailContent: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
@@ -46,7 +47,11 @@ class URLShortLinkModal extends React.Component {
   }
 
   onShortUrlSuccess(shortUrl) {
-    this.setState(() => ({ shortUrl }));
+    this.setState(() => {
+      const baseUrl = this.props.origin;
+      const url = `${baseUrl}${shortUrl}`;
+      return { 'shortUrl': url }
+    });
   }
 
   setModalRef(ref) {
@@ -85,6 +90,7 @@ class URLShortLinkModal extends React.Component {
 
 URLShortLinkModal.defaultProps = {
   url: window.location.href.substring(window.location.origin.length),
+  origin: window.location.origin,
   emailSubject: '',
   emailContent: '',
 };

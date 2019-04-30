@@ -804,8 +804,7 @@ class R(BaseSupersetView):
         db.session.add(obj)
         db.session.commit()
         return Response(
-            '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
-                scheme=request.scheme, request=request, obj=obj),
+            '/r/{obj.id}'.format(obj=obj),
             mimetype='text/plain')
 
 

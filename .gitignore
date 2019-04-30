@@ -77,3 +77,5 @@ celerybeat.pid
 geckodriver.log
 ghostdriver.log
 testCSV.csv
+cypress
+superset/assets/output

@@ -26,6 +26,7 @@ import URLShortLinkButton from '../../../src/components/URLShortLinkButton';
 describe('URLShortLinkButton', () => {
   const defaultProps = {
     url: 'mockURL',
+    origin: 'http://mock-remote/',
     emailSubject: 'Mock Subject',
     emailContent: 'mock content',
   };
@@ -40,4 +41,11 @@ describe('URLShortLinkButton', () => {
     const wrapper = setup();
     expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
   });
+
+  it('prepend origin to short-url', () => {
+    const wrapper = setup();
+    const inst = wrapper.instance();
+    inst.onShortUrlSuccess('/my-mock-url');
+    expect(wrapper.state().shortUrl).toEqual(defaultProps.origin+'/my-mock-url');
+  })
 });
