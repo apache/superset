@@ -890,7 +890,7 @@ and will add a button called "Schedule Query" to SQL Lab. When the button is
 clicked, a modal will show up where the user can add the metadata required for
 scheduling the query.
 
-This information can then be retrieved from the endpoint https://superset-staging.lyft.net/savedqueryviewapi/api/read
+This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read`
 and used to schedule the queries that have `scheduled_queries` in their JSON
 metadata. For schedulers other than Airflow, additional fields can be easily
 added to the configuration file above.
