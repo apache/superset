@@ -44,7 +44,7 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { isFeatureEnabled } from '../../featureFlags';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const SQL_EDITOR_PADDING = 10;
 const SQL_TOOLBAR_HEIGHT = 51;
@@ -315,7 +315,7 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
-            {isFeatureEnabled('SCHEDULED_QUERIES') &&
+            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">
               <ScheduleQueryButton
                 defaultLabel={qe.title}
