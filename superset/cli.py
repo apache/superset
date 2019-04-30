@@ -28,7 +28,7 @@ import werkzeug.serving
 import yaml
 
 from superset import (
-    app, data, db, security_manager,
+    app, appbuilder, data, db, security_manager,
 )
 from superset.utils import (
     core as utils, dashboard_import_export, dict_import_export)
@@ -50,6 +50,7 @@ def make_shell_context():
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
+    appbuilder.add_permissions(update_perms=True)
     security_manager.sync_role_definitions()
 
 
