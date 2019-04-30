@@ -826,64 +826,64 @@ To allow scheduled queries, add the following to your `config.py`:
 
 .. code-block:: python
 
-	FEATURE_FLAGS = {
-		# Configuration for scheduling queries from SQL Lab. This information is
-		# collected when the user clicks "Schedule query", and saved into the `extra`
-		# field of saved queries.
-		# See: https://github.com/mozilla-services/react-jsonschema-form
-		'SCHEDULED_QUERIES': {
-			'JSONSCHEMA': {
-				'title': 'Schedule',
-				'description': (
-					'In order to schedule a query, you need to specify when it '
-					'should start running, when it should stop running, and how '
-					'often it should run. You can also optionally specify '
-					'dependencies that should be met before the query is '
-					'executed. Please read the documentation for best practices '
-					'and more information on how to specify dependencies.'
-				),
-				'type': 'object',
-				'properties': {
-					'output_table': {
-						'type': 'string',
-						'title': 'Output table name',
-					},
-					'start_date': {
-						'type': 'string',
-						'format': 'date-time',
-						'title': 'Start date',
-					},
-					'end_date': {
-						'type': 'string',
-						'format': 'date-time',
-						'title': 'End date',
-					},
-					'schedule_interval': {
-						'type': 'string',
-						'title': 'Schedule interval',
-					},
-					'dependencies': {
-						'type': 'array',
-						'title': 'Dependencies',
-						'items': {
-							'type': 'string',
-						},
-					},
-				},
-			},
-			'UISCHEMA': {
-				'schedule_interval': {
-					'ui:placeholder': '@daily, @weekly, etc.',
-				},
-				'dependencies': {
-					'ui:help': (
-						'Check the documentation for the correct format when '
-						'defining dependencies.'
-					),
-				},
-			},
-		},
-	}
+    FEATURE_FLAGS = {
+        # Configuration for scheduling queries from SQL Lab. This information is
+        # collected when the user clicks "Schedule query", and saved into the `extra`
+        # field of saved queries.
+        # See: https://github.com/mozilla-services/react-jsonschema-form
+        'SCHEDULED_QUERIES': {
+            'JSONSCHEMA': {
+                'title': 'Schedule',
+                'description': (
+                    'In order to schedule a query, you need to specify when it '
+                    'should start running, when it should stop running, and how '
+                    'often it should run. You can also optionally specify '
+                    'dependencies that should be met before the query is '
+                    'executed. Please read the documentation for best practices '
+                    'and more information on how to specify dependencies.'
+                ),
+                'type': 'object',
+                'properties': {
+                    'output_table': {
+                        'type': 'string',
+                        'title': 'Output table name',
+                    },
+                    'start_date': {
+                        'type': 'string',
+                        'format': 'date-time',
+                        'title': 'Start date',
+                    },
+                    'end_date': {
+                        'type': 'string',
+                        'format': 'date-time',
+                        'title': 'End date',
+                    },
+                    'schedule_interval': {
+                        'type': 'string',
+                        'title': 'Schedule interval',
+                    },
+                    'dependencies': {
+                        'type': 'array',
+                        'title': 'Dependencies',
+                        'items': {
+                            'type': 'string',
+                        },
+                    },
+                },
+            },
+            'UISCHEMA': {
+                'schedule_interval': {
+                    'ui:placeholder': '@daily, @weekly, etc.',
+                },
+                'dependencies': {
+                    'ui:help': (
+                        'Check the documentation for the correct format when '
+                        'defining dependencies.'
+                    ),
+                },
+            },
+        },
+    }
 
 This feature flag is based on [react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form),
 and will add a button called "Schedule Query" to SQL Lab. When the button is 
