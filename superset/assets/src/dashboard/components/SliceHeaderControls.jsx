@@ -21,9 +21,14 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
 import { t } from '@superset-ui/translation';
+import URLShortLinkModal from '../../components/URLShortLinkModal';
+import getDashboardUrl from '../util/getDashboardUrl';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
+  componentId: PropTypes.string.isRequired,
+  filters: PropTypes.object.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
   cachedDttm: PropTypes.string,
@@ -97,7 +102,15 @@ class SliceHeaderControls extends React.PureComponent {
   }
 
   render() {
-    const { slice, isCached, cachedDttm, updatedDttm } = this.props;
+    const {
+      slice,
+      isCached,
+      cachedDttm,
+      updatedDttm,
+      filters,
+      componentId,
+      addDangerToast,
+    } = this.props;
     const cachedWhen = moment.utc(cachedDttm).fromNow();
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const refreshTooltip = isCached
@@ -145,6 +158,18 @@ class SliceHeaderControls extends React.PureComponent {
               {t('Explore chart')}
             </MenuItem>
           )}
+
+          <URLShortLinkModal
+            url={getDashboardUrl(
+              window.location.pathname,
+              filters,
+              componentId,
+            )}
+            addDangerToast={addDangerToast}
+            isMenuItem
+            title={t('Share chart')}
+            triggerNode={<span>{t('Share chart')}</span>}
+          />
         </Dropdown.Menu>
       </Dropdown>
     );

@@ -22,6 +22,7 @@ export enum FeatureFlag {
   SCOPED_FILTER = 'SCOPED_FILTER',
   OMNIBAR = 'OMNIBAR',
   TAGGING_SYSTEM = 'TAGGING_SYSTEM',
+  CLIENT_CACHE = 'CLIENT_CACHE',
 }
 
 export type FeatureFlagMap = {

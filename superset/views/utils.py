@@ -24,7 +24,7 @@ import simplejson as json
 
 from superset import app, db, viz
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.legacy import cast_form_data, update_time_range
+from superset.legacy import update_time_range
 import superset.models.core as models
 
 
@@ -138,10 +138,6 @@ def get_form_data(slice_id=None, use_slice_data=False):
             url_form_data.update(form_data)
             form_data = url_form_data
 
-    if request.args.get('viz_type'):
-        # Converting old URLs
-        form_data = cast_form_data(form_data)
-
     form_data = {
         k: v
         for k, v in form_data.items()
@@ -153,8 +149,8 @@ def get_form_data(slice_id=None, use_slice_data=False):
     slice_id = form_data.get('slice_id') or slice_id
     slc = None
 
-    # Check if form data only contains slice_id and additional filters
-    valid_keys = ['slice_id', 'extra_filters', 'adhoc_filters']
+    # Check if form data only contains slice_id, additional filters and viz type
+    valid_keys = ['slice_id', 'extra_filters', 'adhoc_filters', 'viz_type']
     valid_slice_id = all(key in valid_keys for key in form_data)
 
     # Include the slice_form_data if request from explore or slice calls

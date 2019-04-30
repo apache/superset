@@ -236,13 +236,14 @@ class Header extends React.PureComponent {
       colorScheme,
       filters,
       dashboardInfo,
+      refreshFrequency,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
       colorScheme,
       colorNamespace,
     );
-    const labelColors = scale.getColorMap();
+    const labelColors = colorScheme ? scale.getColorMap() : {};
     const data = {
       positions,
       expanded_slices: expandedSlices,
@@ -252,6 +253,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       default_filters: safeStringify(filters),
+      refresh_frequency: refreshFrequency,
     };
 
     // make sure positions data less than DB storage limitation:

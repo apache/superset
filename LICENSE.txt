@@ -231,5 +231,3 @@ BSD 3-Clause licenses
 ========================================================================
 Creative Commons Attribution 4.0
 ========================================================================
-
-    (Creative Commons Attribution 4.0) diva-gis (http://www.diva-gis.org/Data)

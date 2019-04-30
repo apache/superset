@@ -21,6 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { t } from '@superset-ui/translation';
 
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
@@ -28,7 +29,7 @@ import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { getFormDataFromControls } from '../store';
+import { getFormDataFromControls } from '../controlUtils';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
@@ -47,17 +48,11 @@ const keymap = {
     SAVE: 'ctrl + s',
 };
 
-const getHotKeys = () => {
-  const d = [];
-  Object.keys(keymap).forEach((k) => {
-    d.push({
-      name: k,
-      descr: keymap[k],
-      key: k,
-    });
-  });
-  return d;
-};
+const getHotKeys = () => Object.keys(keymap).map(k => ({
+  name: k,
+  descr: keymap[k],
+  key: k,
+}));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -100,6 +95,12 @@ class ExploreViewContainer extends React.Component {
     document.addEventListener('keydown', this.handleKeydown);
     this.addHistory({ isReplace: true });
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+
+    // Trigger the chart if there are no errors
+    const { chart } = this.props;
+    if (!this.hasErrors()) {
+      this.props.actions.triggerQuery(true, this.props.chart.id);
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -272,12 +273,13 @@ class ExploreViewContainer extends React.Component {
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
+    const ctrls = this.props.controls;
     for (const controlName in this.props.controls) {
       const control = this.props.controls[controlName];
       if (control.validationErrors && control.validationErrors.length > 0) {
         errors.push(
           <div key={controlName}>
-            <strong>{`[ ${control.label} ] `}</strong>
+            {t('Control labeled ')}<strong>{` "${control.label}" `}</strong>
             {control.validationErrors.join('. ')}
           </div>,
         );
@@ -322,7 +324,7 @@ class ExploreViewContainer extends React.Component {
         )}
         <div className="row">
           <div className="col-sm-4">
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
               <QueryAndSaveBtns
                 canAdd="True"
                 onQuery={this.onQuery}
@@ -333,7 +335,7 @@ class ExploreViewContainer extends React.Component {
                 errorMessage={this.renderErrorMessage()}
                 datasourceType={this.props.datasource_type}
               />
-              <div>
+              <div className="m-l-5 text-muted">
                 <Hotkeys
                   header="Keyboard shortcuts"
                   hotkeys={getHotKeys()}

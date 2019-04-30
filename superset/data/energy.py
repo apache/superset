@@ -16,8 +16,6 @@
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
 # pylint: disable=C,R,W
-import gzip
-import os
 import textwrap
 
 import pandas as pd
@@ -26,14 +24,16 @@ from sqlalchemy import Float, String
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.utils import core as utils
-from .helpers import DATA_FOLDER, merge_slice, misc_dash_slices, Slice, TBL
+from .helpers import (
+    DATA_FOLDER, get_example_data, merge_slice, misc_dash_slices, Slice, TBL,
+)
 
 
 def load_energy():
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = 'energy_usage'
-    with gzip.open(os.path.join(DATA_FOLDER, 'energy.json.gz')) as f:
-        pdf = pd.read_json(f)
+    data = get_example_data('energy.json.gz')
+    pdf = pd.read_json(data)
     pdf.to_sql(
         tbl_name,
         db.engine,

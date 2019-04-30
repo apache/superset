@@ -18,7 +18,7 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import sinon from 'sinon';
 import { Tabs as BootstrapTabs, Tab as BootstrapTab } from 'react-bootstrap';
 
@@ -153,5 +153,21 @@ describe('Tabs', () => {
     wrapper.find(DeleteComponentButton).simulate('click');
 
     expect(deleteComponent.callCount).toBe(1);
+  });
+
+  it('should direct display direct-link tab', () => {
+    let wrapper = shallow(<Tabs {...props} />);
+    // default show first tab child
+    expect(wrapper.state('tabIndex')).toBe(0);
+
+    // display child in directPathToChild list
+    const directPathToChild = dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
+    const directLinkProps = {
+      ...props,
+      directPathToChild,
+    };
+
+    wrapper = shallow(<Tabs {...directLinkProps} />);
+    expect(wrapper.state('tabIndex')).toBe(1);
   });
 });

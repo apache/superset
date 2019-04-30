@@ -23,10 +23,11 @@ import {
   changeFilter as addFilter,
   toggleExpandSlice,
 } from '../actions/dashboardState';
+import { updateComponents } from '../actions/dashboardLayout';
+import { addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
 
 const EMPTY_FILTERS = {};
@@ -43,7 +44,7 @@ function mapStateToProps(
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
-  const { filters, colorScheme } = dashboardState;
+  const { filters, colorScheme, colorNamespace } = dashboardState;
 
   return {
     chart,
@@ -59,6 +60,7 @@ function mapStateToProps(
       dashboardMetadata: dashboardInfo.metadata,
       filters,
       colorScheme,
+      colorNamespace,
       sliceId: id,
     }),
     editMode: dashboardState.editMode,
@@ -73,6 +75,7 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       updateComponents,
+      addDangerToast,
       toggleExpandSlice,
       addFilter,
       refreshChart,

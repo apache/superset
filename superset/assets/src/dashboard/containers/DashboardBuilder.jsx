@@ -33,6 +33,8 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
   return {
     dashboardLayout: undoableLayout.present,
     editMode: dashboardState.editMode,
+    showBuilderPane: dashboardState.showBuilderPane,
+    directPathToChild: dashboardState.directPathToChild,
     builderPaneType: dashboardState.builderPaneType,
     colorScheme: dashboardState.colorScheme,
   };

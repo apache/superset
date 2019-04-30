@@ -767,7 +767,7 @@ msgstr "Claves de la tabla"
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:119
 #, python-format
 msgid "View keys & indexes (%s)"
-msgstr "Ver claves e índices ($s)"
+msgstr "Ver claves e índices (%s)"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:135
 msgid "Sort columns alphabetically"

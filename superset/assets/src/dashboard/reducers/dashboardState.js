@@ -162,7 +162,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, hasUnsavedChanges };
     },
     [SET_REFRESH_FREQUENCY]() {
-      return { ...state, refreshFrequency: action.refreshFrequency };
+      return {
+        ...state,
+        refreshFrequency: action.refreshFrequency,
+        hasUnsavedChanges: true,
+      };
     },
   };
 

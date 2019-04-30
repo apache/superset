@@ -1301,10 +1301,11 @@ export const controls = {
 
   rotation: {
     type: 'SelectControl',
-    label: t('Rotation'),
+    label: t('Word Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
     renderTrigger: true,
-    default: 'flat',
+    default: 'square',
+    clearable: false,
     description: t('Rotation to apply to words in the cloud'),
   },
 
@@ -1386,7 +1387,7 @@ export const controls = {
   size_from: {
     type: 'TextControl',
     isInt: true,
-    label: t('Font Size From'),
+    label: t('Minimum Font Size'),
     renderTrigger: true,
     default: '20',
     description: t('Font size for the smallest value in the list'),
@@ -1395,7 +1396,7 @@ export const controls = {
   size_to: {
     type: 'TextControl',
     isInt: true,
-    label: t('Font Size To'),
+    label: t('Maximum Font Size'),
     renderTrigger: true,
     default: '150',
     description: t('Font size for the biggest value in the list'),
@@ -2088,6 +2089,17 @@ export const controls = {
     choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
     schemes: () => categoricalSchemeRegistry.getMap(),
+  },
+
+  label_colors: {
+    type: 'ColorMapControl',
+    label: t('Color Map'),
+    default: {},
+    renderTrigger: true,
+    mapStateToProps: state => ({
+      colorNamespace: state.form_data.color_namespace,
+      colorScheme: state.form_data.color_scheme,
+    }),
   },
 
   significance_level: {

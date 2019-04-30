@@ -385,9 +385,6 @@ npm run dev
 
 # Compile the Javascript and CSS in production/optimized mode for official releases
 npm run prod
-
-# Copy a conf file from the frontend to the backend
-npm run sync-backend
 ```
 
 #### Updating NPM packages
@@ -520,6 +517,12 @@ Run Cypress tests:
 cd /superset/superset/assets
 npm run build
 npm run cypress run
+
+# run tests from a specific file
+npm run cypress run -- --spec cypress/integration/explore/link.test.js
+
+# run specific file with video capture
+npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
 ```
 
 ## Translating

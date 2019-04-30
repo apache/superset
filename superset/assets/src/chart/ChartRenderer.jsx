@@ -199,9 +199,8 @@ class ChartRenderer extends React.Component {
 
     const isLoading = chartStatus === 'loading';
 
-    const skipChartRendering = isLoading || !!chartAlert;
+    const skipChartRendering = isLoading || !!chartAlert || chartStatus === null;
     this.renderStartTime = Logger.getTimestamp();
-
     return (
       <React.Fragment>
         {this.renderTooltip()}

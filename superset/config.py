@@ -200,7 +200,10 @@ LANGUAGES = {
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
-DEFAULT_FEATURE_FLAGS = {}
+DEFAULT_FEATURE_FLAGS = {
+    # Experimental feature introducing a client (browser) cache
+    'CLIENT_CACHE': False,
+}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -592,6 +595,8 @@ WEBDRIVER_BASEURL = 'http://0.0.0.0:8080/'
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+# Send user to a link where they can read more about Superset
+DOCUMENTATION_URL = None
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) of today in the local timezone
