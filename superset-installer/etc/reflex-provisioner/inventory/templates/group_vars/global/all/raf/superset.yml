@@ -36,7 +36,7 @@ superset_docker_images:
     tag: "{{ superset_image_tag }}"
 
 nginx_docker_images:
-  - name: {{ nginx_docker_image_name }}
+  - name: nginx-gvs
     tag: "{{ nginx_image_tag }}"
 
 superset_kube_namespace: default
