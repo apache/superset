@@ -96,10 +96,3 @@ export function roundDecimal(number, precision) {
   }
   return roundedNumber;
 }
-
-export function getCSRFToken() {
-  if (document && document.getElementById('csrf_token')) {
-    return document.getElementById('csrf_token').value;
-  }
-  return '';
-}

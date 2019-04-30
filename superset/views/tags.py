@@ -119,7 +119,10 @@ class TagView(BaseSupersetView):
         return Response(status=201)  # 201 CREATED
 
     @has_access_api
-    @expose('/tags/<object_type:object_type>/<int:object_id>/', methods=['DELETE'])
+    @expose(
+        '/tags/<object_type:object_type>/<int:object_id>/',
+        methods=['POST', 'DELETE'],
+    )
     def delete(self, object_type, object_id):
         """Remove tags from an object."""
         tag_names = request.get_json(force=True)

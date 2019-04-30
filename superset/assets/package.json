@@ -139,8 +139,7 @@
     "shortid": "^2.2.6",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^6.1.1",
-    "whatwg-fetch": "^3.0.0"
+    "viewport-mercator-project": "^6.1.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",

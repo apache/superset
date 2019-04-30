@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'whatwg-fetch';
-import { getCSRFToken } from './modules/utils';
+import { SupersetClient } from '@superset-ui/connection';
 
 export function fetchTags(options, callback, error) {
   if (options.objectType === undefined || options.objectId === undefined) {
@@ -27,31 +26,18 @@ export function fetchTags(options, callback, error) {
   const objectId = options.objectId;
   const includeTypes = options.includeTypes !== undefined ? options.includeTypes : false;
 
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  window.fetch(url)
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error(response.text());
-    })
-    .then(json => callback(
+  SupersetClient.get({ endpoint: `/tagview/tags/${objectType}/${objectId}/` })
+    .then(({ json }) => callback(
       json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)))
-    .catch(text => error(text));
+    .catch(response => error(response));
 }
 
 export function fetchSuggestions(options, callback, error) {
   const includeTypes = options.includeTypes !== undefined ? options.includeTypes : false;
-  window.fetch('/tagview/tags/suggestions/')
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error(response.text());
-    })
-    .then(json => callback(
+  SupersetClient.get({ endpoint: '/tagview/tags/suggestions/' })
+    .then(({ json }) => callback(
       json.filter(tag => tag.name.indexOf(':') === -1 || includeTypes)))
-    .catch(text => error(text));
+    .catch(response => error(response));
 }
 
 export function deleteTag(options, tag, callback, error) {
@@ -61,24 +47,12 @@ export function deleteTag(options, tag, callback, error) {
   const objectType = options.objectType;
   const objectId = options.objectId;
 
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  const CSRF_TOKEN = getCSRFToken();
-  window.fetch(url, {
-    body: JSON.stringify([tag]),
-    headers: {
-      'content-type': 'application/json',
-      'X-CSRFToken': CSRF_TOKEN,
-    },
-    credentials: 'same-origin',
-    method: 'DELETE',
+  SupersetClient.post({
+    endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+    postPayload: [tag],
   })
-  .then((response) => {
-    if (response.ok) {
-      callback(response.text());
-    } else {
-      error(response.text());
-    }
-  });
+    .then(() => callback())
+    .catch(response => error(response));
 }
 
 export function addTag(options, tag, callback, error) {
@@ -92,27 +66,15 @@ export function addTag(options, tag, callback, error) {
   if (tag.indexOf(':') !== -1 && !includeTypes) {
     return;
   }
-  const url = `/tagview/tags/${objectType}/${objectId}/`;
-  const CSRF_TOKEN = getCSRFToken();
-  window.fetch(url, {
-    body: JSON.stringify([tag]),
-    headers: {
-      'content-type': 'application/json',
-      'X-CSRFToken': CSRF_TOKEN,
-    },
-    credentials: 'same-origin',
-    method: 'POST',
+  SupersetClient.post({
+    endpoint: `/tagview/tags/${objectType}/${objectId}/`,
+    postPayload: [tag],
   })
-  .then((response) => {
-    if (response.ok) {
-      callback(response.text());
-    } else {
-      error(response.text());
-    }
-  });
+    .then(({ json }) => callback(json))
+    .catch(response => error(response));
 }
 
-export function fetchObjects(options, callback) {
+export function fetchObjects(options, callback, error) {
   const tags = options.tags !== undefined ? options.tags : '';
   const types = options.types;
 
@@ -120,13 +82,7 @@ export function fetchObjects(options, callback) {
   if (types) {
     url += `&types=${types}`;
   }
-  const CSRF_TOKEN = getCSRFToken();
-  window.fetch(url, {
-    headers: {
-      'X-CSRFToken': CSRF_TOKEN,
-    },
-    credentials: 'same-origin',
-  })
-    .then(response => response.json())
-    .then(json => callback(json));
+  SupersetClient.get({ endpoint: url })
+    .then(({ json }) => callback(json))
+    .catch(response => error(response));
 }
