@@ -315,7 +315,7 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
-            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
+            {FeatureFlag && isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) &&
             <span className="m-r-5">
               <ScheduleQueryButton
                 defaultLabel={qe.title}
