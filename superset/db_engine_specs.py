@@ -115,6 +115,7 @@ class BaseEngineSpec(object):
     force_column_alias_quotes = False
     arraysize = None
     max_column_name_length = None
+    supports_validation_queries = False
 
     @classmethod
     def get_time_expr(cls, expr, pdf, time_grain, grain):
@@ -479,6 +480,15 @@ class BaseEngineSpec(object):
         can be overridden."""
         return expression or column_name
 
+    @classmethod
+    def make_validation_query(cls, sql):
+        """
+        If the underlying engine supports it, modify the query sql to request
+        that the database validate the query instead of running it.
+        """
+        raise Exception(
+            f'Database engine {cls.engine} does not support validation queries')
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -785,6 +795,7 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
+    supports_validation_queries = True
 
     time_grain_functions = {
         None: '{col}',
@@ -1081,6 +1092,17 @@ class PrestoEngineSpec(BaseEngineSpec):
             return ''
         return df.to_dict()[field_to_return][0]
 
+    @classmethod
+    def make_validation_query(cls, sql):
+        """
+        Presto supports query-validation queries by prepending explain with a
+        type parameter.
+
+        For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
+        VALIDATE) SELECT 1 FROM default.mytable.
+        """
+        return f'EXPLAIN (TYPE VALIDATE) {sql}'
+
 
 class HiveEngineSpec(PrestoEngineSpec):
 
@@ -1088,6 +1110,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     engine = 'hive'
     max_column_name_length = 767
+    supports_validation_queries = False
 
     # Scoping regex at class level to avoid recompiling
     # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
@@ -1390,6 +1413,16 @@ class HiveEngineSpec(PrestoEngineSpec):
     def execute(cursor, query, async_=False):
         kwargs = {'async': async_}
         cursor.execute(query, **kwargs)
+
+
+    @classmethod
+    def make_validation_query(cls, sql):
+        """
+        Hive doesn't support query-validation queries, so we disable the handler
+        inherited from presto.
+        """
+        raise Exception(
+            f'Database engine {cls.engine} does not support validation queries')
 
 
 class MssqlEngineSpec(BaseEngineSpec):

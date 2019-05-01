@@ -2512,6 +2512,7 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
+        validate_only = request.form.get('validate_only') == 'true'
         template_params = json.loads(
             request.form.get('templateParams') or '{}')
         limit = int(request.form.get('queryLimit', 0))
@@ -2579,6 +2580,14 @@ class Superset(BaseSupersetView):
         # set LIMIT after template processing
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
+
+        # apply validation transform last -- after template processing
+        if validate_only:
+            spec = mydb.db_engine_spec
+            if not spec.supports_validation_queries:
+                json_error_response('{} does not support validation queries'
+                                    .format(spec.engine))
+            rendered_query = spec.make_validation_query(rendered_query)
 
         # Async request.
         if async_:
