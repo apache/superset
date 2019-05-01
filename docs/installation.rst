@@ -164,15 +164,6 @@ On windows the syntax for activating it is a bit different: ::
 Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
 To exit a virtualenv just type ``deactivate``.
 
-Anaconda Python's conda
------------------------
-
-conda environments do not work well with superset because not all required packages are available on conda-forge. This may
-change in the future. To use a virtualenv from conda, you must have installed conda's version of virtualenv which is
-patched to work with conda.
-
-    conda install --force-reinstall -y virtualenv
-
 Python's setup tools and pip
 ----------------------------
 Put all the chances on your side by getting the very latest ``pip``
@@ -200,7 +191,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    superset runserver -d
+    superset run
 
 
 After installation, you should be able to point your browser to the right
@@ -235,10 +226,8 @@ Refer to the
 `Gunicorn documentation <https://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
-Note that *gunicorn* does not
-work on Windows so the `superset runserver` command is not expected to work
-in that context. Also, note that the development web
-server (`superset runserver -d`) is not intended for production use.
+Note that the development web
+server (`superset run` or `flask run`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
 by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
