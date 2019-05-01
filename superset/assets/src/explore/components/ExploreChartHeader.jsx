@@ -32,10 +32,11 @@ import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import ObjectTags from '../../components/ObjectTags';
 import {
-    addTag,
-    deleteTag,
-    fetchSuggestions,
-    fetchTags,
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+  OBJECT_TYPES,
 } from '../../tags';
 
 const CHART_STATUS_MAP = {
@@ -62,7 +63,7 @@ class ExploreChartHeader extends React.PureComponent {
     super(props);
 
      this.fetchTags = fetchTags.bind(this, {
-      objectType: 'chart',
+      objectType: OBJECT_TYPES.CHART,
       objectId: props.chart.id,
       includeTypes: false,
     });
@@ -70,11 +71,11 @@ class ExploreChartHeader extends React.PureComponent {
       includeTypes: false,
     });
     this.deleteTag = deleteTag.bind(this, {
-      objectType: 'chart',
+      objectType: OBJECT_TYPES.CHART,
       objectId: props.chart.id,
     });
     this.addTag = addTag.bind(this, {
-      objectType: 'chart',
+      objectType: OBJECT_TYPES.CHART,
       objectId: props.chart.id,
       includeTypes: false,
     });

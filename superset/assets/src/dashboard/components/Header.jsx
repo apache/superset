@@ -29,7 +29,13 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import ObjectTags from '../../components/ObjectTags';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
-import { addTag, deleteTag, fetchSuggestions, fetchTags } from '../../tags';
+import {
+  addTag,
+  deleteTag,
+  fetchSuggestions,
+  fetchTags,
+  OBJECT_TYPES,
+} from '../../tags';
 
 import { chartPropShape } from '../util/propShapes';
 import {
@@ -118,7 +124,7 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
 
     this.fetchTags = fetchTags.bind(this, {
-      objectType: 'dashboard',
+      objectType: OBJECT_TYPES.DASHBOARD,
       objectId: props.dashboardInfo.id,
       includeTypes: false,
     });
@@ -126,11 +132,11 @@ class Header extends React.PureComponent {
       includeTypes: false,
     });
     this.deleteTag = deleteTag.bind(this, {
-      objectType: 'dashboard',
+      objectType: OBJECT_TYPES.DASHBOARD,
       objectId: props.dashboardInfo.id,
     });
     this.addTag = addTag.bind(this, {
-      objectType: 'dashboard',
+      objectType: OBJECT_TYPES.DASHBOARD,
       objectId: props.dashboardInfo.id,
       includeTypes: false,
     });
