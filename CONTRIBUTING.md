@@ -523,6 +523,7 @@ Run Cypress tests:
 ```bash
 cd /superset/superset/assets
 npm run build
+npm run install-cypress
 npm run cypress run
 ```
 
