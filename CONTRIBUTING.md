@@ -297,36 +297,9 @@ python setup.py build_sphinx
 
 Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps. 
 
-In addition you will need to install the mysql client to get mysql_config, which is required by mysqlclient in requirements-dev.txt.
-
-For Debian/Ubuntu:
-
-```bash
-sudo apt-get install -y libmysqlclient-dev
-```
-
-For OS X via brew:
-
-```bash
-brew install mysql-client
-echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> ~/.bash_profile
-source ~/.bash_profile
-```
-
-Developers should use a virtualenv. Anaconda Python users should make sure that conda installs the virtualenv package, otherwise conda packages won't play well with packages installed by pip. In addition, Anaconda Python installs its own version of certifi that must be removed minus dependencies for requirements.txt's certifi to install.
-
-```bash
-# Conda modified virtualenv on conda-forge to work with pip
-conda install --force-reinstall -y virtualenv
-
-# Remove certifi that came with the conda env, install of requirements.txt will restore
-conda remove certifi --force
-```
-
-For other Python's:
+Developers should use a virtualenv. 
 
 ```
-# Otherwise pip is fine
 pip install virtualenv
 ```
 
@@ -344,7 +317,7 @@ pip install -r requirements-dev.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in the app sqlite DB at ~/.superset/superset.db
+# Create an admin user in your metadata database
 fabmanager create-admin --app superset
 
 # Initialize the database
@@ -360,22 +333,6 @@ superset load_examples
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
-```
-
-#### Logging to the browser console
-
-This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console:
-
-```bash
-FLASK_ENV=development flask run -p 8088 --with-threads --reload --debugger --console-log
-```
-
-You can log anything to the browser console, including objects:
-
-```python
-from superset import app
-app.logger.error('An exception occurred!')
-app.logger.info(form_data)
 ```
 
 ### Frontend Assets
