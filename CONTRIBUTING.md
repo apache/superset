@@ -515,17 +515,19 @@ superset db upgrade
 superset init
 superset load_test_users
 superset load_examples
-superset runserver
+superset run --port 8081
 ```
 
 Run Cypress tests:
 
 ```bash
-cd /superset/superset/assets
+cd superset/assets
 npm run build
 npm run install-cypress
 npm run cypress run
 ```
+
+See [`superset/assets/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset/assets/cypress_build.sh).
 
 ## Translating
 
