@@ -53,46 +53,8 @@ def init():
     security_manager.sync_role_definitions()
 
 
-def debug_run(app, port, use_reloader):
-    click.secho(
-        '[DEPRECATED] As of Flask >=1.0.0, this command is no longer '
-        'supported, please use `flask run` instead, as documented in our '
-        'CONTRIBUTING.md',
-        fg='red',
-    )
-    click.secho('[example]', fg='yellow')
-    click.secho(
-        'flask run -p 8080 --with-threads --reload --debugger',
-        fg='green',
-    )
-
-
-def console_log_run(app, port, use_reloader):
-    from console_log import ConsoleLog
-    from gevent import pywsgi
-    from geventwebsocket.handler import WebSocketHandler
-
-    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
-
-    def run():
-        server = pywsgi.WSGIServer(
-            ('0.0.0.0', int(port)),
-            app,
-            handler_class=WebSocketHandler)
-        server.serve_forever()
-
-    if use_reloader:
-        from gevent import monkey
-        monkey.patch_all()
-        run = werkzeug.serving.run_with_reloader(run)
-
-    run()
-
-
 @app.cli.command()
 @click.option('--debug', '-d', is_flag=True, help='Start the web server in debug mode')
-@click.option('--console-log', is_flag=True,
-              help='Create logger that logs to the browser console (implies -d)')
 @click.option('--no-reload', '-n', 'use_reloader', flag_value=False,
               default=config.get('FLASK_USE_RELOAD'),
               help='Don\'t use the reloader in debug mode')
@@ -109,7 +71,7 @@ def console_log_run(app, port, use_reloader):
               help='Path to a UNIX socket as an alternative to address:port, e.g. '
                    '/var/run/superset.sock. '
                    'Will override the address and port values. [DEPRECATED]')
-def runserver(debug, console_log, use_reloader, address, port, timeout, workers, socket):
+def runserver(debug, use_reloader, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get('DEBUG') or console_log
     if debug:
@@ -120,10 +82,13 @@ def runserver(debug, console_log, use_reloader, address, port, timeout, workers,
             Fore.YELLOW + ' mode')
         print(Fore.BLUE + '-=' * 20)
         print(Style.RESET_ALL)
-        if console_log:
-            console_log_run(app, port, use_reloader)
-        else:
-            debug_run(app, port, use_reloader)
+        app.run(
+            host='0.0.0.0',
+            port=int(port),
+            threaded=True,
+            debug=True,
+            use_reloader=use_reloader
+        )
     else:
         logging.info(
             "The Gunicorn 'superset runserver' command is deprecated. Please "
@@ -212,8 +177,29 @@ def load_examples_run(load_test_data):
 @app.cli.command()
 @click.option('--load-test-data', '-t', is_flag=True, help='Load additional test data')
 def load_examples(load_test_data):
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+    """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data)
+
+@app.cli.group()
+def examples():
+    """Manages example Slices/Dashboards/datasets"""
+    pass
+
+@examples.command()
+def load():
+    """Load an example Slice/Dashboard/dataset"""
+    print("Used command 'load'")
+
+@examples.command()
+@click.option('--loaded', '-l', is_flag=True, default=False, help='List only loaded examples')
+def list():
+    """List example Slices/Dashboards/datasets"""
+    print("Used command 'list")
+
+@examples.command()
+def remove():
+    """Remove an example Slice/Dashboard/dataset"""
+    print("Used command 'remove'")
 
 
 @app.cli.command()
