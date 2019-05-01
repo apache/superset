@@ -974,7 +974,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 else:  # otherwise column is a basic data type
                     column_type = presto_type_map[column.Type]()
             except KeyError:
-                print('Did not recognize type {} of column {}'.format(
+                logging.info('Did not recognize type {} of column {}'.format(
                     column.Type, column.Column))
                 column_type = types.NullType
             result.append(cls._create_column_info(column, column.Column, column_type))
@@ -992,7 +992,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             dot_regex = r'\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'
             presto_cols = [
                 col for col in presto_cols if re.search(dot_regex, col['name']) is None]
-        return super(PrestoEngineSpec, cls).select_star(
+        return BaseEngineSpec.select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, presto_cols,
         )
@@ -1546,7 +1546,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def select_star(cls, my_db, table_name: str, engine: Engine, schema: str = None,
                     limit: int = 100, show_cols: bool = False, indent: bool = True,
                     latest_partition: bool = True, cols: List[dict] = []) -> str:
-        return super(PrestoEngineSpec, cls).select_star(
+        return BaseEngineSpec.select_star(
             my_db, table_name, engine, schema, limit,
             show_cols, indent, latest_partition, cols)
 
