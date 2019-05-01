@@ -40,5 +40,5 @@ export function initFeatureFlags(featureFlags: FeatureFlagMap) {
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {
-  return !!window.featureFlags[feature];
+  return window && window.featureFlags && !!window.featureFlags[feature];
 }
