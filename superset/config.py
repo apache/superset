@@ -417,6 +417,9 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
+# Timeout duration for SQL Lab query validation
+SQLLAB_VALIDATION_TIMEOUT = 10
+
 # SQLLAB_DEFAULT_DBID
 SQLLAB_DEFAULT_DBID = None
 

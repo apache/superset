@@ -56,6 +56,7 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import ParsedQuery
+from superset.sql_validators import SQL_VALIDATORS_BY_ENGINE
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.dates import now_as_float
@@ -2529,6 +2530,43 @@ class Superset(BaseSupersetView):
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
+        # Validation request.
+        if validate_only:
+            if len(template_params) > 0:
+                # TODO: factor the Database object out of template rendering
+                #       or provide it as mydb so we can render template params
+                #       without having to also persist a Query ORM object.
+                return json_error_response(
+                    'SQL validation does not support template parameters')
+
+            spec = mydb.db_engine_spec
+            if not spec.engine in SQL_VALIDATORS_BY_ENGINE:
+                return json_error_response(
+                    'no SQL validator is configured for {}'.format(spec.engine))
+            validator = SQL_VALIDATORS_BY_ENGINE[spec.engine]
+
+            try:
+                timeout = config.get('SQLLAB_VALIDATION_TIMEOUT')
+                timeout_msg = (
+                    f'The query exceeded the {timeout} seconds timeout.')
+                with utils.timeout(seconds=timeout,
+                                  error_message=timeout_msg):
+                    errors = validator.validate(sql, schema, mydb)
+                payload = json.dumps(
+                    [err.to_dict() for err in errors],
+                    default=utils.pessimistic_json_iso_dttm_ser,
+                    ignore_nan=True,
+                    encoding=None,
+                )
+                return json_success(payload)
+            except Exception as e:
+                logging.exception(e)
+                msg = _(
+                    'Failed to validate your SQL query text. Please check that '
+                    f'you have configured the {validator.name} validator '
+                    'correctly and that any services it depends on are up.')
+                return json_error_response(f'{msg}')
+
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
@@ -2580,14 +2618,6 @@ class Superset(BaseSupersetView):
         # set LIMIT after template processing
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
-
-        # apply validation transform last -- after template processing
-        if validate_only:
-            spec = mydb.db_engine_spec
-            if not spec.supports_validation_queries:
-                json_error_response('{} does not support validation queries'
-                                    .format(spec.engine))
-            rendered_query = spec.make_validation_query(rendered_query)
 
         # Async request.
         if async_:
